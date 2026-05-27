@@ -631,6 +631,21 @@ function App() {
   const [isGeneratingVoice, setIsGeneratingVoice] = useState(false)
   const [voiceGenerationError, setVoiceGenerationError] = useState<string>('')
 
+  // Bank Clips & Tabs states
+  const [libraryTab, setLibraryTab] = useState('Principal')
+  const [bankClips, setBankClips] = useState<Record<string, any[]>>({
+    originales: [],
+    stock: [],
+    remotion: [],
+    hyperframes: [],
+    veo3: []
+  })
+  const [isCuttingClips, setIsCuttingClips] = useState(false)
+  const [cuttingClipsError, setCuttingClipsError] = useState('')
+
+  // Timeline IA weights: [Originales, Remotion, Hyperframes, Veo3]
+  const [timelineWeights, setTimelineWeights] = useState<number[]>([40, 30, 20, 10])
+
   // Project persistence state
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false)
@@ -715,6 +730,7 @@ function App() {
           if (loadedData.voiceSpeed !== undefined) setVoiceSpeed(loadedData.voiceSpeed);
           if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
           setGeneratedVoices(loadedData.generatedVoices || []);
+          if (loadedData.timelineWeights !== undefined) setTimelineWeights(loadedData.timelineWeights);
           
           console.log('Project state autoloaded successfully:', loadedData);
         }
@@ -739,7 +755,7 @@ function App() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices]);
+  }, [clips, timelineVideoClips, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights]);
 
   // Save-on-close handler
   useEffect(() => {
@@ -768,7 +784,8 @@ function App() {
           voiceSpeaker,
           voiceSpeed,
           voiceStability,
-          generatedVoices
+          generatedVoices,
+          timelineWeights
         };
         
         try {
@@ -808,7 +825,8 @@ function App() {
         voiceSpeaker,
         voiceSpeed,
         voiceStability,
-        generatedVoices
+        generatedVoices,
+        timelineWeights
       };
 
       const res = await window.electronAPI.saveProjectState(stateToSave);
@@ -854,7 +872,8 @@ function App() {
         voiceSpeaker,
         voiceSpeed,
         voiceStability,
-        generatedVoices
+        generatedVoices,
+        timelineWeights
       };
 
       const res = await window.electronAPI.saveProjectAs(stateToSave);
@@ -934,6 +953,207 @@ function App() {
     setIsCopied(true)
     setTimeout(() => setIsCopied(false), 2050)
   }
+
+  const loadClipsForCategory = async (category: string) => {
+    try {
+      const res = await window.electronAPI.loadBankClips({ category });
+      if (res && res.success && res.clips) {
+        setBankClips(prev => ({
+          ...prev,
+          [category]: res.clips || []
+        }));
+      }
+    } catch (e) {
+      console.error(`Error al cargar clips para la categoría ${category}:`, e);
+    }
+  };
+
+  useEffect(() => {
+    if (libraryTab !== 'Principal') {
+      loadClipsForCategory(libraryTab.toLowerCase());
+    }
+  }, [libraryTab]);
+
+  const handleCutClipsClick = async () => {
+    const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
+    if (!firstVideoInLibrary) return;
+    setIsCuttingClips(true);
+    setCuttingClipsError('');
+    try {
+      const res = await window.electronAPI.cutVideoClips({
+        videoPath: firstVideoInLibrary.path,
+        segments: transcriptSegments
+      });
+      if (res && res.success && res.clips) {
+        setBankClips(prev => ({
+          ...prev,
+          originales: res.clips || []
+        }));
+        setLibraryTab('Originales');
+      } else {
+        setCuttingClipsError(res?.error || 'Error al cortar el video en clips.');
+      }
+    } catch (err: any) {
+      setCuttingClipsError(err.message || 'Excepción al realizar el corte del video.');
+    } finally {
+      setIsCuttingClips(false);
+    }
+  };
+
+  const handleWeightChange = (index: number, newValue: number) => {
+    const updatedWeights = [...timelineWeights];
+    updatedWeights[index] = newValue;
+
+    const otherIndices = [0, 1, 2, 3].filter(i => i !== index);
+    const sumOthers = otherIndices.reduce((sum, i) => sum + timelineWeights[i], 0);
+    const targetOthers = 100 - newValue;
+
+    if (sumOthers > 0) {
+      otherIndices.forEach(i => {
+        updatedWeights[i] = Math.round((timelineWeights[i] / sumOthers) * targetOthers);
+      });
+    } else {
+      otherIndices.forEach(i => {
+        updatedWeights[i] = Math.round(targetOthers / 3);
+      });
+    }
+
+    // Adjust rounding errors to match exactly 100
+    let currentSum = updatedWeights.reduce((sum, val) => sum + val, 0);
+    if (currentSum !== 100) {
+      const diff = 100 - currentSum;
+      let bestIndex = otherIndices[0];
+      let maxVal = updatedWeights[bestIndex];
+      otherIndices.forEach(i => {
+        if (updatedWeights[i] > maxVal) {
+          maxVal = updatedWeights[i];
+          bestIndex = i;
+        }
+      });
+      updatedWeights[bestIndex] = Math.max(0, updatedWeights[bestIndex] + diff);
+    }
+
+    setTimelineWeights(updatedWeights);
+  };
+
+  const handleBuildIATimeline = async () => {
+    if (!aiScript.trim()) return;
+    const paragraphs = aiScript.split('\n\n').map(p => p.trim()).filter(Boolean);
+    if (paragraphs.length === 0) return;
+
+    // Refresh bank clips before mounting
+    await loadClipsForCategory('originales');
+    await loadClipsForCategory('stock');
+    await loadClipsForCategory('remotion');
+    await loadClipsForCategory('hyperframes');
+    await loadClipsForCategory('veo3');
+
+    const [wOrig, wRemo, wHyper, wVeo] = timelineWeights;
+    const N = paragraphs.length;
+    
+    // Distribute counts based on percentage weights
+    const counts = [
+      Math.round(N * (wOrig / 100)),
+      Math.round(N * (wRemo / 100)),
+      Math.round(N * (wHyper / 100)),
+      Math.round(N * (wVeo / 100))
+    ];
+
+    // Align sum of counts to match paragraphs count N
+    let totalSum = counts.reduce((s, c) => s + c, 0);
+    while (totalSum !== N) {
+      if (totalSum < N) {
+        const maxWeightIdx = timelineWeights.indexOf(Math.max(...timelineWeights));
+        counts[maxWeightIdx]++;
+      } else {
+        let maxCountIdx = 0;
+        for (let i = 1; i < 4; i++) {
+          if (counts[i] > counts[maxCountIdx] && counts[i] > 0) {
+            maxCountIdx = i;
+          }
+        }
+        counts[maxCountIdx]--;
+      }
+      totalSum = counts.reduce((s, c) => s + c, 0);
+    }
+
+    // Interleaved category pool
+    const categoryPool: string[] = [];
+    const categoryNames = ['originales', 'remotion', 'hyperframes', 'veo3'];
+    const tempCounts = [...counts];
+    while (categoryPool.length < N) {
+      let added = false;
+      for (let cIdx = 0; cIdx < 4; cIdx++) {
+        if (tempCounts[cIdx] > 0) {
+          categoryPool.push(categoryNames[cIdx]);
+          tempCounts[cIdx]--;
+          added = true;
+        }
+      }
+      if (!added) break;
+    }
+
+    // Arrange clips on the timeline
+    const newTimelineClips: any[] = [];
+    let currentStartSeconds = 0;
+
+    for (let i = 0; i < N; i++) {
+      const paragraphText = paragraphs[i];
+      const category = categoryPool[i] || 'originales';
+      let categoryClips = bankClips[category] || [];
+
+      if (categoryClips.length === 0) {
+        // Fallback choices
+        categoryClips = bankClips['originales'] || [];
+        if (categoryClips.length === 0) {
+          categoryClips = bankClips['stock'] || bankClips['remotion'] || [];
+        }
+      }
+
+      let selectedClip: any = null;
+      if (categoryClips.length > 0) {
+        // Smart match by keywords
+        const words = paragraphText.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+        selectedClip = categoryClips.find(clip => {
+          const clipNameLower = clip.name.toLowerCase();
+          return words.some(w => clipNameLower.includes(w));
+        });
+
+        if (!selectedClip) {
+          // Fallback sequential
+          selectedClip = categoryClips[i % categoryClips.length];
+        }
+      }
+
+      if (selectedClip) {
+        newTimelineClips.push({
+          id: `timeline-${Math.random()}`,
+          name: `${selectedClip.name} (${category})`,
+          startSeconds: currentStartSeconds,
+          durationSeconds: selectedClip.durationSeconds,
+          type: 'video',
+          url: selectedClip.url,
+          path: selectedClip.path
+        });
+        currentStartSeconds += selectedClip.durationSeconds;
+      } else {
+        // Placeholder
+        const placeholderDuration = 4;
+        newTimelineClips.push({
+          id: `timeline-${Math.random()}`,
+          name: `[Placeholder ${category.toUpperCase()}] - Clip vacío`,
+          startSeconds: currentStartSeconds,
+          durationSeconds: placeholderDuration,
+          type: 'video'
+        });
+        currentStartSeconds += placeholderDuration;
+      }
+    }
+
+    setTimelineVideoClips(newTimelineClips);
+    pushHistory(newTimelineClips);
+    setSelectedTool(null); // return to AI tools index
+  };
 
   const handleGenerateVoiceClick = async () => {
     if (!aiScript.trim()) {
@@ -1329,6 +1549,23 @@ function App() {
             </button>
           </div>
 
+          {/* Library Tabs */}
+          <div className="flex border-b border-slate-800/80 bg-slate-900/40 p-1 overflow-x-auto scrollbar-none space-x-1 flex-shrink-0">
+            {['Principal', 'Originales', 'Stock', 'Remotion', 'Hyperframes'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setLibraryTab(tab)}
+                className={`text-[10px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer whitespace-nowrap ${
+                  libraryTab === tab 
+                    ? 'bg-indigo-600 text-white shadow-sm' 
+                    : 'text-slate-400 hover:text-slate-205 hover:bg-slate-800/50'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
           {/* Media Items List */}
           <div 
             className="flex-1 overflow-y-auto p-3 space-y-3"
@@ -1336,71 +1573,91 @@ function App() {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <div 
-              onClick={handleUploadClick}
-              className={`border border-dashed rounded-xl p-6 text-center flex flex-col items-center justify-center space-y-2 group cursor-pointer transition-all ${
-                isDragging 
-                  ? 'border-indigo-500 bg-indigo-500/10 scale-[0.98]' 
-                  : 'border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-500/5'
-              }`}
-            >
-              <FolderOpen className={`h-8 w-8 transition-colors ${isDragging ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
-              <p className="text-xs text-slate-400 font-medium">Arrastra clips de video o haz clic aquí</p>
-              <p className="text-[10px] text-slate-600">MP4, MOV, WAV, MP3</p>
-            </div>
-
-            {/* Clips List */}
-            {clips.map(clip => (
+            {libraryTab === 'Principal' && (
               <div 
-                key={clip.id}
-                onClick={() => handleClipClick(clip)}
-                className={`border rounded-xl overflow-hidden p-2 flex space-x-3 transition-all cursor-pointer relative group/clip ${
-                  activeVideoUrl === clip.url && clip.url
-                    ? 'bg-indigo-950/30 border-indigo-500/55'
-                    : 'bg-slate-900 border-slate-800/60 hover:border-slate-700'
+                onClick={handleUploadClick}
+                className={`border border-dashed rounded-xl p-6 text-center flex flex-col items-center justify-center space-y-2 group cursor-pointer transition-all ${
+                  isDragging 
+                    ? 'border-indigo-500 bg-indigo-500/10 scale-[0.98]' 
+                    : 'border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-500/5'
                 }`}
               >
-                <div className="w-20 h-14 bg-indigo-950/80 rounded-lg flex items-center justify-center relative overflow-hidden group">
-                  <Video className="h-5 w-5 text-indigo-400" />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Play className="h-4 w-4 text-white fill-white" />
+                <FolderOpen className={`h-8 w-8 transition-colors ${isDragging ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
+                <p className="text-xs text-slate-400 font-medium">Arrastra clips de video o haz clic aquí</p>
+                <p className="text-[10px] text-slate-600">MP4, MOV, WAV, MP3</p>
+              </div>
+            )}
+
+            {/* Clips List */}
+            {(() => {
+              const currentClips = libraryTab === 'Principal' 
+                ? clips 
+                : (bankClips[libraryTab.toLowerCase()] || []);
+              
+              if (currentClips.length === 0) {
+                return (
+                  <div className="text-center py-10 text-slate-500 text-xs italic">
+                    No hay clips en esta carpeta.
                   </div>
-                </div>
-                <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                  <div className="pr-12">
-                    <h4 className="text-xs font-semibold truncate" title={clip.name}>{clip.name}</h4>
-                    <p className="text-[10px] text-slate-500 truncate" title={clip.path}>{clip.size} • {clip.type === 'video' ? 'Video' : 'Audio'}</p>
+                );
+              }
+
+              return currentClips.map(clip => (
+                <div 
+                  key={clip.id}
+                  onClick={() => handleClipClick(clip)}
+                  className={`border rounded-xl overflow-hidden p-2 flex space-x-3 transition-all cursor-pointer relative group/clip ${
+                    activeVideoUrl === clip.url && clip.url
+                      ? 'bg-indigo-950/30 border-indigo-500/55'
+                      : 'bg-slate-900 border-slate-800/60 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="w-20 h-14 bg-indigo-950/80 rounded-lg flex items-center justify-center relative overflow-hidden group flex-shrink-0">
+                    {clip.thumbnailUrl ? (
+                      <img src={clip.thumbnailUrl} className="w-full h-full object-cover" alt="miniatura" />
+                    ) : (
+                      <Video className="h-5 w-5 text-indigo-400" />
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Play className="h-4 w-4 text-white fill-white" />
+                    </div>
                   </div>
-                  <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 self-start px-1.5 py-0.5 rounded-md">{clip.duration}</span>
-                </div>
-                <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover/clip:opacity-100 transition-opacity z-20">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addClipToTimeline(clip);
-                    }}
-                    className="p-1 bg-indigo-600 border border-indigo-500 hover:bg-indigo-500 rounded-md text-white shadow-sm"
-                    title="Añadir al Timeline"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                  {clip.type !== 'video' && (
+                  <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                    <div className="pr-12">
+                      <h4 className="text-xs font-semibold truncate" title={clip.name}>{clip.name}</h4>
+                      <p className="text-[10px] text-slate-500 truncate" title={clip.path}>{clip.size || 'N/A'} • {clip.type === 'video' ? 'Video' : 'Audio'}</p>
+                    </div>
+                    <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 self-start px-1.5 py-0.5 rounded-md">{clip.duration}</span>
+                  </div>
+                  <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover/clip:opacity-100 transition-opacity z-20">
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        setClips(prev => prev.filter(c => c.id !== clip.id));
-                        // Also filter out of the timeline track
-                        setTimelineVideoClips(prev => prev.filter(t => t.name !== clip.name));
+                        addClipToTimeline(clip);
                       }}
-                      className="p-1 bg-slate-950/85 border border-slate-800 hover:border-red-500/50 hover:text-red-400 rounded-md text-slate-400"
-                      title="Eliminar de la biblioteca"
+                      className="p-1 bg-indigo-600 border border-indigo-500 hover:bg-indigo-500 rounded-md text-white shadow-sm"
+                      title="Añadir al Timeline"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Plus className="h-3 w-3" />
                     </button>
-                  )}
+                    {libraryTab === 'Principal' && clip.type !== 'video' && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setClips(prev => prev.filter(c => c.id !== clip.id));
+                          // Also filter out of the timeline track
+                          setTimelineVideoClips(prev => prev.filter(t => t.name !== clip.name));
+                        }}
+                        className="p-1 bg-slate-950/85 border border-slate-800 hover:border-red-500/50 hover:text-red-400 rounded-md text-slate-400"
+                        title="Eliminar de la biblioteca"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
         </section>
 
@@ -1788,6 +2045,21 @@ function App() {
                   </div>
                   <p className="text-[11px] text-slate-400">Genera una pista de voz en off profesional a partir de tu guion reescrito usando clonación de voz.</p>
                 </div>
+
+                {/* Timeline IA Tool */}
+                <div 
+                  onClick={() => setSelectedTool('timeline-ia')}
+                  className="p-3 rounded-xl border bg-slate-900 border-slate-800/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Sparkles className="h-4 w-4 text-slate-400" />
+                      <span className="text-xs font-bold">Timeline IA / Montaje</span>
+                    </div>
+                    <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Montaje</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">Distribuye y organiza de forma inteligente tus clips en la línea de tiempo basado en la reescritura del guión.</p>
+                </div>
               </div>
              ) : (
               // Detailed Workspace for the Selected Tool (takes full height!)
@@ -1880,29 +2152,46 @@ function App() {
                                 className="w-full h-36 bg-slate-950/80 border border-slate-850 rounded-lg p-2 text-xs text-slate-200 outline-none focus:border-indigo-500/50 resize-y leading-relaxed font-sans scrollbar-thin select-text"
                                 placeholder="La transcripción de Whisper aparecerá aquí..."
                               />
-                            </div>
-
-                            {/* Rewrite Button / Action */}
+                            {/* Actions Group */}
                             <div className="space-y-2">
-                              {!isRewriting && (
-                                <button
-                                  onClick={handleRewriteClick}
-                                  disabled={!originalTranscriptText.trim()}
-                                  className={`w-full bg-gradient-to-r from-indigo-600 via-indigo-650 to-violet-650 hover:from-indigo-500 hover:to-violet-500 text-white text-xs py-2.5 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 flex items-center justify-center space-x-2 border border-indigo-500/20 ${
-                                    originalTranscriptText.trim() ? 'cursor-pointer opacity-100' : 'cursor-not-allowed opacity-50'
-                                  }`}
-                                >
-                                  <Sparkles className="h-3.5 w-3.5 animate-pulse text-indigo-250" />
-                                  <span>Reescribir a mi estilo</span>
-                                </button>
-                              )}
+                              <div className="flex space-x-2">
+                                {!isRewriting ? (
+                                  <button
+                                    onClick={handleRewriteClick}
+                                    disabled={!originalTranscriptText.trim()}
+                                    className={`flex-1 bg-gradient-to-r from-indigo-600 via-indigo-650 to-violet-650 hover:from-indigo-500 hover:to-violet-500 text-white text-xs py-2 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 flex items-center justify-center space-x-1.5 border border-indigo-500/20 ${
+                                      originalTranscriptText.trim() ? 'cursor-pointer opacity-100' : 'cursor-not-allowed opacity-55'
+                                    }`}
+                                  >
+                                    <Sparkles className="h-3.5 w-3.5 animate-pulse text-indigo-250 flex-shrink-0" />
+                                    <span>Reescribir</span>
+                                  </button>
+                                ) : (
+                                  <div className="flex-1 bg-slate-900 border border-indigo-500/30 rounded-xl py-2 px-3 flex items-center justify-center space-x-2">
+                                    <div className="w-3.5 h-3.5 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+                                    <span className="text-[10px] text-indigo-300 font-semibold animate-pulse">Reescribiendo...</span>
+                                  </div>
+                                )}
 
-                              {isRewriting && (
-                                <div className="w-full bg-slate-900 border border-indigo-500/30 rounded-xl p-3 flex flex-col items-center justify-center space-y-2">
-                                  <div className="w-5 h-5 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
-                                  <span className="text-[10px] text-indigo-300 font-semibold animate-pulse">Reescribiendo con DeepSeek...</span>
-                                </div>
-                              )}
+                                {!isCuttingClips ? (
+                                  <button
+                                    onClick={handleCutClipsClick}
+                                    disabled={transcriptSegments.length === 0}
+                                    className={`flex-1 bg-slate-800 hover:bg-slate-700 hover:text-indigo-400 text-slate-205 text-xs py-2 px-3 rounded-xl font-bold active:scale-95 transition-all flex items-center justify-center space-x-1.5 border border-slate-700/50 ${
+                                      transcriptSegments.length > 0 ? 'cursor-pointer opacity-100' : 'cursor-not-allowed opacity-55'
+                                    }`}
+                                    title="Analiza y segmenta el video usando los timestamps de la transcripción"
+                                  >
+                                    <Scissors className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+                                    <span>Cortar en Clips</span>
+                                  </button>
+                                ) : (
+                                  <div className="flex-1 bg-slate-900 border border-slate-700/30 rounded-xl py-2 px-3 flex items-center justify-center space-x-2">
+                                    <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-550/20 border-t-indigo-500 animate-spin" />
+                                    <span className="text-[10px] text-slate-400 font-semibold animate-pulse">Cortando...</span>
+                                  </div>
+                                )}
+                              </div>
 
                               {rewriteError && (
                                 <div className="text-[10px] text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl break-words">
@@ -1910,7 +2199,15 @@ function App() {
                                   <p className="font-mono text-[9px] select-text">{rewriteError}</p>
                                 </div>
                               )}
+
+                              {cuttingClipsError && (
+                                <div className="text-[10px] text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl break-words">
+                                  <p className="font-bold mb-0.5">Error al cortar clips:</p>
+                                  <p className="font-mono text-[9px] select-text">{cuttingClipsError}</p>
+                                </div>
+                              )}
                             </div>
+                          </div>
 
                              {/* Guión IA Panel */}
                             <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col space-y-2.5 shadow-xl">
@@ -2225,6 +2522,125 @@ function App() {
                           </div>
                         )}
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedTool === 'timeline-ia' && (
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="flex items-center justify-between mb-3 border-b border-slate-800/60 pb-2">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => setSelectedTool(null)}
+                          className="text-[10px] bg-slate-800 hover:bg-slate-700 hover:text-indigo-400 text-slate-300 font-bold px-2 py-0.5 rounded-md border border-slate-700/50 active:scale-95 transition-all cursor-pointer flex items-center space-x-1"
+                          title="Volver a la caja de herramientas"
+                        >
+                          <span>&larr; Volver</span>
+                        </button>
+                        <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wide">Timeline IA / Montaje</h3>
+                      </div>
+                      <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">IA Assembly</span>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
+                      <div className="bg-slate-900/90 border border-slate-805 rounded-xl p-3.5 flex flex-col space-y-4 shadow-xl">
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-200">Proporciones del Timeline IA</h4>
+                          <p className="text-[10px] text-slate-400 mt-1">Ajusta la composición de clips para el montaje automático. El total siempre sumará 100%.</p>
+                        </div>
+
+                        {/* Slider 1: Originales */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase font-sans">
+                            <span>Clips Originales</span>
+                            <span className="font-mono text-indigo-400 font-bold">{timelineWeights[0]}%</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0" 
+                            max="100" 
+                            value={timelineWeights[0]}
+                            onChange={(e) => handleWeightChange(0, parseInt(e.target.value))}
+                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
+                            style={{
+                              background: `linear-gradient(to right, rgb(99, 102, 241) ${timelineWeights[0]}%, rgb(30, 41, 59) 0%)`
+                            }}
+                          />
+                        </div>
+
+                        {/* Slider 2: Remotion */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase font-sans">
+                            <span>Clips de Remotion</span>
+                            <span className="font-mono text-indigo-400 font-bold">{timelineWeights[1]}%</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0" 
+                            max="100" 
+                            value={timelineWeights[1]}
+                            onChange={(e) => handleWeightChange(1, parseInt(e.target.value))}
+                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
+                            style={{
+                              background: `linear-gradient(to right, rgb(99, 102, 241) ${timelineWeights[1]}%, rgb(30, 41, 59) 0%)`
+                            }}
+                          />
+                        </div>
+
+                        {/* Slider 3: Hyperframes */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase font-sans">
+                            <span>Clips de Hyperframes</span>
+                            <span className="font-mono text-indigo-400 font-bold">{timelineWeights[2]}%</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0" 
+                            max="100" 
+                            value={timelineWeights[2]}
+                            onChange={(e) => handleWeightChange(2, parseInt(e.target.value))}
+                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
+                            style={{
+                              background: `linear-gradient(to right, rgb(99, 102, 241) ${timelineWeights[2]}%, rgb(30, 41, 59) 0%)`
+                            }}
+                          />
+                        </div>
+
+                        {/* Slider 4: Veo 3 */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase font-sans">
+                            <span>Clips de Veo 3</span>
+                            <span className="font-mono text-indigo-400 font-bold">{timelineWeights[3]}%</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0" 
+                            max="100" 
+                            value={timelineWeights[3]}
+                            onChange={(e) => handleWeightChange(3, parseInt(e.target.value))}
+                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
+                            style={{
+                              background: `linear-gradient(to right, rgb(99, 102, 241) ${timelineWeights[3]}%, rgb(30, 41, 59) 0%)`
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Build Timeline IA Button */}
+                      <button 
+                        onClick={handleBuildIATimeline}
+                        disabled={!aiScript.trim()}
+                        className="w-full bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2.5 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
+                        <span>Construir Timeline IA</span>
+                      </button>
+
+                      {!aiScript.trim() && (
+                        <div className="text-center py-2 text-[10px] text-slate-500 italic leading-relaxed">
+                          * Genera o reescribe un guión en el panel de transcripción antes de construir el Timeline IA.
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

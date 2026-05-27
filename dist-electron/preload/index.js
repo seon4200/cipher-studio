@@ -19,6 +19,8 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   },
   rewriteTranscript: (text) => electron.ipcRenderer.invoke("rewrite-transcript", text),
   generateVoice: (params) => electron.ipcRenderer.invoke("generate-voice", params),
+  loadBankClips: (params) => electron.ipcRenderer.invoke("load-bank-clips", params),
+  cutVideoClips: (params) => electron.ipcRenderer.invoke("cut-video-clips", params),
   saveProjectState: (state) => electron.ipcRenderer.invoke("save-project-state", state),
   loadProjectState: () => electron.ipcRenderer.invoke("load-project-state"),
   saveProjectAs: (state) => electron.ipcRenderer.invoke("save-project-as", state),

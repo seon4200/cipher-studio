@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
-import { spawn } from 'child_process'
+import { spawn, exec } from 'child_process'
 import fs from 'fs'
+import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds } from './services/ffmpeg'
 
 // Helper to manually load .env file in main process from multiple potential paths
 function loadEnv() {
@@ -97,7 +98,39 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(createWindow)
+function getBancoClipsPath(): string {
+  const cwd = process.cwd()
+  if (path.basename(cwd) === 'cipher-studio') {
+    return path.join(cwd, 'banco-clips')
+  } else {
+    return path.join(cwd, 'cipher-studio', 'banco-clips')
+  }
+}
+
+function initClipFolders() {
+  const bankDir = getBancoClipsPath()
+  const folders = [
+    '',
+    'originales',
+    'stock',
+    'remotion',
+    'hyperframes',
+    'veo3',
+    'thumbnails'
+  ]
+  for (const f of folders) {
+    const dirPath = path.join(bankDir, f)
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true })
+      console.log(`[initClipFolders] Carpeta creada: ${dirPath}`)
+    }
+  }
+}
+
+app.whenReady().then(() => {
+  initClipFolders()
+  createWindow()
+})
 
 app.on('window-all-closed', () => {
   win = null
@@ -558,4 +591,149 @@ ipcMain.handle('generate-voice', async (_event, { text, model, speaker, stabilit
     return { success: false, error: errMessage }
   }
 })
+
+// IPC handle for loading clips in a category folder of banco-clips
+ipcMain.handle('load-bank-clips', async (_event, { category }) => {
+  try {
+    const bankDir = getBancoClipsPath()
+    const dirPath = path.join(bankDir, category)
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true })
+    }
+
+    const files = fs.readdirSync(dirPath)
+    const bankClips: any[] = []
+
+    for (const file of files) {
+      const filePath = path.join(dirPath, file)
+      const stat = fs.statSync(filePath)
+      
+      // We only accept common video formats
+      if (stat.isFile() && /\.(mp4|mkv|avi|mov|webm)$/i.test(file)) {
+        const durationSeconds = await getVideoDuration(filePath)
+        const durationStr = formatTimeMinutesSeconds(durationSeconds)
+
+        // Find or generate thumbnail
+        const thumbnailName = `${path.basename(file, path.extname(file))}.jpg`
+        const thumbnailPath = path.join(bankDir, 'thumbnails', thumbnailName)
+        let thumbnailUrl = ''
+
+        if (fs.existsSync(thumbnailPath)) {
+          try {
+            thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString('base64')}`
+          } catch (e) {
+            console.error(`[load-bank-clips] Error al leer miniatura para ${file}:`, e)
+          }
+        } else {
+          try {
+            await generateVideoThumbnail(filePath, thumbnailPath)
+            if (fs.existsSync(thumbnailPath)) {
+              thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString('base64')}`
+            }
+          } catch (e) {
+            console.error(`[load-bank-clips] Error al generar miniatura para ${file}:`, e)
+          }
+        }
+
+        bankClips.push({
+          id: `bank-${category}-${file}`,
+          name: file,
+          path: filePath,
+          url: `file:///${filePath.replace(/\\/g, '/')}`,
+          duration: durationStr,
+          durationSeconds,
+          type: 'video',
+          size: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`,
+          thumbnailUrl
+        })
+      }
+    }
+
+    return { success: true, clips: bankClips }
+  } catch (err: any) {
+    console.error(`[load-bank-clips] Error: ${err.message}`)
+    return { success: false, error: err.message }
+  }
+})
+
+// IPC handle to automatically slice a video into segments based on Whisper timestamps
+ipcMain.handle('cut-video-clips', async (_event, { videoPath, segments }) => {
+  try {
+    console.log(`[cut-video-clips] Iniciando segmentación de: ${videoPath}`)
+    const bankDir = getBancoClipsPath()
+    const outDir = path.join(bankDir, 'originales')
+    if (!fs.existsSync(outDir)) {
+      fs.mkdirSync(outDir, { recursive: true })
+    }
+
+    const createdClips: any[] = []
+    const escapedVideo = videoPath.replace(/"/g, '\\"')
+    const baseName = path.basename(videoPath, path.extname(videoPath))
+
+    for (let idx = 0; idx < segments.length; idx++) {
+      const seg = segments[idx]
+      const start = seg.start
+      const end = seg.end
+      const duration = end - start
+
+      if (duration <= 0.1) continue // Ignore tiny segments
+
+      const clipFileName = `${baseName}_clip_${idx + 1}.mp4`
+      const clipPath = path.join(outDir, clipFileName)
+      const escapedClipPath = clipPath.replace(/"/g, '\\"')
+
+      console.log(`  - Cortando segmentación ${idx + 1}/${segments.length} (${start.toFixed(1)}s -> ${end.toFixed(1)}s)`)
+
+      await new Promise<void>((resolve, reject) => {
+        // We re-encode fast to ensure frame accuracy
+        const ffmpegCmd = `ffmpeg -y -ss ${start} -to ${end} -i "${escapedVideo}" -c:v libx264 -preset ultrafast -crf 23 -c:a aac "${escapedClipPath}"`
+        exec(ffmpegCmd, (err) => {
+          if (err) {
+            console.warn(`[cut-video-clips] FFmpeg re-encoding falló para clip ${idx + 1}, reintentando con -c copy:`, err.message)
+            // Fallback to fast copy
+            exec(`ffmpeg -y -ss ${start} -to ${end} -i "${escapedVideo}" -c copy "${escapedClipPath}"`, (err2) => {
+              if (err2) reject(err2)
+              else resolve()
+            })
+          } else {
+            resolve()
+          }
+        })
+      })
+
+      // Extract thumbnail
+      const thumbnailName = `${baseName}_clip_${idx + 1}.jpg`
+      const thumbnailPath = path.join(bankDir, 'thumbnails', thumbnailName)
+      let thumbnailUrl = ''
+      try {
+        await generateVideoThumbnail(clipPath, thumbnailPath)
+        if (fs.existsSync(thumbnailPath)) {
+          thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString('base64')}`
+        }
+      } catch (e) {
+        console.error(`[cut-video-clips] Error al generar miniatura para clip ${idx + 1}:`, e)
+      }
+
+      const stat = fs.statSync(clipPath)
+      createdClips.push({
+        id: `bank-originales-${clipFileName}`,
+        name: clipFileName,
+        path: clipPath,
+        url: `file:///${clipPath.replace(/\\/g, '/')}`,
+        duration: formatTimeMinutesSeconds(duration),
+        durationSeconds: duration,
+        type: 'video',
+        size: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`,
+        thumbnailUrl
+      })
+    }
+
+    console.log(`[cut-video-clips] Corte automático finalizado. Creados ${createdClips.length} clips.`)
+    return { success: true, clips: createdClips }
+  } catch (err: any) {
+    console.error(`[cut-video-clips] Error: ${err.message}`)
+    return { success: false, error: err.message }
+  }
+})
+
 

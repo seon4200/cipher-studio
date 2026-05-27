@@ -4,6 +4,8 @@ export interface IElectronAPI {
   onTranscriptionUpdate: (callback: (event: any, data: any) => void) => () => void;
   rewriteTranscript: (text: string) => Promise<{ success: boolean; data?: string; error?: string }>;
   generateVoice: (params: { text: string; model: string; speaker: string; speed: number; stability: number }) => Promise<{ success: boolean; filePath?: string; audioUrl?: string; error?: string }>;
+  loadBankClips: (params: { category: string }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
+  cutVideoClips: (params: { videoPath: string; segments: any[] }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
   saveProjectState: (state: any) => Promise<{ success: boolean; error?: string }>;
   loadProjectState: () => Promise<{ success: boolean; data?: any; error?: string }>;
   saveProjectAs: (state: any) => Promise<{ success: boolean; error?: string }>;
