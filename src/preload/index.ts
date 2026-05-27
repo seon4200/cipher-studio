@@ -21,11 +21,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   rewriteTranscript: (text: string) => ipcRenderer.invoke('rewrite-transcript', text),
   generateVoice: (params: any) => ipcRenderer.invoke('generate-voice', params),
   loadBankClips: (params: { category: string }) => ipcRenderer.invoke('load-bank-clips', params),
-  cutVideoClips: (params: { videoPath: string, segments: any[] }) => ipcRenderer.invoke('cut-video-clips', params),
+  cutVideoClips: (params: { videoPath: string, segments: any[], aspectRatio: string }) => ipcRenderer.invoke('cut-video-clips', params),
   saveProjectState: (state: any) => ipcRenderer.invoke('save-project-state', state),
   loadProjectState: () => ipcRenderer.invoke('load-project-state'),
   saveProjectAs: (state: any) => ipcRenderer.invoke('save-project-as', state),
   openProject: () => ipcRenderer.invoke('open-project'),
+  deleteBankClip: (params: { category: string, file: string }) => ipcRenderer.invoke('delete-bank-clip', params),
+  exportVideo: (params: { clips: any[], aspectRatio: string }) => ipcRenderer.invoke('export-video', params),
   onSaveBeforeClose: (callback: () => void) => {
     const listener = () => callback()
     ipcRenderer.on('save-before-close', listener)

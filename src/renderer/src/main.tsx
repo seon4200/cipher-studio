@@ -4,7 +4,7 @@ import {
   Play, Pause, FastForward, Rewind, Video, Volume2, VolumeX, Sparkles, 
   Scissors, Type, Languages, Download, Upload, Plus, 
   FolderOpen, Cpu, Trash2, Maximize, Copy, Clipboard, Crop, FlipHorizontal,
-  Undo, Redo
+  Undo, Redo, Sliders
 } from 'lucide-react'
 import './styles/globals.css'
 
@@ -25,6 +25,8 @@ interface TimelineClip {
   startSeconds: number;
   durationSeconds: number;
   type?: 'video' | 'audio';
+  path?: string;
+  url?: string;
 }
 
 interface GeneratedVoiceVersion {
@@ -82,12 +84,14 @@ function App() {
   const [isMuted, setIsMuted] = useState(false)
   const [playbackRate, setPlaybackRate] = useState(1)
   const [aspectRatio, setAspectRatio] = useState<'horizontal' | 'vertical' | 'square'>('horizontal')
+  const [showFormatDropdown, setShowFormatDropdown] = useState(false)
 
   // Timeline interactive states
   const [selectedTimelineClipId, setSelectedTimelineClipId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; clipId: string } | null>(null)
 
   const trackRef = React.useRef<HTMLDivElement>(null)
+  const playerWrapperRef = React.useRef<HTMLDivElement>(null)
 
   // Refs to allow stable keyboard listener dependencies
   const timelineClipsRef = React.useRef<TimelineClip[]>([])
@@ -178,11 +182,11 @@ function App() {
 
   // Toggle Fullscreen
   const toggleFullscreen = () => {
-    if (videoRef.current) {
+    if (playerWrapperRef.current) {
       if (document.fullscreenElement) {
         document.exitFullscreen()
       } else {
-        videoRef.current.requestFullscreen().catch((err) => {
+        playerWrapperRef.current.requestFullscreen().catch((err) => {
           console.error("Error enabling fullscreen mode:", err)
         })
       }
@@ -642,8 +646,9 @@ function App() {
   })
   const [isCuttingClips, setIsCuttingClips] = useState(false)
   const [cuttingClipsError, setCuttingClipsError] = useState('')
+  const [isExporting, setIsExporting] = useState(false)
 
-  // Timeline IA weights: [Originales, Remotion, Hyperframes, Veo3]
+  // Timeline IA weights: [Original, Stock, Remotion, Hyperframes]
   const [timelineWeights, setTimelineWeights] = useState<number[]>([40, 30, 20, 10])
 
   // Project persistence state
@@ -982,7 +987,8 @@ function App() {
     try {
       const res = await window.electronAPI.cutVideoClips({
         videoPath: firstVideoInLibrary.path,
-        segments: transcriptSegments
+        segments: transcriptSegments,
+        aspectRatio: aspectRatio
       });
       if (res && res.success && res.clips) {
         setBankClips(prev => ({
@@ -997,6 +1003,35 @@ function App() {
       setCuttingClipsError(err.message || 'Excepción al realizar el corte del video.');
     } finally {
       setIsCuttingClips(false);
+    }
+  };
+
+  const handleExportClick = async () => {
+    if (timelineVideoClips.length === 0) {
+      alert('No hay clips en el Timeline para exportar. Agrega clips primero.');
+      return;
+    }
+    
+    setIsExporting(true);
+    
+    try {
+      console.log('Exportando timeline con aspecto:', aspectRatio);
+      const res = await window.electronAPI.exportVideo({
+        clips: timelineVideoClips,
+        aspectRatio: aspectRatio
+      });
+      
+      if (res && res.success && res.filePath) {
+        alert(`¡Video exportado con éxito en:\n${res.filePath}`);
+      } else {
+        const errorMsg = res?.error || 'Error al exportar el video.';
+        alert(`Error al exportar: ${errorMsg}`);
+      }
+    } catch (err: any) {
+      const errorMsg = err.message || 'Excepción al exportar el video.';
+      alert(`Error al exportar: ${errorMsg}`);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -1048,15 +1083,15 @@ function App() {
     await loadClipsForCategory('hyperframes');
     await loadClipsForCategory('veo3');
 
-    const [wOrig, wRemo, wHyper, wVeo] = timelineWeights;
+    const [wOrig, wStock, wRemo, wHyper] = timelineWeights;
     const N = paragraphs.length;
     
     // Distribute counts based on percentage weights
     const counts = [
       Math.round(N * (wOrig / 100)),
+      Math.round(N * (wStock / 100)),
       Math.round(N * (wRemo / 100)),
-      Math.round(N * (wHyper / 100)),
-      Math.round(N * (wVeo / 100))
+      Math.round(N * (wHyper / 100))
     ];
 
     // Align sum of counts to match paragraphs count N
@@ -1079,7 +1114,7 @@ function App() {
 
     // Interleaved category pool
     const categoryPool: string[] = [];
-    const categoryNames = ['originales', 'remotion', 'hyperframes', 'veo3'];
+    const categoryNames = ['originales', 'stock', 'remotion', 'hyperframes'];
     const tempCounts = [...counts];
     while (categoryPool.length < N) {
       let added = false;
@@ -1229,7 +1264,9 @@ function App() {
       name: `Voz - ${voice.speaker}`,
       startSeconds: currentTimeSeconds,
       durationSeconds: durationSecs,
-      type: 'audio'
+      type: 'audio',
+      url: voice.audioUrl,
+      path: voice.filePath
     }
 
     const updated = [...timelineVideoClips, newTimelineClip]
@@ -1348,7 +1385,9 @@ function App() {
             name: file.name,
             startSeconds,
             durationSeconds: duration,
-            type: 'video' as const
+            type: 'video' as const,
+            path: file.path || file.name,
+            url: url
           }];
           setTimelineVideoClips(updated);
           pushHistory(updated);
@@ -1365,7 +1404,9 @@ function App() {
       name: clip.name,
       startSeconds,
       durationSeconds: clip.durationSeconds,
-      type: clip.type
+      type: clip.type,
+      path: clip.path,
+      url: clip.url
     }];
     setTimelineVideoClips(updated);
     pushHistory(updated);
@@ -1525,9 +1566,13 @@ function App() {
             <span>Transcribir con IA</span>
           </button>
  
-          <button className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all">
+          <button 
+            onClick={handleExportClick}
+            disabled={isExporting}
+            className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
             <Download className="h-3.5 w-3.5" />
-            <span>Exportar</span>
+            <span>{isExporting ? 'Exportando...' : 'Exportar'}</span>
           </button>
         </div>
       </header>
@@ -1564,6 +1609,96 @@ function App() {
                 {tab}
               </button>
             ))}
+          </div>
+
+          {/* Mix del montaje Section */}
+          <div className="p-3 border-b border-slate-800/80 bg-slate-950/20 space-y-3 flex-shrink-0">
+            <div className="flex items-center space-x-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <Sliders className="h-3.5 w-3.5 text-indigo-400" />
+              <span>Mix del montaje</span>
+            </div>
+
+            <div className="space-y-2.5">
+              {/* Slider 1: Original */}
+              <div className="flex items-center space-x-2.5">
+                <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Original</span>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={timelineWeights[0]}
+                  onChange={(e) => handleWeightChange(0, parseInt(e.target.value))}
+                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-blue-500 transition-all outline-none" 
+                  style={{
+                    background: `linear-gradient(to right, rgb(59, 130, 246) ${timelineWeights[0]}%, rgb(30, 41, 59) 0%)`
+                  }}
+                />
+                <span className="font-mono text-[10px] text-blue-400 font-bold w-8 text-right select-none">{timelineWeights[0]}%</span>
+              </div>
+
+              {/* Slider 2: Stock */}
+              <div className="flex items-center space-x-2.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Stock</span>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={timelineWeights[1]}
+                  onChange={(e) => handleWeightChange(1, parseInt(e.target.value))}
+                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all outline-none" 
+                  style={{
+                    background: `linear-gradient(to right, rgb(16, 185, 129) ${timelineWeights[1]}%, rgb(30, 41, 59) 0%)`
+                  }}
+                />
+                <span className="font-mono text-[10px] text-emerald-400 font-bold w-8 text-right select-none">{timelineWeights[1]}%</span>
+              </div>
+
+              {/* Slider 3: Remotion */}
+              <div className="flex items-center space-x-2.5">
+                <span className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
+                <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Remotion</span>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={timelineWeights[2]}
+                  onChange={(e) => handleWeightChange(2, parseInt(e.target.value))}
+                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-purple-500 transition-all outline-none" 
+                  style={{
+                    background: `linear-gradient(to right, rgb(168, 85, 247) ${timelineWeights[2]}%, rgb(30, 41, 59) 0%)`
+                  }}
+                />
+                <span className="font-mono text-[10px] text-purple-400 font-bold w-8 text-right select-none">{timelineWeights[2]}%</span>
+              </div>
+
+              {/* Slider 4: Hyperframes */}
+              <div className="flex items-center space-x-2.5">
+                <span className="w-2 h-2 rounded-full bg-pink-500 flex-shrink-0" />
+                <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Hyperframes</span>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={timelineWeights[3]}
+                  onChange={(e) => handleWeightChange(3, parseInt(e.target.value))}
+                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-pink-500 transition-all outline-none" 
+                  style={{
+                    background: `linear-gradient(to right, rgb(236, 72, 153) ${timelineWeights[3]}%, rgb(30, 41, 59) 0%)`
+                  }}
+                />
+                <span className="font-mono text-[10px] text-pink-400 font-bold w-8 text-right select-none">{timelineWeights[3]}%</span>
+              </div>
+            </div>
+
+            {/* Proportional Color Bar */}
+            <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-slate-800 mt-2">
+              <div style={{ width: `${timelineWeights[0]}%` }} className="h-full bg-blue-500 transition-all duration-300" title={`Original: ${timelineWeights[0]}%`} />
+              <div style={{ width: `${timelineWeights[1]}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Stock: ${timelineWeights[1]}%`} />
+              <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-purple-500 transition-all duration-300" title={`Remotion: ${timelineWeights[2]}%`} />
+              <div style={{ width: `${timelineWeights[3]}%` }} className="h-full bg-pink-500 transition-all duration-300" title={`Hyperframes: ${timelineWeights[3]}%`} />
+            </div>
           </div>
 
           {/* Media Items List */}
@@ -1640,15 +1775,33 @@ function App() {
                     >
                       <Plus className="h-3 w-3" />
                     </button>
-                    {libraryTab === 'Principal' && clip.type !== 'video' && (
+                    {!(libraryTab === 'Principal' && clip.type === 'video') && (
                       <button 
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
-                          setClips(prev => prev.filter(c => c.id !== clip.id));
-                          // Also filter out of the timeline track
-                          setTimelineVideoClips(prev => prev.filter(t => t.name !== clip.name));
+                          if (libraryTab === 'Principal') {
+                            setClips(prev => prev.filter(c => c.id !== clip.id));
+                            setTimelineVideoClips(prev => prev.filter(t => t.name !== clip.name));
+                          } else {
+                            try {
+                              const cat = libraryTab.toLowerCase();
+                              const res = await window.electronAPI.deleteBankClip({
+                                category: cat,
+                                file: clip.name
+                              });
+                              if (res && res.success) {
+                                await loadClipsForCategory(cat);
+                                // Also filter out of the timeline track if it matches
+                                setTimelineVideoClips(prev => prev.filter(t => t.name !== `${clip.name} (${cat})`));
+                              } else {
+                                console.error('Error al eliminar clip:', res?.error);
+                              }
+                            } catch (err) {
+                              console.error('Excepción al eliminar clip:', err);
+                            }
+                          }
                         }}
-                        className="p-1 bg-slate-950/85 border border-slate-800 hover:border-red-500/50 hover:text-red-400 rounded-md text-slate-400"
+                        className="p-1 bg-slate-950/85 border border-slate-800 hover:border-red-500/50 hover:text-red-400 rounded-md text-slate-400 cursor-pointer"
                         title="Eliminar de la biblioteca"
                       >
                         <Trash2 className="h-3 w-3" />
@@ -1671,7 +1824,10 @@ function App() {
 
         {/* Center: Canvas Player */}
         <section className="flex-1 bg-slate-950 flex flex-col p-4 overflow-hidden">
-          <div className="flex-1 bg-slate-900/40 border border-slate-800 rounded-2xl relative overflow-hidden flex items-center justify-center group shadow-inner">
+          <div 
+            ref={playerWrapperRef}
+            className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl relative overflow-hidden flex items-center justify-center group shadow-inner"
+          >
             {/* Player Canvas Mockup / Real Player */}
             <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950/20" />
             
@@ -1699,7 +1855,7 @@ function App() {
                       ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` 
                       : 'none',
                   }}
-                  className="w-full h-full object-contain select-none pointer-events-none transition-transform duration-75 ease-out"
+                  className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-75 ease-out"
                   controls={false}
                   onTimeUpdate={handleTimeUpdate}
                   onLoadedMetadata={handleLoadedMetadata}
@@ -1904,51 +2060,91 @@ function App() {
                   </select>
                 </div>
 
-                {/* Format Aspect Ratio Selector */}
-                <div className="flex items-center space-x-1 bg-slate-950 p-0.5 border border-slate-800 rounded-lg">
+                {/* Fullscreen / Aspect Ratio Dropdown */}
+                <div className="relative">
                   <button 
-                    onClick={() => setAspectRatio('horizontal')}
-                    className={`px-2 py-1 text-[10px] rounded font-semibold transition-all ${
-                      aspectRatio === 'horizontal' 
-                        ? 'bg-indigo-600 text-white shadow-sm' 
-                        : 'text-slate-400 hover:text-slate-200'
+                    onClick={() => setShowFormatDropdown(!showFormatDropdown)}
+                    className={`p-1.5 rounded-lg transition-all flex items-center space-x-1 cursor-pointer ${
+                      showFormatDropdown ? 'bg-indigo-600/25 text-indigo-400 border border-indigo-500/30' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-transparent'
                     }`}
-                    title="Horizontal (16:9)"
+                    title="Formato y Pantalla Completa"
                   >
-                    16:9
+                    <Maximize className="h-4 w-4" />
+                    <span className="text-[10px] font-mono font-semibold opacity-75">
+                      {aspectRatio === 'vertical' ? '9:16' : aspectRatio === 'square' ? '1:1' : '16:9'}
+                    </span>
                   </button>
-                  <button 
-                    onClick={() => setAspectRatio('vertical')}
-                    className={`px-2 py-1 text-[10px] rounded font-semibold transition-all ${
-                      aspectRatio === 'vertical' 
-                        ? 'bg-indigo-600 text-white shadow-sm' 
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                    title="Vertical (9:16)"
-                  >
-                    9:16
-                  </button>
-                  <button 
-                    onClick={() => setAspectRatio('square')}
-                    className={`px-2 py-1 text-[10px] rounded font-semibold transition-all ${
-                      aspectRatio === 'square' 
-                        ? 'bg-indigo-600 text-white shadow-sm' 
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                    title="Cuadrado (1:1)"
-                  >
-                    1:1
-                  </button>
+                  
+                  {showFormatDropdown && (
+                    <>
+                      {/* Invisible backdrop to close dropdown */}
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setShowFormatDropdown(false)}
+                      />
+                      <div className="absolute right-0 bottom-full mb-2 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-1.5 z-50 flex flex-col space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                        <div className="px-2.5 py-1 text-[9px] font-bold text-slate-500 uppercase tracking-wider select-none">
+                          Formato de Preview
+                        </div>
+                        <button
+                          onClick={() => {
+                            setAspectRatio('horizontal');
+                            setShowFormatDropdown(false);
+                          }}
+                          className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg font-medium transition-colors text-left ${
+                            aspectRatio === 'horizontal' 
+                              ? 'bg-indigo-600 text-white' 
+                              : 'text-slate-350 hover:bg-slate-800 hover:text-white'
+                          }`}
+                        >
+                          <span>16:9 Horizontal</span>
+                          <span className="text-[9px] opacity-70">Largo</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setAspectRatio('vertical');
+                            setShowFormatDropdown(false);
+                          }}
+                          className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg font-medium transition-colors text-left ${
+                            aspectRatio === 'vertical' 
+                              ? 'bg-indigo-600 text-white' 
+                              : 'text-slate-350 hover:bg-slate-800 hover:text-white'
+                          }`}
+                        >
+                          <span>9:16 Vertical</span>
+                          <span className="text-[9px] opacity-70">Shorts / Reels</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setAspectRatio('square');
+                            setShowFormatDropdown(false);
+                          }}
+                          className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg font-medium transition-colors text-left ${
+                            aspectRatio === 'square' 
+                              ? 'bg-indigo-600 text-white' 
+                              : 'text-slate-350 hover:bg-slate-800 hover:text-white'
+                          }`}
+                        >
+                          <span>1:1 Cuadrado</span>
+                          <span className="text-[9px] opacity-70">Post / Feed</span>
+                        </button>
+                        
+                        <div className="border-t border-slate-800 my-1" />
+                        
+                        <button
+                          onClick={() => {
+                            toggleFullscreen();
+                            setShowFormatDropdown(false);
+                          }}
+                          className="flex items-center space-x-2 px-2.5 py-1.5 text-xs rounded-lg font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-left"
+                        >
+                          <Maximize className="h-3.5 w-3.5 text-slate-400" />
+                          <span>Pantalla Completa</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
-
-                {/* Fullscreen Button */}
-                <button 
-                  onClick={toggleFullscreen}
-                  className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg transition-all"
-                  title="Pantalla Completa"
-                >
-                  <Maximize className="h-4 w-4" />
-                </button>
               </div>
             </div>
           </div>
@@ -2543,86 +2739,10 @@ function App() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
-                      <div className="bg-slate-900/90 border border-slate-805 rounded-xl p-3.5 flex flex-col space-y-4 shadow-xl">
+                      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-col space-y-3 shadow-xl">
                         <div>
-                          <h4 className="text-xs font-bold text-slate-200">Proporciones del Timeline IA</h4>
-                          <p className="text-[10px] text-slate-400 mt-1">Ajusta la composición de clips para el montaje automático. El total siempre sumará 100%.</p>
-                        </div>
-
-                        {/* Slider 1: Originales */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase font-sans">
-                            <span>Clips Originales</span>
-                            <span className="font-mono text-indigo-400 font-bold">{timelineWeights[0]}%</span>
-                          </div>
-                          <input 
-                            type="range" 
-                            min="0" 
-                            max="100" 
-                            value={timelineWeights[0]}
-                            onChange={(e) => handleWeightChange(0, parseInt(e.target.value))}
-                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
-                            style={{
-                              background: `linear-gradient(to right, rgb(99, 102, 241) ${timelineWeights[0]}%, rgb(30, 41, 59) 0%)`
-                            }}
-                          />
-                        </div>
-
-                        {/* Slider 2: Remotion */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase font-sans">
-                            <span>Clips de Remotion</span>
-                            <span className="font-mono text-indigo-400 font-bold">{timelineWeights[1]}%</span>
-                          </div>
-                          <input 
-                            type="range" 
-                            min="0" 
-                            max="100" 
-                            value={timelineWeights[1]}
-                            onChange={(e) => handleWeightChange(1, parseInt(e.target.value))}
-                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
-                            style={{
-                              background: `linear-gradient(to right, rgb(99, 102, 241) ${timelineWeights[1]}%, rgb(30, 41, 59) 0%)`
-                            }}
-                          />
-                        </div>
-
-                        {/* Slider 3: Hyperframes */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase font-sans">
-                            <span>Clips de Hyperframes</span>
-                            <span className="font-mono text-indigo-400 font-bold">{timelineWeights[2]}%</span>
-                          </div>
-                          <input 
-                            type="range" 
-                            min="0" 
-                            max="100" 
-                            value={timelineWeights[2]}
-                            onChange={(e) => handleWeightChange(2, parseInt(e.target.value))}
-                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
-                            style={{
-                              background: `linear-gradient(to right, rgb(99, 102, 241) ${timelineWeights[2]}%, rgb(30, 41, 59) 0%)`
-                            }}
-                          />
-                        </div>
-
-                        {/* Slider 4: Veo 3 */}
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase font-sans">
-                            <span>Clips de Veo 3</span>
-                            <span className="font-mono text-indigo-400 font-bold">{timelineWeights[3]}%</span>
-                          </div>
-                          <input 
-                            type="range" 
-                            min="0" 
-                            max="100" 
-                            value={timelineWeights[3]}
-                            onChange={(e) => handleWeightChange(3, parseInt(e.target.value))}
-                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
-                            style={{
-                              background: `linear-gradient(to right, rgb(99, 102, 241) ${timelineWeights[3]}%, rgb(30, 41, 59) 0%)`
-                            }}
-                          />
+                          <h4 className="text-xs font-bold text-slate-200">Mezcla del Montaje</h4>
+                          <p className="text-[10px] text-slate-400 mt-1">El sistema organizará los clips en el timeline utilizando los porcentajes que configures en el panel izquierdo ("Mix del montaje").</p>
                         </div>
                       </div>
 

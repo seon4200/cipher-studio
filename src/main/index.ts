@@ -657,9 +657,9 @@ ipcMain.handle('load-bank-clips', async (_event, { category }) => {
 })
 
 // IPC handle to automatically slice a video into segments based on Whisper timestamps
-ipcMain.handle('cut-video-clips', async (_event, { videoPath, segments }) => {
+ipcMain.handle('cut-video-clips', async (_event, { videoPath, segments, aspectRatio }) => {
   try {
-    console.log(`[cut-video-clips] Iniciando segmentación de: ${videoPath}`)
+    console.log(`[cut-video-clips] Iniciando segmentación de: ${videoPath} con formato ${aspectRatio}`)
     const bankDir = getBancoClipsPath()
     const outDir = path.join(bankDir, 'originales')
     if (!fs.existsSync(outDir)) {
@@ -669,6 +669,16 @@ ipcMain.handle('cut-video-clips', async (_event, { videoPath, segments }) => {
     const createdClips: any[] = []
     const escapedVideo = videoPath.replace(/"/g, '\\"')
     const baseName = path.basename(videoPath, path.extname(videoPath))
+
+    // Determine crop filter based on aspectRatio
+    let filterStr = ''
+    if (aspectRatio === 'vertical') {
+      filterStr = `-vf "crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)':x='(iw-ow)/2':y='(ih-oh)/2'"`
+    } else if (aspectRatio === 'square') {
+      filterStr = `-vf "crop=w='min(iw,ih)':h='min(ih,iw)':x='(iw-ow)/2':y='(ih-oh)/2'"`
+    } else if (aspectRatio === 'horizontal') {
+      filterStr = `-vf "crop=w='min(iw,ih*16/9)':h='min(ih,iw*9/16)':x='(iw-ow)/2':y='(ih-oh)/2'"`
+    }
 
     for (let idx = 0; idx < segments.length; idx++) {
       const seg = segments[idx]
@@ -685,8 +695,8 @@ ipcMain.handle('cut-video-clips', async (_event, { videoPath, segments }) => {
       console.log(`  - Cortando segmentación ${idx + 1}/${segments.length} (${start.toFixed(1)}s -> ${end.toFixed(1)}s)`)
 
       await new Promise<void>((resolve, reject) => {
-        // We re-encode fast to ensure frame accuracy
-        const ffmpegCmd = `ffmpeg -y -ss ${start} -to ${end} -i "${escapedVideo}" -c:v libx264 -preset ultrafast -crf 23 -c:a aac "${escapedClipPath}"`
+        // We re-encode fast to ensure frame accuracy and crop
+        const ffmpegCmd = `ffmpeg -y -ss ${start} -to ${end} -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ultrafast -crf 23 -c:a aac "${escapedClipPath}"`
         exec(ffmpegCmd, (err) => {
           if (err) {
             console.warn(`[cut-video-clips] FFmpeg re-encoding falló para clip ${idx + 1}, reintentando con -c copy:`, err.message)
@@ -732,6 +742,113 @@ ipcMain.handle('cut-video-clips', async (_event, { videoPath, segments }) => {
     return { success: true, clips: createdClips }
   } catch (err: any) {
     console.error(`[cut-video-clips] Error: ${err.message}`)
+    return { success: false, error: err.message }
+  }
+})
+
+// IPC handle for deleting a clip inside a category folder of banco-clips
+ipcMain.handle('delete-bank-clip', async (_event, { category, file }) => {
+  try {
+    const bankDir = getBancoClipsPath()
+    const filePath = path.join(bankDir, category, file)
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath)
+    }
+    const thumbnailName = `${path.basename(file, path.extname(file))}.jpg`
+    const thumbnailPath = path.join(bankDir, 'thumbnails', thumbnailName)
+    if (fs.existsSync(thumbnailPath)) {
+      fs.unlinkSync(thumbnailPath)
+    }
+    return { success: true }
+  } catch (err: any) {
+    console.error(`[delete-bank-clip] Error: ${err.message}`)
+    return { success: false, error: err.message }
+  }
+})
+
+// IPC handle for exporting video (single clip or concatenating multiple clips) with aspect ratio crop
+ipcMain.handle('export-video', async (_event, { clips, aspectRatio }) => {
+  try {
+    if (!win) return { success: false, error: 'Ventana no disponible' }
+
+    const { filePath, canceled } = await dialog.showSaveDialog(win, {
+      title: 'Exportar Video',
+      defaultPath: path.join(app.getPath('downloads'), 'export.mp4'),
+      filters: [{ name: 'MP4 Video', extensions: ['mp4'] }]
+    })
+
+    if (canceled || !filePath) {
+      return { success: false, error: 'Exportación cancelada por el usuario' }
+    }
+
+    if (!clips || clips.length === 0) {
+      return { success: false, error: 'No hay clips en el Timeline para exportar.' }
+    }
+
+    // Determine crop filter
+    let filterStr = ''
+    if (aspectRatio === 'vertical') {
+      filterStr = `-vf "crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)':x='(iw-ow)/2':y='(ih-oh)/2'"`
+    } else if (aspectRatio === 'square') {
+      filterStr = `-vf "crop=w='min(iw,ih)':h='min(ih,iw)':x='(iw-ow)/2':y='(ih-oh)/2'"`
+    } else if (aspectRatio === 'horizontal') {
+      filterStr = `-vf "crop=w='min(iw,ih*16/9)':h='min(ih,iw*9/16)':x='(iw-ow)/2':y='(ih-oh)/2'"`
+    }
+
+    const escapedOut = filePath.replace(/"/g, '\\"')
+
+    if (clips.length === 1) {
+      const videoPath = clips[0].path
+      if (!videoPath || !fs.existsSync(videoPath)) {
+        return { success: false, error: `El archivo original no existe o no tiene ruta: ${clips[0].name}` }
+      }
+      const escapedVideo = videoPath.replace(/"/g, '\\"')
+      const ffmpegCmd = `ffmpeg -y -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ultrafast -crf 23 -c:a aac "${escapedOut}"`
+      
+      await new Promise<void>((resolve, reject) => {
+        exec(ffmpegCmd, (err) => {
+          if (err) reject(err)
+          else resolve()
+        })
+      })
+    } else {
+      // Multiple clips concatenation
+      const bankDir = getBancoClipsPath()
+      const tempTxtPath = path.join(bankDir, `temp_concat_${Date.now()}.txt`)
+      
+      let fileContent = ''
+      for (const clip of clips) {
+        if (clip.path && fs.existsSync(clip.path)) {
+          // Escape single quotes and backslashes for FFmpeg concat list
+          const escapedPath = clip.path.replace(/\\/g, '/').replace(/'/g, "'\\''")
+          fileContent += `file '${escapedPath}'\n`
+        } else {
+          console.warn(`[export-video] Advertencia: clip sin ruta válida en disco: ${clip.name}`)
+        }
+      }
+
+      if (!fileContent.trim()) {
+        return { success: false, error: 'Ninguno de los clips del Timeline tiene un archivo de origen válido en disco.' }
+      }
+
+      fs.writeFileSync(tempTxtPath, fileContent, 'utf8')
+      const escapedTxt = tempTxtPath.replace(/"/g, '\\"')
+
+      // Concat and crop
+      const ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" ${filterStr} -c:v libx264 -preset ultrafast -crf 23 -c:a aac "${escapedOut}"`
+      
+      await new Promise<void>((resolve, reject) => {
+        exec(ffmpegCmd, (err) => {
+          try { fs.unlinkSync(tempTxtPath) } catch (e) {}
+          if (err) reject(err)
+          else resolve()
+        })
+      })
+    }
+
+    return { success: true, filePath }
+  } catch (err: any) {
+    console.error(`[export-video] Error: ${err.message}`)
     return { success: false, error: err.message }
   }
 })
