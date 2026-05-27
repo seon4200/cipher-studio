@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-electron/
+banco-clips/
+project-state.json
+.env
+.env.*
+*.log
