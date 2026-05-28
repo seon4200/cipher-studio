@@ -27,6 +27,10 @@ interface TimelineClip {
   type?: 'video' | 'audio';
   path?: string;
   url?: string;
+  origDurationSeconds?: number;
+  segmentStartOffset?: number;
+  segmentIndex?: number;
+  text?: string;
 }
 
 interface GeneratedVoiceVersion {
@@ -58,6 +62,7 @@ function App() {
   // Canvas Preview Active Video States
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null)
   const videoRef = React.useRef<HTMLVideoElement>(null)
+  const audioRef = React.useRef<HTMLAudioElement | null>(null)
 
   // Zoom, pan, crop and mirror states
   const [zoom, setZoom] = useState(1)
@@ -103,6 +108,10 @@ function App() {
     currentTimeSecondsRef.current = currentTimeSeconds
     selectedTimelineClipIdRef.current = selectedTimelineClipId
   }, [timelineVideoClips, currentTimeSeconds, selectedTimelineClipId])
+
+  // Dynamic total timeline duration (minimum 120 seconds, or max clip end + 10s buffer)
+  const totalDuration = Math.max(120, timelineVideoClips.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0) + 10);
+  const activeTimelineClip = timelineVideoClips.find(c => c.type !== 'audio' && currentTimeSeconds >= c.startSeconds && currentTimeSeconds < c.startSeconds + c.durationSeconds);
 
   // Undo/Redo history states
   const [history, setHistory] = useState<TimelineClip[][]>([])
@@ -201,19 +210,24 @@ function App() {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
   }
 
+  // Seek global timeline time
+  const seekGlobalTime = (time: number) => {
+    setCurrentTimeSeconds(time);
+    if (audioRef.current) {
+      audioRef.current.currentTime = time;
+    }
+  };
+
   // Scrubber dragging logic
   const handleScrubberSeek = (clientX: number, rect: DOMRect) => {
     const clickX = clientX - rect.left
     const percent = Math.max(0, Math.min(1, clickX / rect.width))
-    const newTime = percent * durationSeconds
-    if (videoRef.current) {
-      videoRef.current.currentTime = newTime
-    }
-    setCurrentTimeSeconds(newTime)
+    const newTime = percent * totalDuration
+    seekGlobalTime(newTime);
   };
 
   const handleScrubberMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (durationSeconds <= 0) return
+    if (totalDuration <= 0) return
     const rect = e.currentTarget.getBoundingClientRect()
     handleScrubberSeek(e.clientX, rect)
     
@@ -237,10 +251,7 @@ function App() {
     const clickX = clientX - rect.left
     const percent = Math.max(0, Math.min(1, clickX / rect.width))
     const newTime = percent * totalDuration
-    if (videoRef.current) {
-      videoRef.current.currentTime = newTime
-    }
-    setCurrentTimeSeconds(newTime)
+    seekGlobalTime(newTime);
   }
 
   const handleTimelineScrubMouseDown = (e: React.MouseEvent) => {
@@ -564,19 +575,6 @@ function App() {
   }, [])
 
   // HTML5 video handlers
-  const handleTimeUpdate = () => {
-    const video = videoRef.current
-    if (!video) return
-    setCurrentTimeSeconds(video.currentTime)
-    
-    const hrs = Math.floor(video.currentTime / 3600)
-    const mins = Math.floor((video.currentTime % 3600) / 60)
-    const secs = Math.floor(video.currentTime % 60)
-    const frames = Math.floor((video.currentTime % 1) * 24) // mock 24 fps
-    const pad = (num: number) => String(num).padStart(2, '0')
-    setCurrentTime(`${pad(hrs)}:${pad(mins)}:${pad(secs)}:${pad(frames)}`)
-  }
-
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDurationSeconds(videoRef.current.duration || 0)
@@ -593,8 +591,15 @@ function App() {
     setIsPlaying(false)
   }
 
-  const handlePlay = () => setIsPlaying(true)
-  const handlePause = () => setIsPlaying(false)
+  // Sync global timecode string representation
+  useEffect(() => {
+    const hrs = Math.floor(currentTimeSeconds / 3600)
+    const mins = Math.floor((currentTimeSeconds % 3600) / 60)
+    const secs = Math.floor(currentTimeSeconds % 60)
+    const frames = Math.floor((currentTimeSeconds % 1) * 24) // mock 24 fps
+    const pad = (num: number) => String(num).padStart(2, '0')
+    setCurrentTime(`${pad(hrs)}:${pad(mins)}:${pad(secs)}:${pad(frames)}`)
+  }, [currentTimeSeconds]);
 
   // Sync volume, mute, and speed
   useEffect(() => {
@@ -695,17 +700,125 @@ function App() {
     }
   }, []);
 
-  // Synchronize playing state with HTML5 Video element
+  // Master Audio playback sync
   useEffect(() => {
-    if (!videoRef.current) return;
-    if (isPlaying) {
-      videoRef.current.play().catch(() => {});
+    const voiceClip = timelineVideoClips.find(c => c.type === 'audio');
+    if (voiceClip && voiceClip.url) {
+      if (!audioRef.current) {
+        audioRef.current = new Audio(voiceClip.url);
+      } else if (audioRef.current.src !== voiceClip.url) {
+        audioRef.current.src = voiceClip.url;
+      }
+      audioRef.current.volume = volume;
+      audioRef.current.muted = isMuted;
     } else {
-      videoRef.current.pause();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     }
-  }, [isPlaying, activeVideoUrl]);
+  }, [timelineVideoClips, volume, isMuted]);
 
-  // Removed old event listener useEffect in favor of direct HTML5 event bindings
+  useEffect(() => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.currentTime = currentTimeSeconds;
+        audioRef.current.play().catch(e => console.error("Audio play error", e));
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  }, [isPlaying]);
+
+  // Master Playback Clock (Ticking)
+  useEffect(() => {
+    let animationFrameId: number;
+    let lastTime = performance.now();
+
+    const tick = () => {
+      if (!isPlaying) return;
+
+      if (audioRef.current && !audioRef.current.paused) {
+        const audioTime = audioRef.current.currentTime;
+        setCurrentTimeSeconds(audioTime);
+        if (audioTime >= totalDuration) {
+          setIsPlaying(false);
+          setCurrentTimeSeconds(totalDuration);
+        }
+      } else {
+        const now = performance.now();
+        const delta = (now - lastTime) / 1000;
+        lastTime = now;
+
+        setCurrentTimeSeconds(prev => {
+          const next = prev + delta * playbackRate;
+          if (next >= totalDuration) {
+            setIsPlaying(false);
+            return totalDuration;
+          }
+          return next;
+        });
+      }
+
+      animationFrameId = requestAnimationFrame(tick);
+    };
+
+    if (isPlaying) {
+      lastTime = performance.now();
+      animationFrameId = requestAnimationFrame(tick);
+    }
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [isPlaying, playbackRate, totalDuration]);
+
+  // Master Video-Audio Synchronization Loop
+  useEffect(() => {
+    if (!activeTimelineClip) {
+      if (activeVideoUrl !== null) {
+        setActiveVideoUrl(null);
+      }
+      return;
+    }
+
+    if (activeTimelineClip.path === 'remotion-dynamic' || activeTimelineClip.path === 'hyperframes-dynamic') {
+      if (activeVideoUrl !== null) {
+        setActiveVideoUrl(null);
+      }
+      return;
+    }
+
+    const clipUrl = activeTimelineClip.url || `file:///${activeTimelineClip.path?.replace(/\\/g, '/')}`;
+    if (activeVideoUrl !== clipUrl) {
+      setActiveVideoUrl(clipUrl);
+    }
+
+    const video = videoRef.current;
+    if (video) {
+      const offset = currentTimeSeconds - activeTimelineClip.startSeconds;
+      const scale = activeTimelineClip.origDurationSeconds 
+        ? (activeTimelineClip.origDurationSeconds / activeTimelineClip.durationSeconds) 
+        : 1;
+      const startOffset = activeTimelineClip.segmentStartOffset || 0;
+      const targetTime = startOffset + (offset * scale);
+
+      if (isPlaying && video.paused) {
+        video.play().catch(() => {});
+      } else if (!isPlaying && !video.paused) {
+        video.pause();
+      }
+
+      const targetPlaybackRate = scale * playbackRate;
+      if (Math.abs(video.playbackRate - targetPlaybackRate) > 0.05) {
+        video.playbackRate = targetPlaybackRate;
+      }
+
+      if (Math.abs(video.currentTime - targetTime) > 0.2) {
+        video.currentTime = targetTime;
+      }
+    }
+  }, [currentTimeSeconds, activeTimelineClip, isPlaying, playbackRate]);
 
   // Autoload project state on startup
   useEffect(() => {
@@ -1038,43 +1151,17 @@ function App() {
   const handleWeightChange = (index: number, newValue: number) => {
     const updatedWeights = [...timelineWeights];
     updatedWeights[index] = newValue;
-
-    const otherIndices = [0, 1, 2, 3].filter(i => i !== index);
-    const sumOthers = otherIndices.reduce((sum, i) => sum + timelineWeights[i], 0);
-    const targetOthers = 100 - newValue;
-
-    if (sumOthers > 0) {
-      otherIndices.forEach(i => {
-        updatedWeights[i] = Math.round((timelineWeights[i] / sumOthers) * targetOthers);
-      });
-    } else {
-      otherIndices.forEach(i => {
-        updatedWeights[i] = Math.round(targetOthers / 3);
-      });
-    }
-
-    // Adjust rounding errors to match exactly 100
-    let currentSum = updatedWeights.reduce((sum, val) => sum + val, 0);
-    if (currentSum !== 100) {
-      const diff = 100 - currentSum;
-      let bestIndex = otherIndices[0];
-      let maxVal = updatedWeights[bestIndex];
-      otherIndices.forEach(i => {
-        if (updatedWeights[i] > maxVal) {
-          maxVal = updatedWeights[i];
-          bestIndex = i;
-        }
-      });
-      updatedWeights[bestIndex] = Math.max(0, updatedWeights[bestIndex] + diff);
-    }
-
     setTimelineWeights(updatedWeights);
   };
 
   const handleBuildIATimeline = async () => {
     if (!aiScript.trim()) return;
-    const paragraphs = aiScript.split('\n\n').map(p => p.trim()).filter(Boolean);
-    if (paragraphs.length === 0) return;
+    
+    let sentences = aiScript.split(/[.!?\n]+/).map(s => s.trim()).filter(s => s.length > 5);
+    if (sentences.length === 0) {
+      sentences = [aiScript.trim()];
+    }
+    const N = sentences.length;
 
     // Refresh bank clips before mounting
     await loadClipsForCategory('originales');
@@ -1083,111 +1170,253 @@ function App() {
     await loadClipsForCategory('hyperframes');
     await loadClipsForCategory('veo3');
 
-    const [wOrig, wStock, wRemo, wHyper] = timelineWeights;
-    const N = paragraphs.length;
-    
-    // Distribute counts based on percentage weights
-    const counts = [
-      Math.round(N * (wOrig / 100)),
-      Math.round(N * (wStock / 100)),
-      Math.round(N * (wRemo / 100)),
-      Math.round(N * (wHyper / 100))
-    ];
-
-    // Align sum of counts to match paragraphs count N
-    let totalSum = counts.reduce((s, c) => s + c, 0);
-    while (totalSum !== N) {
-      if (totalSum < N) {
-        const maxWeightIdx = timelineWeights.indexOf(Math.max(...timelineWeights));
-        counts[maxWeightIdx]++;
-      } else {
-        let maxCountIdx = 0;
-        for (let i = 1; i < 4; i++) {
-          if (counts[i] > counts[maxCountIdx] && counts[i] > 0) {
-            maxCountIdx = i;
+    // 1. Verify weights sum to 100%
+    let weights = [...timelineWeights];
+    const sum = weights.reduce((a, b) => a + b, 0);
+    if (sum !== 100) {
+      const adjustWeightsTo100 = (w: number[]) => {
+        const s = w.reduce((a, b) => a + b, 0);
+        if (s === 0) return [40, 0, 30, 30];
+        const adj = w.map(x => Math.round((x / s) * 100));
+        let currSum = adj.reduce((a, b) => a + b, 0);
+        if (currSum !== 100) {
+          const diff = 100 - currSum;
+          let maxIdx = 0;
+          for (let i = 1; i < adj.length; i++) {
+            if (adj[i] > adj[maxIdx]) maxIdx = i;
           }
+          adj[maxIdx] = Math.max(0, adj[maxIdx] + diff);
         }
-        counts[maxCountIdx]--;
-      }
-      totalSum = counts.reduce((s, c) => s + c, 0);
+        return adj;
+      };
+      weights = adjustWeightsTo100(weights);
+      setTimelineWeights(weights);
+      alert(`La mezcla del montaje fue ajustada al 100% para poder ejecutar:\n- Original: ${weights[0]}%\n- Stock: ${weights[1]}%\n- Remotion: ${weights[2]}%\n- Hyperframes: ${weights[3]}%`);
     }
 
-    // Interleaved category pool
-    const categoryPool: string[] = [];
-    const categoryNames = ['originales', 'stock', 'remotion', 'hyperframes'];
-    const tempCounts = [...counts];
-    while (categoryPool.length < N) {
-      let added = false;
-      for (let cIdx = 0; cIdx < 4; cIdx++) {
-        if (tempCounts[cIdx] > 0) {
-          categoryPool.push(categoryNames[cIdx]);
-          tempCounts[cIdx]--;
-          added = true;
-        }
-      }
-      if (!added) break;
+    // 2. Determine base duration of final video from generated voice audio
+    const audioClips = clips.filter(c => c.type === 'audio');
+    let voiceClip = timelineVideoClips.find(c => c.type === 'audio');
+    if (!voiceClip && audioClips.length > 0) {
+      const latestAudio = audioClips[audioClips.length - 1];
+      voiceClip = {
+        id: latestAudio.id,
+        name: latestAudio.name,
+        startSeconds: 0,
+        durationSeconds: latestAudio.durationSeconds,
+        type: 'audio',
+        url: latestAudio.url,
+        path: latestAudio.path
+      };
+    } else if (!voiceClip && generatedVoices.length > 0) {
+      const latestVoice = generatedVoices[0];
+      const wordCount = latestVoice.text.split(/\s+/).filter(Boolean).length;
+      const durationSecs = Math.max(5, Math.ceil(wordCount / 2.5));
+      voiceClip = {
+        id: latestVoice.id,
+        name: `Voz IA - Take`,
+        startSeconds: 0,
+        durationSeconds: durationSecs,
+        type: 'audio',
+        url: latestVoice.audioUrl,
+        path: latestVoice.filePath
+      };
     }
 
-    // Arrange clips on the timeline
+    let totalDuration = voiceClip ? voiceClip.durationSeconds : 0;
+    if (totalDuration === 0) {
+      const wordCount = aiScript.split(/\s+/).filter(Boolean).length;
+      totalDuration = Math.max(5, Math.ceil(wordCount / 2.5));
+    }
+
+    // 3. Pro-rate weights: Since Stock is empty, route its weight proportionally
+    const origWeight = weights[0];
+    const stockWeight = weights[1];
+    const remoWeight = weights[2];
+    const hyperWeight = weights[3];
+
+    const sumOfOthers = origWeight + remoWeight + hyperWeight;
+    let origPct = origWeight;
+    let remoPct = remoWeight;
+
+    if (sumOfOthers > 0) {
+      origPct = origWeight + (stockWeight * origWeight / sumOfOthers);
+      remoPct = remoWeight + (stockWeight * remoWeight / sumOfOthers);
+    } else {
+      origPct = 40;
+      remoPct = 30;
+    }
+
+    const targetOrig = Math.round(N * (origPct / 100));
+    const targetRemo = Math.round(N * (remoPct / 100));
+
+    // 4. Semantic similarity match sentences with original Whisper transcript
+    const stopWords = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'y', 'o', 'pero', 'si', 'no', 'de', 'del', 'al', 'con', 'en', 'para', 'por', 'que', 'es', 'son', 'se', 'su', 'sus', 'a', 'este', 'esta', 'como']);
+    const cleanWords = (text: string) => {
+      return text.toLowerCase()
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, "")
+        .split(/\s+/)
+        .filter(w => w.length > 2 && !stopWords.has(w));
+    };
+
+    const sentenceMatches = sentences.map((s, idx) => {
+      const newWords = cleanWords(s);
+      let bestSegIdx = -1;
+      let maxScore = 0;
+      
+      if (newWords.length > 0 && transcriptSegments && transcriptSegments.length > 0) {
+        transcriptSegments.forEach((seg, segIdx) => {
+          const segWords = cleanWords(seg.text);
+          let score = 0;
+          newWords.forEach(w => {
+            if (segWords.includes(w)) score++;
+          });
+          if (score > maxScore) {
+            maxScore = score;
+            bestSegIdx = segIdx;
+          }
+        });
+      }
+      
+      return {
+        sentenceIndex: idx,
+        sentenceText: s,
+        bestSegIdx,
+        score: maxScore
+      };
+    });
+
+    // Sort by best score descending to distribute Original clips
+    const sortedMatches = [...sentenceMatches].sort((a, b) => b.score - a.score);
+    const sentenceCategories = new Array(N).fill('');
+    let originalAssigned = 0;
+    
+    for (const m of sortedMatches) {
+      if (originalAssigned < targetOrig && m.score > 0 && m.bestSegIdx !== -1) {
+        sentenceCategories[m.sentenceIndex] = 'originales';
+        originalAssigned++;
+      }
+    }
+    
+    let remotionAssigned = 0;
+    for (let i = 0; i < N; i++) {
+      if (sentenceCategories[i] === '') {
+        if (remotionAssigned < targetRemo) {
+          sentenceCategories[i] = 'remotion';
+          remotionAssigned++;
+        } else {
+          sentenceCategories[i] = 'hyperframes';
+        }
+      }
+    }
+
+    // 5. Construct timeline clips
     const newTimelineClips: any[] = [];
     let currentStartSeconds = 0;
+    const sentenceWords = sentences.map(s => s.split(/\s+/).filter(Boolean).length);
+    const totalWords = sentenceWords.reduce((a, b) => a + b, 0);
+    const mainVideo = clips.find(c => c.type === 'video');
 
     for (let i = 0; i < N; i++) {
-      const paragraphText = paragraphs[i];
-      const category = categoryPool[i] || 'originales';
-      let categoryClips = bankClips[category] || [];
-
-      if (categoryClips.length === 0) {
-        // Fallback choices
-        categoryClips = bankClips['originales'] || [];
-        if (categoryClips.length === 0) {
-          categoryClips = bankClips['stock'] || bankClips['remotion'] || [];
+      const sentenceText = sentences[i];
+      const category = sentenceCategories[i];
+      const duration = totalWords > 0 ? (sentenceWords[i] / totalWords) * totalDuration : totalDuration / N;
+      
+      if (category === 'originales') {
+        const match = sentenceMatches[i];
+        let selectedClip: any = null;
+        
+        if (match.bestSegIdx !== -1) {
+          const clipIndex = match.bestSegIdx + 1;
+          selectedClip = (bankClips.originales || []).find(c => 
+            c.name.includes(`_clip_${clipIndex}.mp4`) || 
+            c.name.includes(`_clip_${clipIndex}_`) || 
+            c.name.endsWith(`_clip_${clipIndex}`)
+          );
         }
-      }
-
-      let selectedClip: any = null;
-      if (categoryClips.length > 0) {
-        // Smart match by keywords
-        const words = paragraphText.toLowerCase().split(/\s+/).filter(w => w.length > 4);
-        selectedClip = categoryClips.find(clip => {
-          const clipNameLower = clip.name.toLowerCase();
-          return words.some(w => clipNameLower.includes(w));
-        });
-
-        if (!selectedClip) {
-          // Fallback sequential
-          selectedClip = categoryClips[i % categoryClips.length];
+        
+        if (selectedClip) {
+          newTimelineClips.push({
+            id: `timeline-${Math.random()}`,
+            name: `${selectedClip.name}`,
+            startSeconds: currentStartSeconds,
+            durationSeconds: duration,
+            type: 'video',
+            url: selectedClip.url,
+            path: selectedClip.path,
+            origDurationSeconds: selectedClip.durationSeconds,
+            segmentStartOffset: 0,
+            segmentIndex: match.bestSegIdx
+          });
+        } else if (mainVideo) {
+          const seg = transcriptSegments[match.bestSegIdx];
+          const segStart = seg ? seg.start : 0;
+          const segEnd = seg ? seg.end : 5;
+          const origDuration = segEnd - segStart;
+          
+          newTimelineClips.push({
+            id: `timeline-${Math.random()}`,
+            name: `${mainVideo.name} (Sincro #${match.bestSegIdx + 1})`,
+            startSeconds: currentStartSeconds,
+            durationSeconds: duration,
+            type: 'video',
+            url: mainVideo.url,
+            path: mainVideo.path,
+            origDurationSeconds: origDuration,
+            segmentStartOffset: segStart,
+            segmentIndex: match.bestSegIdx
+          });
+        } else {
+          newTimelineClips.push({
+            id: `timeline-${Math.random()}`,
+            name: `Sincro #${match.bestSegIdx + 1}`,
+            startSeconds: currentStartSeconds,
+            durationSeconds: duration,
+            type: 'video',
+            origDurationSeconds: 5,
+            segmentStartOffset: 0,
+            segmentIndex: match.bestSegIdx
+          });
         }
-      }
-
-      if (selectedClip) {
+      } else if (category === 'remotion') {
         newTimelineClips.push({
           id: `timeline-${Math.random()}`,
-          name: `${selectedClip.name} (${category})`,
+          name: `Gráfico: "${sentenceText.substring(0, 30)}${sentenceText.length > 30 ? '...' : ''}"`,
+          text: sentenceText,
           startSeconds: currentStartSeconds,
-          durationSeconds: selectedClip.durationSeconds,
+          durationSeconds: duration,
           type: 'video',
-          url: selectedClip.url,
-          path: selectedClip.path
+          path: 'remotion-dynamic'
         });
-        currentStartSeconds += selectedClip.durationSeconds;
       } else {
-        // Placeholder
-        const placeholderDuration = 4;
         newTimelineClips.push({
           id: `timeline-${Math.random()}`,
-          name: `[Placeholder ${category.toUpperCase()}] - Clip vacío`,
+          name: `B-Roll: "${sentenceText.substring(0, 30)}${sentenceText.length > 30 ? '...' : ''}"`,
+          text: sentenceText,
           startSeconds: currentStartSeconds,
-          durationSeconds: placeholderDuration,
-          type: 'video'
+          durationSeconds: duration,
+          type: 'video',
+          path: 'hyperframes-dynamic'
         });
-        currentStartSeconds += placeholderDuration;
       }
+      
+      currentStartSeconds += duration;
+    }
+
+    if (voiceClip) {
+      newTimelineClips.push({
+        id: `timeline-voice-${Date.now()}`,
+        name: voiceClip.name,
+        startSeconds: 0,
+        durationSeconds: totalDuration,
+        type: 'audio',
+        url: voiceClip.url,
+        path: voiceClip.path
+      });
     }
 
     setTimelineVideoClips(newTimelineClips);
     pushHistory(newTimelineClips);
-    setSelectedTool(null); // return to AI tools index
   };
 
   const handleGenerateVoiceClick = async () => {
@@ -1320,8 +1549,7 @@ function App() {
     window.addEventListener('mouseup', handleMouseUp);
   };
 
-  // Dynamic total timeline duration (minimum 120 seconds, or max clip end + 10s buffer)
-  const totalDuration = Math.max(120, timelineVideoClips.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0) + 10);
+
 
   const formatDuration = (seconds: number): string => {
     const hrs = Math.floor(seconds / 3600);
@@ -1609,6 +1837,14 @@ function App() {
                 {tab}
               </button>
             ))}
+            {/* Veo 3 tab - disabled, red dot, Próximamente */}
+            <button
+              disabled
+              className="text-[10px] font-bold px-2 py-1 rounded-md text-slate-500/70 flex items-center space-x-1 cursor-not-allowed whitespace-nowrap opacity-60 bg-transparent border-none"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+              <span>Veo 3 (Próximamente)</span>
+            </button>
           </div>
 
           {/* Mix del montaje Section */}
@@ -1699,6 +1935,16 @@ function App() {
               <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-purple-500 transition-all duration-300" title={`Remotion: ${timelineWeights[2]}%`} />
               <div style={{ width: `${timelineWeights[3]}%` }} className="h-full bg-pink-500 transition-all duration-300" title={`Hyperframes: ${timelineWeights[3]}%`} />
             </div>
+
+            {/* Botón Construir Timeline IA */}
+            <button 
+              onClick={handleBuildIATimeline}
+              disabled={!aiScript.trim()}
+              className="w-full mt-3 bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
+              <span>Construir Timeline IA</span>
+            </button>
           </div>
 
           {/* Media Items List */}
@@ -1725,6 +1971,15 @@ function App() {
 
             {/* Clips List */}
             {(() => {
+              if (libraryTab === 'Stock') {
+                return (
+                  <div className="flex flex-col items-center justify-center py-10 text-slate-500 space-y-2.5 bg-slate-900/10 rounded-xl p-6 border border-dashed border-slate-800/40">
+                    <FolderOpen className="h-8 w-8 text-slate-650" />
+                    <span className="text-xs font-semibold text-slate-400">Sin clips aún</span>
+                  </div>
+                );
+              }
+
               const currentClips = libraryTab === 'Principal' 
                 ? clips 
                 : (bankClips[libraryTab.toLowerCase()] || []);
@@ -1775,7 +2030,7 @@ function App() {
                     >
                       <Plus className="h-3 w-3" />
                     </button>
-                    {!(libraryTab === 'Principal' && clip.type === 'video') && (
+                    {!(libraryTab === 'Principal' && clips.find(c => c.type === 'video')?.id === clip.id) && (
                       <button 
                         onClick={async (e) => {
                           e.stopPropagation();
@@ -1791,7 +2046,6 @@ function App() {
                               });
                               if (res && res.success) {
                                 await loadClipsForCategory(cat);
-                                // Also filter out of the timeline track if it matches
                                 setTimelineVideoClips(prev => prev.filter(t => t.name !== `${clip.name} (${cat})`));
                               } else {
                                 console.error('Error al eliminar clip:', res?.error);
@@ -1831,7 +2085,7 @@ function App() {
             {/* Player Canvas Mockup / Real Player */}
             <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950/20" />
             
-            {activeVideoUrl ? (
+            {(activeVideoUrl || (activeTimelineClip && (activeTimelineClip.path === 'remotion-dynamic' || activeTimelineClip.path === 'hyperframes-dynamic'))) ? (
               <div 
                 onWheel={handlePreviewWheel}
                 onMouseDown={handlePreviewMouseDown}
@@ -1846,24 +2100,31 @@ function App() {
                     : 'w-[95%] aspect-video'
                 }`}
               >
-                <video 
-                  ref={videoRef}
-                  src={activeVideoUrl}
-                  style={{
-                    transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}`,
-                    clipPath: activeCrop 
-                      ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` 
-                      : 'none',
-                  }}
-                  className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-75 ease-out"
-                  controls={false}
-                  onTimeUpdate={handleTimeUpdate}
-                  onLoadedMetadata={handleLoadedMetadata}
-                  onDurationChange={handleDurationChange}
-                  onEnded={handleEnded}
-                  onPlay={handlePlay}
-                  onPause={handlePause}
-                />
+                {activeVideoUrl ? (
+                  <video 
+                    ref={videoRef}
+                    src={activeVideoUrl}
+                    style={{
+                      transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}`,
+                      clipPath: activeCrop 
+                        ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` 
+                        : 'none',
+                    }}
+                    className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-75 ease-out"
+                    controls={false}
+                    onLoadedMetadata={handleLoadedMetadata}
+                    onDurationChange={handleDurationChange}
+                    onEnded={handleEnded}
+                  />
+                ) : (
+                  <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden bg-slate-950">
+                    {activeTimelineClip?.path === 'remotion-dynamic' ? (
+                      <RemotionVisualizer text={activeTimelineClip.text || activeTimelineClip.name} time={currentTimeSeconds - activeTimelineClip.startSeconds} />
+                    ) : (
+                      <HyperframesVisualizer text={activeTimelineClip?.text || activeTimelineClip?.name || ''} time={currentTimeSeconds - (activeTimelineClip?.startSeconds || 0)} />
+                    )}
+                  </div>
+                )}
 
                 {/* Crop Editor Overlay */}
                 {isCropping && (
@@ -3190,6 +3451,72 @@ function App() {
       </footer>
     </div>
   )
+}
+
+function RemotionVisualizer({ text, time }: { text: string; time: number }) {
+  const words = text.split(' ');
+  const totalWordsToShow = Math.min(words.length, Math.floor(time * 3) + 1);
+  const visibleText = words.slice(0, totalWordsToShow).join(' ');
+
+  return (
+    <div className="relative w-full h-full bg-gradient-to-br from-purple-950 via-slate-950 to-indigo-950 flex flex-col items-center justify-center p-6 overflow-hidden">
+      <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:24px_24px] animate-pulse" />
+      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl animate-bounce" style={{ animationDuration: '6s' }} />
+      <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl animate-bounce" style={{ animationDuration: '8s' }} />
+
+      <div className="relative z-10 max-w-md space-y-4">
+        <h2 className="text-xl md:text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 drop-shadow-lg transition-all duration-300">
+          {visibleText || "Generando Gráfico..."}
+        </h2>
+        
+        <div className="flex justify-center items-end space-x-1.5 h-12 pt-4">
+          {[0.6, 0.9, 0.4, 0.8, 0.5, 0.7, 0.3].map((h, i) => {
+            const dynamicHeight = Math.sin(time * 4 + i) * 15 + h * 30 + 15;
+            return (
+              <div 
+                key={i} 
+                style={{ height: `${dynamicHeight}px` }} 
+                className="w-2.5 bg-gradient-to-t from-purple-600 to-pink-500 rounded-t transition-all duration-100" 
+              />
+            );
+          })}
+        </div>
+      </div>
+      
+      <div className="absolute bottom-4 left-4 text-[9px] font-bold text-purple-400/60 uppercase tracking-widest flex items-center space-x-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping" />
+        <span>REMOTION ENGINE v4.0</span>
+      </div>
+    </div>
+  );
+}
+
+function HyperframesVisualizer({ text, time }: { text: string; time: number }) {
+  return (
+    <div className="relative w-full h-full bg-gradient-to-tr from-slate-950 via-slate-900 to-pink-950/20 flex flex-col items-center justify-center p-6 overflow-hidden">
+      <div 
+        className="absolute inset-0 bg-cover bg-center opacity-30 transition-transform duration-[10000ms] ease-out scale-110"
+        style={{
+          backgroundImage: `url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop')`,
+          transform: `scale(${1.05 + (time * 0.01)}) translate(${Math.sin(time * 0.2) * 5}px, ${Math.cos(time * 0.2) * 5}px)`,
+        }}
+      />
+      
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1px,transparent_1px)] bg-[size:16px_16px] animate-[pulse_3s_infinite]" />
+
+      <div className="relative z-10 max-w-lg mt-auto mb-8 px-4 py-3 bg-slate-950/70 border border-slate-800/80 rounded-xl backdrop-blur-sm shadow-2xl">
+        <p className="text-xs md:text-sm font-medium leading-relaxed tracking-wide text-pink-100/90 italic">
+          "{text}"
+        </p>
+      </div>
+      
+      <div className="absolute top-4 right-4 text-[9px] font-bold text-pink-400/60 uppercase tracking-widest flex items-center space-x-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-ping" />
+        <span>HYPERFRAMES B-ROLL GENERATOR</span>
+      </div>
+    </div>
+  );
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root')!)

@@ -25,6 +25,8 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   loadProjectState: () => electron.ipcRenderer.invoke("load-project-state"),
   saveProjectAs: (state) => electron.ipcRenderer.invoke("save-project-as", state),
   openProject: () => electron.ipcRenderer.invoke("open-project"),
+  deleteBankClip: (params) => electron.ipcRenderer.invoke("delete-bank-clip", params),
+  exportVideo: (params) => electron.ipcRenderer.invoke("export-video", params),
   onSaveBeforeClose: (callback) => {
     const listener = () => callback();
     electron.ipcRenderer.on("save-before-close", listener);
