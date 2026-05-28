@@ -63,6 +63,12 @@ function App() {
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null)
   const videoRef = React.useRef<HTMLVideoElement>(null)
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
+  
+  // Track volume states
+  const [videoTrackVolume, setVideoTrackVolume] = useState(1.0)
+  const [isVideoTrackMuted, setIsVideoTrackMuted] = useState(false)
+  const [audioTrackVolume, setAudioTrackVolume] = useState(1.0)
+  const [isAudioTrackMuted, setIsAudioTrackMuted] = useState(false)
 
   // Zoom, pan, crop and mirror states
   const [zoom, setZoom] = useState(1)
@@ -709,7 +715,8 @@ function App() {
       } else if (audioRef.current.src !== voiceClip.url) {
         audioRef.current.src = voiceClip.url;
       }
-      audioRef.current.volume = volume;
+      const targetVolume = isAudioTrackMuted ? 0 : audioTrackVolume * volume;
+      audioRef.current.volume = targetVolume;
       audioRef.current.muted = isMuted;
     } else {
       if (audioRef.current) {
@@ -717,7 +724,7 @@ function App() {
         audioRef.current = null;
       }
     }
-  }, [timelineVideoClips, volume, isMuted]);
+  }, [timelineVideoClips, volume, isMuted, audioTrackVolume, isAudioTrackMuted]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -817,8 +824,17 @@ function App() {
       if (Math.abs(video.currentTime - targetTime) > 0.2) {
         video.currentTime = targetTime;
       }
+
+      // Track volume and mute sync
+      const targetVideoVolume = isVideoTrackMuted ? 0 : videoTrackVolume * volume;
+      if (video.volume !== targetVideoVolume) {
+        video.volume = targetVideoVolume;
+      }
+      if (video.muted !== isMuted) {
+        video.muted = isMuted;
+      }
     }
-  }, [currentTimeSeconds, activeTimelineClip, isPlaying, playbackRate]);
+  }, [currentTimeSeconds, activeTimelineClip, isPlaying, playbackRate, isVideoTrackMuted, videoTrackVolume, volume, isMuted]);
 
   // Autoload project state on startup
   useEffect(() => {
@@ -1328,11 +1344,13 @@ function App() {
         
         if (match.bestSegIdx !== -1) {
           const clipIndex = match.bestSegIdx + 1;
-          selectedClip = (bankClips.originales || []).find(c => 
-            c.name.includes(`_clip_${clipIndex}.mp4`) || 
+          const matchingClips = (bankClips.originales || []).filter(c => 
             c.name.includes(`_clip_${clipIndex}_`) || 
-            c.name.endsWith(`_clip_${clipIndex}`)
+            c.name.includes(`_clip_${clipIndex}.mp4`)
           );
+          if (matchingClips.length > 0) {
+            selectedClip = matchingClips[i % matchingClips.length];
+          }
         }
         
         if (selectedClip) {
@@ -3230,11 +3248,18 @@ function App() {
         </div>
 
         {/* Tracks area */}
-        <div className="flex-1 overflow-y-auto p-4 bg-slate-950/40 relative">
-          <div className="relative min-w-[800px]">
+        <div 
+          onWheel={(e) => {
+            if (e.deltaY !== 0) {
+              e.currentTarget.scrollLeft += e.deltaY;
+            }
+          }}
+          className="flex-1 overflow-x-auto overflow-y-auto p-4 bg-slate-950/40 relative scrollbar-timeline"
+        >
+          <div className="relative min-w-[1200px]">
             {/* Timeline Ruler */}
             <div className="flex items-center space-x-3 mb-2 select-none">
-              <div className="w-20 flex-shrink-0" />
+              <div className="w-28 flex-shrink-0" />
               <div 
                 ref={trackRef}
                 onMouseDown={handleTimelineScrubMouseDown}
@@ -3267,10 +3292,10 @@ function App() {
             <div className="relative space-y-3">
               {/* Vertical Playhead Play Line */}
               {(() => {
-                const playheadPercent = durationSeconds > 0 ? (currentTimeSeconds / totalDuration) * 100 : 0;
+                const playheadPercent = totalDuration > 0 ? (currentTimeSeconds / totalDuration) * 100 : 0;
                 return (
                   <div 
-                    style={{ left: `calc(5rem + 12px + ${playheadPercent}%)` }} 
+                    style={{ left: `calc(7rem + 12px + ${playheadPercent}%)` }} 
                     className="absolute top-0 bottom-0 w-[2px] bg-indigo-500 z-30 pointer-events-none shadow-[0_0_10px_#6366f1]"
                   >
                     <div className="w-3 h-3 bg-indigo-500 rounded-full -ml-[5px] -mt-[4px] border border-white shadow-lg" />
@@ -3280,9 +3305,42 @@ function App() {
 
               {/* Track 1: Video Track */}
               <div className="flex items-center space-x-3">
-                <div className="w-20 text-[11px] font-bold text-slate-400 flex items-center space-x-1 flex-shrink-0">
-                  <Video className="h-3 w-3 text-sky-400" />
-                  <span>Video v1</span>
+                <div className="w-28 text-[11px] font-bold text-slate-400 flex flex-col justify-center space-y-1.5 flex-shrink-0 pr-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-1">
+                      <Video className="h-3.5 w-3.5 text-sky-400" />
+                      <span>Video v1</span>
+                    </div>
+                    <button 
+                      onClick={() => setIsVideoTrackMuted(!isVideoTrackMuted)}
+                      className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white cursor-pointer"
+                      title={isVideoTrackMuted ? "Desmutear pista" : "Mutear pista"}
+                    >
+                      {isVideoTrackMuted || videoTrackVolume === 0 ? (
+                        <VolumeX className="h-3 w-3 text-rose-400" />
+                      ) : (
+                        <Volume2 className="h-3 w-3 text-sky-400" />
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <input 
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={isVideoTrackMuted ? 0 : videoTrackVolume}
+                      onChange={(e) => {
+                        setVideoTrackVolume(parseFloat(e.target.value));
+                        setIsVideoTrackMuted(false);
+                      }}
+                      className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-sky-500 transition-all outline-none"
+                      style={{
+                        background: `linear-gradient(to right, rgb(56, 189, 248) ${Math.round((isVideoTrackMuted ? 0 : videoTrackVolume) * 100)}%, rgb(30, 41, 59) 0%)`
+                      }}
+                    />
+                    <span className="font-mono text-[8px] text-sky-400 w-5 text-right">{Math.round((isVideoTrackMuted ? 0 : videoTrackVolume) * 100)}%</span>
+                  </div>
                 </div>
                 <div className="flex-1 h-12 bg-slate-900/60 border border-slate-800/80 rounded-xl relative overflow-hidden">
                   {timelineVideoClips.filter(tClip => tClip.type !== 'audio').length === 0 && (
@@ -3341,9 +3399,42 @@ function App() {
 
               {/* Track 2: Audio Track */}
               <div className="flex items-center space-x-3">
-                <div className="w-20 text-[11px] font-bold text-slate-400 flex items-center space-x-1 flex-shrink-0">
-                  <Volume2 className="h-3 w-3 text-emerald-400" />
-                  <span>Audio a1</span>
+                <div className="w-28 text-[11px] font-bold text-slate-400 flex flex-col justify-center space-y-1.5 flex-shrink-0 pr-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-1">
+                      <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
+                      <span>Audio a1</span>
+                    </div>
+                    <button 
+                      onClick={() => setIsAudioTrackMuted(!isAudioTrackMuted)}
+                      className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white cursor-pointer"
+                      title={isAudioTrackMuted ? "Desmutear pista" : "Mutear pista"}
+                    >
+                      {isAudioTrackMuted || audioTrackVolume === 0 ? (
+                        <VolumeX className="h-3 w-3 text-rose-400" />
+                      ) : (
+                        <Volume2 className="h-3 w-3 text-emerald-400" />
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <input 
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={isAudioTrackMuted ? 0 : audioTrackVolume}
+                      onChange={(e) => {
+                        setAudioTrackVolume(parseFloat(e.target.value));
+                        setIsAudioTrackMuted(false);
+                      }}
+                      className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-emerald-500 transition-all outline-none"
+                      style={{
+                        background: `linear-gradient(to right, rgb(52, 211, 153) ${Math.round((isAudioTrackMuted ? 0 : audioTrackVolume) * 100)}%, rgb(30, 41, 59) 0%)`
+                      }}
+                    />
+                    <span className="font-mono text-[8px] text-emerald-400 w-5 text-right">{Math.round((isAudioTrackMuted ? 0 : audioTrackVolume) * 100)}%</span>
+                  </div>
                 </div>
                 <div className="flex-1 h-12 bg-slate-900/60 border border-slate-800/80 rounded-xl relative overflow-hidden">
                   {timelineVideoClips.filter(tClip => tClip.type === 'audio').length === 0 && (
@@ -3400,8 +3491,8 @@ function App() {
 
               {/* Track 3: AI Effects Track */}
               <div className="flex items-center space-x-3">
-                <div className="w-20 text-[11px] font-bold text-slate-400 flex items-center space-x-1 flex-shrink-0">
-                  <Sparkles className="h-3 w-3 text-indigo-400" />
+                <div className="w-28 text-[11px] font-bold text-slate-400 flex items-center space-x-1 flex-shrink-0 pr-2">
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
                   <span>AI FX</span>
                 </div>
                 <div className="flex-1 h-10 bg-slate-900/30 border border-slate-800/40 rounded-xl relative overflow-hidden">

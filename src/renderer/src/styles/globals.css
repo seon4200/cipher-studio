@@ -33,3 +33,24 @@
     text-shadow: 0 0 20px rgba(99, 102, 241, 0.8);
   }
 }
+
+/* Custom scrollbar for timeline tracks container */
+.scrollbar-timeline::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+
+.scrollbar-timeline::-webkit-scrollbar-track {
+  background: #020617;
+  border-radius: 6px;
+}
+
+.scrollbar-timeline::-webkit-scrollbar-thumb {
+  background: #334155;
+  border: 2px solid #020617;
+  border-radius: 6px;
+}
+
+.scrollbar-timeline::-webkit-scrollbar-thumb:hover {
+  background: #6366f1;
+}

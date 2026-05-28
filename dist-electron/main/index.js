@@ -607,49 +607,56 @@ electron.ipcMain.handle("cut-video-clips", async (_event, { videoPath, segments,
       const seg = segments[idx];
       const start = seg.start;
       const end = seg.end;
-      const duration = end - start;
-      if (duration <= 0.1) continue;
-      const clipFileName = `${baseName}_clip_${idx + 1}.mp4`;
-      const clipPath = path.join(outDir, clipFileName);
-      const escapedClipPath = clipPath.replace(/"/g, '\\"');
-      console.log(`  - Cortando segmentación ${idx + 1}/${segments.length} (${start.toFixed(1)}s -> ${end.toFixed(1)}s)`);
-      await new Promise((resolve, reject) => {
-        const ffmpegCmd = `ffmpeg -y -ss ${start} -to ${end} -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ultrafast -crf 23 -c:a aac "${escapedClipPath}"`;
-        child_process.exec(ffmpegCmd, (err) => {
-          if (err) {
-            console.warn(`[cut-video-clips] FFmpeg re-encoding falló para clip ${idx + 1}, reintentando con -c copy:`, err.message);
-            child_process.exec(`ffmpeg -y -ss ${start} -to ${end} -i "${escapedVideo}" -c copy "${escapedClipPath}"`, (err2) => {
-              if (err2) reject(err2);
-              else resolve();
-            });
-          } else {
-            resolve();
-          }
+      let currentStart = start;
+      let part = 1;
+      while (currentStart < end) {
+        const currentEnd = Math.min(currentStart + 3, end);
+        const duration = currentEnd - currentStart;
+        if (duration <= 0.1) break;
+        const clipFileName = `${baseName}_clip_${idx + 1}_${part}.mp4`;
+        const clipPath = path.join(outDir, clipFileName);
+        const escapedClipPath = clipPath.replace(/"/g, '\\"');
+        console.log(`  - Cortando segmentación ${idx + 1}/${segments.length} parte ${part} (${currentStart.toFixed(1)}s -> ${currentEnd.toFixed(1)}s)`);
+        await new Promise((resolve, reject) => {
+          const ffmpegCmd = `ffmpeg -y -ss ${currentStart} -to ${currentEnd} -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ultrafast -crf 23 -c:a aac "${escapedClipPath}"`;
+          child_process.exec(ffmpegCmd, (err) => {
+            if (err) {
+              console.warn(`[cut-video-clips] FFmpeg re-encoding falló para clip ${idx + 1}_${part}, reintentando con -c copy:`, err.message);
+              child_process.exec(`ffmpeg -y -ss ${currentStart} -to ${currentEnd} -i "${escapedVideo}" -c copy "${escapedClipPath}"`, (err2) => {
+                if (err2) reject(err2);
+                else resolve();
+              });
+            } else {
+              resolve();
+            }
+          });
         });
-      });
-      const thumbnailName = `${baseName}_clip_${idx + 1}.jpg`;
-      const thumbnailPath = path.join(bankDir, "thumbnails", thumbnailName);
-      let thumbnailUrl = "";
-      try {
-        await generateVideoThumbnail(clipPath, thumbnailPath);
-        if (fs.existsSync(thumbnailPath)) {
-          thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString("base64")}`;
+        const thumbnailName = `${baseName}_clip_${idx + 1}_${part}.jpg`;
+        const thumbnailPath = path.join(bankDir, "thumbnails", thumbnailName);
+        let thumbnailUrl = "";
+        try {
+          await generateVideoThumbnail(clipPath, thumbnailPath);
+          if (fs.existsSync(thumbnailPath)) {
+            thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString("base64")}`;
+          }
+        } catch (e) {
+          console.error(`[cut-video-clips] Error al generar miniatura para clip ${idx + 1}_${part}:`, e);
         }
-      } catch (e) {
-        console.error(`[cut-video-clips] Error al generar miniatura para clip ${idx + 1}:`, e);
+        const stat = fs.statSync(clipPath);
+        createdClips.push({
+          id: `bank-originales-${clipFileName}`,
+          name: clipFileName,
+          path: clipPath,
+          url: `file:///${clipPath.replace(/\\/g, "/")}`,
+          duration: formatTimeMinutesSeconds(duration),
+          durationSeconds: duration,
+          type: "video",
+          size: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`,
+          thumbnailUrl
+        });
+        currentStart = currentEnd;
+        part++;
       }
-      const stat = fs.statSync(clipPath);
-      createdClips.push({
-        id: `bank-originales-${clipFileName}`,
-        name: clipFileName,
-        path: clipPath,
-        url: `file:///${clipPath.replace(/\\/g, "/")}`,
-        duration: formatTimeMinutesSeconds(duration),
-        durationSeconds: duration,
-        type: "video",
-        size: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`,
-        thumbnailUrl
-      });
     }
     console.log(`[cut-video-clips] Corte automático finalizado. Creados ${createdClips.length} clips.`);
     return { success: true, clips: createdClips };
