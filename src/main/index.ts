@@ -478,8 +478,60 @@ ipcMain.handle('rewrite-transcript', async (_event, text) => {
   }
 })
 
+// IPC handle to get all voices from ElevenLabs API
+ipcMain.handle('get-elevenlabs-voices', async () => {
+  try {
+    loadEnv();
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    if (!apiKey) {
+      return { success: false, error: 'ELEVENLABS_API_KEY no está configurado en el archivo .env.' };
+    }
+
+    console.log('[get-elevenlabs-voices] Solicitando voces a ElevenLabs...');
+    const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+      method: 'GET',
+      headers: {
+        'xi-api-key': apiKey,
+        'accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      return { success: false, error: `Error de ElevenLabs API (${response.status}): ${errText}` };
+    }
+
+    const data = await response.json();
+    let voices = data.voices || [];
+
+    // Prioritize Voice ID 'c9cmyX6CFsCvEKNVoCZ1' as first item marked "Mi voz"
+    const myVoiceId = 'c9cmyX6CFsCvEKNVoCZ1';
+    const myVoiceIndex = voices.findIndex((v: any) => v.voice_id === myVoiceId);
+    if (myVoiceIndex !== -1) {
+      const myVoice = voices[myVoiceIndex];
+      myVoice.is_my_voice = true;
+      myVoice.name = `${myVoice.name} (Mi voz)`;
+      voices.splice(myVoiceIndex, 1);
+      voices.unshift(myVoice);
+    } else {
+      voices.unshift({
+        voice_id: myVoiceId,
+        name: 'Clon de mi Voz (Mi voz)',
+        preview_url: '',
+        category: 'cloned',
+        is_my_voice: true
+      });
+    }
+
+    return { success: true, voices };
+  } catch (err: any) {
+    console.error('[get-elevenlabs-voices] Error:', err);
+    return { success: false, error: err.message || 'Error al conectar con la API de ElevenLabs.' };
+  }
+});
+
 // IPC handle for ElevenLabs voice generation
-ipcMain.handle('generate-voice', async (_event, { text, model, speaker, stability }) => {
+ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stability }) => {
   try {
     loadEnv() // ensure env variables are loaded
     const apiKey = process.env.ELEVENLABS_API_KEY
@@ -489,17 +541,7 @@ ipcMain.handle('generate-voice', async (_event, { text, model, speaker, stabilit
       return { success: false, error: errMessage }
     }
 
-    // Map speaker selection to Voice ID
-    let voiceId = 'c9cmyX6CFsCvEKNVoCZ1' // default Clon de mi Voz (Voz del Video)
-    if (speaker === 'Narrador Neutro - Alejandro') {
-      voiceId = 'ErXwobaYiN019PkySvjV' // Antoni
-    } else if (speaker === 'Narradora Cercana - Sofía') {
-      voiceId = 'EXAVITQu4vr4xnSDxMaL' // Bella
-    } else if (speaker === 'Voz Enigmática - Damián') {
-      voiceId = 'GBv7mTt0atIp3jc8iA5i' // Callum
-    } else if (speaker === 'Clon de mi Voz (Voz del Video)') {
-      voiceId = 'c9cmyX6CFsCvEKNVoCZ1'
-    }
+    const targetVoiceId = voiceId || 'c9cmyX6CFsCvEKNVoCZ1';
 
     // Map model selection to model_id
     let modelId = 'eleven_multilingual_v2'
@@ -514,7 +556,7 @@ ipcMain.handle('generate-voice', async (_event, { text, model, speaker, stabilit
     console.log(`[generate-voice] Iniciando proceso de generación de voz:`)
     console.log(`  - Texto a procesar: "${text.substring(0, 60)}${text.length > 60 ? '...' : ''}" (longitud: ${text.length} caracteres)`)
     console.log(`  - Modelo seleccionado: "${model}" => API Model ID: "${modelId}"`)
-    console.log(`  - Voz/Locutor seleccionado: "${speaker}" => API Voice ID: "${voiceId}"`)
+    console.log(`  - Voice ID seleccionado: "${targetVoiceId}"`)
     console.log(`  - Estabilidad: ${stability}% (procesada: ${cleanStability})`)
     const maskedKey = apiKey.substring(0, 6) + '...' + apiKey.substring(apiKey.length - 6)
     console.log(`  - API Key de ElevenLabs: ${maskedKey} (longitud: ${apiKey.length} caracteres)`)
@@ -526,8 +568,8 @@ ipcMain.handle('generate-voice', async (_event, { text, model, speaker, stabilit
     }, 40000)
 
     try {
-      console.log(`[generate-voice] Enviando solicitud POST a https://api.elevenlabs.io/v1/text-to-speech/${voiceId}...`)
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      console.log(`[generate-voice] Enviando solicitud POST a https://api.elevenlabs.io/v1/text-to-speech/${targetVoiceId}...`)
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${targetVoiceId}`, {
         method: 'POST',
         headers: {
           'xi-api-key': apiKey,

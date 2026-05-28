@@ -4,7 +4,7 @@ import {
   Play, Pause, FastForward, Rewind, Video, Volume2, VolumeX, Sparkles, 
   Scissors, Type, Languages, Download, Upload, Plus, 
   FolderOpen, Cpu, Trash2, Maximize, Copy, Clipboard, Crop, FlipHorizontal,
-  Undo, Redo, Sliders
+  Undo, Redo, Sliders, ChevronDown
 } from 'lucide-react'
 import './styles/globals.css'
 
@@ -639,6 +639,63 @@ function App() {
   // Voice settings states (ElevenLabs style)
   const [voiceModel, setVoiceModel] = useState('Eleven Multilingual v2')
   const [voiceSpeaker, setVoiceSpeaker] = useState('Clon de mi Voz (Voz del Video)')
+  const [elevenLabsVoices, setElevenLabsVoices] = useState<any[]>([])
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('c9cmyX6CFsCvEKNVoCZ1')
+  const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false)
+  const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null)
+  const [playingPreviewVoiceId, setPlayingPreviewVoiceId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchVoices = async () => {
+      try {
+        const res = await window.electronAPI.getElevenLabsVoices();
+        if (res && res.success && res.voices) {
+          setElevenLabsVoices(res.voices);
+          const savedVoiceId = localStorage.getItem('elevenlabs_selected_voice_id');
+          if (savedVoiceId && res.voices.some((v: any) => v.voice_id === savedVoiceId)) {
+            setSelectedVoiceId(savedVoiceId);
+          } else {
+            setSelectedVoiceId('c9cmyX6CFsCvEKNVoCZ1');
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching ElevenLabs voices:', err);
+      }
+    };
+    fetchVoices();
+  }, []);
+
+  const handleVoiceSelect = (voiceId: string) => {
+    setSelectedVoiceId(voiceId);
+    localStorage.setItem('elevenlabs_selected_voice_id', voiceId);
+  };
+
+  const playVoicePreview = (voice: any) => {
+    if (playingPreviewVoiceId === voice.voice_id && previewAudio) {
+      previewAudio.pause();
+      setPreviewAudio(null);
+      setPlayingPreviewVoiceId(null);
+      return;
+    }
+
+    if (previewAudio) {
+      previewAudio.pause();
+    }
+
+    if (voice.preview_url) {
+      const audio = new Audio(voice.preview_url);
+      audio.volume = 0.8;
+      audio.play().catch(e => console.error("Error playing voice preview:", e));
+      audio.onended = () => {
+        setPlayingPreviewVoiceId(null);
+        setPreviewAudio(null);
+      };
+      setPreviewAudio(audio);
+      setPlayingPreviewVoiceId(voice.voice_id);
+    } else {
+      alert("Esta voz no tiene un audio de demostración disponible.");
+    }
+  };
   const [voiceSpeed, setVoiceSpeed] = useState(1.0)
   const [voiceStability, setVoiceStability] = useState(50)
   const [voiceFormat] = useState('MP3 44.1 kHz')
@@ -1449,7 +1506,7 @@ function App() {
       const res = await window.electronAPI.generateVoice({
         text: aiScript,
         model: voiceModel,
-        speaker: voiceSpeaker,
+        voiceId: selectedVoiceId,
         speed: voiceSpeed,
         stability: voiceStability
       })
@@ -2850,18 +2907,75 @@ function App() {
                         </div>
 
                         {/* Selector de Voz */}
-                        <div className="space-y-1">
+                        <div className="space-y-1 relative">
                           <label className="text-[9px] text-slate-500 font-bold uppercase font-sans">Clon o Locutor</label>
-                          <select 
-                            value={voiceSpeaker}
-                            onChange={(e) => setVoiceSpeaker(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-805 text-xs rounded-lg p-2 text-slate-350 outline-none focus:border-indigo-500/50 cursor-pointer"
-                          >
-                            <option value="Clon de mi Voz (Voz del Video)">Clon de mi Voz (Voz del Video)</option>
-                            <option value="Narrador Neutro - Alejandro">Narrador Neutro - Alejandro</option>
-                            <option value="Narradora Cercana - Sofía">Narradora Cercana - Sofía</option>
-                            <option value="Voz Enigmática - Damián">Voz Enigmática - Damián</option>
-                          </select>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}
+                              className="w-full bg-slate-950 border border-slate-805 text-xs rounded-lg p-2 text-slate-355 flex items-center justify-between hover:bg-slate-900 transition-colors cursor-pointer select-none text-left"
+                            >
+                              <span>
+                                {elevenLabsVoices.find(v => v.voice_id === selectedVoiceId)?.name || 'Clon de mi Voz (Mi voz)'}
+                              </span>
+                              <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
+                            </button>
+                            
+                            {isVoiceDropdownOpen && (
+                              <div className="absolute left-0 right-0 mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto p-1 space-y-0.5 scrollbar-thin">
+                                {elevenLabsVoices.length === 0 ? (
+                                  <div className="text-[10px] text-slate-500 italic p-2 text-center">
+                                    Cargando voces desde ElevenLabs...
+                                  </div>
+                                ) : (
+                                  elevenLabsVoices.map(voice => (
+                                    <div
+                                      key={voice.voice_id}
+                                      onClick={() => {
+                                        handleVoiceSelect(voice.voice_id);
+                                        setIsVoiceDropdownOpen(false);
+                                      }}
+                                      className={`flex items-center justify-between p-2 rounded-lg text-xs hover:bg-slate-800 transition-all cursor-pointer ${
+                                        selectedVoiceId === voice.voice_id
+                                          ? 'bg-indigo-950/40 text-indigo-400 border border-indigo-500/20'
+                                          : 'text-slate-300'
+                                      }`}
+                                    >
+                                      <div className="flex items-center space-x-1.5 min-w-0 pr-2">
+                                        {voice.is_my_voice && (
+                                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 flex-shrink-0 animate-pulse" />
+                                        )}
+                                        <span className="truncate font-semibold">{voice.name}</span>
+                                        <span className="text-[8px] px-1 py-0.2 bg-slate-950 text-slate-500 rounded text-right capitalize truncate font-mono">
+                                          {voice.category}
+                                        </span>
+                                      </div>
+                                      
+                                      {voice.preview_url && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            playVoicePreview(voice);
+                                          }}
+                                          className={`p-1 bg-slate-950 hover:bg-slate-800 hover:text-white rounded border border-slate-850 flex items-center justify-center cursor-pointer transition-colors ${
+                                            playingPreviewVoiceId === voice.voice_id ? 'text-indigo-400 border-indigo-500/30' : 'text-slate-500'
+                                          }`}
+                                          title="Escuchar demostración"
+                                        >
+                                          {playingPreviewVoiceId === voice.voice_id ? (
+                                            <Pause className="h-2.5 w-2.5 fill-current" />
+                                          ) : (
+                                            <Play className="h-2.5 w-2.5 fill-current" />
+                                          )}
+                                        </button>
+                                      )}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         {/* Slider de Velocidad */}

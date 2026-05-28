@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openProject: () => ipcRenderer.invoke('open-project'),
   deleteBankClip: (params: { category: string, file: string }) => ipcRenderer.invoke('delete-bank-clip', params),
   exportVideo: (params: { clips: any[], aspectRatio: string }) => ipcRenderer.invoke('export-video', params),
+  getElevenLabsVoices: () => ipcRenderer.invoke('get-elevenlabs-voices'),
   onSaveBeforeClose: (callback: () => void) => {
     const listener = () => callback()
     ipcRenderer.on('save-before-close', listener)
