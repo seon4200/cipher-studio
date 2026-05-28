@@ -631,6 +631,26 @@ function App() {
   const [rewriteError, setRewriteError] = useState<string>('')
   const [isCopied, setIsCopied] = useState(false)
 
+  // AI Asset Generation States (Remotion & Hyperframes)
+  const [isGeneratingAssets, setIsGeneratingAssets] = useState(false)
+  const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number; paragraph: string; type: string } | null>(null)
+  const [generationError, setGenerationError] = useState<string>('')
+
+  useEffect(() => {
+    if (window.electronAPI && window.electronAPI.onGenerationProgress) {
+      const unsub = window.electronAPI.onGenerationProgress((_event, data) => {
+        setGenerationProgress({
+          current: data.index + 1,
+          total: data.total,
+          paragraph: data.paragraph,
+          type: data.type
+        });
+      });
+      return () => unsub();
+    }
+    return undefined;
+  }, []);
+
   // Resizable panel dimensions
   const [libraryWidth, setLibraryWidth] = useState(320)
   const [toolsWidth, setToolsWidth] = useState(320)
@@ -1230,268 +1250,96 @@ function App() {
   const handleBuildIATimeline = async () => {
     if (!aiScript.trim()) return;
     
-    let sentences = aiScript.split(/[.!?\n]+/).map(s => s.trim()).filter(s => s.length > 5);
-    if (sentences.length === 0) {
-      sentences = [aiScript.trim()];
-    }
-    const N = sentences.length;
+    setIsGeneratingAssets(true);
+    setGenerationError('');
+    setGenerationProgress(null);
 
-    // Refresh bank clips before mounting
-    await loadClipsForCategory('originales');
-    await loadClipsForCategory('stock');
-    await loadClipsForCategory('remotion');
-    await loadClipsForCategory('hyperframes');
-    await loadClipsForCategory('veo3');
-
-    // 1. Verify weights sum to 100%
-    let weights = [...timelineWeights];
-    const sum = weights.reduce((a, b) => a + b, 0);
-    if (sum !== 100) {
-      const adjustWeightsTo100 = (w: number[]) => {
-        const s = w.reduce((a, b) => a + b, 0);
-        if (s === 0) return [40, 0, 30, 30];
-        const adj = w.map(x => Math.round((x / s) * 100));
-        let currSum = adj.reduce((a, b) => a + b, 0);
-        if (currSum !== 100) {
-          const diff = 100 - currSum;
-          let maxIdx = 0;
-          for (let i = 1; i < adj.length; i++) {
-            if (adj[i] > adj[maxIdx]) maxIdx = i;
-          }
-          adj[maxIdx] = Math.max(0, adj[maxIdx] + diff);
-        }
-        return adj;
-      };
-      weights = adjustWeightsTo100(weights);
-      setTimelineWeights(weights);
-      alert(`La mezcla del montaje fue ajustada al 100% para poder ejecutar:\n- Original: ${weights[0]}%\n- Stock: ${weights[1]}%\n- Remotion: ${weights[2]}%\n- Hyperframes: ${weights[3]}%`);
-    }
-
-    // 2. Determine base duration of final video from generated voice audio
-    const audioClips = clips.filter(c => c.type === 'audio');
-    let voiceClip = timelineVideoClips.find(c => c.type === 'audio');
-    if (!voiceClip && audioClips.length > 0) {
-      const latestAudio = audioClips[audioClips.length - 1];
-      voiceClip = {
-        id: latestAudio.id,
-        name: latestAudio.name,
-        startSeconds: 0,
-        durationSeconds: latestAudio.durationSeconds,
-        type: 'audio',
-        url: latestAudio.url,
-        path: latestAudio.path
-      };
-    } else if (!voiceClip && generatedVoices.length > 0) {
-      const latestVoice = generatedVoices[0];
-      const wordCount = latestVoice.text.split(/\s+/).filter(Boolean).length;
-      const durationSecs = Math.max(5, Math.ceil(wordCount / 2.5));
-      voiceClip = {
-        id: latestVoice.id,
-        name: `Voz IA - Take`,
-        startSeconds: 0,
-        durationSeconds: durationSecs,
-        type: 'audio',
-        url: latestVoice.audioUrl,
-        path: latestVoice.filePath
-      };
-    }
-
-    let totalDuration = voiceClip ? voiceClip.durationSeconds : 0;
-    if (totalDuration === 0) {
-      const wordCount = aiScript.split(/\s+/).filter(Boolean).length;
-      totalDuration = Math.max(5, Math.ceil(wordCount / 2.5));
-    }
-
-    // 3. Pro-rate weights: Since Stock is empty, route its weight proportionally
-    const origWeight = weights[0];
-    const stockWeight = weights[1];
-    const remoWeight = weights[2];
-    const hyperWeight = weights[3];
-
-    const sumOfOthers = origWeight + remoWeight + hyperWeight;
-    let origPct = origWeight;
-    let remoPct = remoWeight;
-
-    if (sumOfOthers > 0) {
-      origPct = origWeight + (stockWeight * origWeight / sumOfOthers);
-      remoPct = remoWeight + (stockWeight * remoWeight / sumOfOthers);
-    } else {
-      origPct = 40;
-      remoPct = 30;
-    }
-
-    const targetOrig = Math.round(N * (origPct / 100));
-    const targetRemo = Math.round(N * (remoPct / 100));
-
-    // 4. Semantic similarity match sentences with original Whisper transcript
-    const stopWords = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'y', 'o', 'pero', 'si', 'no', 'de', 'del', 'al', 'con', 'en', 'para', 'por', 'que', 'es', 'son', 'se', 'su', 'sus', 'a', 'este', 'esta', 'como']);
-    const cleanWords = (text: string) => {
-      return text.toLowerCase()
-        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, "")
-        .split(/\s+/)
-        .filter(w => w.length > 2 && !stopWords.has(w));
-    };
-
-    const sentenceMatches = sentences.map((s, idx) => {
-      const newWords = cleanWords(s);
-      let bestSegIdx = -1;
-      let maxScore = 0;
+    try {
+      console.log('[handleBuildIATimeline] Iniciando generación de assets de Timeline IA...');
+      const res = await window.electronAPI.generateTimelineAssets({ scriptText: aiScript });
       
-      if (newWords.length > 0 && transcriptSegments && transcriptSegments.length > 0) {
-        transcriptSegments.forEach((seg, segIdx) => {
-          const segWords = cleanWords(seg.text);
-          let score = 0;
-          newWords.forEach(w => {
-            if (segWords.includes(w)) score++;
-          });
-          if (score > maxScore) {
-            maxScore = score;
-            bestSegIdx = segIdx;
-          }
-        });
-      }
-      
-      return {
-        sentenceIndex: idx,
-        sentenceText: s,
-        bestSegIdx,
-        score: maxScore
-      };
-    });
-
-    // Sort by best score descending to distribute Original clips
-    const sortedMatches = [...sentenceMatches].sort((a, b) => b.score - a.score);
-    const sentenceCategories = new Array(N).fill('');
-    let originalAssigned = 0;
-    
-    for (const m of sortedMatches) {
-      if (originalAssigned < targetOrig && m.score > 0 && m.bestSegIdx !== -1) {
-        sentenceCategories[m.sentenceIndex] = 'originales';
-        originalAssigned++;
-      }
-    }
-    
-    let remotionAssigned = 0;
-    for (let i = 0; i < N; i++) {
-      if (sentenceCategories[i] === '') {
-        if (remotionAssigned < targetRemo) {
-          sentenceCategories[i] = 'remotion';
-          remotionAssigned++;
-        } else {
-          sentenceCategories[i] = 'hyperframes';
-        }
-      }
-    }
-
-    // 5. Construct timeline clips
-    const newTimelineClips: any[] = [];
-    let currentStartSeconds = 0;
-    const sentenceWords = sentences.map(s => s.split(/\s+/).filter(Boolean).length);
-    const totalWords = sentenceWords.reduce((a, b) => a + b, 0);
-    const mainVideo = clips.find(c => c.type === 'video');
-
-    for (let i = 0; i < N; i++) {
-      const sentenceText = sentences[i];
-      const category = sentenceCategories[i];
-      const duration = totalWords > 0 ? (sentenceWords[i] / totalWords) * totalDuration : totalDuration / N;
-      
-      if (category === 'originales') {
-        const match = sentenceMatches[i];
-        let selectedClip: any = null;
+      if (res && res.success && res.clips) {
+        console.log('[handleBuildIATimeline] Generación completada con éxito. Clips recibidos:', res.clips.length);
         
-        if (match.bestSegIdx !== -1) {
-          const clipIndex = match.bestSegIdx + 1;
-          const matchingClips = (bankClips.originales || []).filter(c => 
-            c.name.includes(`_clip_${clipIndex}_`) || 
-            c.name.includes(`_clip_${clipIndex}.mp4`)
-          );
-          if (matchingClips.length > 0) {
-            selectedClip = matchingClips[i % matchingClips.length];
-          }
-        }
+        // Refresh library bank folders so generated clips appear in their tabs
+        await loadClipsForCategory('remotion');
+        await loadClipsForCategory('hyperframes');
+
+        // Construct timeline video clips sequentially
+        const newTimelineClips: any[] = [];
+        let currentStartSeconds = 0;
         
-        if (selectedClip) {
+        for (let i = 0; i < res.clips.length; i++) {
+          const generatedClip = res.clips[i];
           newTimelineClips.push({
             id: `timeline-${Math.random()}`,
-            name: `${selectedClip.name}`,
+            name: generatedClip.name,
             startSeconds: currentStartSeconds,
-            durationSeconds: duration,
+            durationSeconds: generatedClip.durationSeconds,
             type: 'video',
-            url: selectedClip.url,
-            path: selectedClip.path,
-            origDurationSeconds: selectedClip.durationSeconds,
-            segmentStartOffset: 0,
-            segmentIndex: match.bestSegIdx
+            url: generatedClip.url,
+            path: generatedClip.path,
+            category: generatedClip.category
           });
-        } else if (mainVideo) {
-          const seg = transcriptSegments[match.bestSegIdx];
-          const segStart = seg ? seg.start : 0;
-          const segEnd = seg ? seg.end : 5;
-          const origDuration = segEnd - segStart;
-          
+          currentStartSeconds += generatedClip.durationSeconds;
+        }
+
+        // Determine if there is a voice track to add
+        const audioClips = clips.filter(c => c.type === 'audio');
+        let voiceClip = timelineVideoClips.find(c => c.type === 'audio');
+        if (!voiceClip && audioClips.length > 0) {
+          const latestAudio = audioClips[audioClips.length - 1];
+          voiceClip = {
+            id: latestAudio.id,
+            name: latestAudio.name,
+            startSeconds: 0,
+            durationSeconds: latestAudio.durationSeconds,
+            type: 'audio',
+            url: latestAudio.url,
+            path: latestAudio.path
+          };
+        } else if (!voiceClip && generatedVoices.length > 0) {
+          const latestVoice = generatedVoices[0];
+          const wordCount = latestVoice.text.split(/\s+/).filter(Boolean).length;
+          const durationSecs = Math.max(5, Math.ceil(wordCount / 2.5));
+          voiceClip = {
+            id: latestVoice.id,
+            name: `Voz IA - Take`,
+            startSeconds: 0,
+            durationSeconds: durationSecs,
+            type: 'audio',
+            url: latestVoice.audioUrl,
+            path: latestVoice.filePath
+          };
+        }
+
+        if (voiceClip) {
           newTimelineClips.push({
-            id: `timeline-${Math.random()}`,
-            name: `${mainVideo.name} (Sincro #${match.bestSegIdx + 1})`,
-            startSeconds: currentStartSeconds,
-            durationSeconds: duration,
-            type: 'video',
-            url: mainVideo.url,
-            path: mainVideo.path,
-            origDurationSeconds: origDuration,
-            segmentStartOffset: segStart,
-            segmentIndex: match.bestSegIdx
-          });
-        } else {
-          newTimelineClips.push({
-            id: `timeline-${Math.random()}`,
-            name: `Sincro #${match.bestSegIdx + 1}`,
-            startSeconds: currentStartSeconds,
-            durationSeconds: duration,
-            type: 'video',
-            origDurationSeconds: 5,
-            segmentStartOffset: 0,
-            segmentIndex: match.bestSegIdx
+            id: `timeline-voice-${Date.now()}`,
+            name: voiceClip.name,
+            startSeconds: 0,
+            durationSeconds: currentStartSeconds, // sync to video duration
+            type: 'audio',
+            url: voiceClip.url,
+            path: voiceClip.path
           });
         }
-      } else if (category === 'remotion') {
-        newTimelineClips.push({
-          id: `timeline-${Math.random()}`,
-          name: `Gráfico: "${sentenceText.substring(0, 30)}${sentenceText.length > 30 ? '...' : ''}"`,
-          text: sentenceText,
-          startSeconds: currentStartSeconds,
-          durationSeconds: duration,
-          type: 'video',
-          path: 'remotion-dynamic'
-        });
+
+        setTimelineVideoClips(newTimelineClips);
+        pushHistory(newTimelineClips);
       } else {
-        newTimelineClips.push({
-          id: `timeline-${Math.random()}`,
-          name: `B-Roll: "${sentenceText.substring(0, 30)}${sentenceText.length > 30 ? '...' : ''}"`,
-          text: sentenceText,
-          startSeconds: currentStartSeconds,
-          durationSeconds: duration,
-          type: 'video',
-          path: 'hyperframes-dynamic'
-        });
+        const errorMsg = res?.error || 'Error al generar los clips de video en el backend.';
+        setGenerationError(errorMsg);
+        alert(`Error al generar Timeline IA: ${errorMsg}`);
       }
-      
-      currentStartSeconds += duration;
+    } catch (err: any) {
+      const errorMsg = err.message || 'Excepción al construir Timeline IA.';
+      setGenerationError(errorMsg);
+      alert(`Error al construir Timeline IA: ${errorMsg}`);
+    } finally {
+      setIsGeneratingAssets(false);
+      setGenerationProgress(null);
     }
-
-    if (voiceClip) {
-      newTimelineClips.push({
-        id: `timeline-voice-${Date.now()}`,
-        name: voiceClip.name,
-        startSeconds: 0,
-        durationSeconds: totalDuration,
-        type: 'audio',
-        url: voiceClip.url,
-        path: voiceClip.path
-      });
-    }
-
-    setTimelineVideoClips(newTimelineClips);
-    pushHistory(newTimelineClips);
   };
 
   const handleGenerateVoiceClick = async () => {
@@ -2012,14 +1860,42 @@ function App() {
             </div>
 
             {/* Botón Construir Timeline IA */}
-            <button 
-              onClick={handleBuildIATimeline}
-              disabled={!aiScript.trim()}
-              className="w-full mt-3 bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
-              <span>Construir Timeline IA</span>
-            </button>
+            {isGeneratingAssets ? (
+              <div className="w-full mt-3 p-3 bg-slate-900/60 border border-slate-800 rounded-xl space-y-2 select-none">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3.5 h-3.5 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+                  <span className="text-[10px] font-semibold text-indigo-300">Generando clips...</span>
+                </div>
+                {generationProgress && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[8px] text-slate-500 font-mono">
+                      <span>{generationProgress.current}/{generationProgress.total}</span>
+                      <span className="uppercase text-[7px] bg-slate-850 px-1 py-0.5 rounded text-indigo-400 font-bold">{generationProgress.type}</span>
+                    </div>
+                    <div className="h-1 w-full bg-slate-950 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-indigo-500 transition-all duration-300"
+                        style={{ width: `${(generationProgress.current / generationProgress.total) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button 
+                onClick={handleBuildIATimeline}
+                disabled={!aiScript.trim()}
+                className="w-full mt-3 bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
+                <span>Construir Timeline IA</span>
+              </button>
+            )}
+            {generationError && (
+              <div className="w-full mt-2 p-2 bg-red-950/20 border border-red-900/50 rounded-xl text-[9px] text-red-400 font-medium text-center select-text leading-relaxed">
+                Error: {generationError}
+              </div>
+            )}
           </div>
 
           {/* Media Items List */}
@@ -3140,18 +3016,52 @@ function App() {
                       </div>
 
                       {/* Build Timeline IA Button */}
-                      <button 
-                        onClick={handleBuildIATimeline}
-                        disabled={!aiScript.trim()}
-                        className="w-full bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2.5 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
-                        <span>Construir Timeline IA</span>
-                      </button>
+                      {isGeneratingAssets ? (
+                        <div className="flex flex-col items-center justify-center text-center p-6 space-y-4 bg-slate-900/90 border border-slate-800 rounded-xl shadow-xl select-none">
+                          <div className="w-8 h-8 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin flex items-center justify-center shadow-lg shadow-indigo-500/20" />
+                          <div className="space-y-2 w-full">
+                            <p className="text-xs font-semibold text-indigo-300">Generando clips con IA local...</p>
+                            {generationProgress ? (
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                                  <span>Progreso: {generationProgress.current} de {generationProgress.total}</span>
+                                  <span className="capitalize text-indigo-400 font-bold">{generationProgress.type}</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 transition-all duration-300"
+                                    style={{ width: `${(generationProgress.current / generationProgress.total) * 100}%` }}
+                                  />
+                                </div>
+                                <p className="text-[9px] text-slate-500 italic truncate" title={generationProgress.paragraph}>
+                                  "{generationProgress.paragraph}"
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-[10px] text-slate-500 font-mono">Analizando guion y preparando entorno...</p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={handleBuildIATimeline}
+                          disabled={!aiScript.trim()}
+                          className="w-full bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2.5 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
+                          <span>Construir Timeline IA</span>
+                        </button>
+                      )}
 
                       {!aiScript.trim() && (
                         <div className="text-center py-2 text-[10px] text-slate-500 italic leading-relaxed">
                           * Genera o reescribe un guión en el panel de transcripción antes de construir el Timeline IA.
+                        </div>
+                      )}
+
+                      {generationError && (
+                        <div className="text-center py-2 px-3 text-[10px] text-red-400 font-medium leading-relaxed bg-red-950/20 border border-red-900/50 rounded-xl mt-2 select-text">
+                          Error de generación: {generationError}
                         </div>
                       )}
                     </div>

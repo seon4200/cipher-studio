@@ -129,6 +129,14 @@ function getBancoClipsPath() {
     return path.join(cwd, "cipher-studio", "banco-clips");
   }
 }
+function getRemotionPath() {
+  const cwd = process.cwd();
+  if (path.basename(cwd) === "cipher-studio") {
+    return cwd;
+  } else {
+    return path.join(cwd, "cipher-studio");
+  }
+}
 function initClipFolders() {
   const bankDir = getBancoClipsPath();
   const folders = [
@@ -788,6 +796,273 @@ electron.ipcMain.handle("export-video", async (_event, { clips, aspectRatio }) =
   } catch (err) {
     console.error(`[export-video] Error: ${err.message}`);
     return { success: false, error: err.message };
+  }
+});
+electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText }) => {
+  var _a, _b, _c;
+  try {
+    console.log(`[generate-timeline-assets] Iniciando análisis del guion para Remotion/Hyperframes...`);
+    loadEnv();
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) {
+      return { success: false, error: "No se configuró DEEPSEEK_API_KEY en el archivo .env" };
+    }
+    let creativeUnlockContent = "";
+    const creativeUnlockPath = path.join(process.cwd(), "creative-unlock.md");
+    const alternativeCreativePath = path.join(process.cwd(), "cipher-studio", "creative-unlock.md");
+    if (fs.existsSync(creativeUnlockPath)) {
+      creativeUnlockContent = fs.readFileSync(creativeUnlockPath, "utf8");
+    } else if (fs.existsSync(alternativeCreativePath)) {
+      creativeUnlockContent = fs.readFileSync(alternativeCreativePath, "utf8");
+    }
+    const paragraphs = scriptText.split(/\n\n+/).map((p) => p.trim()).filter((p) => p.length > 5);
+    if (paragraphs.length === 0) {
+      return { success: false, error: "No se encontraron párrafos válidos en el guion." };
+    }
+    console.log(`[generate-timeline-assets] Párrafos detectados: ${paragraphs.length}`);
+    const prompt = `
+    Analiza la siguiente lista de párrafos de un guion de video.
+    Para cada párrafo, debes decidir si requiere:
+    - "remotion": Gráficos animados de datos, estadísticas, métricas, código, KPI, barras, líneas.
+    - "hyperframes": B-roll narrativo, tipografía cinética sobre fondo oscuro, escena visual conceptual.
+
+    Además, para cada párrafo:
+    - Si es "remotion", genera las siguientes propiedades JSON en "remotionProps":
+      - chartType: "bar" | "line" | "kpi"
+      - title: Título descriptivo para el gráfico (relacionado con el párrafo)
+      - data: (Solo si es "bar" o "line") Un array de 3 a 5 objetos { "label": "...", "value": 0-100 }
+      - metricValue: (Solo si es "kpi") Un texto corto representativo como "+85%" o "1.2M"
+      - metricLabel: (Solo si es "kpi") Una etiqueta explicativa como "Crecimiento" o "Usuarios Activos"
+    - Si es "hyperframes", genera el fragmento HTML completo en "hyperframesHtml" para el interior del contenedor "#root". Debe cumplir con estas directivas:
+      - El contenedor principal dentro de "#root" debe tener 100% de ancho/alto y usar fondo #020712.
+      - Incluye estilos inline o etiquetas <style> internas para animar los elementos usando CSS keyframes. Las animaciones deben ser fluidas y elegantes.
+      - Las tipografías y colores deben seguir estrictamente el archivo creative-unlock.md:
+        ${creativeUnlockContent ? `Estilo de creative-unlock.md:
+${creativeUnlockContent}` : `Fondo general: #020712, Primario (Indigo): #6366f1, Secundario (Púrpura): #c084fc, Verde datos: #34d399, Títulos: Sans-serif Bold, Métricas/Datos: Monospace`}
+      - Distribuye el texto del párrafo en un contenedor centralizado, opcionalmente agregando palabras clave resaltadas en color #6366f1 o #c084fc.
+      - Agrega animaciones CSS como fade-up elástico con retraso (animation-delay) para cada palabra o línea de texto.
+      - Puedes usar círculos con brillos suaves (radial-gradients) de fondo para darle un aspecto cinematográfico y premium de "studio".
+
+    IMPORTANTE: Entrega ÚNICAMENTE el array JSON resultante que empiece por "[" y termine por "]". No incluyas explicaciones ni bloques markdown de código adicionales.
+
+    Lista de párrafos a analizar:
+    ${JSON.stringify(paragraphs, null, 2)}
+    `;
+    console.log(`[generate-timeline-assets] Enviando solicitud a DeepSeek...`);
+    const dsResponse = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content: "Eres un programador experto y director creativo. Responde ÚNICAMENTE con el objeto JSON solicitado, sin prefacios ni comentarios."
+          },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.2,
+        stream: false
+      })
+    });
+    if (!dsResponse.ok) {
+      const errText = await dsResponse.text();
+      return { success: false, error: `Error de API DeepSeek (${dsResponse.status}): ${errText}` };
+    }
+    const dsData = await dsResponse.json();
+    const content = (_c = (_b = (_a = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _a[0]) == null ? void 0 : _b.message) == null ? void 0 : _c.content;
+    if (!content) {
+      return { success: false, error: "La respuesta de DeepSeek está vacía." };
+    }
+    let cleanContent = content.trim();
+    if (cleanContent.includes("[")) {
+      cleanContent = cleanContent.substring(cleanContent.indexOf("["), cleanContent.lastIndexOf("]") + 1);
+    }
+    let analysisResults;
+    try {
+      analysisResults = JSON.parse(cleanContent);
+    } catch (parseErr) {
+      console.error(`[generate-timeline-assets] Error al parsear JSON de DeepSeek:`, cleanContent);
+      return { success: false, error: `Error al parsear el JSON de la IA: ${parseErr.message}` };
+    }
+    const bankDir = getBancoClipsPath();
+    const tempDir = path.join(bankDir, "temp_renders");
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    const compositionsDir = path.join(process.cwd(), "hyperframes-project", "compositions");
+    const alternativeCompositionsDir = path.join(process.cwd(), "cipher-studio", "hyperframes-project", "compositions");
+    const targetCompositionsDir = fs.existsSync(path.join(process.cwd(), "hyperframes-project")) ? compositionsDir : alternativeCompositionsDir;
+    if (!fs.existsSync(targetCompositionsDir)) {
+      fs.mkdirSync(targetCompositionsDir, { recursive: true });
+    }
+    const generatedClips = [];
+    const timestamp = Date.now();
+    for (let idx = 0; idx < analysisResults.length; idx++) {
+      const item = analysisResults[idx];
+      const paragraph = item.paragraph || paragraphs[idx] || "";
+      const type = item.type || "hyperframes";
+      const wordCount = paragraph.split(/\s+/).filter(Boolean).length;
+      const durationSeconds = Math.max(4, Math.min(10, Math.ceil(wordCount / 2.5)));
+      const durationInFrames = durationSeconds * 30;
+      event.sender.send("generation-progress", {
+        index: idx,
+        total: analysisResults.length,
+        paragraph: paragraph.substring(0, 40) + "...",
+        type
+      });
+      console.log(`[generate-timeline-assets] Procesando clip ${idx + 1}/${analysisResults.length} (${type}) - Duración: ${durationSeconds}s`);
+      const clipFileName = `ai_clip_${timestamp}_${idx + 1}.mp4`;
+      if (type === "remotion") {
+        const outPath = path.join(bankDir, "remotion", clipFileName);
+        const tempPropsPath = path.join(tempDir, `remotion_props_${timestamp}_${idx + 1}.json`);
+        const remotionProps = item.remotionProps || {};
+        const propsJson = {
+          text: paragraph,
+          title: remotionProps.title || "Gráfico CIPHER",
+          chartType: remotionProps.chartType || "bar",
+          data: remotionProps.data || [],
+          metricValue: remotionProps.metricValue || "",
+          metricLabel: remotionProps.metricLabel || ""
+        };
+        fs.writeFileSync(tempPropsPath, JSON.stringify(propsJson, null, 2), "utf8");
+        const remotionProjectRoot = getRemotionPath();
+        const entryFile = path.join(remotionProjectRoot, "remotion", "src", "index.ts");
+        await new Promise((resolve, reject) => {
+          const cmd = `npx remotion render "${entryFile}" MainClip "${outPath}" --props="${tempPropsPath}" --frames=0-${durationInFrames - 1}`;
+          console.log(`  - Ejecutando Remotion: ${cmd}`);
+          child_process.exec(cmd, { cwd: remotionProjectRoot }, (err, _stdout, stderr) => {
+            try {
+              fs.unlinkSync(tempPropsPath);
+            } catch (e) {
+            }
+            if (err) {
+              console.error(`  - Remotion falló:`, stderr);
+              reject(err);
+            } else {
+              console.log(`  - Remotion renderizado con éxito.`);
+              resolve();
+            }
+          });
+        });
+        const thumbnailName = `ai_clip_${timestamp}_${idx + 1}.jpg`;
+        const thumbnailPath = path.join(bankDir, "thumbnails", thumbnailName);
+        let thumbnailUrl = "";
+        try {
+          await generateVideoThumbnail(outPath, thumbnailPath);
+          if (fs.existsSync(thumbnailPath)) {
+            thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString("base64")}`;
+          }
+        } catch (e) {
+          console.error(`  - Falló generación de miniatura Remotion:`, e);
+        }
+        const stat = fs.statSync(outPath);
+        generatedClips.push({
+          id: `bank-remotion-${clipFileName}`,
+          name: clipFileName,
+          path: outPath,
+          url: `file:///${outPath.replace(/\\/g, "/")}`,
+          duration: formatTimeMinutesSeconds(durationSeconds),
+          durationSeconds,
+          type: "video",
+          category: "remotion",
+          size: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`,
+          thumbnailUrl
+        });
+      } else {
+        const outPath = path.join(bankDir, "hyperframes", clipFileName);
+        const compositionHtmlPath = path.join(targetCompositionsDir, `clip_${timestamp}_${idx + 1}.html`);
+        const relativeCompositionPath = `compositions/clip_${timestamp}_${idx + 1}.html`;
+        const hyperframesHtml = item.hyperframesHtml || `<div style="width:100%;height:100%;background:#020712;display:flex;justify-content:center;align-items:center;color:#ffffff;font-size:48px;font-family:sans-serif;padding:60px;text-align:center;">${paragraph}</div>`;
+        const htmlTemplate = `<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"><\/script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html, body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #020712;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="${durationSeconds}" data-width="1920" data-height="1080">
+      ${hyperframesHtml}
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    <\/script>
+  </body>
+</html>`;
+        fs.writeFileSync(compositionHtmlPath, htmlTemplate, "utf8");
+        const hyperframesProjectRoot = fs.existsSync(path.join(process.cwd(), "hyperframes-project")) ? path.join(process.cwd(), "hyperframes-project") : path.join(process.cwd(), "cipher-studio", "hyperframes-project");
+        await new Promise((resolve, reject) => {
+          const cmd = `npx hyperframes render "${hyperframesProjectRoot}" -c "${relativeCompositionPath}" -o "${outPath}"`;
+          console.log(`  - Ejecutando Hyperframes: ${cmd}`);
+          child_process.exec(cmd, { cwd: hyperframesProjectRoot }, (err, _stdout, stderr) => {
+            try {
+              fs.unlinkSync(compositionHtmlPath);
+            } catch (e) {
+            }
+            if (err) {
+              console.error(`  - Hyperframes falló:`, stderr);
+              reject(err);
+            } else {
+              console.log(`  - Hyperframes renderizado con éxito.`);
+              resolve();
+            }
+          });
+        });
+        const thumbnailName = `ai_clip_${timestamp}_${idx + 1}.jpg`;
+        const thumbnailPath = path.join(bankDir, "thumbnails", thumbnailName);
+        let thumbnailUrl = "";
+        try {
+          await generateVideoThumbnail(outPath, thumbnailPath);
+          if (fs.existsSync(thumbnailPath)) {
+            thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString("base64")}`;
+          }
+        } catch (e) {
+          console.error(`  - Falló generación de miniatura Hyperframes:`, e);
+        }
+        const stat = fs.statSync(outPath);
+        generatedClips.push({
+          id: `bank-hyperframes-${clipFileName}`,
+          name: clipFileName,
+          path: outPath,
+          url: `file:///${outPath.replace(/\\/g, "/")}`,
+          duration: formatTimeMinutesSeconds(durationSeconds),
+          durationSeconds,
+          type: "video",
+          category: "hyperframes",
+          size: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`,
+          thumbnailUrl
+        });
+      }
+    }
+    try {
+      fs.rmdirSync(tempDir);
+    } catch (e) {
+    }
+    console.log(`[generate-timeline-assets] Generación finalizada. Creados ${generatedClips.length} clips.`);
+    return { success: true, clips: generatedClips };
+  } catch (err) {
+    console.error(`[generate-timeline-assets] Error:`, err);
+    return { success: false, error: err.message || "Error interno al generar assets de la IA" };
   }
 });
 //# sourceMappingURL=index.js.map

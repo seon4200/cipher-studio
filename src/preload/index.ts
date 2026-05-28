@@ -21,6 +21,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   rewriteTranscript: (text: string) => ipcRenderer.invoke('rewrite-transcript', text),
   generateVoice: (params: any) => ipcRenderer.invoke('generate-voice', params),
   loadBankClips: (params: { category: string }) => ipcRenderer.invoke('load-bank-clips', params),
+  generateTimelineAssets: (params: { scriptText: string }) => ipcRenderer.invoke('generate-timeline-assets', params),
+  onGenerationProgress: (callback: (event: any, data: any) => void) => {
+    const listener = (_event: any, value: any) => callback(_event, value)
+    ipcRenderer.on('generation-progress', listener)
+    return () => {
+      ipcRenderer.removeListener('generation-progress', listener)
+    }
+  },
   cutVideoClips: (params: { videoPath: string, segments: any[], aspectRatio: string }) => ipcRenderer.invoke('cut-video-clips', params),
   saveProjectState: (state: any) => ipcRenderer.invoke('save-project-state', state),
   loadProjectState: () => ipcRenderer.invoke('load-project-state'),
