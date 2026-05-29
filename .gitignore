@@ -6,3 +6,9 @@ project-state.json
 .env
 .env.*
 *.log
+proyectos/
+scratch/
+.commit-temp/
+temp-*.mp4
+hyperframes-project/compositions/
+
