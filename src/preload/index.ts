@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   rewriteTranscript: (text: string) => ipcRenderer.invoke('rewrite-transcript', text),
   generateVoice: (params: any) => ipcRenderer.invoke('generate-voice', params),
   loadBankClips: (params: { category: string }) => ipcRenderer.invoke('load-bank-clips', params),
-  generateTimelineAssets: (params: { scriptText: string }) => ipcRenderer.invoke('generate-timeline-assets', params),
+  generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string }) => ipcRenderer.invoke('generate-timeline-assets', params),
   onGenerationProgress: (callback: (event: any, data: any) => void) => {
     const listener = (_event: any, value: any) => callback(_event, value)
     ipcRenderer.on('generation-progress', listener)
@@ -29,7 +29,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('generation-progress', listener)
     }
   },
-  cutVideoClips: (params: { videoPath: string, segments: any[], aspectRatio: string }) => ipcRenderer.invoke('cut-video-clips', params),
+  cutVideoClips: (params: { videoPath: string, segments?: any[], aspectRatio?: string }) => ipcRenderer.invoke('cut-video-clips', params),
   saveProjectState: (state: any) => ipcRenderer.invoke('save-project-state', state),
   loadProjectState: () => ipcRenderer.invoke('load-project-state'),
   saveProjectAs: (state: any) => ipcRenderer.invoke('save-project-as', state),
@@ -37,6 +37,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteBankClip: (params: { category: string, file: string }) => ipcRenderer.invoke('delete-bank-clip', params),
   exportVideo: (params: { clips: any[], aspectRatio: string }) => ipcRenderer.invoke('export-video', params),
   getElevenLabsVoices: () => ipcRenderer.invoke('get-elevenlabs-voices'),
+  listProjects: () => ipcRenderer.invoke('list-projects'),
+  createProject: (params: { name: string }) => ipcRenderer.invoke('create-project', params),
+  loadProject: (params: { projectPath: string }) => ipcRenderer.invoke('load-project', params),
+  closeProject: () => ipcRenderer.invoke('close-project'),
+  deleteProject: (params: { projectPath: string }) => ipcRenderer.invoke('delete-project', params),
+  readFileAsBlob: (params: { filePath: string }) => ipcRenderer.invoke('read-file-as-blob', params),
   onSaveBeforeClose: (callback: () => void) => {
     const listener = () => callback()
     ipcRenderer.on('save-before-close', listener)

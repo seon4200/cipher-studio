@@ -3,20 +3,26 @@ export interface IElectronAPI {
   startTranscription: (filePath: string) => void;
   onTranscriptionUpdate: (callback: (event: any, data: any) => void) => () => void;
   rewriteTranscript: (text: string) => Promise<{ success: boolean; data?: string; error?: string }>;
-  generateVoice: (params: { text: string; model: string; voiceId: string; speed: number; stability: number }) => Promise<{ success: boolean; filePath?: string; audioUrl?: string; error?: string }>;
+  generateVoice: (params: { text: string; model: string; voiceId: string; speed: number; stability: number }) => Promise<{ success: boolean; filePath?: string; audioUrl?: string; durationSeconds?: number; error?: string }>;
   loadBankClips: (params: { category: string }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
-  generateTimelineAssets: (params: { scriptText: string }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
+  generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
   onGenerationProgress: (callback: (event: any, data: any) => void) => () => void;
-  cutVideoClips: (params: { videoPath: string; segments: any[]; aspectRatio: string }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
+  cutVideoClips: (params: { videoPath: string; segments?: any[]; aspectRatio?: string }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
   saveProjectState: (state: any) => Promise<{ success: boolean; error?: string }>;
   loadProjectState: () => Promise<{ success: boolean; data?: any; error?: string }>;
   saveProjectAs: (state: any) => Promise<{ success: boolean; error?: string }>;
-  openProject: () => Promise<{ success: boolean; data?: any; error?: string }>;
+  openProject: () => Promise<{ success: boolean; data?: any; projectPath?: string; error?: string }>;
   onSaveBeforeClose: (callback: () => void) => () => void;
   readyToClose: () => void;
   deleteBankClip: (params: { category: string; file: string }) => Promise<{ success: boolean; error?: string }>;
   exportVideo: (params: { clips: any[]; aspectRatio: string }) => Promise<{ success: boolean; filePath?: string; error?: string }>;
   getElevenLabsVoices: () => Promise<{ success: boolean; voices?: any[]; error?: string }>;
+  listProjects: () => Promise<{ success: boolean; projects?: any[]; error?: string }>;
+  createProject: (params: { name: string }) => Promise<{ success: boolean; data?: any; projectPath?: string; error?: string }>;
+  loadProject: (params: { projectPath: string }) => Promise<{ success: boolean; data?: any; projectPath?: string; error?: string }>;
+  closeProject: () => Promise<{ success: boolean; error?: string }>;
+  deleteProject: (params: { projectPath: string }) => Promise<{ success: boolean; error?: string }>;
+  readFileAsBlob: (params: { filePath: string }) => Promise<{ success: boolean; buffer?: Uint8Array; error?: string }>;
 }
 
 declare global {

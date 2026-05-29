@@ -17,6 +17,8 @@ interface Clip {
   path: string;
   size: string;
   url?: string;
+  category?: string;
+  thumbnailUrl?: string;
 }
 
 interface TimelineClip {
@@ -31,6 +33,8 @@ interface TimelineClip {
   segmentStartOffset?: number;
   segmentIndex?: number;
   text?: string;
+  category?: string;
+  thumbnailUrl?: string;
 }
 
 interface GeneratedVoiceVersion {
@@ -43,11 +47,21 @@ interface GeneratedVoiceVersion {
   text: string;
   filePath: string;
   audioUrl: string;
+  durationSeconds?: number;
 }
+
 
 function App() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState('00:00:15:22')
+  
+  // Project Management States
+  const [activeProjectPath, setActiveProjectPath] = useState<string | null>(null)
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
+  const [activeProjectName, setActiveProjectName] = useState<string | null>(null)
+  const [projectsList, setProjectsList] = useState<any[]>([])
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false)
+  const [newProjectName, setNewProjectName] = useState('')
   const [mainProcessTime, setMainProcessTime] = useState<string>('Esperando...')
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
   
@@ -63,6 +77,10 @@ function App() {
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null)
   const videoRef = React.useRef<HTMLVideoElement>(null)
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
+  
+  // Timeline zoom and container refs
+  const [timelineZoom, setTimelineZoom] = useState(1200)
+  const timelineTracksRef = React.useRef<HTMLDivElement>(null)
   
   // Track volume states
   const [videoTrackVolume, setVideoTrackVolume] = useState(1.0)
@@ -89,6 +107,8 @@ function App() {
   }, [zoom])
 
   // Player premium controls states
+  // Performance: currentTimeSeconds lives in a ref to avoid 60 re-renders/sec during playback.
+  // currentTimeForUI is a low-frequency state updated ~5 times/sec for UI elements that need React re-render.
   const currentTimeRef = React.useRef(0)
   const [currentTimeForUI, setCurrentTimeForUI] = useState(0)
   const lastUIUpdateRef = React.useRef(0)
@@ -110,14 +130,17 @@ function App() {
   const timelineClipsRef = React.useRef<TimelineClip[]>([])
   const currentTimeSecondsRef = currentTimeRef
   const selectedTimelineClipIdRef = React.useRef(selectedTimelineClipId)
+
   useEffect(() => {
     timelineClipsRef.current = timelineVideoClips
     selectedTimelineClipIdRef.current = selectedTimelineClipId
   }, [timelineVideoClips, selectedTimelineClipId])
 
+  // Helper: update time ref + direct DOM updates (avoids React re-render)
   const updateCurrentTime = useCallback((newTime: number) => {
     currentTimeRef.current = newTime;
     
+    // Direct DOM update for timecode display
     const timecodeEl = document.getElementById('cipher-timecode');
     if (timecodeEl) {
       const hrs = Math.floor(newTime / 3600);
@@ -128,6 +151,7 @@ function App() {
       timecodeEl.textContent = `${pad(hrs)}:${pad(mins)}:${pad(secs)}:${pad(frames)}`;
     }
     
+    // Direct DOM update for playhead line
     const playheadEl = document.getElementById('cipher-playhead');
     if (playheadEl) {
       const totalDur = Math.max(120, timelineClipsRef.current.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0) + 10);
@@ -135,6 +159,7 @@ function App() {
       playheadEl.style.left = `${percent}%`;
     }
     
+    // Direct DOM update for scrubber position
     const scrubFill = document.getElementById('cipher-scrub-fill');
     const scrubThumb = document.getElementById('cipher-scrub-thumb');
     const durationSec = videoRef.current?.duration || 0;
@@ -145,6 +170,7 @@ function App() {
       scrubThumb.style.left = `${durationSec > 0 ? (newTime / durationSec) * 100 : 0}%`;
     }
     
+    // Direct DOM update for time text
     const timeTextEl = document.getElementById('cipher-time-text');
     if (timeTextEl) {
       const fmins = Math.floor(newTime / 60);
@@ -152,6 +178,7 @@ function App() {
       timeTextEl.textContent = `${String(fmins).padStart(2, '0')}:${String(fsecs).padStart(2, '0')}`;
     }
     
+    // Throttled React state update (~5 times/sec, every 200ms) for components that need re-render
     const now = performance.now();
     if (now - lastUIUpdateRef.current > 200) {
       lastUIUpdateRef.current = now;
@@ -159,6 +186,7 @@ function App() {
     }
   }, []);
 
+  // Force a React re-render with current time (for user actions like seek, pause, etc.)
   const flushCurrentTime = useCallback(() => {
     setCurrentTimeForUI(currentTimeRef.current);
   }, []);
@@ -264,13 +292,52 @@ function App() {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
   }
 
-  // Seek global timeline time
+  // Seek global timeline time (Corrección 1)
   const seekGlobalTime = (time: number) => {
     const boundedTime = Math.max(0, Math.min(time, totalDuration));
     updateCurrentTime(boundedTime);
     flushCurrentTime();
+
     if (audioRef.current) {
       audioRef.current.currentTime = boundedTime;
+    }
+
+    const clips = timelineVideoClips;
+    const targetClip = clips.find(c => 
+      c.type !== 'audio' && 
+      boundedTime >= c.startSeconds && 
+      boundedTime < c.startSeconds + c.durationSeconds
+    );
+
+    const video = videoRef.current;
+    if (targetClip) {
+      if (targetClip.path && targetClip.path !== 'remotion-dynamic' && targetClip.path !== 'hyperframes-dynamic') {
+        const fileUrl = `file:///${targetClip.path.replace(/\\/g, '/')}`;
+        const scale = targetClip.origDurationSeconds 
+          ? (targetClip.origDurationSeconds / targetClip.durationSeconds) 
+          : 1;
+        const offsetInClip = boundedTime - targetClip.startSeconds;
+        const targetVideoTime = (targetClip.segmentStartOffset || 0) + offsetInClip * scale;
+
+        if (activeVideoUrl !== fileUrl) {
+          setActiveVideoUrl(fileUrl);
+          if (video) {
+            video.src = fileUrl;
+          }
+        }
+
+        if (video) {
+          video.currentTime = targetVideoTime;
+        }
+      } else {
+        if (activeVideoUrl !== null) {
+          setActiveVideoUrl(null);
+        }
+      }
+    } else {
+      if (activeVideoUrl !== null) {
+        setActiveVideoUrl(null);
+      }
     }
   };
 
@@ -340,11 +407,9 @@ function App() {
     // Find library clip and set active if needed
     const tClip = timelineVideoClips.find(c => c.id === clipId)
     if (tClip) {
-      const matchingClip = clips.find(c => c.name === tClip.name)
-      if (matchingClip && matchingClip.url && matchingClip.url !== activeVideoUrl) {
-        setActiveVideoUrl(matchingClip.url)
-        setIsPlaying(false)
-      }
+      updateCurrentTime(tClip.startSeconds);
+      flushCurrentTime();
+      setIsPlaying(false);
     }
     
     if (!trackRef.current) return
@@ -596,6 +661,18 @@ function App() {
           pushHistory(updated)
         }
       }
+
+      // Ctrl+= / Ctrl++ -> Timeline Zoom In
+      if ((e.ctrlKey || e.metaKey) && (key === '=' || key === '+' || e.code === 'Equal' || e.code === 'NumpadAdd')) {
+        e.preventDefault()
+        setTimelineZoom(prev => Math.min(6000, prev + 300))
+      }
+
+      // Ctrl+- -> Timeline Zoom Out
+      if ((e.ctrlKey || e.metaKey) && (key === '-' || e.code === 'Minus' || e.code === 'NumpadSubtract')) {
+        e.preventDefault()
+        setTimelineZoom(prev => Math.max(1200, prev - 300))
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -608,6 +685,27 @@ function App() {
       setSelectedTimelineClipId(null);
     }
   }, [timelineVideoClips, selectedTimelineClipId]);
+
+  // Bind non-passive wheel event to timeline tracks container to handle Ctrl+Scroll zoom
+  useEffect(() => {
+    const element = timelineTracksRef.current;
+    if (!element) return;
+    
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault(); // Blocks Electron page zoom
+        const zoomDelta = e.deltaY < 0 ? 100 : -100;
+        setTimelineZoom(prev => Math.max(1200, Math.min(6000, prev + zoomDelta)));
+      } else if (e.deltaY !== 0) {
+        element.scrollLeft += e.deltaY;
+      }
+    };
+    
+    element.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      element.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
 
   // Handle right-click context menu
   const handleClipContextMenu = (e: React.MouseEvent, clipId: string) => {
@@ -631,9 +729,29 @@ function App() {
   }, [])
 
   // HTML5 video handlers
+  const handleVideoCanPlay = () => {
+    if (videoRef.current && activeTimelineClip) {
+      const offset = currentTimeRef.current - activeTimelineClip.startSeconds;
+      const scale = activeTimelineClip.origDurationSeconds 
+        ? (activeTimelineClip.origDurationSeconds / activeTimelineClip.durationSeconds) 
+        : 1;
+      const startOffset = activeTimelineClip.segmentStartOffset || 0;
+      const targetTime = startOffset + (offset * scale);
+      
+      if (Math.abs(videoRef.current.currentTime - targetTime) > 0.15) {
+        videoRef.current.currentTime = targetTime;
+      }
+      
+      videoRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch(() => {});
+    }
+  };
+
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDurationSeconds(videoRef.current.duration || 0)
+      handleVideoCanPlay();
     }
   }
 
@@ -656,6 +774,13 @@ function App() {
     const pad = (num: number) => String(num).padStart(2, '0')
     setCurrentTime(`${pad(hrs)}:${pad(mins)}:${pad(secs)}:${pad(frames)}`)
   }, [currentTimeForUI]);
+
+  // Force video element to load new source immediately when activeVideoUrl changes (Bug 1)
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.load();
+    }
+  }, [activeVideoUrl]);
 
   // Sync volume, mute, and speed
   useEffect(() => {
@@ -833,7 +958,7 @@ function App() {
     }
   }, []);
 
-  // Master Audio playback sync
+  // Master Audio initialization and volume/mute sync
   useEffect(() => {
     const voiceClip = timelineVideoClips.find(c => c.type === 'audio');
     if (voiceClip && voiceClip.url) {
@@ -842,56 +967,252 @@ function App() {
       } else if (audioRef.current.src !== voiceClip.url) {
         audioRef.current.src = voiceClip.url;
       }
-      const targetVolume = isAudioTrackMuted ? 0 : audioTrackVolume * volume;
-      audioRef.current.volume = targetVolume;
-      audioRef.current.muted = isMuted;
     } else {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
     }
-  }, [timelineVideoClips, volume, isMuted, audioTrackVolume, isAudioTrackMuted]);
+  }, [timelineVideoClips]);
 
+  // Synchronize HTML5 video and audio play state when isPlaying changes (Corrección 1)
   useEffect(() => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.currentTime = currentTimeRef.current;
-        audioRef.current.play().catch(e => console.error("Audio play error", e));
-      } else {
-        audioRef.current.pause();
+    const video = videoRef.current;
+    const audio = audioRef.current;
+    
+    if (isPlaying) {
+      const currentT = currentTimeRef.current;
+      if (audio) {
+        audio.currentTime = currentT;
+        audio.play().catch(e => console.error("Audio play error:", e));
+      }
+      
+      const activeClip = timelineVideoClips.find(c => 
+        c.type !== 'audio' && 
+        currentT >= c.startSeconds && 
+        currentT < c.startSeconds + c.durationSeconds
+      );
+      
+      if (activeClip && activeClip.path && activeClip.path !== 'remotion-dynamic' && activeClip.path !== 'hyperframes-dynamic') {
+        const fileUrl = `file:///${activeClip.path.replace(/\\/g, '/')}`;
+        const scale = activeClip.origDurationSeconds 
+          ? (activeClip.origDurationSeconds / activeClip.durationSeconds) 
+          : 1;
+        const offsetInClip = currentT - activeClip.startSeconds;
+        const targetVideoTime = (activeClip.segmentStartOffset || 0) + offsetInClip * scale;
+        
+        setActiveVideoUrl(fileUrl);
+        if (video) {
+          if (video.src !== fileUrl) {
+            video.src = fileUrl;
+          }
+          video.currentTime = targetVideoTime;
+          video.play().catch(e => console.error("Video play error:", e));
+        }
+      }
+    } else {
+      if (audio) {
+        audio.pause();
+      }
+      if (video) {
+        video.pause();
       }
     }
   }, [isPlaying]);
 
-  // Master Playback Clock (Ticking)
+  // Sync volume, mute, and speed of video & audio elements
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = isVideoTrackMuted ? 0 : videoTrackVolume * volume;
+      videoRef.current.muted = isMuted;
+    }
+  }, [volume, isMuted, isVideoTrackMuted, videoTrackVolume, activeVideoUrl]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isAudioTrackMuted ? 0 : audioTrackVolume * volume;
+      audioRef.current.muted = isMuted;
+    }
+  }, [volume, isMuted, isAudioTrackMuted, audioTrackVolume]);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = playbackRate;
+    }
+    if (audioRef.current) {
+      audioRef.current.playbackRate = playbackRate;
+    }
+  }, [playbackRate, activeVideoUrl]);
+
+  // Load initial video clip and seek when time or activeTimelineClip changes (only when paused - Corrección 1)
+  useEffect(() => {
+    if (!isPlaying) {
+      if (!activeTimelineClip) {
+        if (activeVideoUrl !== null) {
+          setActiveVideoUrl(null);
+        }
+        return;
+      }
+      
+      if (activeTimelineClip.path && activeTimelineClip.path !== 'remotion-dynamic' && activeTimelineClip.path !== 'hyperframes-dynamic') {
+        const fileUrl = `file:///${activeTimelineClip.path.replace(/\\/g, '/')}`;
+        if (activeVideoUrl !== fileUrl) {
+          setActiveVideoUrl(fileUrl);
+          const video = videoRef.current;
+          if (video) {
+            video.src = fileUrl;
+          }
+        }
+        
+        const scale = activeTimelineClip.origDurationSeconds 
+          ? (activeTimelineClip.origDurationSeconds / activeTimelineClip.durationSeconds) 
+          : 1;
+        const offsetInClip = currentTimeRef.current - activeTimelineClip.startSeconds;
+        const targetVideoTime = (activeTimelineClip.segmentStartOffset || 0) + offsetInClip * scale;
+        
+        const video = videoRef.current;
+        if (video) {
+          if (Math.abs(video.currentTime - targetVideoTime) > 0.05) {
+            video.currentTime = targetVideoTime;
+          }
+        }
+      } else {
+        if (activeVideoUrl !== null) {
+          setActiveVideoUrl(null);
+        }
+      }
+    }
+  }, [activeTimelineClip, currentTimeForUI, isPlaying]);
+
+  // Master Playback Clock (Ticking - driven by video real playback time when playing - Corrección 1)
   useEffect(() => {
     let animationFrameId: number;
     let lastTime = performance.now();
-    
+
     const tick = () => {
       if (!isPlaying) return;
 
-      if (audioRef.current && !audioRef.current.paused) {
-        const audioTime = audioRef.current.currentTime;
-        updateCurrentTime(audioTime);
-        if (audioTime >= totalDuration) {
-          setIsPlaying(false);
-          updateCurrentTime(totalDuration);
-          flushCurrentTime();
+      const video = videoRef.current;
+      const clips = timelineClipsRef.current || [];
+      const time = currentTimeRef.current;
+      
+      const currentClip = clips.find(c => 
+        c.type !== 'audio' && 
+        time >= c.startSeconds && 
+        time < c.startSeconds + c.durationSeconds
+      );
+      
+      if (video && currentClip && currentClip.path && currentClip.path !== 'remotion-dynamic' && currentClip.path !== 'hyperframes-dynamic') {
+        const scale = currentClip.origDurationSeconds 
+          ? (currentClip.origDurationSeconds / currentClip.durationSeconds) 
+          : 1;
+        const startOffset = currentClip.segmentStartOffset || 0;
+        
+        // El playhead avanza alineado al tiempo real del video (Corrección 1)
+        const elapsed = (video.currentTime - startOffset) / scale;
+        let newTime = currentClip.startSeconds + elapsed;
+        if (newTime < currentClip.startSeconds) newTime = currentClip.startSeconds;
+        
+        // Si termina el clip actual, cargar y reproducir automáticamente el siguiente (CapCut style)
+        if (newTime >= currentClip.startSeconds + currentClip.durationSeconds - 0.03 || video.ended) {
+          const sortedClips = clips
+            .filter(c => c.type !== 'audio')
+            .sort((a, b) => a.startSeconds - b.startSeconds);
+          const currentIndex = sortedClips.findIndex(c => c.id === currentClip.id);
+          const nextClip = sortedClips[currentIndex + 1];
+          
+          if (nextClip) {
+            const nextTime = nextClip.startSeconds;
+            updateCurrentTime(nextTime);
+            
+            if (nextClip.path && nextClip.path !== 'remotion-dynamic' && nextClip.path !== 'hyperframes-dynamic') {
+              const nextUrl = `file:///${nextClip.path.replace(/\\/g, '/')}`;
+              setActiveVideoUrl(nextUrl);
+              video.src = nextUrl;
+              video.currentTime = nextClip.segmentStartOffset || 0;
+              video.play().catch(e => console.error("Auto transition play error:", e));
+            } else {
+              setActiveVideoUrl(null);
+              video.pause();
+            }
+            if (audioRef.current) {
+              audioRef.current.currentTime = nextTime;
+            }
+          } else {
+            setIsPlaying(false);
+            updateCurrentTime(currentClip.startSeconds + currentClip.durationSeconds);
+            flushCurrentTime();
+            video.pause();
+          }
+        } else {
+          updateCurrentTime(newTime);
         }
       } else {
-        const now = performance.now();
-        const delta = (now - lastTime) / 1000;
-        
-        const prevTime = currentTimeRef.current;
-        const next = prevTime + delta * playbackRate;
-        if (next >= totalDuration) {
-          setIsPlaying(false);
-          updateCurrentTime(totalDuration);
-          flushCurrentTime();
+        // Reproducción de huecos o clips dinámicos (Visualizers)
+        if (audioRef.current && !audioRef.current.paused) {
+          const audioTime = audioRef.current.currentTime;
+          updateCurrentTime(audioTime);
+          
+          if (audioTime >= totalDuration) {
+            setIsPlaying(false);
+            updateCurrentTime(totalDuration);
+            flushCurrentTime();
+            if (video) video.pause();
+          } else {
+            const nextClip = clips.find(c => 
+              c.type !== 'audio' && 
+              c.path && 
+              c.path !== 'remotion-dynamic' && 
+              c.path !== 'hyperframes-dynamic' && 
+              audioTime >= c.startSeconds && 
+              audioTime < c.startSeconds + c.durationSeconds
+            );
+            if (nextClip && video) {
+              const fileUrl = `file:///${nextClip.path!.replace(/\\/g, '/')}`;
+              setActiveVideoUrl(fileUrl);
+              video.src = fileUrl;
+              const scale = nextClip.origDurationSeconds 
+                ? (nextClip.origDurationSeconds / nextClip.durationSeconds) 
+                : 1;
+              const offsetInClip = audioTime - nextClip.startSeconds;
+              video.currentTime = (nextClip.segmentStartOffset || 0) + offsetInClip * scale;
+              video.play().catch(() => {});
+            }
+          }
         } else {
-          updateCurrentTime(next);
+          const now = performance.now();
+          const delta = (now - lastTime) / 1000;
+          
+          const prevTime = currentTimeRef.current;
+          const next = prevTime + delta * playbackRate;
+          if (next >= totalDuration) {
+            setIsPlaying(false);
+            updateCurrentTime(totalDuration);
+            flushCurrentTime();
+          } else {
+            const nextClip = clips.find(c => 
+              c.type !== 'audio' && 
+              c.path && 
+              c.path !== 'remotion-dynamic' && 
+              c.path !== 'hyperframes-dynamic' && 
+              next >= c.startSeconds && 
+              next < c.startSeconds + c.durationSeconds
+            );
+            
+            if (nextClip && video) {
+              const fileUrl = `file:///${nextClip.path!.replace(/\\/g, '/')}`;
+              setActiveVideoUrl(fileUrl);
+              video.src = fileUrl;
+              const scale = nextClip.origDurationSeconds 
+                ? (nextClip.origDurationSeconds / nextClip.durationSeconds) 
+                : 1;
+              const offsetInClip = next - nextClip.startSeconds;
+              video.currentTime = (nextClip.segmentStartOffset || 0) + offsetInClip * scale;
+              video.play().catch(() => {});
+            }
+            
+            updateCurrentTime(next);
+          }
         }
       }
 
@@ -909,104 +1230,22 @@ function App() {
     };
   }, [isPlaying, playbackRate, totalDuration]);
 
-  // Master Video-Audio Synchronization Loop
-  useEffect(() => {
-    if (!activeTimelineClip) {
-      if (activeVideoUrl !== null) {
-        setActiveVideoUrl(null);
-      }
-      return;
-    }
-
-    if (activeTimelineClip.path === 'remotion-dynamic' || activeTimelineClip.path === 'hyperframes-dynamic') {
-      if (activeVideoUrl !== null) {
-        setActiveVideoUrl(null);
-      }
-      return;
-    }
-
-    const clipUrl = activeTimelineClip.url || `file:///${activeTimelineClip.path?.replace(/\\/g, '/')}`;
-    if (activeVideoUrl !== clipUrl) {
-      setActiveVideoUrl(clipUrl);
-    }
-
-    const video = videoRef.current;
-    if (video) {
-      const offset = currentTimeRef.current - activeTimelineClip.startSeconds;
-      const scale = activeTimelineClip.origDurationSeconds 
-        ? (activeTimelineClip.origDurationSeconds / activeTimelineClip.durationSeconds) 
-        : 1;
-      const startOffset = activeTimelineClip.segmentStartOffset || 0;
-      const targetTime = startOffset + (offset * scale);
-
-      if (isPlaying && video.paused) {
-        video.play().catch(() => {});
-      } else if (!isPlaying && !video.paused) {
-        video.pause();
-      }
-
-      const targetPlaybackRate = scale * playbackRate;
-      if (Math.abs(video.playbackRate - targetPlaybackRate) > 0.05) {
-        video.playbackRate = targetPlaybackRate;
-      }
-
-      if (Math.abs(video.currentTime - targetTime) > 0.2) {
-        video.currentTime = targetTime;
-      }
-
-      // Track volume and mute sync
-      const targetVideoVolume = isVideoTrackMuted ? 0 : videoTrackVolume * volume;
-      if (video.volume !== targetVideoVolume) {
-        video.volume = targetVideoVolume;
-      }
-      if (video.muted !== isMuted) {
-        video.muted = isMuted;
-      }
-    }
-  }, [currentTimeForUI, activeTimelineClip, isPlaying, playbackRate, isVideoTrackMuted, videoTrackVolume, volume, isMuted]);
-
-  // Autoload project state on startup
-  useEffect(() => {
-    const autoLoadProject = async () => {
-      try {
-        const res = await window.electronAPI.loadProjectState();
-        if (res && res.success && res.data) {
-          const loadedData = res.data;
-          
-          const restoredClips = (loadedData.clips || []).map((c: any) => ({
-            ...c,
-            url: c.type === 'audio' ? c.url : undefined
-          }));
-
-          setClips(restoredClips);
-          setTimelineVideoClips(loadedData.timelineVideoClips || []);
-          setTranscriptionStatus(loadedData.transcriptionStatus || '');
-          setTranscriptSegments(loadedData.transcriptSegments || []);
-          setAiScript(loadedData.aiScript || '');
-          const loadedOriginalText = loadedData.originalTranscriptText || (loadedData.transcriptSegments || []).map((s: any) => s.text).join(' ') || '';
-          setOriginalTranscriptText(loadedOriginalText);
-          if (loadedData.libraryWidth) setLibraryWidth(loadedData.libraryWidth);
-          if (loadedData.toolsWidth) setToolsWidth(loadedData.toolsWidth);
-          if (loadedData.timelineHeight) setTimelineHeight(loadedData.timelineHeight);
-          if (loadedData.voiceModel) setVoiceModel(loadedData.voiceModel);
-          if (loadedData.voiceSpeaker) setVoiceSpeaker(loadedData.voiceSpeaker);
-          if (loadedData.voiceSpeed !== undefined) setVoiceSpeed(loadedData.voiceSpeed);
-          if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
-          setGeneratedVoices(loadedData.generatedVoices || []);
-          if (loadedData.timelineWeights !== undefined) setTimelineWeights(loadedData.timelineWeights);
-          
-          console.log('Project state autoloaded successfully:', loadedData);
+  const refreshProjectsList = async () => {
+    try {
+      if (window.electronAPI && window.electronAPI.listProjects) {
+        const res = await window.electronAPI.listProjects();
+        if (res && res.success && res.projects) {
+          setProjectsList(res.projects);
         }
-      } catch (err) {
-        console.error('Failed to autoload project state:', err);
-      } finally {
-        setTimeout(() => {
-          hasLoaded.current = true;
-        }, 1000); // 1s buffer for state updates to apply
       }
-    };
+    } catch (e) {
+      console.error('Error refreshing projects list:', e);
+    }
+  };
 
-    autoLoadProject();
+  // Load project list on startup
+  useEffect(() => {
+    refreshProjectsList();
   }, []);
 
   // CapCut-style debounced auto-save (triggers 2 seconds after any changes)
@@ -1025,6 +1264,8 @@ function App() {
     if (window.electronAPI && typeof window.electronAPI.onSaveBeforeClose === 'function') {
       const unsubscribe = window.electronAPI.onSaveBeforeClose(async () => {
         const stateToSave = {
+          id: activeProjectId,
+          name: activeProjectName,
           clips: clips.map(c => ({
             id: c.id,
             name: c.name,
@@ -1060,12 +1301,14 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices]);
+  }, [clips, timelineVideoClips, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, activeProjectId, activeProjectName]);
 
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
     try {
       const stateToSave = {
+        id: activeProjectId,
+        name: activeProjectName,
         clips: clips.map(c => ({
           id: c.id,
           name: c.name,
@@ -1113,6 +1356,8 @@ function App() {
     setSaveStatus('saving');
     try {
       const stateToSave = {
+        id: activeProjectId,
+        name: activeProjectName,
         clips: clips.map(c => ({
           id: c.id,
           name: c.name,
@@ -1153,9 +1398,9 @@ function App() {
     }
   };
 
-  const handleOpenProject = async () => {
+  const handleLoadProject = async (projectPath: string) => {
     try {
-      const res = await window.electronAPI.openProject();
+      const res = await window.electronAPI.loadProject({ projectPath });
       if (res && res.success && res.data) {
         const loadedData = res.data;
         
@@ -1179,13 +1424,172 @@ function App() {
         if (loadedData.voiceSpeed !== undefined) setVoiceSpeed(loadedData.voiceSpeed);
         if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
         setGeneratedVoices(loadedData.generatedVoices || []);
+        if (loadedData.timelineWeights !== undefined) setTimelineWeights(loadedData.timelineWeights);
         
+        setActiveProjectPath(projectPath);
+        setActiveProjectId(loadedData.id || null);
+        setActiveProjectName(loadedData.name || 'Proyecto Sin Nombre');
+        
+        // Refresh bank clips for temp folders
+        await loadClipsForCategory('originales');
+        await loadClipsForCategory('remotion');
+        await loadClipsForCategory('hyperframes');
+
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2500);
+
+        setTimeout(() => {
+          hasLoaded.current = true;
+        }, 1000);
+      } else {
+        alert('Error al cargar proyecto: ' + (res?.error || 'Desconocido'));
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error('Failed to load project:', err);
+      alert('Excepción al cargar proyecto: ' + err.message);
+    }
+  };
+
+  const handleCreateProject = async (name: string) => {
+    try {
+      const res = await window.electronAPI.createProject({ name });
+      if (res && res.success && res.data) {
+        const loadedData = res.data;
+        
+        setClips([]);
+        setTimelineVideoClips([]);
+        setTranscriptionStatus('');
+        setTranscriptSegments([]);
+        setAiScript('');
+        setOriginalTranscriptText('');
+        setGeneratedVoices([]);
+        setTimelineWeights([40, 30, 20, 10]);
+        
+        setActiveProjectPath(res.projectPath || null);
+        setActiveProjectId(loadedData.id || null);
+        setActiveProjectName(name);
+        
+        setBankClips({
+          originales: [],
+          stock: [],
+          remotion: [],
+          hyperframes: [],
+          veo3: []
+        });
+
+        console.log('Project created successfully:', res.projectPath);
+        setShowNewProjectModal(false);
+        setNewProjectName('');
+        
+        setTimeout(() => {
+          hasLoaded.current = true;
+        }, 1000);
+      } else {
+        alert('Error al crear proyecto: ' + (res?.error || 'Desconocido'));
+      }
+    } catch (err: any) {
+      console.error('Failed to create project:', err);
+      alert('Excepción al crear proyecto: ' + err.message);
+    }
+  };
+
+  const handleCloseProject = async () => {
+    try {
+      if (hasLoaded.current) {
+        await handleSaveProjectDirectly();
+      }
+      if (window.electronAPI && window.electronAPI.closeProject) {
+        await window.electronAPI.closeProject();
+      }
+      hasLoaded.current = false;
+      setActiveProjectPath(null);
+      setActiveProjectId(null);
+      setActiveProjectName(null);
+      setClips([]);
+      setTimelineVideoClips([]);
+      setTranscriptionStatus('');
+      setTranscriptSegments([]);
+      setAiScript('');
+      setOriginalTranscriptText('');
+      setGeneratedVoices([]);
+      
+      refreshProjectsList();
+    } catch (err: any) {
+      console.error('Failed to close project:', err);
+    }
+  };
+
+  const handleDeleteProject = async (projectPath: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('¿Estás seguro de que deseas eliminar este proyecto de forma permanente?')) return;
+    try {
+      const res = await window.electronAPI.deleteProject({ projectPath });
+      if (res && res.success) {
+        if (activeProjectPath === projectPath) {
+          handleCloseProject();
+        } else {
+          refreshProjectsList();
+        }
+      } else {
+        alert('Error al eliminar proyecto: ' + (res?.error || 'Desconocido'));
+      }
+    } catch (err: any) {
+      console.error('Failed to delete project:', err);
+    }
+  };
+
+  const handleOpenProject = async () => {
+    try {
+      const res = await window.electronAPI.openProject();
+      if (res && res.success && res.projectPath && res.data) {
+        const loadedData = res.data;
+        const restoredClips = (loadedData.clips || []).map((c: any) => ({
+          ...c,
+          url: c.type === 'audio' ? c.url : undefined
+        }));
+
+        setClips(restoredClips);
+        setTimelineVideoClips(loadedData.timelineVideoClips || []);
+        setTranscriptionStatus(loadedData.transcriptionStatus || '');
+        setTranscriptSegments(loadedData.transcriptSegments || []);
+        setAiScript(loadedData.aiScript || '');
+        const loadedOriginalText = loadedData.originalTranscriptText || (loadedData.transcriptSegments || []).map((s: any) => s.text).join(' ') || '';
+        setOriginalTranscriptText(loadedOriginalText);
+        if (loadedData.libraryWidth) setLibraryWidth(loadedData.libraryWidth);
+        if (loadedData.toolsWidth) setToolsWidth(loadedData.toolsWidth);
+        if (loadedData.timelineHeight) setTimelineHeight(loadedData.timelineHeight);
+        if (loadedData.voiceModel) setVoiceModel(loadedData.voiceModel);
+        if (loadedData.voiceSpeaker) setVoiceSpeaker(loadedData.voiceSpeaker);
+        if (loadedData.voiceSpeed !== undefined) setVoiceSpeed(loadedData.voiceSpeed);
+        if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
+        setGeneratedVoices(loadedData.generatedVoices || []);
+        if (loadedData.timelineWeights !== undefined) setTimelineWeights(loadedData.timelineWeights);
+        
+        setActiveProjectPath(res.projectPath);
+        setActiveProjectId(loadedData.id || null);
+        setActiveProjectName(loadedData.name || 'Proyecto Sin Nombre');
+        
+        // Refresh bank clips for temp folders
+        await loadClipsForCategory('originales');
+        await loadClipsForCategory('remotion');
+        await loadClipsForCategory('hyperframes');
+
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2500);
+
+        setTimeout(() => {
+          hasLoaded.current = true;
+        }, 1000);
+      }
+    } catch (err: any) {
       console.error('Failed to open project:', err);
     }
+  };
+
+  const handleNewProject = () => {
+    handleCloseProject().then(() => {
+      setShowNewProjectModal(true);
+    });
   };
 
   const handleTranscribeClick = () => {
@@ -1295,7 +1699,45 @@ function App() {
 
   const handleWeightChange = (index: number, newValue: number) => {
     const updatedWeights = [...timelineWeights];
+    const oldValue = updatedWeights[index];
+    const diff = newValue - oldValue;
+    
+    // Set the new value
     updatedWeights[index] = newValue;
+    
+    // Distribute the difference among other sliders
+    const otherIndices = [0, 1, 2, 3].filter(i => i !== index);
+    const sumOthers = otherIndices.reduce((sum, i) => sum + updatedWeights[i], 0);
+    
+    if (sumOthers > 0) {
+      // Distribute proportionally
+      let remainingDiff = diff;
+      otherIndices.forEach((i, idx) => {
+        const share = Math.round((updatedWeights[i] / sumOthers) * diff);
+        const toSubtract = idx === otherIndices.length - 1 ? remainingDiff : share;
+        updatedWeights[i] = Math.max(0, updatedWeights[i] - toSubtract);
+        remainingDiff -= toSubtract;
+      });
+    } else {
+      // If others are all 0, distribute evenly
+      let remainingDiff = diff;
+      const count = otherIndices.length;
+      otherIndices.forEach((i, idx) => {
+        const share = Math.round(diff / count);
+        const toSubtract = idx === otherIndices.length - 1 ? remainingDiff : share;
+        updatedWeights[i] = Math.max(0, updatedWeights[i] - toSubtract);
+        remainingDiff -= toSubtract;
+      });
+    }
+    
+    // Ensure the sum is exactly 100
+    const finalSum = updatedWeights.reduce((a, b) => a + b, 0);
+    if (finalSum !== 100) {
+      const adjustment = 100 - finalSum;
+      const adjIndex = otherIndices.find(i => updatedWeights[i] + adjustment >= 0) ?? otherIndices[0];
+      updatedWeights[adjIndex] = Math.max(0, updatedWeights[adjIndex] + adjustment);
+    }
+    
     setTimelineWeights(updatedWeights);
   };
 
@@ -1307,8 +1749,28 @@ function App() {
     setGenerationProgress(null);
 
     try {
+      // 1. Slicing original video first if one is imported (Regla 1)
+      const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
+      let latestOriginalClips = bankClips.originales || [];
+      if (firstVideoInLibrary) {
+        console.log('[handleBuildIATimeline] Cortando video original en clips de 3 segundos...');
+        setGenerationProgress({ current: 0, total: 3, paragraph: 'Cortando video original en clips de 3s...', type: 'FFmpeg' });
+        const cutRes = await window.electronAPI.cutVideoClips({
+          videoPath: firstVideoInLibrary.path
+        });
+        if (cutRes && cutRes.success && cutRes.clips) {
+          latestOriginalClips = cutRes.clips;
+          setBankClips(prev => ({
+            ...prev,
+            originales: cutRes.clips || []
+          }));
+        } else {
+          throw new Error(cutRes?.error || 'Error al segmentar el video original.');
+        }
+      }
+
       console.log('[handleBuildIATimeline] Iniciando generación de assets de Timeline IA...');
-      const res = await window.electronAPI.generateTimelineAssets({ scriptText: aiScript });
+      const res = await window.electronAPI.generateTimelineAssets({ scriptText: aiScript, weights: timelineWeights, aspectRatio });
       
       if (res && res.success && res.clips) {
         console.log('[handleBuildIATimeline] Generación completada con éxito. Clips recibidos:', res.clips.length);
@@ -1317,77 +1779,70 @@ function App() {
         await loadClipsForCategory('remotion');
         await loadClipsForCategory('hyperframes');
 
-        // Construct timeline video clips sequentially
-        const newTimelineClips: any[] = [];
-        let currentStartSeconds = 0;
-        
+        // Pull available clips lists
+        const originalClips = latestOriginalClips;
+        const stockClips = bankClips.stock || [];
+
+        const newVideoClips: any[] = [];
+        let idxOrig = 0;
+        let idxStock = 0;
+        let currentStart = 0;
+        const slotSize = 3;
+
         for (let i = 0; i < res.clips.length; i++) {
-          const generatedClip = res.clips[i];
-          newTimelineClips.push({
-            id: `timeline-${Math.random()}`,
-            name: generatedClip.name,
-            startSeconds: currentStartSeconds,
-            durationSeconds: generatedClip.durationSeconds,
-            type: 'video',
-            url: generatedClip.url,
-            path: generatedClip.path,
-            category: generatedClip.category
-          });
-          currentStartSeconds += generatedClip.durationSeconds;
+          const item = res.clips[i];
+          const slotDur = item.durationSeconds || slotSize;
+          if (slotDur <= 0.01) continue;
+
+          let chosenClip = item.clip;
+
+          if (!chosenClip) {
+            if (item.type === 'original') {
+              if (originalClips.length > 0) {
+                chosenClip = originalClips[idxOrig % originalClips.length];
+                idxOrig++;
+              }
+            } else if (item.type === 'stock') {
+              if (stockClips.length > 0) {
+                chosenClip = stockClips[idxStock % stockClips.length];
+                idxStock++;
+              }
+            }
+          }
+
+          if (chosenClip) {
+            newVideoClips.push({
+              id: `timeline-${Math.random()}`,
+              name: chosenClip.name,
+              startSeconds: currentStart,
+              durationSeconds: slotDur,
+              type: 'video',
+              url: chosenClip.url,
+              path: chosenClip.path,
+              category: item.type,
+              thumbnailUrl: chosenClip.thumbnailUrl
+            });
+          } else {
+            console.log(`[handleBuildIATimeline] Slot ${i} (${item.type}) left empty due to lack of clips (Regla 2 & 5)`);
+          }
+          currentStart += slotDur;
         }
 
-        // Determine if there is a voice track to add
-        const audioClips = clips.filter(c => c.type === 'audio');
-        let voiceClip = timelineVideoClips.find(c => c.type === 'audio');
-        if (!voiceClip && audioClips.length > 0) {
-          const latestAudio = audioClips[audioClips.length - 1];
-          voiceClip = {
-            id: latestAudio.id,
-            name: latestAudio.name,
-            startSeconds: 0,
-            durationSeconds: latestAudio.durationSeconds,
-            type: 'audio',
-            url: latestAudio.url,
-            path: latestAudio.path
-          };
-        } else if (!voiceClip && generatedVoices.length > 0) {
-          const latestVoice = generatedVoices[0];
-          const wordCount = latestVoice.text.split(/\s+/).filter(Boolean).length;
-          const durationSecs = Math.max(5, Math.ceil(wordCount / 2.5));
-          voiceClip = {
-            id: latestVoice.id,
-            name: `Voz IA - Take`,
-            startSeconds: 0,
-            durationSeconds: durationSecs,
-            type: 'audio',
-            url: latestVoice.audioUrl,
-            path: latestVoice.filePath
-          };
-        }
+        // Keep all existing audio clips completely intact and untouched! (Regla 3)
+        const existingAudioClips = timelineVideoClips.filter(c => c.type === 'audio');
+        const finalTimelineClips = [...newVideoClips, ...existingAudioClips];
 
-        if (voiceClip) {
-          newTimelineClips.push({
-            id: `timeline-voice-${Date.now()}`,
-            name: voiceClip.name,
-            startSeconds: 0,
-            durationSeconds: currentStartSeconds, // sync to video duration
-            type: 'audio',
-            url: voiceClip.url,
-            path: voiceClip.path
-          });
-        }
-
-        setTimelineVideoClips(newTimelineClips);
-        pushHistory(newTimelineClips);
+        setTimelineVideoClips(finalTimelineClips);
+        pushHistory(finalTimelineClips);
       } else {
-        const errorMsg = res?.error || 'Error al generar los clips de video en el backend.';
+        const errorMsg = res?.error || 'Error al generar los clips de la IA.';
         setGenerationError(errorMsg);
-        alert(`Error al generar Timeline IA: ${errorMsg}`);
+        console.error('Error en Timeline IA:', errorMsg);
       }
     } catch (err: any) {
-      const errorMsg = err.message || 'Excepción al construir Timeline IA.';
+      const errorMsg = err.message || 'Excepción al generar assets.';
       setGenerationError(errorMsg);
-      alert(`Error al construir Timeline IA: ${errorMsg}`);
+      console.error('Excepción en Timeline IA:', errorMsg);
     } finally {
       setIsGeneratingAssets(false);
       setGenerationProgress(null);
@@ -1414,9 +1869,10 @@ function App() {
       if (res && res.success && res.filePath && res.audioUrl) {
         console.log('Audio generado con éxito y guardado en:', res.filePath)
         
-        // Estimate duration based on text: 2.5 words per second
-        const wordCount = aiScript.split(/\s+/).filter(Boolean).length
-        const durationSecs = Math.max(2, Math.ceil(wordCount / 2.5))
+        // Use exact duration from backend if available, fallback to estimate
+        const durationSecs = typeof res.durationSeconds === 'number' && res.durationSeconds > 0
+          ? res.durationSeconds
+          : Math.max(2, Math.ceil(aiScript.split(/\s+/).filter(Boolean).length / 2.5));
 
         const newVersion: GeneratedVoiceVersion = {
           id: `voice-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1427,7 +1883,8 @@ function App() {
           stability: voiceStability,
           text: aiScript,
           filePath: res.filePath,
-          audioUrl: res.audioUrl
+          audioUrl: res.audioUrl,
+          durationSeconds: durationSecs
         }
         
         setGeneratedVoices(prev => [newVersion, ...prev])
@@ -1459,9 +1916,8 @@ function App() {
   }
 
   const addVoiceToTimeline = (voice: GeneratedVoiceVersion) => {
-    // Estimate duration
-    const wordCount = voice.text.split(/\s+/).filter(Boolean).length
-    const durationSecs = Math.max(2, Math.ceil(wordCount / 2.5))
+    // Use exact duration if available, fallback to estimate
+    const durationSecs = voice.durationSeconds || Math.max(2, Math.ceil(voice.text.split(/\s+/).filter(Boolean).length / 2.5));
 
     const newTimelineClip: TimelineClip = {
       id: `timeline-voice-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -1569,7 +2025,7 @@ function App() {
           duration: formattedDuration,
           durationSeconds: duration,
           type: isAudio ? 'audio' : 'video',
-          path: file.path || file.name,
+          path: (file as any).path || file.name,
           size: formatSize(file.size),
           url: url
         };
@@ -1589,8 +2045,9 @@ function App() {
             startSeconds,
             durationSeconds: duration,
             type: 'video' as const,
-            path: file.path || file.name,
-            url: url
+            path: (file as any).path || file.name,
+            url: url,
+            category: 'original'
           }];
           setTimelineVideoClips(updated);
           pushHistory(updated);
@@ -1602,6 +2059,17 @@ function App() {
   const addClipToTimeline = (clip: Clip) => {
     const lastClip = timelineVideoClips[timelineVideoClips.length - 1];
     const startSeconds = lastClip ? (lastClip.startSeconds + lastClip.durationSeconds + 2) : 0;
+    
+    let cat = clip.category;
+    if (!cat && libraryTab) {
+      const tabLower = libraryTab.toLowerCase();
+      if (tabLower === 'principal' || tabLower === 'originales') {
+        cat = 'original';
+      } else {
+        cat = tabLower;
+      }
+    }
+
     const updated = [...timelineVideoClips, {
       id: `timeline-${Math.random()}`,
       name: clip.name,
@@ -1609,7 +2077,9 @@ function App() {
       durationSeconds: clip.durationSeconds,
       type: clip.type,
       path: clip.path,
-      url: clip.url
+      url: clip.url,
+      category: cat,
+      thumbnailUrl: clip.thumbnailUrl
     }];
     setTimelineVideoClips(updated);
     pushHistory(updated);
@@ -1661,6 +2131,190 @@ function App() {
     }
   }, [])
 
+  if (activeProjectPath === null) {
+    return (
+      <div className="flex flex-col h-screen w-screen bg-[#020712] text-slate-100 overflow-hidden font-sans select-none relative">
+        {/* Background glow effects */}
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#6366f1]/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#c084fc]/5 rounded-full blur-[120px] pointer-events-none" />
+        
+        {/* Header */}
+        <header className="flex justify-between items-center px-8 py-4 bg-slate-950/40 border-b border-slate-900/60 backdrop-blur-md">
+          <div className="flex items-center space-x-3">
+            <div className="bg-gradient-to-tr from-[#6366f1] to-[#c084fc] p-2 rounded-xl shadow-lg shadow-indigo-500/10">
+              <Sparkles className="h-5 w-5 text-white animate-pulse" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold tracking-wider bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent uppercase">
+                CIPHER STUDIO
+              </h1>
+              <p className="text-[10px] text-[#6366f1]/80 font-medium">AI VIDEO EDITOR • v1.0.0</p>
+            </div>
+          </div>
+          <button 
+            onClick={handleOpenProject}
+            className="text-xs font-semibold text-slate-300 hover:text-white px-4 py-2 rounded-xl hover:bg-slate-900 border border-slate-800 transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95"
+          >
+            <FolderOpen className="h-4 w-4 text-[#6366f1]" />
+            <span>Abrir desde Archivo</span>
+          </button>
+        </header>
+
+        {/* Dashboard Content */}
+        <main className="flex-1 max-w-6xl w-full mx-auto px-8 py-10 flex flex-col space-y-8 overflow-hidden">
+          {/* Hero Actions */}
+          <div className="grid grid-cols-2 gap-6">
+            <div 
+              onClick={() => setShowNewProjectModal(true)}
+              className="group bg-gradient-to-br from-slate-950 to-slate-900 hover:from-slate-900 hover:to-slate-950 border border-slate-850 hover:border-[#6366f1]/40 rounded-2xl p-8 flex flex-col justify-between items-start space-y-12 cursor-pointer shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-indigo-500/5"
+            >
+              <div className="bg-indigo-500/10 group-hover:bg-[#6366f1]/20 p-4 rounded-2xl transition-all duration-300">
+                <Plus className="h-8 w-8 text-[#6366f1]" />
+              </div>
+              <div>
+                <h2 className="text-xl font-extrabold text-white mb-2 tracking-tight group-hover:text-indigo-350 transition-colors">
+                  Nuevo Proyecto
+                </h2>
+                <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
+                  Crea un nuevo proyecto en CIPHER Studio. Tus clips temporales y audios se guardarán de forma organizada.
+                </p>
+              </div>
+            </div>
+
+            <div 
+              onClick={handleOpenProject}
+              className="group bg-gradient-to-br from-slate-950 to-slate-900 hover:from-slate-900 hover:to-slate-950 border border-slate-850 hover:border-[#c084fc]/40 rounded-2xl p-8 flex flex-col justify-between items-start space-y-12 cursor-pointer shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-purple-500/5"
+            >
+              <div className="bg-purple-500/10 group-hover:bg-[#c084fc]/20 p-4 rounded-2xl transition-all duration-300">
+                <FolderOpen className="h-8 w-8 text-[#c084fc]" />
+              </div>
+              <div>
+                <h2 className="text-xl font-extrabold text-white mb-2 tracking-tight group-hover:text-purple-350 transition-colors">
+                  Abrir Proyecto
+                </h2>
+                <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
+                  Busca un archivo <code className="font-mono text-[10px] text-purple-400">project-state.json</code> en tu sistema para reanudar tu edición anterior.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Projects List */}
+          <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
+            <h3 className="text-sm font-bold text-slate-350 tracking-wider flex items-center space-x-2">
+              <span className="w-1.5 h-3 bg-[#6366f1] rounded-full" />
+              <span>PROYECTOS RECIENTES</span>
+            </h3>
+            
+            <div className="flex-1 overflow-y-auto pr-2 space-y-2.5">
+              {projectsList.length === 0 ? (
+                <div className="h-48 border border-dashed border-slate-900 rounded-2xl flex flex-col items-center justify-center space-y-2 bg-slate-950/20">
+                  <FolderOpen className="h-8 w-8 text-slate-600" />
+                  <p className="text-xs text-slate-550 font-medium">Aún no tienes proyectos creados</p>
+                </div>
+              ) : (
+                projectsList.map((project) => {
+                  const formattedDate = new Date(project.date).toLocaleDateString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  });
+                  
+                  return (
+                    <div 
+                      key={project.id}
+                      onClick={() => handleLoadProject(project.projectPath)}
+                      className="group bg-slate-950/60 hover:bg-slate-900 border border-slate-900 hover:border-slate-850 rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all duration-200 animate-fade-in"
+                    >
+                      <div className="flex items-center space-x-4">
+                        {/* Thumbnail or Placeholder */}
+                        <div className="w-16 h-10 rounded-lg overflow-hidden bg-slate-900 flex-shrink-0 flex items-center justify-center border border-slate-850 relative group-hover:border-slate-800 transition-colors">
+                          {project.thumbnailUrl ? (
+                            <img src={project.thumbnailUrl} alt={project.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Video className="h-4 w-4 text-slate-500" />
+                          )}
+                        </div>
+                        
+                        <div>
+                          <h4 className="text-xs font-bold text-white group-hover:text-[#6366f1] transition-colors leading-tight">
+                            {project.name}
+                          </h4>
+                          <div className="flex items-center space-x-3 text-[10px] text-slate-500 font-medium mt-1">
+                            <span className="font-mono">{formattedDate}</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-700" />
+                            <span className="font-mono text-[#34d399]">{formatTimeMinutesSeconds(project.durationSeconds)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={(e) => handleDeleteProject(project.projectPath, e)}
+                        className="p-2 hover:bg-red-500/10 hover:text-red-405 text-slate-500 rounded-lg cursor-pointer active:scale-95 transition-all"
+                        title="Eliminar proyecto"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </main>
+
+        {/* New Project Modal */}
+        {showNewProjectModal && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#020712] border border-slate-850 rounded-2xl w-full max-w-md p-6 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+              <h3 className="text-base font-extrabold text-white tracking-tight flex items-center space-x-2">
+                <Sparkles className="h-4 w-4 text-[#6366f1] animate-pulse" />
+                <span>Crear Nuevo Proyecto</span>
+              </h3>
+              
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-[#6366f1] uppercase tracking-wider">Nombre del Proyecto</label>
+                <input 
+                  type="text" 
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  placeholder="Mi impresionante video..."
+                  className="w-full bg-slate-950 border border-slate-850 focus:border-[#6366f1]/50 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-650 outline-none transition-all font-sans"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCreateProject(newProjectName || 'Nuevo Proyecto');
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 pt-2">
+                <button 
+                  onClick={() => {
+                    setShowNewProjectModal(false);
+                    setNewProjectName('');
+                  }}
+                  className="text-xs font-semibold text-slate-400 hover:text-white px-4 py-2 rounded-xl hover:bg-slate-900 transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => handleCreateProject(newProjectName || 'Nuevo Proyecto')}
+                  className="bg-indigo-650 hover:bg-[#6366f1] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-indigo-600/10 active:scale-95"
+                >
+                  Crear Proyecto
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
       {/* Hidden File Input */}
@@ -1687,6 +2341,15 @@ function App() {
             </div>
           </div>
 
+          {/* Close Project / Back to Dashboard Button */}
+          <button 
+            onClick={handleCloseProject}
+            className="text-[10px] bg-slate-800 hover:bg-slate-700 hover:text-indigo-400 text-slate-300 font-bold px-2 py-1 rounded-md border border-slate-700/50 active:scale-95 transition-all cursor-pointer flex items-center space-x-1"
+            title="Volver al inicio (Cierra y guarda el proyecto actual)"
+          >
+            <span>&larr; Proyectos</span>
+          </button>
+
           {/* File Dropdown Menu */}
           <div className="relative">
             <button 
@@ -1701,6 +2364,15 @@ function App() {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setIsFileMenuOpen(false)} />
                 <div className="absolute left-0 mt-1 w-40 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-1.5 z-50 flex flex-col space-y-0.5 backdrop-blur-md">
+                  <button 
+                    onClick={() => {
+                      setIsFileMenuOpen(false);
+                      handleNewProject();
+                    }}
+                    className="w-full text-left text-[11px] text-slate-300 hover:text-white hover:bg-indigo-600 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Nuevo Proyecto
+                  </button>
                   <button 
                     onClick={() => {
                       setIsFileMenuOpen(false);
@@ -2103,23 +2775,25 @@ function App() {
                     : 'w-[95%] aspect-video'
                 }`}
               >
-                {activeVideoUrl ? (
-                  <video 
-                    ref={videoRef}
-                    src={activeVideoUrl}
-                    style={{
-                      transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}`,
-                      clipPath: activeCrop 
-                        ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` 
-                        : 'none',
-                    }}
-                    className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-75 ease-out"
-                    controls={false}
-                    onLoadedMetadata={handleLoadedMetadata}
-                    onDurationChange={handleDurationChange}
-                    onEnded={handleEnded}
-                  />
-                ) : (
+                <video 
+                  id="preview-video"
+                  ref={videoRef}
+                  src={activeVideoUrl || ''}
+                  style={{
+                    display: activeVideoUrl ? 'block' : 'none',
+                    transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}`,
+                    clipPath: activeCrop 
+                      ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` 
+                      : 'none',
+                  }}
+                  className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-75 ease-out"
+                  controls={false}
+                  onLoadedMetadata={handleLoadedMetadata}
+                  onCanPlay={handleVideoCanPlay}
+                  onDurationChange={handleDurationChange}
+                  onEnded={handleEnded}
+                />
+                {!activeVideoUrl && (
                   <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden bg-slate-950">
                     {activeTimelineClip?.path === 'remotion-dynamic' ? (
                       <RemotionVisualizer text={activeTimelineClip.text || activeTimelineClip.name} time={currentTimeForUI - activeTimelineClip.startSeconds} />
@@ -2229,7 +2903,10 @@ function App() {
           <div className="flex flex-col mt-4 p-3 bg-slate-900/60 border border-slate-800/80 rounded-xl space-y-3">
             {/* Scrubber row */}
             <div className="w-full flex items-center space-x-3 px-1">
-              <span className="text-[10px] font-mono text-slate-400 select-none w-10 text-right">
+              <span 
+                id="cipher-time-text"
+                className="text-[10px] font-mono text-slate-400 select-none w-10 text-right"
+              >
                 {formatTimeMinutesSeconds(currentTimeForUI)}
               </span>
               <div 
@@ -2237,10 +2914,12 @@ function App() {
                 className="flex-1 h-2 bg-slate-800 rounded-full relative cursor-pointer group/scrub"
               >
                 <div 
+                  id="cipher-scrub-fill"
                   style={{ width: `${durationSeconds > 0 ? (currentTimeForUI / durationSeconds) * 100 : 0}%` }}
                   className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full absolute top-0 left-0"
                 />
                 <div 
+                  id="cipher-scrub-thumb"
                   style={{ left: `${durationSeconds > 0 ? (currentTimeForUI / durationSeconds) * 100 : 0}%` }}
                   className="w-3.5 h-3.5 bg-white border-2 border-indigo-500 rounded-full absolute top-1/2 -translate-y-1/2 -ml-1.5 opacity-0 group-hover/scrub:opacity-100 transition-opacity shadow-md"
                 />
@@ -2278,7 +2957,10 @@ function App() {
               </div>
 
               {/* Timecode */}
-              <div className="text-base font-mono tracking-wider font-semibold text-slate-100 bg-slate-950/40 px-3 py-1 rounded-lg border border-slate-800/60">
+              <div 
+                id="cipher-timecode"
+                className="text-base font-mono tracking-wider font-semibold text-slate-100 bg-slate-950/40 px-3 py-1 rounded-lg border border-slate-800/60"
+              >
                 {currentTime}
               </div>
 
@@ -3318,21 +4000,51 @@ function App() {
               )}
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-4">
             <span className="font-mono text-[10px] text-slate-500">Escala de Tiempo: 1s</span>
+            
+            {/* Timeline Zoom Slider Control (Regla 6) */}
+            <div className="flex items-center space-x-2 pl-4 border-l border-slate-800 text-slate-400">
+              <span className="text-[10px] font-semibold text-slate-500 uppercase select-none">Zoom Timeline:</span>
+              <button 
+                onClick={() => setTimelineZoom(prev => Math.max(1200, prev - 300))} 
+                className="text-xs text-slate-400 hover:text-white px-1.5 py-0.5 hover:bg-slate-800 rounded select-none cursor-pointer font-bold transition-colors"
+                title="Alejar"
+              >
+                -
+              </button>
+              <input 
+                type="range"
+                min="1200"
+                max="6000"
+                step="100"
+                value={timelineZoom}
+                onChange={(e) => setTimelineZoom(parseInt(e.target.value))}
+                className="w-24 h-1 bg-slate-700 hover:bg-slate-650 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none"
+                style={{
+                  background: `linear-gradient(to right, rgb(99, 102, 241) ${Math.round(((timelineZoom - 1200) / 4800) * 100)}%, rgb(51, 65, 85) 0%)`
+                }}
+              />
+              <button 
+                onClick={() => setTimelineZoom(prev => Math.min(6000, prev + 300))} 
+                className="text-xs text-slate-400 hover:text-white px-1.5 py-0.5 hover:bg-slate-800 rounded select-none cursor-pointer font-bold transition-colors"
+                title="Acercar"
+              >
+                +
+              </button>
+              <span className="text-[9px] font-mono text-slate-400 w-8 select-none">
+                {Math.round((timelineZoom / 1200) * 100)}%
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Tracks area */}
         <div 
-          onWheel={(e) => {
-            if (e.deltaY !== 0) {
-              e.currentTarget.scrollLeft += e.deltaY;
-            }
-          }}
+          ref={timelineTracksRef}
           className="flex-1 overflow-x-auto overflow-y-auto p-4 bg-slate-950/40 relative scrollbar-timeline"
         >
-          <div className="relative min-w-[1200px]">
+          <div className="relative" style={{ minWidth: `${timelineZoom}px` }}>
             {/* Timeline Ruler */}
             <div className="flex items-center space-x-3 mb-2 select-none">
               <div className="w-28 flex-shrink-0" />
@@ -3366,18 +4078,28 @@ function App() {
 
             {/* Tracks wrapper */}
             <div className="relative space-y-3">
-              {/* Vertical Playhead Play Line */}
-              {(() => {
-                const playheadPercent = totalDuration > 0 ? (currentTimeForUI / totalDuration) * 100 : 0;
-                return (
-                  <div 
-                    style={{ left: `calc(7rem + 12px + ${playheadPercent}%)` }} 
-                    className="absolute top-0 bottom-0 w-[2px] bg-indigo-500 z-30 pointer-events-none shadow-[0_0_10px_#6366f1]"
-                  >
-                    <div className="w-3 h-3 bg-indigo-500 rounded-full -ml-[5px] -mt-[4px] border border-white shadow-lg" />
-                  </div>
-                );
-              })()}
+              {/* Playhead Overlay Area (aligned with the tracks, starts after the header - Corrección 5) */}
+              <div 
+                className="absolute top-0 bottom-0 z-30 pointer-events-none"
+                style={{
+                  left: 'calc(7rem + 12px)',
+                  right: 0,
+                }}
+              >
+                {/* Vertical Playhead Play Line */}
+                {(() => {
+                  const playheadPercent = totalDuration > 0 ? (currentTimeForUI / totalDuration) * 100 : 0;
+                  return (
+                    <div 
+                      id="cipher-playhead"
+                      style={{ left: `${playheadPercent}%` }} 
+                      className="absolute top-0 bottom-0 w-[2px] bg-indigo-500 pointer-events-none shadow-[0_0_10px_#6366f1]"
+                    >
+                      <div className="w-3 h-3 bg-indigo-500 rounded-full -ml-[5px] -mt-[4px] border border-white shadow-lg" />
+                    </div>
+                  );
+                })()}
+              </div>
 
               {/* Track 1: Video Track */}
               <div className="flex items-center space-x-3">
@@ -3429,9 +4151,22 @@ function App() {
                     .map((tClip, index) => {
                       const leftPercent = (tClip.startSeconds / totalDuration) * 100;
                       const widthPercent = (tClip.durationSeconds / totalDuration) * 100;
-                      const bgClass = index % 2 === 0 
-                        ? 'bg-sky-500/20 border-sky-400/50 text-sky-300 hover:bg-sky-500/30' 
-                        : 'bg-violet-500/20 border-violet-400/50 text-violet-300 hover:bg-violet-500/30';
+                      
+                      const cat = tClip.category ? tClip.category.toLowerCase() : '';
+                      let bgClass = 'bg-slate-500/20 border-slate-400/50 text-slate-300 hover:bg-slate-500/30';
+                      if (cat === 'original' || cat === 'originales') {
+                        bgClass = 'bg-emerald-500/25 border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/35';
+                      } else if (cat === 'remotion') {
+                        bgClass = 'bg-blue-500/25 border-blue-400/50 text-blue-300 hover:bg-blue-500/35';
+                      } else if (cat === 'hyperframes') {
+                        bgClass = 'bg-pink-500/25 border-pink-400/50 text-pink-300 hover:bg-pink-500/35';
+                      } else if (cat === 'stock') {
+                        bgClass = 'bg-amber-500/25 border-amber-400/50 text-amber-300 hover:bg-amber-500/35';
+                      } else {
+                        bgClass = index % 2 === 0 
+                          ? 'bg-sky-500/20 border-sky-400/50 text-sky-300 hover:bg-sky-500/30' 
+                          : 'bg-violet-500/20 border-violet-400/50 text-violet-300 hover:bg-violet-500/30';
+                      }
                       
                       return (
                         <div 
@@ -3439,7 +4174,7 @@ function App() {
                           style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
                           onMouseDown={(e) => handleClipMouseDown(e, tClip.id, 'move')}
                           onContextMenu={(e) => handleClipContextMenu(e, tClip.id)}
-                          className={`absolute h-full border rounded-lg flex items-center px-3 justify-between group/tclip cursor-move transition-shadow ${
+                          className={`absolute h-full border rounded-lg flex items-center px-2 justify-between group/tclip cursor-move transition-shadow ${
                             selectedTimelineClipId === tClip.id 
                               ? 'ring-2 ring-indigo-500 border-indigo-400 z-20 shadow-[0_0_12px_rgba(99,102,241,0.25)]' 
                               : 'border-slate-800'
@@ -3453,10 +4188,20 @@ function App() {
                             <div className="w-[1.5px] h-3 bg-white/60" />
                           </div>
 
-                          <span className="text-[10px] truncate font-medium pr-1 select-none pointer-events-none" title={tClip.name}>
-                            {tClip.name}
-                          </span>
-                          <span className="text-[9px] font-mono px-1 rounded flex-shrink-0 select-none pointer-events-none bg-slate-950/60 text-slate-350">
+                          <div className="flex items-center min-w-0 flex-1 select-none pointer-events-none">
+                            {tClip.thumbnailUrl && (
+                              <img 
+                                src={tClip.thumbnailUrl} 
+                                alt="" 
+                                className="h-8 w-12 object-cover rounded mr-2 flex-shrink-0" 
+                              />
+                            )}
+                            <span className="text-[10px] truncate font-medium pr-1" title={tClip.name}>
+                              {tClip.name}
+                            </span>
+                          </div>
+                          
+                          <span className="text-[9px] font-mono px-1 rounded flex-shrink-0 select-none pointer-events-none bg-slate-950/60 text-slate-350 z-10">
                             {tClip.durationSeconds.toFixed(1)}s
                           </span>
 
