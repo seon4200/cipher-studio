@@ -742,9 +742,9 @@ function App() {
         videoRef.current.currentTime = targetTime;
       }
       
-      videoRef.current.play().then(() => {
-        setIsPlaying(true);
-      }).catch(() => {});
+      if (isPlaying) {
+        videoRef.current.play().catch(e => console.error("canplay play error:", e));
+      }
     }
   };
 
@@ -1108,13 +1108,39 @@ function App() {
           : 1;
         const startOffset = currentClip.segmentStartOffset || 0;
         
-        // El playhead avanza alineado al tiempo real del video (Corrección 1)
-        const elapsed = (video.currentTime - startOffset) / scale;
-        let newTime = currentClip.startSeconds + elapsed;
+        // Verificar si el video está cargando o buscando
+        const cleanClipPath = currentClip.path.replace(/\\/g, '/');
+        const decodedSrc = decodeURIComponent(video.src).replace(/\\/g, '/');
+        const isVideoLoading = video.seeking || video.readyState < 2 || !decodedSrc.includes(cleanClipPath);
+        
+        let newTime;
+        if (isVideoLoading) {
+          // Usar audio o reloj interno mientras el video carga
+          if (audioRef.current && !audioRef.current.paused) {
+            newTime = audioRef.current.currentTime;
+          } else {
+            const now = performance.now();
+            const delta = (now - lastTime) / 1000;
+            newTime = time + delta * playbackRate;
+          }
+          
+          // Limitar para que no salte al siguiente clip mientras está cargando
+          const clipEnd = currentClip.startSeconds + currentClip.durationSeconds;
+          if (newTime >= clipEnd) {
+            newTime = clipEnd - 0.05;
+          }
+        } else {
+          // Si el video está listo, alineamos el cursor exactamente a su progreso
+          const elapsed = (video.currentTime - startOffset) / scale;
+          newTime = currentClip.startSeconds + elapsed;
+        }
+        
         if (newTime < currentClip.startSeconds) newTime = currentClip.startSeconds;
         
-        // Si termina el clip actual, cargar y reproducir automáticamente el siguiente (CapCut style)
-        if (newTime >= currentClip.startSeconds + currentClip.durationSeconds - 0.03 || video.ended) {
+        // Transición al siguiente clip (solo si no está cargando)
+        const shouldTransition = !isVideoLoading && (newTime >= currentClip.startSeconds + currentClip.durationSeconds - 0.03 || video.ended);
+        
+        if (shouldTransition) {
           const sortedClips = clips
             .filter(c => c.type !== 'audio')
             .sort((a, b) => a.startSeconds - b.startSeconds);
