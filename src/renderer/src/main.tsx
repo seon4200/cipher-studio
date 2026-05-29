@@ -1109,8 +1109,8 @@ function App() {
         const startOffset = currentClip.segmentStartOffset || 0;
         
         // Verificar si el video está cargando o buscando
-        const cleanClipPath = currentClip.path.replace(/\\/g, '/');
-        const decodedSrc = decodeURIComponent(video.src).replace(/\\/g, '/');
+        const cleanClipPath = currentClip.path.replace(/\\/g, '/').toLowerCase();
+        const decodedSrc = decodeURIComponent(video.src).replace('file:///', '').replace(/\\/g, '/').toLowerCase();
         const isVideoLoading = video.seeking || video.readyState < 2 || !decodedSrc.includes(cleanClipPath);
         
         let newTime;
@@ -1138,7 +1138,7 @@ function App() {
         if (newTime < currentClip.startSeconds) newTime = currentClip.startSeconds;
         
         // Transición al siguiente clip (solo si no está cargando)
-        const shouldTransition = !isVideoLoading && (newTime >= currentClip.startSeconds + currentClip.durationSeconds - 0.03 || video.ended);
+        const shouldTransition = !isVideoLoading && (newTime >= currentClip.startSeconds + currentClip.durationSeconds - 0.1 || video.ended);
         
         if (shouldTransition) {
           const sortedClips = clips
