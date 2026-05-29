@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import ReactDOM from 'react-dom/client'
 import { 
   Play, Pause, FastForward, Rewind, Video, Volume2, VolumeX, Sparkles, 
@@ -89,7 +89,9 @@ function App() {
   }, [zoom])
 
   // Player premium controls states
-  const [currentTimeSeconds, setCurrentTimeSeconds] = useState(0)
+  const currentTimeRef = React.useRef(0)
+  const [currentTimeForUI, setCurrentTimeForUI] = useState(0)
+  const lastUIUpdateRef = React.useRef(0)
   const [durationSeconds, setDurationSeconds] = useState(0)
   const [volume, setVolume] = useState(0.8)
   const [isMuted, setIsMuted] = useState(false)
@@ -106,18 +108,64 @@ function App() {
 
   // Refs to allow stable keyboard listener dependencies
   const timelineClipsRef = React.useRef<TimelineClip[]>([])
-  const currentTimeSecondsRef = React.useRef(currentTimeSeconds)
+  const currentTimeSecondsRef = currentTimeRef
   const selectedTimelineClipIdRef = React.useRef(selectedTimelineClipId)
-
   useEffect(() => {
     timelineClipsRef.current = timelineVideoClips
-    currentTimeSecondsRef.current = currentTimeSeconds
     selectedTimelineClipIdRef.current = selectedTimelineClipId
-  }, [timelineVideoClips, currentTimeSeconds, selectedTimelineClipId])
+  }, [timelineVideoClips, selectedTimelineClipId])
+
+  const updateCurrentTime = useCallback((newTime: number) => {
+    currentTimeRef.current = newTime;
+    
+    const timecodeEl = document.getElementById('cipher-timecode');
+    if (timecodeEl) {
+      const hrs = Math.floor(newTime / 3600);
+      const mins = Math.floor((newTime % 3600) / 60);
+      const secs = Math.floor(newTime % 60);
+      const frames = Math.floor((newTime % 1) * 24);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      timecodeEl.textContent = `${pad(hrs)}:${pad(mins)}:${pad(secs)}:${pad(frames)}`;
+    }
+    
+    const playheadEl = document.getElementById('cipher-playhead');
+    if (playheadEl) {
+      const totalDur = Math.max(120, timelineClipsRef.current.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0) + 10);
+      const percent = totalDur > 0 ? (newTime / totalDur) * 100 : 0;
+      playheadEl.style.left = `${percent}%`;
+    }
+    
+    const scrubFill = document.getElementById('cipher-scrub-fill');
+    const scrubThumb = document.getElementById('cipher-scrub-thumb');
+    const durationSec = videoRef.current?.duration || 0;
+    if (scrubFill) {
+      scrubFill.style.width = `${durationSec > 0 ? (newTime / durationSec) * 100 : 0}%`;
+    }
+    if (scrubThumb) {
+      scrubThumb.style.left = `${durationSec > 0 ? (newTime / durationSec) * 100 : 0}%`;
+    }
+    
+    const timeTextEl = document.getElementById('cipher-time-text');
+    if (timeTextEl) {
+      const fmins = Math.floor(newTime / 60);
+      const fsecs = Math.floor(newTime % 60);
+      timeTextEl.textContent = `${String(fmins).padStart(2, '0')}:${String(fsecs).padStart(2, '0')}`;
+    }
+    
+    const now = performance.now();
+    if (now - lastUIUpdateRef.current > 200) {
+      lastUIUpdateRef.current = now;
+      setCurrentTimeForUI(newTime);
+    }
+  }, []);
+
+  const flushCurrentTime = useCallback(() => {
+    setCurrentTimeForUI(currentTimeRef.current);
+  }, []);
 
   // Dynamic total timeline duration (minimum 120 seconds, or max clip end + 10s buffer)
-  const totalDuration = Math.max(120, timelineVideoClips.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0) + 10);
-  const activeTimelineClip = timelineVideoClips.find(c => c.type !== 'audio' && currentTimeSeconds >= c.startSeconds && currentTimeSeconds < c.startSeconds + c.durationSeconds);
+  const totalDuration = useMemo(() => Math.max(120, timelineVideoClips.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0) + 10), [timelineVideoClips]);
+  const activeTimelineClip = useMemo(() => timelineVideoClips.find(c => c.type !== 'audio' && currentTimeForUI >= c.startSeconds && currentTimeForUI < c.startSeconds + c.durationSeconds), [timelineVideoClips, currentTimeForUI]);
 
   // Undo/Redo history states
   const [history, setHistory] = useState<TimelineClip[][]>([])
@@ -218,9 +266,11 @@ function App() {
 
   // Seek global timeline time
   const seekGlobalTime = (time: number) => {
-    setCurrentTimeSeconds(time);
+    const boundedTime = Math.max(0, Math.min(time, totalDuration));
+    updateCurrentTime(boundedTime);
+    flushCurrentTime();
     if (audioRef.current) {
-      audioRef.current.currentTime = time;
+      audioRef.current.currentTime = boundedTime;
     }
   };
 
@@ -412,7 +462,7 @@ function App() {
     const newClip: TimelineClip = {
       id: `timeline-${Math.random()}`,
       name: `${copiedClip.name} (Copy)`,
-      startSeconds: currentTimeSeconds,
+      startSeconds: currentTimeRef.current,
       durationSeconds: copiedClip.durationSeconds,
       type: copiedClip.type
     }
@@ -599,13 +649,13 @@ function App() {
 
   // Sync global timecode string representation
   useEffect(() => {
-    const hrs = Math.floor(currentTimeSeconds / 3600)
-    const mins = Math.floor((currentTimeSeconds % 3600) / 60)
-    const secs = Math.floor(currentTimeSeconds % 60)
-    const frames = Math.floor((currentTimeSeconds % 1) * 24) // mock 24 fps
+    const hrs = Math.floor(currentTimeForUI / 3600)
+    const mins = Math.floor((currentTimeForUI % 3600) / 60)
+    const secs = Math.floor(currentTimeForUI % 60)
+    const frames = Math.floor((currentTimeForUI % 1) * 24) // mock 24 fps
     const pad = (num: number) => String(num).padStart(2, '0')
     setCurrentTime(`${pad(hrs)}:${pad(mins)}:${pad(secs)}:${pad(frames)}`)
-  }, [currentTimeSeconds]);
+  }, [currentTimeForUI]);
 
   // Sync volume, mute, and speed
   useEffect(() => {
@@ -806,7 +856,7 @@ function App() {
   useEffect(() => {
     if (audioRef.current) {
       if (isPlaying) {
-        audioRef.current.currentTime = currentTimeSeconds;
+        audioRef.current.currentTime = currentTimeRef.current;
         audioRef.current.play().catch(e => console.error("Audio play error", e));
       } else {
         audioRef.current.pause();
@@ -818,32 +868,34 @@ function App() {
   useEffect(() => {
     let animationFrameId: number;
     let lastTime = performance.now();
-
+    
     const tick = () => {
       if (!isPlaying) return;
 
       if (audioRef.current && !audioRef.current.paused) {
         const audioTime = audioRef.current.currentTime;
-        setCurrentTimeSeconds(audioTime);
+        updateCurrentTime(audioTime);
         if (audioTime >= totalDuration) {
           setIsPlaying(false);
-          setCurrentTimeSeconds(totalDuration);
+          updateCurrentTime(totalDuration);
+          flushCurrentTime();
         }
       } else {
         const now = performance.now();
         const delta = (now - lastTime) / 1000;
-        lastTime = now;
-
-        setCurrentTimeSeconds(prev => {
-          const next = prev + delta * playbackRate;
-          if (next >= totalDuration) {
-            setIsPlaying(false);
-            return totalDuration;
-          }
-          return next;
-        });
+        
+        const prevTime = currentTimeRef.current;
+        const next = prevTime + delta * playbackRate;
+        if (next >= totalDuration) {
+          setIsPlaying(false);
+          updateCurrentTime(totalDuration);
+          flushCurrentTime();
+        } else {
+          updateCurrentTime(next);
+        }
       }
 
+      lastTime = performance.now();
       animationFrameId = requestAnimationFrame(tick);
     };
 
@@ -880,7 +932,7 @@ function App() {
 
     const video = videoRef.current;
     if (video) {
-      const offset = currentTimeSeconds - activeTimelineClip.startSeconds;
+      const offset = currentTimeRef.current - activeTimelineClip.startSeconds;
       const scale = activeTimelineClip.origDurationSeconds 
         ? (activeTimelineClip.origDurationSeconds / activeTimelineClip.durationSeconds) 
         : 1;
@@ -911,7 +963,7 @@ function App() {
         video.muted = isMuted;
       }
     }
-  }, [currentTimeSeconds, activeTimelineClip, isPlaying, playbackRate, isVideoTrackMuted, videoTrackVolume, volume, isMuted]);
+  }, [currentTimeForUI, activeTimelineClip, isPlaying, playbackRate, isVideoTrackMuted, videoTrackVolume, volume, isMuted]);
 
   // Autoload project state on startup
   useEffect(() => {
@@ -1414,7 +1466,7 @@ function App() {
     const newTimelineClip: TimelineClip = {
       id: `timeline-voice-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: `Voz - ${voice.speaker}`,
-      startSeconds: currentTimeSeconds,
+      startSeconds: currentTimeRef.current,
       durationSeconds: durationSecs,
       type: 'audio',
       url: voice.audioUrl,
@@ -2070,9 +2122,9 @@ function App() {
                 ) : (
                   <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden bg-slate-950">
                     {activeTimelineClip?.path === 'remotion-dynamic' ? (
-                      <RemotionVisualizer text={activeTimelineClip.text || activeTimelineClip.name} time={currentTimeSeconds - activeTimelineClip.startSeconds} />
+                      <RemotionVisualizer text={activeTimelineClip.text || activeTimelineClip.name} time={currentTimeForUI - activeTimelineClip.startSeconds} />
                     ) : (
-                      <HyperframesVisualizer text={activeTimelineClip?.text || activeTimelineClip?.name || ''} time={currentTimeSeconds - (activeTimelineClip?.startSeconds || 0)} />
+                      <HyperframesVisualizer text={activeTimelineClip?.text || activeTimelineClip?.name || ''} time={currentTimeForUI - (activeTimelineClip?.startSeconds || 0)} />
                     )}
                   </div>
                 )}
@@ -2178,18 +2230,18 @@ function App() {
             {/* Scrubber row */}
             <div className="w-full flex items-center space-x-3 px-1">
               <span className="text-[10px] font-mono text-slate-400 select-none w-10 text-right">
-                {formatTimeMinutesSeconds(currentTimeSeconds)}
+                {formatTimeMinutesSeconds(currentTimeForUI)}
               </span>
               <div 
                 onMouseDown={handleScrubberMouseDown}
                 className="flex-1 h-2 bg-slate-800 rounded-full relative cursor-pointer group/scrub"
               >
                 <div 
-                  style={{ width: `${durationSeconds > 0 ? (currentTimeSeconds / durationSeconds) * 100 : 0}%` }}
+                  style={{ width: `${durationSeconds > 0 ? (currentTimeForUI / durationSeconds) * 100 : 0}%` }}
                   className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full absolute top-0 left-0"
                 />
                 <div 
-                  style={{ left: `${durationSeconds > 0 ? (currentTimeSeconds / durationSeconds) * 100 : 0}%` }}
+                  style={{ left: `${durationSeconds > 0 ? (currentTimeForUI / durationSeconds) * 100 : 0}%` }}
                   className="w-3.5 h-3.5 bg-white border-2 border-indigo-500 rounded-full absolute top-1/2 -translate-y-1/2 -ml-1.5 opacity-0 group-hover/scrub:opacity-100 transition-opacity shadow-md"
                 />
               </div>
@@ -3316,7 +3368,7 @@ function App() {
             <div className="relative space-y-3">
               {/* Vertical Playhead Play Line */}
               {(() => {
-                const playheadPercent = totalDuration > 0 ? (currentTimeSeconds / totalDuration) * 100 : 0;
+                const playheadPercent = totalDuration > 0 ? (currentTimeForUI / totalDuration) * 100 : 0;
                 return (
                   <div 
                     style={{ left: `calc(7rem + 12px + ${playheadPercent}%)` }} 

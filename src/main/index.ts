@@ -1,3 +1,4 @@
+let envLoaded = false;
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import { spawn, exec } from 'child_process'
@@ -6,6 +7,7 @@ import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds } fr
 
 // Helper to manually load .env file in main process from multiple potential paths
 function loadEnv() {
+  if (envLoaded) return;
   const possiblePaths = [
     path.join(process.cwd(), '.env'),
     path.join(process.cwd(), 'cipher-studio', '.env'),
@@ -56,6 +58,16 @@ let win: BrowserWindow | null = null
 const preload = path.join(__dirname, '../preload/index.js')
 const url = process.env.VITE_DEV_SERVER_URL
 const indexHtml = path.join(process.env.DIST, 'dist/index.html')
+
+
+async function exists(p: string): Promise<boolean> {
+  try {
+    await fs.promises.access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function createWindow() {
   win = new BrowserWindow({
@@ -117,7 +129,7 @@ function getRemotionPath(): string {
 }
 
 
-function initClipFolders() {
+async function initClipFolders() {
   const bankDir = getBancoClipsPath()
   const folders = [
     '',
@@ -130,15 +142,15 @@ function initClipFolders() {
   ]
   for (const f of folders) {
     const dirPath = path.join(bankDir, f)
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true })
+    if (!(await exists(dirPath))) {
+      await fs.promises.mkdir(dirPath, { recursive: true })
       console.log(`[initClipFolders] Carpeta creada: ${dirPath}`)
     }
   }
 }
 
-app.whenReady().then(() => {
-  initClipFolders()
+app.whenReady().then(async () => {
+  await initClipFolders()
   createWindow()
 })
 
@@ -164,10 +176,10 @@ app.on('activate', () => {
 })
 
 // IPC listener for Whisper local transcription
-ipcMain.on('start-transcription', (event, filePath) => {
+ipcMain.on('start-transcription', async (event, filePath) => {
   const transcriptsDir = path.join(app.getPath('userData'), 'transcripts')
-  if (!fs.existsSync(transcriptsDir)) {
-    fs.mkdirSync(transcriptsDir, { recursive: true })
+  if (!(await exists(transcriptsDir))) {
+    await fs.promises.mkdir(transcriptsDir, { recursive: true })
   }
 
   // The output JSON file will be named [basename].json
@@ -175,9 +187,9 @@ ipcMain.on('start-transcription', (event, filePath) => {
   const expectedJsonPath = path.join(transcriptsDir, basename + '.json')
 
   // Clean up any existing transcript file first
-  if (fs.existsSync(expectedJsonPath)) {
+  if (await exists(expectedJsonPath)) {
     try {
-      fs.unlinkSync(expectedJsonPath)
+      await fs.promises.unlink(expectedJsonPath)
     } catch (e) {}
   }
 
@@ -227,7 +239,7 @@ ipcMain.on('start-transcription', (event, filePath) => {
     }
   })
 
-  whisperProcess.on('close', (code) => {
+  whisperProcess.on('close', async (code) => {
     if (code === 0) {
       try {
         if (fs.existsSync(expectedJsonPath)) {
@@ -242,7 +254,7 @@ ipcMain.on('start-transcription', (event, filePath) => {
 
           // Clean up the JSON file to keep system clean
           try {
-            fs.unlinkSync(expectedJsonPath)
+            await fs.promises.unlink(expectedJsonPath)
           } catch (e) {}
         } else {
           event.reply('transcription-update', { 
@@ -269,7 +281,7 @@ ipcMain.on('start-transcription', (event, filePath) => {
 ipcMain.handle('save-project-state', async (_event, state) => {
   try {
     const filePath = path.join(process.cwd(), 'project-state.json')
-    fs.writeFileSync(filePath, JSON.stringify(state, null, 2), 'utf8')
+    await fs.promises.writeFile(filePath, JSON.stringify(state, null, 2), 'utf8')
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message }
@@ -280,8 +292,8 @@ ipcMain.handle('save-project-state', async (_event, state) => {
 ipcMain.handle('load-project-state', async () => {
   try {
     const filePath = path.join(process.cwd(), 'project-state.json')
-    if (fs.existsSync(filePath)) {
-      const rawData = fs.readFileSync(filePath, 'utf8')
+    if (await exists(filePath)) {
+      const rawData = await fs.promises.readFile(filePath, 'utf8')
       const parsed = JSON.parse(rawData)
       return { success: true, data: parsed }
     }
@@ -313,7 +325,7 @@ ipcMain.handle('save-project-as', async (_event, state) => {
       return { success: false, error: 'Guardado cancelado por el usuario' }
     }
 
-    fs.writeFileSync(filePath, JSON.stringify(state, null, 2), 'utf8')
+    await fs.promises.writeFile(filePath, JSON.stringify(state, null, 2), 'utf8')
     return { success: true }
   } catch (err: any) {
     return { success: false, error: err.message }
@@ -337,7 +349,7 @@ ipcMain.handle('open-project', async () => {
     }
 
     const filePath = filePaths[0]
-    const rawData = fs.readFileSync(filePath, 'utf8')
+    const rawData = await fs.promises.readFile(filePath, 'utf8')
     const parsed = JSON.parse(rawData)
     return { success: true, data: parsed }
   } catch (err: any) {
@@ -422,7 +434,7 @@ function cleanMarkdown(text: string): string {
 ipcMain.handle('rewrite-transcript', async (_event, text) => {
   try {
     let promptPath = path.join(process.cwd(), 'src/prompt-maestro.txt')
-    if (!fs.existsSync(promptPath)) {
+    if (!(await exists(promptPath))) {
       const possiblePaths = [
         path.join(app.getAppPath(), 'src/prompt-maestro.txt'),
         path.join(__dirname, '../../src/prompt-maestro.txt'),
@@ -430,18 +442,18 @@ ipcMain.handle('rewrite-transcript', async (_event, text) => {
         path.join(process.cwd(), 'prompt-maestro.txt')
       ]
       for (const p of possiblePaths) {
-        if (fs.existsSync(p)) {
+        if (await exists(p)) {
           promptPath = p
           break
         }
       }
     }
 
-    if (!fs.existsSync(promptPath)) {
+    if (!(await exists(promptPath))) {
       return { success: false, error: 'No se encontró el archivo prompt-maestro.txt en cipher-studio/src' }
     }
 
-    const promptTemplate = fs.readFileSync(promptPath, 'utf8')
+    const promptTemplate = await fs.promises.readFile(promptPath, 'utf8')
     const finalPrompt = promptTemplate.replace('[TRANSCRIPCIÓN]', text)
 
     loadEnv() // Refresh env
@@ -613,14 +625,14 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
 
       // Ensure directory exists
       const voicesDir = path.join(app.getPath('userData'), 'generated-voices')
-      if (!fs.existsSync(voicesDir)) {
-        fs.mkdirSync(voicesDir, { recursive: true })
+      if (!(await exists(voicesDir))) {
+        await fs.promises.mkdir(voicesDir, { recursive: true })
       }
 
       // Save MP3 to local folder
       const filename = `voice-${Date.now()}.mp3`
       const filePath = path.join(voicesDir, filename)
-      fs.writeFileSync(filePath, buffer)
+      await fs.promises.writeFile(filePath, buffer)
       console.log(`[generate-voice] Archivo de voz guardado localmente en: ${filePath}`)
 
       // Generate base64 data URL for preview
@@ -649,16 +661,16 @@ ipcMain.handle('load-bank-clips', async (_event, { category }) => {
   try {
     const bankDir = getBancoClipsPath()
     const dirPath = path.join(bankDir, category)
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true })
+    if (!(await exists(dirPath))) {
+      await fs.promises.mkdir(dirPath, { recursive: true })
     }
 
-    const files = fs.readdirSync(dirPath)
+    const files = await fs.promises.readdir(dirPath)
     const bankClips: any[] = []
 
     for (const file of files) {
       const filePath = path.join(dirPath, file)
-      const stat = fs.statSync(filePath)
+      const stat = await fs.promises.stat(filePath)
       
       // We only accept common video formats
       if (stat.isFile() && /\.(mp4|mkv|avi|mov|webm)$/i.test(file)) {
@@ -670,17 +682,17 @@ ipcMain.handle('load-bank-clips', async (_event, { category }) => {
         const thumbnailPath = path.join(bankDir, 'thumbnails', thumbnailName)
         let thumbnailUrl = ''
 
-        if (fs.existsSync(thumbnailPath)) {
+        if (await exists(thumbnailPath)) {
           try {
-            thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString('base64')}`
+            thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbnailPath)).toString('base64')}`
           } catch (e) {
             console.error(`[load-bank-clips] Error al leer miniatura para ${file}:`, e)
           }
         } else {
           try {
             await generateVideoThumbnail(filePath, thumbnailPath)
-            if (fs.existsSync(thumbnailPath)) {
-              thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString('base64')}`
+            if (await exists(thumbnailPath)) {
+              thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbnailPath)).toString('base64')}`
             }
           } catch (e) {
             console.error(`[load-bank-clips] Error al generar miniatura para ${file}:`, e)
@@ -714,8 +726,8 @@ ipcMain.handle('cut-video-clips', async (_event, { videoPath, segments, aspectRa
     console.log(`[cut-video-clips] Iniciando segmentación de: ${videoPath} con formato ${aspectRatio}`)
     const bankDir = getBancoClipsPath()
     const outDir = path.join(bankDir, 'originales')
-    if (!fs.existsSync(outDir)) {
-      fs.mkdirSync(outDir, { recursive: true })
+    if (!(await exists(outDir))) {
+      await fs.promises.mkdir(outDir, { recursive: true })
     }
 
     const createdClips: any[] = []
@@ -780,7 +792,7 @@ ipcMain.handle('cut-video-clips', async (_event, { videoPath, segments, aspectRa
           console.error(`[cut-video-clips] Error al generar miniatura para clip ${idx + 1}_${part}:`, e)
         }
 
-        const stat = fs.statSync(clipPath)
+        const stat = await fs.promises.stat(clipPath)
         createdClips.push({
           id: `bank-originales-${clipFileName}`,
           name: clipFileName,
@@ -811,13 +823,13 @@ ipcMain.handle('delete-bank-clip', async (_event, { category, file }) => {
   try {
     const bankDir = getBancoClipsPath()
     const filePath = path.join(bankDir, category, file)
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath)
+    if (await exists(filePath)) {
+      await fs.promises.unlink(filePath)
     }
     const thumbnailName = `${path.basename(file, path.extname(file))}.jpg`
     const thumbnailPath = path.join(bankDir, 'thumbnails', thumbnailName)
-    if (fs.existsSync(thumbnailPath)) {
-      fs.unlinkSync(thumbnailPath)
+    if (await exists(thumbnailPath)) {
+      await fs.promises.unlink(thumbnailPath)
     }
     return { success: true }
   } catch (err: any) {
@@ -859,7 +871,7 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio }) => {
 
     if (clips.length === 1) {
       const videoPath = clips[0].path
-      if (!videoPath || !fs.existsSync(videoPath)) {
+      if (!videoPath || !(await exists(videoPath))) {
         return { success: false, error: `El archivo original no existe o no tiene ruta: ${clips[0].name}` }
       }
       const escapedVideo = videoPath.replace(/"/g, '\\"')
@@ -878,7 +890,7 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio }) => {
       
       let fileContent = ''
       for (const clip of clips) {
-        if (clip.path && fs.existsSync(clip.path)) {
+        if (clip.path && (await exists(clip.path))) {
           // Escape single quotes and backslashes for FFmpeg concat list
           const escapedPath = clip.path.replace(/\\/g, '/').replace(/'/g, "'\\''")
           fileContent += `file '${escapedPath}'\n`
@@ -891,7 +903,7 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio }) => {
         return { success: false, error: 'Ninguno de los clips del Timeline tiene un archivo de origen válido en disco.' }
       }
 
-      fs.writeFileSync(tempTxtPath, fileContent, 'utf8')
+      await fs.promises.writeFile(tempTxtPath, fileContent, 'utf8')
       const escapedTxt = tempTxtPath.replace(/"/g, '\\"')
 
       // Concat and crop
@@ -928,10 +940,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText }) => {
     let creativeUnlockContent = '';
     const creativeUnlockPath = path.join(process.cwd(), 'creative-unlock.md');
     const alternativeCreativePath = path.join(process.cwd(), 'cipher-studio', 'creative-unlock.md');
-    if (fs.existsSync(creativeUnlockPath)) {
-      creativeUnlockContent = fs.readFileSync(creativeUnlockPath, 'utf8');
-    } else if (fs.existsSync(alternativeCreativePath)) {
-      creativeUnlockContent = fs.readFileSync(alternativeCreativePath, 'utf8');
+    if (await exists(creativeUnlockPath)) {
+      creativeUnlockContent = await fs.promises.readFile(creativeUnlockPath, 'utf8');
+    } else if (await exists(alternativeCreativePath)) {
+      creativeUnlockContent = await fs.promises.readFile(alternativeCreativePath, 'utf8');
     }
 
     // 3. Segmentar guion en párrafos
@@ -1022,15 +1034,15 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText }) => {
 
     const bankDir = getBancoClipsPath();
     const tempDir = path.join(bankDir, 'temp_renders');
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
+    if (!(await exists(tempDir))) {
+      await fs.promises.mkdir(tempDir, { recursive: true });
     }
 
     const compositionsDir = path.join(process.cwd(), 'hyperframes-project', 'compositions');
     const alternativeCompositionsDir = path.join(process.cwd(), 'cipher-studio', 'hyperframes-project', 'compositions');
-    const targetCompositionsDir = fs.existsSync(path.join(process.cwd(), 'hyperframes-project')) ? compositionsDir : alternativeCompositionsDir;
-    if (!fs.existsSync(targetCompositionsDir)) {
-      fs.mkdirSync(targetCompositionsDir, { recursive: true });
+    const targetCompositionsDir = (await exists(path.join(process.cwd(), 'hyperframes-project'))) ? compositionsDir : alternativeCompositionsDir;
+    if (!(await exists(targetCompositionsDir))) {
+      await fs.promises.mkdir(targetCompositionsDir, { recursive: true });
     }
 
     const generatedClips: any[] = [];
@@ -1072,7 +1084,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText }) => {
           metricLabel: remotionProps.metricLabel || ''
         };
 
-        fs.writeFileSync(tempPropsPath, JSON.stringify(propsJson, null, 2), 'utf8');
+        await fs.promises.writeFile(tempPropsPath, JSON.stringify(propsJson, null, 2), 'utf8');
 
         const remotionProjectRoot = getRemotionPath();
         const entryFile = path.join(remotionProjectRoot, 'remotion', 'src', 'index.ts');
@@ -1098,14 +1110,14 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText }) => {
         let thumbnailUrl = '';
         try {
           await generateVideoThumbnail(outPath, thumbnailPath);
-          if (fs.existsSync(thumbnailPath)) {
-            thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString('base64')}`;
+          if (await exists(thumbnailPath)) {
+            thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbnailPath)).toString('base64')}`;
           }
         } catch (e) {
           console.error(`  - Falló generación de miniatura Remotion:`, e);
         }
 
-        const stat = fs.statSync(outPath);
+        const stat = await fs.promises.stat(outPath);
         generatedClips.push({
           id: `bank-remotion-${clipFileName}`,
           name: clipFileName,
@@ -1160,9 +1172,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText }) => {
   </body>
 </html>`;
 
-        fs.writeFileSync(compositionHtmlPath, htmlTemplate, 'utf8');
+        await fs.promises.writeFile(compositionHtmlPath, htmlTemplate, 'utf8');
 
-        const hyperframesProjectRoot = fs.existsSync(path.join(process.cwd(), 'hyperframes-project')) 
+        const hyperframesProjectRoot = (await exists(path.join(process.cwd(), 'hyperframes-project'))) 
           ? path.join(process.cwd(), 'hyperframes-project') 
           : path.join(process.cwd(), 'cipher-studio', 'hyperframes-project');
 
@@ -1210,7 +1222,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText }) => {
       }
     }
 
-    try { fs.rmdirSync(tempDir); } catch (e) {}
+    try { await fs.promises.rmdir(tempDir); } catch (e) {}
 
     console.log(`[generate-timeline-assets] Generación finalizada. Creados ${generatedClips.length} clips.`);
     return { success: true, clips: generatedClips };
