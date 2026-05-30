@@ -50,6 +50,13 @@ interface GeneratedVoiceVersion {
   durationSeconds?: number;
 }
 
+interface TimelineVersion {
+  id: string;
+  name: string;
+  timestamp: number;
+  timelineVideoClips: TimelineClip[];
+}
+
 
 function App() {
   const [isPlaying, setIsPlaying] = useState(false)
@@ -69,6 +76,17 @@ function App() {
   const [clips, setClips] = useState<Clip[]>([])
 
   const [timelineVideoClips, setTimelineVideoClips] = useState<TimelineClip[]>([])
+  const [timelineVersions, setTimelineVersions] = useState<TimelineVersion[]>([])
+  const [activeVersionId, setActiveVersionId] = useState<string>('')
+
+  const handleSelectTimelineVersion = (versionId: string) => {
+    setActiveVersionId(versionId);
+    const targetVersion = timelineVersions.find(v => v.id === versionId);
+    if (targetVersion) {
+      setTimelineVideoClips(targetVersion.timelineVideoClips);
+      pushHistory(targetVersion.timelineVideoClips);
+    }
+  };
 
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
@@ -120,7 +138,7 @@ function App() {
   const [showFormatDropdown, setShowFormatDropdown] = useState(false)
 
   // Timeline interactive states
-  const [selectedTimelineClipId, setSelectedTimelineClipId] = useState<string | null>(null)
+  const [selectedTimelineClipIds, setSelectedTimelineClipIds] = useState<string[]>([])
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; clipId: string } | null>(null)
 
   const trackRef = React.useRef<HTMLDivElement>(null)
@@ -129,12 +147,50 @@ function App() {
   // Refs to allow stable keyboard listener dependencies
   const timelineClipsRef = React.useRef<TimelineClip[]>([])
   const currentTimeSecondsRef = currentTimeRef
-  const selectedTimelineClipIdRef = React.useRef(selectedTimelineClipId)
+  const selectedTimelineClipIdsRef = React.useRef<string[]>([])
 
   useEffect(() => {
     timelineClipsRef.current = timelineVideoClips
-    selectedTimelineClipIdRef.current = selectedTimelineClipId
-  }, [timelineVideoClips, selectedTimelineClipId])
+    selectedTimelineClipIdsRef.current = selectedTimelineClipIds
+  }, [timelineVideoClips, selectedTimelineClipIds])
+
+  // Magnetic timeline layout builder helper
+  const applyMagneticLayout = useCallback((clips: TimelineClip[]): TimelineClip[] => {
+    const videoClips = clips.filter(c => c.type !== 'audio');
+    const audioClips = clips.filter(c => c.type === 'audio');
+    
+    // Sort video clips by their startSeconds
+    videoClips.sort((a, b) => a.startSeconds - b.startSeconds);
+    
+    let currentStart = 0;
+    const rebuiltVideoClips = videoClips.map(clip => {
+      const updated = {
+        ...clip,
+        startSeconds: currentStart
+      };
+      currentStart += clip.durationSeconds;
+      return updated;
+    });
+    
+    return [...rebuiltVideoClips, ...audioClips];
+  }, []);
+
+  // Export Settings States
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportResolution, setExportResolution] = useState<'1080p' | '4K' | '720p'>('1080p')
+  const [exportFormat, setExportFormat] = useState<'mp4' | 'mov'>('mp4')
+  const [exportQuality, setExportQuality] = useState<'high' | 'medium' | 'low'>('medium')
+
+  useEffect(() => {
+    if (!activeVersionId) return;
+    setTimelineVersions(prev => {
+      const active = prev.find(v => v.id === activeVersionId);
+      if (active && active.timelineVideoClips === timelineVideoClips) {
+        return prev;
+      }
+      return prev.map(v => v.id === activeVersionId ? { ...v, timelineVideoClips } : v);
+    });
+  }, [timelineVideoClips, activeVersionId]);
 
   // Helper: update time ref + direct DOM updates (avoids React re-render)
   const updateCurrentTime = useCallback((newTime: number) => {
@@ -402,7 +458,16 @@ function App() {
     e.stopPropagation()
     e.preventDefault()
     
-    setSelectedTimelineClipId(clipId)
+    setSelectedTimelineClipIds(prev => {
+      if (e.ctrlKey || e.metaKey) {
+        if (prev.includes(clipId)) {
+          return prev.filter(id => id !== clipId);
+        } else {
+          return [...prev, clipId];
+        }
+      }
+      return [clipId];
+    });
     
     // Find library clip and set active if needed
     const tClip = timelineVideoClips.find(c => c.id === clipId)
@@ -436,11 +501,11 @@ function App() {
             const newStart = Math.max(0, initialStart + deltaSeconds)
             return { ...c, startSeconds: newStart }
           } else if (action === 'trim-left') {
-            const newStart = Math.min(initialStart + initialDuration - 1, Math.max(0, initialStart + deltaSeconds))
+            const newStart = Math.min(initialStart + initialDuration - 0.2, Math.max(0, initialStart + deltaSeconds))
             const newDuration = initialStart + initialDuration - newStart
             return { ...c, startSeconds: newStart, durationSeconds: newDuration }
           } else { // trim-right
-            const newDuration = Math.max(1, initialDuration + deltaSeconds)
+            const newDuration = Math.max(0.2, initialDuration + deltaSeconds)
             return { ...c, durationSeconds: newDuration }
           }
         })
@@ -450,36 +515,114 @@ function App() {
     const handleMouseUp = () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
-      pushHistory(timelineClipsRef.current)
+      
+      setTimelineVideoClips(prev => {
+        const aligned = applyMagneticLayout(prev);
+        setTimeout(() => {
+          pushHistory(aligned);
+        }, 0);
+        return aligned;
+      });
     }
     
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
   }
 
+  // Delete Clips central handler
+  const handleDeleteClips = (clipIdsToDelete: string[]) => {
+    const clips = timelineClipsRef.current || [];
+    const videoClips = clips.filter(c => c.type !== 'audio' && !clipIdsToDelete.includes(c.id));
+    const audioClips = clips.filter(c => c.type === 'audio' && !clipIdsToDelete.includes(c.id));
+    
+    // Sort remaining video clips by start time
+    videoClips.sort((a, b) => a.startSeconds - b.startSeconds);
+    
+    let currentStart = 0;
+    const rebuiltVideoClips = videoClips.map(clip => {
+      const updated = {
+        ...clip,
+        startSeconds: currentStart
+      };
+      currentStart += clip.durationSeconds;
+      return updated;
+    });
+    
+    const updated = [...rebuiltVideoClips, ...audioClips];
+    setTimelineVideoClips(updated);
+    setSelectedTimelineClipIds([]);
+    pushHistory(updated);
+  };
+
   // Duplicate timeline clip
   const duplicateTimelineClip = (clipId: string) => {
     const clip = timelineVideoClips.find(c => c.id === clipId)
     if (!clip) return
-    const newClip: TimelineClip = {
-      id: `timeline-${Math.random()}`,
-      name: `${clip.name} (Copy)`,
-      startSeconds: clip.startSeconds + clip.durationSeconds + 1,
-      durationSeconds: clip.durationSeconds,
-      type: clip.type
+    
+    if (clip.type === 'audio') {
+      const newClip: TimelineClip = {
+        id: `timeline-${Math.random()}`,
+        name: `${clip.name} (Copy)`,
+        startSeconds: clip.startSeconds + clip.durationSeconds + 1,
+        durationSeconds: clip.durationSeconds,
+        type: clip.type,
+        path: clip.path,
+        url: clip.url
+      }
+      const updated = [...timelineVideoClips, newClip]
+      setTimelineVideoClips(updated)
+      pushHistory(updated)
+    } else {
+      const newClip: TimelineClip = {
+        id: `timeline-${Math.random()}`,
+        name: `${clip.name} (Copy)`,
+        startSeconds: clip.startSeconds + clip.durationSeconds,
+        durationSeconds: clip.durationSeconds,
+        type: clip.type,
+        path: clip.path,
+        url: clip.url,
+        category: clip.category,
+        thumbnailUrl: clip.thumbnailUrl
+      }
+      const updated = applyMagneticLayout([...timelineVideoClips, newClip])
+      setTimelineVideoClips(updated)
+      pushHistory(updated)
     }
-    const updated = [...timelineVideoClips, newClip]
-    setTimelineVideoClips(updated)
-    pushHistory(updated)
   }
+
+  // Duplicate timeline clips batched
+  const duplicateTimelineClips = (clipIds: string[]) => {
+    let updated = [...timelineVideoClips];
+    clipIds.forEach(clipId => {
+      const clip = updated.find(c => c.id === clipId);
+      if (!clip) return;
+      
+      const newClip: TimelineClip = {
+        id: `timeline-${Math.random()}`,
+        name: `${clip.name} (Copy)`,
+        startSeconds: clip.startSeconds + clip.durationSeconds,
+        durationSeconds: clip.durationSeconds,
+        type: clip.type,
+        path: clip.path,
+        url: clip.url,
+        category: clip.category,
+        thumbnailUrl: clip.thumbnailUrl
+      };
+      updated.push(newClip);
+    });
+    
+    const finalClips = applyMagneticLayout(updated);
+    setTimelineVideoClips(finalClips);
+    pushHistory(finalClips);
+  };
 
   // Split clip at current playhead
   const handleSplit = () => {
     const targetTime = currentTimeSecondsRef.current
     const clips = timelineClipsRef.current
-    const selectedId = selectedTimelineClipIdRef.current
+    const selectedIds = selectedTimelineClipIdsRef.current
 
-    let clipToSplit = clips.find(c => c.id === selectedId)
+    let clipToSplit = clips.find(c => selectedIds.includes(c.id))
     if (!clipToSplit || targetTime < clipToSplit.startSeconds || targetTime > clipToSplit.startSeconds + clipToSplit.durationSeconds) {
       clipToSplit = clips.find(c => targetTime >= c.startSeconds && targetTime <= c.startSeconds + c.durationSeconds)
     }
@@ -496,7 +639,11 @@ function App() {
       name: `${clipToSplit.name} (Part 2)`,
       startSeconds: targetTime,
       durationSeconds: clipToSplit.durationSeconds - splitOffset,
-      type: clipToSplit.type
+      type: clipToSplit.type,
+      path: clipToSplit.path,
+      url: clipToSplit.url,
+      category: clipToSplit.category,
+      thumbnailUrl: clipToSplit.thumbnailUrl
     }
     
     const updated = clips.map(c => {
@@ -509,13 +656,14 @@ function App() {
       return c
     }).concat(secondClip)
     
-    setTimelineVideoClips(updated)
-    pushHistory(updated)
+    const magneticallyAligned = applyMagneticLayout(updated)
+    setTimelineVideoClips(magneticallyAligned)
+    pushHistory(magneticallyAligned)
   }
 
   // Copy clip
   const handleCopyClip = () => {
-    const clip = timelineVideoClips.find(c => c.id === selectedTimelineClipId)
+    const clip = timelineVideoClips.find(c => selectedTimelineClipIds.includes(c.id))
     if (clip) {
       setCopiedClip(clip)
     }
@@ -623,10 +771,10 @@ function App() {
     setIsCropping(false)
   }
 
-  // Global Keyboard Shortcuts (Undo, Redo, Split, Delete)
+  // Global Keyboard Shortcuts (Undo, Redo, Split, Delete, Select All)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA' || document.activeElement?.getAttribute('contenteditable') === 'true') {
         return
       }
 
@@ -650,15 +798,20 @@ function App() {
         handleRedo()
       }
 
-      // Delete / Backspace -> Delete Selected Clip
+      // Ctrl+A / Cmd+A -> Select All Video Clips
+      if ((e.ctrlKey || e.metaKey) && (key === 'a' || e.code === 'KeyA')) {
+        e.preventDefault()
+        const videoClips = timelineClipsRef.current.filter(c => c.type !== 'audio')
+        const videoClipIds = videoClips.map(c => c.id)
+        setSelectedTimelineClipIds(videoClipIds)
+      }
+
+      // Delete / Backspace -> Delete Selected Clips
       if (key === 'delete' || key === 'backspace') {
-        const selectedId = selectedTimelineClipIdRef.current
-        if (selectedId) {
+        const selectedIds = selectedTimelineClipIdsRef.current
+        if (selectedIds && selectedIds.length > 0) {
           e.preventDefault()
-          const updated = timelineClipsRef.current.filter(c => c.id !== selectedId)
-          setTimelineVideoClips(updated)
-          setSelectedTimelineClipId(null)
-          pushHistory(updated)
+          handleDeleteClips(selectedIds)
         }
       }
 
@@ -679,12 +832,16 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, []) // Stable!
 
-  // Reset selected clip if it is no longer present in clips
+  // Reset selected clips if they are no longer present in clips
   useEffect(() => {
-    if (selectedTimelineClipId && !timelineVideoClips.some(c => c.id === selectedTimelineClipId)) {
-      setSelectedTimelineClipId(null);
-    }
-  }, [timelineVideoClips, selectedTimelineClipId]);
+    setSelectedTimelineClipIds(prev => {
+      const filtered = prev.filter(id => timelineVideoClips.some(c => c.id === id));
+      if (filtered.length !== prev.length) {
+        return filtered;
+      }
+      return prev;
+    });
+  }, [timelineVideoClips]);
 
   // Bind non-passive wheel event to timeline tracks container to handle Ctrl+Scroll zoom
   useEffect(() => {
@@ -711,7 +868,12 @@ function App() {
   const handleClipContextMenu = (e: React.MouseEvent, clipId: string) => {
     e.preventDefault()
     e.stopPropagation()
-    setSelectedTimelineClipId(clipId)
+    setSelectedTimelineClipIds(prev => {
+      if (prev.includes(clipId)) {
+        return prev;
+      }
+      return [clipId];
+    });
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
@@ -762,8 +924,56 @@ function App() {
   }
 
   const handleEnded = () => {
-    setIsPlaying(false)
-  }
+    const video = videoRef.current;
+    if (!video) return;
+
+    const clips = timelineVideoClips || [];
+    const sortedClips = clips
+      .filter(c => c.type !== 'audio')
+      .sort((a, b) => a.startSeconds - b.startSeconds);
+    
+    const currentT = currentTimeRef.current;
+    const currentClip = sortedClips.find(c => 
+      currentT >= c.startSeconds && 
+      currentT <= c.startSeconds + c.durationSeconds + 0.5
+    );
+    
+    if (currentClip) {
+      const currentIndex = sortedClips.findIndex(c => c.id === currentClip.id);
+      const nextClip = sortedClips[currentIndex + 1];
+      
+      if (nextClip) {
+        const nextTime = nextClip.startSeconds;
+        updateCurrentTime(nextTime);
+        flushCurrentTime();
+        
+        if (nextClip.path) {
+          const nextUrl = `file:///${nextClip.path.replace(/\\/g, '/')}`;
+          setActiveVideoUrl(nextUrl);
+          video.src = nextUrl;
+          video.currentTime = nextClip.segmentStartOffset || 0;
+          video.load();
+          video.play().catch(e => console.error("Ended transition play error:", e));
+        } else {
+          setActiveVideoUrl(null);
+          video.pause();
+        }
+        if (audioRef.current) {
+          audioRef.current.currentTime = nextTime;
+        }
+      } else {
+        setIsPlaying(false);
+        updateCurrentTime(currentClip.startSeconds + currentClip.durationSeconds);
+        flushCurrentTime();
+        video.pause();
+        if (audioRef.current) {
+          audioRef.current.pause();
+        }
+      }
+    } else {
+      setIsPlaying(false);
+    }
+  };
 
   // Sync global timecode string representation
   useEffect(() => {
@@ -905,6 +1115,7 @@ function App() {
     stock: [],
     remotion: [],
     hyperframes: [],
+    minimax: [],
     veo3: []
   })
   const [isCuttingClips, setIsCuttingClips] = useState(false)
@@ -913,6 +1124,13 @@ function App() {
 
   // Timeline IA weights: [Original, Stock, Remotion, Hyperframes]
   const [timelineWeights, setTimelineWeights] = useState<number[]>([40, 30, 20, 10])
+  const [hyperframesFrequency, setHyperframesFrequency] = useState<number>(30)
+
+  // MiniMax Hub States
+  const [minimaxPrompt, setMinimaxPrompt] = useState<string>('')
+  const [isGeneratingMinimax, setIsGeneratingMinimax] = useState(false)
+  const [isOptimizingPrompt, setIsOptimizingPrompt] = useState(false)
+  const [minimaxError, setMinimaxError] = useState<string>('')
 
   // Project persistence state
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -1084,177 +1302,61 @@ function App() {
     }
   }, [activeTimelineClip, currentTimeForUI, isPlaying]);
 
-  // Master Playback Clock (Ticking - driven by video real playback time when playing - Corrección 1)
+  // Master Playback Clock (Ticking - driven by media real playback time when playing)
   useEffect(() => {
     let animationFrameId: number;
-    let lastTime = performance.now();
 
     const tick = () => {
       if (!isPlaying) return;
 
       const video = videoRef.current;
-      const clips = timelineClipsRef.current || [];
+      const audio = audioRef.current;
+      const clips = timelineVideoClips || [];
       const time = currentTimeRef.current;
       
-      const currentClip = clips.find(c => 
-        c.type !== 'audio' && 
-        time >= c.startSeconds && 
-        time < c.startSeconds + c.durationSeconds
-      );
-      
-      if (video && currentClip && currentClip.path && currentClip.path !== 'remotion-dynamic' && currentClip.path !== 'hyperframes-dynamic') {
-        const scale = currentClip.origDurationSeconds 
-          ? (currentClip.origDurationSeconds / currentClip.durationSeconds) 
-          : 1;
-        const startOffset = currentClip.segmentStartOffset || 0;
-        
-        // Verificar si el video está cargando o buscando
-        const cleanClipPath = currentClip.path.replace(/\\/g, '/').toLowerCase();
-        const decodedSrc = decodeURIComponent(video.src).replace('file:///', '').replace(/\\/g, '/').toLowerCase();
-        const isVideoLoading = video.seeking || video.readyState < 2 || !decodedSrc.includes(cleanClipPath);
-        
-        let newTime;
-        if (isVideoLoading) {
-          // Usar audio o reloj interno mientras el video carga
-          if (audioRef.current && !audioRef.current.paused) {
-            newTime = audioRef.current.currentTime;
-          } else {
-            const now = performance.now();
-            const delta = (now - lastTime) / 1000;
-            newTime = time + delta * playbackRate;
-          }
-          
-          // Limitar para que no salte al siguiente clip mientras está cargando
-          const clipEnd = currentClip.startSeconds + currentClip.durationSeconds;
-          if (newTime >= clipEnd) {
-            newTime = clipEnd - 0.05;
-          }
-        } else {
-          // Si el video está listo, alineamos el cursor exactamente a su progreso
+      let newTime = time;
+      if (audio && !audio.paused) {
+        newTime = audio.currentTime;
+      } else if (video && !video.paused) {
+        const currentClip = clips.find(c => 
+          c.type !== 'audio' && 
+          time >= c.startSeconds && 
+          time < c.startSeconds + c.durationSeconds
+        );
+        if (currentClip) {
+          const scale = currentClip.origDurationSeconds 
+            ? (currentClip.origDurationSeconds / currentClip.durationSeconds) 
+            : 1;
+          const startOffset = currentClip.segmentStartOffset || 0;
           const elapsed = (video.currentTime - startOffset) / scale;
           newTime = currentClip.startSeconds + elapsed;
-        }
-        
-        if (newTime < currentClip.startSeconds) newTime = currentClip.startSeconds;
-        
-        // Transición al siguiente clip (solo si no está cargando)
-        const shouldTransition = !isVideoLoading && (newTime >= currentClip.startSeconds + currentClip.durationSeconds - 0.1 || video.ended);
-        
-        if (shouldTransition) {
-          const sortedClips = clips
-            .filter(c => c.type !== 'audio')
-            .sort((a, b) => a.startSeconds - b.startSeconds);
-          const currentIndex = sortedClips.findIndex(c => c.id === currentClip.id);
-          const nextClip = sortedClips[currentIndex + 1];
-          
-          if (nextClip) {
-            const nextTime = nextClip.startSeconds;
-            updateCurrentTime(nextTime);
-            
-            if (nextClip.path && nextClip.path !== 'remotion-dynamic' && nextClip.path !== 'hyperframes-dynamic') {
-              const nextUrl = `file:///${nextClip.path.replace(/\\/g, '/')}`;
-              setActiveVideoUrl(nextUrl);
-              video.src = nextUrl;
-              video.currentTime = nextClip.segmentStartOffset || 0;
-              video.play().catch(e => console.error("Auto transition play error:", e));
-            } else {
-              setActiveVideoUrl(null);
-              video.pause();
-            }
-            if (audioRef.current) {
-              audioRef.current.currentTime = nextTime;
-            }
-          } else {
-            setIsPlaying(false);
-            updateCurrentTime(currentClip.startSeconds + currentClip.durationSeconds);
-            flushCurrentTime();
-            video.pause();
-          }
         } else {
-          updateCurrentTime(newTime);
-        }
-      } else {
-        // Reproducción de huecos o clips dinámicos (Visualizers)
-        if (audioRef.current && !audioRef.current.paused) {
-          const audioTime = audioRef.current.currentTime;
-          updateCurrentTime(audioTime);
-          
-          if (audioTime >= totalDuration) {
-            setIsPlaying(false);
-            updateCurrentTime(totalDuration);
-            flushCurrentTime();
-            if (video) video.pause();
-          } else {
-            const nextClip = clips.find(c => 
-              c.type !== 'audio' && 
-              c.path && 
-              c.path !== 'remotion-dynamic' && 
-              c.path !== 'hyperframes-dynamic' && 
-              audioTime >= c.startSeconds && 
-              audioTime < c.startSeconds + c.durationSeconds
-            );
-            if (nextClip && video) {
-              const fileUrl = `file:///${nextClip.path!.replace(/\\/g, '/')}`;
-              setActiveVideoUrl(fileUrl);
-              video.src = fileUrl;
-              const scale = nextClip.origDurationSeconds 
-                ? (nextClip.origDurationSeconds / nextClip.durationSeconds) 
-                : 1;
-              const offsetInClip = audioTime - nextClip.startSeconds;
-              video.currentTime = (nextClip.segmentStartOffset || 0) + offsetInClip * scale;
-              video.play().catch(() => {});
-            }
-          }
-        } else {
-          const now = performance.now();
-          const delta = (now - lastTime) / 1000;
-          
-          const prevTime = currentTimeRef.current;
-          const next = prevTime + delta * playbackRate;
-          if (next >= totalDuration) {
-            setIsPlaying(false);
-            updateCurrentTime(totalDuration);
-            flushCurrentTime();
-          } else {
-            const nextClip = clips.find(c => 
-              c.type !== 'audio' && 
-              c.path && 
-              c.path !== 'remotion-dynamic' && 
-              c.path !== 'hyperframes-dynamic' && 
-              next >= c.startSeconds && 
-              next < c.startSeconds + c.durationSeconds
-            );
-            
-            if (nextClip && video) {
-              const fileUrl = `file:///${nextClip.path!.replace(/\\/g, '/')}`;
-              setActiveVideoUrl(fileUrl);
-              video.src = fileUrl;
-              const scale = nextClip.origDurationSeconds 
-                ? (nextClip.origDurationSeconds / nextClip.durationSeconds) 
-                : 1;
-              const offsetInClip = next - nextClip.startSeconds;
-              video.currentTime = (nextClip.segmentStartOffset || 0) + offsetInClip * scale;
-              video.play().catch(() => {});
-            }
-            
-            updateCurrentTime(next);
-          }
+          newTime = video.currentTime;
         }
       }
 
-      lastTime = performance.now();
+      if (newTime < 0) newTime = 0;
+      if (newTime >= totalDuration) {
+        setIsPlaying(false);
+        updateCurrentTime(totalDuration);
+        flushCurrentTime();
+        if (video) video.pause();
+        if (audio) audio.pause();
+        return;
+      }
+
+      updateCurrentTime(newTime);
       animationFrameId = requestAnimationFrame(tick);
     };
 
     if (isPlaying) {
-      lastTime = performance.now();
       animationFrameId = requestAnimationFrame(tick);
     }
 
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [isPlaying, playbackRate, totalDuration]);
+  }, [isPlaying, totalDuration, timelineVideoClips]);
 
   const refreshProjectsList = async () => {
     try {
@@ -1283,7 +1385,7 @@ function App() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, hyperframesFrequency]);
 
   // Save-on-close handler
   useEffect(() => {
@@ -1303,6 +1405,8 @@ function App() {
             url: c.type === 'audio' ? c.url : undefined
           })),
           timelineVideoClips,
+          timelineVersions,
+          activeVersionId,
           transcriptionStatus,
           transcriptSegments,
           aiScript,
@@ -1315,7 +1419,8 @@ function App() {
           voiceSpeed,
           voiceStability,
           generatedVoices,
-          timelineWeights
+          timelineWeights,
+          hyperframesFrequency
         };
         
         try {
@@ -1327,7 +1432,7 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, activeProjectId, activeProjectName]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, activeProjectId, activeProjectName, hyperframesFrequency]);
 
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
@@ -1346,6 +1451,8 @@ function App() {
           url: c.type === 'audio' ? c.url : undefined
         })),
         timelineVideoClips,
+        timelineVersions,
+        activeVersionId,
         transcriptionStatus,
         transcriptSegments,
         aiScript,
@@ -1358,7 +1465,8 @@ function App() {
         voiceSpeed,
         voiceStability,
         generatedVoices,
-        timelineWeights
+        timelineWeights,
+        hyperframesFrequency
       };
 
       const res = await window.electronAPI.saveProjectState(stateToSave);
@@ -1395,6 +1503,8 @@ function App() {
           url: c.type === 'audio' ? c.url : undefined
         })),
         timelineVideoClips,
+        timelineVersions,
+        activeVersionId,
         transcriptionStatus,
         transcriptSegments,
         aiScript,
@@ -1407,7 +1517,8 @@ function App() {
         voiceSpeed,
         voiceStability,
         generatedVoices,
-        timelineWeights
+        timelineWeights,
+        hyperframesFrequency
       };
 
       const res = await window.electronAPI.saveProjectAs(stateToSave);
@@ -1436,7 +1547,20 @@ function App() {
         }));
 
         setClips(restoredClips);
-        setTimelineVideoClips(loadedData.timelineVideoClips || []);
+        const restoredVersions = loadedData.timelineVersions || [
+          {
+            id: 'v-original',
+            name: 'Timeline Original',
+            timestamp: Date.now(),
+            timelineVideoClips: loadedData.timelineVideoClips || []
+          }
+        ];
+        const restoredActiveId = loadedData.activeVersionId || restoredVersions[0]?.id || 'v-original';
+        setTimelineVersions(restoredVersions);
+        setActiveVersionId(restoredActiveId);
+
+        const activeVersion = restoredVersions.find((v: any) => v.id === restoredActiveId);
+        setTimelineVideoClips(activeVersion ? activeVersion.timelineVideoClips : (loadedData.timelineVideoClips || []));
         setTranscriptionStatus(loadedData.transcriptionStatus || '');
         setTranscriptSegments(loadedData.transcriptSegments || []);
         setAiScript(loadedData.aiScript || '');
@@ -1451,6 +1575,7 @@ function App() {
         if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
         setGeneratedVoices(loadedData.generatedVoices || []);
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(loadedData.timelineWeights);
+        setHyperframesFrequency(loadedData.hyperframesFrequency !== undefined ? loadedData.hyperframesFrequency : 30);
         
         setActiveProjectPath(projectPath);
         setActiveProjectId(loadedData.id || null);
@@ -1460,6 +1585,7 @@ function App() {
         await loadClipsForCategory('originales');
         await loadClipsForCategory('remotion');
         await loadClipsForCategory('hyperframes');
+        await loadClipsForCategory('minimax');
 
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2500);
@@ -1483,6 +1609,14 @@ function App() {
         const loadedData = res.data;
         
         setClips([]);
+        const initialVersion = {
+          id: 'v-original',
+          name: 'Timeline Original',
+          timestamp: Date.now(),
+          timelineVideoClips: []
+        };
+        setTimelineVersions([initialVersion]);
+        setActiveVersionId('v-original');
         setTimelineVideoClips([]);
         setTranscriptionStatus('');
         setTranscriptSegments([]);
@@ -1490,6 +1624,7 @@ function App() {
         setOriginalTranscriptText('');
         setGeneratedVoices([]);
         setTimelineWeights([40, 30, 20, 10]);
+        setHyperframesFrequency(30);
         
         setActiveProjectPath(res.projectPath || null);
         setActiveProjectId(loadedData.id || null);
@@ -1500,6 +1635,7 @@ function App() {
           stock: [],
           remotion: [],
           hyperframes: [],
+          minimax: [],
           veo3: []
         });
 
@@ -1532,6 +1668,9 @@ function App() {
       setActiveProjectId(null);
       setActiveProjectName(null);
       setClips([]);
+      setTimelineVersions([]);
+      setActiveVersionId('');
+      setHyperframesFrequency(30);
       setTimelineVideoClips([]);
       setTranscriptionStatus('');
       setTranscriptSegments([]);
@@ -1575,7 +1714,20 @@ function App() {
         }));
 
         setClips(restoredClips);
-        setTimelineVideoClips(loadedData.timelineVideoClips || []);
+        const restoredVersions = loadedData.timelineVersions || [
+          {
+            id: 'v-original',
+            name: 'Timeline Original',
+            timestamp: Date.now(),
+            timelineVideoClips: loadedData.timelineVideoClips || []
+          }
+        ];
+        const restoredActiveId = loadedData.activeVersionId || restoredVersions[0]?.id || 'v-original';
+        setTimelineVersions(restoredVersions);
+        setActiveVersionId(restoredActiveId);
+
+        const activeVersion = restoredVersions.find((v: any) => v.id === restoredActiveId);
+        setTimelineVideoClips(activeVersion ? activeVersion.timelineVideoClips : (loadedData.timelineVideoClips || []));
         setTranscriptionStatus(loadedData.transcriptionStatus || '');
         setTranscriptSegments(loadedData.transcriptSegments || []);
         setAiScript(loadedData.aiScript || '');
@@ -1590,6 +1742,7 @@ function App() {
         if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
         setGeneratedVoices(loadedData.generatedVoices || []);
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(loadedData.timelineWeights);
+        setHyperframesFrequency(loadedData.hyperframesFrequency !== undefined ? loadedData.hyperframesFrequency : 30);
         
         setActiveProjectPath(res.projectPath);
         setActiveProjectId(loadedData.id || null);
@@ -1599,6 +1752,7 @@ function App() {
         await loadClipsForCategory('originales');
         await loadClipsForCategory('remotion');
         await loadClipsForCategory('hyperframes');
+        await loadClipsForCategory('minimax');
 
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2500);
@@ -1701,12 +1855,16 @@ function App() {
     }
     
     setIsExporting(true);
+    setShowExportModal(false);
     
     try {
-      console.log('Exportando timeline con aspecto:', aspectRatio);
+      console.log('Exportando timeline con aspecto:', aspectRatio, 'res:', exportResolution, 'fmt:', exportFormat, 'calidad:', exportQuality);
       const res = await window.electronAPI.exportVideo({
         clips: timelineVideoClips,
-        aspectRatio: aspectRatio
+        aspectRatio: aspectRatio,
+        resolution: exportResolution,
+        format: exportFormat,
+        quality: exportQuality
       });
       
       if (res && res.success && res.filePath) {
@@ -1777,7 +1935,6 @@ function App() {
     try {
       // 1. Slicing original video first if one is imported (Regla 1)
       const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
-      let latestOriginalClips = bankClips.originales || [];
       if (firstVideoInLibrary) {
         console.log('[handleBuildIATimeline] Cortando video original en clips de 3 segundos...');
         setGenerationProgress({ current: 0, total: 3, paragraph: 'Cortando video original en clips de 3s...', type: 'FFmpeg' });
@@ -1785,7 +1942,6 @@ function App() {
           videoPath: firstVideoInLibrary.path
         });
         if (cutRes && cutRes.success && cutRes.clips) {
-          latestOriginalClips = cutRes.clips;
           setBankClips(prev => ({
             ...prev,
             originales: cutRes.clips || []
@@ -1796,68 +1952,71 @@ function App() {
       }
 
       console.log('[handleBuildIATimeline] Iniciando generación de assets de Timeline IA...');
-      const res = await window.electronAPI.generateTimelineAssets({ scriptText: aiScript, weights: timelineWeights, aspectRatio });
+      const voiceClip = timelineVideoClips.find(c => c.type === 'audio');
+      const audioDuration = voiceClip ? voiceClip.durationSeconds : undefined;
+      const res = await window.electronAPI.generateTimelineAssets({ 
+        scriptText: aiScript, 
+        weights: timelineWeights, 
+        aspectRatio, 
+        audioDuration, 
+        transcriptSegments,
+        hyperframesFrequency
+      });
       
       if (res && res.success && res.clips) {
         console.log('[handleBuildIATimeline] Generación completada con éxito. Clips recibidos:', res.clips.length);
         
         // Refresh library bank folders so generated clips appear in their tabs
+        await loadClipsForCategory('originales');
         await loadClipsForCategory('remotion');
         await loadClipsForCategory('hyperframes');
-
-        // Pull available clips lists
-        const originalClips = latestOriginalClips;
-        const stockClips = bankClips.stock || [];
+        await loadClipsForCategory('minimax');
 
         const newVideoClips: any[] = [];
-        let idxOrig = 0;
-        let idxStock = 0;
         let currentStart = 0;
-        const slotSize = 3;
 
         for (let i = 0; i < res.clips.length; i++) {
           const item = res.clips[i];
-          const slotDur = item.durationSeconds || slotSize;
-          if (slotDur <= 0.01) continue;
-
-          let chosenClip = item.clip;
-
-          if (!chosenClip) {
-            if (item.type === 'original') {
-              if (originalClips.length > 0) {
-                chosenClip = originalClips[idxOrig % originalClips.length];
-                idxOrig++;
-              }
-            } else if (item.type === 'stock') {
-              if (stockClips.length > 0) {
-                chosenClip = stockClips[idxStock % stockClips.length];
-                idxStock++;
-              }
-            }
-          }
-
-          if (chosenClip) {
+          const clipInfo = item.clip || item;
+          if (clipInfo) {
             newVideoClips.push({
               id: `timeline-${Math.random()}`,
-              name: chosenClip.name,
+              name: clipInfo.name,
               startSeconds: currentStart,
-              durationSeconds: slotDur,
+              durationSeconds: clipInfo.durationSeconds || 3,
               type: 'video',
-              url: chosenClip.url,
-              path: chosenClip.path,
-              category: item.type,
-              thumbnailUrl: chosenClip.thumbnailUrl
+              url: clipInfo.url,
+              path: clipInfo.path,
+              category: clipInfo.category || item.type,
+              thumbnailUrl: clipInfo.thumbnailUrl || ''
             });
-          } else {
-            console.log(`[handleBuildIATimeline] Slot ${i} (${item.type}) left empty due to lack of clips (Regla 2 & 5)`);
+            currentStart += clipInfo.durationSeconds || 3;
           }
-          currentStart += slotDur;
         }
 
-        // Keep all existing audio clips completely intact and untouched! (Regla 3)
+        // Adjust all start times sequentially to guarantee no gaps
+        let runningStart = 0;
+        for (let k = 0; k < newVideoClips.length; k++) {
+          newVideoClips[k].startSeconds = runningStart;
+          runningStart += newVideoClips[k].durationSeconds;
+        }
+
+        // Keep all existing audio clips completely intact and untouched!
         const existingAudioClips = timelineVideoClips.filter(c => c.type === 'audio');
         const finalTimelineClips = [...newVideoClips, ...existingAudioClips];
 
+        const nextVersionNumber = timelineVersions.filter(v => v.id.startsWith('v-ai-')).length + 1;
+        const newVersionId = `v-ai-${Date.now()}`;
+        const newVersionName = `Versión IA ${nextVersionNumber}`;
+        const newVersion: TimelineVersion = {
+          id: newVersionId,
+          name: newVersionName,
+          timestamp: Date.now(),
+          timelineVideoClips: finalTimelineClips
+        };
+
+        setTimelineVersions(prev => [...prev, newVersion]);
+        setActiveVersionId(newVersionId);
         setTimelineVideoClips(finalTimelineClips);
         pushHistory(finalTimelineClips);
       } else {
@@ -1872,6 +2031,80 @@ function App() {
     } finally {
       setIsGeneratingAssets(false);
       setGenerationProgress(null);
+    }
+  };
+
+  const handleOptimizePromptWithDeepSeek = async () => {
+    if (!minimaxPrompt.trim()) return;
+    setIsOptimizingPrompt(true);
+    setMinimaxError('');
+    try {
+      const instructions = `Optimiza el siguiente texto y conviértelo en un prompt altamente detallado y visual en inglés para generación de video por IA (MiniMax). Agrega detalles de cámara, iluminación cinemática y estilo fotorrealista. IMPORTANTE: Responde ÚNICAMENTE con el prompt final optimizado en inglés. No incluyes explicaciones, introducciones ni comillas. Texto original: "${minimaxPrompt}"`;
+      const res = await window.electronAPI.rewriteTranscript(instructions);
+      if (res && res.success && res.data) {
+        setMinimaxPrompt(res.data.trim());
+      } else {
+        setMinimaxError(res?.error || 'Error al optimizar el prompt con DeepSeek.');
+      }
+    } catch (e: any) {
+      setMinimaxError(e.message || 'Excepción al optimizar prompt.');
+    } finally {
+      setIsOptimizingPrompt(false);
+    }
+  };
+
+  const handleGenerateMinimaxVideo = async () => {
+    if (!minimaxPrompt.trim()) return;
+    setIsGeneratingMinimax(true);
+    setMinimaxError('');
+    try {
+      const res = await window.electronAPI.generateMinimaxVideo({ prompt: minimaxPrompt });
+      if (res && res.success && res.filePath) {
+        const fileUrl = `file:///${res.filePath.replace(/\\/g, '/')}`;
+        const newClip: Clip = {
+          id: `minimax-${Date.now()}`,
+          name: res.name || `minimax-${Date.now()}.mp4`,
+          duration: formatTimeMinutesSeconds(res.durationSeconds || 6),
+          durationSeconds: res.durationSeconds || 6,
+          type: 'video',
+          path: res.filePath,
+          size: '12 MB',
+          url: fileUrl,
+          category: 'minimax',
+          thumbnailUrl: res.thumbnailUrl
+        };
+        
+        // Add to media bank list
+        setClips(prev => [...prev, newClip]);
+        
+        // Add to active library bank category
+        await loadClipsForCategory('minimax');
+        
+        // Automatically append to the end of the timeline
+        const startSec = timelineVideoClips.filter(c => c.type !== 'audio').reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0);
+        const newTimelineClip: TimelineClip = {
+          id: `timeline-${Math.random()}`,
+          name: newClip.name,
+          startSeconds: startSec,
+          durationSeconds: newClip.durationSeconds,
+          type: 'video',
+          url: newClip.url,
+          path: newClip.path,
+          category: 'minimax',
+          thumbnailUrl: newClip.thumbnailUrl
+        };
+        const updated = [...timelineVideoClips, newTimelineClip];
+        setTimelineVideoClips(updated);
+        pushHistory(updated);
+        
+        setMinimaxPrompt('');
+      } else {
+        setMinimaxError(res?.error || 'Error al generar video con la API de MiniMax.');
+      }
+    } catch (e: any) {
+      setMinimaxError(e.message || 'Excepción al generar video con MiniMax.');
+    } finally {
+      setIsGeneratingMinimax(false);
     }
   };
 
@@ -2376,6 +2609,33 @@ function App() {
             <span>&larr; Proyectos</span>
           </button>
 
+          {activeProjectName && (
+            <span className="text-xs font-bold text-slate-350 select-none px-3 border-l border-slate-805/80 tracking-wide">
+              {activeProjectName}
+            </span>
+          )}
+
+          {/* Selector de Versiones del Timeline */}
+          {timelineVersions.length > 0 && (
+            <div className="flex items-center space-x-2 bg-slate-950/40 px-2.5 py-1 rounded-lg border border-slate-800/80 text-xs">
+              <span className="text-[10px] text-slate-500 font-bold select-none uppercase tracking-wider">Versión:</span>
+              <div className="relative flex items-center">
+                <select
+                  value={activeVersionId}
+                  onChange={(e) => handleSelectTimelineVersion(e.target.value)}
+                  className="bg-transparent text-slate-200 font-bold pr-6 outline-none appearance-none cursor-pointer hover:text-indigo-400 text-[11px] font-sans"
+                >
+                  {timelineVersions.map(v => (
+                    <option key={v.id} value={v.id} className="bg-slate-950 text-slate-200 font-sans text-xs">
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="h-3.5 w-3.5 text-slate-500 absolute right-0 pointer-events-none" />
+              </div>
+            </div>
+          )}
+
           {/* File Dropdown Menu */}
           <div className="relative">
             <button 
@@ -2468,7 +2728,7 @@ function App() {
           </button>
  
           <button 
-            onClick={handleExportClick}
+            onClick={() => setShowExportModal(true)}
             disabled={isExporting}
             className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
@@ -2497,7 +2757,7 @@ function App() {
 
           {/* Library Tabs */}
           <div className="flex border-b border-slate-800/80 bg-slate-900/40 p-1 overflow-x-auto scrollbar-none space-x-1 flex-shrink-0">
-            {['Principal', 'Originales', 'Stock', 'Remotion', 'Hyperframes'].map(tab => (
+            {['Principal', 'Originales', 'Stock', 'Remotion', 'Hyperframes', 'MiniMax'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setLibraryTab(tab)}
@@ -2530,7 +2790,7 @@ function App() {
             <div className="space-y-2.5">
               {/* Slider 1: Original */}
               <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Original</span>
                 <input 
                   type="range" 
@@ -2538,17 +2798,17 @@ function App() {
                   max="100" 
                   value={timelineWeights[0]}
                   onChange={(e) => handleWeightChange(0, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-blue-500 transition-all outline-none" 
+                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all outline-none" 
                   style={{
-                    background: `linear-gradient(to right, rgb(59, 130, 246) ${timelineWeights[0]}%, rgb(30, 41, 59) 0%)`
+                    background: `linear-gradient(to right, rgb(16, 185, 129) ${timelineWeights[0]}%, rgb(30, 41, 59) 0%)`
                   }}
                 />
-                <span className="font-mono text-[10px] text-blue-400 font-bold w-8 text-right select-none">{timelineWeights[0]}%</span>
+                <span className="font-mono text-[10px] text-emerald-400 font-bold w-8 text-right select-none">{timelineWeights[0]}%</span>
               </div>
 
               {/* Slider 2: Stock */}
               <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Stock</span>
                 <input 
                   type="range" 
@@ -2556,17 +2816,17 @@ function App() {
                   max="100" 
                   value={timelineWeights[1]}
                   onChange={(e) => handleWeightChange(1, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all outline-none" 
+                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-sky-500 transition-all outline-none" 
                   style={{
-                    background: `linear-gradient(to right, rgb(16, 185, 129) ${timelineWeights[1]}%, rgb(30, 41, 59) 0%)`
+                    background: `linear-gradient(to right, rgb(14, 165, 233) ${timelineWeights[1]}%, rgb(30, 41, 59) 0%)`
                   }}
                 />
-                <span className="font-mono text-[10px] text-emerald-400 font-bold w-8 text-right select-none">{timelineWeights[1]}%</span>
+                <span className="font-mono text-[10px] text-sky-400 font-bold w-8 text-right select-none">{timelineWeights[1]}%</span>
               </div>
 
               {/* Slider 3: Remotion */}
               <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Remotion</span>
                 <input 
                   type="range" 
@@ -2574,39 +2834,65 @@ function App() {
                   max="100" 
                   value={timelineWeights[2]}
                   onChange={(e) => handleWeightChange(2, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-purple-500 transition-all outline-none" 
+                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-blue-500 transition-all outline-none" 
                   style={{
-                    background: `linear-gradient(to right, rgb(168, 85, 247) ${timelineWeights[2]}%, rgb(30, 41, 59) 0%)`
+                    background: `linear-gradient(to right, rgb(59, 130, 246) ${timelineWeights[2]}%, rgb(30, 41, 59) 0%)`
                   }}
                 />
-                <span className="font-mono text-[10px] text-purple-400 font-bold w-8 text-right select-none">{timelineWeights[2]}%</span>
+                <span className="font-mono text-[10px] text-blue-400 font-bold w-8 text-right select-none">{timelineWeights[2]}%</span>
               </div>
 
-              {/* Slider 4: Hyperframes */}
+              {/* Slider 4: MiniMax */}
               <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-pink-500 flex-shrink-0" />
-                <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Hyperframes</span>
+                <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+                <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">MiniMax</span>
                 <input 
                   type="range" 
                   min="0" 
                   max="100" 
                   value={timelineWeights[3]}
                   onChange={(e) => handleWeightChange(3, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-pink-500 transition-all outline-none" 
+                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-amber-500 transition-all outline-none" 
                   style={{
-                    background: `linear-gradient(to right, rgb(236, 72, 153) ${timelineWeights[3]}%, rgb(30, 41, 59) 0%)`
+                    background: `linear-gradient(to right, rgb(245, 158, 11) ${timelineWeights[3]}%, rgb(30, 41, 59) 0%)`
                   }}
                 />
-                <span className="font-mono text-[10px] text-pink-400 font-bold w-8 text-right select-none">{timelineWeights[3]}%</span>
+                <span className="font-mono text-[10px] text-amber-400 font-bold w-8 text-right select-none">{timelineWeights[3]}%</span>
               </div>
             </div>
 
             {/* Proportional Color Bar */}
             <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-slate-800 mt-2">
-              <div style={{ width: `${timelineWeights[0]}%` }} className="h-full bg-blue-500 transition-all duration-300" title={`Original: ${timelineWeights[0]}%`} />
-              <div style={{ width: `${timelineWeights[1]}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Stock: ${timelineWeights[1]}%`} />
-              <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-purple-500 transition-all duration-300" title={`Remotion: ${timelineWeights[2]}%`} />
-              <div style={{ width: `${timelineWeights[3]}%` }} className="h-full bg-pink-500 transition-all duration-300" title={`Hyperframes: ${timelineWeights[3]}%`} />
+              <div style={{ width: `${timelineWeights[0]}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Original: ${timelineWeights[0]}%`} />
+              <div style={{ width: `${timelineWeights[1]}%` }} className="h-full bg-sky-500 transition-all duration-300" title={`Stock: ${timelineWeights[1]}%`} />
+              <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-blue-500 transition-all duration-300" title={`Remotion: ${timelineWeights[2]}%`} />
+              <div style={{ width: `${timelineWeights[3]}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`MiniMax: ${timelineWeights[3]}%`} />
+            </div>
+
+            {/* Separated Hyperframes Transition Frequency Slider */}
+            <div className="pt-2 border-t border-slate-850/80 space-y-1.5">
+              <div className="flex justify-between items-center text-[9px] font-bold text-slate-400 uppercase tracking-wider select-none">
+                <span className="flex items-center space-x-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 flex-shrink-0 animate-pulse" />
+                  <span>Transiciones Hyperframes</span>
+                </span>
+              </div>
+              <div className="flex items-center space-x-2.5">
+                <span className="w-2 h-2 rounded-full bg-yellow-500 flex-shrink-0" />
+                <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Frecuencia</span>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={hyperframesFrequency}
+                  onChange={(e) => setHyperframesFrequency(parseInt(e.target.value))}
+                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-yellow-500 transition-all outline-none" 
+                  style={{
+                    background: `linear-gradient(to right, rgb(234, 179, 8) ${hyperframesFrequency}%, rgb(30, 41, 59) 0%)`
+                  }}
+                />
+                <span className="font-mono text-[10px] text-yellow-400 font-bold w-8 text-right select-none">{hyperframesFrequency}%</span>
+              </div>
             </div>
 
             {/* Botón Construir Timeline IA */}
@@ -2672,6 +2958,141 @@ function App() {
 
             {/* Clips List */}
             {(() => {
+              if (libraryTab === 'MiniMax') {
+                const currentClips = bankClips.minimax || [];
+                return (
+                  <div className="space-y-3">
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3 select-none mb-3">
+                      <div className="flex items-center space-x-1.5 text-amber-500">
+                        <Sparkles className="h-4 w-4 animate-pulse" />
+                        <span className="text-xs font-bold uppercase tracking-wider">MiniMax Video Hub</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 leading-relaxed">
+                        Genera videos fotorrealistas por IA de 6 segundos en resolución 1080p usando MiniMax.
+                      </p>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-bold text-slate-500 uppercase">Prompt del Video</label>
+                        <textarea
+                          value={minimaxPrompt}
+                          onChange={(e) => setMinimaxPrompt(e.target.value)}
+                          placeholder="Describe la escena a generar..."
+                          className="w-full bg-slate-950 border border-slate-850 focus:border-amber-500/50 rounded-lg p-2 text-xs text-white placeholder-slate-650 outline-none transition-all resize-none h-18 font-sans"
+                        />
+                      </div>
+
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={handleGenerateMinimaxVideo}
+                          disabled={isGeneratingMinimax || !minimaxPrompt.trim()}
+                          className="flex-1 bg-gradient-to-r from-amber-600 to-orange-650 hover:from-amber-500 hover:to-orange-550 text-white text-[11px] py-1.5 px-2.5 rounded-lg font-bold transition-all active:scale-95 flex items-center justify-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
+                        >
+                          {isGeneratingMinimax ? (
+                            <>
+                              <div className="w-3 h-3 rounded-full border border-white/20 border-t-white animate-spin mr-1" />
+                              <span>Generando...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Video className="h-3 w-3" />
+                              <span>Generar Video</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          onClick={handleOptimizePromptWithDeepSeek}
+                          disabled={isOptimizingPrompt || !minimaxPrompt.trim()}
+                          className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] py-1.5 px-2.5 rounded-lg font-bold transition-all active:scale-95 flex items-center justify-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
+                          title="Optimizar prompt con DeepSeek"
+                        >
+                          {isOptimizingPrompt ? (
+                            <div className="w-3 h-3 rounded-full border border-white/20 border-t-white animate-spin" />
+                          ) : (
+                            <Sparkles className="h-3 w-3 text-amber-400" />
+                          )}
+                        </button>
+                      </div>
+
+                      {minimaxError && (
+                        <div className="text-[9px] text-red-400 font-medium bg-red-950/20 border border-red-900/40 p-2 rounded-lg leading-relaxed select-text">
+                          Error: {minimaxError}
+                        </div>
+                      )}
+                    </div>
+
+                    {currentClips.length === 0 ? (
+                      <div className="text-center py-10 text-slate-500 text-xs italic">
+                        No hay videos de MiniMax generados aún.
+                      </div>
+                    ) : (
+                      currentClips.map(clip => (
+                        <div 
+                          key={clip.id}
+                          onClick={() => handleClipClick(clip)}
+                          className={`border rounded-xl overflow-hidden p-2 flex space-x-3 transition-all cursor-pointer relative group/clip ${
+                            activeVideoUrl === clip.url && clip.url
+                              ? 'bg-indigo-950/30 border-indigo-500/55'
+                              : 'bg-slate-900 border-slate-800/60 hover:border-slate-700'
+                          }`}
+                        >
+                          <div className="w-20 h-14 bg-indigo-950/80 rounded-lg flex items-center justify-center relative overflow-hidden group flex-shrink-0">
+                            {clip.thumbnailUrl ? (
+                              <img src={clip.thumbnailUrl} className="w-full h-full object-cover" alt="miniatura" />
+                            ) : (
+                              <Video className="h-5 w-5 text-indigo-400" />
+                            )}
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Play className="h-4 w-4 text-white fill-white" />
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                            <div className="pr-12">
+                              <h4 className="text-xs font-semibold truncate" title={clip.name}>{clip.name}</h4>
+                              <p className="text-[10px] text-slate-500 truncate" title={clip.path}>{clip.size || 'N/A'} • Video</p>
+                            </div>
+                            <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 self-start px-1.5 py-0.5 rounded-md">{clip.duration}</span>
+                          </div>
+                          <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover/clip:opacity-100 transition-opacity z-20">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addClipToTimeline(clip);
+                              }}
+                              className="p-1 bg-indigo-600 border border-indigo-500 hover:bg-indigo-500 rounded-md text-white shadow-sm"
+                              title="Añadir al Timeline"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </button>
+                            <button 
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const res = await window.electronAPI.deleteBankClip({
+                                    category: 'minimax',
+                                    file: clip.name
+                                  });
+                                  if (res && res.success) {
+                                    await loadClipsForCategory('minimax');
+                                    setTimelineVideoClips(prev => prev.filter(t => t.name !== `${clip.name} (minimax)`));
+                                  }
+                                } catch (err) {
+                                  console.error(err);
+                                }
+                              }}
+                              className="p-1 bg-red-650 hover:bg-red-500 rounded-md text-white border-none cursor-pointer"
+                              title="Eliminar de biblioteca"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                );
+              }
+
               if (libraryTab === 'Stock') {
                 return (
                   <div className="flex flex-col items-center justify-center py-10 text-slate-500 space-y-2.5 bg-slate-900/10 rounded-xl p-6 border border-dashed border-slate-800/40">
@@ -3891,10 +4312,10 @@ function App() {
 
             {/* Copiar Clip */}
             <button 
-              disabled={!selectedTimelineClipId}
+              disabled={selectedTimelineClipIds.length === 0}
               onClick={handleCopyClip}
               className={`flex items-center space-x-1 transition-all active:scale-95 ${
-                selectedTimelineClipId 
+                selectedTimelineClipIds.length > 0 
                   ? 'text-slate-300 hover:text-indigo-400 cursor-pointer' 
                   : 'text-slate-600 cursor-not-allowed'
               }`}
@@ -3960,12 +4381,10 @@ function App() {
 
             {/* Duplicar */}
             <button 
-              disabled={!selectedTimelineClipId}
-              onClick={() => {
-                if (selectedTimelineClipId) duplicateTimelineClip(selectedTimelineClipId)
-              }}
+              disabled={selectedTimelineClipIds.length === 0}
+              onClick={() => duplicateTimelineClips(selectedTimelineClipIds)}
               className={`flex items-center space-x-1 transition-all active:scale-95 ${
-                selectedTimelineClipId 
+                selectedTimelineClipIds.length > 0 
                   ? 'text-slate-300 hover:text-indigo-400 cursor-pointer' 
                   : 'text-slate-600 cursor-not-allowed'
               }`}
@@ -3977,17 +4396,10 @@ function App() {
 
             {/* Eliminar */}
             <button 
-              disabled={!selectedTimelineClipId}
-              onClick={() => {
-                if (selectedTimelineClipId) {
-                  const updated = timelineVideoClips.filter(c => c.id !== selectedTimelineClipId)
-                  setTimelineVideoClips(updated)
-                  setSelectedTimelineClipId(null)
-                  pushHistory(updated)
-                }
-              }}
+              disabled={selectedTimelineClipIds.length === 0}
+              onClick={() => handleDeleteClips(selectedTimelineClipIds)}
               className={`flex items-center space-x-1 transition-all active:scale-95 ${
-                selectedTimelineClipId 
+                selectedTimelineClipIds.length > 0 
                   ? 'text-rose-450 hover:text-rose-400 cursor-pointer' 
                   : 'text-slate-600 cursor-not-allowed'
               }`}
@@ -4182,12 +4594,14 @@ function App() {
                       let bgClass = 'bg-slate-500/20 border-slate-400/50 text-slate-300 hover:bg-slate-500/30';
                       if (cat === 'original' || cat === 'originales') {
                         bgClass = 'bg-emerald-500/25 border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/35';
+                      } else if (cat === 'stock') {
+                        bgClass = 'bg-sky-500/25 border-sky-400/50 text-sky-300 hover:bg-sky-500/35';
                       } else if (cat === 'remotion') {
                         bgClass = 'bg-blue-500/25 border-blue-400/50 text-blue-300 hover:bg-blue-500/35';
+                      } else if (cat === 'minimax') {
+                        bgClass = 'bg-amber-600/25 border-amber-500/50 text-amber-300 hover:bg-amber-600/35';
                       } else if (cat === 'hyperframes') {
-                        bgClass = 'bg-pink-500/25 border-pink-400/50 text-pink-300 hover:bg-pink-500/35';
-                      } else if (cat === 'stock') {
-                        bgClass = 'bg-amber-500/25 border-amber-400/50 text-amber-300 hover:bg-amber-500/35';
+                        bgClass = 'bg-yellow-500/25 border-yellow-400/50 text-yellow-350 hover:bg-yellow-500/35';
                       } else {
                         bgClass = index % 2 === 0 
                           ? 'bg-sky-500/20 border-sky-400/50 text-sky-300 hover:bg-sky-500/30' 
@@ -4201,7 +4615,7 @@ function App() {
                           onMouseDown={(e) => handleClipMouseDown(e, tClip.id, 'move')}
                           onContextMenu={(e) => handleClipContextMenu(e, tClip.id)}
                           className={`absolute h-full border rounded-lg flex items-center px-2 justify-between group/tclip cursor-move transition-shadow ${
-                            selectedTimelineClipId === tClip.id 
+                            selectedTimelineClipIds.includes(tClip.id) 
                               ? 'ring-2 ring-indigo-500 border-indigo-400 z-20 shadow-[0_0_12px_rgba(99,102,241,0.25)]' 
                               : 'border-slate-800'
                           } ${bgClass}`}
@@ -4303,7 +4717,7 @@ function App() {
                           onMouseDown={(e) => handleClipMouseDown(e, tClip.id, 'move')}
                           onContextMenu={(e) => handleClipContextMenu(e, tClip.id)}
                           className={`absolute h-full border rounded-lg flex items-center px-3 justify-between group/tclip cursor-move transition-shadow ${
-                            selectedTimelineClipId === tClip.id 
+                            selectedTimelineClipIds.includes(tClip.id) 
                               ? 'ring-2 ring-indigo-500 border-indigo-400 z-20 shadow-[0_0_12px_rgba(99,102,241,0.25)]' 
                               : 'border-slate-800'
                           } ${bgClass}`}
@@ -4372,13 +4786,8 @@ function App() {
             </button>
             <button 
               onClick={() => {
-                const updated = timelineVideoClips.filter(c => c.id !== contextMenu.clipId)
-                setTimelineVideoClips(updated)
-                if (selectedTimelineClipId === contextMenu.clipId) {
-                  setSelectedTimelineClipId(null)
-                }
-                setContextMenu(null)
-                pushHistory(updated)
+                handleDeleteClips([contextMenu.clipId]);
+                setContextMenu(null);
               }}
               className="w-full text-left text-xs text-rose-400 hover:text-white hover:bg-rose-600 px-3 py-2 rounded-lg transition-colors cursor-pointer"
             >
@@ -4387,6 +4796,95 @@ function App() {
           </div>
         )}
       </footer>
+
+      {/* Export Settings Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#020712] border border-slate-850 rounded-2xl w-full max-w-md p-6 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-base font-extrabold text-white tracking-tight flex items-center space-x-2">
+              <Download className="h-4 w-4 text-[#6366f1]" />
+              <span>Ajustes de Exportación Avanzados</span>
+            </h3>
+            
+            <div className="space-y-4">
+              {/* Resolution Selector */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-[#6366f1] uppercase tracking-wider">Resolución</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['1080p', '4K', '720p'] as const).map(res => (
+                    <button
+                      key={res}
+                      onClick={() => setExportResolution(res)}
+                      className={`text-xs font-bold py-2 px-3 rounded-xl border transition-all cursor-pointer ${
+                        exportResolution === res
+                          ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-600/10'
+                          : 'bg-slate-950 border-slate-850 hover:border-slate-700 text-slate-400'
+                      }`}
+                    >
+                      {res === '1080p' ? '1080p (FHD)' : res === '4K' ? '4K (UHD)' : '720p (HD)'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Format Selector */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-[#6366f1] uppercase tracking-wider">Formato</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['mp4', 'mov'] as const).map(fmt => (
+                    <button
+                      key={fmt}
+                      onClick={() => setExportFormat(fmt)}
+                      className={`text-xs font-bold py-2 px-3 rounded-xl border transition-all cursor-pointer capitalize ${
+                        exportFormat === fmt
+                          ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-600/10'
+                          : 'bg-slate-950 border-slate-850 hover:border-slate-700 text-slate-400'
+                      }`}
+                    >
+                      {fmt.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quality Selector */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-[#6366f1] uppercase tracking-wider">Calidad (H.264 Rate)</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['high', 'medium', 'low'] as const).map(qual => (
+                    <button
+                      key={qual}
+                      onClick={() => setExportQuality(qual)}
+                      className={`text-xs font-bold py-2 px-3 rounded-xl border transition-all cursor-pointer ${
+                        exportQuality === qual
+                          ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-600/10'
+                          : 'bg-slate-950 border-slate-850 hover:border-slate-700 text-slate-400'
+                      }`}
+                    >
+                      {qual === 'high' ? 'Alta' : qual === 'medium' ? 'Media' : 'Baja'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 pt-2">
+              <button 
+                onClick={() => setShowExportModal(false)}
+                className="text-xs font-semibold text-slate-400 hover:text-white px-4 py-2 rounded-xl hover:bg-slate-900 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleExportClick}
+                className="bg-indigo-650 hover:bg-[#6366f1] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-indigo-600/10 active:scale-95"
+              >
+                Exportar Video
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

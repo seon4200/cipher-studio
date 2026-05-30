@@ -346,6 +346,7 @@ async function initProjectDirs(projectPath: string) {
     'temp/originales',
     'temp/remotion',
     'temp/hyperframes',
+    'temp/minimax',
     'temp/thumbnails'
   ];
   for (const f of folders) {
@@ -357,29 +358,6 @@ async function initProjectDirs(projectPath: string) {
 }
 
 async function sanitizeProjectState(parsed: any) {
-  if (!parsed) return parsed;
-  if (parsed.clips && Array.isArray(parsed.clips)) {
-    const validClips: any[] = [];
-    for (const clip of parsed.clips) {
-      if (clip.path && (await exists(clip.path))) {
-        validClips.push(clip);
-      }
-    }
-    parsed.clips = validClips;
-  }
-  if (parsed.timelineVideoClips && Array.isArray(parsed.timelineVideoClips)) {
-    const validTimelineClips: any[] = [];
-    for (const clip of parsed.timelineVideoClips) {
-      if (!clip.path) {
-        validTimelineClips.push(clip);
-      } else if (clip.path === 'remotion-dynamic' || clip.path === 'hyperframes-dynamic') {
-        validTimelineClips.push(clip);
-      } else if (await exists(clip.path)) {
-        validTimelineClips.push(clip);
-      }
-    }
-    parsed.timelineVideoClips = validTimelineClips;
-  }
   return parsed;
 }
 
@@ -916,10 +894,162 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
   }
 })
 
+ipcMain.handle('generate-minimax-video', async (_event, { prompt }) => {
+  try {
+    loadEnv();
+    const apiKey = process.env.MINIMAX_API_KEY;
+    if (!apiKey) {
+      return { success: false, error: 'MINIMAX_API_KEY no está configurado en el archivo .env.' };
+    }
+
+    console.log('[generate-minimax-video] Iniciando generación con prompt:', prompt);
+
+    // 1. Submit task
+    const submitResponse = await fetch('https://api.minimax.io/v1/video_generation', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'MiniMax-Hailuo-2.3',
+        prompt: prompt,
+        duration: 6,
+        resolution: '1080P'
+      })
+    });
+
+    if (!submitResponse.ok) {
+      const errText = await submitResponse.text();
+      return { success: false, error: `Error MiniMax Submit (${submitResponse.status}): ${errText}` };
+    }
+
+    const submitData = (await submitResponse.json()) as any;
+    const taskId = submitData.task_id;
+    if (!taskId) {
+      return { success: false, error: `MiniMax no devolvió un task_id: ${JSON.stringify(submitData)}` };
+    }
+
+    console.log(`[generate-minimax-video] Task creado con ID: ${taskId}. Iniciando sondeo...`);
+
+    // 2. Poll for status
+    let fileId: string | null = null;
+    let status = 'Preparing';
+    const maxPolls = 60; // 3 minutes total
+    for (let i = 0; i < maxPolls; i++) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      const queryResponse = await fetch(`https://api.minimax.io/v1/query/video_generation?task_id=${taskId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        }
+      });
+
+      if (!queryResponse.ok) {
+        console.error(`[generate-minimax-video] Error al sondear la tarea (${queryResponse.status})`);
+        continue;
+      }
+
+      const queryData = (await queryResponse.json()) as any;
+      status = queryData.status || '';
+      console.log(`[generate-minimax-video] Sondeo #${i+1}: status = ${status}`);
+
+      if (status === 'Success') {
+        fileId = queryData.file_id;
+        break;
+      } else if (status === 'Fail') {
+        return { success: false, error: 'La generación de video por MiniMax falló.' };
+      }
+    }
+
+    if (!fileId) {
+      return { success: false, error: `El sondeo expiró o falló. Estado final: ${status}` };
+    }
+
+    console.log(`[generate-minimax-video] Tarea exitosa. Obteniendo URL para fileId: ${fileId}...`);
+
+    // 3. Retrieve File Download URL
+    const retrieveResponse = await fetch(`https://api.minimax.io/v1/files/retrieve?file_id=${fileId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`
+      }
+    });
+
+    if (!retrieveResponse.ok) {
+      const errText = await retrieveResponse.text();
+      return { success: false, error: `Error al obtener URL del archivo (${retrieveResponse.status}): ${errText}` };
+    }
+
+    const retrieveData = (await retrieveResponse.json()) as any;
+    const downloadUrl = retrieveData.file?.download_url || retrieveData.download_url;
+    if (!downloadUrl) {
+      return { success: false, error: `MiniMax no devolvió una download_url: ${JSON.stringify(retrieveData)}` };
+    }
+
+    console.log(`[generate-minimax-video] Descargando video desde: ${downloadUrl}`);
+
+    // 4. Download file
+    const downloadRes = await fetch(downloadUrl);
+    if (!downloadRes.ok) {
+      return { success: false, error: `Error al descargar el archivo de video: ${downloadRes.statusText}` };
+    }
+
+    const arrayBuffer = await downloadRes.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Save to temp folder
+    const targetDir = activeProjectPath
+      ? path.join(activeProjectPath, 'temp', 'minimax')
+      : path.join(process.cwd(), 'cipher-studio', 'banco-clips', 'minimax');
+      
+    if (!(await exists(targetDir))) {
+      await fs.promises.mkdir(targetDir, { recursive: true });
+    }
+
+    const filename = `minimax-${Date.now()}.mp4`;
+    const filePath = path.join(targetDir, filename);
+    await fs.promises.writeFile(filePath, buffer);
+
+    const durationSeconds = await getVideoDuration(filePath);
+
+    // Generate thumbnail
+    const thumbFilename = `thumb-${path.basename(filename, '.mp4')}.jpg`;
+    const thumbDir = activeProjectPath
+      ? path.join(activeProjectPath, 'temp', 'thumbnails')
+      : path.join(process.cwd(), 'cipher-studio', 'banco-clips', 'thumbnails');
+
+    if (!(await exists(thumbDir))) {
+      await fs.promises.mkdir(thumbDir, { recursive: true });
+    }
+
+    const thumbPath = path.join(thumbDir, thumbFilename);
+    let thumbnailUrl = '';
+    try {
+      await generateVideoThumbnail(filePath, thumbPath);
+      thumbnailUrl = `file:///${thumbPath.replace(/\\/g, '/')}`;
+    } catch (e) {
+      console.error('[generate-minimax-video] Error generating thumbnail:', e);
+    }
+
+    return {
+      success: true,
+      filePath,
+      durationSeconds,
+      thumbnailUrl,
+      name: filename
+    };
+  } catch (err: any) {
+    console.error('[generate-minimax-video] Excepción:', err);
+    return { success: false, error: err.message || 'Error desconocido al generar video con MiniMax.' };
+  }
+});
+
 // IPC handle for loading clips in a category folder of banco-clips
 ipcMain.handle('load-bank-clips', async (_event, { category }) => {
   try {
-    const isTempCategory = category === 'originales'
+    const isTempCategory = ['originales', 'remotion', 'hyperframes', 'minimax'].includes(category.toLowerCase())
     const useActiveProj = !!(activeProjectPath && isTempCategory)
     const baseDir = useActiveProj ? activeProjectPath! : getBancoClipsPath()
     const dirPath = useActiveProj ? path.join(baseDir, 'temp', category) : path.join(baseDir, category)
@@ -1109,14 +1239,17 @@ ipcMain.handle('delete-bank-clip', async (_event, { category, file }) => {
 })
 
 // IPC handle for exporting video (single clip or concatenating multiple clips) with aspect ratio crop
-ipcMain.handle('export-video', async (_event, { clips, aspectRatio }) => {
+ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, format, quality }) => {
   try {
     if (!win) return { success: false, error: 'Ventana no disponible' }
 
+    const ext = format === 'mov' ? 'mov' : 'mp4';
+    const filterName = format === 'mov' ? 'QuickTime Movie' : 'MP4 Video';
+
     const { filePath, canceled } = await dialog.showSaveDialog(win, {
       title: 'Exportar Video',
-      defaultPath: path.join(app.getPath('downloads'), 'export.mp4'),
-      filters: [{ name: 'MP4 Video', extensions: ['mp4'] }]
+      defaultPath: path.join(app.getPath('downloads'), `export.${ext}`),
+      filters: [{ name: filterName, extensions: [ext] }]
     })
 
     if (canceled || !filePath) {
@@ -1127,14 +1260,54 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio }) => {
       return { success: false, error: 'No hay clips en el Timeline para exportar.' }
     }
 
-    // Determine crop filter
+    // Determine target resolution width and height
+    let targetW = 1920
+    let targetH = 1080
+    if (aspectRatio === 'vertical') {
+      if (resolution === '4K') {
+        targetW = 2160; targetH = 3840;
+      } else if (resolution === '720p') {
+        targetW = 720; targetH = 1280;
+      } else { // 1080p
+        targetW = 1080; targetH = 1920;
+      }
+    } else if (aspectRatio === 'square') {
+      if (resolution === '4K') {
+        targetW = 2160; targetH = 2160;
+      } else if (resolution === '720p') {
+        targetW = 720; targetH = 720;
+      } else { // 1080p
+        targetW = 1080; targetH = 1080;
+      }
+    } else { // horizontal
+      if (resolution === '4K') {
+        targetW = 3840; targetH = 2160;
+      } else if (resolution === '720p') {
+        targetW = 1280; targetH = 720;
+      } else { // 1080p
+        targetW = 1920; targetH = 1080;
+      }
+    }
+
+    // Determine crop & scale filter
     let filterStr = ''
     if (aspectRatio === 'vertical') {
-      filterStr = `-vf "crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)':x='(iw-ow)/2':y='(ih-oh)/2'"`
+      filterStr = `-vf "crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}"`
     } else if (aspectRatio === 'square') {
-      filterStr = `-vf "crop=w='min(iw,ih)':h='min(ih,iw)':x='(iw-ow)/2':y='(ih-oh)/2'"`
-    } else if (aspectRatio === 'horizontal') {
-      filterStr = `-vf "crop=w='min(iw,ih*16/9)':h='min(ih,iw*9/16)':x='(iw-ow)/2':y='(ih-oh)/2'"`
+      filterStr = `-vf "crop=w='min(iw,ih)':h='min(ih,iw)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}"`
+    } else { // horizontal
+      filterStr = `-vf "crop=w='min(iw,ih*16/9)':h='min(ih,iw*9/16)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}"`
+    }
+
+    // Determine quality options
+    let crf = 23
+    let preset = 'fast'
+    if (quality === 'high') {
+      crf = 18
+      preset = 'medium'
+    } else if (quality === 'low') {
+      crf = 28
+      preset = 'ultrafast'
     }
 
     const escapedOut = filePath.replace(/"/g, '\\"')
@@ -1145,7 +1318,7 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio }) => {
         return { success: false, error: `El archivo original no existe o no tiene ruta: ${clips[0].name}` }
       }
       const escapedVideo = videoPath.replace(/"/g, '\\"')
-      const ffmpegCmd = `ffmpeg -y -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ultrafast -crf 23 -c:a aac "${escapedOut}"`
+      const ffmpegCmd = `ffmpeg -y -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -c:a aac "${escapedOut}"`
       
       await new Promise<void>((resolve, reject) => {
         exec(ffmpegCmd, (err) => {
@@ -1177,7 +1350,7 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio }) => {
       const escapedTxt = tempTxtPath.replace(/"/g, '\\"')
 
       // Concat and crop
-      const ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" ${filterStr} -c:v libx264 -preset ultrafast -crf 23 -c:a aac "${escapedOut}"`
+      const ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" ${filterStr} -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -c:a aac "${escapedOut}"`
       
       await new Promise<void>((resolve, reject) => {
         exec(ffmpegCmd, async (err) => {
@@ -1195,111 +1368,298 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio }) => {
   }
 })
 
-function distributeCounts(weights: number[], N: number): number[] {
-  const sumWeights = weights.reduce((a, b) => a + b, 0);
-  const normalizedWeights = sumWeights === 0 ? [25, 25, 25, 25] : weights.map(w => (w / sumWeights) * 100);
-  
-  const exact = normalizedWeights.map(w => (w / 100) * N);
-  const counts = exact.map(Math.floor);
-  let remainder = N - counts.reduce((a, b) => a + b, 0);
-  
-  // Sort indices by their fractional parts in descending order
-  const fracts = exact.map((val, idx) => ({ idx, fract: val - counts[idx] }));
-  fracts.sort((a, b) => b.fract - a.fract);
-  
-  for (let i = 0; i < remainder; i++) {
-    counts[fracts[i].idx]++;
+
+
+function splitScriptIntoNSegments(script: string, N: number): string[] {
+  const words = script.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) {
+    return Array.from({ length: N }, () => '...');
   }
-  return counts;
-}
-
-function solveAssignment(
-  analysisResults: any[], 
-  C_orig: number, 
-  _C_stock: number, 
-  C_remotion: number,  
-  C_hyper: number
-): string[] {
-  const N = analysisResults.length;
-  const counts: Record<string, number> = {
-    original: C_orig,
-    stock: _C_stock,
-    remotion: C_remotion,
-    hyperframes: C_hyper
-  };
-
-  const assignment: string[] = [];
-  
+  if (words.length <= N) {
+    const result = words.map(w => w);
+    while (result.length < N) result.push("...");
+    return result;
+  }
+  const wordsPerSegment = Math.floor(words.length / N);
+  const remainder = words.length % N;
+  const segments: string[] = [];
+  let wordIdx = 0;
   for (let i = 0; i < N; i++) {
-    const available = Object.keys(counts).filter(type => counts[type] > 0);
-    const prevType = i > 0 ? assignment[i - 1] : null;
-    const candidates = available.filter(type => type !== prevType);
-    
-    let chosenType = '';
-    if (candidates.length > 0) {
-      candidates.sort((a, b) => counts[b] - counts[a]);
-      chosenType = candidates[0];
-      counts[chosenType]--;
-    } else {
-      // Force non-repetition by borrowing from any other type
-      const allTypes = ['original', 'stock', 'remotion', 'hyperframes'];
-      const nonPrev = allTypes.filter(type => type !== prevType);
-      nonPrev.sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
-      chosenType = nonPrev[0];
-      counts[chosenType]--;
-    }
-    
-    assignment.push(chosenType);
+    const count = wordsPerSegment + (i < remainder ? 1 : 0);
+    const segmentWords = words.slice(wordIdx, wordIdx + count);
+    segments.push(segmentWords.join(" "));
+    wordIdx += count;
   }
-  
-  return assignment;
+  return segments;
 }
 
-function segmentScript(scriptText: string): string[] {
-  // Split by newlines first
-  const lines = scriptText.split(/\r?\n/);
-  const rawFragments: string[] = [];
-  
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-    if (!trimmedLine) continue;
-    
-    // Split by periods followed by whitespace or end of string, keeping the period
-    const sentences = trimmedLine.split(/(?<=\.(?=\s|$))/);
-    for (const sentence of sentences) {
-      const trimmedSentence = sentence.trim();
-      if (trimmedSentence.length > 0) {
-        rawFragments.push(trimmedSentence);
-      }
-    }
-  }
-
-  const finalFragments: string[] = [];
-  
-  for (const frag of rawFragments) {
-    const words = frag.split(/\s+/).filter(Boolean);
-    if (words.length <= 30) {
-      finalFragments.push(frag);
-    } else {
-      // Split into chunks of maximum 30 words
-      let currentChunk: string[] = [];
-      for (const word of words) {
-        currentChunk.push(word);
-        if (currentChunk.length === 30) {
-          finalFragments.push(currentChunk.join(' '));
-          currentChunk = [];
-        }
-      }
-      if (currentChunk.length > 0) {
-        finalFragments.push(currentChunk.join(' '));
-      }
-    }
+function findBestMatchingOriginalClip(paragraphText: string, originalClips: any[], transcriptSegments: any[]): any {
+  if (!originalClips || originalClips.length === 0) return null;
+  if (!transcriptSegments || transcriptSegments.length === 0) {
+    return originalClips[0];
   }
   
-  return finalFragments.filter(p => p.length > 2);
+  let bestScore = -1;
+  let bestIndex = 0;
+  const cleanWords = (text: string) => new Set(text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").split(/\s+/).filter(Boolean));
+  const paraWords = cleanWords(paragraphText);
+  
+  transcriptSegments.forEach((seg, idx) => {
+    const segWords = cleanWords(seg.text || "");
+    let overlap = 0;
+    paraWords.forEach(w => {
+      if (segWords.has(w)) overlap++;
+    });
+    if (overlap > bestScore) {
+      bestScore = overlap;
+      bestIndex = idx;
+    }
+  });
+  
+  const targetClipName = `clip_${String(bestIndex + 1).padStart(3, '0')}.mp4`;
+  const matched = originalClips.find(c => c.name === targetClipName || c.name.includes(`_${bestIndex + 1}.`));
+  return matched || originalClips[bestIndex % originalClips.length];
 }
 
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, weights, aspectRatio }) => {
+async function selectBestStockClip(theme: string, paragraph: string, filenames: string[], apiKey: string): Promise<string | null> {
+  if (filenames.length === 0) return null;
+  try {
+    const prompt = `Dado el tema general: "${theme}" y la escena de video descriptiva: "${paragraph}".
+Elige el nombre del archivo de video que mejor se adapte visualmente a esta escena de la siguiente lista de archivos:
+${filenames.map(f => `- ${f}`).join('\n')}
+
+Devuelve únicamente el nombre exacto del archivo seleccionado de la lista. No agregues explicaciones ni introducciones.`;
+
+    const response = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: 'Eres un selector de contenido audiovisual experto. Responde únicamente con el nombre del archivo.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.1
+      })
+    });
+
+    if (response.ok) {
+      const json = await response.json() as any;
+      const content = (json?.choices?.[0]?.message?.content || '').trim().replace(/['"`]/g, '');
+      if (filenames.includes(content)) {
+        return content;
+      }
+      const matched = filenames.find(f => f.toLowerCase() === content.toLowerCase() || content.toLowerCase().includes(f.toLowerCase()) || f.toLowerCase().includes(content.toLowerCase()));
+      if (matched) return matched;
+    }
+  } catch (e) {
+    console.error('Error al confirmar clip de stock con DeepSeek:', e);
+  }
+  return filenames[Math.floor(Math.random() * filenames.length)];
+}
+
+async function generateMiniMaxClipHelper(prompt: string, apiKey: string, activeProjectPath: string | null, bankDir: string): Promise<any> {
+  const submitResponse = await fetch('https://api.minimax.io/v1/video_generation', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'MiniMax-Hailuo-2.3',
+      prompt: prompt,
+      duration: 6,
+      resolution: '1080P'
+    })
+  });
+
+  if (!submitResponse.ok) {
+    const errText = await submitResponse.text();
+    throw new Error(`MiniMax Submit error (${submitResponse.status}): ${errText}`);
+  }
+
+  const submitData = (await submitResponse.json()) as any;
+  const taskId = submitData.task_id;
+  if (!taskId) {
+    throw new Error(`MiniMax no devolvió un task_id: ${JSON.stringify(submitData)}`);
+  }
+
+  let fileId: string | null = null;
+  let status = 'Preparing';
+  const maxPolls = 60;
+  for (let i = 0; i < maxPolls; i++) {
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    const queryResponse = await fetch(`https://api.minimax.io/v1/query/video_generation?task_id=${taskId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`
+      }
+    });
+
+    if (!queryResponse.ok) {
+      continue;
+    }
+
+    const queryData = (await queryResponse.json()) as any;
+    status = queryData.status || '';
+
+    if (status === 'Success') {
+      fileId = queryData.file_id;
+      break;
+    } else if (status === 'Fail') {
+      throw new Error('La generación de video por MiniMax falló.');
+    }
+  }
+
+  if (!fileId) {
+    throw new Error(`El sondeo expiró o falló. Estado final: ${status}`);
+  }
+
+  const retrieveResponse = await fetch(`https://api.minimax.io/v1/files/retrieve?file_id=${fileId}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`
+    }
+  });
+
+  if (!retrieveResponse.ok) {
+    const errText = await retrieveResponse.text();
+    throw new Error(`Error retrieving file download URL (${retrieveResponse.status}): ${errText}`);
+  }
+
+  const retrieveData = (await retrieveResponse.json()) as any;
+  const downloadUrl = retrieveData.file?.download_url || retrieveData.download_url;
+  if (!downloadUrl) {
+    throw new Error(`MiniMax no devolvió una download_url: ${JSON.stringify(retrieveData)}`);
+  }
+
+  const downloadRes = await fetch(downloadUrl);
+  if (!downloadRes.ok) {
+    throw new Error(`Error al descargar el archivo de video: ${downloadRes.statusText}`);
+  }
+
+  const arrayBuffer = await downloadRes.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  const targetDir = activeProjectPath
+    ? path.join(activeProjectPath, 'temp', 'minimax')
+    : path.join(bankDir, 'minimax');
+    
+  if (!(await exists(targetDir))) {
+    await fs.promises.mkdir(targetDir, { recursive: true });
+  }
+
+  const filename = `minimax-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.mp4`;
+  const filePath = path.join(targetDir, filename);
+  await fs.promises.writeFile(filePath, buffer);
+
+  const durationSeconds = await getVideoDuration(filePath);
+
+  const thumbFilename = `thumb-${path.basename(filename, '.mp4')}.jpg`;
+  const thumbDir = activeProjectPath
+    ? path.join(activeProjectPath, 'temp', 'thumbnails')
+    : path.join(bankDir, 'thumbnails');
+
+  if (!(await exists(thumbDir))) {
+    await fs.promises.mkdir(thumbDir, { recursive: true });
+  }
+
+  const thumbPath = path.join(thumbDir, thumbFilename);
+  let thumbnailUrl = '';
+  try {
+    await generateVideoThumbnail(filePath, thumbPath);
+    thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbPath)).toString('base64')}`;
+  } catch (e) {
+    console.error('Error generating thumbnail:', e);
+  }
+
+  return {
+    id: `bank-minimax-${filename}`,
+    name: filename,
+    path: filePath,
+    url: `file:///${filePath.replace(/\\/g, '/')}`,
+    duration: formatTimeMinutesSeconds(durationSeconds),
+    durationSeconds,
+    type: 'video',
+    category: 'minimax',
+    thumbnailUrl
+  };
+}
+
+async function renderTransitionClip(effect: string, counter: number, targetCompositionsDir: string, projectDir: string, bankDir: string, useActiveProj: boolean): Promise<any> {
+  const timestamp = Date.now();
+  const clipFileName = `trans_${timestamp}_${counter + 1}.mp4`;
+  const outPath = useActiveProj 
+    ? path.join(projectDir, 'temp', 'hyperframes', clipFileName)
+    : path.join(bankDir, 'hyperframes', clipFileName);
+    
+  const transCompositionHtmlPath = path.join(targetCompositionsDir, `trans_${timestamp}_${counter + 1}.html`);
+  const transRelativeCompositionPath = `compositions/trans_${timestamp}_${counter + 1}.html`;
+  
+  const transHtml = generateHyperframesHtml({
+    isTransition: true,
+    transitionIndex: counter % 5
+  });
+  
+  const htmlTemplate = `<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #020712; }
+    </style>
+  </head>
+  <body>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="0.3" data-width="1920" data-height="1080">
+      ${transHtml}
+    </div>
+  </body>
+</html>`;
+
+  await fs.promises.writeFile(transCompositionHtmlPath, htmlTemplate, 'utf8');
+  
+  const hyperframesProjectRoot = (await exists(path.join(process.cwd(), 'hyperframes-project'))) 
+    ? path.join(process.cwd(), 'hyperframes-project') 
+    : path.join(process.cwd(), 'cipher-studio', 'hyperframes-project');
+    
+  let renderSuccess = false;
+  await new Promise<void>((resolvePromise) => {
+    const cmd = `npx hyperframes render "${hyperframesProjectRoot}" -c "${transRelativeCompositionPath}" -o "${outPath}"`;
+    exec(cmd, { cwd: hyperframesProjectRoot }, async (err) => {
+      try { await fs.promises.unlink(transCompositionHtmlPath); } catch (e) {}
+      if (!err) renderSuccess = true;
+      resolvePromise();
+    });
+  });
+  
+  if (renderSuccess) {
+    return {
+      id: `bank-hyperframes-${clipFileName}`,
+      name: `Transición: ${effect.toUpperCase()}`,
+      path: outPath,
+      url: `file:///${outPath.replace(/\\/g, '/')}`,
+      duration: '0:00',
+      durationSeconds: 0.3,
+      type: 'video',
+      category: 'hyperframes'
+    };
+  }
+  return null;
+}
+
+ipcMain.handle('generate-timeline-assets', async (event, { scriptText, weights, aspectRatio, audioDuration, transcriptSegments, hyperframesFrequency }) => {
   // Clear old log file
   try {
     const cwd = process.cwd();
@@ -1314,11 +1674,14 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, weights, 
     }
   } catch (e) {}
 
+  const logMessage = async (msg: string) => {
+    console.log(msg);
+    await writeDebugLog(msg);
+  };
+
   try {
-    const startMsg = `[generate-timeline-assets] Iniciando análisis del guion para Remotion/Hyperframes con pesos: ${JSON.stringify(weights)}`;
-    console.log(startMsg);
-    await writeDebugLog(startMsg);
-    
+    await logMessage(`[generate-timeline-assets] Iniciando nuevo flujo en 6 fases...`);
+
     // 1. Obtener la clave de API de DeepSeek
     loadEnv();
     const apiKey = process.env.DEEPSEEK_API_KEY;
@@ -1328,27 +1691,91 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, weights, 
       return { success: false, error: errMsg };
     }
 
-    // 3. Segmentar guion en párrafos
-    const paragraphs = segmentScript(scriptText);
+    // FASE 1: Análisis y Cálculo Base
+    await logMessage(`[FASE 1] Iniciando análisis del guion y cálculo de clips...`);
+    const duration = audioDuration && audioDuration > 0 ? audioDuration : Math.max(15, Math.round(scriptText.split(/\s+/).filter(Boolean).length * 60 / 130));
+    const totalClips = Math.max(1, Math.round(duration / 3));
+    
+    // Mix weights: [Original, Stock, Remotion, MiniMax]
+    const w = weights || [40, 30, 20, 10];
+    let clips_originales = Math.round(totalClips * (w[0] / 100));
+    let clips_stock = Math.round(totalClips * (w[1] / 100));
+    let clips_remotion = Math.round(totalClips * (w[2] / 100));
+    let clips_minimax = totalClips - (clips_originales + clips_stock + clips_remotion);
 
-    if (paragraphs.length === 0) {
-      const errMsg = 'No se encontraron párrafos válidos en el guion.';
-      await writeDebugLog(errMsg);
-      return { success: false, error: errMsg };
+    if (clips_minimax < 0) {
+      const counts = [clips_originales, clips_stock, clips_remotion];
+      const maxIdx = counts.indexOf(Math.max(...counts));
+      if (maxIdx === 0) clips_originales += clips_minimax;
+      else if (maxIdx === 1) clips_stock += clips_minimax;
+      else clips_remotion += clips_minimax;
+      clips_minimax = 0;
     }
 
-    const detectMsg = `[generate-timeline-assets] Párrafos detectados: ${paragraphs.length}`;
-    console.log(detectMsg);
-    await writeDebugLog(detectMsg);
+    await logMessage(`[FASE 1] Duración del audio de voz: ${duration.toFixed(1)}s -> Clips totales: ${totalClips}`);
+    await logMessage(`[FASE 1] Distribución Mix calculada -> Originales: ${clips_originales}, Stock: ${clips_stock}, Remotion: ${clips_remotion}, MiniMax: ${clips_minimax}`);
 
-    // 4. Obtener tema general del guión en una llamada rápida
-    let temaGeneral = 'tecnología y digital';
+    const segments = splitScriptIntoNSegments(scriptText, totalClips);
+    await logMessage(`[FASE 1] Segmentos generados: ${segments.length}`);
+
+    let parsedData: any = null;
     try {
-      const themePrompt = `Analiza este guion de video y resume su tema principal en una frase corta de máximo 5 palabras:
-      "${scriptText.substring(0, 1200)}"
-      Devuelve únicamente la frase del tema.`;
-      
-      const themeRes = await fetch('https://api.deepseek.com/chat/completions', {
+      const dsPrompt = `Aquí tienes un guion de video dividido en exactamente N=${totalClips} segmentos secuenciales.
+El tema general del guion se puede derivar de todo el texto.
+
+REGLAS DE GENERACIÓN CREATIVA:
+1. Cada clip debe ser completamente único, impactante y visualmente diferente al anterior. Evita repetir temas o fondos de forma consecutiva.
+2. Para cada segmento (de 0 a N-1), analiza en conjunto: el párrafo anterior (si existe), el párrafo actual, el párrafo siguiente (si existe) y el tema general del guion.
+3. Tienes libertad total y dirección creativa ilimitada para diseñar el visual más descriptivo e interesante posible para ese momento del guion. No hay límite de tipos de escena ni combinaciones.
+4. El espectador debe poder entender claramente el tema/concepto de ese momento con solo ver el clip de 3 segundos, sin audio.
+
+Por favor, decide a qué categoría de clip pertenece cada segmento de forma secuencial, respetando estrictamente estas cantidades calculadas del Mix (la suma total debe ser exactamente N=${totalClips}):
+- original: ${clips_originales} clips (escenas del video original)
+- stock: ${clips_stock} clips (clips de banco ilustrativos)
+- remotion: ${clips_remotion} clips (gráficos/conceptos de datos/números)
+- minimax: ${clips_minimax} clips (animaciones/escenas generadas por IA)
+
+Para los clips asignados a 'remotion':
+Elige y configura las propiedades más descriptivas en "remotionProps" (sin texto en pantalla):
+- "backgroundType": "neural" (cerebro/neuronas neón), "mesh" (malla 3D dinámica), "binary" (columnas de código cayendo), "nodes" (esfera 3D de nodos girando), "map" (grilla/escaneo de mapa), "figure" (figura humana dorada en movimiento).
+- "sceneTheme": "memory" (red de neuronas activándose), "action" (líneas de velocidad y atleta corriendo), "data" (radial dial circular y explosión de partículas), "society" (4 figuras humanas cooperando/saludando), "technology" (brillantes corchetes flotantes y datos), "geography" (mapa trazándose con ciudades conectadas).
+- "numberData": número a animar/mostrar en el dial si el segmento menciona métricas/cantidades (0 si no aplica).
+- "percentageData": porcentaje a animar/mostrar en el dial si menciona porcentajes (0 si no aplica).
+- "isNegative": true si el concepto describe pérdidas, declive, peligro o valores negativos; false si es positivo, ganancia o neutral.
+
+Para los clips asignados a 'minimax':
+Escribe en "minimaxPrompt" un prompt altamente detallado, cinematográfico, descriptivo y en inglés para generación de video por IA. Debe describir la acción física, el entorno, el sujeto y la iluminación de forma que transmita perfectamente el concepto del segmento analizado con su contexto, sin incluir texto o marcas de agua.
+
+Aquí están los párrafos:
+${segments.map((s, idx) => `Segmento ${idx}: "${s}"`).join('\n')}
+
+Devuelve la respuesta ÚNICAMENTE como un objeto JSON válido con la siguiente estructura (no envíes bloques markdown, no agregues explicaciones):
+{
+  "theme": "tema del guion en 3 a 5 palabras",
+  "assignments": [
+    {
+      "index": number,
+      "category": "original" | "stock" | "remotion" | "minimax",
+      "remotionProps": {
+        "sceneTheme": "memory" | "action" | "data" | "society" | "technology" | "geography",
+        "backgroundType": "neural" | "mesh" | "binary" | "nodes" | "map" | "figure",
+        "numberData": number,
+        "percentageData": number,
+        "isNegative": boolean
+      },
+      "minimaxPrompt": "prompt descriptivo en inglés"
+    }
+  ]
+}`;
+
+      event.sender.send('generation-progress', {
+        index: 0,
+        total: totalClips,
+        paragraph: 'Analizando guion completo con DeepSeek...',
+        type: 'DeepSeek'
+      });
+
+      const dsResponse = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1357,185 +1784,191 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, weights, 
         body: JSON.stringify({
           model: 'deepseek-chat',
           messages: [
-            { role: 'system', content: 'Eres un programador experto y director creativo. Responde con el tema principal de forma resumida.' },
-            { role: 'user', content: themePrompt }
+            { role: 'system', content: 'Eres un programador experto y director creativo. Responde ÚNICAMENTE con el objeto JSON solicitado, sin prefacios ni bloques markdown.' },
+            { role: 'user', content: dsPrompt }
           ],
-          temperature: 0.3
+          temperature: 0.2
         })
       });
-      if (themeRes.ok) {
-        const themeJson = await themeRes.json() as any;
-        const themeContent = themeJson?.choices?.[0]?.message?.content || '';
-        if (themeContent.trim()) {
-          temaGeneral = themeContent.trim().replace(/['"“”]/g, '');
+
+      if (dsResponse.ok) {
+        const dsData = (await dsResponse.json()) as any;
+        const dsContent = dsData?.choices?.[0]?.message?.content || '';
+        let cleanContent = dsContent.trim();
+        if (cleanContent.includes('{')) {
+          cleanContent = cleanContent.substring(cleanContent.indexOf('{'), cleanContent.lastIndexOf('}') + 1);
         }
+        parsedData = JSON.parse(cleanContent);
       }
-    } catch (errTheme) {
-      console.error('Error al obtener tema general:', errTheme);
+    } catch (e) {
+      console.error('Error al invocar DeepSeek en Fase 1:', e);
     }
-    await writeDebugLog(`[generate-timeline-assets] Tema general del guion: ${temaGeneral}`);
 
-    // 5. Iniciar bucle de llamadas individuales por párrafo
-    const analysisResults: any[] = [];
-    for (let idx = 0; idx < paragraphs.length; idx++) {
-      const paragraph = paragraphs[idx];
-      const prevParagraph = idx > 0 ? paragraphs[idx - 1] : 'Ninguno';
-      const nextParagraph = idx < paragraphs.length - 1 ? paragraphs[idx + 1] : 'Ninguno';
-      
-      const dsPrompt = `Analiza este párrafo en contexto y determina qué escena visual de dibujo animado lo ilustra mejor.
-PROHIBIDO sugerir texto, palabras o letras en la escena.
-Solo figuras, formas y movimiento visual puro.
+    if (!parsedData || !parsedData.assignments || parsedData.assignments.length !== totalClips) {
+      await logMessage(`[FASE 1] Fallback de asignación local aplicado por falta de respuesta válida de DeepSeek.`);
+      parsedData = {
+        theme: 'tecnología y digital',
+        assignments: []
+      };
 
-Elige UNA escena:
-- neural: mente, memoria, cerebro, pensamiento, psicología
-- figure: personas, acciones humanas, movimiento, cuerpo
-- nodes: conexiones, redes, sociedad, sistema, relaciones
-- mesh: datos, economía, ondas, patrones, flujos
-- map: lugares, geografía, países, ciudades, territorio
-- binary: tecnología, digital, IA, código, información
-
-Devuelve JSON:
-- sceneType: tipo elegido
-- speed: slow | medium | fast según intensidad emocional
-- energy: 1 al 10
-- primaryColor: color hex según tono emocional
-- motionDirection: inward | outward | left | right | circular
-
-Contexto:
-- Párrafo anterior: ${prevParagraph}
-- Párrafo actual: ${paragraph}
-- Párrafo siguiente: ${nextParagraph}
-- Tema general: ${temaGeneral}`;
-
-      let parsedResult: any = null;
-      let attempt = 0;
-      while (!parsedResult && attempt < 2) {
-        try {
-          const dsResponse = await fetch('https://api.deepseek.com/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-              model: 'deepseek-chat',
-              messages: [
-                {
-                  role: 'system',
-                  content: 'Eres un programador experto y director creativo. Responde ÚNICAMENTE con el objeto JSON solicitado, sin prefacios ni bloques markdown.'
-                },
-                { role: 'user', content: dsPrompt }
-              ],
-              temperature: 0.2
-            })
-          });
-
-          if (dsResponse.ok) {
-            const dsData = (await dsResponse.json()) as any;
-            const content = dsData?.choices?.[0]?.message?.content || '';
-            let cleanContent = content.trim();
-            if (cleanContent.includes('{')) {
-              cleanContent = cleanContent.substring(cleanContent.indexOf('{'), cleanContent.lastIndexOf('}') + 1);
-            }
-            const resObj = JSON.parse(cleanContent);
-            if (resObj && resObj.sceneType) {
-              parsedResult = resObj;
-            }
+      const distributedTypes: string[] = [];
+      const tempCounts = [clips_originales, clips_stock, clips_remotion, clips_minimax];
+      const categories = ['original', 'stock', 'remotion', 'minimax'];
+      for (let i = 0; i < totalClips; i++) {
+        let picked = false;
+        for (let c = 0; c < 4; c++) {
+          const idx = (i + c) % 4;
+          if (tempCounts[idx] > 0) {
+            distributedTypes.push(categories[idx]);
+            tempCounts[idx]--;
+            picked = true;
+            break;
           }
-        } catch (e) {
-          console.error(`Intento ${attempt + 1} falló para párrafo ${idx + 1}:`, e);
         }
-        attempt++;
+        if (!picked) distributedTypes.push('original');
       }
 
-      if (!parsedResult) {
-        let sceneType = 'neural';
-        if (/(tecnología|digital|código|ia|rob|web|computa)/i.test(paragraph)) sceneType = 'binary';
-        else if (/(lugar|país|ciudad|mapa|mundo|territorio|geograf)/i.test(paragraph)) sceneType = 'map';
-        else if (/(datos|finanzas|dinero|flujo|econom|onda|crecim)/i.test(paragraph)) sceneType = 'mesh';
-        else if (/(persona|gente|sociedad|grupo|red|sistema|relac)/i.test(paragraph)) sceneType = 'nodes';
-        else if (/(cuerpo|correr|caminar|acción|movimiento|humano)/i.test(paragraph)) sceneType = 'figure';
-        
-        parsedResult = {
-          sceneType,
-          speed: 'medium',
-          energy: 5,
-          primaryColor: '#00d4ff',
-          motionDirection: 'circular'
-        };
+      for (let i = 0; i < totalClips; i++) {
+        const cat = distributedTypes[i];
+        parsedData.assignments.push({
+          index: i,
+          category: cat,
+          remotionProps: {
+            sceneTheme: ['memory', 'action', 'data', 'society', 'technology', 'geography'][i % 6],
+            backgroundType: ['neural', 'mesh', 'binary', 'nodes', 'map', 'figure'][i % 6],
+            numberData: 0,
+            percentageData: 0,
+            isNegative: false
+          },
+          minimaxPrompt: `Cinematic footage demonstrating theme related to ${segments[i]}`
+        });
       }
-
-      analysisResults.push({
-        paragraph,
-        remotionScore: parsedResult.energy || 5,
-        hyperframesScore: parsedResult.energy || 5,
-        sceneTheme: parsedResult.sceneType === 'neural' ? 'memory' : 
-                    parsedResult.sceneType === 'figure' ? 'action' : 
-                    parsedResult.sceneType === 'nodes' ? 'society' : 
-                    parsedResult.sceneType === 'mesh' ? 'data' : 
-                    parsedResult.sceneType === 'map' ? 'geography' : 'technology',
-        sceneType: parsedResult.sceneType,
-        backgroundType: parsedResult.sceneType,
-        figureAnimation: parsedResult.sceneType === 'figure' ? 'consumo' : 'none',
-        energy: parsedResult.energy || 5,
-        speed: parsedResult.speed || 'medium',
-        primaryColor: parsedResult.primaryColor || '#00d4ff',
-        motionDirection: parsedResult.motionDirection || 'circular',
-        hyperframesProps: {
-          text: '',
-          number: 0,
-          unit: '',
-          percentage: 0,
-          isNegative: parsedResult.primaryColor === '#ef4444'
-        },
-        remotionProps: {
-          chartType: 'none',
-          title: '',
-          data: [],
-          metricValue: '',
-          metricLabel: '',
-          numberData: 0,
-          unitData: '',
-          percentageData: 0,
-          isNegative: parsedResult.primaryColor === '#ef4444'
-        }
-      });
-      
-      await writeDebugLog(`[generate-timeline-assets] Analizado párrafo ${idx + 1}/${paragraphs.length}: type=${parsedResult.sceneType}, energy=${parsedResult.energy}, color=${parsedResult.primaryColor}`);
     }
 
-    // Calcular las cantidades exactas por categoría en base a los pesos
-    const N = paragraphs.length;
-    const P = weights ? (weights[3] || 0) : 10;
-    const targetCounts = distributeCounts(weights || [40, 30, 20, 10], N);
-    const C_orig = targetCounts[0];
-    const C_stock = targetCounts[1];
-    const C_remotion = targetCounts[2];
-    const C_hyper = targetCounts[3];
-    
-    const propMsg = `[generate-timeline-assets] Proporciones calculadas para N=${N} párrafos -> Originales: ${C_orig}, Stock: ${C_stock}, Remotion: ${C_remotion}, Hyperframes: ${C_hyper}`;
-    console.log(propMsg);
-    await writeDebugLog(propMsg);
+    const temaGeneral = parsedData.theme || 'tecnología';
+    await logMessage(`[FASE 1] Tema general identificado: ${temaGeneral}`);
 
-    // Resolver la asignación greedy
-    const assignedTypes = solveAssignment(analysisResults, C_orig, C_stock, C_remotion, C_hyper);
-
-    // Lógica de Clips de Impacto (mitad del porcentaje): K = Math.round((P/2)/100 * N)
-    const targetImpactCount = Math.round((P / 2) / 100 * N);
-    const scoredIndices = analysisResults.map((item, index) => {
-      const paragraph = item.paragraph || '';
-      const hasNumber = /\d+/.test(paragraph);
-      const energy = item.energy || 5;
-      const hasKeyWords = /(revelación|secreto|clave|sorpresa|impacto|increíble|caída|colapso|peligro|alerta|alucinante|impresionante)/i.test(paragraph);
-      const score = (hasNumber ? 5 : 0) + energy + (hasKeyWords ? 4 : 0);
-      return { index, score };
-    });
-    scoredIndices.sort((a, b) => b.score - a.score);
-    const impactIndices = new Set(scoredIndices.slice(0, targetImpactCount).map(item => item.index));
-
+    // FASE 2: Mapeo de Posiciones
+    await logMessage(`[FASE 2] Iniciando mapeo de clips en segundos...`);
     const bankDir = getBancoClipsPath();
     const useActiveProj = !!activeProjectPath;
     const projectDir = useActiveProj ? activeProjectPath! : bankDir;
+
+    const originalesDir = useActiveProj ? path.join(projectDir, 'temp', 'originales') : path.join(bankDir, 'originales');
+    let originalClips: any[] = [];
+    if (await exists(originalesDir)) {
+      const origFiles = await fs.promises.readdir(originalesDir);
+      for (const file of origFiles) {
+        if (file.startsWith('clip_') && file.endsWith('.mp4')) {
+          const filePath = path.join(originalesDir, file);
+          const durationSeconds = await getVideoDuration(filePath);
+          originalClips.push({
+            name: file,
+            path: filePath,
+            url: `file:///${filePath.replace(/\\/g, '/')}`,
+            durationSeconds
+          });
+        }
+      }
+    }
+
+    const stockBaseDir = path.join(bankDir, 'stock');
+    let subdirs: string[] = [];
+    if (await exists(stockBaseDir)) {
+      const items = await fs.promises.readdir(stockBaseDir, { withFileTypes: true });
+      subdirs = items.filter(item => item.isDirectory()).map(item => item.name);
+    }
+
+    let targetStockDir = stockBaseDir;
+    if (subdirs.length > 0) {
+      const themeLower = temaGeneral.toLowerCase();
+      const bestSubdir = subdirs.find(d => themeLower.includes(d.toLowerCase()) || d.toLowerCase().includes(themeLower));
+      if (bestSubdir) {
+        targetStockDir = path.join(stockBaseDir, bestSubdir);
+      } else {
+        targetStockDir = path.join(stockBaseDir, subdirs[0]);
+      }
+    }
+
+    let stockFiles: string[] = [];
+    if (await exists(targetStockDir)) {
+      const files = await fs.promises.readdir(targetStockDir);
+      stockFiles = files.filter(f => /\.(mp4|mov|avi|mkv|webm)$/i.test(f));
+    }
+
+    const mappedSlots: any[] = [];
+    const usedOriginalPaths = new Set<string>();
+    const usedStockPaths = new Set<string>();
+
+    for (let i = 0; i < totalClips; i++) {
+      const assignment = parsedData.assignments.find((a: any) => a.index === i) || parsedData.assignments[i];
+      const paragraph = segments[i];
+      const category = assignment.category;
+      let mappedClip: any = null;
+
+      if (category === 'original') {
+        let matched = findBestMatchingOriginalClip(paragraph, originalClips, transcriptSegments || []);
+        if (matched) {
+          if (usedOriginalPaths.has(matched.path)) {
+            const unused = originalClips.find(c => !usedOriginalPaths.has(c.path));
+            if (unused) matched = unused;
+          }
+          usedOriginalPaths.add(matched.path);
+          mappedClip = {
+            id: `bank-originales-${matched.name}`,
+            name: matched.name,
+            path: matched.path,
+            url: matched.url,
+            duration: formatTimeMinutesSeconds(matched.durationSeconds),
+            durationSeconds: matched.durationSeconds,
+            type: 'video',
+            category: 'original'
+          };
+        }
+      } else if (category === 'stock') {
+        if (stockFiles.length > 0) {
+          let selectedFile = await selectBestStockClip(temaGeneral, paragraph, stockFiles, apiKey);
+          let filePath = selectedFile ? path.join(targetStockDir, selectedFile) : '';
+          
+          if (filePath && usedStockPaths.has(filePath)) {
+            const unusedFile = stockFiles.find(f => !usedStockPaths.has(path.join(targetStockDir, f)));
+            if (unusedFile) {
+              selectedFile = unusedFile;
+              filePath = path.join(targetStockDir, selectedFile);
+            }
+          }
+
+          if (filePath && selectedFile) {
+            usedStockPaths.add(filePath);
+            const dur = await getVideoDuration(filePath);
+            mappedClip = {
+              id: `bank-stock-${selectedFile}`,
+              name: selectedFile,
+              path: filePath,
+              url: `file:///${filePath.replace(/\\/g, '/')}`,
+              duration: formatTimeMinutesSeconds(dur),
+              durationSeconds: dur,
+              type: 'video',
+              category: 'stock'
+            };
+          }
+        }
+      }
+
+      mappedSlots.push({
+        index: i,
+        paragraph,
+        category,
+        clip: mappedClip,
+        remotionProps: assignment.remotionProps,
+        minimaxPrompt: assignment.minimaxPrompt,
+        startSeconds: i * 3,
+        durationSeconds: 3
+      });
+    }
+
+    // FASE 3: Verificación Previa Obligatoria
+    await logMessage(`[FASE 3] Iniciando verificación previa en disco...`);
     const tempDir = useActiveProj ? path.join(projectDir, 'temp', 'temp_renders') : path.join(bankDir, 'temp_renders');
     if (!(await exists(tempDir))) {
       await fs.promises.mkdir(tempDir, { recursive: true });
@@ -1548,435 +1981,264 @@ Contexto:
       await fs.promises.mkdir(targetCompositionsDir, { recursive: true });
     }
 
-    let remotionSuccessCount = 0;
-    let hyperframesSuccessCount = 0;
-    let originalFallbackCount = 0;
-    let emptyCount = 0;
-    const generatedClips: any[] = [];
+    for (let i = 0; i < totalClips; i++) {
+      const slot = mappedSlots[i];
+      if (slot.category === 'original' || slot.category === 'stock') {
+        let fileExists = false;
+        if (slot.clip && slot.clip.path) {
+          fileExists = await exists(slot.clip.path);
+        }
+        
+        if (!fileExists) {
+          await logMessage(`[FASE 3] Falta clip para slot ${i} (${slot.category}). Buscando fallback...`);
+          if (slot.category === 'original' && originalClips.length > 0) {
+            const fallbackClip = originalClips[i % originalClips.length];
+            slot.clip = {
+              id: `bank-originales-${fallbackClip.name}`,
+              name: fallbackClip.name,
+              path: fallbackClip.path,
+              url: fallbackClip.url,
+              duration: formatTimeMinutesSeconds(fallbackClip.durationSeconds),
+              durationSeconds: fallbackClip.durationSeconds,
+              type: 'video',
+              category: 'original'
+            };
+          } else if (slot.category === 'stock' && stockFiles.length > 0) {
+            const fallbackFile = stockFiles[i % stockFiles.length];
+            const fallbackPath = path.join(targetStockDir, fallbackFile);
+            const dur = await getVideoDuration(fallbackPath);
+            slot.clip = {
+              id: `bank-stock-${fallbackFile}`,
+              name: fallbackFile,
+              path: fallbackPath,
+              url: `file:///${fallbackPath.replace(/\\/g, '/')}`,
+              duration: formatTimeMinutesSeconds(dur),
+              durationSeconds: dur,
+              type: 'video',
+              category: 'stock'
+            };
+          } else {
+            await logMessage(`[FASE 3] No hay archivos en disco de ${slot.category}. Reemplazando slot por Remotion.`);
+            slot.category = 'remotion';
+            slot.remotionProps = {
+              sceneTheme: ['memory', 'action', 'data', 'society', 'technology', 'geography'][i % 6],
+              backgroundType: ['neural', 'mesh', 'binary', 'nodes', 'map', 'figure'][i % 6],
+              numberData: 0,
+              percentageData: 0,
+              isNegative: false
+            };
+          }
+        }
+      }
+    }
+    await logMessage(`[FASE 3] Verificación completada. Todos los clips confirmados.`);
+
+    // FASE 4: Creación de Clips (Remotion y MiniMax)
+    await logMessage(`[FASE 4] Iniciando renderizado/generación de clips IA...`);
     const timestamp = Date.now();
 
-    let remotionCounter = 0;
-    let hyperframesCounter = 0;
-    let transitionCounter = 0;
-
-    for (let idx = 0; idx < analysisResults.length; idx++) {
-      const item = analysisResults[idx];
-      const paragraph = item.paragraph || paragraphs[idx] || '';
-      
-      const isImpact = impactIndices.has(idx);
-      const type = isImpact ? 'hyperframes' : assignedTypes[idx];
-      
-      // Duración fija: 3s regular, 1s para clips de impacto
-      const durationSeconds = isImpact ? 1 : 3;
-      const durationInFrames = isImpact ? 30 : 90;
-
-      // Notify progress
+    for (let i = 0; i < totalClips; i++) {
+      const slot = mappedSlots[i];
       event.sender.send('generation-progress', {
-        index: idx,
-        total: analysisResults.length,
-        paragraph: paragraph.substring(0, 40) + '...',
-        type: isImpact ? 'hyperframes (impacto)' : type
+        index: i,
+        total: totalClips,
+        paragraph: slot.paragraph.substring(0, 45) + '...',
+        type: slot.category.toUpperCase()
       });
 
-      const procMsg = `[generate-timeline-assets] Procesando clip ${idx + 1}/${analysisResults.length} (${type}) - Duración: ${durationSeconds}s (Impacto: ${isImpact})`;
-      console.log(procMsg);
-      await writeDebugLog(procMsg);
-
-      if ((type === 'original' || type === 'stock') && !isImpact) {
-        generatedClips.push({
-          paragraph,
-          type,
-          durationSeconds
-        });
+      if (slot.category === 'remotion') {
+        const randHash = Math.random().toString(36).substring(2, 7);
+        const clipFileName = `remotion_${timestamp}_${i + 1}_${randHash}.mp4`;
+        const outPath = useActiveProj 
+          ? path.join(projectDir, 'temp', 'remotion', clipFileName) 
+          : path.join(bankDir, 'remotion', clipFileName);
+          
+        const tempPropsPath = path.join(tempDir, `remotion_props_${timestamp}_${i + 1}.json`);
+        const propsJson = {
+          backgroundType: slot.remotionProps?.backgroundType || 'neural',
+          sceneTheme: slot.remotionProps?.sceneTheme || 'memory',
+          numberData: slot.remotionProps?.numberData || 0,
+          percentageData: slot.remotionProps?.percentageData || 0,
+          isNegative: slot.remotionProps?.isNegative || false,
+          aspectRatio
+        };
         
-        // Agregar transición si aplica
-        const transitionInterval = P >= 100 ? 1 : (P >= 50 ? 2 : (P >= 10 ? 5 : 0));
-        if (transitionInterval > 0 && (idx + 1) % transitionInterval === 0 && idx < analysisResults.length - 1) {
-          await renderTransitionClip();
+        await fs.promises.writeFile(tempPropsPath, JSON.stringify(propsJson, null, 2), 'utf8');
+        
+        const remotionProjectRoot = getRemotionPath();
+        const entryFile = path.join(remotionProjectRoot, 'remotion', 'src', 'index.ts');
+        
+        let sizeFlags = '--width=1920 --height=1080';
+        if (aspectRatio === 'vertical' || aspectRatio === '9:16') {
+          sizeFlags = '--width=1080 --height=1920';
         }
-        continue;
-      }
 
-      const randHash = Math.random().toString(36).substring(2, 7);
-      const clipFileName = `ai_clip_${timestamp}_${idx + 1}_${randHash}.mp4`;
-      let renderSuccess = false;
-      let finalType = type;
+        await new Promise<void>((resolvePromise) => {
+          const cmd = `npx remotion render "${entryFile}" MainClip "${outPath}" --props="${tempPropsPath}" --frames=0-89 ${sizeFlags}`;
+          exec(cmd, { cwd: remotionProjectRoot }, async (_err) => {
+            try { await fs.promises.unlink(tempPropsPath); } catch (e) {}
+            resolvePromise();
+          });
+        });
 
-      // 2. Generación Remotion
-      if (type === 'remotion' && !isImpact) {
+        if (await exists(outPath)) {
+          const dur = await getVideoDuration(outPath);
+          slot.clip = {
+            id: `bank-remotion-${clipFileName}`,
+            name: clipFileName,
+            path: outPath,
+            url: `file:///${outPath.replace(/\\/g, '/')}`,
+            duration: formatTimeMinutesSeconds(dur),
+            durationSeconds: dur,
+            type: 'video',
+            category: 'remotion'
+          };
+        } else {
+          await logMessage(`[FASE 4] Remotion falló para slot ${i}. Aplicando fallback...`);
+          if (originalClips.length > 0) {
+            const fallbackClip = originalClips[i % originalClips.length];
+            slot.clip = {
+              id: `bank-originales-${fallbackClip.name}`,
+              name: fallbackClip.name,
+              path: fallbackClip.path,
+              url: fallbackClip.url,
+              duration: formatTimeMinutesSeconds(fallbackClip.durationSeconds),
+              durationSeconds: fallbackClip.durationSeconds,
+              type: 'video',
+              category: 'original'
+            };
+          }
+        }
+      } else if (slot.category === 'minimax') {
         try {
-          const remotionBgs = ['neural', 'mesh', 'binary', 'nodes', 'map', 'figure'];
-          const currentBg = remotionBgs[remotionCounter % 6];
-          remotionCounter++;
-
-          const outPath = useActiveProj ? path.join(projectDir, 'temp', 'remotion', clipFileName) : path.join(bankDir, 'remotion', clipFileName);
-          const tempPropsPath = path.join(tempDir, `remotion_props_${timestamp}_${idx + 1}.json`);
-
-          const remotionProps = item.remotionProps || {};
+          await logMessage(`[FASE 4] Solicitando video MiniMax para slot ${i}...`);
+          const minimaxApiKey = process.env.MINIMAX_API_KEY;
+          if (!minimaxApiKey) throw new Error('MINIMAX_API_KEY no configurado');
+          
+          const clipInfo = await generateMiniMaxClipHelper(slot.minimaxPrompt, minimaxApiKey, activeProjectPath, bankDir);
+          if (clipInfo) {
+            slot.clip = clipInfo;
+          }
+        } catch (errMini: any) {
+          await logMessage(`[FASE 4] MiniMax falló para slot ${i}: ${errMini.message || errMini}`);
+        }
+        
+        if (!slot.clip) {
+          await logMessage(`[FASE 4] Aplicando fallback Remotion para MiniMax en slot ${i}...`);
+          const randHash = Math.random().toString(36).substring(2, 7);
+          const clipFileName = `remotion_fallback_${timestamp}_${i + 1}_${randHash}.mp4`;
+          const outPath = useActiveProj 
+            ? path.join(projectDir, 'temp', 'remotion', clipFileName) 
+            : path.join(bankDir, 'remotion', clipFileName);
+            
+          const tempPropsPath = path.join(tempDir, `remotion_props_fb_${timestamp}_${i + 1}.json`);
           const propsJson = {
-            text: paragraph,
-            title: remotionProps.title || 'Gráfico CIPHER',
-            chartType: remotionProps.chartType || 'none',
-            data: remotionProps.data || [],
-            metricValue: remotionProps.metricValue || '',
-            metricLabel: remotionProps.metricLabel || '',
-            backgroundType: currentBg,
-            sceneTheme: item.sceneTheme || 'memory',
-            figureAnimation: remotionProps.figureAnimation || item.figureAnimation || 'none',
-            numberData: typeof remotionProps.numberData === 'number' ? remotionProps.numberData : (item.hyperframesProps && typeof item.hyperframesProps.number === 'number' ? item.hyperframesProps.number : null),
-            unitData: remotionProps.unitData || (item.hyperframesProps && item.hyperframesProps.unit ? item.hyperframesProps.unit : ''),
-            percentageData: typeof remotionProps.percentageData === 'number' ? remotionProps.percentageData : (item.hyperframesProps && typeof item.hyperframesProps.percentage === 'number' ? item.hyperframesProps.percentage : null),
-            isNegative: typeof remotionProps.isNegative === 'boolean' ? remotionProps.isNegative : (item.hyperframesProps && typeof item.hyperframesProps.isNegative === 'boolean' ? item.hyperframesProps.isNegative : false),
+            backgroundType: 'binary',
+            sceneTheme: 'technology',
+            numberData: 0,
+            percentageData: 0,
+            isNegative: false,
             aspectRatio
           };
-
+          
           await fs.promises.writeFile(tempPropsPath, JSON.stringify(propsJson, null, 2), 'utf8');
-
           const remotionProjectRoot = getRemotionPath();
           const entryFile = path.join(remotionProjectRoot, 'remotion', 'src', 'index.ts');
           
           let sizeFlags = '--width=1920 --height=1080';
           if (aspectRatio === 'vertical' || aspectRatio === '9:16') {
             sizeFlags = '--width=1080 --height=1920';
-          } else if (aspectRatio === 'square' || aspectRatio === '1:1') {
-            sizeFlags = '--width=1080 --height=1080';
           }
 
           await new Promise<void>((resolvePromise) => {
-            const cmd = `npx remotion render "${entryFile}" MainClip "${outPath}" --props="${tempPropsPath}" --frames=0-${durationInFrames - 1} ${sizeFlags}`;
-            exec(cmd, { cwd: remotionProjectRoot }, async (err, stdout, stderr) => {
+            const cmd = `npx remotion render "${entryFile}" MainClip "${outPath}" --props="${tempPropsPath}" --frames=0-89 ${sizeFlags}`;
+            exec(cmd, { cwd: remotionProjectRoot }, async (_err) => {
               try { await fs.promises.unlink(tempPropsPath); } catch (e) {}
-              if (stdout && stdout.trim()) await writeDebugLog(`  - Remotion Stdout:\n${stdout}`);
-              if (stderr && stderr.trim()) await writeDebugLog(`  - Remotion Stderr:\n${stderr}`);
-              if (err) {
-                resolvePromise();
-              } else {
-                renderSuccess = true;
-                resolvePromise();
-              }
+              resolvePromise();
             });
           });
 
-          if (renderSuccess) {
-            const thumbnailName = `ai_clip_${timestamp}_${idx + 1}.jpg`;
-            const thumbnailPath = useActiveProj ? path.join(projectDir, 'temp', 'thumbnails', thumbnailName) : path.join(bankDir, 'thumbnails', thumbnailName);
-            let thumbnailUrl = '';
-            try {
-              await generateVideoThumbnail(outPath, thumbnailPath);
-              if (await exists(thumbnailPath)) {
-                thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbnailPath)).toString('base64')}`;
-              }
-            } catch (e) {}
-
-            const stat = await fs.promises.stat(outPath);
-            const clipInfo = {
+          if (await exists(outPath)) {
+            const dur = await getVideoDuration(outPath);
+            slot.clip = {
               id: `bank-remotion-${clipFileName}`,
               name: clipFileName,
               path: outPath,
               url: `file:///${outPath.replace(/\\/g, '/')}`,
-              duration: formatTimeMinutesSeconds(durationSeconds),
-              durationSeconds,
+              duration: formatTimeMinutesSeconds(dur),
+              durationSeconds: dur,
               type: 'video',
-              category: 'remotion',
-              size: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`,
-              thumbnailUrl
+              category: 'remotion'
             };
-
-            generatedClips.push({
-              paragraph,
-              type: 'remotion',
-              durationSeconds,
-              clip: clipInfo
-            });
-            remotionSuccessCount++;
           }
-        } catch (errRemotion: any) {
-          await writeDebugLog(`[generate-timeline-assets] Excepción Remotion: ${errRemotion.message || errRemotion}`);
         }
-
-        if (!renderSuccess) {
-          finalType = 'hyperframes';
-        }
-      }
-
-      // 3. Generación Hyperframes
-      if (finalType === 'hyperframes' && !renderSuccess) {
-        try {
-          const outPath = useActiveProj ? path.join(projectDir, 'temp', 'hyperframes', clipFileName) : path.join(bankDir, 'hyperframes', clipFileName);
-          const compositionHtmlPath = path.join(targetCompositionsDir, `clip_${timestamp}_${idx + 1}.html`);
-          const relativeCompositionPath = `compositions/clip_${timestamp}_${idx + 1}.html`;
-
-          const hyperframesTemplateIndex = hyperframesCounter % 5;
-          hyperframesCounter++;
-
-          const hyperframesHtml = generateHyperframesHtml({
-            ...item,
-            templateIndex: hyperframesTemplateIndex
-          });
-
-          const htmlTemplate = `<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=1920, height=1080" />
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #020712; }
-    </style>
-  </head>
-  <body>
-    <script>
-      window.__timelines = window.__timelines || {};
-      const tl = gsap.timeline({ paused: true });
-      window.__timelines["main"] = tl;
-    </script>
-    <div id="root" data-composition-id="main" data-start="0" data-duration="${durationSeconds}" data-width="1920" data-height="1080">
-      ${hyperframesHtml}
-    </div>
-  </body>
-</html>`;
-
-          await fs.promises.writeFile(compositionHtmlPath, htmlTemplate, 'utf8');
-
-          const hyperframesProjectRoot = (await exists(path.join(process.cwd(), 'hyperframes-project'))) 
-            ? path.join(process.cwd(), 'hyperframes-project') 
-            : path.join(process.cwd(), 'cipher-studio', 'hyperframes-project');
-
-          await new Promise<void>((resolvePromise) => {
-            const cmd = `npx hyperframes render "${hyperframesProjectRoot}" -c "${relativeCompositionPath}" -o "${outPath}"`;
-            exec(cmd, { cwd: hyperframesProjectRoot }, async (err, stdout, stderr) => {
-              try { await fs.promises.unlink(compositionHtmlPath); } catch (e) {}
-              if (stdout && stdout.trim()) await writeDebugLog(`  - Hyperframes Stdout:\n${stdout}`);
-              if (stderr && stderr.trim()) await writeDebugLog(`  - Hyperframes Stderr:\n${stderr}`);
-              if (err) {
-                resolvePromise();
-              } else {
-                renderSuccess = true;
-                resolvePromise();
-              }
-            });
-          });
-
-          if (renderSuccess) {
-            const thumbnailName = `ai_clip_${timestamp}_${idx + 1}.jpg`;
-            const thumbnailPath = useActiveProj ? path.join(projectDir, 'temp', 'thumbnails', thumbnailName) : path.join(bankDir, 'thumbnails', thumbnailName);
-            let thumbnailUrl = '';
-            try {
-              await generateVideoThumbnail(outPath, thumbnailPath);
-              if (await exists(thumbnailPath)) {
-                thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbnailPath)).toString('base64')}`;
-              }
-            } catch (e) {}
-
-            const stat = await fs.promises.stat(outPath);
-            const clipInfo = {
-              id: `bank-hyperframes-${clipFileName}`,
-              name: clipFileName,
-              path: outPath,
-              url: `file:///${outPath.replace(/\\/g, '/')}`,
-              duration: formatTimeMinutesSeconds(durationSeconds),
-              durationSeconds,
-              type: 'video',
-              category: 'hyperframes',
-              size: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`,
-              thumbnailUrl
-            };
-
-            generatedClips.push({
-              paragraph,
-              type: 'hyperframes',
-              durationSeconds,
-              clip: clipInfo
-            });
-            hyperframesSuccessCount++;
-          }
-        } catch (errHyper: any) {
-          await writeDebugLog(`[generate-timeline-assets] Excepción Hyperframes: ${errHyper.message || errHyper}`);
-        }
-      }
-
-      if ((finalType === 'remotion' || finalType === 'hyperframes') && !renderSuccess) {
-        try {
-          const originalesDir = useActiveProj ? path.join(projectDir, 'temp', 'originales') : path.join(bankDir, 'originales');
-          if (await exists(originalesDir)) {
-            const origFiles = (await fs.promises.readdir(originalesDir)).filter(f => f.startsWith('clip_') && f.endsWith('.mp4'));
-            if (origFiles.length > 0) {
-              const chosenFile = origFiles[idx % origFiles.length];
-              const origPath = path.join(originalesDir, chosenFile);
-              
-              const randHash = Math.random().toString(36).substring(2, 7);
-              const uniqueClipName = `fallback_orig_${timestamp}_${idx + 1}_${randHash}.mp4`;
-              const destPath = useActiveProj 
-                ? path.join(projectDir, 'temp', 'originales', uniqueClipName) 
-                : path.join(bankDir, 'originales', uniqueClipName);
-              
-              await fs.promises.copyFile(origPath, destPath);
-              const durationSecondsFallback = await getVideoDuration(destPath);
-
-              const thumbnailName = `fallback_orig_${timestamp}_${idx + 1}_${randHash}.jpg`;
-              const thumbnailPath = useActiveProj ? path.join(projectDir, 'temp', 'thumbnails', thumbnailName) : path.join(bankDir, 'thumbnails', thumbnailName);
-              let thumbnailUrl = '';
-              try {
-                await generateVideoThumbnail(destPath, thumbnailPath);
-                if (await exists(thumbnailPath)) {
-                  thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbnailPath)).toString('base64')}`;
-                }
-              } catch (e) {}
-
-              const stat = await fs.promises.stat(destPath);
-              const clipInfo = {
-                id: `bank-originales-${uniqueClipName}`,
-                name: uniqueClipName,
-                path: destPath,
-                url: `file:///${destPath.replace(/\\/g, '/')}`,
-                duration: formatTimeMinutesSeconds(durationSecondsFallback),
-                durationSeconds: durationSecondsFallback,
-                type: 'video',
-                category: 'original',
-                size: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`,
-                thumbnailUrl
-              };
-
-              generatedClips.push({
-                paragraph,
-                type: 'original',
-                durationSeconds: durationSecondsFallback,
-                clip: clipInfo
-              });
-              renderSuccess = true;
-              originalFallbackCount++;
-            }
-          }
-        } catch (origErr: any) {
-          await writeDebugLog(`[generate-timeline-assets] Fallback a original falló: ${origErr.message || origErr}`);
-        }
-      }
-
-      if (!renderSuccess) {
-        generatedClips.push({
-          paragraph,
-          type: 'empty',
-          durationSeconds
-        });
-        emptyCount++;
-      }
-
-      // Agregar transición si aplica
-      const transitionInterval = P >= 100 ? 1 : (P >= 50 ? 2 : (P >= 10 ? 5 : 0));
-      if (transitionInterval > 0 && (idx + 1) % transitionInterval === 0 && idx < analysisResults.length - 1) {
-        await renderTransitionClip();
       }
     }
 
-    async function renderTransitionClip() {
-      try {
-        const transFileName = `ai_trans_${timestamp}_${transitionCounter + 1}.mp4`;
-        const transOutPath = useActiveProj ? path.join(projectDir, 'temp', 'hyperframes', transFileName) : path.join(bankDir, 'hyperframes', transFileName);
-        const transCompositionHtmlPath = path.join(targetCompositionsDir, `trans_${timestamp}_${transitionCounter + 1}.html`);
-        const transRelativeCompositionPath = `compositions/trans_${timestamp}_${transitionCounter + 1}.html`;
-        
-        const transHtml = generateHyperframesHtml({
-          isTransition: true,
-          transitionIndex: transitionCounter % 5
-        });
-        transitionCounter++;
-        
-        const transHtmlTemplate = `<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=1920, height=1080" />
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #020712; }
-    </style>
-  </head>
-  <body>
-    <script>
-      window.__timelines = window.__timelines || {};
-      const tl = gsap.timeline({ paused: true });
-      window.__timelines["main"] = tl;
-    </script>
-    <div id="root" data-composition-id="main" data-start="0" data-duration="1" data-width="1920" data-height="1080">
-      ${transHtml}
-    </div>
-  </body>
-</html>`;
+    // FASE 5: Verificación Final y Ensamblaje
+    await logMessage(`[FASE 5] Ensamblando timeline secuencial sin huecos (gaps)...`);
+    const assembledClips: any[] = [];
+    let currentStart = 0;
 
-        await fs.promises.writeFile(transCompositionHtmlPath, transHtmlTemplate, 'utf8');
-        
-        const hyperframesProjectRoot = (await exists(path.join(process.cwd(), 'hyperframes-project'))) 
-          ? path.join(process.cwd(), 'hyperframes-project') 
-          : path.join(process.cwd(), 'cipher-studio', 'hyperframes-project');
-
-        let transSuccess = false;
-        await new Promise<void>((resolvePromise) => {
-          const cmd = `npx hyperframes render "${hyperframesProjectRoot}" -c "${transRelativeCompositionPath}" -o "${transOutPath}"`;
-          exec(cmd, { cwd: hyperframesProjectRoot }, async (err) => {
-            try { await fs.promises.unlink(transCompositionHtmlPath); } catch (e) {}
-            if (!err) transSuccess = true;
-            resolvePromise();
-          });
-        });
-
-        if (transSuccess) {
-          const transThumbnailName = `ai_trans_${timestamp}_${transitionCounter}.jpg`;
-          const transThumbnailPath = useActiveProj ? path.join(projectDir, 'temp', 'thumbnails', transThumbnailName) : path.join(bankDir, 'thumbnails', transThumbnailName);
-          let transThumbnailUrl = '';
-          try {
-            await generateVideoThumbnail(transOutPath, transThumbnailPath);
-            if (await exists(transThumbnailPath)) {
-              transThumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(transThumbnailPath)).toString('base64')}`;
-            }
-          } catch (e) {}
-          
-          const transStat = await fs.promises.stat(transOutPath);
-          generatedClips.push({
-            paragraph: `Transición: ${['Flash de luz', 'Líneas barrido', 'Zoom extremo', 'Glitch distorsión', 'Onda de color'][ (transitionCounter - 1) % 5 ]}`,
-            type: 'hyperframes',
-            durationSeconds: 1,
-            clip: {
-              id: `bank-hyperframes-${transFileName}`,
-              name: transFileName,
-              path: transOutPath,
-              url: `file:///${transOutPath.replace(/\\/g, '/')}`,
-              duration: '0:01',
-              durationSeconds: 1,
-              type: 'video',
-              category: 'hyperframes',
-              size: `${(transStat.size / (1024 * 1024)).toFixed(1)} MB`,
-              thumbnailUrl: transThumbnailUrl
-            }
-          });
-          hyperframesSuccessCount++;
-        }
-      } catch (eTrans) {
-        await writeDebugLog(`[generate-timeline-assets] Transición falló: ${eTrans}`);
+    for (let i = 0; i < totalClips; i++) {
+      const slot = mappedSlots[i];
+      if (slot.clip) {
+        slot.clip.startSeconds = currentStart;
+        assembledClips.push(slot.clip);
+        currentStart += slot.clip.durationSeconds;
       }
+    }
+
+    // FASE 6: Insertar transiciones Hyperframes al final
+    const finalClips: any[] = [];
+    const sliderPercentage = typeof hyperframesFrequency === 'number' ? hyperframesFrequency : 30;
+    
+    if (sliderPercentage > 0) {
+      const N_trans = Math.round(10 / (sliderPercentage / 10));
+      await logMessage(`[FASE 6] Insertando transiciones Hyperframes cada N=${N_trans} clips...`);
+      let transCounter = 0;
+      const effects = ['flash', 'sweep', 'zoom', 'glitch', 'onda'];
+
+      for (let k = 0; k < assembledClips.length; k++) {
+        finalClips.push(assembledClips[k]);
+        
+        if (k < assembledClips.length - 1 && (k + 1) % N_trans === 0) {
+          const effect = effects[transCounter % 5];
+          await logMessage(`[FASE 6] Renderizando transición Hyperframes (${effect})...`);
+          
+          const transClip = await renderTransitionClip(
+            effect,
+            transCounter,
+            targetCompositionsDir,
+            projectDir,
+            bankDir,
+            useActiveProj
+          );
+          
+          if (transClip) {
+            finalClips.push(transClip);
+            transCounter++;
+          }
+        }
+      }
+    } else {
+      await logMessage(`[FASE 6] Slider de transiciones en 0%. No se insertan transiciones.`);
+      finalClips.push(...assembledClips);
+    }
+
+    let runningStart = 0;
+    for (let k = 0; k < finalClips.length; k++) {
+      finalClips[k].startSeconds = runningStart;
+      runningStart += finalClips[k].durationSeconds;
     }
 
     try { await fs.promises.rmdir(tempDir); } catch (e) {}
 
-    const finishMsg = `[generate-timeline-assets] Generación finalizada. Resumen de Generación:
-      - Remotion generados con éxito: ${remotionSuccessCount}
-      - Hyperframes generados con éxito: ${hyperframesSuccessCount}
-      - Fallback a original: ${originalFallbackCount}
-      - Slots vacíos: ${emptyCount}`;
-      
-    console.log(finishMsg);
-    await writeDebugLog(finishMsg);
+    await logMessage(`[Construir Timeline] Completado con éxito. Clips totales en timeline: ${finalClips.length}`);
 
-    return { 
-      success: true, 
-      clips: generatedClips,
-      summary: {
-        remotion: remotionSuccessCount,
-        hyperframes: hyperframesSuccessCount,
-        originalFallback: originalFallbackCount,
-        empty: emptyCount
-      }
+    return {
+      success: true,
+      clips: finalClips
     };
 
   } catch (err: any) {
@@ -1985,7 +2247,7 @@ Contexto:
     await writeDebugLog(errMsg);
     return { success: false, error: err.message || 'Error interno al generar assets de la IA' };
   }
-})
+});
 
 function generateHyperframesHtml(item: any): string {
   const isTransition = !!item.isTransition;

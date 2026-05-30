@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useCurrentFrame, interpolate } from 'remotion';
+import { useCurrentFrame, interpolate, spring, useVideoConfig } from 'remotion';
 
 export interface ChartDataItem {
   label: string;
@@ -1100,14 +1100,19 @@ export const MainClip: React.FC<MainClipProps> = ({
   const width = isVertical ? 1080 : 1920;
   const height = isVertical ? 1920 : 1080;
 
-  const entranceProgress = interpolate(frame, [0, 24], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-    easing: (t) => t * (2 - t)
+  const videoConfig = useVideoConfig();
+  const entranceSpring = spring({
+    frame,
+    fps: videoConfig.fps,
+    config: {
+      damping: 14,
+      mass: 0.8,
+      stiffness: 100,
+    },
   });
 
-  const scale = interpolate(entranceProgress, [0, 1], [0.15, 1.0]);
-  const opacity = interpolate(entranceProgress, [0, 1], [0, 1]);
+  const scale = interpolate(entranceSpring, [0, 1], [0.15, 1.0]);
+  const opacity = interpolate(entranceSpring, [0, 1], [0, 1]);
 
   const exitProgress = interpolate(frame, [72, 88], [0, 1], {
     extrapolateLeft: 'clamp',
