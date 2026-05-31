@@ -4898,68 +4898,49 @@ function App() {
   )
 }
 
-function RemotionVisualizer({ text, time }: { text: string; time: number }) {
-  const words = text.split(' ');
-  const totalWordsToShow = Math.min(words.length, Math.floor(time * 3) + 1);
-  const visibleText = words.slice(0, totalWordsToShow).join(' ');
-
+function RemotionVisualizer({ time }: { text?: string; time: number }) {
+  const colors = ['#00d4ff', '#fbbf24', '#f472b6', '#6366f1'];
   return (
-    <div className="relative w-full h-full bg-gradient-to-br from-purple-950 via-slate-950 to-indigo-950 flex flex-col items-center justify-center p-6 overflow-hidden">
-      <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:24px_24px] animate-pulse" />
-      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl animate-bounce" style={{ animationDuration: '6s' }} />
-      <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl animate-bounce" style={{ animationDuration: '8s' }} />
-
-      <div className="relative z-10 max-w-md space-y-4">
-        <h2 className="text-xl md:text-2xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 drop-shadow-lg transition-all duration-300">
-          {visibleText || "Generando Gráfico..."}
-        </h2>
-        
-        <div className="flex justify-center items-end space-x-1.5 h-12 pt-4">
-          {[0.6, 0.9, 0.4, 0.8, 0.5, 0.7, 0.3].map((h, i) => {
-            const dynamicHeight = Math.sin(time * 4 + i) * 15 + h * 30 + 15;
-            return (
-              <div 
-                key={i} 
-                style={{ height: `${dynamicHeight}px` }} 
-                className="w-2.5 bg-gradient-to-t from-purple-600 to-pink-500 rounded-t transition-all duration-100" 
-              />
-            );
-          })}
-        </div>
-      </div>
-      
-      <div className="absolute bottom-4 left-4 text-[9px] font-bold text-purple-400/60 uppercase tracking-widest flex items-center space-x-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping" />
-        <span>REMOTION ENGINE v4.0</span>
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#020712' }}>
+      <div className="absolute inset-0 opacity-[0.12] bg-[linear-gradient(to_right,#6366f1_1px,transparent_1px),linear-gradient(to_bottom,#6366f1_1px,transparent_1px)] bg-[size:48px_48px]" />
+      <div
+        className="absolute w-72 h-72 rounded-full blur-3xl"
+        style={{ background: 'radial-gradient(circle, #00d4ff33, transparent 70%)', transform: `scale(${1 + Math.sin(time * 1.5) * 0.15})` }}
+      />
+      <div className="relative z-10 flex items-end justify-center gap-2 h-40">
+        {[0.6, 0.9, 0.4, 0.8, 0.5, 0.7, 0.3, 0.85, 0.55].map((h, i) => {
+          const dynamicHeight = Math.sin(time * 4 + i * 0.6) * 40 + h * 90 + 30;
+          const color = colors[i % 4];
+          return (
+            <div
+              key={i}
+              style={{ height: `${dynamicHeight}px`, backgroundColor: color, boxShadow: `0 0 16px ${color}` }}
+              className="w-3 rounded-full transition-all duration-100"
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function HyperframesVisualizer({ text, time }: { text: string; time: number }) {
+function HyperframesVisualizer({ time }: { text?: string; time: number }) {
+  const colors = ['#00d4ff', '#fbbf24', '#f472b6', '#6366f1'];
   return (
-    <div className="relative w-full h-full bg-gradient-to-tr from-slate-950 via-slate-900 to-pink-950/20 flex flex-col items-center justify-center p-6 overflow-hidden">
-      <div 
-        className="absolute inset-0 bg-cover bg-center opacity-30 transition-transform duration-[10000ms] ease-out scale-110"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop')`,
-          transform: `scale(${1.05 + (time * 0.01)}) translate(${Math.sin(time * 0.2) * 5}px, ${Math.cos(time * 0.2) * 5}px)`,
-        }}
-      />
-      
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
-      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1px,transparent_1px)] bg-[size:16px_16px] animate-[pulse_3s_infinite]" />
-
-      <div className="relative z-10 max-w-lg mt-auto mb-8 px-4 py-3 bg-slate-950/70 border border-slate-800/80 rounded-xl backdrop-blur-sm shadow-2xl">
-        <p className="text-xs md:text-sm font-medium leading-relaxed tracking-wide text-pink-100/90 italic">
-          "{text}"
-        </p>
-      </div>
-      
-      <div className="absolute top-4 right-4 text-[9px] font-bold text-pink-400/60 uppercase tracking-widest flex items-center space-x-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-ping" />
-        <span>HYPERFRAMES B-ROLL GENERATOR</span>
-      </div>
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#020712' }}>
+      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1px,transparent_1px)] bg-[size:18px_18px]" />
+      {colors.map((c, i) => {
+        const scale = 0.4 + ((time * 0.6 + i * 0.5) % 2);
+        const opacity = Math.max(0, 1 - scale / 2.4);
+        return (
+          <div
+            key={i}
+            className="absolute rounded-full"
+            style={{ width: 160, height: 160, border: `4px solid ${c}`, boxShadow: `0 0 24px ${c}`, transform: `scale(${scale})`, opacity }}
+          />
+        );
+      })}
+      <div className="absolute w-4 h-4 rounded-full" style={{ backgroundColor: '#ffffff', boxShadow: '0 0 20px #00d4ff' }} />
     </div>
   );
 }

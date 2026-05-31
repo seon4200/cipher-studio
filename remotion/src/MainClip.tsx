@@ -7,27 +7,35 @@ export interface ChartDataItem {
 }
 
 export interface MainClipProps {
-  text?: string;
-  title?: string;
-  chartType?: 'bar' | 'line' | 'kpi' | 'none';
-  data?: ChartDataItem[];
-  metricValue?: string;
-  metricLabel?: string;
-  backgroundType?: 'neural' | 'mesh' | 'binary' | 'nodes' | 'map' | 'figure';
-  sceneTheme?: 'memory' | 'action' | 'data' | 'society' | 'technology' | 'geography';
-  figureAnimation?: 'consumo' | 'poder' | 'urgencia' | 'caida' | 'sociedad' | 'mundo' | 'empoderamiento' | 'psicologia' | 'trabajo' | 'revelacion' | 'none';
-  numberData?: number;
-  unitData?: string;
-  percentageData?: number;
-  isNegative?: boolean;
+  keyword?: string;
   aspectRatio?: '16:9' | '9:16';
 }
 
 export const defaultProps: MainClipProps = {
-  backgroundType: 'neural',
-  sceneTheme: 'memory',
-  figureAnimation: 'none',
+  keyword: 'concepto',
   aspectRatio: '16:9'
+};
+
+// El keyword es la única entrada creativa: lo hasheamos para que una misma
+// palabra produzca siempre el mismo visual y palabras distintas produzcan
+// visuales distintos (combinación fondo×tema = 36 variantes deterministas).
+const hashKeyword = (s: string): number => {
+  let h = 2166136261;
+  const str = (s || '').toLowerCase().trim();
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+};
+
+const KW_NEGATIVE = ['caida', 'caída', 'perdida', 'pérdida', 'declive', 'riesgo', 'peligro', 'crisis', 'negativo', 'baja', 'reduccion', 'reducción', 'colapso', 'fracaso'];
+
+const parseKeywordNumber = (s: string): number => {
+  const m = (s || '').match(/(\d+(?:[.,]\d+)?)/);
+  if (!m) return 0;
+  const val = parseFloat(m[1].replace(',', '.'));
+  return isNaN(val) ? 0 : val;
 };
 
 // HELPER COMPONENTS FOR DRAW-STYLE STROKE-DASH-OFFSET ANIMATIONS
@@ -1087,16 +1095,12 @@ const GeographyForeground: React.FC<{ frame: number; scale: number; opacity: num
 };
 
 export const MainClip: React.FC<MainClipProps> = ({
-  backgroundType = 'neural',
-  sceneTheme = 'memory',
-  numberData = 0,
-  percentageData = 0,
-  isNegative = false,
+  keyword = 'concepto',
   aspectRatio = '16:9'
 }) => {
   const frame = useCurrentFrame();
   const isVertical = aspectRatio === '9:16';
-  
+
   const width = isVertical ? 1080 : 1920;
   const height = isVertical ? 1920 : 1080;
 
@@ -1124,7 +1128,34 @@ export const MainClip: React.FC<MainClipProps> = ({
   const finalOpacity = interpolate(exitProgress, [0, 1], [opacity, 0]);
   const exitTranslateX = interpolate(exitProgress, [0, 1], [0, 600]);
 
-  const rawNum = numberData || percentageData || 0;
+  // El keyword decide todo: fondo, tema, signo y cifra a visualizar.
+  const seed = hashKeyword(keyword);
+  const lower = (keyword || '').toLowerCase();
+  const keywordNumber = parseKeywordNumber(keyword);
+  const hasNumber = keywordNumber > 0;
+  const isNegative = KW_NEGATIVE.some(w => lower.includes(w));
+
+  const bgIndex = seed % 6;
+  // Si el keyword trae una cifra, priorizamos el tema 'data' para visualizarla.
+  const fgIndex = hasNumber ? 2 : (Math.floor(seed / 6) % 6);
+
+  const backgrounds = [
+    <NeuralBackground frame={frame} />,
+    <MeshBackground frame={frame} />,
+    <BinaryBackground frame={frame} />,
+    <NodesBackground frame={frame} />,
+    <MapBackground frame={frame} />,
+    <FigureBackgroundComp frame={frame} />,
+  ];
+
+  const foregrounds = [
+    <MemoryForeground frame={frame} scale={finalScale} opacity={finalOpacity} />,
+    <ActionForeground frame={frame} scale={finalScale} opacity={finalOpacity} />,
+    <DataForeground frame={frame} scale={finalScale} opacity={finalOpacity} numberVal={hasNumber ? keywordNumber : 0} isNegative={isNegative} />,
+    <SocietyForeground frame={frame} scale={finalScale} opacity={finalOpacity} />,
+    <TechnologyForeground frame={frame} scale={finalScale} opacity={finalOpacity} />,
+    <GeographyForeground frame={frame} scale={finalScale} opacity={finalOpacity} />,
+  ];
 
   return (
     <div
@@ -1141,12 +1172,7 @@ export const MainClip: React.FC<MainClipProps> = ({
       }}
     >
       <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
-        {backgroundType === 'neural' && <NeuralBackground frame={frame} />}
-        {backgroundType === 'mesh' && <MeshBackground frame={frame} />}
-        {backgroundType === 'binary' && <BinaryBackground frame={frame} />}
-        {backgroundType === 'nodes' && <NodesBackground frame={frame} />}
-        {backgroundType === 'map' && <MapBackground frame={frame} />}
-        {backgroundType === 'figure' && <FigureBackgroundComp frame={frame} />}
+        {backgrounds[bgIndex]}
       </div>
 
       <div style={{
@@ -1156,30 +1182,7 @@ export const MainClip: React.FC<MainClipProps> = ({
         pointerEvents: 'none',
         transform: `translateX(${exitTranslateX}px)`
       }}>
-        {sceneTheme === 'memory' && (
-          <MemoryForeground frame={frame} scale={finalScale} opacity={finalOpacity} />
-        )}
-        {sceneTheme === 'action' && (
-          <ActionForeground frame={frame} scale={finalScale} opacity={finalOpacity} />
-        )}
-        {sceneTheme === 'data' && (
-          <DataForeground
-            frame={frame}
-            scale={finalScale}
-            opacity={finalOpacity}
-            numberVal={rawNum}
-            isNegative={isNegative}
-          />
-        )}
-        {sceneTheme === 'society' && (
-          <SocietyForeground frame={frame} scale={finalScale} opacity={finalOpacity} />
-        )}
-        {sceneTheme === 'technology' && (
-          <TechnologyForeground frame={frame} scale={finalScale} opacity={finalOpacity} />
-        )}
-        {sceneTheme === 'geography' && (
-          <GeographyForeground frame={frame} scale={finalScale} opacity={finalOpacity} />
-        )}
+        {foregrounds[fgIndex]}
       </div>
 
       <div style={{

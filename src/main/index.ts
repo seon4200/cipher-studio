@@ -1590,7 +1590,7 @@ async function generateMiniMaxClipHelper(prompt: string, apiKey: string, activeP
   };
 }
 
-async function renderTransitionClip(effect: string, counter: number, targetCompositionsDir: string, projectDir: string, bankDir: string, useActiveProj: boolean): Promise<any> {
+async function renderTransitionClip(effect: string, counter: number, transitionIndex: number, targetCompositionsDir: string, projectDir: string, bankDir: string, useActiveProj: boolean): Promise<any> {
   const timestamp = Date.now();
   const clipFileName = `trans_${timestamp}_${counter + 1}.mp4`;
   const outPath = useActiveProj 
@@ -1602,7 +1602,7 @@ async function renderTransitionClip(effect: string, counter: number, targetCompo
   
   const transHtml = generateHyperframesHtml({
     isTransition: true,
-    transitionIndex: counter % 5
+    transitionIndex
   });
   
   const htmlTemplate = `<!doctype html>
@@ -1736,13 +1736,10 @@ Por favor, decide a qué categoría de clip pertenece cada segmento de forma sec
 - minimax: ${clips_minimax} clips (animaciones/escenas generadas por IA)
 
 Para los clips asignados a 'remotion':
-Elige y configura las propiedades más descriptivas en "remotionProps" (sin texto en pantalla):
-- "backgroundType": "neural" (cerebro/neuronas neón), "mesh" (malla 3D dinámica), "binary" (columnas de código cayendo), "nodes" (esfera 3D de nodos girando), "map" (grilla/escaneo de mapa), "figure" (figura humana dorada en movimiento).
-- "sceneTheme": "memory" (red de neuronas activándose), "action" (líneas de velocidad y atleta corriendo), "data" (radial dial circular y explosión de partículas), "society" (4 figuras humanas cooperando/saludando), "technology" (brillantes corchetes flotantes y datos), "geography" (mapa trazándose con ciudades conectadas).
-- REGLA OBLIGATORIA DE NO-REPETICIÓN: procesa los clips 'remotion' en orden secuencial y recuerda el último par (backgroundType + sceneTheme) que asignaste. El par (backgroundType + sceneTheme) de cada clip 'remotion' DEBE ser diferente al del clip 'remotion' anterior — está terminantemente prohibido repetir el mismo par dos veces seguidas. Varía ambos valores siempre que sea posible.
-- "numberData": número a animar/mostrar en el dial si el segmento menciona métricas/cantidades (0 si no aplica).
-- "percentageData": porcentaje a animar/mostrar en el dial si menciona porcentajes (0 si no aplica).
-- "isNegative": true si el concepto describe pérdidas, declive, peligro o valores negativos; false si es positivo, ganancia o neutral.
+Escribe en "keyword" UNA sola palabra clave (1 a 3 palabras como máximo) que describa el concepto visual central del párrafo. El motor procedural tiene libertad total para crear la animación más impactante a partir de esa palabra, así que la palabra debe ser concreta y evocadora.
+- Si el párrafo menciona una cifra o porcentaje relevante, inclúyela dentro del keyword para que se visualice (ej: "crecimiento 45%", "caída 30%", "10 millones").
+- Si el concepto es de pérdida, declive, peligro o algo negativo, refléjalo en la palabra (ej: "caída", "crisis", "riesgo").
+- REGLA OBLIGATORIA DE NO-REPETICIÓN: el "keyword" de cada clip 'remotion' DEBE ser diferente al del clip 'remotion' anterior. Está prohibido repetir la misma palabra clave dos veces seguidas; varía el concepto en cada clip.
 
 Para los clips asignados a 'minimax':
 Escribe en "minimaxPrompt" un prompt altamente detallado, cinematográfico, descriptivo y en inglés para generación de video por IA. Debe describir la acción física, el entorno, el sujeto y la iluminación de forma que transmita perfectamente el concepto del segmento analizado con su contexto, sin incluir texto o marcas de agua.
@@ -1758,11 +1755,7 @@ Devuelve la respuesta ÚNICAMENTE como un objeto JSON válido con la siguiente e
       "index": number,
       "category": "original" | "stock" | "remotion" | "minimax",
       "remotionProps": {
-        "sceneTheme": "memory" | "action" | "data" | "society" | "technology" | "geography",
-        "backgroundType": "neural" | "mesh" | "binary" | "nodes" | "map" | "figure",
-        "numberData": number,
-        "percentageData": number,
-        "isNegative": boolean
+        "keyword": "palabra clave del concepto (distinta a la del clip remotion anterior)"
       },
       "minimaxPrompt": "prompt descriptivo en inglés"
     }
@@ -1829,17 +1822,14 @@ Devuelve la respuesta ÚNICAMENTE como un objeto JSON válido con la siguiente e
         if (!picked) distributedTypes.push('original');
       }
 
+      const fallbackKeywords = ['memoria', 'energía', 'datos', 'conexión', 'tecnología', 'futuro', 'red', 'crecimiento', 'velocidad', 'mente', 'sociedad', 'mundo'];
       for (let i = 0; i < totalClips; i++) {
         const cat = distributedTypes[i];
         parsedData.assignments.push({
           index: i,
           category: cat,
           remotionProps: {
-            sceneTheme: ['memory', 'action', 'data', 'society', 'technology', 'geography'][i % 6],
-            backgroundType: ['neural', 'mesh', 'binary', 'nodes', 'map', 'figure'][i % 6],
-            numberData: 0,
-            percentageData: 0,
-            isNegative: false
+            keyword: fallbackKeywords[i % fallbackKeywords.length]
           },
           minimaxPrompt: `Cinematic footage demonstrating theme related to ${segments[i]}`
         });
@@ -2022,11 +2012,7 @@ Devuelve la respuesta ÚNICAMENTE como un objeto JSON válido con la siguiente e
             await logMessage(`[FASE 3] No hay archivos en disco de ${slot.category}. Reemplazando slot por Remotion.`);
             slot.category = 'remotion';
             slot.remotionProps = {
-              sceneTheme: ['memory', 'action', 'data', 'society', 'technology', 'geography'][i % 6],
-              backgroundType: ['neural', 'mesh', 'binary', 'nodes', 'map', 'figure'][i % 6],
-              numberData: 0,
-              percentageData: 0,
-              isNegative: false
+              keyword: ['memoria', 'energía', 'datos', 'conexión', 'tecnología', 'futuro'][i % 6]
             };
           }
         }
@@ -2056,11 +2042,7 @@ Devuelve la respuesta ÚNICAMENTE como un objeto JSON válido con la siguiente e
           
         const tempPropsPath = path.join(tempDir, `remotion_props_${timestamp}_${i + 1}.json`);
         const propsJson = {
-          backgroundType: slot.remotionProps?.backgroundType || 'neural',
-          sceneTheme: slot.remotionProps?.sceneTheme || 'memory',
-          numberData: slot.remotionProps?.numberData || 0,
-          percentageData: slot.remotionProps?.percentageData || 0,
-          isNegative: slot.remotionProps?.isNegative || false,
+          keyword: slot.remotionProps?.keyword || slot.paragraph?.split(' ').slice(0, 3).join(' ') || 'concepto',
           aspectRatio
         };
         
@@ -2134,11 +2116,7 @@ Devuelve la respuesta ÚNICAMENTE como un objeto JSON válido con la siguiente e
             
           const tempPropsPath = path.join(tempDir, `remotion_props_fb_${timestamp}_${i + 1}.json`);
           const propsJson = {
-            backgroundType: 'binary',
-            sceneTheme: 'technology',
-            numberData: 0,
-            percentageData: 0,
-            isNegative: false,
+            keyword: slot.remotionProps?.keyword || slot.paragraph?.split(' ').slice(0, 3).join(' ') || 'tecnología',
             aspectRatio
           };
           
@@ -2199,17 +2177,23 @@ Devuelve la respuesta ÚNICAMENTE como un objeto JSON válido con la siguiente e
       await logMessage(`[FASE 6] Insertando transiciones Hyperframes cada N=${N_trans} clips...`);
       let transCounter = 0;
       const effects = ['flash', 'sweep', 'zoom', 'glitch', 'onda'];
+      let lastTransIndex = -1;
 
       for (let k = 0; k < assembledClips.length; k++) {
         finalClips.push(assembledClips[k]);
-        
+
         if (k < assembledClips.length - 1 && (k + 1) % N_trans === 0) {
-          const effect = effects[transCounter % 5];
+          // Elegimos una transición al azar pero distinta a la anterior.
+          let transIndex = Math.floor(Math.random() * 5);
+          if (transIndex === lastTransIndex) transIndex = (transIndex + 1) % 5;
+          lastTransIndex = transIndex;
+          const effect = effects[transIndex];
           await logMessage(`[FASE 6] Renderizando transición Hyperframes (${effect})...`);
-          
+
           const transClip = await renderTransitionClip(
             effect,
             transCounter,
+            transIndex,
             targetCompositionsDir,
             projectDir,
             bankDir,
