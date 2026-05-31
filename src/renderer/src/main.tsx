@@ -943,23 +943,32 @@ function App() {
       const nextClip = sortedClips[currentIndex + 1];
       
       if (nextClip) {
-        const nextTime = nextClip.startSeconds;
-        updateCurrentTime(nextTime);
-        flushCurrentTime();
-        
-        if (nextClip.path) {
-          const nextUrl = `file:///${nextClip.path.replace(/\\/g, '/')}`;
-          setActiveVideoUrl(nextUrl);
-          video.src = nextUrl;
-          video.currentTime = nextClip.segmentStartOffset || 0;
-          video.load();
-          video.play().catch(e => console.error("Ended transition play error:", e));
-        } else {
+        const isDynamic = nextClip.path === 'remotion-dynamic' || nextClip.path === 'hyperframes-dynamic';
+
+        if (isDynamic) {
+          // Escena dinámica: sin archivo de video. No pausar video ni audio;
+          // solo ocultar el <video> y dejar que el audio siga avanzando para
+          // que el cursor permanezca sincronizado vía el master clock tick.
           setActiveVideoUrl(null);
-          video.pause();
-        }
-        if (audioRef.current) {
-          audioRef.current.currentTime = nextTime;
+        } else {
+          const nextTime = nextClip.startSeconds;
+          updateCurrentTime(nextTime);
+          flushCurrentTime();
+
+          if (nextClip.path) {
+            const nextUrl = `file:///${nextClip.path.replace(/\\/g, '/')}`;
+            setActiveVideoUrl(nextUrl);
+            video.src = nextUrl;
+            video.currentTime = nextClip.segmentStartOffset || 0;
+            video.load();
+            video.play().catch(e => console.error("Ended transition play error:", e));
+          } else {
+            setActiveVideoUrl(null);
+            video.pause();
+          }
+          if (audioRef.current) {
+            audioRef.current.currentTime = nextTime;
+          }
         }
       } else {
         setIsPlaying(false);
@@ -1311,7 +1320,7 @@ function App() {
 
       const video = videoRef.current;
       const audio = audioRef.current;
-      const clips = timelineVideoClips || [];
+      const clips = timelineClipsRef.current || [];
       const time = currentTimeRef.current;
       
       let newTime = time;
@@ -1356,7 +1365,7 @@ function App() {
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [isPlaying, totalDuration, timelineVideoClips]);
+  }, [isPlaying, totalDuration]);
 
   const refreshProjectsList = async () => {
     try {

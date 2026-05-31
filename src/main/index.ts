@@ -1739,6 +1739,7 @@ Para los clips asignados a 'remotion':
 Elige y configura las propiedades más descriptivas en "remotionProps" (sin texto en pantalla):
 - "backgroundType": "neural" (cerebro/neuronas neón), "mesh" (malla 3D dinámica), "binary" (columnas de código cayendo), "nodes" (esfera 3D de nodos girando), "map" (grilla/escaneo de mapa), "figure" (figura humana dorada en movimiento).
 - "sceneTheme": "memory" (red de neuronas activándose), "action" (líneas de velocidad y atleta corriendo), "data" (radial dial circular y explosión de partículas), "society" (4 figuras humanas cooperando/saludando), "technology" (brillantes corchetes flotantes y datos), "geography" (mapa trazándose con ciudades conectadas).
+- REGLA OBLIGATORIA DE NO-REPETICIÓN: procesa los clips 'remotion' en orden secuencial y recuerda el último par (backgroundType + sceneTheme) que asignaste. El par (backgroundType + sceneTheme) de cada clip 'remotion' DEBE ser diferente al del clip 'remotion' anterior — está terminantemente prohibido repetir el mismo par dos veces seguidas. Varía ambos valores siempre que sea posible.
 - "numberData": número a animar/mostrar en el dial si el segmento menciona métricas/cantidades (0 si no aplica).
 - "percentageData": porcentaje a animar/mostrar en el dial si menciona porcentajes (0 si no aplica).
 - "isNegative": true si el concepto describe pérdidas, declive, peligro o valores negativos; false si es positivo, ganancia o neutral.
