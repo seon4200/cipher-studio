@@ -22,7 +22,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generateVoice: (params: any) => ipcRenderer.invoke('generate-voice', params),
   generateMinimaxVideo: (params: { prompt: string }) => ipcRenderer.invoke('generate-minimax-video', params),
   loadBankClips: (params: { category: string }) => ipcRenderer.invoke('load-bank-clips', params),
-  generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string }) => ipcRenderer.invoke('generate-timeline-assets', params),
+  generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string }) => ipcRenderer.invoke('generate-timeline-assets', params),
   onGenerationProgress: (callback: (event: any, data: any) => void) => {
     const listener = (_event: any, value: any) => callback(_event, value)
     ipcRenderer.on('generation-progress', listener)
@@ -30,7 +30,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('generation-progress', listener)
     }
   },
-  cutVideoClips: (params: { videoPath: string, segments?: any[], aspectRatio?: string }) => ipcRenderer.invoke('cut-video-clips', params),
+  cutVideoClips: (params: { videoPath: string, timestamps?: number[], aspectRatio?: string }) => ipcRenderer.invoke('cut-video-clips', params),
   saveProjectState: (state: any) => ipcRenderer.invoke('save-project-state', state),
   loadProjectState: () => ipcRenderer.invoke('load-project-state'),
   saveProjectAs: (state: any) => ipcRenderer.invoke('save-project-as', state),

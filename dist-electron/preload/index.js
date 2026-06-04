@@ -19,6 +19,7 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   },
   rewriteTranscript: (text) => electron.ipcRenderer.invoke("rewrite-transcript", text),
   generateVoice: (params) => electron.ipcRenderer.invoke("generate-voice", params),
+  generateMinimaxVideo: (params) => electron.ipcRenderer.invoke("generate-minimax-video", params),
   loadBankClips: (params) => electron.ipcRenderer.invoke("load-bank-clips", params),
   generateTimelineAssets: (params) => electron.ipcRenderer.invoke("generate-timeline-assets", params),
   onGenerationProgress: (callback) => {
@@ -36,6 +37,12 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   deleteBankClip: (params) => electron.ipcRenderer.invoke("delete-bank-clip", params),
   exportVideo: (params) => electron.ipcRenderer.invoke("export-video", params),
   getElevenLabsVoices: () => electron.ipcRenderer.invoke("get-elevenlabs-voices"),
+  listProjects: () => electron.ipcRenderer.invoke("list-projects"),
+  createProject: (params) => electron.ipcRenderer.invoke("create-project", params),
+  loadProject: (params) => electron.ipcRenderer.invoke("load-project", params),
+  closeProject: () => electron.ipcRenderer.invoke("close-project"),
+  deleteProject: (params) => electron.ipcRenderer.invoke("delete-project", params),
+  readFileAsBlob: (params) => electron.ipcRenderer.invoke("read-file-as-blob", params),
   onSaveBeforeClose: (callback) => {
     const listener = () => callback();
     electron.ipcRenderer.on("save-before-close", listener);

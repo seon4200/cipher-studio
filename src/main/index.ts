@@ -123,15 +123,6 @@ function getBancoClipsPath(): string {
   }
 }
 
-function getRemotionPath(): string {
-  const cwd = process.cwd()
-  if (path.basename(cwd) === 'cipher-studio') {
-    return cwd
-  } else {
-    return path.join(cwd, 'cipher-studio')
-  }
-}
-
 async function writeDebugLog(message: string) {
   try {
     const cwd = process.cwd();
@@ -158,8 +149,6 @@ async function initClipFolders() {
     '',
     'originales',
     'stock',
-    'remotion',
-    'hyperframes',
     'veo3',
     'thumbnails'
   ]
@@ -216,19 +205,28 @@ ipcMain.on('start-transcription', async (event, filePath) => {
     } catch (e) {}
   }
 
+  if (!(await exists(filePath))) {
+    event.reply('transcription-update', {
+      status: 'error',
+      error: `El archivo de audio no existe en la ruta: ${filePath}`
+    })
+    return
+  }
+
   // Notify renderer that the Whisper process is starting
-  event.reply('transcription-update', { 
-    status: 'starting', 
-    message: 'Conectando con Whisper local y cargando modelo...' 
+  event.reply('transcription-update', {
+    status: 'starting',
+    message: 'Conectando con Whisper local y cargando modelo...'
   })
 
   // Spawn whisper command using shell: true for Windows compatibility
   const whisperProcess = spawn('whisper', [
     `"${filePath}"`,
     '--language', 'Spanish',
+    '--model', 'tiny',
     '--output_format', 'json',
     '--output_dir', `"${transcriptsDir}"`
-  ], { shell: true })
+  ], { shell: true, env: { ...process.env, PYTHONIOENCODING: 'utf-8' } })
 
   let progressBuffer = ''
 
@@ -1049,7 +1047,7 @@ ipcMain.handle('generate-minimax-video', async (_event, { prompt }) => {
 // IPC handle for loading clips in a category folder of banco-clips
 ipcMain.handle('load-bank-clips', async (_event, { category }) => {
   try {
-    const isTempCategory = ['originales', 'remotion', 'hyperframes', 'minimax'].includes(category.toLowerCase())
+    const isTempCategory = ['originales', 'minimax'].includes(category.toLowerCase())
     const useActiveProj = !!(activeProjectPath && isTempCategory)
     const baseDir = useActiveProj ? activeProjectPath! : getBancoClipsPath()
     const dirPath = useActiveProj ? path.join(baseDir, 'temp', category) : path.join(baseDir, category)
@@ -1118,9 +1116,9 @@ ipcMain.handle('load-bank-clips', async (_event, { category }) => {
 })
 
 // IPC handle to automatically slice a video into segments of exactly 3 seconds using segment muxer
-ipcMain.handle('cut-video-clips', async (_event, { videoPath }) => {
+ipcMain.handle('cut-video-clips', async (_event, { videoPath, timestamps }) => {
   try {
-    console.log(`[cut-video-clips] Slicing video into exact 3s segments: ${videoPath}`)
+    console.log(`[cut-video-clips] Slicing video: ${videoPath}, timestamps length: ${timestamps?.length || 0}`)
     const bankDir = getBancoClipsPath()
     const useActiveProj = !!activeProjectPath
     const outDir = useActiveProj ? path.join(activeProjectPath!, 'temp', 'originales') : path.join(bankDir, 'originales')
@@ -1142,17 +1140,38 @@ ipcMain.handle('cut-video-clips', async (_event, { videoPath }) => {
     }
 
     const escapedVideo = videoPath.replace(/"/g, '\\"')
-    const outputPattern = path.join(outDir, 'clip_%03d.mp4').replace(/\\/g, '/')
-    const escapedOutputPattern = outputPattern.replace(/"/g, '\\"')
 
-    await new Promise<void>((resolve, reject) => {
-      const ffmpegCmd = `ffmpeg -y -i "${escapedVideo}" -c copy -segment_time 3 -segment_start_number 1 -f segment "${escapedOutputPattern}"`
-      console.log(`[cut-video-clips] Executing FFmpeg: ${ffmpegCmd}`)
-      exec(ffmpegCmd, (err, _stdout, _stderr) => {
-        if (err) reject(err)
-        else resolve()
+    if (timestamps && Array.isArray(timestamps) && timestamps.length > 0) {
+      for (let i = 0; i < timestamps.length; i++) {
+        const ts = timestamps[i];
+        const clipNum = String(i + 1).padStart(3, '0');
+        const clipFileName = `clip_${clipNum}.mp4`;
+        const clipPath = path.join(outDir, clipFileName);
+        const escapedClipPath = clipPath.replace(/"/g, '\\"');
+        
+        await new Promise<void>((resolve, reject) => {
+          // Cut exactly 3 seconds starting from timestamp
+          const ffmpegCmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t 3 -c copy "${escapedClipPath}"`;
+          console.log(`[cut-video-clips] Executing FFmpeg: ${ffmpegCmd}`);
+          exec(ffmpegCmd, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      }
+    } else {
+      const outputPattern = path.join(outDir, 'clip_%03d.mp4').replace(/\\/g, '/')
+      const escapedOutputPattern = outputPattern.replace(/"/g, '\\"')
+
+      await new Promise<void>((resolve, reject) => {
+        const ffmpegCmd = `ffmpeg -y -i "${escapedVideo}" -c copy -segment_time 3 -segment_start_number 1 -f segment "${escapedOutputPattern}"`
+        console.log(`[cut-video-clips] Executing FFmpeg: ${ffmpegCmd}`)
+        exec(ffmpegCmd, (err, _stdout, _stderr) => {
+          if (err) reject(err)
+          else resolve()
+        })
       })
-    })
+    }
 
     // Read generated files to build clips info
     const files = await fs.promises.readdir(outDir)
@@ -1216,7 +1235,7 @@ ipcMain.handle('read-file-as-blob', async (_event, { filePath }) => {
 // IPC handle for deleting a clip inside a category folder of banco-clips
 ipcMain.handle('delete-bank-clip', async (_event, { category, file }) => {
   try {
-    const isTempCategory = category === 'originales' || category === 'remotion' || category === 'hyperframes'
+    const isTempCategory = category === 'originales' || category === 'minimax'
     const useActiveProj = !!(activeProjectPath && isTempCategory)
     const baseDir = useActiveProj ? activeProjectPath! : getBancoClipsPath()
     const filePath = useActiveProj ? path.join(baseDir, 'temp', category, file) : path.join(baseDir, category, file)
@@ -1369,416 +1388,89 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
 })
 
 
-
-function splitScriptIntoNSegments(script: string, N: number): string[] {
-  const words = script.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) {
-    return Array.from({ length: N }, () => '...');
-  }
-  if (words.length <= N) {
-    const result = words.map(w => w);
-    while (result.length < N) result.push("...");
-    return result;
-  }
-  const wordsPerSegment = Math.floor(words.length / N);
-  const remainder = words.length % N;
-  const segments: string[] = [];
-  let wordIdx = 0;
-  for (let i = 0; i < N; i++) {
-    const count = wordsPerSegment + (i < remainder ? 1 : 0);
-    const segmentWords = words.slice(wordIdx, wordIdx + count);
-    segments.push(segmentWords.join(" "));
-    wordIdx += count;
-  }
-  return segments;
-}
-
-function findBestMatchingOriginalClip(paragraphText: string, originalClips: any[], transcriptSegments: any[]): any {
-  if (!originalClips || originalClips.length === 0) return null;
-  if (!transcriptSegments || transcriptSegments.length === 0) {
-    return originalClips[0];
-  }
-  
-  let bestScore = -1;
-  let bestIndex = 0;
-  const cleanWords = (text: string) => new Set(text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").split(/\s+/).filter(Boolean));
-  const paraWords = cleanWords(paragraphText);
-  
-  transcriptSegments.forEach((seg, idx) => {
-    const segWords = cleanWords(seg.text || "");
-    let overlap = 0;
-    paraWords.forEach(w => {
-      if (segWords.has(w)) overlap++;
-    });
-    if (overlap > bestScore) {
-      bestScore = overlap;
-      bestIndex = idx;
-    }
-  });
-  
-  const targetClipName = `clip_${String(bestIndex + 1).padStart(3, '0')}.mp4`;
-  const matched = originalClips.find(c => c.name === targetClipName || c.name.includes(`_${bestIndex + 1}.`));
-  return matched || originalClips[bestIndex % originalClips.length];
-}
-
-async function selectBestStockClip(theme: string, paragraph: string, filenames: string[], apiKey: string): Promise<string | null> {
-  if (filenames.length === 0) return null;
-  try {
-    const prompt = `Dado el tema general: "${theme}" y la escena de video descriptiva: "${paragraph}".
-Elige el nombre del archivo de video que mejor se adapte visualmente a esta escena de la siguiente lista de archivos:
-${filenames.map(f => `- ${f}`).join('\n')}
-
-Devuelve únicamente el nombre exacto del archivo seleccionado de la lista. No agregues explicaciones ni introducciones.`;
-
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { role: 'system', content: 'Eres un selector de contenido audiovisual experto. Responde únicamente con el nombre del archivo.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.1
-      })
-    });
-
-    if (response.ok) {
-      const json = await response.json() as any;
-      const content = (json?.choices?.[0]?.message?.content || '').trim().replace(/['"`]/g, '');
-      if (filenames.includes(content)) {
-        return content;
-      }
-      const matched = filenames.find(f => f.toLowerCase() === content.toLowerCase() || content.toLowerCase().includes(f.toLowerCase()) || f.toLowerCase().includes(content.toLowerCase()));
-      if (matched) return matched;
-    }
-  } catch (e) {
-    console.error('Error al confirmar clip de stock con DeepSeek:', e);
-  }
-  return filenames[Math.floor(Math.random() * filenames.length)];
-}
-
-async function generateMiniMaxClipHelper(prompt: string, apiKey: string, activeProjectPath: string | null, bankDir: string): Promise<any> {
-  const submitResponse = await fetch('https://api.minimax.io/v1/video_generation', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'MiniMax-Hailuo-2.3',
-      prompt: prompt,
-      duration: 6,
-      resolution: '1080P'
-    })
-  });
-
-  if (!submitResponse.ok) {
-    const errText = await submitResponse.text();
-    throw new Error(`MiniMax Submit error (${submitResponse.status}): ${errText}`);
-  }
-
-  const submitData = (await submitResponse.json()) as any;
-  const taskId = submitData.task_id;
-  if (!taskId) {
-    throw new Error(`MiniMax no devolvió un task_id: ${JSON.stringify(submitData)}`);
-  }
-
-  let fileId: string | null = null;
-  let status = 'Preparing';
-  const maxPolls = 60;
-  for (let i = 0; i < maxPolls; i++) {
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    const queryResponse = await fetch(`https://api.minimax.io/v1/query/video_generation?task_id=${taskId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`
-      }
-    });
-
-    if (!queryResponse.ok) {
-      continue;
-    }
-
-    const queryData = (await queryResponse.json()) as any;
-    status = queryData.status || '';
-
-    if (status === 'Success') {
-      fileId = queryData.file_id;
-      break;
-    } else if (status === 'Fail') {
-      throw new Error('La generación de video por MiniMax falló.');
-    }
-  }
-
-  if (!fileId) {
-    throw new Error(`El sondeo expiró o falló. Estado final: ${status}`);
-  }
-
-  const retrieveResponse = await fetch(`https://api.minimax.io/v1/files/retrieve?file_id=${fileId}`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`
-    }
-  });
-
-  if (!retrieveResponse.ok) {
-    const errText = await retrieveResponse.text();
-    throw new Error(`Error retrieving file download URL (${retrieveResponse.status}): ${errText}`);
-  }
-
-  const retrieveData = (await retrieveResponse.json()) as any;
-  const downloadUrl = retrieveData.file?.download_url || retrieveData.download_url;
-  if (!downloadUrl) {
-    throw new Error(`MiniMax no devolvió una download_url: ${JSON.stringify(retrieveData)}`);
-  }
-
-  const downloadRes = await fetch(downloadUrl);
-  if (!downloadRes.ok) {
-    throw new Error(`Error al descargar el archivo de video: ${downloadRes.statusText}`);
-  }
-
-  const arrayBuffer = await downloadRes.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  const targetDir = activeProjectPath
-    ? path.join(activeProjectPath, 'temp', 'minimax')
-    : path.join(bankDir, 'minimax');
-    
-  if (!(await exists(targetDir))) {
-    await fs.promises.mkdir(targetDir, { recursive: true });
-  }
-
-  const filename = `minimax-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.mp4`;
-  const filePath = path.join(targetDir, filename);
-  await fs.promises.writeFile(filePath, buffer);
-
-  const durationSeconds = await getVideoDuration(filePath);
-
-  const thumbFilename = `thumb-${path.basename(filename, '.mp4')}.jpg`;
-  const thumbDir = activeProjectPath
-    ? path.join(activeProjectPath, 'temp', 'thumbnails')
-    : path.join(bankDir, 'thumbnails');
-
-  if (!(await exists(thumbDir))) {
-    await fs.promises.mkdir(thumbDir, { recursive: true });
-  }
-
-  const thumbPath = path.join(thumbDir, thumbFilename);
-  let thumbnailUrl = '';
-  try {
-    await generateVideoThumbnail(filePath, thumbPath);
-    thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbPath)).toString('base64')}`;
-  } catch (e) {
-    console.error('Error generating thumbnail:', e);
-  }
-
-  return {
-    id: `bank-minimax-${filename}`,
-    name: filename,
-    path: filePath,
-    url: `file:///${filePath.replace(/\\/g, '/')}`,
-    duration: formatTimeMinutesSeconds(durationSeconds),
-    durationSeconds,
-    type: 'video',
-    category: 'minimax',
-    thumbnailUrl
-  };
-}
-
-async function renderTransitionClip(effect: string, counter: number, transitionIndex: number, targetCompositionsDir: string, projectDir: string, bankDir: string, useActiveProj: boolean): Promise<any> {
-  const timestamp = Date.now();
-  const clipFileName = `trans_${timestamp}_${counter + 1}.mp4`;
-  const outPath = useActiveProj 
-    ? path.join(projectDir, 'temp', 'hyperframes', clipFileName)
-    : path.join(bankDir, 'hyperframes', clipFileName);
-    
-  const transCompositionHtmlPath = path.join(targetCompositionsDir, `trans_${timestamp}_${counter + 1}.html`);
-  const transRelativeCompositionPath = `compositions/trans_${timestamp}_${counter + 1}.html`;
-  
-  const transHtml = generateHyperframesHtml({
-    isTransition: true,
-    transitionIndex
-  });
-  
-  const htmlTemplate = `<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=1920, height=1080" />
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #020712; }
-    </style>
-  </head>
-  <body>
-    <script>
-      window.__timelines = window.__timelines || {};
-      const tl = gsap.timeline({ paused: true });
-      window.__timelines["main"] = tl;
-    </script>
-    <div id="root" data-composition-id="main" data-start="0" data-duration="0.3" data-width="1920" data-height="1080">
-      ${transHtml}
-    </div>
-  </body>
-</html>`;
-
-  await fs.promises.writeFile(transCompositionHtmlPath, htmlTemplate, 'utf8');
-  
-  const hyperframesProjectRoot = (await exists(path.join(process.cwd(), 'hyperframes-project'))) 
-    ? path.join(process.cwd(), 'hyperframes-project') 
-    : path.join(process.cwd(), 'cipher-studio', 'hyperframes-project');
-    
-  let renderSuccess = false;
-  await new Promise<void>((resolvePromise) => {
-    const cmd = `npx hyperframes render "${hyperframesProjectRoot}" -c "${transRelativeCompositionPath}" -o "${outPath}"`;
-    exec(cmd, { cwd: hyperframesProjectRoot }, async (err) => {
-      try { await fs.promises.unlink(transCompositionHtmlPath); } catch (e) {}
-      if (!err) renderSuccess = true;
-      resolvePromise();
-    });
-  });
-  
-  if (renderSuccess) {
-    return {
-      id: `bank-hyperframes-${clipFileName}`,
-      name: `Transición: ${effect.toUpperCase()}`,
-      path: outPath,
-      url: `file:///${outPath.replace(/\\/g, '/')}`,
-      duration: '0:00',
-      durationSeconds: 0.3,
-      type: 'video',
-      category: 'hyperframes'
-    };
-  }
-  return null;
-}
-
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, weights, aspectRatio, audioDuration, transcriptSegments, hyperframesFrequency }) => {
-  // Clear old log file
-  try {
-    const cwd = process.cwd();
-    let targetPath = '';
-    if (path.basename(cwd) === 'cipher-studio') {
-      targetPath = path.join(cwd, 'generation-debug.log');
-    } else {
-      targetPath = path.join(cwd, 'cipher-studio', 'generation-debug.log');
-    }
-    if (await exists(targetPath)) {
-      await fs.promises.unlink(targetPath);
-    }
-  } catch (e) {}
-
+ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath }) => {
   const logMessage = async (msg: string) => {
     console.log(msg);
     await writeDebugLog(msg);
   };
 
   try {
-    await logMessage(`[generate-timeline-assets] Iniciando nuevo flujo en 6 fases...`);
+    await logMessage('[generate-timeline-assets] Iniciando...');
 
-    // 1. Obtener la clave de API de DeepSeek
+    // FASE 1: Calcular clips necesarios
+    const totalClips = Math.ceil((audioDuration || 0) / 3);
+    if (totalClips <= 0) return { success: false, error: 'audioDuration inválido o cero.' };
+    await logMessage(`[FASE 1] audioDuration=${audioDuration}s → totalClips=${totalClips}`);
+
+    if (!videoPath || !(await exists(videoPath))) {
+      return { success: false, error: `No se encontró el video original: ${videoPath}` };
+    }
+
+    // FASE 2: DeepSeek → timestamps
+    await logMessage('[FASE 2] Solicitando timestamps a DeepSeek...');
     loadEnv();
     const apiKey = process.env.DEEPSEEK_API_KEY;
-    if (!apiKey) {
-      const errMsg = 'No se configuró DEEPSEEK_API_KEY en el archivo .env';
-      await writeDebugLog(errMsg);
-      return { success: false, error: errMsg };
-    }
+    if (!apiKey) return { success: false, error: 'No se configuró DEEPSEEK_API_KEY en el archivo .env' };
 
-    // FASE 1: Análisis y Cálculo Base
-    await logMessage(`[FASE 1] Iniciando análisis del guion y cálculo de clips...`);
-    const duration = audioDuration && audioDuration > 0 ? audioDuration : Math.max(15, Math.round(scriptText.split(/\s+/).filter(Boolean).length * 60 / 130));
-    const totalClips = Math.max(1, Math.round(duration / 3));
-    
-    // Mix weights: [Original, Stock, Remotion, MiniMax]
-    const w = weights || [40, 30, 20, 10];
-    let clips_originales = Math.round(totalClips * (w[0] / 100));
-    let clips_stock = Math.round(totalClips * (w[1] / 100));
-    let clips_remotion = Math.round(totalClips * (w[2] / 100));
-    let clips_minimax = totalClips - (clips_originales + clips_stock + clips_remotion);
+    let timestamps: number[] = [];
 
-    if (clips_minimax < 0) {
-      const counts = [clips_originales, clips_stock, clips_remotion];
-      const maxIdx = counts.indexOf(Math.max(...counts));
-      if (maxIdx === 0) clips_originales += clips_minimax;
-      else if (maxIdx === 1) clips_stock += clips_minimax;
-      else clips_remotion += clips_minimax;
-      clips_minimax = 0;
-    }
+    event.sender.send('generation-progress', {
+      index: 0, total: totalClips,
+      paragraph: 'Consultando DeepSeek para seleccionar timestamps...',
+      type: 'DeepSeek'
+    });
 
-    await logMessage(`[FASE 1] Duración del audio de voz: ${duration.toFixed(1)}s -> Clips totales: ${totalClips}`);
-    await logMessage(`[FASE 1] Distribución Mix calculada -> Originales: ${clips_originales}, Stock: ${clips_stock}, Remotion: ${clips_remotion}, MiniMax: ${clips_minimax}`);
+    const maxTsVal = transcriptSegments?.length > 0
+      ? (transcriptSegments[transcriptSegments.length - 1]?.end ?? audioDuration)
+      : audioDuration;
 
-    const segments = splitScriptIntoNSegments(scriptText, totalClips);
-    await logMessage(`[FASE 1] Segmentos generados: ${segments.length}`);
-
-    let parsedData: any = null;
     try {
-      const dsPrompt = `Aquí tienes un guion de video dividido en exactamente N=${totalClips} segmentos secuenciales.
-El tema general del guion se puede derivar de todo el texto.
+      const segmentsText = (transcriptSegments || [])
+        .map((s: any, i: number) => `[${i}] ${Number(s.start).toFixed(1)}s-${Number(s.end).toFixed(1)}s: "${s.text}"`)
+        .join('\n');
 
-REGLAS DE GENERACIÓN CREATIVA:
-1. Cada clip debe ser completamente único, impactante y visualmente diferente al anterior. Evita repetir temas o fondos de forma consecutiva.
-2. Para cada segmento (de 0 a N-1), analiza en conjunto: el párrafo anterior (si existe), el párrafo actual, el párrafo siguiente (si existe) y el tema general del guion.
-3. Tienes libertad total y dirección creativa ilimitada para diseñar el visual más descriptivo e interesante posible para ese momento del guion. No hay límite de tipos de escena ni combinaciones.
-4. El espectador debe poder entender claramente el tema/concepto de ese momento con solo ver el clip de 3 segundos, sin audio.
+      // Dividir scriptText en exactamente totalClips fragmentos proporcionales por oraciones
+      const sentences = (scriptText || '').split(/(?<=[.!?])\s+/).filter((s: string) => s.trim().length > 0);
+      const fragments: string[] = [];
+      if (sentences.length <= totalClips) {
+        for (let i = 0; i < totalClips; i++) {
+          fragments.push(sentences[i] || sentences[sentences.length - 1] || '');
+        }
+      } else {
+        const k = sentences.length / totalClips;
+        for (let i = 0; i < totalClips; i++) {
+          const start = Math.floor(i * k);
+          const end = Math.floor((i + 1) * k);
+          fragments.push(sentences.slice(start, end).join(' '));
+        }
+      }
+      const fragmentosNumerados = fragments
+        .map((frag, idx) => `[${idx + 1}] "${frag}"`)
+        .join('\n');
 
-Por favor, decide a qué categoría de clip pertenece cada segmento de forma secuencial, respetando estrictamente estas cantidades calculadas del Mix (la suma total debe ser exactamente N=${totalClips}):
-- original: ${clips_originales} clips (escenas del video original)
-- stock: ${clips_stock} clips (clips de banco ilustrativos)
-- remotion: ${clips_remotion} clips (gráficos/conceptos de datos/números)
-- minimax: ${clips_minimax} clips (animaciones/escenas generadas por IA)
+      const dsPrompt = `Eres un editor de video. Para cada fragmento del guión narrado, elige el timestamp del video original que mejor lo ilustre visualmente.
 
-Para los clips asignados a 'remotion':
-Escribe en "keyword" UNA sola palabra clave (1 a 3 palabras como máximo) que describa el concepto visual central del párrafo. El motor procedural tiene libertad total para crear la animación más impactante a partir de esa palabra, así que la palabra debe ser concreta y evocadora.
-- Si el párrafo menciona una cifra o porcentaje relevante, inclúyela dentro del keyword para que se visualice (ej: "crecimiento 45%", "caída 30%", "10 millones").
-- Si el concepto es de pérdida, declive, peligro o algo negativo, refléjalo en la palabra (ej: "caída", "crisis", "riesgo").
-- REGLA OBLIGATORIA DE NO-REPETICIÓN: el "keyword" de cada clip 'remotion' DEBE ser diferente al del clip 'remotion' anterior. Está prohibido repetir la misma palabra clave dos veces seguidas; varía el concepto en cada clip.
+TRANSCRIPCIÓN DEL VIDEO ORIGINAL:
+${segmentsText}
 
-Para los clips asignados a 'minimax':
-Escribe en "minimaxPrompt" un prompt altamente detallado, cinematográfico, descriptivo y en inglés para generación de video por IA. Debe describir la acción física, el entorno, el sujeto y la iluminación de forma que transmita perfectamente el concepto del segmento analizado con su contexto, sin incluir texto o marcas de agua.
+FRAGMENTOS DEL GUIÓN (cada fragmento = 1 clip de 3 segundos):
+${fragmentosNumerados}
 
-Aquí están los párrafos:
-${segments.map((s, idx) => `Segmento ${idx}: "${s}"`).join('\n')}
+INSTRUCCIONES:
+- Devuelve exactamente ${totalClips} timestamps, uno por fragmento en orden
+- Cada timestamp debe ilustrar el contenido de ese fragmento específico
+- Los timestamps deben estar dentro del rango 0 - ${Number(maxTsVal).toFixed(1)}
+- Evita repetir el mismo timestamp
 
-Devuelve la respuesta ÚNICAMENTE como un objeto JSON válido con la siguiente estructura (no envíes bloques markdown, no agregues explicaciones):
-{
-  "theme": "tema del guion en 3 a 5 palabras",
-  "assignments": [
-    {
-      "index": number,
-      "category": "original" | "stock" | "remotion" | "minimax",
-      "remotionProps": {
-        "keyword": "palabra clave del concepto (distinta a la del clip remotion anterior)"
-      },
-      "minimaxPrompt": "prompt descriptivo en inglés"
-    }
-  ]
-}`;
-
-      event.sender.send('generation-progress', {
-        index: 0,
-        total: totalClips,
-        paragraph: 'Analizando guion completo con DeepSeek...',
-        type: 'DeepSeek'
-      });
+Responde ÚNICAMENTE con JSON: {"timestamps": [t0, t1, t2, ...]}`;
 
       const dsResponse = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
         body: JSON.stringify({
           model: 'deepseek-chat',
           messages: [
-            { role: 'system', content: 'Eres un programador experto y director creativo. Responde ÚNICAMENTE con el objeto JSON solicitado, sin prefacios ni bloques markdown.' },
+            { role: 'system', content: 'Eres un editor de video experto. Responde ÚNICAMENTE con el JSON solicitado.' },
             { role: 'user', content: dsPrompt }
           ],
           temperature: 0.2
@@ -1787,679 +1479,129 @@ Devuelve la respuesta ÚNICAMENTE como un objeto JSON válido con la siguiente e
 
       if (dsResponse.ok) {
         const dsData = (await dsResponse.json()) as any;
-        const dsContent = dsData?.choices?.[0]?.message?.content || '';
-        let cleanContent = dsContent.trim();
-        if (cleanContent.includes('{')) {
-          cleanContent = cleanContent.substring(cleanContent.indexOf('{'), cleanContent.lastIndexOf('}') + 1);
+        let content = (dsData?.choices?.[0]?.message?.content || '').trim();
+        if (content.includes('{')) {
+          content = content.substring(content.indexOf('{'), content.lastIndexOf('}') + 1);
         }
-        parsedData = JSON.parse(cleanContent);
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed.timestamps)) {
+          timestamps = parsed.timestamps.map((t: any) => Number(t)).filter((t: number) => !isNaN(t));
+        }
       }
-    } catch (e) {
-      console.error('Error al invocar DeepSeek en Fase 1:', e);
+    } catch (e: any) {
+      await logMessage(`[FASE 2] DeepSeek error: ${e.message}. Usando fallback.`);
     }
 
-    if (!parsedData || !parsedData.assignments || parsedData.assignments.length !== totalClips) {
-      await logMessage(`[FASE 1] Fallback de asignación local aplicado por falta de respuesta válida de DeepSeek.`);
-      parsedData = {
-        theme: 'tecnología y digital',
-        assignments: []
-      };
-
-      const distributedTypes: string[] = [];
-      const tempCounts = [clips_originales, clips_stock, clips_remotion, clips_minimax];
-      const categories = ['original', 'stock', 'remotion', 'minimax'];
+    if (timestamps.length === 0) {
       for (let i = 0; i < totalClips; i++) {
-        let picked = false;
-        for (let c = 0; c < 4; c++) {
-          const idx = (i + c) % 4;
-          if (tempCounts[idx] > 0) {
-            distributedTypes.push(categories[idx]);
-            tempCounts[idx]--;
-            picked = true;
-            break;
-          }
-        }
-        if (!picked) distributedTypes.push('original');
+        timestamps.push(parseFloat(((i / totalClips) * maxTsVal).toFixed(1)));
       }
-
-      const fallbackKeywords = ['memoria', 'energía', 'datos', 'conexión', 'tecnología', 'futuro', 'red', 'crecimiento', 'velocidad', 'mente', 'sociedad', 'mundo'];
-      for (let i = 0; i < totalClips; i++) {
-        const cat = distributedTypes[i];
-        parsedData.assignments.push({
-          index: i,
-          category: cat,
-          remotionProps: {
-            keyword: fallbackKeywords[i % fallbackKeywords.length]
-          },
-          minimaxPrompt: `Cinematic footage demonstrating theme related to ${segments[i]}`
-        });
-      }
+      await logMessage(`[FASE 2] Fallback: ${totalClips} timestamps uniformes.`);
     }
 
-    const temaGeneral = parsedData.theme || 'tecnología';
-    await logMessage(`[FASE 1] Tema general identificado: ${temaGeneral}`);
-
-    // FASE 2: Mapeo de Posiciones
-    await logMessage(`[FASE 2] Iniciando mapeo de clips en segundos...`);
-    const bankDir = getBancoClipsPath();
-    const useActiveProj = !!activeProjectPath;
-    const projectDir = useActiveProj ? activeProjectPath! : bankDir;
-
-    const originalesDir = useActiveProj ? path.join(projectDir, 'temp', 'originales') : path.join(bankDir, 'originales');
-    let originalClips: any[] = [];
-    if (await exists(originalesDir)) {
-      const origFiles = await fs.promises.readdir(originalesDir);
-      for (const file of origFiles) {
-        if (file.startsWith('clip_') && file.endsWith('.mp4')) {
-          const filePath = path.join(originalesDir, file);
-          const durationSeconds = await getVideoDuration(filePath);
-          originalClips.push({
-            name: file,
-            path: filePath,
-            url: `file:///${filePath.replace(/\\/g, '/')}`,
-            durationSeconds
-          });
-        }
-      }
+    while (timestamps.length < totalClips) {
+      timestamps.push(timestamps[timestamps.length - 1] ?? 0);
     }
 
-    const stockBaseDir = path.join(bankDir, 'stock');
-    let subdirs: string[] = [];
-    if (await exists(stockBaseDir)) {
-      const items = await fs.promises.readdir(stockBaseDir, { withFileTypes: true });
-      subdirs = items.filter(item => item.isDirectory()).map(item => item.name);
+    await logMessage(`[FASE 2] Timestamps: ${timestamps.slice(0, 5).join(', ')}${totalClips > 5 ? '...' : ''}`);
+
+    // FASE 3: FFmpeg — cortar clips desde el video original
+    await logMessage(`[FASE 3] Cortando ${totalClips} clips con FFmpeg...`);
+
+    const outDir = activeProjectPath
+      ? path.join(activeProjectPath, 'temp', 'originales')
+      : path.join(getBancoClipsPath(), 'originales');
+    if (!(await exists(outDir))) await fs.promises.mkdir(outDir, { recursive: true });
+
+    const existingFiles = await fs.promises.readdir(outDir);
+    for (const f of existingFiles) {
+      try { await fs.promises.unlink(path.join(outDir, f)); } catch (e) {}
     }
 
-    let targetStockDir = stockBaseDir;
-    if (subdirs.length > 0) {
-      const themeLower = temaGeneral.toLowerCase();
-      const bestSubdir = subdirs.find(d => themeLower.includes(d.toLowerCase()) || d.toLowerCase().includes(themeLower));
-      if (bestSubdir) {
-        targetStockDir = path.join(stockBaseDir, bestSubdir);
-      } else {
-        targetStockDir = path.join(stockBaseDir, subdirs[0]);
-      }
-    }
+    const thumbDir = activeProjectPath
+      ? path.join(activeProjectPath, 'temp', 'thumbnails')
+      : path.join(getBancoClipsPath(), 'thumbnails');
+    if (!(await exists(thumbDir))) await fs.promises.mkdir(thumbDir, { recursive: true });
 
-    let stockFiles: string[] = [];
-    if (await exists(targetStockDir)) {
-      const files = await fs.promises.readdir(targetStockDir);
-      stockFiles = files.filter(f => /\.(mp4|mov|avi|mkv|webm)$/i.test(f));
-    }
-
-    const mappedSlots: any[] = [];
-    const usedOriginalPaths = new Set<string>();
-    const usedStockPaths = new Set<string>();
+    const createdClips: any[] = [];
+    const escapedVideo = videoPath.replace(/"/g, '\\"');
 
     for (let i = 0; i < totalClips; i++) {
-      const assignment = parsedData.assignments.find((a: any) => a.index === i) || parsedData.assignments[i];
-      const paragraph = segments[i];
-      const category = assignment.category;
-      let mappedClip: any = null;
+      const ts = timestamps[i] ?? 0;
+      const clipNum = String(i + 1).padStart(3, '0');
+      const clipPath = path.join(outDir, `clip_${clipNum}.mp4`);
+      const escapedClip = clipPath.replace(/"/g, '\\"');
 
-      if (category === 'original') {
-        let matched = findBestMatchingOriginalClip(paragraph, originalClips, transcriptSegments || []);
-        if (matched) {
-          if (usedOriginalPaths.has(matched.path)) {
-            const unused = originalClips.find(c => !usedOriginalPaths.has(c.path));
-            if (unused) matched = unused;
-          }
-          usedOriginalPaths.add(matched.path);
-          mappedClip = {
-            id: `bank-originales-${matched.name}`,
-            name: matched.name,
-            path: matched.path,
-            url: matched.url,
-            duration: formatTimeMinutesSeconds(matched.durationSeconds),
-            durationSeconds: matched.durationSeconds,
-            type: 'video',
-            category: 'original'
-          };
-        }
-      } else if (category === 'stock') {
-        if (stockFiles.length > 0) {
-          let selectedFile = await selectBestStockClip(temaGeneral, paragraph, stockFiles, apiKey);
-          let filePath = selectedFile ? path.join(targetStockDir, selectedFile) : '';
-          
-          if (filePath && usedStockPaths.has(filePath)) {
-            const unusedFile = stockFiles.find(f => !usedStockPaths.has(path.join(targetStockDir, f)));
-            if (unusedFile) {
-              selectedFile = unusedFile;
-              filePath = path.join(targetStockDir, selectedFile);
-            }
-          }
-
-          if (filePath && selectedFile) {
-            usedStockPaths.add(filePath);
-            const dur = await getVideoDuration(filePath);
-            mappedClip = {
-              id: `bank-stock-${selectedFile}`,
-              name: selectedFile,
-              path: filePath,
-              url: `file:///${filePath.replace(/\\/g, '/')}`,
-              duration: formatTimeMinutesSeconds(dur),
-              durationSeconds: dur,
-              type: 'video',
-              category: 'stock'
-            };
-          }
-        }
-      }
-
-      mappedSlots.push({
-        index: i,
-        paragraph,
-        category,
-        clip: mappedClip,
-        remotionProps: assignment.remotionProps,
-        minimaxPrompt: assignment.minimaxPrompt,
-        startSeconds: i * 3,
-        durationSeconds: 3
-      });
-    }
-
-    // FASE 3: Verificación Previa Obligatoria
-    await logMessage(`[FASE 3] Iniciando verificación previa en disco...`);
-    const tempDir = useActiveProj ? path.join(projectDir, 'temp', 'temp_renders') : path.join(bankDir, 'temp_renders');
-    if (!(await exists(tempDir))) {
-      await fs.promises.mkdir(tempDir, { recursive: true });
-    }
-
-    const compositionsDir = path.join(process.cwd(), 'hyperframes-project', 'compositions');
-    const alternativeCompositionsDir = path.join(process.cwd(), 'cipher-studio', 'hyperframes-project', 'compositions');
-    const targetCompositionsDir = (await exists(path.join(process.cwd(), 'hyperframes-project'))) ? compositionsDir : alternativeCompositionsDir;
-    if (!(await exists(targetCompositionsDir))) {
-      await fs.promises.mkdir(targetCompositionsDir, { recursive: true });
-    }
-
-    for (let i = 0; i < totalClips; i++) {
-      const slot = mappedSlots[i];
-      if (slot.category === 'original' || slot.category === 'stock') {
-        let fileExists = false;
-        if (slot.clip && slot.clip.path) {
-          fileExists = await exists(slot.clip.path);
-        }
-        
-        if (!fileExists) {
-          await logMessage(`[FASE 3] Falta clip para slot ${i} (${slot.category}). Buscando fallback...`);
-          if (slot.category === 'original' && originalClips.length > 0) {
-            const fallbackClip = originalClips[i % originalClips.length];
-            slot.clip = {
-              id: `bank-originales-${fallbackClip.name}`,
-              name: fallbackClip.name,
-              path: fallbackClip.path,
-              url: fallbackClip.url,
-              duration: formatTimeMinutesSeconds(fallbackClip.durationSeconds),
-              durationSeconds: fallbackClip.durationSeconds,
-              type: 'video',
-              category: 'original'
-            };
-          } else if (slot.category === 'stock' && stockFiles.length > 0) {
-            const fallbackFile = stockFiles[i % stockFiles.length];
-            const fallbackPath = path.join(targetStockDir, fallbackFile);
-            const dur = await getVideoDuration(fallbackPath);
-            slot.clip = {
-              id: `bank-stock-${fallbackFile}`,
-              name: fallbackFile,
-              path: fallbackPath,
-              url: `file:///${fallbackPath.replace(/\\/g, '/')}`,
-              duration: formatTimeMinutesSeconds(dur),
-              durationSeconds: dur,
-              type: 'video',
-              category: 'stock'
-            };
-          } else {
-            await logMessage(`[FASE 3] No hay archivos en disco de ${slot.category}. Reemplazando slot por Remotion.`);
-            slot.category = 'remotion';
-            slot.remotionProps = {
-              keyword: ['memoria', 'energía', 'datos', 'conexión', 'tecnología', 'futuro'][i % 6]
-            };
-          }
-        }
-      }
-    }
-    await logMessage(`[FASE 3] Verificación completada. Todos los clips confirmados.`);
-
-    // FASE 4: Creación de Clips (Remotion y MiniMax)
-    await logMessage(`[FASE 4] Iniciando renderizado/generación de clips IA...`);
-    const timestamp = Date.now();
-
-    for (let i = 0; i < totalClips; i++) {
-      const slot = mappedSlots[i];
       event.sender.send('generation-progress', {
-        index: i,
-        total: totalClips,
-        paragraph: slot.paragraph.substring(0, 45) + '...',
-        type: slot.category.toUpperCase()
+        index: i, total: totalClips,
+        paragraph: `Clip ${i + 1}/${totalClips} — t=${ts}s`,
+        type: 'FFmpeg'
       });
 
-      if (slot.category === 'remotion') {
-        const randHash = Math.random().toString(36).substring(2, 7);
-        const clipFileName = `remotion_${timestamp}_${i + 1}_${randHash}.mp4`;
-        const outPath = useActiveProj 
-          ? path.join(projectDir, 'temp', 'remotion', clipFileName) 
-          : path.join(bankDir, 'remotion', clipFileName);
-          
-        const tempPropsPath = path.join(tempDir, `remotion_props_${timestamp}_${i + 1}.json`);
-        const propsJson = {
-          keyword: slot.remotionProps?.keyword || slot.paragraph?.split(' ').slice(0, 3).join(' ') || 'concepto',
-          aspectRatio
-        };
-        
-        await fs.promises.writeFile(tempPropsPath, JSON.stringify(propsJson, null, 2), 'utf8');
-        
-        const remotionProjectRoot = getRemotionPath();
-        const entryFile = path.join(remotionProjectRoot, 'remotion', 'src', 'index.ts');
-        
-        let sizeFlags = '--width=1920 --height=1080';
-        if (aspectRatio === 'vertical' || aspectRatio === '9:16') {
-          sizeFlags = '--width=1080 --height=1920';
-        }
-
-        await new Promise<void>((resolvePromise) => {
-          const cmd = `npx remotion render "${entryFile}" MainClip "${outPath}" --props="${tempPropsPath}" --frames=0-89 ${sizeFlags}`;
-          exec(cmd, { cwd: remotionProjectRoot }, async (_err) => {
-            try { await fs.promises.unlink(tempPropsPath); } catch (e) {}
-            resolvePromise();
-          });
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const cmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t 3 -c copy "${escapedClip}"`;
+          exec(cmd, (err) => { if (err) reject(err); else resolve(); });
         });
+      } catch (ffErr: any) {
+        await logMessage(`[FASE 3] FFmpeg error clip ${i + 1}: ${ffErr.message}`);
+      }
 
-        if (await exists(outPath)) {
-          const dur = await getVideoDuration(outPath);
-          slot.clip = {
-            id: `bank-remotion-${clipFileName}`,
-            name: clipFileName,
-            path: outPath,
-            url: `file:///${outPath.replace(/\\/g, '/')}`,
-            duration: formatTimeMinutesSeconds(dur),
-            durationSeconds: dur,
-            type: 'video',
-            category: 'remotion'
-          };
-        } else {
-          await logMessage(`[FASE 4] Remotion falló para slot ${i}. Aplicando fallback...`);
-          if (originalClips.length > 0) {
-            const fallbackClip = originalClips[i % originalClips.length];
-            slot.clip = {
-              id: `bank-originales-${fallbackClip.name}`,
-              name: fallbackClip.name,
-              path: fallbackClip.path,
-              url: fallbackClip.url,
-              duration: formatTimeMinutesSeconds(fallbackClip.durationSeconds),
-              durationSeconds: fallbackClip.durationSeconds,
-              type: 'video',
-              category: 'original'
-            };
-          }
-        }
-      } else if (slot.category === 'minimax') {
+      if (await exists(clipPath)) {
+        const durationSeconds = await getVideoDuration(clipPath);
+        const thumbPath = path.join(thumbDir, `clip_${clipNum}.jpg`);
+        let thumbnailUrl = '';
         try {
-          await logMessage(`[FASE 4] Solicitando video MiniMax para slot ${i}...`);
-          const minimaxApiKey = process.env.MINIMAX_API_KEY;
-          if (!minimaxApiKey) throw new Error('MINIMAX_API_KEY no configurado');
-          
-          const clipInfo = await generateMiniMaxClipHelper(slot.minimaxPrompt, minimaxApiKey, activeProjectPath, bankDir);
-          if (clipInfo) {
-            slot.clip = clipInfo;
+          await generateVideoThumbnail(clipPath, thumbPath);
+          if (await exists(thumbPath)) {
+            thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbPath)).toString('base64')}`;
           }
-        } catch (errMini: any) {
-          await logMessage(`[FASE 4] MiniMax falló para slot ${i}: ${errMini.message || errMini}`);
-        }
-        
-        if (!slot.clip) {
-          await logMessage(`[FASE 4] Aplicando fallback Remotion para MiniMax en slot ${i}...`);
-          const randHash = Math.random().toString(36).substring(2, 7);
-          const clipFileName = `remotion_fallback_${timestamp}_${i + 1}_${randHash}.mp4`;
-          const outPath = useActiveProj 
-            ? path.join(projectDir, 'temp', 'remotion', clipFileName) 
-            : path.join(bankDir, 'remotion', clipFileName);
-            
-          const tempPropsPath = path.join(tempDir, `remotion_props_fb_${timestamp}_${i + 1}.json`);
-          const propsJson = {
-            keyword: slot.remotionProps?.keyword || slot.paragraph?.split(' ').slice(0, 3).join(' ') || 'tecnología',
-            aspectRatio
-          };
-          
-          await fs.promises.writeFile(tempPropsPath, JSON.stringify(propsJson, null, 2), 'utf8');
-          const remotionProjectRoot = getRemotionPath();
-          const entryFile = path.join(remotionProjectRoot, 'remotion', 'src', 'index.ts');
-          
-          let sizeFlags = '--width=1920 --height=1080';
-          if (aspectRatio === 'vertical' || aspectRatio === '9:16') {
-            sizeFlags = '--width=1080 --height=1920';
-          }
-
-          await new Promise<void>((resolvePromise) => {
-            const cmd = `npx remotion render "${entryFile}" MainClip "${outPath}" --props="${tempPropsPath}" --frames=0-89 ${sizeFlags}`;
-            exec(cmd, { cwd: remotionProjectRoot }, async (_err) => {
-              try { await fs.promises.unlink(tempPropsPath); } catch (e) {}
-              resolvePromise();
-            });
-          });
-
-          if (await exists(outPath)) {
-            const dur = await getVideoDuration(outPath);
-            slot.clip = {
-              id: `bank-remotion-${clipFileName}`,
-              name: clipFileName,
-              path: outPath,
-              url: `file:///${outPath.replace(/\\/g, '/')}`,
-              duration: formatTimeMinutesSeconds(dur),
-              durationSeconds: dur,
-              type: 'video',
-              category: 'remotion'
-            };
-          }
-        }
+        } catch (e) {}
+        const stat = await fs.promises.stat(clipPath);
+        createdClips.push({
+          id: `bank-originales-clip_${clipNum}.mp4`,
+          name: `clip_${clipNum}.mp4`,
+          path: clipPath,
+          url: `file:///${clipPath.replace(/\\/g, '/')}`,
+          duration: formatTimeMinutesSeconds(durationSeconds),
+          durationSeconds,
+          type: 'video',
+          category: 'original',
+          size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
+          thumbnailUrl
+        });
       }
     }
 
-    // FASE 5: Verificación Final y Ensamblaje
-    await logMessage(`[FASE 5] Ensamblando timeline secuencial sin huecos (gaps)...`);
-    const assembledClips: any[] = [];
+    // FASE 4: Repetir últimos clips si FFmpeg produjo menos de lo esperado
+    if (createdClips.length < totalClips && createdClips.length > 0) {
+      const before = createdClips.length;
+      while (createdClips.length < totalClips) {
+        const last = createdClips[createdClips.length - 1];
+        createdClips.push({ ...last, id: `${last.id}-dup-${createdClips.length}` });
+      }
+      await logMessage(`[FASE 4] Duplicados: ${before} → ${createdClips.length} clips.`);
+    }
+
+    if (createdClips.length === 0) {
+      return { success: false, error: 'No se pudo crear ningún clip. Verifica el video y FFmpeg.' };
+    }
+
+    // FASE 5: Ensamblar timeline secuencial
+    await logMessage('[FASE 5] Ensamblando timeline...');
     let currentStart = 0;
-
-    for (let i = 0; i < totalClips; i++) {
-      const slot = mappedSlots[i];
-      if (slot.clip) {
-        slot.clip.startSeconds = currentStart;
-        assembledClips.push(slot.clip);
-        currentStart += slot.clip.durationSeconds;
-      }
+    for (const clip of createdClips) {
+      clip.startSeconds = currentStart;
+      currentStart += clip.durationSeconds;
     }
 
-    // FASE 6: Insertar transiciones Hyperframes al final
-    const finalClips: any[] = [];
-    const sliderPercentage = typeof hyperframesFrequency === 'number' ? hyperframesFrequency : 30;
-    
-    if (sliderPercentage > 0) {
-      const N_trans = Math.round(10 / (sliderPercentage / 10));
-      await logMessage(`[FASE 6] Insertando transiciones Hyperframes cada N=${N_trans} clips...`);
-      let transCounter = 0;
-      const effects = ['flash', 'sweep', 'zoom', 'glitch', 'onda'];
-      let lastTransIndex = -1;
-
-      for (let k = 0; k < assembledClips.length; k++) {
-        finalClips.push(assembledClips[k]);
-
-        if (k < assembledClips.length - 1 && (k + 1) % N_trans === 0) {
-          // Elegimos una transición al azar pero distinta a la anterior.
-          let transIndex = Math.floor(Math.random() * 5);
-          if (transIndex === lastTransIndex) transIndex = (transIndex + 1) % 5;
-          lastTransIndex = transIndex;
-          const effect = effects[transIndex];
-          await logMessage(`[FASE 6] Renderizando transición Hyperframes (${effect})...`);
-
-          const transClip = await renderTransitionClip(
-            effect,
-            transCounter,
-            transIndex,
-            targetCompositionsDir,
-            projectDir,
-            bankDir,
-            useActiveProj
-          );
-          
-          if (transClip) {
-            finalClips.push(transClip);
-            transCounter++;
-          }
-        }
-      }
-    } else {
-      await logMessage(`[FASE 6] Slider de transiciones en 0%. No se insertan transiciones.`);
-      finalClips.push(...assembledClips);
-    }
-
-    let runningStart = 0;
-    for (let k = 0; k < finalClips.length; k++) {
-      finalClips[k].startSeconds = runningStart;
-      runningStart += finalClips[k].durationSeconds;
-    }
-
-    try { await fs.promises.rmdir(tempDir); } catch (e) {}
-
-    await logMessage(`[Construir Timeline] Completado con éxito. Clips totales en timeline: ${finalClips.length}`);
-
-    return {
-      success: true,
-      clips: finalClips
-    };
+    await logMessage(`[generate-timeline-assets] Completado. Clips: ${createdClips.length}`);
+    return { success: true, clips: createdClips };
 
   } catch (err: any) {
     const errMsg = `[generate-timeline-assets] Error: ${err.message || err}`;
     console.error(errMsg, err);
     await writeDebugLog(errMsg);
-    return { success: false, error: err.message || 'Error interno al generar assets de la IA' };
+    return { success: false, error: err.message || 'Error interno' };
   }
 });
-
-function generateHyperframesHtml(item: any): string {
-  const isTransition = !!item.isTransition;
-  const transitionIndex = typeof item.transitionIndex === 'number' ? item.transitionIndex : 0;
-  const templateIndex = typeof item.templateIndex === 'number' ? item.templateIndex : 0;
-  
-  const coreStyles = `
-    <style>
-      body {
-        background-color: #020712;
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-      }
-      .hf-container {
-        width: 1920px;
-        height: 1080px;
-        position: relative;
-        overflow: hidden;
-      }
-    </style>
-  `;
-
-  let bodyHtml = '';
-  let gsapScript = '';
-
-  if (isTransition) {
-    switch (transitionIndex % 5) {
-      case 0: // 1. Flash de luz que borra y revela
-        bodyHtml = `
-          <div class="hf-container" style="background: #020712; display: flex; justify-content: center; align-items: center;">
-            <div id="trans-flash" style="position: absolute; inset: 0; background: #ffffff; opacity: 0; z-index: 999;"></div>
-          </div>
-        `;
-        gsapScript = `
-          const tl = window.__timelines["main"];
-          tl.to("#trans-flash", { opacity: 1, duration: 0.25, ease: "power2.in" }, 0);
-          tl.to("#trans-flash", { opacity: 0, duration: 0.75, ease: "power2.out" }, 0.25);
-        `;
-        break;
-
-      case 1: // 2. Líneas barriendo de izquierda a derecha
-        bodyHtml = `
-          <div class="hf-container" style="background: #020712; position: relative;">
-            <div class="sweep-bar" style="position: absolute; top: 0; bottom: 0; left: -25%; width: 25%; background: #00d4ff; opacity: 0.8; box-shadow: 0 0 30px #00d4ff;"></div>
-            <div class="sweep-bar" style="position: absolute; top: 0; bottom: 0; left: -25%; width: 25%; background: #fbbf24; opacity: 0.8; box-shadow: 0 0 30px #fbbf24;"></div>
-            <div class="sweep-bar" style="position: absolute; top: 0; bottom: 0; left: -25%; width: 25%; background: #f472b6; opacity: 0.8; box-shadow: 0 0 30px #f472b6;"></div>
-            <div class="sweep-bar" style="position: absolute; top: 0; bottom: 0; left: -25%; width: 25%; background: #6366f1; opacity: 0.8; box-shadow: 0 0 30px #6366f1;"></div>
-          </div>
-        `;
-        gsapScript = `
-          const tl = window.__timelines["main"];
-          const bars = document.querySelectorAll(".sweep-bar");
-          bars.forEach((bar, idx) => {
-            tl.to(bar, { left: "100%", duration: 0.6, ease: "power2.inOut" }, idx * 0.08);
-          });
-        `;
-        break;
-
-      case 2: // 3. Zoom extremo hacia adentro
-        bodyHtml = `
-          <div class="hf-container" style="background: #020712; display: flex; justify-content: center; align-items: center; position: relative;">
-            <div id="zoom-circle-1" style="position: absolute; border: 8px solid #00d4ff; border-radius: 50%; width: 100px; height: 100px; opacity: 0; box-shadow: 0 0 20px #00d4ff;"></div>
-            <div id="zoom-circle-2" style="position: absolute; border: 8px solid #fbbf24; border-radius: 50%; width: 200px; height: 200px; opacity: 0; box-shadow: 0 0 20px #fbbf24;"></div>
-            <div id="zoom-circle-3" style="position: absolute; border: 8px solid #f472b6; border-radius: 50%; width: 300px; height: 300px; opacity: 0; box-shadow: 0 0 20px #f472b6;"></div>
-          </div>
-        `;
-        gsapScript = `
-          const tl = window.__timelines["main"];
-          tl.to("#zoom-circle-1", { scale: 18, opacity: 1, duration: 0.5, ease: "power2.in" }, 0);
-          tl.to("#zoom-circle-2", { scale: 14, opacity: 1, duration: 0.6, ease: "power2.in" }, 0.1);
-          tl.to("#zoom-circle-3", { scale: 10, opacity: 1, duration: 0.7, ease: "power2.in" }, 0.2);
-        `;
-        break;
-
-      case 3: // 4. Glitch que distorsiona y corta
-        bodyHtml = `
-          <div class="hf-container" style="background: #020712; position: relative;">
-            ${Array.from({ length: 15 }).map((_, idx) => `
-              <div class="glitch-block" style="position: absolute; width: ${200 + Math.random() * 400}px; height: ${80 + Math.random() * 200}px; background: ${idx % 4 === 0 ? '#00d4ff' : idx % 4 === 1 ? '#fbbf24' : idx % 4 === 2 ? '#f472b6' : '#6366f1'}; opacity: 0; left: ${Math.random() * 100}%; top: ${Math.random() * 100}%; transform: translate(-50%, -50%); box-shadow: 0 0 15px rgba(255,255,255,0.2);"></div>
-            `).join('')}
-          </div>
-        `;
-        gsapScript = `
-          const tl = window.__timelines["main"];
-          const blocks = document.querySelectorAll(".glitch-block");
-          blocks.forEach((block) => {
-            const showTime = Math.random() * 0.5;
-            tl.to(block, { opacity: 0.85, duration: 0.08, yoyo: true, repeat: 3, ease: "none" }, showTime);
-          });
-        `;
-        break;
-
-      case 4: // 5. Onda de color expandiéndose
-        bodyHtml = `
-          <div class="hf-container" style="background: #020712; display: flex; justify-content: center; align-items: center; position: relative;">
-            <svg width="100%" height="100%" viewBox="0 0 1000 1000" style="position: absolute; inset: 0;">
-              <circle id="wave-circle" cx="500" cy="500" r="0" fill="none" stroke="#6366f1" stroke-width="40" opacity="0" />
-            </svg>
-          </div>
-        `;
-        gsapScript = `
-          const tl = window.__timelines["main"];
-          tl.to("#wave-circle", { attr: { r: 800 }, strokeWidth: 150, opacity: 1, duration: 0.7, ease: "power2.out" }, 0);
-          tl.to("#wave-circle", { opacity: 0, duration: 0.2 }, 0.55);
-        `;
-        break;
-    }
-  } else {
-    switch (templateIndex % 5) {
-      case 0: // Rotating progress dial
-        bodyHtml = `
-          <div class="hf-container" style="background: #020712; display: flex; justify-content: center; align-items: center; position: relative;">
-            <svg width="600" height="600" viewBox="0 0 400 400" style="filter: drop-shadow(0 0 15px #00d4ff);">
-              <circle cx="200" cy="200" r="120" fill="none" stroke="#6366f1" stroke-width="6" opacity="0.2" />
-              <circle id="dial-progress" cx="200" cy="200" r="120" fill="none" stroke="#00d4ff" stroke-width="12" stroke-linecap="round" stroke-dasharray="754" stroke-dashoffset="754" transform="rotate(-90 200 200)" />
-              <circle id="dial-outer" cx="200" cy="200" r="150" fill="none" stroke="#fbbf24" stroke-width="3" stroke-dasharray="10 15" opacity="0.5" />
-            </svg>
-          </div>
-        `;
-        gsapScript = `
-          const tl = window.__timelines["main"];
-          tl.to("#dial-progress", { strokeDashoffset: 200, duration: 1.5, ease: "power2.out" }, 0);
-          tl.to("#dial-outer", { rotation: 360, transformOrigin: "center center", duration: 3.0, ease: "none" }, 0);
-        `;
-        break;
-
-      case 1: // Progress Bar and explosion
-        bodyHtml = `
-          <div class="hf-container" style="background: #020712; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 120px;">
-            <div style="width: 1000px; height: 40px; background: #110e2e; border-radius: 20px; border: 3px solid #6366f1; overflow: hidden; position: relative;">
-              <div id="progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #6366f1, #f472b6, #fbbf24); border-radius: 20px; box-shadow: 0 0 20px #f472b6;"></div>
-            </div>
-            <div style="position: absolute; inset: 0; pointer-events: none; z-index: 5;">
-              ${Array.from({ length: 25 }).map((_, idx) => `
-                <div class="hf-p" style="position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; border-radius: 50%; background: ${idx % 3 === 0 ? '#00d4ff' : idx % 3 === 1 ? '#f472b6' : '#fbbf24'}; opacity: 0; transform: translate(-50%, -50%);"></div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-        gsapScript = `
-          const tl = window.__timelines["main"];
-          tl.to("#progress-bar", { width: "80%", duration: 1.8, ease: "power2.inOut" }, 0);
-          const ps = document.querySelectorAll(".hf-p");
-          ps.forEach((p, idx) => {
-            const angle = (idx / ps.length) * 2 * Math.PI + Math.random() * 0.3;
-            const dist = 150 + Math.random() * 250;
-            tl.to(p, { opacity: 1, x: Math.cos(angle) * dist, y: Math.sin(angle) * dist, scale: 0, duration: 1.2, ease: "power3.out" }, 0.9);
-          });
-        `;
-        break;
-
-      case 2: // Glitch geometric shapes
-        bodyHtml = `
-          <div class="hf-container" style="background: #020712; display: flex; justify-content: center; align-items: center; position: relative;">
-            <div id="sh-rect" style="position: absolute; border: 4px solid #f472b6; width: 250px; height: 250px; opacity: 0; box-shadow: 0 0 15px #f472b6;"></div>
-            <div id="sh-circ" style="position: absolute; border: 4px solid #00d4ff; border-radius: 50%; width: 300px; height: 300px; opacity: 0; box-shadow: 0 0 15px #00d4ff;"></div>
-            <div id="sh-tri" style="position: absolute; width: 0; height: 0; border-left: 150px solid transparent; border-right: 150px solid transparent; border-bottom: 260px solid #fbbf24; opacity: 0; filter: drop-shadow(0 0 15px #fbbf24);"></div>
-          </div>
-        `;
-        gsapScript = `
-          const tl = window.__timelines["main"];
-          tl.to("#sh-rect", { opacity: 0.8, scale: 1.3, rotation: 45, duration: 0.8, ease: "back.out" }, 0.1);
-          tl.to("#sh-circ", { opacity: 0.8, scale: 0.9, duration: 1.0, ease: "back.out" }, 0.3);
-          tl.to("#sh-tri", { opacity: 0.5, scale: 0.7, rotation: -20, duration: 1.2, ease: "back.out" }, 0.5);
-          
-          for (let t = 1.0; t < 3.0; t += 0.2) {
-            tl.to("#sh-rect", { x: (Math.random() - 0.5) * 20, duration: 0.08 }, t);
-            tl.to("#sh-circ", { y: (Math.random() - 0.5) * 20, duration: 0.08 }, t + 0.05);
-          }
-        `;
-        break;
-
-      case 3: // Speed Lines and concentric rings pulsing
-        bodyHtml = `
-          <div class="hf-container" style="background: #020712; display: flex; justify-content: center; align-items: center; position: relative;">
-            <div style="position: absolute; inset: 0; overflow: hidden;">
-              ${Array.from({ length: 20 }).map((_, idx) => `
-                <div class="hf-sl" style="position: absolute; left: -100%; top: ${5 + idx * 4.5}%; width: 70%; height: 3px; background: linear-gradient(90deg, transparent, #6366f1, transparent); opacity: 0.6;"></div>
-              `).join('')}
-            </div>
-            <div id="pulsing-shield" style="width: 200px; height: 200px; border: 8px solid #fbbf24; border-radius: 50%; opacity: 0; box-shadow: 0 0 30px #fbbf24; z-index: 10;"></div>
-          </div>
-        `;
-        gsapScript = `
-          const tl = window.__timelines["main"];
-          tl.to("#pulsing-shield", { opacity: 1, scale: 1.5, duration: 0.6, ease: "back.out" }, 0.1);
-          tl.to("#pulsing-shield", { scale: 1.3, duration: 0.4, yoyo: true, repeat: -1, ease: "sine.inOut" }, 0.7);
-          
-          const sls = document.querySelectorAll(".hf-sl");
-          sls.forEach((sl, idx) => {
-            tl.to(sl, { left: "100%", duration: 0.4 + Math.random() * 0.2, repeat: 7, ease: "none" }, (idx * 0.05) % 0.5);
-          });
-        `;
-        break;
-
-      case 4: // Heatmap waves / dots grid
-        bodyHtml = `
-          <div class="hf-container" style="background: #020712; display: flex; justify-content: center; align-items: center; position: relative;">
-            <div style="position: absolute; inset: 0; background: radial-gradient(circle, transparent 20%, #020712 95%), linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 100% 100%, 40px 40px;"></div>
-            <div class="heat-node" style="position: absolute; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(0, 212, 255, 0.4) 0%, transparent 70%); left: 30%; top: 40%; transform: scale(0.1); opacity: 0;"></div>
-            <div class="heat-node" style="position: absolute; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(244, 114, 182, 0.4) 0%, transparent 70%); left: 70%; top: 60%; transform: scale(0.1); opacity: 0;"></div>
-          </div>
-        `;
-        gsapScript = `
-          const tl = window.__timelines["main"];
-          const nodes = document.querySelectorAll(".heat-node");
-          nodes.forEach((node, idx) => {
-            tl.to(node, { opacity: 1, scale: 1.4, duration: 1.0, ease: "power2.out" }, idx * 0.3);
-            tl.to(node, { scale: 1.1, opacity: 0.6, duration: 0.6, yoyo: true, repeat: -1, ease: "sine.inOut" }, idx * 0.3 + 1.0);
-          });
-        `;
-        break;
-    }
-  }
-
-  return `
-    ${coreStyles}
-    ${bodyHtml}
-    <script>
-      (function() {
-        ${gsapScript}
-      })();
-    </script>
-  `;
-}
-
-
-

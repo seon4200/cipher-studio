@@ -249,7 +249,12 @@ function App() {
 
   // Dynamic total timeline duration (minimum 120 seconds, or max clip end + 10s buffer)
   const totalDuration = useMemo(() => Math.max(120, timelineVideoClips.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0) + 10), [timelineVideoClips]);
-  const activeTimelineClip = useMemo(() => timelineVideoClips.find(c => c.type !== 'audio' && currentTimeForUI >= c.startSeconds && currentTimeForUI < c.startSeconds + c.durationSeconds), [timelineVideoClips, currentTimeForUI]);
+  const [currentClipIndex, setCurrentClipIndex] = useState(0);
+  const sortedVideoClips = useMemo(() => {
+    return timelineVideoClips
+      .filter(c => c.type !== 'audio')
+      .sort((a, b) => a.startSeconds - b.startSeconds);
+  }, [timelineVideoClips]);
 
   // Undo/Redo history states
   const [history, setHistory] = useState<TimelineClip[][]>([])
@@ -358,16 +363,17 @@ function App() {
       audioRef.current.currentTime = boundedTime;
     }
 
-    const clips = timelineVideoClips;
-    const targetClip = clips.find(c => 
-      c.type !== 'audio' && 
+    const targetClip = sortedVideoClips.find(c => 
       boundedTime >= c.startSeconds && 
       boundedTime < c.startSeconds + c.durationSeconds
     );
 
     const video = videoRef.current;
     if (targetClip) {
-      if (targetClip.path && targetClip.path !== 'remotion-dynamic' && targetClip.path !== 'hyperframes-dynamic') {
+      const newIdx = sortedVideoClips.findIndex(c => c.id === targetClip.id);
+      setCurrentClipIndex(newIdx);
+      
+      if (targetClip.path) {
         const fileUrl = `file:///${targetClip.path.replace(/\\/g, '/')}`;
         const scale = targetClip.origDurationSeconds 
           ? (targetClip.origDurationSeconds / targetClip.durationSeconds) 
@@ -891,22 +897,40 @@ function App() {
   }, [])
 
   // HTML5 video handlers
+  const loadClip = useCallback((index: number, autoPlay: boolean) => {
+    const clip = sortedVideoClips[index];
+    const video = videoRef.current;
+    if (!clip || !video) {
+      setIsPlaying(false);
+      if (video) video.pause();
+      if (audioRef.current) audioRef.current.pause();
+      return;
+    }
+
+    setCurrentClipIndex(index);
+    
+    if (clip.path) {
+      const fileUrl = `file:///${clip.path.replace(/\\/g, '/')}`;
+      setActiveVideoUrl(fileUrl);
+      if (video.src !== fileUrl) {
+        video.src = fileUrl;
+        video.load();
+      }
+      const masterTime = audioRef.current ? audioRef.current.currentTime : currentTimeRef.current;
+      const offsetInClip = masterTime - clip.startSeconds;
+      video.currentTime = Math.max(0, offsetInClip);
+      if (autoPlay) {
+        video.play().catch(e => console.error("loadClip play error:", e));
+      }
+    } else {
+      setActiveVideoUrl(null);
+      if (video) video.pause();
+    }
+  }, [sortedVideoClips]);
+
   const handleVideoCanPlay = () => {
-    if (videoRef.current && activeTimelineClip) {
-      const offset = currentTimeRef.current - activeTimelineClip.startSeconds;
-      const scale = activeTimelineClip.origDurationSeconds 
-        ? (activeTimelineClip.origDurationSeconds / activeTimelineClip.durationSeconds) 
-        : 1;
-      const startOffset = activeTimelineClip.segmentStartOffset || 0;
-      const targetTime = startOffset + (offset * scale);
-      
-      if (Math.abs(videoRef.current.currentTime - targetTime) > 0.15) {
-        videoRef.current.currentTime = targetTime;
-      }
-      
-      if (isPlaying) {
-        videoRef.current.play().catch(e => console.error("canplay play error:", e));
-      }
+    if (videoRef.current && isPlaying) {
+      videoRef.current.play().catch(e => console.error("canplay play error:", e));
     }
   };
 
@@ -924,63 +948,24 @@ function App() {
   }
 
   const handleEnded = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const clips = timelineVideoClips || [];
-    const sortedClips = clips
-      .filter(c => c.type !== 'audio')
-      .sort((a, b) => a.startSeconds - b.startSeconds);
-    
-    const currentT = currentTimeRef.current;
-    const currentClip = sortedClips.find(c => 
-      currentT >= c.startSeconds && 
-      currentT <= c.startSeconds + c.durationSeconds + 0.5
-    );
-    
-    if (currentClip) {
-      const currentIndex = sortedClips.findIndex(c => c.id === currentClip.id);
-      const nextClip = sortedClips[currentIndex + 1];
-      
-      if (nextClip) {
-        const isDynamic = nextClip.path === 'remotion-dynamic' || nextClip.path === 'hyperframes-dynamic';
-
-        if (isDynamic) {
-          // Escena dinámica: sin archivo de video. No pausar video ni audio;
-          // solo ocultar el <video> y dejar que el audio siga avanzando para
-          // que el cursor permanezca sincronizado vía el master clock tick.
-          setActiveVideoUrl(null);
-        } else {
-          const nextTime = nextClip.startSeconds;
-          updateCurrentTime(nextTime);
-          flushCurrentTime();
-
-          if (nextClip.path) {
-            const nextUrl = `file:///${nextClip.path.replace(/\\/g, '/')}`;
-            setActiveVideoUrl(nextUrl);
-            video.src = nextUrl;
-            video.currentTime = nextClip.segmentStartOffset || 0;
-            video.load();
-            video.play().catch(e => console.error("Ended transition play error:", e));
-          } else {
-            setActiveVideoUrl(null);
-            video.pause();
-          }
-          if (audioRef.current) {
-            audioRef.current.currentTime = nextTime;
-          }
-        }
-      } else {
-        setIsPlaying(false);
-        updateCurrentTime(currentClip.startSeconds + currentClip.durationSeconds);
-        flushCurrentTime();
-        video.pause();
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
-      }
+    const nextIdx = currentClipIndex + 1;
+    if (nextIdx < sortedVideoClips.length) {
+      loadClip(nextIdx, true);
     } else {
       setIsPlaying(false);
+      const video = videoRef.current;
+      if (video) video.pause();
+      if (audioRef.current) audioRef.current.pause();
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    const video = videoRef.current;
+    if (video && isPlaying) {
+      const clip = sortedVideoClips[currentClipIndex];
+      const audio = audioRef.current;
+      const cursor = (audio && !audio.paused) ? audio.currentTime : (clip ? clip.startSeconds + video.currentTime : video.currentTime);
+      updateCurrentTime(cursor);
     }
   };
 
@@ -1025,7 +1010,7 @@ function App() {
   const [rewriteError, setRewriteError] = useState<string>('')
   const [isCopied, setIsCopied] = useState(false)
 
-  // AI Asset Generation States (Remotion & Hyperframes)
+  // AI Asset Generation States
   const [isGeneratingAssets, setIsGeneratingAssets] = useState(false)
   const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number; paragraph: string; type: string } | null>(null)
   const [generationError, setGenerationError] = useState<string>('')
@@ -1122,8 +1107,6 @@ function App() {
   const [bankClips, setBankClips] = useState<Record<string, any[]>>({
     originales: [],
     stock: [],
-    remotion: [],
-    hyperframes: [],
     minimax: [],
     veo3: []
   })
@@ -1131,9 +1114,8 @@ function App() {
   const [cuttingClipsError, setCuttingClipsError] = useState('')
   const [isExporting, setIsExporting] = useState(false)
 
-  // Timeline IA weights: [Original, Stock, Remotion, Hyperframes]
-  const [timelineWeights, setTimelineWeights] = useState<number[]>([40, 30, 20, 10])
-  const [hyperframesFrequency, setHyperframesFrequency] = useState<number>(30)
+  // Timeline IA weights: [Original, Stock, MiniMax]
+  const [timelineWeights, setTimelineWeights] = useState<number[]>([40, 30, 30])
 
   // MiniMax Hub States
   const [minimaxPrompt, setMinimaxPrompt] = useState<string>('')
@@ -1191,6 +1173,10 @@ function App() {
     if (voiceClip && voiceClip.url) {
       if (!audioRef.current) {
         audioRef.current = new Audio(voiceClip.url);
+        audioRef.current.addEventListener('ended', () => {
+          setIsPlaying(false);
+          if (videoRef.current) videoRef.current.pause();
+        });
       } else if (audioRef.current.src !== voiceClip.url) {
         audioRef.current.src = voiceClip.url;
       }
@@ -1214,29 +1200,11 @@ function App() {
         audio.play().catch(e => console.error("Audio play error:", e));
       }
       
-      const activeClip = timelineVideoClips.find(c => 
-        c.type !== 'audio' && 
-        currentT >= c.startSeconds && 
-        currentT < c.startSeconds + c.durationSeconds
-      );
-      
-      if (activeClip && activeClip.path && activeClip.path !== 'remotion-dynamic' && activeClip.path !== 'hyperframes-dynamic') {
-        const fileUrl = `file:///${activeClip.path.replace(/\\/g, '/')}`;
-        const scale = activeClip.origDurationSeconds 
-          ? (activeClip.origDurationSeconds / activeClip.durationSeconds) 
-          : 1;
-        const offsetInClip = currentT - activeClip.startSeconds;
-        const targetVideoTime = (activeClip.segmentStartOffset || 0) + offsetInClip * scale;
-        
-        setActiveVideoUrl(fileUrl);
-        if (video) {
-          if (video.src !== fileUrl) {
-            video.src = fileUrl;
-          }
-          video.currentTime = targetVideoTime;
-          video.play().catch(e => console.error("Video play error:", e));
-        }
-      }
+      const idx = Math.max(0, sortedVideoClips.findIndex((_, i) => {
+        const next = sortedVideoClips[i + 1];
+        return !next || currentT < next.startSeconds;
+      }));
+      loadClip(idx, true);
     } else {
       if (audio) {
         audio.pause();
@@ -1245,7 +1213,7 @@ function App() {
         video.pause();
       }
     }
-  }, [isPlaying]);
+  }, [isPlaying, loadClip, sortedVideoClips]);
 
   // Sync volume, mute, and speed of video & audio elements
   useEffect(() => {
@@ -1271,101 +1239,7 @@ function App() {
     }
   }, [playbackRate, activeVideoUrl]);
 
-  // Load initial video clip and seek when time or activeTimelineClip changes (only when paused - Corrección 1)
-  useEffect(() => {
-    if (!isPlaying) {
-      if (!activeTimelineClip) {
-        if (activeVideoUrl !== null) {
-          setActiveVideoUrl(null);
-        }
-        return;
-      }
-      
-      if (activeTimelineClip.path && activeTimelineClip.path !== 'remotion-dynamic' && activeTimelineClip.path !== 'hyperframes-dynamic') {
-        const fileUrl = `file:///${activeTimelineClip.path.replace(/\\/g, '/')}`;
-        if (activeVideoUrl !== fileUrl) {
-          setActiveVideoUrl(fileUrl);
-          const video = videoRef.current;
-          if (video) {
-            video.src = fileUrl;
-          }
-        }
-        
-        const scale = activeTimelineClip.origDurationSeconds 
-          ? (activeTimelineClip.origDurationSeconds / activeTimelineClip.durationSeconds) 
-          : 1;
-        const offsetInClip = currentTimeRef.current - activeTimelineClip.startSeconds;
-        const targetVideoTime = (activeTimelineClip.segmentStartOffset || 0) + offsetInClip * scale;
-        
-        const video = videoRef.current;
-        if (video) {
-          if (Math.abs(video.currentTime - targetVideoTime) > 0.05) {
-            video.currentTime = targetVideoTime;
-          }
-        }
-      } else {
-        if (activeVideoUrl !== null) {
-          setActiveVideoUrl(null);
-        }
-      }
-    }
-  }, [activeTimelineClip, currentTimeForUI, isPlaying]);
 
-  // Master Playback Clock (Ticking - driven by media real playback time when playing)
-  useEffect(() => {
-    let animationFrameId: number;
-
-    const tick = () => {
-      if (!isPlaying) return;
-
-      const video = videoRef.current;
-      const audio = audioRef.current;
-      const clips = timelineClipsRef.current || [];
-      const time = currentTimeRef.current;
-      
-      let newTime = time;
-      if (audio && !audio.paused) {
-        newTime = audio.currentTime;
-      } else if (video && !video.paused) {
-        const currentClip = clips.find(c => 
-          c.type !== 'audio' && 
-          time >= c.startSeconds && 
-          time < c.startSeconds + c.durationSeconds
-        );
-        if (currentClip) {
-          const scale = currentClip.origDurationSeconds 
-            ? (currentClip.origDurationSeconds / currentClip.durationSeconds) 
-            : 1;
-          const startOffset = currentClip.segmentStartOffset || 0;
-          const elapsed = (video.currentTime - startOffset) / scale;
-          newTime = currentClip.startSeconds + elapsed;
-        } else {
-          newTime = video.currentTime;
-        }
-      }
-
-      if (newTime < 0) newTime = 0;
-      if (newTime >= totalDuration) {
-        setIsPlaying(false);
-        updateCurrentTime(totalDuration);
-        flushCurrentTime();
-        if (video) video.pause();
-        if (audio) audio.pause();
-        return;
-      }
-
-      updateCurrentTime(newTime);
-      animationFrameId = requestAnimationFrame(tick);
-    };
-
-    if (isPlaying) {
-      animationFrameId = requestAnimationFrame(tick);
-    }
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [isPlaying, totalDuration]);
 
   const refreshProjectsList = async () => {
     try {
@@ -1394,7 +1268,7 @@ function App() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, hyperframesFrequency]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights]);
 
   // Save-on-close handler
   useEffect(() => {
@@ -1428,8 +1302,7 @@ function App() {
           voiceSpeed,
           voiceStability,
           generatedVoices,
-          timelineWeights,
-          hyperframesFrequency
+          timelineWeights
         };
         
         try {
@@ -1441,7 +1314,7 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, activeProjectId, activeProjectName, hyperframesFrequency]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, activeProjectId, activeProjectName]);
 
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
@@ -1474,8 +1347,7 @@ function App() {
         voiceSpeed,
         voiceStability,
         generatedVoices,
-        timelineWeights,
-        hyperframesFrequency
+        timelineWeights
       };
 
       const res = await window.electronAPI.saveProjectState(stateToSave);
@@ -1526,8 +1398,7 @@ function App() {
         voiceSpeed,
         voiceStability,
         generatedVoices,
-        timelineWeights,
-        hyperframesFrequency
+        timelineWeights
       };
 
       const res = await window.electronAPI.saveProjectAs(stateToSave);
@@ -1584,7 +1455,6 @@ function App() {
         if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
         setGeneratedVoices(loadedData.generatedVoices || []);
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(loadedData.timelineWeights);
-        setHyperframesFrequency(loadedData.hyperframesFrequency !== undefined ? loadedData.hyperframesFrequency : 30);
         
         setActiveProjectPath(projectPath);
         setActiveProjectId(loadedData.id || null);
@@ -1592,8 +1462,6 @@ function App() {
         
         // Refresh bank clips for temp folders
         await loadClipsForCategory('originales');
-        await loadClipsForCategory('remotion');
-        await loadClipsForCategory('hyperframes');
         await loadClipsForCategory('minimax');
 
         setSaveStatus('saved');
@@ -1632,9 +1500,8 @@ function App() {
         setAiScript('');
         setOriginalTranscriptText('');
         setGeneratedVoices([]);
-        setTimelineWeights([40, 30, 20, 10]);
-        setHyperframesFrequency(30);
-        
+        setTimelineWeights([40, 30, 30]);
+
         setActiveProjectPath(res.projectPath || null);
         setActiveProjectId(loadedData.id || null);
         setActiveProjectName(name);
@@ -1642,8 +1509,6 @@ function App() {
         setBankClips({
           originales: [],
           stock: [],
-          remotion: [],
-          hyperframes: [],
           minimax: [],
           veo3: []
         });
@@ -1679,7 +1544,6 @@ function App() {
       setClips([]);
       setTimelineVersions([]);
       setActiveVersionId('');
-      setHyperframesFrequency(30);
       setTimelineVideoClips([]);
       setTranscriptionStatus('');
       setTranscriptSegments([]);
@@ -1751,7 +1615,6 @@ function App() {
         if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
         setGeneratedVoices(loadedData.generatedVoices || []);
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(loadedData.timelineWeights);
-        setHyperframesFrequency(loadedData.hyperframesFrequency !== undefined ? loadedData.hyperframesFrequency : 30);
         
         setActiveProjectPath(res.projectPath);
         setActiveProjectId(loadedData.id || null);
@@ -1759,8 +1622,6 @@ function App() {
         
         // Refresh bank clips for temp folders
         await loadClipsForCategory('originales');
-        await loadClipsForCategory('remotion');
-        await loadClipsForCategory('hyperframes');
         await loadClipsForCategory('minimax');
 
         setSaveStatus('saved');
@@ -1838,7 +1699,7 @@ function App() {
     try {
       const res = await window.electronAPI.cutVideoClips({
         videoPath: firstVideoInLibrary.path,
-        segments: transcriptSegments,
+        timestamps: transcriptSegments.map((s: any) => s.start),
         aspectRatio: aspectRatio
       });
       if (res && res.success && res.clips) {
@@ -1899,7 +1760,7 @@ function App() {
     updatedWeights[index] = newValue;
     
     // Distribute the difference among other sliders
-    const otherIndices = [0, 1, 2, 3].filter(i => i !== index);
+    const otherIndices = [0, 1, 2].filter(i => i !== index);
     const sumOthers = otherIndices.reduce((sum, i) => sum + updatedWeights[i], 0);
     
     if (sumOthers > 0) {
@@ -1967,9 +1828,9 @@ function App() {
         scriptText: aiScript, 
         weights: timelineWeights, 
         aspectRatio, 
-        audioDuration, 
+        audioDuration,
         transcriptSegments,
-        hyperframesFrequency
+        videoPath: firstVideoInLibrary?.path
       });
       
       if (res && res.success && res.clips) {
@@ -1977,8 +1838,6 @@ function App() {
         
         // Refresh library bank folders so generated clips appear in their tabs
         await loadClipsForCategory('originales');
-        await loadClipsForCategory('remotion');
-        await loadClipsForCategory('hyperframes');
         await loadClipsForCategory('minimax');
 
         const newVideoClips: any[] = [];
@@ -2766,7 +2625,7 @@ function App() {
 
           {/* Library Tabs */}
           <div className="flex border-b border-slate-800/80 bg-slate-900/40 p-1 overflow-x-auto scrollbar-none space-x-1 flex-shrink-0">
-            {['Principal', 'Originales', 'Stock', 'Remotion', 'Hyperframes', 'MiniMax'].map(tab => (
+            {['Principal', 'Originales', 'Stock', 'MiniMax'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setLibraryTab(tab)}
@@ -2833,40 +2692,22 @@ function App() {
                 <span className="font-mono text-[10px] text-sky-400 font-bold w-8 text-right select-none">{timelineWeights[1]}%</span>
               </div>
 
-              {/* Slider 3: Remotion */}
-              <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-                <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Remotion</span>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="100" 
-                  value={timelineWeights[2]}
-                  onChange={(e) => handleWeightChange(2, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-blue-500 transition-all outline-none" 
-                  style={{
-                    background: `linear-gradient(to right, rgb(59, 130, 246) ${timelineWeights[2]}%, rgb(30, 41, 59) 0%)`
-                  }}
-                />
-                <span className="font-mono text-[10px] text-blue-400 font-bold w-8 text-right select-none">{timelineWeights[2]}%</span>
-              </div>
-
-              {/* Slider 4: MiniMax */}
+              {/* Slider 3: MiniMax */}
               <div className="flex items-center space-x-2.5">
                 <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">MiniMax</span>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="100" 
-                  value={timelineWeights[3]}
-                  onChange={(e) => handleWeightChange(3, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-amber-500 transition-all outline-none" 
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={timelineWeights[2]}
+                  onChange={(e) => handleWeightChange(2, parseInt(e.target.value))}
+                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-amber-500 transition-all outline-none"
                   style={{
-                    background: `linear-gradient(to right, rgb(245, 158, 11) ${timelineWeights[3]}%, rgb(30, 41, 59) 0%)`
+                    background: `linear-gradient(to right, rgb(245, 158, 11) ${timelineWeights[2]}%, rgb(30, 41, 59) 0%)`
                   }}
                 />
-                <span className="font-mono text-[10px] text-amber-400 font-bold w-8 text-right select-none">{timelineWeights[3]}%</span>
+                <span className="font-mono text-[10px] text-amber-400 font-bold w-8 text-right select-none">{timelineWeights[2]}%</span>
               </div>
             </div>
 
@@ -2874,34 +2715,7 @@ function App() {
             <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-slate-800 mt-2">
               <div style={{ width: `${timelineWeights[0]}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Original: ${timelineWeights[0]}%`} />
               <div style={{ width: `${timelineWeights[1]}%` }} className="h-full bg-sky-500 transition-all duration-300" title={`Stock: ${timelineWeights[1]}%`} />
-              <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-blue-500 transition-all duration-300" title={`Remotion: ${timelineWeights[2]}%`} />
-              <div style={{ width: `${timelineWeights[3]}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`MiniMax: ${timelineWeights[3]}%`} />
-            </div>
-
-            {/* Separated Hyperframes Transition Frequency Slider */}
-            <div className="pt-2 border-t border-slate-850/80 space-y-1.5">
-              <div className="flex justify-between items-center text-[9px] font-bold text-slate-400 uppercase tracking-wider select-none">
-                <span className="flex items-center space-x-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 flex-shrink-0 animate-pulse" />
-                  <span>Transiciones Hyperframes</span>
-                </span>
-              </div>
-              <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-yellow-500 flex-shrink-0" />
-                <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Frecuencia</span>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="100" 
-                  value={hyperframesFrequency}
-                  onChange={(e) => setHyperframesFrequency(parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-yellow-500 transition-all outline-none" 
-                  style={{
-                    background: `linear-gradient(to right, rgb(234, 179, 8) ${hyperframesFrequency}%, rgb(30, 41, 59) 0%)`
-                  }}
-                />
-                <span className="font-mono text-[10px] text-yellow-400 font-bold w-8 text-right select-none">{hyperframesFrequency}%</span>
-              </div>
+              <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`MiniMax: ${timelineWeights[2]}%`} />
             </div>
 
             {/* Botón Construir Timeline IA */}
@@ -3216,7 +3030,7 @@ function App() {
             {/* Player Canvas Mockup / Real Player */}
             <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950/20" />
             
-            {(activeVideoUrl || (activeTimelineClip && (activeTimelineClip.path === 'remotion-dynamic' || activeTimelineClip.path === 'hyperframes-dynamic'))) ? (
+            {activeVideoUrl ? (
               <div 
                 onWheel={handlePreviewWheel}
                 onMouseDown={handlePreviewMouseDown}
@@ -3248,16 +3062,8 @@ function App() {
                   onCanPlay={handleVideoCanPlay}
                   onDurationChange={handleDurationChange}
                   onEnded={handleEnded}
+                  onTimeUpdate={handleTimeUpdate}
                 />
-                {!activeVideoUrl && (
-                  <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden bg-slate-950">
-                    {activeTimelineClip?.path === 'remotion-dynamic' ? (
-                      <RemotionVisualizer text={activeTimelineClip.text || activeTimelineClip.name} time={currentTimeForUI - activeTimelineClip.startSeconds} />
-                    ) : (
-                      <HyperframesVisualizer text={activeTimelineClip?.text || activeTimelineClip?.name || ''} time={currentTimeForUI - (activeTimelineClip?.startSeconds || 0)} />
-                    )}
-                  </div>
-                )}
 
                 {/* Crop Editor Overlay */}
                 {isCropping && (
@@ -4605,12 +4411,8 @@ function App() {
                         bgClass = 'bg-emerald-500/25 border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/35';
                       } else if (cat === 'stock') {
                         bgClass = 'bg-sky-500/25 border-sky-400/50 text-sky-300 hover:bg-sky-500/35';
-                      } else if (cat === 'remotion') {
-                        bgClass = 'bg-blue-500/25 border-blue-400/50 text-blue-300 hover:bg-blue-500/35';
                       } else if (cat === 'minimax') {
                         bgClass = 'bg-amber-600/25 border-amber-500/50 text-amber-300 hover:bg-amber-600/35';
-                      } else if (cat === 'hyperframes') {
-                        bgClass = 'bg-yellow-500/25 border-yellow-400/50 text-yellow-350 hover:bg-yellow-500/35';
                       } else {
                         bgClass = index % 2 === 0 
                           ? 'bg-sky-500/20 border-sky-400/50 text-sky-300 hover:bg-sky-500/30' 
@@ -4896,53 +4698,6 @@ function App() {
       )}
     </div>
   )
-}
-
-function RemotionVisualizer({ time }: { text?: string; time: number }) {
-  const colors = ['#00d4ff', '#fbbf24', '#f472b6', '#6366f1'];
-  return (
-    <div className="relative w-full h-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#020712' }}>
-      <div className="absolute inset-0 opacity-[0.12] bg-[linear-gradient(to_right,#6366f1_1px,transparent_1px),linear-gradient(to_bottom,#6366f1_1px,transparent_1px)] bg-[size:48px_48px]" />
-      <div
-        className="absolute w-72 h-72 rounded-full blur-3xl"
-        style={{ background: 'radial-gradient(circle, #00d4ff33, transparent 70%)', transform: `scale(${1 + Math.sin(time * 1.5) * 0.15})` }}
-      />
-      <div className="relative z-10 flex items-end justify-center gap-2 h-40">
-        {[0.6, 0.9, 0.4, 0.8, 0.5, 0.7, 0.3, 0.85, 0.55].map((h, i) => {
-          const dynamicHeight = Math.sin(time * 4 + i * 0.6) * 40 + h * 90 + 30;
-          const color = colors[i % 4];
-          return (
-            <div
-              key={i}
-              style={{ height: `${dynamicHeight}px`, backgroundColor: color, boxShadow: `0 0 16px ${color}` }}
-              className="w-3 rounded-full transition-all duration-100"
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function HyperframesVisualizer({ time }: { text?: string; time: number }) {
-  const colors = ['#00d4ff', '#fbbf24', '#f472b6', '#6366f1'];
-  return (
-    <div className="relative w-full h-full flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#020712' }}>
-      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1px,transparent_1px)] bg-[size:18px_18px]" />
-      {colors.map((c, i) => {
-        const scale = 0.4 + ((time * 0.6 + i * 0.5) % 2);
-        const opacity = Math.max(0, 1 - scale / 2.4);
-        return (
-          <div
-            key={i}
-            className="absolute rounded-full"
-            style={{ width: 160, height: 160, border: `4px solid ${c}`, boxShadow: `0 0 24px ${c}`, transform: `scale(${scale})`, opacity }}
-          />
-        );
-      })}
-      <div className="absolute w-4 h-4 rounded-full" style={{ backgroundColor: '#ffffff', boxShadow: '0 0 20px #00d4ff' }} />
-    </div>
-  );
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root')!)

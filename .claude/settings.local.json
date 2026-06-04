@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(head -1709 \"C:/Users/John Benites/OneDrive/Documents/mi-app/cipher-studio/src/main/index.ts\")",
+      "Read(//tmp/**)"
+    ]
+  }
+}

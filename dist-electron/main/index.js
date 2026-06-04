@@ -41,7 +41,9 @@ function formatTimeMinutesSeconds(seconds) {
   const secs = Math.round(seconds % 60);
   return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
 }
+let envLoaded = false;
 function loadEnv() {
+  if (envLoaded) return;
   const possiblePaths = [
     path.join(process.cwd(), ".env"),
     path.join(process.cwd(), "cipher-studio", ".env"),
@@ -79,6 +81,15 @@ function loadEnv() {
   if (!loaded) {
     console.warn(`[loadEnv] Advertencia: No se pudo encontrar ningún archivo .env en las rutas buscadas.`);
   }
+  envLoaded = true;
+}
+async function exists(p) {
+  try {
+    await fs.promises.access(p);
+    return true;
+  } catch {
+    return false;
+  }
 }
 loadEnv();
 process.env.DIST = path.join(__dirname, "../..");
@@ -93,7 +104,8 @@ function createWindow() {
     webPreferences: {
       preload,
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      webSecurity: false
     },
     width: 1280,
     height: 800,
@@ -106,6 +118,9 @@ function createWindow() {
   win.on("close", (e) => {
     if (!isClosing) {
       e.preventDefault();
+      if (activeProjectPath) {
+        cleanupProjectTemp(activeProjectPath);
+      }
       win == null ? void 0 : win.webContents.send("save-before-close");
       isClosing = true;
       setTimeout(() => {
@@ -129,35 +144,45 @@ function getBancoClipsPath() {
     return path.join(cwd, "cipher-studio", "banco-clips");
   }
 }
-function getRemotionPath() {
-  const cwd = process.cwd();
-  if (path.basename(cwd) === "cipher-studio") {
-    return cwd;
-  } else {
-    return path.join(cwd, "cipher-studio");
+async function writeDebugLog(message) {
+  try {
+    const cwd = process.cwd();
+    let targetPath = "";
+    if (path.basename(cwd) === "cipher-studio") {
+      targetPath = path.join(cwd, "generation-debug.log");
+    } else {
+      targetPath = path.join(cwd, "cipher-studio", "generation-debug.log");
+    }
+    const dir = path.dirname(targetPath);
+    if (!await exists(dir)) {
+      await fs.promises.mkdir(dir, { recursive: true });
+    }
+    const time = (/* @__PURE__ */ new Date()).toISOString();
+    await fs.promises.appendFile(targetPath, `[${time}] ${message}
+`, "utf8");
+  } catch (e) {
+    console.error("Error writing to debug log:", e);
   }
 }
-function initClipFolders() {
+async function initClipFolders() {
   const bankDir = getBancoClipsPath();
   const folders = [
     "",
     "originales",
     "stock",
-    "remotion",
-    "hyperframes",
     "veo3",
     "thumbnails"
   ];
   for (const f of folders) {
     const dirPath = path.join(bankDir, f);
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
+    if (!await exists(dirPath)) {
+      await fs.promises.mkdir(dirPath, { recursive: true });
       console.log(`[initClipFolders] Carpeta creada: ${dirPath}`);
     }
   }
 }
-electron.app.whenReady().then(() => {
-  initClipFolders();
+electron.app.whenReady().then(async () => {
+  await initClipFolders();
   createWindow();
 });
 electron.app.on("window-all-closed", () => {
@@ -178,18 +203,25 @@ electron.app.on("activate", () => {
     createWindow();
   }
 });
-electron.ipcMain.on("start-transcription", (event, filePath) => {
+electron.ipcMain.on("start-transcription", async (event, filePath) => {
   const transcriptsDir = path.join(electron.app.getPath("userData"), "transcripts");
-  if (!fs.existsSync(transcriptsDir)) {
-    fs.mkdirSync(transcriptsDir, { recursive: true });
+  if (!await exists(transcriptsDir)) {
+    await fs.promises.mkdir(transcriptsDir, { recursive: true });
   }
   const basename = path.basename(filePath, path.extname(filePath));
   const expectedJsonPath = path.join(transcriptsDir, basename + ".json");
-  if (fs.existsSync(expectedJsonPath)) {
+  if (await exists(expectedJsonPath)) {
     try {
-      fs.unlinkSync(expectedJsonPath);
+      await fs.promises.unlink(expectedJsonPath);
     } catch (e) {
     }
+  }
+  if (!await exists(filePath)) {
+    event.reply("transcription-update", {
+      status: "error",
+      error: `El archivo de audio no existe en la ruta: ${filePath}`
+    });
+    return;
   }
   event.reply("transcription-update", {
     status: "starting",
@@ -199,11 +231,13 @@ electron.ipcMain.on("start-transcription", (event, filePath) => {
     `"${filePath}"`,
     "--language",
     "Spanish",
+    "--model",
+    "tiny",
     "--output_format",
     "json",
     "--output_dir",
     `"${transcriptsDir}"`
-  ], { shell: true });
+  ], { shell: true, env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
   let progressBuffer = "";
   whisperProcess.stdout.on("data", (data) => {
     const chunk = data.toString();
@@ -229,18 +263,18 @@ electron.ipcMain.on("start-transcription", (event, filePath) => {
       });
     }
   });
-  whisperProcess.on("close", (code) => {
+  whisperProcess.on("close", async (code) => {
     if (code === 0) {
       try {
-        if (fs.existsSync(expectedJsonPath)) {
-          const rawData = fs.readFileSync(expectedJsonPath, "utf8");
+        if (await exists(expectedJsonPath)) {
+          const rawData = await fs.promises.readFile(expectedJsonPath, "utf8");
           const parsed = JSON.parse(rawData);
           event.reply("transcription-update", {
             status: "success",
             result: parsed
           });
           try {
-            fs.unlinkSync(expectedJsonPath);
+            await fs.promises.unlink(expectedJsonPath);
           } catch (e) {
           }
         } else {
@@ -263,10 +297,177 @@ electron.ipcMain.on("start-transcription", (event, filePath) => {
     }
   });
 });
+let activeProjectPath = null;
+function slugify(text) {
+  return text.toString().toLowerCase().trim().replace(/\s+/g, "-").replace(/[^\w\-]+/g, "").replace(/\-\-+/g, "-").replace(/^-+/, "").replace(/-+$/, "");
+}
+async function getProjectsDir() {
+  const cwd = process.cwd();
+  let baseDir = cwd;
+  if (path.basename(cwd) !== "cipher-studio") {
+    baseDir = path.join(cwd, "cipher-studio");
+  }
+  const dir = path.join(baseDir, "proyectos");
+  if (!await exists(dir)) {
+    await fs.promises.mkdir(dir, { recursive: true });
+  }
+  return dir;
+}
+async function cleanupProjectTemp(projectPath) {
+  const tempPath = path.join(projectPath, "temp");
+  if (await exists(tempPath)) {
+    try {
+      await fs.promises.rm(tempPath, { recursive: true, force: true });
+      console.log(`[cleanupProjectTemp] Temporales eliminados en: ${tempPath}`);
+    } catch (e) {
+      console.error(`[cleanupProjectTemp] Error al eliminar temporales:`, e);
+    }
+  }
+}
+async function initProjectDirs(projectPath) {
+  const folders = [
+    "voices",
+    "temp",
+    "temp/originales",
+    "temp/remotion",
+    "temp/hyperframes",
+    "temp/minimax",
+    "temp/thumbnails"
+  ];
+  for (const f of folders) {
+    const dir = path.join(projectPath, f);
+    if (!await exists(dir)) {
+      await fs.promises.mkdir(dir, { recursive: true });
+    }
+  }
+}
+async function sanitizeProjectState(parsed) {
+  return parsed;
+}
+electron.ipcMain.handle("list-projects", async () => {
+  try {
+    const projectsDir = await getProjectsDir();
+    const items = await fs.promises.readdir(projectsDir);
+    const projectsList = [];
+    for (const item of items) {
+      const projectPath = path.join(projectsDir, item);
+      const stat = await fs.promises.stat(projectPath);
+      if (stat.isDirectory()) {
+        const stateFile = path.join(projectPath, "project-state.json");
+        if (await exists(stateFile)) {
+          try {
+            const raw = await fs.promises.readFile(stateFile, "utf8");
+            const data = JSON.parse(raw);
+            projectsList.push({
+              id: data.id || item,
+              name: data.name || item,
+              durationSeconds: data.durationSeconds || 0,
+              date: data.date || stat.mtimeMs,
+              projectPath,
+              thumbnailUrl: data.thumbnailUrl || ""
+            });
+          } catch (e) {
+            console.error(`Error al leer project-state.json en ${item}:`, e);
+          }
+        }
+      }
+    }
+    projectsList.sort((a, b) => b.date - a.date);
+    return { success: true, projects: projectsList };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+electron.ipcMain.handle("create-project", async (_event, { name }) => {
+  try {
+    const projectsDir = await getProjectsDir();
+    const id = `${slugify(name || "Nuevo Proyecto")}-${Date.now()}`;
+    const projectPath = path.join(projectsDir, id);
+    if (activeProjectPath) {
+      await cleanupProjectTemp(activeProjectPath);
+    }
+    await initProjectDirs(projectPath);
+    const initialState = {
+      id,
+      name,
+      date: Date.now(),
+      durationSeconds: 0,
+      clips: [],
+      timelineVideoClips: [],
+      transcriptionStatus: "",
+      transcriptSegments: [],
+      aiScript: "",
+      originalTranscriptText: "",
+      voiceModel: "Eleven English v1",
+      voiceSpeaker: "Rachel",
+      voiceSpeed: 1,
+      voiceStability: 50,
+      generatedVoices: [],
+      timelineWeights: [40, 30, 20, 10]
+    };
+    const stateFile = path.join(projectPath, "project-state.json");
+    await fs.promises.writeFile(stateFile, JSON.stringify(initialState, null, 2), "utf8");
+    activeProjectPath = projectPath;
+    console.log(`[create-project] Proyecto creado en: ${projectPath}`);
+    return { success: true, data: initialState, projectPath };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+electron.ipcMain.handle("load-project", async (_event, { projectPath }) => {
+  try {
+    if (activeProjectPath && activeProjectPath !== projectPath) {
+      await cleanupProjectTemp(activeProjectPath);
+    }
+    const stateFile = path.join(projectPath, "project-state.json");
+    if (!await exists(stateFile)) {
+      return { success: false, error: "No se encontró el estado del proyecto en la carpeta seleccionada." };
+    }
+    await initProjectDirs(projectPath);
+    await cleanupProjectTemp(projectPath);
+    await initProjectDirs(projectPath);
+    const raw = await fs.promises.readFile(stateFile, "utf8");
+    const parsed = await sanitizeProjectState(JSON.parse(raw));
+    activeProjectPath = projectPath;
+    console.log(`[load-project] Proyecto cargado desde: ${projectPath}`);
+    return { success: true, data: parsed, projectPath };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+electron.ipcMain.handle("close-project", async () => {
+  try {
+    if (activeProjectPath) {
+      await cleanupProjectTemp(activeProjectPath);
+      console.log(`[close-project] Proyecto cerrado y temporales limpiados: ${activeProjectPath}`);
+      activeProjectPath = null;
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+electron.ipcMain.handle("delete-project", async (_event, { projectPath }) => {
+  try {
+    if (activeProjectPath === projectPath) {
+      activeProjectPath = null;
+    }
+    if (await exists(projectPath)) {
+      await fs.promises.rm(projectPath, { recursive: true, force: true });
+      console.log(`[delete-project] Carpeta de proyecto eliminada: ${projectPath}`);
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
 electron.ipcMain.handle("save-project-state", async (_event, state) => {
   try {
-    const filePath = path.join(process.cwd(), "project-state.json");
-    fs.writeFileSync(filePath, JSON.stringify(state, null, 2), "utf8");
+    const targetPath = activeProjectPath || process.cwd();
+    const filePath = path.join(targetPath, "project-state.json");
+    const sanitized = await sanitizeProjectState(state);
+    sanitized.date = Date.now();
+    await fs.promises.writeFile(filePath, JSON.stringify(sanitized, null, 2), "utf8");
     return { success: true };
   } catch (err) {
     return { success: false, error: err.message };
@@ -274,13 +475,21 @@ electron.ipcMain.handle("save-project-state", async (_event, state) => {
 });
 electron.ipcMain.handle("load-project-state", async () => {
   try {
+    if (activeProjectPath) {
+      const stateFile = path.join(activeProjectPath, "project-state.json");
+      if (await exists(stateFile)) {
+        const raw = await fs.promises.readFile(stateFile, "utf8");
+        const parsed = await sanitizeProjectState(JSON.parse(raw));
+        return { success: true, data: parsed };
+      }
+    }
     const filePath = path.join(process.cwd(), "project-state.json");
-    if (fs.existsSync(filePath)) {
-      const rawData = fs.readFileSync(filePath, "utf8");
-      const parsed = JSON.parse(rawData);
+    if (await exists(filePath)) {
+      const rawData = await fs.promises.readFile(filePath, "utf8");
+      const parsed = await sanitizeProjectState(JSON.parse(rawData));
       return { success: true, data: parsed };
     }
-    return { success: false, error: "No se encontró el archivo de estado del proyecto." };
+    return { success: false, error: "No se encontró proyecto activo." };
   } catch (err) {
     return { success: false, error: err.message };
   }
@@ -295,13 +504,15 @@ electron.ipcMain.handle("save-project-as", async (_event, state) => {
     if (!win) return { success: false, error: "Ventana no disponible" };
     const { filePath, canceled } = await electron.dialog.showSaveDialog(win, {
       title: "Guardar Proyecto Como",
-      defaultPath: path.join(process.cwd(), "project-state.json"),
+      defaultPath: activeProjectPath ? path.join(activeProjectPath, "project-state.json") : path.join(process.cwd(), "project-state.json"),
       filters: [{ name: "JSON Project", extensions: ["json"] }]
     });
     if (canceled || !filePath) {
       return { success: false, error: "Guardado cancelado por el usuario" };
     }
-    fs.writeFileSync(filePath, JSON.stringify(state, null, 2), "utf8");
+    const sanitized = await sanitizeProjectState(state);
+    sanitized.date = Date.now();
+    await fs.promises.writeFile(filePath, JSON.stringify(sanitized, null, 2), "utf8");
     return { success: true };
   } catch (err) {
     return { success: false, error: err.message };
@@ -312,17 +523,25 @@ electron.ipcMain.handle("open-project", async () => {
     if (!win) return { success: false, error: "Ventana no disponible" };
     const { filePaths, canceled } = await electron.dialog.showOpenDialog(win, {
       title: "Abrir Proyecto",
-      defaultPath: process.cwd(),
+      defaultPath: await getProjectsDir(),
       filters: [{ name: "JSON Project", extensions: ["json"] }],
       properties: ["openFile"]
     });
     if (canceled || !filePaths || filePaths.length === 0) {
-      return { success: false, error: "Carga cancelada por el usuario" };
+      return { success: false, error: "Carga cancelada" };
     }
     const filePath = filePaths[0];
-    const rawData = fs.readFileSync(filePath, "utf8");
-    const parsed = JSON.parse(rawData);
-    return { success: true, data: parsed };
+    const projectPath = path.dirname(filePath);
+    if (activeProjectPath && activeProjectPath !== projectPath) {
+      await cleanupProjectTemp(activeProjectPath);
+    }
+    await initProjectDirs(projectPath);
+    await cleanupProjectTemp(projectPath);
+    await initProjectDirs(projectPath);
+    const raw = await fs.promises.readFile(filePath, "utf8");
+    const parsed = await sanitizeProjectState(JSON.parse(raw));
+    activeProjectPath = projectPath;
+    return { success: true, data: parsed, projectPath };
   } catch (err) {
     return { success: false, error: err.message };
   }
@@ -387,7 +606,7 @@ electron.ipcMain.handle("rewrite-transcript", async (_event, text) => {
   var _a, _b, _c;
   try {
     let promptPath = path.join(process.cwd(), "src/prompt-maestro.txt");
-    if (!fs.existsSync(promptPath)) {
+    if (!await exists(promptPath)) {
       const possiblePaths = [
         path.join(electron.app.getAppPath(), "src/prompt-maestro.txt"),
         path.join(__dirname, "../../src/prompt-maestro.txt"),
@@ -395,16 +614,16 @@ electron.ipcMain.handle("rewrite-transcript", async (_event, text) => {
         path.join(process.cwd(), "prompt-maestro.txt")
       ];
       for (const p of possiblePaths) {
-        if (fs.existsSync(p)) {
+        if (await exists(p)) {
           promptPath = p;
           break;
         }
       }
     }
-    if (!fs.existsSync(promptPath)) {
+    if (!await exists(promptPath)) {
       return { success: false, error: "No se encontró el archivo prompt-maestro.txt en cipher-studio/src" };
     }
-    const promptTemplate = fs.readFileSync(promptPath, "utf8");
+    const promptTemplate = await fs.promises.readFile(promptPath, "utf8");
     const finalPrompt = promptTemplate.replace("[TRANSCRIPCIÓN]", text);
     loadEnv();
     const apiKey = process.env.DEEPSEEK_API_KEY;
@@ -422,7 +641,7 @@ electron.ipcMain.handle("rewrite-transcript", async (_event, text) => {
         messages: [
           {
             role: "system",
-            content: "Eres un guionista experto. Tu única tarea es reescribir la transcripción siguiendo el estilo solicitado. IMPORTANTE: Entrega ÚNICAMENTE el texto limpio del guion final resultante que será hablado frente a la cámara. Está estrictamente PROHIBIDO incluir introducciones, prefacios, saludos, notas del autor, resúmenes, explicaciones del estilo utilizado o comentarios explicativos adicionales. Empieza a responder directamente con el primer párrafo del guion."
+            content: "Eres un guionista experto. Tu única tarea es reescribir la transcripción siguiendo el estilo solicitado. IMPORTANTE: Entrega ÚNICAMENTE el texto corrido del guion final resultante que será hablado de forma continua frente a la cámara. Está estrictamente PROHIBIDO incluir títulos, encabezados, viñetas, formato markdown, saludos, introducciones, notas o comentarios adicionales. Empieza a responder directamente con el primer párrafo del guion."
           },
           { role: "user", content: finalPrompt }
         ],
@@ -548,17 +767,18 @@ electron.ipcMain.handle("generate-voice", async (_event, { text, model, voiceId,
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       console.log(`[generate-voice] Buffer de audio recibido. Tamaño: ${buffer.byteLength} bytes`);
-      const voicesDir = path.join(electron.app.getPath("userData"), "generated-voices");
-      if (!fs.existsSync(voicesDir)) {
-        fs.mkdirSync(voicesDir, { recursive: true });
+      const voicesDir = activeProjectPath ? path.join(activeProjectPath, "voices") : path.join(electron.app.getPath("userData"), "generated-voices");
+      if (!await exists(voicesDir)) {
+        await fs.promises.mkdir(voicesDir, { recursive: true });
       }
       const filename = `voice-${Date.now()}.mp3`;
       const filePath = path.join(voicesDir, filename);
-      fs.writeFileSync(filePath, buffer);
+      await fs.promises.writeFile(filePath, buffer);
       console.log(`[generate-voice] Archivo de voz guardado localmente en: ${filePath}`);
+      const durationSeconds = await getVideoDuration(filePath);
       const base64Audio = buffer.toString("base64");
       const audioUrl = `data:audio/mp3;base64,${base64Audio}`;
-      return { success: true, filePath, audioUrl };
+      return { success: true, filePath, audioUrl, durationSeconds };
     } catch (fetchErr) {
       clearTimeout(timeoutId);
       let fetchErrMsg = fetchErr.message || "Error de conexión";
@@ -574,35 +794,157 @@ electron.ipcMain.handle("generate-voice", async (_event, { text, model, voiceId,
     return { success: false, error: errMessage };
   }
 });
+electron.ipcMain.handle("generate-minimax-video", async (_event, { prompt }) => {
+  var _a;
+  try {
+    loadEnv();
+    const apiKey = process.env.MINIMAX_API_KEY;
+    if (!apiKey) {
+      return { success: false, error: "MINIMAX_API_KEY no está configurado en el archivo .env." };
+    }
+    console.log("[generate-minimax-video] Iniciando generación con prompt:", prompt);
+    const submitResponse = await fetch("https://api.minimax.io/v1/video_generation", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "MiniMax-Hailuo-2.3",
+        prompt,
+        duration: 6,
+        resolution: "1080P"
+      })
+    });
+    if (!submitResponse.ok) {
+      const errText = await submitResponse.text();
+      return { success: false, error: `Error MiniMax Submit (${submitResponse.status}): ${errText}` };
+    }
+    const submitData = await submitResponse.json();
+    const taskId = submitData.task_id;
+    if (!taskId) {
+      return { success: false, error: `MiniMax no devolvió un task_id: ${JSON.stringify(submitData)}` };
+    }
+    console.log(`[generate-minimax-video] Task creado con ID: ${taskId}. Iniciando sondeo...`);
+    let fileId = null;
+    let status = "Preparing";
+    const maxPolls = 60;
+    for (let i = 0; i < maxPolls; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 3e3));
+      const queryResponse = await fetch(`https://api.minimax.io/v1/query/video_generation?task_id=${taskId}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`
+        }
+      });
+      if (!queryResponse.ok) {
+        console.error(`[generate-minimax-video] Error al sondear la tarea (${queryResponse.status})`);
+        continue;
+      }
+      const queryData = await queryResponse.json();
+      status = queryData.status || "";
+      console.log(`[generate-minimax-video] Sondeo #${i + 1}: status = ${status}`);
+      if (status === "Success") {
+        fileId = queryData.file_id;
+        break;
+      } else if (status === "Fail") {
+        return { success: false, error: "La generación de video por MiniMax falló." };
+      }
+    }
+    if (!fileId) {
+      return { success: false, error: `El sondeo expiró o falló. Estado final: ${status}` };
+    }
+    console.log(`[generate-minimax-video] Tarea exitosa. Obteniendo URL para fileId: ${fileId}...`);
+    const retrieveResponse = await fetch(`https://api.minimax.io/v1/files/retrieve?file_id=${fileId}`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`
+      }
+    });
+    if (!retrieveResponse.ok) {
+      const errText = await retrieveResponse.text();
+      return { success: false, error: `Error al obtener URL del archivo (${retrieveResponse.status}): ${errText}` };
+    }
+    const retrieveData = await retrieveResponse.json();
+    const downloadUrl = ((_a = retrieveData.file) == null ? void 0 : _a.download_url) || retrieveData.download_url;
+    if (!downloadUrl) {
+      return { success: false, error: `MiniMax no devolvió una download_url: ${JSON.stringify(retrieveData)}` };
+    }
+    console.log(`[generate-minimax-video] Descargando video desde: ${downloadUrl}`);
+    const downloadRes = await fetch(downloadUrl);
+    if (!downloadRes.ok) {
+      return { success: false, error: `Error al descargar el archivo de video: ${downloadRes.statusText}` };
+    }
+    const arrayBuffer = await downloadRes.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const targetDir = activeProjectPath ? path.join(activeProjectPath, "temp", "minimax") : path.join(process.cwd(), "cipher-studio", "banco-clips", "minimax");
+    if (!await exists(targetDir)) {
+      await fs.promises.mkdir(targetDir, { recursive: true });
+    }
+    const filename = `minimax-${Date.now()}.mp4`;
+    const filePath = path.join(targetDir, filename);
+    await fs.promises.writeFile(filePath, buffer);
+    const durationSeconds = await getVideoDuration(filePath);
+    const thumbFilename = `thumb-${path.basename(filename, ".mp4")}.jpg`;
+    const thumbDir = activeProjectPath ? path.join(activeProjectPath, "temp", "thumbnails") : path.join(process.cwd(), "cipher-studio", "banco-clips", "thumbnails");
+    if (!await exists(thumbDir)) {
+      await fs.promises.mkdir(thumbDir, { recursive: true });
+    }
+    const thumbPath = path.join(thumbDir, thumbFilename);
+    let thumbnailUrl = "";
+    try {
+      await generateVideoThumbnail(filePath, thumbPath);
+      thumbnailUrl = `file:///${thumbPath.replace(/\\/g, "/")}`;
+    } catch (e) {
+      console.error("[generate-minimax-video] Error generating thumbnail:", e);
+    }
+    return {
+      success: true,
+      filePath,
+      durationSeconds,
+      thumbnailUrl,
+      name: filename
+    };
+  } catch (err) {
+    console.error("[generate-minimax-video] Excepción:", err);
+    return { success: false, error: err.message || "Error desconocido al generar video con MiniMax." };
+  }
+});
 electron.ipcMain.handle("load-bank-clips", async (_event, { category }) => {
   try {
-    const bankDir = getBancoClipsPath();
-    const dirPath = path.join(bankDir, category);
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
+    const isTempCategory = ["originales", "minimax"].includes(category.toLowerCase());
+    const useActiveProj = !!(activeProjectPath && isTempCategory);
+    const baseDir = useActiveProj ? activeProjectPath : getBancoClipsPath();
+    const dirPath = useActiveProj ? path.join(baseDir, "temp", category) : path.join(baseDir, category);
+    const thumbnailDir = useActiveProj ? path.join(baseDir, "temp", "thumbnails") : path.join(baseDir, "thumbnails");
+    if (!await exists(dirPath)) {
+      await fs.promises.mkdir(dirPath, { recursive: true });
     }
-    const files = fs.readdirSync(dirPath);
+    if (!await exists(thumbnailDir)) {
+      await fs.promises.mkdir(thumbnailDir, { recursive: true });
+    }
+    const files = await fs.promises.readdir(dirPath);
     const bankClips = [];
     for (const file of files) {
       const filePath = path.join(dirPath, file);
-      const stat = fs.statSync(filePath);
+      const stat = await fs.promises.stat(filePath);
       if (stat.isFile() && /\.(mp4|mkv|avi|mov|webm)$/i.test(file)) {
         const durationSeconds = await getVideoDuration(filePath);
         const durationStr = formatTimeMinutesSeconds(durationSeconds);
         const thumbnailName = `${path.basename(file, path.extname(file))}.jpg`;
-        const thumbnailPath = path.join(bankDir, "thumbnails", thumbnailName);
+        const thumbnailPath = path.join(thumbnailDir, thumbnailName);
         let thumbnailUrl = "";
-        if (fs.existsSync(thumbnailPath)) {
+        if (await exists(thumbnailPath)) {
           try {
-            thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString("base64")}`;
+            thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbnailPath)).toString("base64")}`;
           } catch (e) {
             console.error(`[load-bank-clips] Error al leer miniatura para ${file}:`, e);
           }
         } else {
           try {
             await generateVideoThumbnail(filePath, thumbnailPath);
-            if (fs.existsSync(thumbnailPath)) {
-              thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString("base64")}`;
+            if (await exists(thumbnailPath)) {
+              thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbnailPath)).toString("base64")}`;
             }
           } catch (e) {
             console.error(`[load-bank-clips] Error al generar miniatura para ${file}:`, e);
@@ -627,98 +969,118 @@ electron.ipcMain.handle("load-bank-clips", async (_event, { category }) => {
     return { success: false, error: err.message };
   }
 });
-electron.ipcMain.handle("cut-video-clips", async (_event, { videoPath, segments, aspectRatio }) => {
+electron.ipcMain.handle("cut-video-clips", async (_event, { videoPath, timestamps }) => {
   try {
-    console.log(`[cut-video-clips] Iniciando segmentación de: ${videoPath} con formato ${aspectRatio}`);
+    console.log(`[cut-video-clips] Slicing video: ${videoPath}, timestamps length: ${(timestamps == null ? void 0 : timestamps.length) || 0}`);
     const bankDir = getBancoClipsPath();
-    const outDir = path.join(bankDir, "originales");
-    if (!fs.existsSync(outDir)) {
-      fs.mkdirSync(outDir, { recursive: true });
+    const useActiveProj = !!activeProjectPath;
+    const outDir = useActiveProj ? path.join(activeProjectPath, "temp", "originales") : path.join(bankDir, "originales");
+    const thumbnailDir = useActiveProj ? path.join(activeProjectPath, "temp", "thumbnails") : path.join(bankDir, "thumbnails");
+    if (!await exists(outDir)) {
+      await fs.promises.mkdir(outDir, { recursive: true });
     }
-    const createdClips = [];
+    if (!await exists(thumbnailDir)) {
+      await fs.promises.mkdir(thumbnailDir, { recursive: true });
+    }
+    const existingFiles = await fs.promises.readdir(outDir);
+    for (const file of existingFiles) {
+      try {
+        await fs.promises.unlink(path.join(outDir, file));
+      } catch (e) {
+      }
+    }
     const escapedVideo = videoPath.replace(/"/g, '\\"');
-    const baseName = path.basename(videoPath, path.extname(videoPath));
-    let filterStr = "";
-    if (aspectRatio === "vertical") {
-      filterStr = `-vf "crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)':x='(iw-ow)/2':y='(ih-oh)/2'"`;
-    } else if (aspectRatio === "square") {
-      filterStr = `-vf "crop=w='min(iw,ih)':h='min(ih,iw)':x='(iw-ow)/2':y='(ih-oh)/2'"`;
-    } else if (aspectRatio === "horizontal") {
-      filterStr = `-vf "crop=w='min(iw,ih*16/9)':h='min(ih,iw*9/16)':x='(iw-ow)/2':y='(ih-oh)/2'"`;
-    }
-    for (let idx = 0; idx < segments.length; idx++) {
-      const seg = segments[idx];
-      const start = seg.start;
-      const end = seg.end;
-      let currentStart = start;
-      let part = 1;
-      while (currentStart < end) {
-        const currentEnd = Math.min(currentStart + 3, end);
-        const duration = currentEnd - currentStart;
-        if (duration <= 0.1) break;
-        const clipFileName = `${baseName}_clip_${idx + 1}_${part}.mp4`;
+    if (timestamps && Array.isArray(timestamps) && timestamps.length > 0) {
+      for (let i = 0; i < timestamps.length; i++) {
+        const ts = timestamps[i];
+        const clipNum = String(i + 1).padStart(3, "0");
+        const clipFileName = `clip_${clipNum}.mp4`;
         const clipPath = path.join(outDir, clipFileName);
         const escapedClipPath = clipPath.replace(/"/g, '\\"');
-        console.log(`  - Cortando segmentación ${idx + 1}/${segments.length} parte ${part} (${currentStart.toFixed(1)}s -> ${currentEnd.toFixed(1)}s)`);
         await new Promise((resolve, reject) => {
-          const ffmpegCmd = `ffmpeg -y -ss ${currentStart} -to ${currentEnd} -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ultrafast -crf 23 -c:a aac "${escapedClipPath}"`;
+          const ffmpegCmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t 3 -c copy "${escapedClipPath}"`;
+          console.log(`[cut-video-clips] Executing FFmpeg: ${ffmpegCmd}`);
           child_process.exec(ffmpegCmd, (err) => {
-            if (err) {
-              console.warn(`[cut-video-clips] FFmpeg re-encoding falló para clip ${idx + 1}_${part}, reintentando con -c copy:`, err.message);
-              child_process.exec(`ffmpeg -y -ss ${currentStart} -to ${currentEnd} -i "${escapedVideo}" -c copy "${escapedClipPath}"`, (err2) => {
-                if (err2) reject(err2);
-                else resolve();
-              });
-            } else {
-              resolve();
-            }
+            if (err) reject(err);
+            else resolve();
           });
         });
-        const thumbnailName = `${baseName}_clip_${idx + 1}_${part}.jpg`;
-        const thumbnailPath = path.join(bankDir, "thumbnails", thumbnailName);
+      }
+    } else {
+      const outputPattern = path.join(outDir, "clip_%03d.mp4").replace(/\\/g, "/");
+      const escapedOutputPattern = outputPattern.replace(/"/g, '\\"');
+      await new Promise((resolve, reject) => {
+        const ffmpegCmd = `ffmpeg -y -i "${escapedVideo}" -c copy -segment_time 3 -segment_start_number 1 -f segment "${escapedOutputPattern}"`;
+        console.log(`[cut-video-clips] Executing FFmpeg: ${ffmpegCmd}`);
+        child_process.exec(ffmpegCmd, (err, _stdout, _stderr) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    }
+    const files = await fs.promises.readdir(outDir);
+    const createdClips = [];
+    for (const file of files) {
+      if (file.startsWith("clip_") && file.endsWith(".mp4")) {
+        const clipPath = path.join(outDir, file);
+        const durationSeconds = await getVideoDuration(clipPath);
+        const thumbnailName = `${path.basename(file, path.extname(file))}.jpg`;
+        const thumbnailPath = path.join(thumbnailDir, thumbnailName);
         let thumbnailUrl = "";
         try {
           await generateVideoThumbnail(clipPath, thumbnailPath);
-          if (fs.existsSync(thumbnailPath)) {
-            thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString("base64")}`;
+          if (await exists(thumbnailPath)) {
+            thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbnailPath)).toString("base64")}`;
           }
         } catch (e) {
-          console.error(`[cut-video-clips] Error al generar miniatura para clip ${idx + 1}_${part}:`, e);
+          console.error(`[cut-video-clips] Error generating thumbnail for ${file}:`, e);
         }
-        const stat = fs.statSync(clipPath);
+        const stat = await fs.promises.stat(clipPath);
         createdClips.push({
-          id: `bank-originales-${clipFileName}`,
-          name: clipFileName,
+          id: `bank-originales-${file}`,
+          name: file,
           path: clipPath,
           url: `file:///${clipPath.replace(/\\/g, "/")}`,
-          duration: formatTimeMinutesSeconds(duration),
-          durationSeconds: duration,
+          duration: formatTimeMinutesSeconds(durationSeconds),
+          durationSeconds,
           type: "video",
-          size: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`,
+          size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
           thumbnailUrl
         });
-        currentStart = currentEnd;
-        part++;
       }
     }
-    console.log(`[cut-video-clips] Corte automático finalizado. Creados ${createdClips.length} clips.`);
+    console.log(`[cut-video-clips] Slicing finished. Created ${createdClips.length} clips.`);
     return { success: true, clips: createdClips };
   } catch (err) {
     console.error(`[cut-video-clips] Error: ${err.message}`);
     return { success: false, error: err.message };
   }
 });
+electron.ipcMain.handle("read-file-as-blob", async (_event, { filePath }) => {
+  try {
+    if (!await exists(filePath)) {
+      return { success: false, error: `File not found at: ${filePath}` };
+    }
+    const buffer = await fs.promises.readFile(filePath);
+    return { success: true, buffer };
+  } catch (err) {
+    console.error(`[read-file-as-blob] Error reading file ${filePath}:`, err.message);
+    return { success: false, error: err.message };
+  }
+});
 electron.ipcMain.handle("delete-bank-clip", async (_event, { category, file }) => {
   try {
-    const bankDir = getBancoClipsPath();
-    const filePath = path.join(bankDir, category, file);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    const isTempCategory = category === "originales" || category === "minimax";
+    const useActiveProj = !!(activeProjectPath && isTempCategory);
+    const baseDir = useActiveProj ? activeProjectPath : getBancoClipsPath();
+    const filePath = useActiveProj ? path.join(baseDir, "temp", category, file) : path.join(baseDir, category, file);
+    if (await exists(filePath)) {
+      await fs.promises.unlink(filePath);
     }
     const thumbnailName = `${path.basename(file, path.extname(file))}.jpg`;
-    const thumbnailPath = path.join(bankDir, "thumbnails", thumbnailName);
-    if (fs.existsSync(thumbnailPath)) {
-      fs.unlinkSync(thumbnailPath);
+    const thumbnailPath = useActiveProj ? path.join(baseDir, "temp", "thumbnails", thumbnailName) : path.join(baseDir, "thumbnails", thumbnailName);
+    if (await exists(thumbnailPath)) {
+      await fs.promises.unlink(thumbnailPath);
     }
     return { success: true };
   } catch (err) {
@@ -726,13 +1088,15 @@ electron.ipcMain.handle("delete-bank-clip", async (_event, { category, file }) =
     return { success: false, error: err.message };
   }
 });
-electron.ipcMain.handle("export-video", async (_event, { clips, aspectRatio }) => {
+electron.ipcMain.handle("export-video", async (_event, { clips, aspectRatio, resolution, format, quality }) => {
   try {
     if (!win) return { success: false, error: "Ventana no disponible" };
+    const ext = format === "mov" ? "mov" : "mp4";
+    const filterName = format === "mov" ? "QuickTime Movie" : "MP4 Video";
     const { filePath, canceled } = await electron.dialog.showSaveDialog(win, {
       title: "Exportar Video",
-      defaultPath: path.join(electron.app.getPath("downloads"), "export.mp4"),
-      filters: [{ name: "MP4 Video", extensions: ["mp4"] }]
+      defaultPath: path.join(electron.app.getPath("downloads"), `export.${ext}`),
+      filters: [{ name: filterName, extensions: [ext] }]
     });
     if (canceled || !filePath) {
       return { success: false, error: "Exportación cancelada por el usuario" };
@@ -740,22 +1104,67 @@ electron.ipcMain.handle("export-video", async (_event, { clips, aspectRatio }) =
     if (!clips || clips.length === 0) {
       return { success: false, error: "No hay clips en el Timeline para exportar." };
     }
+    let targetW = 1920;
+    let targetH = 1080;
+    if (aspectRatio === "vertical") {
+      if (resolution === "4K") {
+        targetW = 2160;
+        targetH = 3840;
+      } else if (resolution === "720p") {
+        targetW = 720;
+        targetH = 1280;
+      } else {
+        targetW = 1080;
+        targetH = 1920;
+      }
+    } else if (aspectRatio === "square") {
+      if (resolution === "4K") {
+        targetW = 2160;
+        targetH = 2160;
+      } else if (resolution === "720p") {
+        targetW = 720;
+        targetH = 720;
+      } else {
+        targetW = 1080;
+        targetH = 1080;
+      }
+    } else {
+      if (resolution === "4K") {
+        targetW = 3840;
+        targetH = 2160;
+      } else if (resolution === "720p") {
+        targetW = 1280;
+        targetH = 720;
+      } else {
+        targetW = 1920;
+        targetH = 1080;
+      }
+    }
     let filterStr = "";
     if (aspectRatio === "vertical") {
-      filterStr = `-vf "crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)':x='(iw-ow)/2':y='(ih-oh)/2'"`;
+      filterStr = `-vf "crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}"`;
     } else if (aspectRatio === "square") {
-      filterStr = `-vf "crop=w='min(iw,ih)':h='min(ih,iw)':x='(iw-ow)/2':y='(ih-oh)/2'"`;
-    } else if (aspectRatio === "horizontal") {
-      filterStr = `-vf "crop=w='min(iw,ih*16/9)':h='min(ih,iw*9/16)':x='(iw-ow)/2':y='(ih-oh)/2'"`;
+      filterStr = `-vf "crop=w='min(iw,ih)':h='min(ih,iw)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}"`;
+    } else {
+      filterStr = `-vf "crop=w='min(iw,ih*16/9)':h='min(ih,iw*9/16)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}"`;
+    }
+    let crf = 23;
+    let preset = "fast";
+    if (quality === "high") {
+      crf = 18;
+      preset = "medium";
+    } else if (quality === "low") {
+      crf = 28;
+      preset = "ultrafast";
     }
     const escapedOut = filePath.replace(/"/g, '\\"');
     if (clips.length === 1) {
       const videoPath = clips[0].path;
-      if (!videoPath || !fs.existsSync(videoPath)) {
+      if (!videoPath || !await exists(videoPath)) {
         return { success: false, error: `El archivo original no existe o no tiene ruta: ${clips[0].name}` };
       }
       const escapedVideo = videoPath.replace(/"/g, '\\"');
-      const ffmpegCmd = `ffmpeg -y -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ultrafast -crf 23 -c:a aac "${escapedOut}"`;
+      const ffmpegCmd = `ffmpeg -y -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -c:a aac "${escapedOut}"`;
       await new Promise((resolve, reject) => {
         child_process.exec(ffmpegCmd, (err) => {
           if (err) reject(err);
@@ -767,7 +1176,7 @@ electron.ipcMain.handle("export-video", async (_event, { clips, aspectRatio }) =
       const tempTxtPath = path.join(bankDir, `temp_concat_${Date.now()}.txt`);
       let fileContent = "";
       for (const clip of clips) {
-        if (clip.path && fs.existsSync(clip.path)) {
+        if (clip.path && await exists(clip.path)) {
           const escapedPath = clip.path.replace(/\\/g, "/").replace(/'/g, "'\\''");
           fileContent += `file '${escapedPath}'
 `;
@@ -778,13 +1187,13 @@ electron.ipcMain.handle("export-video", async (_event, { clips, aspectRatio }) =
       if (!fileContent.trim()) {
         return { success: false, error: "Ninguno de los clips del Timeline tiene un archivo de origen válido en disco." };
       }
-      fs.writeFileSync(tempTxtPath, fileContent, "utf8");
+      await fs.promises.writeFile(tempTxtPath, fileContent, "utf8");
       const escapedTxt = tempTxtPath.replace(/"/g, '\\"');
-      const ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" ${filterStr} -c:v libx264 -preset ultrafast -crf 23 -c:a aac "${escapedOut}"`;
+      const ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" ${filterStr} -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -c:a aac "${escapedOut}"`;
       await new Promise((resolve, reject) => {
-        child_process.exec(ffmpegCmd, (err) => {
+        child_process.exec(ffmpegCmd, async (err) => {
           try {
-            fs.unlinkSync(tempTxtPath);
+            await fs.promises.unlink(tempTxtPath);
           } catch (e) {
           }
           if (err) reject(err);
@@ -798,271 +1207,186 @@ electron.ipcMain.handle("export-video", async (_event, { clips, aspectRatio }) =
     return { success: false, error: err.message };
   }
 });
-electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText }) => {
-  var _a, _b, _c;
+electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText, audioDuration, transcriptSegments, videoPath }) => {
+  var _a, _b, _c, _d;
+  const logMessage = async (msg) => {
+    console.log(msg);
+    await writeDebugLog(msg);
+  };
   try {
-    console.log(`[generate-timeline-assets] Iniciando análisis del guion para Remotion/Hyperframes...`);
+    await logMessage("[generate-timeline-assets] Iniciando...");
+    const totalClips = Math.ceil((audioDuration || 0) / 3);
+    if (totalClips <= 0) return { success: false, error: "audioDuration inválido o cero." };
+    await logMessage(`[FASE 1] audioDuration=${audioDuration}s → totalClips=${totalClips}`);
+    if (!videoPath || !await exists(videoPath)) {
+      return { success: false, error: `No se encontró el video original: ${videoPath}` };
+    }
+    await logMessage("[FASE 2] Solicitando timestamps a DeepSeek...");
     loadEnv();
     const apiKey = process.env.DEEPSEEK_API_KEY;
-    if (!apiKey) {
-      return { success: false, error: "No se configuró DEEPSEEK_API_KEY en el archivo .env" };
-    }
-    let creativeUnlockContent = "";
-    const creativeUnlockPath = path.join(process.cwd(), "creative-unlock.md");
-    const alternativeCreativePath = path.join(process.cwd(), "cipher-studio", "creative-unlock.md");
-    if (fs.existsSync(creativeUnlockPath)) {
-      creativeUnlockContent = fs.readFileSync(creativeUnlockPath, "utf8");
-    } else if (fs.existsSync(alternativeCreativePath)) {
-      creativeUnlockContent = fs.readFileSync(alternativeCreativePath, "utf8");
-    }
-    const paragraphs = scriptText.split(/\n\n+/).map((p) => p.trim()).filter((p) => p.length > 5);
-    if (paragraphs.length === 0) {
-      return { success: false, error: "No se encontraron párrafos válidos en el guion." };
-    }
-    console.log(`[generate-timeline-assets] Párrafos detectados: ${paragraphs.length}`);
-    const prompt = `
-    Analiza la siguiente lista de párrafos de un guion de video.
-    Para cada párrafo, debes decidir si requiere:
-    - "remotion": Gráficos animados de datos, estadísticas, métricas, código, KPI, barras, líneas.
-    - "hyperframes": B-roll narrativo, tipografía cinética sobre fondo oscuro, escena visual conceptual.
-
-    Además, para cada párrafo:
-    - Si es "remotion", genera las siguientes propiedades JSON en "remotionProps":
-      - chartType: "bar" | "line" | "kpi"
-      - title: Título descriptivo para el gráfico (relacionado con el párrafo)
-      - data: (Solo si es "bar" o "line") Un array de 3 a 5 objetos { "label": "...", "value": 0-100 }
-      - metricValue: (Solo si es "kpi") Un texto corto representativo como "+85%" o "1.2M"
-      - metricLabel: (Solo si es "kpi") Una etiqueta explicativa como "Crecimiento" o "Usuarios Activos"
-    - Si es "hyperframes", genera el fragmento HTML completo en "hyperframesHtml" para el interior del contenedor "#root". Debe cumplir con estas directivas:
-      - El contenedor principal dentro de "#root" debe tener 100% de ancho/alto y usar fondo #020712.
-      - Incluye estilos inline o etiquetas <style> internas para animar los elementos usando CSS keyframes. Las animaciones deben ser fluidas y elegantes.
-      - Las tipografías y colores deben seguir estrictamente el archivo creative-unlock.md:
-        ${creativeUnlockContent ? `Estilo de creative-unlock.md:
-${creativeUnlockContent}` : `Fondo general: #020712, Primario (Indigo): #6366f1, Secundario (Púrpura): #c084fc, Verde datos: #34d399, Títulos: Sans-serif Bold, Métricas/Datos: Monospace`}
-      - Distribuye el texto del párrafo en un contenedor centralizado, opcionalmente agregando palabras clave resaltadas en color #6366f1 o #c084fc.
-      - Agrega animaciones CSS como fade-up elástico con retraso (animation-delay) para cada palabra o línea de texto.
-      - Puedes usar círculos con brillos suaves (radial-gradients) de fondo para darle un aspecto cinematográfico y premium de "studio".
-
-    IMPORTANTE: Entrega ÚNICAMENTE el array JSON resultante que empiece por "[" y termine por "]". No incluyas explicaciones ni bloques markdown de código adicionales.
-
-    Lista de párrafos a analizar:
-    ${JSON.stringify(paragraphs, null, 2)}
-    `;
-    console.log(`[generate-timeline-assets] Enviando solicitud a DeepSeek...`);
-    const dsResponse = await fetch("https://api.deepseek.com/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [
-          {
-            role: "system",
-            content: "Eres un programador experto y director creativo. Responde ÚNICAMENTE con el objeto JSON solicitado, sin prefacios ni comentarios."
-          },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.2,
-        stream: false
-      })
+    if (!apiKey) return { success: false, error: "No se configuró DEEPSEEK_API_KEY en el archivo .env" };
+    let timestamps = [];
+    event.sender.send("generation-progress", {
+      index: 0,
+      total: totalClips,
+      paragraph: "Consultando DeepSeek para seleccionar timestamps...",
+      type: "DeepSeek"
     });
-    if (!dsResponse.ok) {
-      const errText = await dsResponse.text();
-      return { success: false, error: `Error de API DeepSeek (${dsResponse.status}): ${errText}` };
-    }
-    const dsData = await dsResponse.json();
-    const content = (_c = (_b = (_a = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _a[0]) == null ? void 0 : _b.message) == null ? void 0 : _c.content;
-    if (!content) {
-      return { success: false, error: "La respuesta de DeepSeek está vacía." };
-    }
-    let cleanContent = content.trim();
-    if (cleanContent.includes("[")) {
-      cleanContent = cleanContent.substring(cleanContent.indexOf("["), cleanContent.lastIndexOf("]") + 1);
-    }
-    let analysisResults;
+    const maxTsVal = (transcriptSegments == null ? void 0 : transcriptSegments.length) > 0 ? ((_a = transcriptSegments[transcriptSegments.length - 1]) == null ? void 0 : _a.end) ?? audioDuration : audioDuration;
     try {
-      analysisResults = JSON.parse(cleanContent);
-    } catch (parseErr) {
-      console.error(`[generate-timeline-assets] Error al parsear JSON de DeepSeek:`, cleanContent);
-      return { success: false, error: `Error al parsear el JSON de la IA: ${parseErr.message}` };
-    }
-    const bankDir = getBancoClipsPath();
-    const tempDir = path.join(bankDir, "temp_renders");
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
-    const compositionsDir = path.join(process.cwd(), "hyperframes-project", "compositions");
-    const alternativeCompositionsDir = path.join(process.cwd(), "cipher-studio", "hyperframes-project", "compositions");
-    const targetCompositionsDir = fs.existsSync(path.join(process.cwd(), "hyperframes-project")) ? compositionsDir : alternativeCompositionsDir;
-    if (!fs.existsSync(targetCompositionsDir)) {
-      fs.mkdirSync(targetCompositionsDir, { recursive: true });
-    }
-    const generatedClips = [];
-    const timestamp = Date.now();
-    for (let idx = 0; idx < analysisResults.length; idx++) {
-      const item = analysisResults[idx];
-      const paragraph = item.paragraph || paragraphs[idx] || "";
-      const type = item.type || "hyperframes";
-      const wordCount = paragraph.split(/\s+/).filter(Boolean).length;
-      const durationSeconds = Math.max(4, Math.min(10, Math.ceil(wordCount / 2.5)));
-      const durationInFrames = durationSeconds * 30;
-      event.sender.send("generation-progress", {
-        index: idx,
-        total: analysisResults.length,
-        paragraph: paragraph.substring(0, 40) + "...",
-        type
-      });
-      console.log(`[generate-timeline-assets] Procesando clip ${idx + 1}/${analysisResults.length} (${type}) - Duración: ${durationSeconds}s`);
-      const clipFileName = `ai_clip_${timestamp}_${idx + 1}.mp4`;
-      if (type === "remotion") {
-        const outPath = path.join(bankDir, "remotion", clipFileName);
-        const tempPropsPath = path.join(tempDir, `remotion_props_${timestamp}_${idx + 1}.json`);
-        const remotionProps = item.remotionProps || {};
-        const propsJson = {
-          text: paragraph,
-          title: remotionProps.title || "Gráfico CIPHER",
-          chartType: remotionProps.chartType || "bar",
-          data: remotionProps.data || [],
-          metricValue: remotionProps.metricValue || "",
-          metricLabel: remotionProps.metricLabel || ""
-        };
-        fs.writeFileSync(tempPropsPath, JSON.stringify(propsJson, null, 2), "utf8");
-        const remotionProjectRoot = getRemotionPath();
-        const entryFile = path.join(remotionProjectRoot, "remotion", "src", "index.ts");
-        await new Promise((resolve, reject) => {
-          const cmd = `npx remotion render "${entryFile}" MainClip "${outPath}" --props="${tempPropsPath}" --frames=0-${durationInFrames - 1}`;
-          console.log(`  - Ejecutando Remotion: ${cmd}`);
-          child_process.exec(cmd, { cwd: remotionProjectRoot }, (err, _stdout, stderr) => {
-            try {
-              fs.unlinkSync(tempPropsPath);
-            } catch (e) {
-            }
-            if (err) {
-              console.error(`  - Remotion falló:`, stderr);
-              reject(err);
-            } else {
-              console.log(`  - Remotion renderizado con éxito.`);
-              resolve();
-            }
-          });
-        });
-        const thumbnailName = `ai_clip_${timestamp}_${idx + 1}.jpg`;
-        const thumbnailPath = path.join(bankDir, "thumbnails", thumbnailName);
-        let thumbnailUrl = "";
-        try {
-          await generateVideoThumbnail(outPath, thumbnailPath);
-          if (fs.existsSync(thumbnailPath)) {
-            thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString("base64")}`;
-          }
-        } catch (e) {
-          console.error(`  - Falló generación de miniatura Remotion:`, e);
+      const segmentsText = (transcriptSegments || []).map((s, i) => `[${i}] ${Number(s.start).toFixed(1)}s-${Number(s.end).toFixed(1)}s: "${s.text}"`).join("\n");
+      const sentences = (scriptText || "").split(new RegExp("(?<=[.!?])\\s+")).filter((s) => s.trim().length > 0);
+      const fragments = [];
+      if (sentences.length <= totalClips) {
+        for (let i = 0; i < totalClips; i++) {
+          fragments.push(sentences[i] || sentences[sentences.length - 1] || "");
         }
-        const stat = fs.statSync(outPath);
-        generatedClips.push({
-          id: `bank-remotion-${clipFileName}`,
-          name: clipFileName,
-          path: outPath,
-          url: `file:///${outPath.replace(/\\/g, "/")}`,
-          duration: formatTimeMinutesSeconds(durationSeconds),
-          durationSeconds,
-          type: "video",
-          category: "remotion",
-          size: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`,
-          thumbnailUrl
-        });
       } else {
-        const outPath = path.join(bankDir, "hyperframes", clipFileName);
-        const compositionHtmlPath = path.join(targetCompositionsDir, `clip_${timestamp}_${idx + 1}.html`);
-        const relativeCompositionPath = `compositions/clip_${timestamp}_${idx + 1}.html`;
-        const hyperframesHtml = item.hyperframesHtml || `<div style="width:100%;height:100%;background:#020712;display:flex;justify-content:center;align-items:center;color:#ffffff;font-size:48px;font-family:sans-serif;padding:60px;text-align:center;">${paragraph}</div>`;
-        const htmlTemplate = `<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=1920, height=1080" />
-    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"><\/script>
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+        const k = sentences.length / totalClips;
+        for (let i = 0; i < totalClips; i++) {
+          const start = Math.floor(i * k);
+          const end = Math.floor((i + 1) * k);
+          fragments.push(sentences.slice(start, end).join(" "));
+        }
       }
-      html, body {
-        margin: 0;
-        width: 1920px;
-        height: 1080px;
-        overflow: hidden;
-        background: #020712;
+      const fragmentosNumerados = fragments.map((frag, idx) => `[${idx + 1}] "${frag}"`).join("\n");
+      const dsPrompt = `Eres un editor de video. Para cada fragmento del guión narrado, elige el timestamp del video original que mejor lo ilustre visualmente.
+
+TRANSCRIPCIÓN DEL VIDEO ORIGINAL:
+${segmentsText}
+
+FRAGMENTOS DEL GUIÓN (cada fragmento = 1 clip de 3 segundos):
+${fragmentosNumerados}
+
+INSTRUCCIONES:
+- Devuelve exactamente ${totalClips} timestamps, uno por fragmento en orden
+- Cada timestamp debe ilustrar el contenido de ese fragmento específico
+- Los timestamps deben estar dentro del rango 0 - ${Number(maxTsVal).toFixed(1)}
+- Evita repetir el mismo timestamp
+
+Responde ÚNICAMENTE con JSON: {"timestamps": [t0, t1, t2, ...]}`;
+      const dsResponse = await fetch("https://api.deepseek.com/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          messages: [
+            { role: "system", content: "Eres un editor de video experto. Responde ÚNICAMENTE con el JSON solicitado." },
+            { role: "user", content: dsPrompt }
+          ],
+          temperature: 0.2
+        })
+      });
+      if (dsResponse.ok) {
+        const dsData = await dsResponse.json();
+        let content = (((_d = (_c = (_b = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _b[0]) == null ? void 0 : _c.message) == null ? void 0 : _d.content) || "").trim();
+        if (content.includes("{")) {
+          content = content.substring(content.indexOf("{"), content.lastIndexOf("}") + 1);
+        }
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed.timestamps)) {
+          timestamps = parsed.timestamps.map((t) => Number(t)).filter((t) => !isNaN(t));
+        }
       }
-    </style>
-  </head>
-  <body>
-    <div id="root" data-composition-id="main" data-start="0" data-duration="${durationSeconds}" data-width="1920" data-height="1080">
-      ${hyperframesHtml}
-    </div>
-    <script>
-      window.__timelines = window.__timelines || {};
-      const tl = gsap.timeline({ paused: true });
-      window.__timelines["main"] = tl;
-    <\/script>
-  </body>
-</html>`;
-        fs.writeFileSync(compositionHtmlPath, htmlTemplate, "utf8");
-        const hyperframesProjectRoot = fs.existsSync(path.join(process.cwd(), "hyperframes-project")) ? path.join(process.cwd(), "hyperframes-project") : path.join(process.cwd(), "cipher-studio", "hyperframes-project");
+    } catch (e) {
+      await logMessage(`[FASE 2] DeepSeek error: ${e.message}. Usando fallback.`);
+    }
+    if (timestamps.length === 0) {
+      for (let i = 0; i < totalClips; i++) {
+        timestamps.push(parseFloat((i / totalClips * maxTsVal).toFixed(1)));
+      }
+      await logMessage(`[FASE 2] Fallback: ${totalClips} timestamps uniformes.`);
+    }
+    while (timestamps.length < totalClips) {
+      timestamps.push(timestamps[timestamps.length - 1] ?? 0);
+    }
+    await logMessage(`[FASE 2] Timestamps: ${timestamps.slice(0, 5).join(", ")}${totalClips > 5 ? "..." : ""}`);
+    await logMessage(`[FASE 3] Cortando ${totalClips} clips con FFmpeg...`);
+    const outDir = activeProjectPath ? path.join(activeProjectPath, "temp", "originales") : path.join(getBancoClipsPath(), "originales");
+    if (!await exists(outDir)) await fs.promises.mkdir(outDir, { recursive: true });
+    const existingFiles = await fs.promises.readdir(outDir);
+    for (const f of existingFiles) {
+      try {
+        await fs.promises.unlink(path.join(outDir, f));
+      } catch (e) {
+      }
+    }
+    const thumbDir = activeProjectPath ? path.join(activeProjectPath, "temp", "thumbnails") : path.join(getBancoClipsPath(), "thumbnails");
+    if (!await exists(thumbDir)) await fs.promises.mkdir(thumbDir, { recursive: true });
+    const createdClips = [];
+    const escapedVideo = videoPath.replace(/"/g, '\\"');
+    for (let i = 0; i < totalClips; i++) {
+      const ts = timestamps[i] ?? 0;
+      const clipNum = String(i + 1).padStart(3, "0");
+      const clipPath = path.join(outDir, `clip_${clipNum}.mp4`);
+      const escapedClip = clipPath.replace(/"/g, '\\"');
+      event.sender.send("generation-progress", {
+        index: i,
+        total: totalClips,
+        paragraph: `Clip ${i + 1}/${totalClips} — t=${ts}s`,
+        type: "FFmpeg"
+      });
+      try {
         await new Promise((resolve, reject) => {
-          const cmd = `npx hyperframes render "${hyperframesProjectRoot}" -c "${relativeCompositionPath}" -o "${outPath}"`;
-          console.log(`  - Ejecutando Hyperframes: ${cmd}`);
-          child_process.exec(cmd, { cwd: hyperframesProjectRoot }, (err, _stdout, stderr) => {
-            try {
-              fs.unlinkSync(compositionHtmlPath);
-            } catch (e) {
-            }
-            if (err) {
-              console.error(`  - Hyperframes falló:`, stderr);
-              reject(err);
-            } else {
-              console.log(`  - Hyperframes renderizado con éxito.`);
-              resolve();
-            }
+          const cmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t 3 -c copy "${escapedClip}"`;
+          child_process.exec(cmd, (err) => {
+            if (err) reject(err);
+            else resolve();
           });
         });
-        const thumbnailName = `ai_clip_${timestamp}_${idx + 1}.jpg`;
-        const thumbnailPath = path.join(bankDir, "thumbnails", thumbnailName);
+      } catch (ffErr) {
+        await logMessage(`[FASE 3] FFmpeg error clip ${i + 1}: ${ffErr.message}`);
+      }
+      if (await exists(clipPath)) {
+        const durationSeconds = await getVideoDuration(clipPath);
+        const thumbPath = path.join(thumbDir, `clip_${clipNum}.jpg`);
         let thumbnailUrl = "";
         try {
-          await generateVideoThumbnail(outPath, thumbnailPath);
-          if (fs.existsSync(thumbnailPath)) {
-            thumbnailUrl = `data:image/jpeg;base64,${fs.readFileSync(thumbnailPath).toString("base64")}`;
+          await generateVideoThumbnail(clipPath, thumbPath);
+          if (await exists(thumbPath)) {
+            thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbPath)).toString("base64")}`;
           }
         } catch (e) {
-          console.error(`  - Falló generación de miniatura Hyperframes:`, e);
         }
-        const stat = fs.statSync(outPath);
-        generatedClips.push({
-          id: `bank-hyperframes-${clipFileName}`,
-          name: clipFileName,
-          path: outPath,
-          url: `file:///${outPath.replace(/\\/g, "/")}`,
+        const stat = await fs.promises.stat(clipPath);
+        createdClips.push({
+          id: `bank-originales-clip_${clipNum}.mp4`,
+          name: `clip_${clipNum}.mp4`,
+          path: clipPath,
+          url: `file:///${clipPath.replace(/\\/g, "/")}`,
           duration: formatTimeMinutesSeconds(durationSeconds),
           durationSeconds,
           type: "video",
-          category: "hyperframes",
-          size: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`,
+          category: "original",
+          size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
           thumbnailUrl
         });
       }
     }
-    try {
-      fs.rmdirSync(tempDir);
-    } catch (e) {
+    if (createdClips.length < totalClips && createdClips.length > 0) {
+      const before = createdClips.length;
+      while (createdClips.length < totalClips) {
+        const last = createdClips[createdClips.length - 1];
+        createdClips.push({ ...last, id: `${last.id}-dup-${createdClips.length}` });
+      }
+      await logMessage(`[FASE 4] Duplicados: ${before} → ${createdClips.length} clips.`);
     }
-    console.log(`[generate-timeline-assets] Generación finalizada. Creados ${generatedClips.length} clips.`);
-    return { success: true, clips: generatedClips };
+    if (createdClips.length === 0) {
+      return { success: false, error: "No se pudo crear ningún clip. Verifica el video y FFmpeg." };
+    }
+    await logMessage("[FASE 5] Ensamblando timeline...");
+    let currentStart = 0;
+    for (const clip of createdClips) {
+      clip.startSeconds = currentStart;
+      currentStart += clip.durationSeconds;
+    }
+    await logMessage(`[generate-timeline-assets] Completado. Clips: ${createdClips.length}`);
+    return { success: true, clips: createdClips };
   } catch (err) {
-    console.error(`[generate-timeline-assets] Error:`, err);
-    return { success: false, error: err.message || "Error interno al generar assets de la IA" };
+    const errMsg = `[generate-timeline-assets] Error: ${err.message || err}`;
+    console.error(errMsg, err);
+    await writeDebugLog(errMsg);
+    return { success: false, error: err.message || "Error interno" };
   }
 });
 //# sourceMappingURL=index.js.map
