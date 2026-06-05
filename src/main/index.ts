@@ -7,8 +7,8 @@ import { fal } from '@fal-ai/client'
 
 // Helper to manually load .env file in main process from multiple potential paths
 let envLoaded = false
-function loadEnv() {
-  if (envLoaded) return
+function loadEnv(force = false) {
+  if (envLoaded && !force) return
   const possiblePaths = [
     path.join(process.cwd(), '.env'),
     path.join(process.cwd(), 'cipher-studio', '.env'),
@@ -895,7 +895,7 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
 
 ipcMain.handle('generate-minimax-video', async (_event, { prompt }) => {
   try {
-    loadEnv();
+    loadEnv(true);
     const apiKey = process.env.FAL_KEY;
     if (!apiKey) {
       return { success: false, error: 'FAL_KEY no está configurado en el archivo .env.' };
@@ -910,7 +910,7 @@ ipcMain.handle('generate-minimax-video', async (_event, { prompt }) => {
       }
     }) as any;
 
-    const downloadUrl = result?.video?.url;
+    const downloadUrl = result?.video?.url || result?.data?.video?.url;
     if (!downloadUrl) {
       return { success: false, error: `fal.ai no devolvió una URL de video: ${JSON.stringify(result)}` };
     }
@@ -1336,9 +1336,15 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
     // FASE 2: DeepSeek → timestamps & tipos de clip
     await logMessage('[FASE 2] Solicitando timestamps y tipos de clip a DeepSeek...');
-    loadEnv();
+    loadEnv(true);
     const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) return { success: false, error: 'No se configuró DEEPSEEK_API_KEY en el archivo .env' };
+
+    // Asegurar que FAL_KEY esté en el entorno
+    const falApiKey = process.env.FAL_KEY;
+    if (falApiKey) {
+      process.env.FAL_KEY = falApiKey;
+    }
 
     let clipsDecision: any[] = [];
 
@@ -1511,7 +1517,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
               input: { prompt: promptFinal }
             }) as any;
 
-            const downloadUrl = result?.video?.url;
+            const downloadUrl = result?.video?.url || result?.data?.video?.url;
             if (!downloadUrl) throw new Error('No se recibió la URL de video de fal.ai');
 
             // Descargar el clip temporalmente

@@ -3867,8 +3867,8 @@ function isCompletedQueueStatus(obj) {
   }();
 })(src);
 let envLoaded = false;
-function loadEnv() {
-  if (envLoaded) return;
+function loadEnv(force = false) {
+  if (envLoaded && !force) return;
   const possiblePaths = [
     path.join(process.cwd(), ".env"),
     path.join(process.cwd(), "cipher-studio", ".env"),
@@ -4620,9 +4620,9 @@ electron.ipcMain.handle("generate-voice", async (_event, { text, model, voiceId,
   }
 });
 electron.ipcMain.handle("generate-minimax-video", async (_event, { prompt }) => {
-  var _a;
+  var _a, _b, _c;
   try {
-    loadEnv();
+    loadEnv(true);
     const apiKey = process.env.FAL_KEY;
     if (!apiKey) {
       return { success: false, error: "FAL_KEY no está configurado en el archivo .env." };
@@ -4634,7 +4634,7 @@ electron.ipcMain.handle("generate-minimax-video", async (_event, { prompt }) => 
         prompt
       }
     });
-    const downloadUrl = (_a = result == null ? void 0 : result.video) == null ? void 0 : _a.url;
+    const downloadUrl = ((_a = result == null ? void 0 : result.video) == null ? void 0 : _a.url) || ((_c = (_b = result == null ? void 0 : result.data) == null ? void 0 : _b.video) == null ? void 0 : _c.url);
     if (!downloadUrl) {
       return { success: false, error: `fal.ai no devolvió una URL de video: ${JSON.stringify(result)}` };
     }
@@ -4990,9 +4990,13 @@ electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText, 
       return { success: false, error: `No se encontró el video original: ${videoPath}` };
     }
     await logMessage("[FASE 2] Solicitando timestamps y tipos de clip a DeepSeek...");
-    loadEnv();
+    loadEnv(true);
     const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) return { success: false, error: "No se configuró DEEPSEEK_API_KEY en el archivo .env" };
+    const falApiKey = process.env.FAL_KEY;
+    if (falApiKey) {
+      process.env.FAL_KEY = falApiKey;
+    }
     let clipsDecision = [];
     event.sender.send("generation-progress", {
       index: 0,
@@ -5101,7 +5105,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
     const escapedVideo = videoPath.replace(/"/g, '\\"');
     const queue2 = [...clipsDecision];
     const workers = Array(3).fill(null).map(async () => {
-      var _a2;
+      var _a2, _b2, _c2;
       while (queue2.length > 0) {
         const item = queue2.shift();
         if (!item) break;
@@ -5127,7 +5131,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
             const result = await src.fal.subscribe("fal-ai/minimax/video-01", {
               input: { prompt: promptFinal }
             });
-            const downloadUrl = (_a2 = result == null ? void 0 : result.video) == null ? void 0 : _a2.url;
+            const downloadUrl = ((_a2 = result == null ? void 0 : result.video) == null ? void 0 : _a2.url) || ((_c2 = (_b2 = result == null ? void 0 : result.data) == null ? void 0 : _b2.video) == null ? void 0 : _c2.url);
             if (!downloadUrl) throw new Error("No se recibió la URL de video de fal.ai");
             const downloadRes = await fetch(downloadUrl);
             if (!downloadRes.ok) throw new Error(`Download failed: ${downloadRes.statusText}`);
