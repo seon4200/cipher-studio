@@ -5212,12 +5212,63 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
     }
     await logMessage("[FASE 5] Ensamblando timeline...");
     let currentStart = 0;
+    const finalClips = [];
     for (const clip of createdClips) {
       clip.startSeconds = currentStart;
+      if (clip.startSeconds >= audioDuration) {
+        try {
+          if (await exists(clip.path)) {
+            await fs.promises.unlink(clip.path);
+            const thumbPath = clip.path.replace("temp/originales", "temp/thumbnails").replace(".mp4", ".jpg").replace("banco-clips/originales", "banco-clips/thumbnails");
+            if (await exists(thumbPath)) await fs.promises.unlink(thumbPath);
+          }
+        } catch (e) {
+        }
+        continue;
+      }
+      if (clip.startSeconds + clip.durationSeconds > audioDuration) {
+        const targetDuration = parseFloat((audioDuration - clip.startSeconds).toFixed(2));
+        if (targetDuration > 0) {
+          const tempTrimPath = clip.path.replace(".mp4", "_trimmed.mp4");
+          const escapedClip = clip.path.replace(/"/g, '\\"');
+          const escapedTemp = tempTrimPath.replace(/"/g, '\\"');
+          try {
+            await new Promise((resolve, reject) => {
+              const cmd = `ffmpeg -y -i "${escapedClip}" -t ${targetDuration} -c:v libx264 -c:a aac "${escapedTemp}"`;
+              child_process.exec(cmd, (err) => {
+                if (err) reject(err);
+                else resolve();
+              });
+            });
+            if (await exists(tempTrimPath)) {
+              try {
+                await fs.promises.unlink(clip.path);
+              } catch (e) {
+              }
+              await fs.promises.rename(tempTrimPath, clip.path);
+              clip.durationSeconds = targetDuration;
+              clip.duration = formatTimeMinutesSeconds(targetDuration);
+              const stat = await fs.promises.stat(clip.path);
+              clip.size = `${(stat.size / (1024 * 1024)).toFixed(2)} MB`;
+              const thumbPath = clip.path.replace("temp/originales", "temp/thumbnails").replace(".mp4", ".jpg").replace("banco-clips/originales", "banco-clips/thumbnails");
+              try {
+                await generateVideoThumbnail(clip.path, thumbPath);
+                if (await exists(thumbPath)) {
+                  clip.thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbPath)).toString("base64")}`;
+                }
+              } catch (e) {
+              }
+            }
+          } catch (trimErr) {
+            await logMessage(`[FASE 5] Error al recortar clip final ${clip.name}: ${trimErr.message}`);
+          }
+        }
+      }
+      finalClips.push(clip);
       currentStart += clip.durationSeconds;
     }
-    await logMessage(`[generate-timeline-assets] Completado. Clips: ${createdClips.length}`);
-    return { success: true, clips: createdClips };
+    await logMessage(`[generate-timeline-assets] Completado. Clips: ${finalClips.length}`);
+    return { success: true, clips: finalClips };
   } catch (err) {
     const errMsg = `[generate-timeline-assets] Error: ${err.message || err}`;
     console.error(errMsg, err);
