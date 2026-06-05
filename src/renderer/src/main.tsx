@@ -1116,6 +1116,7 @@ function App() {
 
   // Timeline IA weights: [Original, Stock, MiniMax]
   const [timelineWeights, setTimelineWeights] = useState<number[]>([40, 30, 30])
+  const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
 
   // MiniMax Hub States
   const [minimaxPrompt, setMinimaxPrompt] = useState<string>('')
@@ -1830,7 +1831,8 @@ function App() {
         aspectRatio, 
         audioDuration,
         transcriptSegments,
-        videoPath: firstVideoInLibrary?.path
+        videoPath: firstVideoInLibrary?.path,
+        iaStyle
       });
       
       if (res && res.success && res.clips) {
@@ -2716,6 +2718,20 @@ function App() {
               <div style={{ width: `${timelineWeights[0]}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Original: ${timelineWeights[0]}%`} />
               <div style={{ width: `${timelineWeights[1]}%` }} className="h-full bg-sky-500 transition-all duration-300" title={`Stock: ${timelineWeights[1]}%`} />
               <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`MiniMax: ${timelineWeights[2]}%`} />
+            </div>
+
+            {/* Selector de Estilo IA */}
+            <div className="mt-3 flex items-center justify-between space-x-2">
+              <span className="text-[10px] font-semibold text-slate-400 select-none">Estilo de Video IA</span>
+              <select
+                value={iaStyle}
+                onChange={(e) => setIaStyle(e.target.value as any)}
+                className="bg-slate-900 border border-slate-800 text-[10px] text-slate-200 rounded-lg px-2 py-1 outline-none cursor-pointer focus:border-indigo-500 transition-all font-medium"
+              >
+                <option value="normal">Cinemático (Normal)</option>
+                <option value="cartoon">Cartoon 3D / Animación</option>
+                <option value="bw">Blanco y Negro (Noir)</option>
+              </select>
             </div>
 
             {/* Botón Construir Timeline IA */}

@@ -3,6 +3,7 @@ import path from 'path'
 import { spawn, exec } from 'child_process'
 import fs from 'fs'
 import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds } from './services/ffmpeg'
+import { fal } from '@fal-ai/client'
 
 // Helper to manually load .env file in main process from multiple potential paths
 let envLoaded = false
@@ -895,98 +896,26 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
 ipcMain.handle('generate-minimax-video', async (_event, { prompt }) => {
   try {
     loadEnv();
-    const apiKey = process.env.MINIMAX_API_KEY;
+    const apiKey = process.env.FAL_KEY;
     if (!apiKey) {
-      return { success: false, error: 'MINIMAX_API_KEY no está configurado en el archivo .env.' };
+      return { success: false, error: 'FAL_KEY no está configurado en el archivo .env.' };
     }
 
-    console.log('[generate-minimax-video] Iniciando generación con prompt:', prompt);
+    console.log('[generate-minimax-video] Iniciando generación en fal.ai con prompt:', prompt);
+    process.env.FAL_KEY = apiKey;
 
-    // 1. Submit task
-    const submitResponse = await fetch('https://api.minimax.io/v1/video_generation', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'MiniMax-Hailuo-2.3',
-        prompt: prompt,
-        duration: 6,
-        resolution: '1080P'
-      })
-    });
-
-    if (!submitResponse.ok) {
-      const errText = await submitResponse.text();
-      return { success: false, error: `Error MiniMax Submit (${submitResponse.status}): ${errText}` };
-    }
-
-    const submitData = (await submitResponse.json()) as any;
-    const taskId = submitData.task_id;
-    if (!taskId) {
-      return { success: false, error: `MiniMax no devolvió un task_id: ${JSON.stringify(submitData)}` };
-    }
-
-    console.log(`[generate-minimax-video] Task creado con ID: ${taskId}. Iniciando sondeo...`);
-
-    // 2. Poll for status
-    let fileId: string | null = null;
-    let status = 'Preparing';
-    const maxPolls = 60; // 3 minutes total
-    for (let i = 0; i < maxPolls; i++) {
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      const queryResponse = await fetch(`https://api.minimax.io/v1/query/video_generation?task_id=${taskId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`
-        }
-      });
-
-      if (!queryResponse.ok) {
-        console.error(`[generate-minimax-video] Error al sondear la tarea (${queryResponse.status})`);
-        continue;
+    const result = await fal.subscribe("fal-ai/minimax/video-01", {
+      input: {
+        prompt: prompt
       }
+    }) as any;
 
-      const queryData = (await queryResponse.json()) as any;
-      status = queryData.status || '';
-      console.log(`[generate-minimax-video] Sondeo #${i+1}: status = ${status}`);
-
-      if (status === 'Success') {
-        fileId = queryData.file_id;
-        break;
-      } else if (status === 'Fail') {
-        return { success: false, error: 'La generación de video por MiniMax falló.' };
-      }
-    }
-
-    if (!fileId) {
-      return { success: false, error: `El sondeo expiró o falló. Estado final: ${status}` };
-    }
-
-    console.log(`[generate-minimax-video] Tarea exitosa. Obteniendo URL para fileId: ${fileId}...`);
-
-    // 3. Retrieve File Download URL
-    const retrieveResponse = await fetch(`https://api.minimax.io/v1/files/retrieve?file_id=${fileId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`
-      }
-    });
-
-    if (!retrieveResponse.ok) {
-      const errText = await retrieveResponse.text();
-      return { success: false, error: `Error al obtener URL del archivo (${retrieveResponse.status}): ${errText}` };
-    }
-
-    const retrieveData = (await retrieveResponse.json()) as any;
-    const downloadUrl = retrieveData.file?.download_url || retrieveData.download_url;
+    const downloadUrl = result?.video?.url;
     if (!downloadUrl) {
-      return { success: false, error: `MiniMax no devolvió una download_url: ${JSON.stringify(retrieveData)}` };
+      return { success: false, error: `fal.ai no devolvió una URL de video: ${JSON.stringify(result)}` };
     }
 
-    console.log(`[generate-minimax-video] Descargando video desde: ${downloadUrl}`);
+    console.log(`[generate-minimax-video] Descargando video desde fal.ai: ${downloadUrl}`);
 
     // 4. Download file
     const downloadRes = await fetch(downloadUrl);
@@ -1040,7 +969,7 @@ ipcMain.handle('generate-minimax-video', async (_event, { prompt }) => {
     };
   } catch (err: any) {
     console.error('[generate-minimax-video] Excepción:', err);
-    return { success: false, error: err.message || 'Error desconocido al generar video con MiniMax.' };
+    return { success: false, error: err.message || 'Error desconocido al generar video con fal.ai/MiniMax.' };
   }
 });
 
@@ -1387,8 +1316,7 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
   }
 })
 
-
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath }) => {
+ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle }) => {
   const logMessage = async (msg: string) => {
     console.log(msg);
     await writeDebugLog(msg);
@@ -1406,17 +1334,17 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       return { success: false, error: `No se encontró el video original: ${videoPath}` };
     }
 
-    // FASE 2: DeepSeek → timestamps
-    await logMessage('[FASE 2] Solicitando timestamps a DeepSeek...');
+    // FASE 2: DeepSeek → timestamps & tipos de clip
+    await logMessage('[FASE 2] Solicitando timestamps y tipos de clip a DeepSeek...');
     loadEnv();
     const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) return { success: false, error: 'No se configuró DEEPSEEK_API_KEY en el archivo .env' };
 
-    let timestamps: number[] = [];
+    let clipsDecision: any[] = [];
 
     event.sender.send('generation-progress', {
       index: 0, total: totalClips,
-      paragraph: 'Consultando DeepSeek para seleccionar timestamps...',
+      paragraph: 'Consultando DeepSeek para seleccionar fragmentos e IA...',
       type: 'DeepSeek'
     });
 
@@ -1424,12 +1352,17 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       ? (transcriptSegments[transcriptSegments.length - 1]?.end ?? audioDuration)
       : audioDuration;
 
+    // Calcular cuántos clips deben ser de IA en base a weights[2] (MiniMax)
+    const minimaxWeight = weights ? (weights[2] ?? 0) : 0;
+    const targetIaClips = Math.round((minimaxWeight / 100) * totalClips);
+    await logMessage(`[FASE 2] minimaxWeight=${minimaxWeight}% → targetIaClips=${targetIaClips}/${totalClips}`);
+
     try {
       const segmentsText = (transcriptSegments || [])
         .map((s: any, i: number) => `[${i}] ${Number(s.start).toFixed(1)}s-${Number(s.end).toFixed(1)}s: "${s.text}"`)
         .join('\n');
 
-      // Dividir scriptText en exactamente totalClips fragmentos proporcionales por oraciones
+      // Dividir scriptText en exactamente totalClips fragmentos
       const sentences = (scriptText || '').split(/(?<=[.!?])\s+/).filter((s: string) => s.trim().length > 0);
       const fragments: string[] = [];
       if (sentences.length <= totalClips) {
@@ -1448,7 +1381,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         .map((frag, idx) => `[${idx + 1}] "${frag}"`)
         .join('\n');
 
-      const dsPrompt = `Eres un editor de video. Para cada fragmento del guión narrado, elige el timestamp del video original que mejor lo ilustre visualmente.
+      const dsPrompt = `Eres un editor de video. Tienes la transcripción de un video con timestamps y un guión reescrito dividido en fragmentos.
+Para cada fragmento del guión narrado en orden, decide si es mejor ilustrarlo usando un clip del video original ('original') o generando un video nuevo por IA ('ia').
+
+De un total de ${totalClips} fragmentos, debes clasificar exactamente ${targetIaClips} fragmentos como de tipo 'ia' y los restantes ${totalClips - targetIaClips} como de tipo 'original'.
 
 TRANSCRIPCIÓN DEL VIDEO ORIGINAL:
 ${segmentsText}
@@ -1457,12 +1393,18 @@ FRAGMENTOS DEL GUIÓN (cada fragmento = 1 clip de 3 segundos):
 ${fragmentosNumerados}
 
 INSTRUCCIONES:
-- Devuelve exactamente ${totalClips} timestamps, uno por fragmento en orden
-- Cada timestamp debe ilustrar el contenido de ese fragmento específico
-- Los timestamps deben estar dentro del rango 0 - ${Number(maxTsVal).toFixed(1)}
-- Evita repetir el mismo timestamp
+- Genera una decisión para cada uno de los ${totalClips} fragmentos en orden correlativo del 1 al ${totalClips}.
+- Para clips tipo 'original': elige el timestamp de inicio más adecuado (rango 0 - ${Number(maxTsVal).toFixed(1)}) basándose en la transcripción.
+- Para clips tipo 'ia': genera un prompt descriptivo en inglés y altamente visual de 1 oración que sirva para generar el video con IA (MiniMax).
+- Evita repetir timestamps.
 
-Responde ÚNICAMENTE con JSON: {"timestamps": [t0, t1, t2, ...]}`;
+Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
+{
+  "clips": [
+    {"index": 1, "type": "original", "timestamp": 12.5},
+    {"index": 2, "type": "ia", "prompt": "A cinematic close up shot of..."}
+  ]
+}`;
 
       const dsResponse = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
@@ -1484,96 +1426,161 @@ Responde ÚNICAMENTE con JSON: {"timestamps": [t0, t1, t2, ...]}`;
           content = content.substring(content.indexOf('{'), content.lastIndexOf('}') + 1);
         }
         const parsed = JSON.parse(content);
-        if (Array.isArray(parsed.timestamps)) {
-          timestamps = parsed.timestamps.map((t: any) => Number(t)).filter((t: number) => !isNaN(t));
+        if (Array.isArray(parsed.clips)) {
+          clipsDecision = parsed.clips;
         }
       }
     } catch (e: any) {
       await logMessage(`[FASE 2] DeepSeek error: ${e.message}. Usando fallback.`);
     }
 
-    if (timestamps.length === 0) {
+    if (clipsDecision.length === 0) {
       for (let i = 0; i < totalClips; i++) {
-        timestamps.push(parseFloat(((i / totalClips) * maxTsVal).toFixed(1)));
+        clipsDecision.push({
+          index: i + 1,
+          type: 'original',
+          timestamp: parseFloat(((i / totalClips) * maxTsVal).toFixed(1))
+        });
       }
-      await logMessage(`[FASE 2] Fallback: ${totalClips} timestamps uniformes.`);
+      await logMessage(`[FASE 2] Fallback: ${totalClips} decisiones uniformes (tipo original).`);
     }
 
-    while (timestamps.length < totalClips) {
-      timestamps.push(timestamps[timestamps.length - 1] ?? 0);
+    // Asegurar que el array cubra exactamente todos los fragmentos
+    while (clipsDecision.length < totalClips) {
+      const last = clipsDecision[clipsDecision.length - 1];
+      clipsDecision.push({
+        ...last,
+        index: clipsDecision.length + 1
+      });
+    }
+    if (clipsDecision.length > totalClips) {
+      clipsDecision = clipsDecision.slice(0, totalClips);
     }
 
-    await logMessage(`[FASE 2] Timestamps: ${timestamps.slice(0, 5).join(', ')}${totalClips > 5 ? '...' : ''}`);
+    await logMessage(`[FASE 2] Decisiones de clips listas. Clips IA presupuestados: ${clipsDecision.filter(c => c.type === 'ia').length}`);
 
-    // FASE 3: FFmpeg — cortar clips desde el video original
-    await logMessage(`[FASE 3] Cortando ${totalClips} clips con FFmpeg...`);
+    // FASE 3: FFmpeg e IA — generar clips
+    await logMessage(`[FASE 3] Generando ${totalClips} clips con FFmpeg y fal.ai (IA)...`);
 
     const outDir = activeProjectPath
       ? path.join(activeProjectPath, 'temp', 'originales')
       : path.join(getBancoClipsPath(), 'originales');
     if (!(await exists(outDir))) await fs.promises.mkdir(outDir, { recursive: true });
 
-    const existingFiles = await fs.promises.readdir(outDir);
-    for (const f of existingFiles) {
-      try { await fs.promises.unlink(path.join(outDir, f)); } catch (e) {}
-    }
-
     const thumbDir = activeProjectPath
       ? path.join(activeProjectPath, 'temp', 'thumbnails')
       : path.join(getBancoClipsPath(), 'thumbnails');
     if (!(await exists(thumbDir))) await fs.promises.mkdir(thumbDir, { recursive: true });
 
-    const createdClips: any[] = [];
+    const results = new Array(totalClips);
     const escapedVideo = videoPath.replace(/"/g, '\\"');
 
-    for (let i = 0; i < totalClips; i++) {
-      const ts = timestamps[i] ?? 0;
-      const clipNum = String(i + 1).padStart(3, '0');
-      const clipPath = path.join(outDir, `clip_${clipNum}.mp4`);
-      const escapedClip = clipPath.replace(/"/g, '\\"');
+    // Cola de procesamiento
+    const queue = [...clipsDecision];
 
-      event.sender.send('generation-progress', {
-        index: i, total: totalClips,
-        paragraph: `Clip ${i + 1}/${totalClips} — t=${ts}s`,
-        type: 'FFmpeg'
-      });
+    // Procesamiento paralelo con límite de 3 workers simultáneos
+    const workers = Array(3).fill(null).map(async () => {
+      while (queue.length > 0) {
+        const item = queue.shift();
+        if (!item) break;
 
-      try {
-        await new Promise<void>((resolve, reject) => {
-          const cmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t 3 -c copy "${escapedClip}"`;
-          exec(cmd, (err) => { if (err) reject(err); else resolve(); });
-        });
-      } catch (ffErr: any) {
-        await logMessage(`[FASE 3] FFmpeg error clip ${i + 1}: ${ffErr.message}`);
-      }
-
-      if (await exists(clipPath)) {
-        const durationSeconds = await getVideoDuration(clipPath);
+        const clipNum = String(item.index).padStart(3, '0');
+        const clipPath = path.join(outDir, `clip_${clipNum}.mp4`);
+        const escapedClip = clipPath.replace(/"/g, '\\"');
         const thumbPath = path.join(thumbDir, `clip_${clipNum}.jpg`);
-        let thumbnailUrl = '';
-        try {
-          await generateVideoThumbnail(clipPath, thumbPath);
-          if (await exists(thumbPath)) {
-            thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbPath)).toString('base64')}`;
-          }
-        } catch (e) {}
-        const stat = await fs.promises.stat(clipPath);
-        createdClips.push({
-          id: `bank-originales-clip_${clipNum}.mp4`,
-          name: `clip_${clipNum}.mp4`,
-          path: clipPath,
-          url: `file:///${clipPath.replace(/\\/g, '/')}`,
-          duration: formatTimeMinutesSeconds(durationSeconds),
-          durationSeconds,
-          type: 'video',
-          category: 'original',
-          size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
-          thumbnailUrl
-        });
-      }
-    }
 
-    // FASE 4: Repetir últimos clips si FFmpeg produjo menos de lo esperado
+        event.sender.send('generation-progress', {
+          index: item.index - 1, total: totalClips,
+          paragraph: `Procesando clip ${item.index}/${totalClips} [${item.type}]`,
+          type: item.type === 'ia' ? 'IA' : 'FFmpeg'
+        });
+
+        let success = false;
+
+        if (item.type === 'ia') {
+          try {
+            let promptFinal = item.prompt || 'cinematic video clip';
+            if (iaStyle === 'cartoon') {
+              promptFinal += ', 3D cartoon style, vibrant colors, Pixar animation movie style';
+            } else if (iaStyle === 'bw') {
+              promptFinal += ', black and white, classic film noir movie style, moody lighting';
+            }
+
+            // Llamada a fal.ai
+            const result = await fal.subscribe("fal-ai/minimax/video-01", {
+              input: { prompt: promptFinal }
+            }) as any;
+
+            const downloadUrl = result?.video?.url;
+            if (!downloadUrl) throw new Error('No se recibió la URL de video de fal.ai');
+
+            // Descargar el clip temporalmente
+            const downloadRes = await fetch(downloadUrl);
+            if (!downloadRes.ok) throw new Error(`Download failed: ${downloadRes.statusText}`);
+            
+            const arrayBuffer = await downloadRes.arrayBuffer();
+            const tempVideoPath = path.join(outDir, `temp_ia_${clipNum}.mp4`);
+            await fs.promises.writeFile(tempVideoPath, Buffer.from(arrayBuffer));
+
+            // Recortar el video de IA (6s) a 3s con re-codificación h264/aac
+            await new Promise<void>((resolve, reject) => {
+              const cmd = `ffmpeg -y -ss 0 -i "${tempVideoPath}" -t 3 -c:v libx264 -c:a aac "${escapedClip}"`;
+              exec(cmd, (err) => { if (err) reject(err); else resolve(); });
+            });
+
+            try { await fs.promises.unlink(tempVideoPath); } catch (e) {}
+            success = true;
+          } catch (iaErr: any) {
+            await logMessage(`[FASE 3] Error IA en clip ${item.index}: ${iaErr.message || iaErr}. Usando fallback original.`);
+            // Caída de seguridad: convertimos el clip a tipo original y le asignamos un timestamp proporcional
+            item.type = 'original';
+            item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
+          }
+        }
+
+        if (item.type === 'original') {
+          const ts = item.timestamp ?? 0;
+          try {
+            await new Promise<void>((resolve, reject) => {
+              const cmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t 3 -c copy "${escapedClip}"`;
+              exec(cmd, (err) => { if (err) reject(err); else resolve(); });
+            });
+            success = true;
+          } catch (ffErr: any) {
+            await logMessage(`[FASE 3] FFmpeg error clip ${item.index}: ${ffErr.message}`);
+          }
+        }
+
+        if (success && await exists(clipPath)) {
+          const durationSeconds = await getVideoDuration(clipPath);
+          let thumbnailUrl = '';
+          try {
+            await generateVideoThumbnail(clipPath, thumbPath);
+            if (await exists(thumbPath)) {
+              thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbPath)).toString('base64')}`;
+            }
+          } catch (e) {}
+          const stat = await fs.promises.stat(clipPath);
+          results[item.index - 1] = {
+            id: `bank-originales-clip_${clipNum}.mp4`,
+            name: `clip_${clipNum}.mp4`,
+            path: clipPath,
+            url: `file:///${clipPath.replace(/\\/g, '/')}`,
+            duration: formatTimeMinutesSeconds(durationSeconds),
+            durationSeconds,
+            type: 'video',
+            category: item.type === 'ia' ? 'minimax' : 'original',
+            size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
+            thumbnailUrl
+          };
+        }
+      }
+    });
+
+    await Promise.all(workers);
+    const createdClips = results.filter(c => c !== undefined);
+
+    // FASE 4: Repetir últimos clips si FFmpeg o la IA produjeron menos de lo esperado
     if (createdClips.length < totalClips && createdClips.length > 0) {
       const before = createdClips.length;
       while (createdClips.length < totalClips) {
@@ -1584,7 +1591,7 @@ Responde ÚNICAMENTE con JSON: {"timestamps": [t0, t1, t2, ...]}`;
     }
 
     if (createdClips.length === 0) {
-      return { success: false, error: 'No se pudo crear ningún clip. Verifica el video y FFmpeg.' };
+      return { success: false, error: 'No se pudo crear ningún clip. Verifica la configuración de las APIs y FFmpeg.' };
     }
 
     // FASE 5: Ensamblar timeline secuencial
