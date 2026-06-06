@@ -1316,7 +1316,7 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
   }
 })
 
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle }) => {
+ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio }) => {
   const logMessage = async (msg: string) => {
     console.log(msg);
     await writeDebugLog(msg);
@@ -1340,11 +1340,12 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) return { success: false, error: 'No se configuró DEEPSEEK_API_KEY en el archivo .env' };
 
-    // Asegurar que FAL_KEY esté en el entorno
+    // Asegurar que FAL_KEY y PEXELS_API_KEY estén en el entorno
     const falApiKey = process.env.FAL_KEY;
     if (falApiKey) {
       process.env.FAL_KEY = falApiKey;
     }
+    const pexelsApiKey = process.env.PEXELS_API_KEY;
 
     let clipsDecision: any[] = [];
 
@@ -1358,10 +1359,21 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       ? (transcriptSegments[transcriptSegments.length - 1]?.end ?? audioDuration)
       : audioDuration;
 
-    // Calcular cuántos clips deben ser de IA en base a weights[2] (MiniMax)
+    // Calcular cuántos clips deben ser de IA en base a weights[2] (MiniMax) y Stock en base a weights[1] (Pexels)
     const minimaxWeight = weights ? (weights[2] ?? 0) : 0;
-    const targetIaClips = Math.round((minimaxWeight / 100) * totalClips);
-    await logMessage(`[FASE 2] minimaxWeight=${minimaxWeight}% → targetIaClips=${targetIaClips}/${totalClips}`);
+    const stockWeight = weights ? (weights[1] ?? 0) : 0;
+
+    let targetIaClips = Math.round((minimaxWeight / 100) * totalClips);
+    let targetStockClips = Math.round((stockWeight / 100) * totalClips);
+
+    if (targetIaClips + targetStockClips > totalClips) {
+      const sum = targetIaClips + targetStockClips;
+      targetIaClips = Math.floor((targetIaClips / sum) * totalClips);
+      targetStockClips = totalClips - targetIaClips;
+    }
+    const targetOriginalClips = totalClips - targetIaClips - targetStockClips;
+
+    await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}/${totalClips}`);
 
     try {
       const segmentsText = (transcriptSegments || [])
@@ -1388,9 +1400,12 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         .join('\n');
 
       const dsPrompt = `Eres un editor de video. Tienes la transcripción de un video con timestamps y un guión reescrito dividido en fragmentos.
-Para cada fragmento del guión narrado en orden, decide si es mejor ilustrarlo usando un clip del video original ('original') o generando un video nuevo por IA ('ia').
+Para cada fragmento del guión narrado en orden, decide si es mejor ilustrarlo usando un clip del video original ('original'), buscando un clip de stock en un banco de videos ('stock') o generando un video nuevo por IA ('ia').
 
-De un total de ${totalClips} fragmentos, debes clasificar exactamente ${targetIaClips} fragmentos como de tipo 'ia' y los restantes ${totalClips - targetIaClips} como de tipo 'original'.
+De un total de ${totalClips} fragmentos, debes clasificar exactamente:
+- ${targetIaClips} fragmentos como de tipo 'ia'
+- ${targetStockClips} fragmentos como de tipo 'stock'
+- ${targetOriginalClips} fragmentos como de tipo 'original'
 
 TRANSCRIPCIÓN DEL VIDEO ORIGINAL:
 ${segmentsText}
@@ -1401,14 +1416,16 @@ ${fragmentosNumerados}
 INSTRUCCIONES:
 - Genera una decisión para cada uno de los ${totalClips} fragmentos en orden correlativo del 1 al ${totalClips}.
 - Para clips tipo 'original': elige el timestamp de inicio más adecuado (rango 0 - ${Number(maxTsVal).toFixed(1)}) basándose en la transcripción.
-- Para clips tipo 'ia': genera un prompt descriptivo en inglés y altamente visual de 1 oración que sirva para generar el video con IA (MiniMax).
+- Para clips tipo 'stock': genera una palabra clave en inglés corta (1-2 palabras, ej. "cyberpunk city", "financial chart", "nervous man") para buscar un video de B-roll en Pexels en el campo "keyword".
+- Para clips tipo 'ia': genera un prompt descriptivo en inglés y altamente visual de 1 oración que sirva para generar el video con IA (MiniMax) en el campo "prompt".
 - Evita repetir timestamps.
 
 Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 {
   "clips": [
     {"index": 1, "type": "original", "timestamp": 12.5},
-    {"index": 2, "type": "ia", "prompt": "A cinematic close up shot of..."}
+    {"index": 2, "type": "stock", "keyword": "brain neuron"},
+    {"index": 3, "type": "ia", "prompt": "A cinematic close up shot of..."}
   ]
 }`;
 
@@ -1451,7 +1468,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
       await logMessage(`[FASE 2] Fallback: ${totalClips} decisiones uniformes (tipo original).`);
     }
 
-    // Asegurar que el array cubra exactamente todos los fragmentos
+    // Asegurar que el array cubra exactamente todos los fragmentos y esté bien tipado/sanitizado
     while (clipsDecision.length < totalClips) {
       const last = clipsDecision[clipsDecision.length - 1];
       clipsDecision.push({
@@ -1463,10 +1480,21 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
       clipsDecision = clipsDecision.slice(0, totalClips);
     }
 
-    await logMessage(`[FASE 2] Decisiones de clips listas. Clips IA presupuestados: ${clipsDecision.filter(c => c.type === 'ia').length}`);
+    clipsDecision = clipsDecision.map((item, idx) => {
+      const type = ['original', 'stock', 'ia'].includes(item.type) ? item.type : 'original';
+      return {
+        index: idx + 1,
+        type,
+        timestamp: item.timestamp ?? parseFloat(((idx / totalClips) * maxTsVal).toFixed(1)),
+        keyword: item.keyword || 'broll',
+        prompt: item.prompt || 'cinematic video clip'
+      };
+    });
+
+    await logMessage(`[FASE 2] Decisiones de clips listas. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}`);
 
     // FASE 3: FFmpeg e IA — generar clips
-    await logMessage(`[FASE 3] Generando ${totalClips} clips con FFmpeg y fal.ai (IA)...`);
+    await logMessage(`[FASE 3] Generando ${totalClips} clips con FFmpeg, Pexels y fal.ai (IA)...`);
 
     const outDir = activeProjectPath
       ? path.join(activeProjectPath, 'temp', 'originales')
@@ -1498,7 +1526,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         event.sender.send('generation-progress', {
           index: item.index - 1, total: totalClips,
           paragraph: `Procesando clip ${item.index}/${totalClips} [${item.type}]`,
-          type: item.type === 'ia' ? 'IA' : 'FFmpeg'
+          type: item.type === 'ia' ? 'IA' : (item.type === 'stock' ? 'Stock' : 'FFmpeg')
         });
 
         let success = false;
@@ -1544,6 +1572,71 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           }
         }
 
+        if (item.type === 'stock') {
+          try {
+            if (!pexelsApiKey) throw new Error('No se configuró PEXELS_API_KEY en el archivo .env');
+
+            const isVertical = aspectRatio === '9:16' || aspectRatio === 'vertical';
+            const targetOrientation = isVertical ? 'portrait' : 'landscape';
+            const pexelsUrl = `https://api.pexels.com/videos/search?query=${encodeURIComponent(item.keyword || 'broll')}&per_page=5&orientation=${targetOrientation}`;
+            
+            await logMessage(`[FASE 3] Buscando stock en Pexels para clip ${item.index}: "${item.keyword}" (orientación: ${targetOrientation})`);
+            const pexelsRes = await fetch(pexelsUrl, {
+              headers: { 'Authorization': pexelsApiKey }
+            });
+            if (!pexelsRes.ok) {
+              throw new Error(`Pexels API respondió con status ${pexelsRes.status}`);
+            }
+            const pexelsData = await pexelsRes.json() as any;
+            const video = pexelsData?.videos?.[0];
+            if (!video) throw new Error(`No se encontraron videos en Pexels para keyword: ${item.keyword}`);
+
+            const videoFiles = video.video_files || [];
+            let bestFile = videoFiles.find((f: any) => f.quality === 'hd' || f.width >= 720);
+            if (!bestFile) bestFile = videoFiles[0];
+            const videoDownloadUrl = bestFile?.link;
+            if (!videoDownloadUrl) throw new Error('No se encontró link de descarga en el video de Pexels');
+
+            const stockDir = path.join(getBancoClipsPath(), 'stock');
+            if (!(await exists(stockDir))) {
+              await fs.promises.mkdir(stockDir, { recursive: true });
+            }
+
+            const stockFilename = `pexels_${video.id}.mp4`;
+            const finalStockPath = path.join(stockDir, stockFilename);
+
+            if (!(await exists(finalStockPath))) {
+              await logMessage(`[FASE 3] Descargando y procesando stock: ${videoDownloadUrl}`);
+              const dlRes = await fetch(videoDownloadUrl);
+              if (!dlRes.ok) throw new Error(`Error al descargar video de Pexels: ${dlRes.statusText}`);
+              const buffer = await dlRes.arrayBuffer();
+              const tempDlPath = path.join(outDir, `temp_pexels_${clipNum}.mp4`);
+              await fs.promises.writeFile(tempDlPath, Buffer.from(buffer));
+
+              const filter = isVertical
+                ? 'crop=ih*9/16:ih,scale=1080:1920,setpts=0.8*PTS'
+                : 'crop=iw:iw*9/16,scale=1920:1080,setpts=0.8*PTS';
+
+              await new Promise<void>((resolve, reject) => {
+                const cmd = `ffmpeg -y -ss 0 -i "${tempDlPath}" -vf "${filter}" -t 3 -an "${finalStockPath}"`;
+                exec(cmd, (err) => { if (err) reject(err); else resolve(); });
+              });
+
+              try { await fs.promises.unlink(tempDlPath); } catch (e) {}
+            } else {
+              await logMessage(`[FASE 3] Usando stock existente: ${stockFilename}`);
+            }
+
+            // Copiar al path final del timeline
+            await fs.promises.copyFile(finalStockPath, clipPath);
+            success = true;
+          } catch (stockErr: any) {
+            await logMessage(`[FASE 3] Error Stock en clip ${item.index}: ${stockErr.message || stockErr}. Usando fallback original.`);
+            item.type = 'original';
+            item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
+          }
+        }
+
         if (item.type === 'original') {
           const ts = item.timestamp ?? 0;
           try {
@@ -1575,7 +1668,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
             duration: formatTimeMinutesSeconds(durationSeconds),
             durationSeconds,
             type: 'video',
-            category: item.type === 'ia' ? 'minimax' : 'original',
+            category: item.type === 'ia' ? 'minimax' : (item.type === 'stock' ? 'stock' : 'original'),
             size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
             thumbnailUrl
           };

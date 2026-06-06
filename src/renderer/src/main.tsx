@@ -2932,18 +2932,21 @@ function App() {
                 );
               }
 
-              if (libraryTab === 'Stock') {
-                return (
-                  <div className="flex flex-col items-center justify-center py-10 text-slate-500 space-y-2.5 bg-slate-900/10 rounded-xl p-6 border border-dashed border-slate-800/40">
-                    <FolderOpen className="h-8 w-8 text-slate-650" />
-                    <span className="text-xs font-semibold text-slate-400">Sin clips aún</span>
-                  </div>
-                );
-              }
-
               const currentClips = libraryTab === 'Principal' 
                 ? clips 
                 : (bankClips[libraryTab.toLowerCase()] || []);
+
+              if (libraryTab === 'Stock' && currentClips.length === 0) {
+                return (
+                  <div className="flex flex-col items-center justify-center py-10 text-slate-500 space-y-2.5 bg-slate-900/10 rounded-xl p-6 border border-dashed border-slate-800/40 select-none">
+                    <FolderOpen className="h-8 w-8 text-slate-600" />
+                    <span className="text-xs font-semibold text-slate-400">Sin clips de stock aún</span>
+                    <span className="text-[10px] text-slate-500 text-center max-w-[220px]">
+                      Ajusta el slider de Stock en el panel de Timeline IA para buscar y descargar B-roll automáticamente de Pexels.
+                    </span>
+                  </div>
+                );
+              }
               
               if (currentClips.length === 0) {
                 return (
