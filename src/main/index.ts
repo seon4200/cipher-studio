@@ -1419,6 +1419,7 @@ INSTRUCCIONES:
 - Para clips tipo 'stock': genera una palabra clave en inglés corta (1-2 palabras, ej. "cyberpunk city", "financial chart", "nervous man") para buscar un video de B-roll en Pexels en el campo "keyword".
 - Para clips tipo 'ia': genera un prompt descriptivo en inglés y altamente visual de 1 oración que sirva para generar el video con IA (MiniMax) en el campo "prompt".
 - Evita repetir timestamps.
+- IMPORTANTE: Distribuye los tipos de forma intercalada a lo largo de todos los fragmentos. Evita poner varios clips del mismo tipo consecutivos. Alterna entre 'original', 'stock' e 'ia' de forma variada y natural según el contenido de cada fragmento.
 
 Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 {
