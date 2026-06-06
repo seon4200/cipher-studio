@@ -4,7 +4,7 @@ import {
   Play, Pause, FastForward, Rewind, Video, Volume2, VolumeX, Sparkles, 
   Scissors, Type, Languages, Download, Upload, Plus, 
   FolderOpen, Cpu, Trash2, Maximize, Copy, Clipboard, Crop, FlipHorizontal,
-  Undo, Redo, Sliders, ChevronDown
+  Undo, Redo, Sliders, ChevronDown, Save
 } from 'lucide-react'
 import './styles/globals.css'
 
@@ -256,53 +256,82 @@ function App() {
       .sort((a, b) => a.startSeconds - b.startSeconds);
   }, [timelineVideoClips]);
 
-  // Undo/Redo history states
-  const [history, setHistory] = useState<TimelineClip[][]>([])
-  const [historyIndex, setHistoryIndex] = useState(-1)
-
-  const historyRef = React.useRef(history)
-  const historyIndexRef = React.useRef(historyIndex)
-
-  useEffect(() => {
-    historyRef.current = history
-    historyIndexRef.current = historyIndex
-  }, [history, historyIndex])
-
-  // Initialize history stack with initial state
-  useEffect(() => {
-    if (history.length === 0) {
-      setHistory([timelineVideoClips])
-      setHistoryIndex(0)
-    }
-  }, [history.length])
-
-  // Push new state to history stack
-  const pushHistory = (newClips: TimelineClip[]) => {
-    setHistory(prev => {
-      const nextHistory = prev.slice(0, historyIndexRef.current + 1)
-      return [...nextHistory, newClips]
-    })
-    setHistoryIndex(prev => prev + 1)
+  interface MilestoneState {
+    label: string;
+    clips: Clip[];
+    timelineVideoClips: TimelineClip[];
+    transcriptionStatus: string;
+    transcriptSegments: any[];
+    aiScript: string;
+    originalTranscriptText: string;
+    generatedVoices: any[];
   }
 
-  // Undo & Redo Handlers
+  const [isDirty, setIsDirty] = useState(false)
+  const [milestoneHistory, setMilestoneHistory] = useState<MilestoneState[]>([])
+  const [milestoneIndex, setMilestoneIndex] = useState(-1)
+
+  const milestoneHistoryRef = React.useRef(milestoneHistory)
+  const milestoneIndexRef = React.useRef(milestoneIndex)
+
+  useEffect(() => {
+    milestoneHistoryRef.current = milestoneHistory
+    milestoneIndexRef.current = milestoneIndex
+  }, [milestoneHistory, milestoneIndex])
+
+  const pushMilestone = (label: string, customState?: Partial<MilestoneState>) => {
+    setMilestoneHistory(prev => {
+      const nextHistory = prev.slice(0, milestoneIndexRef.current + 1)
+      const newState: MilestoneState = {
+        label,
+        clips: customState?.clips ?? clips,
+        timelineVideoClips: customState?.timelineVideoClips ?? timelineVideoClips,
+        transcriptionStatus: customState?.transcriptionStatus ?? transcriptionStatus,
+        transcriptSegments: customState?.transcriptSegments ?? transcriptSegments,
+        aiScript: customState?.aiScript ?? aiScript,
+        originalTranscriptText: customState?.originalTranscriptText ?? originalTranscriptText,
+        generatedVoices: customState?.generatedVoices ?? generatedVoices,
+      }
+      return [...nextHistory, newState]
+    })
+    setMilestoneIndex(prev => prev + 1)
+  }
+
+  const pushHistory = (newClips: TimelineClip[]) => {
+    pushMilestone('Edición de Timeline', { timelineVideoClips: newClips })
+  }
+
   const handleUndo = () => {
-    const idx = historyIndexRef.current
-    const hist = historyRef.current
+    const idx = milestoneIndexRef.current
+    const hist = milestoneHistoryRef.current
     if (idx > 0) {
       const newIndex = idx - 1
-      setHistoryIndex(newIndex)
-      setTimelineVideoClips(hist[newIndex])
+      setMilestoneIndex(newIndex)
+      const state = hist[newIndex]
+      setClips(state.clips)
+      setTimelineVideoClips(state.timelineVideoClips)
+      setTranscriptionStatus(state.transcriptionStatus)
+      setTranscriptSegments(state.transcriptSegments)
+      setAiScript(state.aiScript)
+      setOriginalTranscriptText(state.originalTranscriptText)
+      setGeneratedVoices(state.generatedVoices)
     }
   }
 
   const handleRedo = () => {
-    const idx = historyIndexRef.current
-    const hist = historyRef.current
+    const idx = milestoneIndexRef.current
+    const hist = milestoneHistoryRef.current
     if (idx < hist.length - 1) {
       const newIndex = idx + 1
-      setHistoryIndex(newIndex)
-      setTimelineVideoClips(hist[newIndex])
+      setMilestoneIndex(newIndex)
+      const state = hist[newIndex]
+      setClips(state.clips)
+      setTimelineVideoClips(state.timelineVideoClips)
+      setTranscriptionStatus(state.transcriptionStatus)
+      setTranscriptSegments(state.transcriptSegments)
+      setAiScript(state.aiScript)
+      setOriginalTranscriptText(state.originalTranscriptText)
+      setGeneratedVoices(state.generatedVoices)
     }
   }
 
@@ -1158,6 +1187,11 @@ function App() {
             setTranscriptSegments(data.result.segments);
             const compiled = data.result.segments.map((s: any) => s.text).join(' ');
             setOriginalTranscriptText(compiled);
+            pushMilestone('Transcripción lista', {
+              transcriptionStatus: 'Transcripción completada con éxito.',
+              transcriptSegments: data.result.segments,
+              originalTranscriptText: compiled
+            });
           }
         } else if (data.status === 'error') {
           setIsTranscribing(false);
@@ -1264,6 +1298,7 @@ function App() {
   useEffect(() => {
     if (!hasLoaded.current) return;
 
+    setIsDirty(true);
     const timer = setTimeout(() => {
       handleSaveProjectDirectly();
     }, 2000);
@@ -1354,6 +1389,7 @@ function App() {
       const res = await window.electronAPI.saveProjectState(stateToSave);
       if (res && res.success) {
         setSaveStatus('saved');
+        setIsDirty(false);
         setTimeout(() => setSaveStatus('idle'), 2500);
         return true;
       } else {
@@ -1405,6 +1441,7 @@ function App() {
       const res = await window.electronAPI.saveProjectAs(stateToSave);
       if (res && res.success) {
         setSaveStatus('saved');
+        setIsDirty(false);
         setTimeout(() => setSaveStatus('idle'), 2500);
       } else {
         setSaveStatus('error');
@@ -1460,6 +1497,20 @@ function App() {
         setActiveProjectPath(projectPath);
         setActiveProjectId(loadedData.id || null);
         setActiveProjectName(loadedData.name || 'Proyecto Sin Nombre');
+
+        const loadedMilestone: MilestoneState = {
+          label: 'Proyecto cargado',
+          clips: restoredClips,
+          timelineVideoClips: activeVersion ? activeVersion.timelineVideoClips : (loadedData.timelineVideoClips || []),
+          transcriptionStatus: loadedData.transcriptionStatus || '',
+          transcriptSegments: loadedData.transcriptSegments || [],
+          aiScript: loadedData.aiScript || '',
+          originalTranscriptText: loadedOriginalText,
+          generatedVoices: loadedData.generatedVoices || []
+        };
+        setMilestoneHistory([loadedMilestone]);
+        setMilestoneIndex(0);
+        setIsDirty(false);
         
         // Refresh bank clips for temp folders
         await loadClipsForCategory('originales');
@@ -1506,6 +1557,20 @@ function App() {
         setActiveProjectPath(res.projectPath || null);
         setActiveProjectId(loadedData.id || null);
         setActiveProjectName(name);
+
+        const initialMilestone: MilestoneState = {
+          label: 'Proyecto vacío',
+          clips: [],
+          timelineVideoClips: [],
+          transcriptionStatus: '',
+          transcriptSegments: [],
+          aiScript: '',
+          originalTranscriptText: '',
+          generatedVoices: []
+        };
+        setMilestoneHistory([initialMilestone]);
+        setMilestoneIndex(0);
+        setIsDirty(false);
         
         setBankClips({
           originales: [],
@@ -1574,6 +1639,41 @@ function App() {
       }
     } catch (err: any) {
       console.error('Failed to delete project:', err);
+    }
+  };
+
+  const handleClearGlobalStockCache = async () => {
+    if (!confirm('¿Estás seguro de que deseas borrar la caché global de videos de stock de Pexels? Los videos se volverán a descargar cuando sean requeridos.')) return;
+    try {
+      const res = await window.electronAPI.clearGlobalStockCache();
+      if (res && res.success) {
+        alert('Caché global de stock eliminada con éxito.');
+      } else {
+        alert('Error al borrar caché de stock: ' + (res?.error || 'Desconocido'));
+      }
+    } catch (err: any) {
+      console.error('Failed to clear global stock cache:', err);
+    }
+  };
+
+  const handleDeleteAllProjects = async () => {
+    if (!confirm('¿Estás seguro de que deseas eliminar TODOS los proyectos de forma permanente? Esta acción no se puede deshacer.')) return;
+    if (!confirm('¿De verdad quieres borrar absolutamente todos los proyectos y sus archivos del disco?')) return;
+    try {
+      const res = await window.electronAPI.deleteAllProjects();
+      if (res && res.success) {
+        setClips([]);
+        setTimelineVideoClips([]);
+        setTimelineVersions([]);
+        setActiveProjectPath(null);
+        setActiveProjectId(null);
+        setActiveProjectName(null);
+        refreshProjectsList();
+      } else {
+        alert('Error al eliminar todos los proyectos: ' + (res?.error || 'Desconocido'));
+      }
+    } catch (err: any) {
+      console.error('Failed to delete all projects:', err);
     }
   };
 
@@ -1656,6 +1756,7 @@ function App() {
       const res = await window.electronAPI.rewriteTranscript(originalTranscriptText)
       if (res && res.success && res.data) {
         setAiScript(res.data)
+        pushMilestone('Guión reescrito', { aiScript: res.data })
       } else {
         setRewriteError(res.error || 'Error al conectar con la API de DeepSeek.')
       }
@@ -1888,6 +1989,9 @@ function App() {
         setTimelineVersions(prev => [...prev, newVersion]);
         setActiveVersionId(newVersionId);
         setTimelineVideoClips(finalTimelineClips);
+        pushMilestone('Timeline construido', {
+          timelineVideoClips: finalTimelineClips
+        });
         pushHistory(finalTimelineClips);
       } else {
         const errorMsg = res?.error || 'Error al generar los clips de la IA.';
@@ -2015,10 +2119,6 @@ function App() {
           audioUrl: res.audioUrl,
           durationSeconds: durationSecs
         }
-        
-        setGeneratedVoices(prev => [newVersion, ...prev])
-
-        // Add to media library clips
         const libraryClip: Clip = {
           id: newVersion.id,
           name: `Voz - ${voiceSpeaker} (${new Date(newVersion.timestamp).toLocaleTimeString()})`,
@@ -2028,8 +2128,16 @@ function App() {
           path: res.filePath,
           url: res.audioUrl,
           size: '128 KB'
-        }
-        setClips(prev => [...prev, libraryClip])
+        };
+
+        const updatedClips = [...clips, libraryClip];
+        const updatedVoices = [newVersion, ...generatedVoices];
+        setClips(updatedClips);
+        setGeneratedVoices(updatedVoices);
+        pushMilestone('Audio generado', {
+          clips: updatedClips,
+          generatedVoices: updatedVoices
+        });
       } else {
         const errorMsg = res?.error || 'Error al generar la voz en ElevenLabs.'
         setVoiceGenerationError(errorMsg)
@@ -2159,7 +2267,8 @@ function App() {
           url: url
         };
 
-        setClips(prev => [newClip, ...prev]);
+        const updatedClips = [newClip, ...clips];
+        setClips(updatedClips);
 
         // Automatically add video clips to Video v1 track and load into preview canvas
         if (isVideo) {
@@ -2179,7 +2288,10 @@ function App() {
             category: 'original'
           }];
           setTimelineVideoClips(updated);
-          pushHistory(updated);
+          pushMilestone('Video importado', {
+            clips: updatedClips,
+            timelineVideoClips: updated
+          });
         }
       };
     });
@@ -2330,10 +2442,28 @@ function App() {
 
           {/* Recent Projects List */}
           <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
-            <h3 className="text-sm font-bold text-slate-350 tracking-wider flex items-center space-x-2">
-              <span className="w-1.5 h-3 bg-[#6366f1] rounded-full" />
-              <span>PROYECTOS RECIENTES</span>
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-350 tracking-wider flex items-center space-x-2">
+                <span className="w-1.5 h-3 bg-[#6366f1] rounded-full" />
+                <span>PROYECTOS RECIENTES</span>
+              </h3>
+              <div className="flex items-center space-x-2.5">
+                <button
+                  onClick={handleClearGlobalStockCache}
+                  className="text-[10px] bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white px-2 py-1 rounded-md transition-all cursor-pointer active:scale-95 font-medium"
+                  title="Borrar todos los videos descargados de Pexels en disco para liberar espacio"
+                >
+                  Limpiar Caché Stock
+                </button>
+                <button
+                  onClick={handleDeleteAllProjects}
+                  className="text-[10px] bg-red-950/20 hover:bg-red-900/20 border border-red-900/30 hover:border-red-900/60 text-red-400 px-2 py-1 rounded-md transition-all cursor-pointer active:scale-95 font-medium"
+                  title="Eliminar de forma permanente todos los proyectos y sus archivos"
+                >
+                  Eliminar Todo
+                </button>
+              </div>
+            </div>
             
             <div className="flex-1 overflow-y-auto pr-2 space-y-2.5">
               {projectsList.length === 0 ? (
@@ -2480,9 +2610,42 @@ function App() {
           </button>
 
           {activeProjectName && (
-            <span className="text-xs font-bold text-slate-350 select-none px-3 border-l border-slate-805/80 tracking-wide">
-              {activeProjectName}
-            </span>
+            <div className="flex items-center space-x-2.5 px-3 border-l border-slate-800/80">
+              <span className="text-xs font-bold text-slate-350 select-none tracking-wide">
+                {activeProjectName}
+              </span>
+              <button
+                onClick={handleSaveProjectDirectly}
+                disabled={!isDirty && saveStatus === 'idle'}
+                className={`text-[10px] font-bold px-2 py-1 rounded-md transition-all active:scale-95 flex items-center space-x-1 ${
+                  isDirty
+                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer shadow-lg shadow-indigo-600/20'
+                    : saveStatus === 'saving'
+                    ? 'bg-amber-600 text-white cursor-wait'
+                    : saveStatus === 'saved'
+                    ? 'bg-emerald-600 text-white cursor-default'
+                    : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-750/30'
+                }`}
+                title={
+                  isDirty
+                    ? 'Guardar cambios pendientes'
+                    : saveStatus === 'saving'
+                    ? 'Guardando...'
+                    : saveStatus === 'saved'
+                    ? '¡Guardado!'
+                    : 'Sin cambios pendientes'
+                }
+              >
+                <Save className="h-3 w-3" />
+                <span>
+                  {saveStatus === 'saving'
+                    ? 'Guardando...'
+                    : saveStatus === 'saved'
+                    ? '¡Guardado!'
+                    : 'Guardar'}
+                </span>
+              </button>
+            </div>
           )}
 
           {/* Selector de Versiones del Timeline */}
@@ -4106,10 +4269,10 @@ function App() {
           <div className="flex items-center space-x-4 flex-wrap">
             {/* Undo */}
             <button 
-              disabled={historyIndex <= 0}
+              disabled={milestoneIndex <= 0}
               onClick={handleUndo}
               className={`flex items-center space-x-1 transition-all active:scale-95 ${
-                historyIndex > 0 
+                milestoneIndex > 0 
                   ? 'text-slate-300 hover:text-indigo-400 cursor-pointer' 
                   : 'text-slate-650 cursor-not-allowed'
               }`}
@@ -4120,10 +4283,10 @@ function App() {
 
             {/* Redo */}
             <button 
-              disabled={historyIndex >= history.length - 1}
+              disabled={milestoneIndex >= milestoneHistory.length - 1}
               onClick={handleRedo}
               className={`flex items-center space-x-1 transition-all active:scale-95 ${
-                historyIndex < history.length - 1 
+                milestoneIndex < milestoneHistory.length - 1 
                   ? 'text-slate-300 hover:text-indigo-400 cursor-pointer' 
                   : 'text-slate-655 cursor-not-allowed'
               }`}

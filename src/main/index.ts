@@ -346,6 +346,7 @@ async function initProjectDirs(projectPath: string) {
     'temp/remotion',
     'temp/hyperframes',
     'temp/minimax',
+    'temp/stock',
     'temp/thumbnails'
   ];
   for (const f of folders) {
@@ -487,6 +488,37 @@ ipcMain.handle('delete-project', async (_event, { projectPath }) => {
     if (await exists(projectPath)) {
       await fs.promises.rm(projectPath, { recursive: true, force: true });
       console.log(`[delete-project] Carpeta de proyecto eliminada: ${projectPath}`);
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('delete-all-projects', async () => {
+  try {
+    const projectsDir = await getProjectsDir();
+    const items = await fs.promises.readdir(projectsDir);
+    for (const item of items) {
+      const projectPath = path.join(projectsDir, item);
+      const stat = await fs.promises.stat(projectPath);
+      if (stat.isDirectory()) {
+        await fs.promises.rm(projectPath, { recursive: true, force: true });
+      }
+    }
+    activeProjectPath = null;
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('clear-global-stock-cache', async () => {
+  try {
+    const stockDir = path.join(getBancoClipsPath(), 'stock');
+    if (await exists(stockDir)) {
+      await fs.promises.rm(stockDir, { recursive: true, force: true });
+      await fs.promises.mkdir(stockDir, { recursive: true });
     }
     return { success: true };
   } catch (err: any) {
@@ -976,7 +1008,7 @@ ipcMain.handle('generate-minimax-video', async (_event, { prompt }) => {
 // IPC handle for loading clips in a category folder of banco-clips
 ipcMain.handle('load-bank-clips', async (_event, { category }) => {
   try {
-    const isTempCategory = ['originales', 'minimax'].includes(category.toLowerCase())
+    const isTempCategory = ['originales', 'minimax', 'stock'].includes(category.toLowerCase())
     const useActiveProj = !!(activeProjectPath && isTempCategory)
     const baseDir = useActiveProj ? activeProjectPath! : getBancoClipsPath()
     const dirPath = useActiveProj ? path.join(baseDir, 'temp', category) : path.join(baseDir, category)
@@ -1164,7 +1196,7 @@ ipcMain.handle('read-file-as-blob', async (_event, { filePath }) => {
 // IPC handle for deleting a clip inside a category folder of banco-clips
 ipcMain.handle('delete-bank-clip', async (_event, { category, file }) => {
   try {
-    const isTempCategory = category === 'originales' || category === 'minimax'
+    const isTempCategory = ['originales', 'minimax', 'stock'].includes(category.toLowerCase())
     const useActiveProj = !!(activeProjectPath && isTempCategory)
     const baseDir = useActiveProj ? activeProjectPath! : getBancoClipsPath()
     const filePath = useActiveProj ? path.join(baseDir, 'temp', category, file) : path.join(baseDir, category, file)
@@ -1630,6 +1662,17 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 
             // Copiar al path final del timeline
             await fs.promises.copyFile(finalStockPath, clipPath);
+
+            // Copiar al directorio local de stock del proyecto
+            if (activeProjectPath) {
+              const localStockDir = path.join(activeProjectPath, 'temp', 'stock');
+              if (!(await exists(localStockDir))) {
+                await fs.promises.mkdir(localStockDir, { recursive: true });
+              }
+              const localStockPath = path.join(localStockDir, stockFilename);
+              await fs.promises.copyFile(finalStockPath, localStockPath);
+            }
+
             success = true;
           } catch (stockErr: any) {
             await logMessage(`[FASE 3] Error Stock en clip ${item.index}: ${stockErr.message || stockErr}. Usando fallback original.`);

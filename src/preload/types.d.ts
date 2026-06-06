@@ -23,6 +23,8 @@ export interface IElectronAPI {
   loadProject: (params: { projectPath: string }) => Promise<{ success: boolean; data?: any; projectPath?: string; error?: string }>;
   closeProject: () => Promise<{ success: boolean; error?: string }>;
   deleteProject: (params: { projectPath: string }) => Promise<{ success: boolean; error?: string }>;
+  deleteAllProjects: () => Promise<{ success: boolean; error?: string }>;
+  clearGlobalStockCache: () => Promise<{ success: boolean; error?: string }>;
   readFileAsBlob: (params: { filePath: string }) => Promise<{ success: boolean; buffer?: Uint8Array; error?: string }>;
 }
 
