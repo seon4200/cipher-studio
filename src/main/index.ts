@@ -1455,14 +1455,23 @@ INSTRUCCIONES:
 - Evita repetir timestamps.
 - IMPORTANTE: Distribuye los tipos de forma intercalada a lo largo de todos los fragmentos. Evita poner varios clips del mismo tipo consecutivos. Alterna entre 'original', 'stock' e 'ia' de forma variada y natural según el contenido de cada fragmento.
 - Para cada fragmento decide también si debe tener un gráfico animado superpuesto. En un ${pct}% de los clips asigna un campo 'graphic' con:
-  * type: barra_horizontal, barra_vertical, donut, contador, dato_grande, frase_clave, flecha_crecimiento, flecha_caida, multiplicador, o decorativo_emoji
-  * value: número real extraído del fragmento (obligatorio para barras, donut, contador, flechas, multiplicador)
+  * type: barra_horizontal, barra_vertical, barras_comparativas, donut, contador, comparacion_antes_despues, flecha_crecimiento, flecha_caida, multiplicador, fraccion, ranking_top3, dato_grande, frase_clave, decorativo_emoji, lista_numerada, checklist, o pasos_proceso
+  * value: número real o texto (ej. "9/10" o "Paso 1,Paso 2" o lista separada por comas) extraído del fragmento (obligatorio para barras, donut, contador, flechas, multiplicador, fraccion)
   * label: texto descriptivo corto en español
   * unit: '%', 'x', 'k', etc.
   * emoji: emoji relevante al tema
-  FUNDAMENTAL: El gráfico debe basarse en lo que se DICE en el fragmento del guión, no en el clip de video.
-  VARIEDAD: No repitas el mismo type más de 2 veces consecutivas.
-  Si un fragmento no necesita gráfico pon graphic: null.
+  - CONTEXTO OBLIGATORIO: Analiza el fragmento del guión y extrae el dato más impactante. Si menciona número, porcentaje, comparación, ranking o concepto clave → úsalo.
+  - EMOJIS: Elige el emoji más representativo del tema del fragmento.
+  - EJEMPLOS:
+    * 'el 70% de colombianos no tiene ahorros' → barra_horizontal, value:70, label:'sin ahorros', unit:'%', emoji:'💰'
+    * 'pasó de ganar 1M a 10M en un año' → comparacion_antes_despues, value:10, label:'millones', unit:'M', emoji:'📈', extra: { beforeValue: 1, afterValue: 10 }
+    * 'el método tiene 3 pasos' → pasos_proceso, label:'3 pasos clave', emoji:'🎯', extra: { steps: ['Planificar', 'Ejecutar', 'Medir'] }
+    * 'creció 5 veces su inversión' → multiplicador, value:5, label:'retorno', emoji:'🚀'
+    * '9 de cada 10 expertos recomiendan' → fraccion, value:9, unit:'/10', label:'expertos', emoji:'⭐'
+  - NUNCA uses decorativo_emoji si hay algún dato cuantificable en el fragmento.
+  - FUNDAMENTAL: El gráfico debe basarse en lo que se DICE en el fragmento del guión, no en el clip de video.
+  - VARIEDAD: No repitas el mismo type más de 2 veces consecutivas.
+  - Si un fragmento no necesita gráfico pon graphic: null.
 
 Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 {
@@ -1906,7 +1915,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           id: 'timeline-graphic-' + Math.random(),
           name: 'Gráfico: ' + (clip.graphic.label || clip.graphic.type),
           startSeconds: clip.startSeconds,
-          durationSeconds: 1.1,
+          durationSeconds: 2.0,
           type: 'graphic',
           graphicData: {
             type: clip.graphic.type,
@@ -1968,25 +1977,45 @@ ipcMain.handle('regenerate-graphics', async (_event, { scriptText, clips, graphi
       .map((frag, idx) => `ID del clip: "${clips[idx]?.id || idx}", Nombre del clip: "${clips[idx]?.name}", Fragmento: "${frag}"`)
       .join('\n');
 
-    const dsPrompt = `Eres un diseñador de motion graphics para videos cortos. Tienes un guión de un video segmentado en clips.
+    const dsPrompt = `Eres un motion designer para videos cortos. Tienes un guión de un video segmentado en clips.
 Debes elegir exactamente ${targetGraphicsCount} clips de la lista para colocarles un gráfico animado superpuesto que apoye visualmente lo que se narra en el fragmento.
 
 Tipos de gráficos disponibles ("type"):
-- "contador": un contador numérico animado que sube de 0 a un valor (ej. value: 80, unit: "k", label: "seguidores").
-- "barra_horizontal": una barra de progreso que se llena hasta un porcentaje (ej. value: 75, unit: "%", label: "avance").
+- "contador": un contador numérico animado (ej. value: 80, unit: "k", label: "seguidores").
+- "barra_horizontal": una barra de progreso horizontal (ej. value: 75, unit: "%", label: "avance").
 - "barra_vertical": una barra vertical que sube (ej. value: 90, unit: "pts", label: "rendimiento").
+- "barras_comparativas": dos barras para comparar datos (ej. value: 70, label: "Mención A", extra: { rightValue: 50, rightLabel: "Mención B" }).
 - "donut": un gráfico circular animado de porcentaje (ej. value: 65, unit: "%", label: "retención").
-- "dato_grande": un número destacado gigante con etiqueta debajo (ej. value: "9/10", label: "usuarios eligen esto").
-- "frase_clave": un texto resaltado con diseño limpio y animado (ej. value: "ENFOQUE ABSOLUTO").
-- "decorativo_emoji": un emoji grande con animación de pulso y zoom (ej. value: "💡", label: "Idea").
+- "comparacion_antes_despues": muestra un cambio antes/después (ej. value: 10, label: "millones", unit: "M", extra: { beforeValue: 1, afterValue: 10 }).
+- "flecha_crecimiento": flecha verde indicando subida (ej. value: 45, unit: "%", label: "crecimiento").
+- "flecha_caida": flecha roja indicando bajada (ej. value: 15, unit: "%", label: "caída").
+- "multiplicador": factor multiplicador (ej. value: 5, label: "retorno").
+- "fraccion": fracción numérica destacada (ej. value: "9/10", label: "usuarios").
+- "ranking_top3": podio de 3 posiciones (ej. value: "Elemento 1,Elemento 2,Elemento 3", extra: { top3: ["1st", "2nd", "3rd"] }).
+- "dato_grande": número destacado gigante (ej. value: 250, label: "millones").
+- "frase_clave": texto limpio y destacado (ej. value: "ENFOQUE ABSOLUTO").
+- "decorativo_emoji": emoji grande relevante (ej. value: "💡", label: "Idea").
+- "lista_numerada": items ordenados (ej. value: "Paso A,Paso B").
+- "checklist": items marcados (ej. value: "Item A,Item B").
+- "pasos_proceso": secuencia conectada (ej. value: "Fase 1->Fase 2->Fase 3").
 
 LISTA DE CLIPS:
 ${fragmentosNumerados}
 
 INSTRUCCIONES:
 1. Elige exactamente ${targetGraphicsCount} clips para tener gráficos. Los demás no tendrán gráficos (deben omitirse o no llevar graphicData).
-2. Genera los campos apropiados para "graphicData": type, value, label, unit.
-3. Responde ÚNICAMENTE con un JSON en este formato sin markdown ni comentarios:
+2. Genera los campos apropiados para "graphicData": type, value, label, unit, emoji, extra.
+- CONTEXTO OBLIGATORIO: Analiza el fragmento del guión y extrae el dato más impactante. Si menciona número, porcentaje, comparación, ranking o concepto clave → úsalo.
+- EMOJIS: Elige el emoji más representativo del tema del fragmento.
+- EJEMPLOS:
+  * 'el 70% de colombianos no tiene ahorros' → barra_horizontal, value:70, label:'sin ahorros', unit:'%', emoji:'💰'
+  * 'pasó de ganar 1M a 10M en un año' → comparacion_antes_despues, value:10, label:'millones', unit:'M', emoji:'📈', extra: { beforeValue: 1, afterValue: 10 }
+  * 'el método tiene 3 pasos' → pasos_proceso, label:'3 pasos clave', emoji:'🎯', extra: { steps: ['Planificar', 'Ejecutar', 'Medir'] }
+  * 'creció 5 veces su inversión' → multiplicador, value:5, label:'retorno', emoji:'🚀'
+  * '9 de cada 10 expertos recomiendan' → fraccion, value:9, unit:'/10', label:'expertos', emoji:'⭐'
+- NUNCA uses decorativo_emoji si hay algún dato cuantificable en el fragmento.
+
+Responde ÚNICAMENTE con un JSON en este formato sin markdown ni comentarios:
 {
   "clips": [
     {
@@ -1995,7 +2024,8 @@ INSTRUCCIONES:
         "type": "contador",
         "value": 150,
         "label": "Etiqueta",
-        "unit": "ms"
+        "unit": "ms",
+        "emoji": "⏱️"
       }
     }
   ]

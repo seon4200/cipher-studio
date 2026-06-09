@@ -88,3 +88,11 @@
 .animate-number-glow     { animation: graphic-number-glow 2s ease-in-out infinite; }
 .animate-gentle-zoom    { animation: graphic-gentle-zoom 2s ease-in-out infinite; }
 .animate-bar-pulse       { animation: graphic-bar-pulse 2s ease-in-out infinite; }
+
+@keyframes graphic-slide-left { from { transform: translateX(-60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes graphic-slide-right { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes graphic-pop { 0% { transform: scale(0); opacity: 0; } 70% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+.animate-slide-left { animation: graphic-slide-left 0.5s cubic-bezier(0.16,1,0.3,1) forwards; }
+.animate-slide-right { animation: graphic-slide-right 0.5s cubic-bezier(0.16,1,0.3,1) forwards; }
+.animate-slide-up { animation: graphic-slide-up 0.5s cubic-bezier(0.16,1,0.3,1) forwards; }
+.animate-pop { animation: graphic-pop 0.5s cubic-bezier(0.16,1,0.3,1) forwards; }

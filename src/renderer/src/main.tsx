@@ -41,6 +41,8 @@ interface GraphicData {
   label?: string
   /** unidad opcional (%, pts, etc.) */
   unit?: string
+  /** emoji opcional relevante al tema */
+  emoji?: string
   /** datos auxiliares para tipos complejos (ej. lista, donut) */
   extra?: any
 }
@@ -53,248 +55,299 @@ const COLORS = {
 }
 
 export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic }) => {
-  const { type, value, label, unit, extra } = graphic
-  const [internal, setInternal] = useState<number>(0) // para animaciones numéricas
+  const { type, value, label, unit, emoji, extra } = graphic
+  const [internal, setInternal] = useState<number>(0)
 
-  /* ------------------------------------------------------------------
-     Efectos de animación (counters, barras, donut, etc.)
-     ------------------------------------------------------------------ */
   useEffect(() => {
-    // Reset state on type change
     setInternal(0)
     if (type === 'contador' && typeof value === 'number') {
       const target = Number(value)
+      const duration = 1500 // 1.5s
       const start = performance.now()
+      let animId: number
       const step = (now: number) => {
         const elapsed = now - start
-        const progress = Math.min(elapsed / 1000, 1) // 1 s total
+        const progress = Math.min(elapsed / duration, 1)
         setInternal(Math.round(target * progress))
-        if (progress < 1) requestAnimationFrame(step)
+        if (progress < 1) {
+          animId = requestAnimationFrame(step)
+        }
       }
-      requestAnimationFrame(step)
+      animId = requestAnimationFrame(step)
+      return () => cancelAnimationFrame(animId)
     } else if (
       (type === 'barra_horizontal' || type === 'barra_vertical') &&
       typeof value === 'number'
     ) {
-      // Simular la animación con retraso de 150 ms
       const timer = setTimeout(() => setInternal(Number(value)), 150)
       return () => clearTimeout(timer)
     } else if (type === 'donut' && typeof value === 'number') {
-      // Donut se basa en stroke‑dashoffset; lo calculamos en render
       setInternal(Number(value))
     } else if (typeof value === 'number') {
       setInternal(Number(value))
     }
   }, [type, value])
 
-  /* ------------------------------------------------------------------
-     Render helpers por tipo
-     ------------------------------------------------------------------ */
-  const renderNumber = () => (
-    <div className="text-5xl font-black text-[#00d4ff] animate-number-glow">
-      {internal}
-      {unit && <span className="text-2xl ml-1">{unit}</span>}
-    </div>
-  )
-
-
-
-  const renderBar = (horizontal: boolean) => {
-    const size = Math.max(0, Math.min(100, internal))
-    const style = horizontal
-      ? { width: `${size}%` }
-      : { height: `${size}%` }
-    return (
-      <div
-        className="bg-[#00d4ff] animate-bar-pulse"
-        style={{
-          ...style,
-          transition: 'all 1.2s ease',
-          minWidth: horizontal ? '4px' : 'auto',
-          minHeight: horizontal ? 'auto' : '4px',
-        }}
-      />
-    )
+  const getAnimationClass = () => {
+    switch (type) {
+      case 'barra_horizontal':
+      case 'barras_comparativas':
+      case 'flecha_crecimiento':
+      case 'frase_clave':
+      case 'pasos_proceso':
+        return 'animate-slide-left'
+      case 'barra_vertical':
+      case 'contador':
+      case 'fraccion':
+      case 'ranking_top3':
+      case 'dato_grande':
+      case 'lista_numerada':
+      case 'checklist':
+        return 'animate-slide-up'
+      case 'donut':
+      case 'multiplicador':
+      case 'decorativo_emoji':
+        return 'animate-pop'
+      default:
+        return 'animate-slide-up'
+    }
   }
 
-  const renderDonut = () => {
-    const radius = 40
-    const circumference = 2 * Math.PI * radius
-    const offset = circumference - (circumference * internal) / 100
-    return (
-      <svg width={100} height={100} className="transform -rotate-90">
-        <circle cx={50} cy={50} r={radius} fill="none" stroke="#333" strokeWidth={8} />
-        <circle
-          cx={50}
-          cy={50}
-          r={radius}
-          fill="none"
-          stroke={COLORS.primary}
-          strokeWidth={8}
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 1s' }}
-        />
-        <text x={50} y={55} textAnchor="middle" className="text-sm font-semibold fill-[#00d4ff]">
-          {internal}%
-        </text>
-      </svg>
-    )
+  const renderContent = () => {
+    switch (type) {
+      case 'barra_horizontal': {
+        const size = Math.max(0, Math.min(100, internal))
+        return (
+          <div className="w-full space-y-2 flex flex-col items-center">
+            <div className="w-full bg-slate-800 h-4 rounded-full overflow-hidden border border-slate-700/50">
+              <div 
+                className="bg-[#00d4ff] h-full rounded-full animate-bar-pulse" 
+                style={{ width: `${size}%`, transition: 'width 1.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
+              />
+            </div>
+            <div className="text-3xl font-black text-[#00d4ff]">{size}{unit || '%'}</div>
+          </div>
+        )
+      }
+      case 'barra_vertical': {
+        const size = Math.max(0, Math.min(100, internal))
+        return (
+          <div className="flex flex-col items-center space-y-2 h-36 justify-end w-full">
+            <div className="w-6 bg-slate-800 h-28 rounded-full overflow-hidden border border-slate-700/50 flex flex-col justify-end">
+              <div 
+                className="bg-[#00d4ff] w-full rounded-full animate-bar-pulse" 
+                style={{ height: `${size}%`, transition: 'height 1.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
+              />
+            </div>
+            <div className="text-2xl font-black text-[#00d4ff]">{size}{unit}</div>
+          </div>
+        )
+      }
+      case 'barras_comparativas': {
+        const leftVal = typeof value === 'number' ? value : 70
+        const rightVal = extra?.rightValue ?? 50
+        return (
+          <div className="flex space-x-6 w-full justify-around items-end h-28">
+            <div className="flex flex-col items-center space-y-1">
+              <div className="w-5 bg-slate-800 h-20 rounded-full flex flex-col justify-end overflow-hidden">
+                <div className="w-full rounded-full animate-bar-pulse" style={{ height: `${leftVal}%`, backgroundColor: '#00d4ff', transition: 'height 1.2s' }} />
+              </div>
+              <span className="text-xs text-slate-300 font-bold">{extra?.leftLabel || 'A'}</span>
+            </div>
+            <div className="flex flex-col items-center space-y-1">
+              <div className="w-5 bg-slate-800 h-20 rounded-full flex flex-col justify-end overflow-hidden">
+                <div className="w-full rounded-full" style={{ height: `${rightVal}%`, backgroundColor: '#7F77DD', transition: 'height 1.2s' }} />
+              </div>
+              <span className="text-xs text-slate-300 font-bold">{extra?.rightLabel || 'B'}</span>
+            </div>
+          </div>
+        )
+      }
+      case 'donut': {
+        const radius = 35
+        const circumference = 2 * Math.PI * radius
+        const offset = circumference - (circumference * internal) / 100
+        return (
+          <div className="flex justify-center w-full">
+            <svg width={90} height={90} className="transform -rotate-90">
+              <circle cx={45} cy={45} r={radius} fill="none" stroke="#1e293b" strokeWidth={8} />
+              <circle
+                cx={45}
+                cy={45}
+                r={radius}
+                fill="none"
+                stroke={COLORS.primary}
+                strokeWidth={8}
+                strokeDasharray={circumference}
+                strokeDashoffset={offset}
+                style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}
+              />
+              <text x={45} y={50} textAnchor="middle" className="text-sm font-black fill-[#00d4ff] transform rotate-90 origin-center">
+                {internal}%
+              </text>
+            </svg>
+          </div>
+        )
+      }
+      case 'contador': {
+        return (
+          <div className="text-5xl font-black text-[#00d4ff] animate-number-glow">
+            {internal}
+            {unit && <span className="text-2xl ml-1">{unit}</span>}
+          </div>
+        )
+      }
+      case 'comparacion_antes_despues': {
+        const beforeVal = extra?.beforeValue ?? value ?? 0
+        const afterVal = extra?.afterValue ?? 100
+        return (
+          <div className="w-full flex space-x-4">
+            <div className="flex-1 flex flex-col items-center bg-slate-900/50 p-3 rounded-xl border border-slate-800 animate-slide-left">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Antes</div>
+              <div className="text-3xl font-black text-rose-500">{beforeVal}{unit}</div>
+            </div>
+            <div className="flex-1 flex flex-col items-center bg-slate-900/50 p-3 rounded-xl border border-slate-800 animate-slide-right">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Después</div>
+              <div className="text-3xl font-black text-emerald-500">{afterVal}{unit}</div>
+            </div>
+          </div>
+        )
+      }
+      case 'flecha_crecimiento': {
+        return (
+          <div className="flex items-center space-x-3 text-emerald-400">
+            <span className="text-6xl font-black">↑</span>
+            <div className="flex flex-col text-left">
+              <span className="text-5xl font-black text-emerald-400 animate-number-glow">+{value}{unit}</span>
+            </div>
+          </div>
+        )
+      }
+      case 'flecha_caida': {
+        return (
+          <div className="flex items-center space-x-3 text-rose-500">
+            <span className="text-6xl font-black">↓</span>
+            <div className="flex flex-col text-left">
+              <span className="text-5xl font-black text-rose-500 animate-number-glow">-{value}{unit}</span>
+            </div>
+          </div>
+        )
+      }
+      case 'multiplicador': {
+        return (
+          <div className="text-5xl font-black text-[#00d4ff] animate-number-glow">
+            {value}x
+          </div>
+        )
+      }
+      case 'fraccion': {
+        return (
+          <div className="text-5xl font-black text-[#7F77DD] animate-number-glow">
+            {value}{unit}
+          </div>
+        )
+      }
+      case 'ranking_top3': {
+        const top3 = extra?.top3 || (typeof value === 'string' ? value.split(',') : ['#1 Item', '#2 Item', '#3 Item'])
+        return (
+          <div className="flex items-end justify-center space-x-2 h-24 w-full">
+            <div className="flex flex-col items-center bg-slate-900/80 border border-slate-800 rounded-t-lg p-1 w-16 h-16 justify-center">
+              <span className="text-lg">🥈</span>
+              <span className="text-xs text-slate-400 font-bold">#2</span>
+              <span className="text-[9px] text-slate-300 truncate w-full text-center">{top3[1] || '🥈'}</span>
+            </div>
+            <div className="flex flex-col items-center bg-slate-800/80 border border-slate-700 rounded-t-lg p-1 w-18 h-20 justify-center">
+              <span className="text-xl animate-bounce">👑</span>
+              <span className="text-xs text-amber-400 font-black">#1</span>
+              <span className="text-[9px] text-slate-200 font-bold truncate w-full text-center">{top3[0] || '👑'}</span>
+            </div>
+            <div className="flex flex-col items-center bg-slate-900/80 border border-slate-800 rounded-t-lg p-1 w-16 h-12 justify-center">
+              <span className="text-sm">🥉</span>
+              <span className="text-xs text-slate-500 font-bold">#3</span>
+              <span className="text-[9px] text-slate-400 truncate w-full text-center">{top3[2] || '🥉'}</span>
+            </div>
+          </div>
+        )
+      }
+      case 'dato_grande': {
+        return (
+          <div className="text-6xl font-black bg-gradient-to-r from-[#00d4ff] to-[#7F77DD] bg-clip-text text-transparent animate-number-glow">
+            {value}{unit}
+          </div>
+        )
+      }
+      case 'frase_clave': {
+        return (
+          <div className="border-l-4 border-[#00d4ff] pl-3 py-1 text-left w-full">
+            <span className="text-xl font-bold italic text-slate-200">“{value}”</span>
+          </div>
+        )
+      }
+      case 'decorativo_emoji': {
+        return (
+          <div className="text-8xl animate-gentle-zoom flex justify-center w-full">
+            {value || emoji || '💡'}
+          </div>
+        )
+      }
+      case 'lista_numerada': {
+        const items = extra?.items || (typeof value === 'string' ? value.split(',') : ['Item A', 'Item B'])
+        return (
+          <ol className="space-y-1 text-left w-full">
+            {items.map((it: string, i: number) => (
+              <li key={i} className="text-sm text-slate-300 flex items-start space-x-2">
+                <span className="font-bold text-[#00d4ff]">{i + 1}.</span>
+                <span>{it.trim()}</span>
+              </li>
+            ))}
+          </ol>
+        )
+      }
+      case 'checklist': {
+        const items = extra?.items || (typeof value === 'string' ? value.split(',') : ['Check A', 'Check B'])
+        return (
+          <ul className="space-y-1 text-left w-full">
+            {items.map((it: string, i: number) => (
+              <li key={i} className="text-sm text-slate-300 flex items-center space-x-2">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span>{it.trim()}</span>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+      case 'pasos_proceso': {
+        const steps = extra?.steps || (typeof value === 'string' ? value.split('->') : ['Paso 1', 'Paso 2', 'Paso 3'])
+        return (
+          <div className="flex items-center space-x-2 overflow-x-auto py-1 w-full justify-center">
+            {steps.map((st: string, i: number, arr: any[]) => (
+              <React.Fragment key={i}>
+                <div className="bg-slate-900 border border-slate-800 p-2 rounded-lg text-center flex-1 min-w-[70px]">
+                  <div className="text-[10px] text-[#00d4ff] font-bold">Paso {i + 1}</div>
+                  <div className="text-xs text-slate-300 font-semibold truncate">{st.trim()}</div>
+                </div>
+                {i < arr.length - 1 && <span className="text-[#7F77DD] font-black">→</span>}
+              </React.Fragment>
+            ))}
+          </div>
+        )
+      }
+      default:
+        return <div className="text-sm text-slate-300">Tipo no soportado</div>
+    }
   }
 
-  const renderList = (ordered: boolean) => (
-    <ul className={ordered ? 'list-decimal' : 'list-disc'} style={{ listStylePosition: 'inside' }}>
-      {(extra?.items ?? []).map((it: string, i: number) => (
-        <li key={i} className="text-sm text-slate-300">
-          {it}
-        </li>
-      ))}
-    </ul>
-  )
-
-  const renderChecklist = () => (
-    <ul className="list-none space-y-1">
-      {(extra?.items ?? []).map((it: string, i: number) => (
-        <li key={i} className="flex items-center space-x-2">
-          <input type="checkbox" className="form-checkbox h-4 w-4 text-[#00d4ff]" />
-          <span className="text-sm text-slate-300">{it}</span>
-        </li>
-      ))}
-    </ul>
-  )
-
-  const renderSteps = () => (
-    <ol className="list-decimal space-y-1" style={{ listStylePosition: 'inside' }}>
-      {(extra?.steps ?? []).map((st: string, i: number) => (
-        <li key={i} className="text-sm text-slate-300">
-          {st}
-        </li>
-      ))}
-    </ol>
-  )
-
-  const renderArrow = (up: boolean) => (
-    <div className="flex flex-col items-center">
-      <div
-        className={`w-0 h-0 border-${up ? 'b' : 't'}-8 border-${up ? 't' : 'b'}-0 border-l-8 border-r-8 border-transparent`}
-        style={{ borderBottomColor: up ? COLORS.primary : COLORS.secondary }}
-      />
-      <span className="text-sm text-slate-300 mt-1">{label}</span>
-    </div>
-  )
-
-  const renderMultiplicador = () => (
-    <div className="text-5xl font-black text-[#00d4ff] animate-number-glow">
-      x{internal}
-    </div>
-  )
-
-  const renderFraccion = () => (
-    <div className="text-4xl font-bold text-[#00d4ff]">
-      {value?.toString().split('/')?.[0]} / {value?.toString().split('/')?.[1]}
-    </div>
-  )
-
-  const renderRanking = () => (
-    <div className="grid grid-cols-3 gap-2 text-center">
-      {(extra?.rankings ?? []).map((r: any, i: number) => (
-        <div key={i} className="bg-[#020617] p-2 rounded-md shadow-md">
-          <div className="text-sm text-slate-400">#{i + 1}</div>
-          <div className="text-xl font-semibold text-[#00d4ff]">{r}</div>
-        </div>
-      ))}
-    </div>
-  )
-
-  const renderDatoGrande = () => (
-    <div className="text-6xl font-black text-[#00d4ff] animate-number-glow">
-      {value}
-    </div>
-  )
-
-  const renderFraseClave = () => (
-    <div className="text-xl font-semibold text-[#00d4ff] text-center">
-      “{value}”
-    </div>
-  )
-
-  const renderDecorative = (emoji: boolean) => (
-    <div className={emoji ? 'animate-gentle-zoom' : ''}>{value}</div>
-  )
-
-  // ------------------------------------------------------------------
-  // Main render switch
-  // ------------------------------------------------------------------
   return (
-    <div className="min-w-[280px] p-5 rounded-2xl shadow-2xl backdrop-blur-md bg-slate-950/85 border border-slate-800/80 flex flex-col items-center space-y-3">
-      {/* LABEL */}
-      {label && <div className="text-sm font-semibold text-slate-300">{label}</div>}
-
-      {/* GRAPHIC CONTENT */}
-      {(() => {
-        switch (type) {
-          case 'contador':
-            return renderNumber()
-          case 'barra_horizontal':
-            return renderBar(true)
-          case 'barra_vertical':
-            return renderBar(false)
-          case 'donut':
-            return renderDonut()
-          case 'lista_numerada':
-            return renderList(true)
-          case 'checklist':
-            return renderChecklist()
-          case 'pasos_proceso':
-            return renderSteps()
-          case 'flecha_crecimiento':
-            return renderArrow(true)
-          case 'flecha_caida':
-            return renderArrow(false)
-          case 'multiplicador':
-            return renderMultiplicador()
-          case 'fraccion':
-            return renderFraccion()
-          case 'ranking_top3':
-            return renderRanking()
-          case 'dato_grande':
-            return renderDatoGrande()
-          case 'frase_clave':
-            return renderFraseClave()
-          case 'decorativo_emoji':
-            return renderDecorative(true)
-          case 'decorativo_particulas':
-            return renderDecorative(false)
-          case 'barras_comparativas':
-            return (
-              <div className="flex space-x-4 w-full">
-                <div className="flex-1 flex flex-col items-center">
-                  {renderBar(true)}
-                  <span className="text-xs text-slate-300 mt-1">{extra?.leftLabel}</span>
-                </div>
-                <div className="flex-1 flex flex-col items-center">
-                  {renderBar(true)}
-                  <span className="text-xs text-slate-300 mt-1">{extra?.rightLabel}</span>
-                </div>
-              </div>
-            )
-          case 'comparacion_antes_despues':
-            return (
-              <div className="flex space-x-2 w-full">
-                <div className="flex-1 flex flex-col items-center">
-                  <div className="text-sm text-slate-300 mb-1">Antes</div>
-                  {renderNumber()}
-                </div>
-                <div className="flex-1 flex flex-col items-center">
-                  <div className="text-sm text-slate-300 mb-1">Después</div>
-                  {renderNumber()}
-                </div>
-              </div>
-            )
-          default:
-            return <div className="text-sm text-slate-300">Tipo no soportado</div>
-        }
-      })()}
+    <div className={`min-w-[280px] p-5 rounded-2xl shadow-2xl backdrop-blur-md bg-slate-950/85 border border-slate-800/80 flex flex-col items-center space-y-3 ${getAnimationClass()}`}>
+      {/* EMOJI & LABEL HEADER */}
+      {(emoji || label) && (
+        <div className="flex items-center space-x-2 mb-1 justify-center w-full">
+          {emoji && <span className="text-2xl animate-gentle-zoom">{emoji}</span>}
+          {label && <span className="text-sm font-semibold text-slate-300">{label}</span>}
+        </div>
+      )}
+      {/* MAIN GRAPHIC CONTENT */}
+      {renderContent()}
     </div>
   )
 }
@@ -577,11 +630,11 @@ function App() {
     if (activeGraphicClip?.id && isPlaying) {
       setGraphicVisible(true);
       setGraphicFading(false);
-      const fadeTimer = setTimeout(() => setGraphicFading(true), 800);
+      const fadeTimer = setTimeout(() => setGraphicFading(true), 1700);
       const hideTimer = setTimeout(() => {
         setGraphicVisible(false);
         setGraphicFading(false);
-      }, 1100);
+      }, 2000);
       return () => {
         clearTimeout(fadeTimer);
         clearTimeout(hideTimer);
@@ -2297,7 +2350,7 @@ function App() {
                 id: clipInfo.id || `timeline-graphic-${Math.random()}`,
                 name: clipInfo.name,
                 startSeconds: clipInfo.startSeconds || 0,
-                durationSeconds: clipInfo.durationSeconds || 1.1,
+                durationSeconds: clipInfo.durationSeconds || 2.0,
                 type: 'graphic',
                 graphicData: clipInfo.graphicData
               });
@@ -2391,7 +2444,7 @@ function App() {
               id: `timeline-graphic-${Math.random()}`,
               name: `Gráfico: ${c.graphicData.label || c.graphicData.type}`,
               startSeconds: matchingVideo?.startSeconds || 0,
-              durationSeconds: 1.1,
+              durationSeconds: 2.0,
               type: 'graphic' as const,
               graphicData: c.graphicData
             };

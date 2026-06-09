@@ -5005,7 +5005,7 @@ electron.ipcMain.handle("export-video", async (_event, { clips, aspectRatio, res
     return { success: false, error: err.message };
   }
 });
-electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio }) => {
+electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent }) => {
   var _a, _b, _c, _d;
   const logMessage = async (msg) => {
     console.log(msg);
@@ -5047,6 +5047,7 @@ electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText, 
     }
     const targetOriginalClips = totalClips - targetIaClips - targetStockClips;
     await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}/${totalClips}`);
+    const pct = typeof graphicsPercent === "number" ? graphicsPercent : 50;
     try {
       const segmentsText = (transcriptSegments || []).map((s, i) => `[${i}] ${Number(s.start).toFixed(1)}s-${Number(s.end).toFixed(1)}s: "${s.text}"`).join("\n");
       const sentences = (scriptText || "").split(new RegExp("(?<=[.!?])\\s+")).filter((s) => s.trim().length > 0);
@@ -5085,13 +5086,56 @@ INSTRUCCIONES:
 - Para clips tipo 'ia': genera un prompt descriptivo en inglés y altamente visual de 1 oración que sirva para generar el video con IA (MiniMax) en el campo "prompt".
 - Evita repetir timestamps.
 - IMPORTANTE: Distribuye los tipos de forma intercalada a lo largo de todos los fragmentos. Evita poner varios clips del mismo tipo consecutivos. Alterna entre 'original', 'stock' e 'ia' de forma variada y natural según el contenido de cada fragmento.
+- Para cada fragmento decide también si debe tener un gráfico animado superpuesto. En un ${pct}% de los clips asigna un campo 'graphic' con:
+  * type: barra_horizontal, barra_vertical, barras_comparativas, donut, contador, comparacion_antes_despues, flecha_crecimiento, flecha_caida, multiplicador, fraccion, ranking_top3, dato_grande, frase_clave, decorativo_emoji, lista_numerada, checklist, o pasos_proceso
+  * value: número real o texto (ej. "9/10" o "Paso 1,Paso 2" o lista separada por comas) extraído del fragmento (obligatorio para barras, donut, contador, flechas, multiplicador, fraccion)
+  * label: texto descriptivo corto en español
+  * unit: '%', 'x', 'k', etc.
+  * emoji: emoji relevante al tema
+  - CONTEXTO OBLIGATORIO: Analiza el fragmento del guión y extrae el dato más impactante. Si menciona número, porcentaje, comparación, ranking o concepto clave → úsalo.
+  - EMOJIS: Elige el emoji más representativo del tema del fragmento.
+  - EJEMPLOS:
+    * 'el 70% de colombianos no tiene ahorros' → barra_horizontal, value:70, label:'sin ahorros', unit:'%', emoji:'💰'
+    * 'pasó de ganar 1M a 10M en un año' → comparacion_antes_despues, value:10, label:'millones', unit:'M', emoji:'📈', extra: { beforeValue: 1, afterValue: 10 }
+    * 'el método tiene 3 pasos' → pasos_proceso, label:'3 pasos clave', emoji:'🎯', extra: { steps: ['Planificar', 'Ejecutar', 'Medir'] }
+    * 'creció 5 veces su inversión' → multiplicador, value:5, label:'retorno', emoji:'🚀'
+    * '9 de cada 10 expertos recomiendan' → fraccion, value:9, unit:'/10', label:'expertos', emoji:'⭐'
+  - NUNCA uses decorativo_emoji si hay algún dato cuantificable en el fragmento.
+  - FUNDAMENTAL: El gráfico debe basarse en lo que se DICE en el fragmento del guión, no en el clip de video.
+  - VARIEDAD: No repitas el mismo type más de 2 veces consecutivas.
+  - Si un fragmento no necesita gráfico pon graphic: null.
 
 Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 {
   "clips": [
-    {"index": 1, "type": "original", "timestamp": 12.5},
-    {"index": 2, "type": "stock", "keyword": "brain neuron"},
-    {"index": 3, "type": "ia", "prompt": "A cinematic close up shot of..."}
+    {
+      "index": 1, 
+      "type": "original", 
+      "timestamp": 12.5,
+      "graphic": {
+        "type": "contador",
+        "value": 100,
+        "label": "seguidores",
+        "unit": "k",
+        "emoji": "🚀"
+      }
+    },
+    {
+      "index": 2, 
+      "type": "stock", 
+      "keyword": "brain neuron",
+      "graphic": null
+    },
+    {
+      "index": 3, 
+      "type": "ia", 
+      "prompt": "A cinematic close up shot of...",
+      "graphic": {
+        "type": "frase_clave",
+        "label": "Enfoque absoluto",
+        "emoji": "💡"
+      }
+    }
   ]
 }`;
       const dsResponse = await fetch("https://api.deepseek.com/chat/completions", {
@@ -5125,7 +5169,8 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         clipsDecision.push({
           index: i + 1,
           type: "original",
-          timestamp: parseFloat((i / totalClips * maxTsVal).toFixed(1))
+          timestamp: parseFloat((i / totalClips * maxTsVal).toFixed(1)),
+          graphic: null
         });
       }
       await logMessage(`[FASE 2] Fallback: ${totalClips} decisiones uniformes (tipo original).`);
@@ -5147,10 +5192,59 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         type,
         timestamp: item.timestamp ?? parseFloat((idx / totalClips * maxTsVal).toFixed(1)),
         keyword: item.keyword || "broll",
-        prompt: item.prompt || "cinematic video clip"
+        prompt: item.prompt || "cinematic video clip",
+        graphic: item.graphic || null
       };
     });
-    await logMessage(`[FASE 2] Decisiones de clips listas. Clips IA: ${clipsDecision.filter((c) => c.type === "ia").length}, Stock: ${clipsDecision.filter((c) => c.type === "stock").length}, Original: ${clipsDecision.filter((c) => c.type === "original").length}`);
+    let consecutiveType = "";
+    let consecutiveCount = 0;
+    for (let i = 0; i < clipsDecision.length; i++) {
+      const g = clipsDecision[i].graphic;
+      if (g && g.type) {
+        if (g.type === consecutiveType) {
+          consecutiveCount++;
+          if (consecutiveCount >= 3) {
+            g.type = "decorativo_emoji";
+            g.value = g.emoji || "📊";
+            consecutiveType = "decorativo_emoji";
+            consecutiveCount = 1;
+          }
+        } else {
+          consecutiveType = g.type;
+          consecutiveCount = 1;
+        }
+      } else {
+        consecutiveType = "";
+        consecutiveCount = 0;
+      }
+    }
+    const minGraphicsCount = Math.round(pct / 100 * totalClips);
+    const currentGraphicsCount = clipsDecision.filter((c) => c.graphic !== null).length;
+    const needed = minGraphicsCount - currentGraphicsCount;
+    if (needed > 0) {
+      const eligibleIndices = [];
+      for (let i = 0; i < clipsDecision.length; i++) {
+        if (!clipsDecision[i].graphic) {
+          eligibleIndices.push(i);
+        }
+      }
+      if (eligibleIndices.length > 0) {
+        const step = eligibleIndices.length / needed;
+        for (let j = 0; j < needed; j++) {
+          const idx = eligibleIndices[Math.floor(j * step)];
+          if (idx !== void 0 && clipsDecision[idx]) {
+            clipsDecision[idx].graphic = {
+              type: "decorativo_emoji",
+              value: "📊",
+              label: "Dato de interés",
+              unit: "",
+              emoji: "📊"
+            };
+          }
+        }
+      }
+    }
+    await logMessage(`[FASE 2] Decisiones de clips listas. Clips IA: ${clipsDecision.filter((c) => c.type === "ia").length}, Stock: ${clipsDecision.filter((c) => c.type === "stock").length}, Original: ${clipsDecision.filter((c) => c.type === "original").length}, Gráficos asignados: ${clipsDecision.filter((c) => c.graphic !== null).length}`);
     await logMessage(`[FASE 3] Generando ${totalClips} clips con FFmpeg, Pexels y fal.ai (IA)...`);
     const outDir = activeProjectPath ? path.join(activeProjectPath, "temp", "originales") : path.join(getBancoClipsPath(), "originales");
     if (!await exists(outDir)) await fs.promises.mkdir(outDir, { recursive: true });
@@ -5333,8 +5427,15 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
     await logMessage("[FASE 5] Ensamblando timeline...");
     let currentStart = 0;
     const finalClips = [];
-    for (const clip of createdClips) {
+    for (let idx = 0; idx < createdClips.length; idx++) {
+      const clip = createdClips[idx];
       clip.startSeconds = currentStart;
+      const decision = clipsDecision[idx];
+      if (decision && decision.graphic) {
+        clip.graphic = decision.graphic;
+      } else {
+        clip.graphic = null;
+      }
       if (clip.startSeconds >= audioDuration) {
         try {
           if (await exists(clip.path)) {
@@ -5387,7 +5488,27 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
       finalClips.push(clip);
       currentStart += clip.durationSeconds;
     }
-    await logMessage(`[generate-timeline-assets] Completado. Clips: ${finalClips.length}`);
+    const graphicClips = [];
+    for (const clip of finalClips) {
+      if (clip.type === "video" && clip.graphic) {
+        graphicClips.push({
+          id: "timeline-graphic-" + Math.random(),
+          name: "Gráfico: " + (clip.graphic.label || clip.graphic.type),
+          startSeconds: clip.startSeconds,
+          durationSeconds: 2,
+          type: "graphic",
+          graphicData: {
+            type: clip.graphic.type,
+            value: clip.graphic.value,
+            label: clip.graphic.label,
+            unit: clip.graphic.unit,
+            emoji: clip.graphic.emoji
+          }
+        });
+      }
+    }
+    finalClips.push(...graphicClips);
+    await logMessage(`[generate-timeline-assets] Completado. Clips: ${finalClips.length} (Videos: ${finalClips.filter((c) => c.type === "video").length}, Gráficos: ${finalClips.filter((c) => c.type === "graphic").length})`);
     return { success: true, clips: finalClips };
   } catch (err) {
     const errMsg = `[generate-timeline-assets] Error: ${err.message || err}`;
@@ -5428,25 +5549,45 @@ electron.ipcMain.handle("regenerate-graphics", async (_event, { scriptText, clip
       var _a2, _b2;
       return `ID del clip: "${((_a2 = clips[idx]) == null ? void 0 : _a2.id) || idx}", Nombre del clip: "${(_b2 = clips[idx]) == null ? void 0 : _b2.name}", Fragmento: "${frag}"`;
     }).join("\n");
-    const dsPrompt = `Eres un diseñador de motion graphics para videos cortos. Tienes un guión de un video segmentado en clips.
+    const dsPrompt = `Eres un motion designer para videos cortos. Tienes un guión de un video segmentado en clips.
 Debes elegir exactamente ${targetGraphicsCount} clips de la lista para colocarles un gráfico animado superpuesto que apoye visualmente lo que se narra en el fragmento.
 
 Tipos de gráficos disponibles ("type"):
-- "contador": un contador numérico animado que sube de 0 a un valor (ej. value: 80, unit: "k", label: "seguidores").
-- "barra_horizontal": una barra de progreso que se llena hasta un porcentaje (ej. value: 75, unit: "%", label: "avance").
+- "contador": un contador numérico animado (ej. value: 80, unit: "k", label: "seguidores").
+- "barra_horizontal": una barra de progreso horizontal (ej. value: 75, unit: "%", label: "avance").
 - "barra_vertical": una barra vertical que sube (ej. value: 90, unit: "pts", label: "rendimiento").
+- "barras_comparativas": dos barras para comparar datos (ej. value: 70, label: "Mención A", extra: { rightValue: 50, rightLabel: "Mención B" }).
 - "donut": un gráfico circular animado de porcentaje (ej. value: 65, unit: "%", label: "retención").
-- "dato_grande": un número destacado gigante con etiqueta debajo (ej. value: "9/10", label: "usuarios eligen esto").
-- "frase_clave": un texto resaltado con diseño limpio y animado (ej. value: "ENFOQUE ABSOLUTO").
-- "decorativo_emoji": un emoji grande con animación de pulso y zoom (ej. value: "💡", label: "Idea").
+- "comparacion_antes_despues": muestra un cambio antes/después (ej. value: 10, label: "millones", unit: "M", extra: { beforeValue: 1, afterValue: 10 }).
+- "flecha_crecimiento": flecha verde indicando subida (ej. value: 45, unit: "%", label: "crecimiento").
+- "flecha_caida": flecha roja indicando bajada (ej. value: 15, unit: "%", label: "caída").
+- "multiplicador": factor multiplicador (ej. value: 5, label: "retorno").
+- "fraccion": fracción numérica destacada (ej. value: "9/10", label: "usuarios").
+- "ranking_top3": podio de 3 posiciones (ej. value: "Elemento 1,Elemento 2,Elemento 3", extra: { top3: ["1st", "2nd", "3rd"] }).
+- "dato_grande": número destacado gigante (ej. value: 250, label: "millones").
+- "frase_clave": texto limpio y destacado (ej. value: "ENFOQUE ABSOLUTO").
+- "decorativo_emoji": emoji grande relevante (ej. value: "💡", label: "Idea").
+- "lista_numerada": items ordenados (ej. value: "Paso A,Paso B").
+- "checklist": items marcados (ej. value: "Item A,Item B").
+- "pasos_proceso": secuencia conectada (ej. value: "Fase 1->Fase 2->Fase 3").
 
 LISTA DE CLIPS:
 ${fragmentosNumerados}
 
 INSTRUCCIONES:
 1. Elige exactamente ${targetGraphicsCount} clips para tener gráficos. Los demás no tendrán gráficos (deben omitirse o no llevar graphicData).
-2. Genera los campos apropiados para "graphicData": type, value, label, unit.
-3. Responde ÚNICAMENTE con un JSON en este formato sin markdown ni comentarios:
+2. Genera los campos apropiados para "graphicData": type, value, label, unit, emoji, extra.
+- CONTEXTO OBLIGATORIO: Analiza el fragmento del guión y extrae el dato más impactante. Si menciona número, porcentaje, comparación, ranking o concepto clave → úsalo.
+- EMOJIS: Elige el emoji más representativo del tema del fragmento.
+- EJEMPLOS:
+  * 'el 70% de colombianos no tiene ahorros' → barra_horizontal, value:70, label:'sin ahorros', unit:'%', emoji:'💰'
+  * 'pasó de ganar 1M a 10M en un año' → comparacion_antes_despues, value:10, label:'millones', unit:'M', emoji:'📈', extra: { beforeValue: 1, afterValue: 10 }
+  * 'el método tiene 3 pasos' → pasos_proceso, label:'3 pasos clave', emoji:'🎯', extra: { steps: ['Planificar', 'Ejecutar', 'Medir'] }
+  * 'creció 5 veces su inversión' → multiplicador, value:5, label:'retorno', emoji:'🚀'
+  * '9 de cada 10 expertos recomiendan' → fraccion, value:9, unit:'/10', label:'expertos', emoji:'⭐'
+- NUNCA uses decorativo_emoji si hay algún dato cuantificable en el fragmento.
+
+Responde ÚNICAMENTE con un JSON en este formato sin markdown ni comentarios:
 {
   "clips": [
     {
@@ -5455,7 +5596,8 @@ INSTRUCCIONES:
         "type": "contador",
         "value": 150,
         "label": "Etiqueta",
-        "unit": "ms"
+        "unit": "ms",
+        "emoji": "⏱️"
       }
     }
   ]
