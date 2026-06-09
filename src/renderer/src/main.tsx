@@ -2274,7 +2274,8 @@ function App() {
         audioDuration,
         transcriptSegments,
         videoPath: firstVideoInLibrary?.path,
-        iaStyle
+        iaStyle,
+        graphicsPercent
       });
       
       if (res && res.success && res.clips) {
@@ -2285,37 +2286,56 @@ function App() {
         await loadClipsForCategory('minimax');
 
         const newVideoClips: any[] = [];
-        let currentStart = 0;
+        const newGraphicClips: any[] = [];
 
         for (let i = 0; i < res.clips.length; i++) {
           const item = res.clips[i];
           const clipInfo = item.clip || item;
           if (clipInfo) {
-            newVideoClips.push({
-              id: `timeline-${Math.random()}`,
-              name: clipInfo.name,
-              startSeconds: currentStart,
-              durationSeconds: clipInfo.durationSeconds || 3,
-              type: 'video',
-              url: clipInfo.url,
-              path: clipInfo.path,
-              category: clipInfo.category || item.type,
-              thumbnailUrl: clipInfo.thumbnailUrl || ''
-            });
-            currentStart += clipInfo.durationSeconds || 3;
+            if (clipInfo.type === 'graphic') {
+              newGraphicClips.push({
+                id: clipInfo.id || `timeline-graphic-${Math.random()}`,
+                name: clipInfo.name,
+                startSeconds: clipInfo.startSeconds || 0,
+                durationSeconds: clipInfo.durationSeconds || 1.1,
+                type: 'graphic',
+                graphicData: clipInfo.graphicData
+              });
+            } else {
+              newVideoClips.push({
+                id: `timeline-${Math.random()}`,
+                name: clipInfo.name,
+                startSeconds: clipInfo.startSeconds || 0,
+                durationSeconds: clipInfo.durationSeconds || 3,
+                type: 'video',
+                url: clipInfo.url,
+                path: clipInfo.path,
+                category: clipInfo.category || item.type,
+                thumbnailUrl: clipInfo.thumbnailUrl || ''
+              });
+            }
           }
         }
 
-        // Adjust all start times sequentially to guarantee no gaps
+        // Adjust all start times sequentially only for video clips
         let runningStart = 0;
         for (let k = 0; k < newVideoClips.length; k++) {
+          const oldStart = newVideoClips[k].startSeconds;
           newVideoClips[k].startSeconds = runningStart;
+          
+          // Sync startSeconds of graphic clips corresponding to this video clip
+          for (let m = 0; m < newGraphicClips.length; m++) {
+            if (newGraphicClips[m].startSeconds === oldStart) {
+              newGraphicClips[m].startSeconds = runningStart;
+            }
+          }
+          
           runningStart += newVideoClips[k].durationSeconds;
         }
 
         // Keep all existing audio clips completely intact and untouched!
         const existingAudioClips = timelineVideoClips.filter(c => c.type === 'audio');
-        const finalTimelineClips = [...newVideoClips, ...existingAudioClips];
+        const finalTimelineClips = [...newVideoClips, ...newGraphicClips, ...existingAudioClips];
 
         const nextVersionNumber = timelineVersions.filter(v => v.id.startsWith('v-ai-')).length + 1;
         const newVersionId = `v-ai-${Date.now()}`;

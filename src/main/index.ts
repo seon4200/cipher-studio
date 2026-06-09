@@ -1348,7 +1348,7 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
   }
 })
 
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio }) => {
+ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent }) => {
   const logMessage = async (msg: string) => {
     console.log(msg);
     await writeDebugLog(msg);
@@ -1407,6 +1407,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
     await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}/${totalClips}`);
 
+    const pct = typeof graphicsPercent === 'number' ? graphicsPercent : 50;
+
     try {
       const segmentsText = (transcriptSegments || [])
         .map((s: any, i: number) => `[${i}] ${Number(s.start).toFixed(1)}s-${Number(s.end).toFixed(1)}s: "${s.text}"`)
@@ -1452,13 +1454,47 @@ INSTRUCCIONES:
 - Para clips tipo 'ia': genera un prompt descriptivo en inglés y altamente visual de 1 oración que sirva para generar el video con IA (MiniMax) en el campo "prompt".
 - Evita repetir timestamps.
 - IMPORTANTE: Distribuye los tipos de forma intercalada a lo largo de todos los fragmentos. Evita poner varios clips del mismo tipo consecutivos. Alterna entre 'original', 'stock' e 'ia' de forma variada y natural según el contenido de cada fragmento.
+- Para cada fragmento decide también si debe tener un gráfico animado superpuesto. En un ${pct}% de los clips asigna un campo 'graphic' con:
+  * type: barra_horizontal, barra_vertical, donut, contador, dato_grande, frase_clave, flecha_crecimiento, flecha_caida, multiplicador, o decorativo_emoji
+  * value: número real extraído del fragmento (obligatorio para barras, donut, contador, flechas, multiplicador)
+  * label: texto descriptivo corto en español
+  * unit: '%', 'x', 'k', etc.
+  * emoji: emoji relevante al tema
+  FUNDAMENTAL: El gráfico debe basarse en lo que se DICE en el fragmento del guión, no en el clip de video.
+  VARIEDAD: No repitas el mismo type más de 2 veces consecutivas.
+  Si un fragmento no necesita gráfico pon graphic: null.
 
 Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 {
   "clips": [
-    {"index": 1, "type": "original", "timestamp": 12.5},
-    {"index": 2, "type": "stock", "keyword": "brain neuron"},
-    {"index": 3, "type": "ia", "prompt": "A cinematic close up shot of..."}
+    {
+      "index": 1, 
+      "type": "original", 
+      "timestamp": 12.5,
+      "graphic": {
+        "type": "contador",
+        "value": 100,
+        "label": "seguidores",
+        "unit": "k",
+        "emoji": "🚀"
+      }
+    },
+    {
+      "index": 2, 
+      "type": "stock", 
+      "keyword": "brain neuron",
+      "graphic": null
+    },
+    {
+      "index": 3, 
+      "type": "ia", 
+      "prompt": "A cinematic close up shot of...",
+      "graphic": {
+        "type": "frase_clave",
+        "label": "Enfoque absoluto",
+        "emoji": "💡"
+      }
+    }
   ]
 }`;
 
@@ -1495,7 +1531,8 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         clipsDecision.push({
           index: i + 1,
           type: 'original',
-          timestamp: parseFloat(((i / totalClips) * maxTsVal).toFixed(1))
+          timestamp: parseFloat(((i / totalClips) * maxTsVal).toFixed(1)),
+          graphic: null
         });
       }
       await logMessage(`[FASE 2] Fallback: ${totalClips} decisiones uniformes (tipo original).`);
@@ -1520,11 +1557,66 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         type,
         timestamp: item.timestamp ?? parseFloat(((idx / totalClips) * maxTsVal).toFixed(1)),
         keyword: item.keyword || 'broll',
-        prompt: item.prompt || 'cinematic video clip'
+        prompt: item.prompt || 'cinematic video clip',
+        graphic: item.graphic || null
       };
     });
 
-    await logMessage(`[FASE 2] Decisiones de clips listas. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}`);
+    // Filtro anti-repetición: si el mismo graphic.type aparece 3+ veces seguidas cambiar el tercero a decorativo_emoji
+    let consecutiveType = '';
+    let consecutiveCount = 0;
+    for (let i = 0; i < clipsDecision.length; i++) {
+      const g = clipsDecision[i].graphic;
+      if (g && g.type) {
+        if (g.type === consecutiveType) {
+          consecutiveCount++;
+          if (consecutiveCount >= 3) {
+            g.type = 'decorativo_emoji';
+            g.value = g.emoji || '📊';
+            consecutiveType = 'decorativo_emoji';
+            consecutiveCount = 1;
+          }
+        } else {
+          consecutiveType = g.type;
+          consecutiveCount = 1;
+        }
+      } else {
+        consecutiveType = '';
+        consecutiveCount = 0;
+      }
+    }
+
+    // Filtro de relleno uniforme
+    const minGraphicsCount = Math.round((pct / 100) * totalClips);
+    const currentGraphicsCount = clipsDecision.filter(c => c.graphic !== null).length;
+    const needed = minGraphicsCount - currentGraphicsCount;
+
+    if (needed > 0) {
+      const eligibleIndices: number[] = [];
+      for (let i = 0; i < clipsDecision.length; i++) {
+        if (!clipsDecision[i].graphic) {
+          eligibleIndices.push(i);
+        }
+      }
+
+      if (eligibleIndices.length > 0) {
+        const step = eligibleIndices.length / needed;
+        for (let j = 0; j < needed; j++) {
+          const idx = eligibleIndices[Math.floor(j * step)];
+          if (idx !== undefined && clipsDecision[idx]) {
+            clipsDecision[idx].graphic = {
+              type: 'decorativo_emoji',
+              value: '📊',
+              label: 'Dato de interés',
+              unit: '',
+              emoji: '📊'
+            };
+          }
+        }
+      }
+    }
+
+    await logMessage(`[FASE 2] Decisiones de clips listas. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}, Gráficos asignados: ${clipsDecision.filter(c => c.graphic !== null).length}`);
 
     // FASE 3: FFmpeg e IA — generar clips
     await logMessage(`[FASE 3] Generando ${totalClips} clips con FFmpeg, Pexels y fal.ai (IA)...`);
@@ -1742,9 +1834,17 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
     let currentStart = 0;
     const finalClips: any[] = [];
 
-    for (const clip of createdClips) {
+    for (let idx = 0; idx < createdClips.length; idx++) {
+      const clip = createdClips[idx];
       clip.startSeconds = currentStart;
       
+      const decision = clipsDecision[idx];
+      if (decision && decision.graphic) {
+        clip.graphic = decision.graphic;
+      } else {
+        clip.graphic = null;
+      }
+
       if (clip.startSeconds >= audioDuration) {
         // Eliminar el archivo físico si empieza después del audio
         try {
@@ -1798,7 +1898,29 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
       currentStart += clip.durationSeconds;
     }
 
-    await logMessage(`[generate-timeline-assets] Completado. Clips: ${finalClips.length}`);
+    // Agregar clips de gráfico independientes
+    const graphicClips: any[] = [];
+    for (const clip of finalClips) {
+      if (clip.type === 'video' && clip.graphic) {
+        graphicClips.push({
+          id: 'timeline-graphic-' + Math.random(),
+          name: 'Gráfico: ' + (clip.graphic.label || clip.graphic.type),
+          startSeconds: clip.startSeconds,
+          durationSeconds: 1.1,
+          type: 'graphic',
+          graphicData: {
+            type: clip.graphic.type,
+            value: clip.graphic.value,
+            label: clip.graphic.label,
+            unit: clip.graphic.unit,
+            emoji: clip.graphic.emoji
+          }
+        });
+      }
+    }
+    finalClips.push(...graphicClips);
+
+    await logMessage(`[generate-timeline-assets] Completado. Clips: ${finalClips.length} (Videos: ${finalClips.filter(c => c.type === 'video').length}, Gráficos: ${finalClips.filter(c => c.type === 'graphic').length})`);
     return { success: true, clips: finalClips };
 
   } catch (err: any) {
