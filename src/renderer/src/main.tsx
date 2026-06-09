@@ -628,13 +628,16 @@ function App() {
 
   useEffect(() => {
     if (activeGraphicClip?.id && isPlaying) {
+      const durMs = (activeGraphicClip.durationSeconds || 2.0) * 1000;
+      const fadeMs = Math.max(0, durMs - 300);
+
       setGraphicVisible(true);
       setGraphicFading(false);
-      const fadeTimer = setTimeout(() => setGraphicFading(true), 1700);
+      const fadeTimer = setTimeout(() => setGraphicFading(true), fadeMs);
       const hideTimer = setTimeout(() => {
         setGraphicVisible(false);
         setGraphicFading(false);
-      }, 2000);
+      }, durMs);
       return () => {
         clearTimeout(fadeTimer);
         clearTimeout(hideTimer);
@@ -651,6 +654,7 @@ function App() {
     timelineVideoClips: TimelineClip[];
     transcriptionStatus: string;
     transcriptSegments: any[];
+    newAudioSegments?: any[];
     aiScript: string;
     originalTranscriptText: string;
     generatedVoices: any[];
@@ -679,6 +683,7 @@ function App() {
         timelineVideoClips: customState?.timelineVideoClips ?? timelineVideoClips,
         transcriptionStatus: customState?.transcriptionStatus ?? transcriptionStatus,
         transcriptSegments: customState?.transcriptSegments ?? transcriptSegments,
+        newAudioSegments: customState?.newAudioSegments ?? newAudioSegments,
         aiScript: customState?.aiScript ?? aiScript,
         originalTranscriptText: customState?.originalTranscriptText ?? originalTranscriptText,
         generatedVoices: customState?.generatedVoices ?? generatedVoices,
@@ -704,6 +709,7 @@ function App() {
       setTimelineVideoClips(state.timelineVideoClips)
       setTranscriptionStatus(state.transcriptionStatus)
       setTranscriptSegments(state.transcriptSegments)
+      setNewAudioSegments(state.newAudioSegments || [])
       setAiScript(state.aiScript)
       setOriginalTranscriptText(state.originalTranscriptText)
       setGeneratedVoices(state.generatedVoices)
@@ -722,6 +728,7 @@ function App() {
       setTimelineVideoClips(state.timelineVideoClips)
       setTranscriptionStatus(state.transcriptionStatus)
       setTranscriptSegments(state.transcriptSegments)
+      setNewAudioSegments(state.newAudioSegments || [])
       setAiScript(state.aiScript)
       setOriginalTranscriptText(state.originalTranscriptText)
       setGeneratedVoices(state.generatedVoices)
@@ -1415,6 +1422,7 @@ function App() {
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [transcriptionStatus, setTranscriptionStatus] = useState<string>('')
   const [transcriptSegments, setTranscriptSegments] = useState<{ start: number; end: number; text: string }[]>([])
+  const [newAudioSegments, setNewAudioSegments] = useState<{ start: number; end: number; text: string }[]>([])
   const [originalTranscriptText, setOriginalTranscriptText] = useState<string>('')
   const [aiScript, setAiScript] = useState<string>('')
   const [isRewriting, setIsRewriting] = useState(false)
@@ -1710,6 +1718,7 @@ function App() {
           activeVersionId,
           transcriptionStatus,
           transcriptSegments,
+          newAudioSegments,
           aiScript,
           originalTranscriptText,
           libraryWidth,
@@ -1735,7 +1744,7 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, activeProjectId, activeProjectName, timelineWeights]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, activeProjectId, activeProjectName, timelineWeights]);
 
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
@@ -1758,6 +1767,7 @@ function App() {
         activeVersionId,
         transcriptionStatus,
         transcriptSegments,
+        newAudioSegments,
         aiScript,
         originalTranscriptText,
         libraryWidth,
@@ -1811,6 +1821,7 @@ function App() {
         activeVersionId,
         transcriptionStatus,
         transcriptSegments,
+        newAudioSegments,
         aiScript,
         originalTranscriptText,
         libraryWidth,
@@ -1868,6 +1879,7 @@ function App() {
         setTimelineVideoClips(activeVersion ? activeVersion.timelineVideoClips : (loadedData.timelineVideoClips || []));
         setTranscriptionStatus(loadedData.transcriptionStatus || '');
         setTranscriptSegments(loadedData.transcriptSegments || []);
+        setNewAudioSegments(loadedData.newAudioSegments || []);
         setAiScript(loadedData.aiScript || '');
         const loadedOriginalText = loadedData.originalTranscriptText || (loadedData.transcriptSegments || []).map((s: any) => s.text).join(' ') || '';
         setOriginalTranscriptText(loadedOriginalText);
@@ -1892,6 +1904,7 @@ function App() {
           timelineVideoClips: activeVersion ? activeVersion.timelineVideoClips : (loadedData.timelineVideoClips || []),
           transcriptionStatus: loadedData.transcriptionStatus || '',
           transcriptSegments: loadedData.transcriptSegments || [],
+          newAudioSegments: loadedData.newAudioSegments || [],
           aiScript: loadedData.aiScript || '',
           originalTranscriptText: loadedOriginalText,
           generatedVoices: loadedData.generatedVoices || [],
@@ -2006,6 +2019,7 @@ function App() {
       setTimelineVideoClips([]);
       setTranscriptionStatus('');
       setTranscriptSegments([]);
+      setNewAudioSegments([]);
       setAiScript('');
       setOriginalTranscriptText('');
       setGeneratedVoices([]);
@@ -2097,6 +2111,7 @@ function App() {
         setTimelineVideoClips(activeVersion ? activeVersion.timelineVideoClips : (loadedData.timelineVideoClips || []));
         setTranscriptionStatus(loadedData.transcriptionStatus || '');
         setTranscriptSegments(loadedData.transcriptSegments || []);
+        setNewAudioSegments(loadedData.newAudioSegments || []);
         setAiScript(loadedData.aiScript || '');
         const loadedOriginalText = loadedData.originalTranscriptText || (loadedData.transcriptSegments || []).map((s: any) => s.text).join(' ') || '';
         setOriginalTranscriptText(loadedOriginalText);
@@ -2293,6 +2308,12 @@ function App() {
 
   const handleBuildIATimeline = async () => {
     if (!aiScript.trim()) return;
+
+    const voiceClip = timelineVideoClips.find(c => c.type === 'audio');
+    if (!voiceClip || !newAudioSegments || newAudioSegments.length === 0) {
+      setGenerationError('Debes generar la voz primero antes de construir el timeline para poder usar los timestamps reales.');
+      return;
+    }
     
     setIsGeneratingAssets(true);
     setGenerationError('');
@@ -2318,7 +2339,6 @@ function App() {
       }
 
       console.log('[handleBuildIATimeline] Iniciando generación de assets de Timeline IA...');
-      const voiceClip = timelineVideoClips.find(c => c.type === 'audio');
       const audioDuration = voiceClip ? voiceClip.durationSeconds : undefined;
       const res = await window.electronAPI.generateTimelineAssets({ 
         scriptText: aiScript, 
@@ -2328,7 +2348,8 @@ function App() {
         transcriptSegments,
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
-        graphicsPercent
+        graphicsPercent,
+        newAudioSegments
       });
       
       if (res && res.success && res.clips) {
@@ -2350,7 +2371,7 @@ function App() {
                 id: clipInfo.id || `timeline-graphic-${Math.random()}`,
                 name: clipInfo.name,
                 startSeconds: clipInfo.startSeconds || 0,
-                durationSeconds: clipInfo.durationSeconds || 2.0,
+                durationSeconds: clipInfo.durationSeconds || 1.5,
                 type: 'graphic',
                 graphicData: clipInfo.graphicData
               });
@@ -2444,7 +2465,7 @@ function App() {
               id: `timeline-graphic-${Math.random()}`,
               name: `Gráfico: ${c.graphicData.label || c.graphicData.type}`,
               startSeconds: matchingVideo?.startSeconds || 0,
-              durationSeconds: 2.0,
+              durationSeconds: Math.min(1.5, matchingVideo?.durationSeconds || 1.5),
               type: 'graphic' as const,
               graphicData: c.graphicData
             };
@@ -2582,13 +2603,17 @@ function App() {
           size: '128 KB'
         };
 
+        const voiceSegments = res.newAudioSegments || [];
+        setNewAudioSegments(voiceSegments);
+
         const updatedClips = [...clips, libraryClip];
         const updatedVoices = [newVersion, ...generatedVoices];
         setClips(updatedClips);
         setGeneratedVoices(updatedVoices);
         pushMilestone('Audio generado', {
           clips: updatedClips,
-          generatedVoices: updatedVoices
+          generatedVoices: updatedVoices,
+          newAudioSegments: voiceSegments
         });
       } else {
         const errorMsg = res?.error || 'Error al generar la voz en ElevenLabs.'

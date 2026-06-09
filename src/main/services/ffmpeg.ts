@@ -1,6 +1,30 @@
 import { exec } from 'child_process'
 
 /**
+ * Returns the width and height of a video using ffprobe.
+ */
+export function getVideoDimensions(filePath: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const escapedPath = filePath.replace(/"/g, '\\"')
+    exec(`ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "${escapedPath}"`, (err, stdout) => {
+      if (err) {
+        console.error(`[ffmpeg] Error de ffprobe para dimensiones de ${filePath}:`, err)
+        reject(err)
+        return
+      }
+      const parts = stdout.trim().split('x')
+      const width = parseInt(parts[0], 10)
+      const height = parseInt(parts[1], 10)
+      if (isNaN(width) || isNaN(height)) {
+        reject(new Error('Invalid dimensions parsed from ffprobe: ' + stdout))
+      } else {
+        resolve({ width, height })
+      }
+    })
+  })
+}
+
+/**
  * Returns the duration of a video in seconds using ffprobe.
  */
 export function getVideoDuration(filePath: string): Promise<number> {

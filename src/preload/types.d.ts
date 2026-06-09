@@ -3,10 +3,10 @@ export interface IElectronAPI {
   startTranscription: (filePath: string) => void;
   onTranscriptionUpdate: (callback: (event: any, data: any) => void) => () => void;
   rewriteTranscript: (text: string) => Promise<{ success: boolean; data?: string; error?: string }>;
-  generateVoice: (params: { text: string; model: string; voiceId: string; speed: number; stability: number }) => Promise<{ success: boolean; filePath?: string; audioUrl?: string; durationSeconds?: number; error?: string }>;
+  generateVoice: (params: { text: string; model: string; voiceId: string; speed: number; stability: number }) => Promise<{ success: boolean; filePath?: string; audioUrl?: string; durationSeconds?: number; newAudioSegments?: any[]; error?: string }>;
   generateMinimaxVideo: (params: { prompt: string }) => Promise<{ success: boolean; filePath?: string; durationSeconds?: number; thumbnailUrl?: string; name?: string; error?: string }>;
   loadBankClips: (params: { category: string }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
-  generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; graphicsPercent?: number }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
+  generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; graphicsPercent?: number; newAudioSegments?: any[] }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
   onGenerationProgress: (callback: (event: any, data: any) => void) => () => void;
   cutVideoClips: (params: { videoPath: string; timestamps?: number[]; aspectRatio?: string }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
   saveProjectState: (state: any) => Promise<{ success: boolean; error?: string }>;

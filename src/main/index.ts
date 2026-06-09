@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import { spawn, exec } from 'child_process'
 import fs from 'fs'
-import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds } from './services/ffmpeg'
+import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, getVideoDimensions } from './services/ffmpeg'
 import { fal } from '@fal-ai/client'
 
 // Helper to manually load .env file in main process from multiple potential paths
@@ -908,7 +908,90 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
       const base64Audio = buffer.toString('base64')
       const audioUrl = `data:audio/mp3;base64,${base64Audio}`
 
-      return { success: true, filePath, audioUrl, durationSeconds }
+      console.log(`[generate-voice] Transcribiendo el audio generado con Whisper (hasta 3 intentos)...`)
+      const transcriptsDir = path.join(app.getPath('userData'), 'transcripts')
+      if (!(await exists(transcriptsDir))) {
+        await fs.promises.mkdir(transcriptsDir, { recursive: true })
+      }
+      const basename = path.basename(filePath, path.extname(filePath))
+      const expectedJsonPath = path.join(transcriptsDir, basename + '.json')
+
+      let newAudioSegments: any[] = []
+      let whisperSuccess = false
+      let whisperErrorMsg = ''
+
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          console.log(`[generate-voice] Intento de transcripción ${attempt}/3...`)
+          
+          // Clean up any existing transcript file first
+          if (await exists(expectedJsonPath)) {
+            try { await fs.promises.unlink(expectedJsonPath); } catch (e) {}
+          }
+
+          await new Promise<void>((resolve, reject) => {
+            const whisperProcess = spawn('whisper', [
+              `"${filePath}"`,
+              '--language', 'Spanish',
+              '--model', 'tiny',
+              '--output_format', 'json',
+              '--output_dir', `"${transcriptsDir}"`
+            ], { shell: true, env: { ...process.env, PYTHONIOENCODING: 'utf-8' } })
+
+            whisperProcess.on('close', async (code) => {
+              if (code === 0) {
+                try {
+                  if (await exists(expectedJsonPath)) {
+                    const rawData = await fs.promises.readFile(expectedJsonPath, 'utf8')
+                    const parsed = JSON.parse(rawData)
+                    if (parsed && Array.isArray(parsed.segments)) {
+                      newAudioSegments = parsed.segments.map((seg: any) => ({
+                        start: seg.start,
+                        end: seg.end,
+                        text: seg.text
+                      }))
+                      whisperSuccess = true
+                    } else {
+                      throw new Error('La respuesta de Whisper no contiene la lista de segmentos esperada.')
+                    }
+                    // Clean up the JSON file to keep system clean
+                    try {
+                      await fs.promises.unlink(expectedJsonPath)
+                    } catch (e) {}
+                    resolve()
+                  } else {
+                    reject(new Error('No se generó el archivo de transcripción JSON esperado de Whisper.'))
+                  }
+                } catch (err: any) {
+                  reject(err)
+                }
+              } else {
+                reject(new Error(`Whisper falló con código de salida ${code}`))
+              }
+            })
+          })
+
+          if (whisperSuccess) {
+            console.log(`[generate-voice] Transcripción Whisper exitosa en el intento ${attempt}.`)
+            break
+          }
+        } catch (err: any) {
+          whisperErrorMsg = err.message || 'Error desconocido'
+          console.error(`[generate-voice] Intento ${attempt} fallido: ${whisperErrorMsg}`)
+          if (attempt < 3) {
+            console.log(`[generate-voice] Esperando 2 segundos antes del siguiente intento...`)
+            await new Promise(resolve => setTimeout(resolve, 2000))
+          }
+        }
+      }
+
+      if (!whisperSuccess) {
+        const fullErrMsg = `No se pudo transcribir el audio. Verifica que Whisper esté instalado correctamente. (Detalle: ${whisperErrorMsg})`
+        console.error(`[generate-voice] ${fullErrMsg}`)
+        return { success: false, error: fullErrMsg }
+      }
+
+      return { success: true, filePath, audioUrl, durationSeconds, newAudioSegments }
     } catch (fetchErr: any) {
       clearTimeout(timeoutId)
       let fetchErrMsg = fetchErr.message || 'Error de conexión'
@@ -1348,19 +1431,25 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
   }
 })
 
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent }) => {
+ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent, newAudioSegments }) => {
   const logMessage = async (msg: string) => {
     console.log(msg);
     await writeDebugLog(msg);
   };
 
   try {
-    await logMessage('[generate-timeline-assets] Iniciando...');
+    await logMessage(`[generate-timeline-assets] Iniciando... Guión a procesar: "${scriptText ? scriptText.substring(0, 60) + '...' : ''}"`);
 
     // FASE 1: Calcular clips necesarios
-    const totalClips = Math.ceil((audioDuration || 0) / 3);
-    if (totalClips <= 0) return { success: false, error: 'audioDuration inválido o cero.' };
-    await logMessage(`[FASE 1] audioDuration=${audioDuration}s → totalClips=${totalClips}`);
+    let totalClips = 0;
+    if (newAudioSegments && Array.isArray(newAudioSegments) && newAudioSegments.length > 0) {
+      totalClips = newAudioSegments.length;
+      await logMessage(`[FASE 1] Usando newAudioSegments con timestamps reales. Total clips: ${totalClips}`);
+    } else {
+      const errMsg = 'No se encontraron los segmentos de audio transcritos de ElevenLabs (newAudioSegments). Por favor, genera la voz primero.';
+      await logMessage(`[FASE 1] Error: ${errMsg}`);
+      return { success: false, error: errMsg };
+    }
 
     if (!videoPath || !(await exists(videoPath))) {
       return { success: false, error: `No se encontró el video original: ${videoPath}` };
@@ -1391,118 +1480,121 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       ? (transcriptSegments[transcriptSegments.length - 1]?.end ?? audioDuration)
       : audioDuration;
 
-    // Calcular cuántos clips deben ser de IA en base a weights[2] (MiniMax) y Stock en base a weights[1] (Pexels)
+    // Calcular cuántos sub-clips totales se requieren
+    let totalVisualClipsCount = 0;
+    if (newAudioSegments && Array.isArray(newAudioSegments)) {
+      newAudioSegments.forEach((seg: any) => {
+        const duration = seg.end - seg.start;
+        totalVisualClipsCount += duration > 4.0 ? Math.ceil(duration / 3.0) : 1;
+      });
+    }
+
     const minimaxWeight = weights ? (weights[2] ?? 0) : 0;
     const stockWeight = weights ? (weights[1] ?? 0) : 0;
 
-    let targetIaClips = Math.round((minimaxWeight / 100) * totalClips);
-    let targetStockClips = Math.round((stockWeight / 100) * totalClips);
+    let targetIaClips = Math.round((minimaxWeight / 100) * totalVisualClipsCount);
+    let targetStockClips = Math.round((stockWeight / 100) * totalVisualClipsCount);
 
-    if (targetIaClips + targetStockClips > totalClips) {
+    if (targetIaClips + targetStockClips > totalVisualClipsCount) {
       const sum = targetIaClips + targetStockClips;
-      targetIaClips = Math.floor((targetIaClips / sum) * totalClips);
-      targetStockClips = totalClips - targetIaClips;
+      targetIaClips = Math.floor((targetIaClips / sum) * totalVisualClipsCount);
+      targetStockClips = totalVisualClipsCount - targetIaClips;
     }
-    const targetOriginalClips = totalClips - targetIaClips - targetStockClips;
+    const targetOriginalClips = totalVisualClipsCount - targetIaClips - targetStockClips;
 
-    await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}/${totalClips}`);
+    await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}/${totalVisualClipsCount}`);
 
     const pct = typeof graphicsPercent === 'number' ? graphicsPercent : 50;
+
+    let sanitizedPhrases: any[] = [];
 
     try {
       const segmentsText = (transcriptSegments || [])
         .map((s: any, i: number) => `[${i}] ${Number(s.start).toFixed(1)}s-${Number(s.end).toFixed(1)}s: "${s.text}"`)
         .join('\n');
 
-      // Dividir scriptText en exactamente totalClips fragmentos
-      const sentences = (scriptText || '').split(/(?<=[.!?])\s+/).filter((s: string) => s.trim().length > 0);
-      const fragments: string[] = [];
-      if (sentences.length <= totalClips) {
-        for (let i = 0; i < totalClips; i++) {
-          fragments.push(sentences[i] || sentences[sentences.length - 1] || '');
-        }
-      } else {
-        const k = sentences.length / totalClips;
-        for (let i = 0; i < totalClips; i++) {
-          const start = Math.floor(i * k);
-          const end = Math.floor((i + 1) * k);
-          fragments.push(sentences.slice(start, end).join(' '));
-        }
-      }
-      const fragmentosNumerados = fragments
-        .map((frag, idx) => `[${idx + 1}] "${frag}"`)
+      // Usar directamente los textos reales de cada frase transcrita de ElevenLabs
+      const fragmentosNumerados = newAudioSegments
+        .map((seg: any, idx: number) => {
+          const duration = seg.end - seg.start;
+          const count = duration > 4.0 ? Math.ceil(duration / 3.0) : 1;
+          return `[Frase ${idx + 1}] "${seg.text}" (${Number(seg.start).toFixed(1)}s - ${Number(seg.end).toFixed(1)}s, duración: ${duration.toFixed(2)}s). Requiere exactamente ${count} sub-clip(s) visual(es) de aprox ${(duration / count).toFixed(2)}s cada uno.`;
+        })
         .join('\n');
 
-      const dsPrompt = `Eres un editor de video. Tienes la transcripción de un video con timestamps y un guión reescrito dividido en fragmentos.
-Para cada fragmento del guión narrado en orden, decide si es mejor ilustrarlo usando un clip del video original ('original'), buscando un clip de stock en un banco de videos ('stock') o generando un video nuevo por IA ('ia').
+      const dsPrompt = `Eres un editor de video. Tienes la transcripción del video original con timestamps y un guión reescrito dividido en frases (con timestamps reales de la voz generada).
+Para cada frase del guión, decide cómo ilustrarla. Si la duración de la frase supera los 4.0 segundos, debes dividirla en 2 o 3 sub-clips visuales (máximo 3.0s por sub-clip).
+Cada sub-clip visual puede ser de tipo original del video ('original'), buscando un clip de stock ('stock') o generándolo por IA ('ia').
 
-De un total de ${totalClips} fragmentos, debes clasificar exactamente:
-- ${targetIaClips} fragmentos como de tipo 'ia'
-- ${targetStockClips} fragmentos como de tipo 'stock'
-- ${targetOriginalClips} fragmentos como de tipo 'original'
+De un total de ${totalVisualClipsCount} sub-clips visuales a generar a lo largo de todas las frases, debes clasificar exactamente:
+- ${targetIaClips} sub-clips como de tipo 'ia'
+- ${targetStockClips} sub-clips como de tipo 'stock'
+- ${targetOriginalClips} sub-clips como de tipo 'original'
 
 TRANSCRIPCIÓN DEL VIDEO ORIGINAL:
 ${segmentsText}
 
-FRAGMENTOS DEL GUIÓN (cada fragmento = 1 clip de 3 segundos):
+FRASES DEL GUIÓN A PROCESAR:
 ${fragmentosNumerados}
 
-INSTRUCCIONES:
-- Genera una decisión para cada uno de los ${totalClips} fragmentos en orden correlativo del 1 al ${totalClips}.
-- Para clips tipo 'original': elige el timestamp de inicio más adecuado (rango 0 - ${Number(maxTsVal).toFixed(1)}) basándose en la transcripción.
-- Para clips tipo 'stock': genera una palabra clave en inglés corta (1-2 palabras, ej. "cyberpunk city", "financial chart", "nervous man") para buscar un video de B-roll en Pexels en el campo "keyword".
-- Para clips tipo 'ia': genera un prompt descriptivo en inglés y altamente visual de 1 oración que sirva para generar el video con IA (MiniMax) en el campo "prompt".
-- Evita repetir timestamps.
-- IMPORTANTE: Distribuye los tipos de forma intercalada a lo largo de todos los fragmentos. Evita poner varios clips del mismo tipo consecutivos. Alterna entre 'original', 'stock' e 'ia' de forma variada y natural según el contenido de cada fragmento.
-- Para cada fragmento decide también si debe tener un gráfico animado superpuesto. En un ${pct}% de los clips asigna un campo 'graphic' con:
+INSTRUCCIONES DE CLIPS VISUALES:
+- Para cada frase en orden, proporciona el array "visualClips" con el número exacto de sub-clips indicado.
+- La suma de las duraciones de los sub-clips dentro de una frase debe ser exactamente igual a la duración total de la frase.
+- Para clips tipo 'original': elige el timestamp de inicio más adecuado (rango 0 - ${Number(maxTsVal).toFixed(1)}) basándose en la transcripción del video original.
+- Para clips tipo 'stock': genera una palabra clave en inglés corta (1-2 palabras, ej. "cyberpunk city", "financial chart", "nervous man") para buscar en Pexels en el campo "keyword".
+- Para clips tipo 'ia': genera un prompt descriptivo en inglés y altamente visual de 1 oración en el campo "prompt".
+- Distribuye los tipos de forma intercalada. Alterna entre 'original', 'stock' e 'ia' de forma variada y natural.
+
+INSTRUCCIONES DE GRÁFICOS ANIMADOS:
+- Para cada frase decide también si debe tener un gráfico animado superpuesto (en aproximadamente un ${pct}% del total de frases).
+- Si no necesita gráfico, pon 'graphic': null.
+- Si necesita un gráfico, pon 'graphic' con los siguientes campos:
   * type: barra_horizontal, barra_vertical, barras_comparativas, donut, contador, comparacion_antes_despues, flecha_crecimiento, flecha_caida, multiplicador, fraccion, ranking_top3, dato_grande, frase_clave, decorativo_emoji, lista_numerada, checklist, o pasos_proceso
-  * value: número real o texto (ej. "9/10" o "Paso 1,Paso 2" o lista separada por comas) extraído del fragmento (obligatorio para barras, donut, contador, flechas, multiplicador, fraccion)
+  * value: número real o texto extraído de la frase (obligatorio para barras, donut, contador, flechas, multiplicador, fraccion)
   * label: texto descriptivo corto en español
   * unit: '%', 'x', 'k', etc.
   * emoji: emoji relevante al tema
-  - CONTEXTO OBLIGATORIO: Analiza el fragmento del guión y extrae el dato más impactante. Si menciona número, porcentaje, comparación, ranking o concepto clave → úsalo.
-  - EMOJIS: Elige el emoji más representativo del tema del fragmento.
-  - EJEMPLOS:
-    * 'el 70% de colombianos no tiene ahorros' → barra_horizontal, value:70, label:'sin ahorros', unit:'%', emoji:'💰'
-    * 'pasó de ganar 1M a 10M en un año' → comparacion_antes_despues, value:10, label:'millones', unit:'M', emoji:'📈', extra: { beforeValue: 1, afterValue: 10 }
-    * 'el método tiene 3 pasos' → pasos_proceso, label:'3 pasos clave', emoji:'🎯', extra: { steps: ['Planificar', 'Ejecutar', 'Medir'] }
-    * 'creció 5 veces su inversión' → multiplicador, value:5, label:'retorno', emoji:'🚀'
-    * '9 de cada 10 expertos recomiendan' → fraccion, value:9, unit:'/10', label:'expertos', emoji:'⭐'
-  - NUNCA uses decorativo_emoji si hay algún dato cuantificable en el fragmento.
-  - FUNDAMENTAL: El gráfico debe basarse en lo que se DICE en el fragmento del guión, no en el clip de video.
-  - VARIEDAD: No repitas el mismo type más de 2 veces consecutivas.
-  - Si un fragmento no necesita gráfico pon graphic: null.
+  * graphicStart: segundo de inicio del gráfico relativo al comienzo de esta frase. Debe ser el momento exacto donde se menciona el concepto clave.
+  * graphicEnd: segundo de fin del gráfico relativo al comienzo de esta frase.
+  - REGLA CRÍTICA DE TIEMPO DEL GRÁFICO: La duración del gráfico (graphicEnd - graphicStart) no debe superar 1.5 segundos. Ambos valores deben estar entre 0.0 y la duración total de la frase.
 
 Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 {
-  "clips": [
+  "phrases": [
     {
-      "index": 1, 
-      "type": "original", 
-      "timestamp": 12.5,
+      "phraseIndex": 1,
+      "visualClips": [
+        {
+          "type": "stock",
+          "keyword": "brain connection",
+          "duration": 3.0
+        },
+        {
+          "type": "original",
+          "timestamp": 12.5,
+          "duration": 1.5
+        }
+      ],
       "graphic": {
         "type": "contador",
         "value": 100,
         "label": "seguidores",
         "unit": "k",
-        "emoji": "🚀"
+        "emoji": "🚀",
+        "graphicStart": 1.2,
+        "graphicEnd": 2.7
       }
     },
     {
-      "index": 2, 
-      "type": "stock", 
-      "keyword": "brain neuron",
+      "phraseIndex": 2,
+      "visualClips": [
+        {
+          "type": "ia",
+          "prompt": "A cinematic shot of a computer monitor showing green code scrolling down",
+          "duration": 3.2
+        }
+      ],
       "graphic": null
-    },
-    {
-      "index": 3, 
-      "type": "ia", 
-      "prompt": "A cinematic close up shot of...",
-      "graphic": {
-        "type": "frase_clave",
-        "label": "Enfoque absoluto",
-        "emoji": "💡"
-      }
     }
   ]
 }`;
@@ -1520,6 +1612,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         })
       });
 
+      let phrasesDecision: any[] = [];
       if (dsResponse.ok) {
         const dsData = (await dsResponse.json()) as any;
         let content = (dsData?.choices?.[0]?.message?.content || '').trim();
@@ -1527,55 +1620,177 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           content = content.substring(content.indexOf('{'), content.lastIndexOf('}') + 1);
         }
         const parsed = JSON.parse(content);
-        if (Array.isArray(parsed.clips)) {
-          clipsDecision = parsed.clips;
+        if (Array.isArray(parsed.phrases)) {
+          phrasesDecision = parsed.phrases;
         }
+      }
+
+      // Procesar y sanitizar con phrasesDecision
+      for (let idx = 0; idx < newAudioSegments.length; idx++) {
+        const seg = newAudioSegments[idx];
+        const phraseDuration = seg.end - seg.start;
+        const numClipsExpected = phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
+        
+        let match = phrasesDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
+        if (!match) {
+          match = {
+            phraseIndex: idx + 1,
+            visualClips: [],
+            graphic: null
+          };
+        }
+
+        let visualClips = match.visualClips || match.clips;
+        if (!Array.isArray(visualClips) || visualClips.length === 0) {
+          visualClips = [];
+          for (let c = 0; c < numClipsExpected; c++) {
+            visualClips.push({
+              type: 'original',
+              timestamp: parseFloat(((idx / newAudioSegments.length) * maxTsVal).toFixed(1)),
+              keyword: 'broll',
+              prompt: 'cinematic video clip',
+              duration: phraseDuration / numClipsExpected
+            });
+          }
+        }
+
+        if (visualClips.length !== numClipsExpected) {
+          if (visualClips.length < numClipsExpected) {
+            while (visualClips.length < numClipsExpected) {
+              visualClips.push({
+                type: 'original',
+                timestamp: parseFloat(((idx / newAudioSegments.length) * maxTsVal).toFixed(1)),
+                keyword: 'broll',
+                prompt: 'cinematic video clip',
+                duration: phraseDuration / numClipsExpected
+              });
+            }
+          } else {
+            visualClips = visualClips.slice(0, numClipsExpected);
+          }
+        }
+
+        visualClips = visualClips.map((c: any) => {
+          const type = ['original', 'stock', 'ia'].includes(c.type) ? c.type : 'original';
+          return {
+            type,
+            timestamp: c.timestamp ?? parseFloat(((idx / newAudioSegments.length) * maxTsVal).toFixed(1)),
+            keyword: c.keyword || 'broll',
+            prompt: c.prompt || 'cinematic video clip',
+            duration: parseFloat((c.duration || (phraseDuration / numClipsExpected)).toFixed(2))
+          };
+        });
+
+        // Ajustar duraciones proporcionalmente para que sumen la duración exacta de la frase
+        const sumProposed = visualClips.reduce((acc: number, c: any) => acc + (c.duration || 0), 0);
+        if (sumProposed <= 0.05 || visualClips.some((c: any) => c.duration <= 0.05)) {
+          let runningSum = 0;
+          for (let i = 0; i < visualClips.length; i++) {
+            if (i === visualClips.length - 1) {
+              visualClips[i].duration = parseFloat((phraseDuration - runningSum).toFixed(2));
+            } else {
+              const val = parseFloat((phraseDuration / visualClips.length).toFixed(2));
+              visualClips[i].duration = val;
+              runningSum += val;
+            }
+          }
+        } else {
+          let runningSum = 0;
+          for (let i = 0; i < visualClips.length; i++) {
+            if (i === visualClips.length - 1) {
+              visualClips[i].duration = parseFloat((phraseDuration - runningSum).toFixed(2));
+            } else {
+              const scaled = (visualClips[i].duration / sumProposed) * phraseDuration;
+              visualClips[i].duration = parseFloat(scaled.toFixed(2));
+              runningSum += visualClips[i].duration;
+            }
+          }
+        }
+
+        let graphic = match.graphic;
+        if (graphic && typeof graphic === 'object') {
+          const type = graphic.type || 'decorativo_emoji';
+          let start = parseFloat(Number(graphic.graphicStart).toFixed(2));
+          let end = parseFloat(Number(graphic.graphicEnd).toFixed(2));
+          
+          if (isNaN(start) || start < 0) start = 0;
+          if (start > phraseDuration) start = phraseDuration;
+          if (isNaN(end) || end < start) end = start + 1.5;
+          if (end > phraseDuration) end = phraseDuration;
+          
+          let dur = end - start;
+          if (dur > 1.5) {
+            end = parseFloat((start + 1.5).toFixed(2));
+            if (end > phraseDuration) {
+              end = phraseDuration;
+              start = parseFloat(Math.max(0, end - 1.5).toFixed(2));
+            }
+          }
+          if (end - start < 0.2) {
+            start = parseFloat(Math.max(0, end - 1.0).toFixed(2));
+            end = parseFloat(Math.min(phraseDuration, start + 1.0).toFixed(2));
+          }
+
+          graphic = {
+            type,
+            value: graphic.value !== undefined ? String(graphic.value) : '📊',
+            label: graphic.label || 'Concepto clave',
+            unit: graphic.unit || '',
+            emoji: graphic.emoji || '💡',
+            graphicStart: start,
+            graphicEnd: end
+          };
+        } else {
+          graphic = null;
+        }
+
+        sanitizedPhrases.push({
+          phraseIndex: idx + 1,
+          visualClips,
+          graphic
+        });
       }
     } catch (e: any) {
       await logMessage(`[FASE 2] DeepSeek error: ${e.message}. Usando fallback.`);
     }
 
-    if (clipsDecision.length === 0) {
-      for (let i = 0; i < totalClips; i++) {
-        clipsDecision.push({
-          index: i + 1,
-          type: 'original',
-          timestamp: parseFloat(((i / totalClips) * maxTsVal).toFixed(1)),
+    if (sanitizedPhrases.length === 0) {
+      for (let idx = 0; idx < newAudioSegments.length; idx++) {
+        const seg = newAudioSegments[idx];
+        const phraseDuration = seg.end - seg.start;
+        const numClipsExpected = phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
+        const visualClips: any[] = [];
+        let runningSum = 0;
+        for (let c = 0; c < numClipsExpected; c++) {
+          let dur = 0;
+          if (c === numClipsExpected - 1) {
+            dur = parseFloat((phraseDuration - runningSum).toFixed(2));
+          } else {
+            dur = parseFloat((phraseDuration / numClipsExpected).toFixed(2));
+            runningSum += dur;
+          }
+          visualClips.push({
+            type: 'original',
+            timestamp: parseFloat(((idx / newAudioSegments.length) * maxTsVal).toFixed(1)),
+            keyword: 'broll',
+            prompt: 'cinematic video clip',
+            duration: dur
+          });
+        }
+        sanitizedPhrases.push({
+          phraseIndex: idx + 1,
+          visualClips,
           graphic: null
         });
       }
-      await logMessage(`[FASE 2] Fallback: ${totalClips} decisiones uniformes (tipo original).`);
+      await logMessage(`[FASE 2] Fallback: ${newAudioSegments.length} frases procesadas uniformemente.`);
     }
 
-    // Asegurar que el array cubra exactamente todos los fragmentos y esté bien tipado/sanitizado
-    while (clipsDecision.length < totalClips) {
-      const last = clipsDecision[clipsDecision.length - 1];
-      clipsDecision.push({
-        ...last,
-        index: clipsDecision.length + 1
-      });
-    }
-    if (clipsDecision.length > totalClips) {
-      clipsDecision = clipsDecision.slice(0, totalClips);
-    }
-
-    clipsDecision = clipsDecision.map((item, idx) => {
-      const type = ['original', 'stock', 'ia'].includes(item.type) ? item.type : 'original';
-      return {
-        index: idx + 1,
-        type,
-        timestamp: item.timestamp ?? parseFloat(((idx / totalClips) * maxTsVal).toFixed(1)),
-        keyword: item.keyword || 'broll',
-        prompt: item.prompt || 'cinematic video clip',
-        graphic: item.graphic || null
-      };
-    });
-
-    // Filtro anti-repetición: si el mismo graphic.type aparece 3+ veces seguidas cambiar el tercero a decorativo_emoji
+    // Filtro anti-repetición y relleno uniforme a nivel de frases
     let consecutiveType = '';
     let consecutiveCount = 0;
-    for (let i = 0; i < clipsDecision.length; i++) {
-      const g = clipsDecision[i].graphic;
+    for (let i = 0; i < sanitizedPhrases.length; i++) {
+      const g = sanitizedPhrases[i].graphic;
       if (g && g.type) {
         if (g.type === consecutiveType) {
           consecutiveCount++;
@@ -1595,15 +1810,14 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
       }
     }
 
-    // Filtro de relleno uniforme
-    const minGraphicsCount = Math.round((pct / 100) * totalClips);
-    const currentGraphicsCount = clipsDecision.filter(c => c.graphic !== null).length;
+    const minGraphicsCount = Math.round((pct / 100) * sanitizedPhrases.length);
+    const currentGraphicsCount = sanitizedPhrases.filter(p => p.graphic !== null).length;
     const needed = minGraphicsCount - currentGraphicsCount;
 
     if (needed > 0) {
       const eligibleIndices: number[] = [];
-      for (let i = 0; i < clipsDecision.length; i++) {
-        if (!clipsDecision[i].graphic) {
+      for (let i = 0; i < sanitizedPhrases.length; i++) {
+        if (!sanitizedPhrases[i].graphic) {
           eligibleIndices.push(i);
         }
       }
@@ -1612,20 +1826,50 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         const step = eligibleIndices.length / needed;
         for (let j = 0; j < needed; j++) {
           const idx = eligibleIndices[Math.floor(j * step)];
-          if (idx !== undefined && clipsDecision[idx]) {
-            clipsDecision[idx].graphic = {
+          if (idx !== undefined && sanitizedPhrases[idx]) {
+            const phraseDuration = newAudioSegments[idx].end - newAudioSegments[idx].start;
+            const start = parseFloat((phraseDuration * 0.1).toFixed(2));
+            const end = parseFloat(Math.min(phraseDuration, start + 1.2).toFixed(2));
+            sanitizedPhrases[idx].graphic = {
               type: 'decorativo_emoji',
               value: '📊',
               label: 'Dato de interés',
               unit: '',
-              emoji: '📊'
+              emoji: '📊',
+              graphicStart: start,
+              graphicEnd: end
             };
           }
         }
       }
     }
 
-    await logMessage(`[FASE 2] Decisiones de clips listas. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}, Gráficos asignados: ${clipsDecision.filter(c => c.graphic !== null).length}`);
+    // Aplanar la lista de sub-clips para alimentar la cola de trabajadores
+    const flattenedClips: any[] = [];
+    let globalIdx = 1;
+    for (let phraseIdx = 0; phraseIdx < sanitizedPhrases.length; phraseIdx++) {
+      const phrase = sanitizedPhrases[phraseIdx];
+      for (let clipIdx = 0; clipIdx < phrase.visualClips.length; clipIdx++) {
+        const subClip = phrase.visualClips[clipIdx];
+        flattenedClips.push({
+          index: globalIdx,
+          phraseIndex: phraseIdx,
+          clipIndexInPhrase: clipIdx,
+          type: subClip.type,
+          timestamp: subClip.timestamp,
+          keyword: subClip.keyword,
+          prompt: subClip.prompt,
+          duration: subClip.duration,
+          graphic: null
+        });
+        globalIdx++;
+      }
+    }
+
+    clipsDecision = flattenedClips;
+    totalClips = flattenedClips.length;
+
+    await logMessage(`[FASE 2] Decisiones de clips listas. Sub-clips totales: ${clipsDecision.length}. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}, Gráficos asignados: ${sanitizedPhrases.filter(p => p.graphic !== null).length}`);
 
     // FASE 3: FFmpeg e IA — generar clips
     await logMessage(`[FASE 3] Generando ${totalClips} clips con FFmpeg, Pexels y fal.ai (IA)...`);
@@ -1690,9 +1934,9 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
             const tempVideoPath = path.join(outDir, `temp_ia_${clipNum}.mp4`);
             await fs.promises.writeFile(tempVideoPath, Buffer.from(arrayBuffer));
 
-            // Recortar el video de IA (6s) a 3s con re-codificación h264/aac
+            // Recortar el video de IA (6s) a su duración real con re-codificación h264/aac
             await new Promise<void>((resolve, reject) => {
-              const cmd = `ffmpeg -y -ss 0 -i "${tempVideoPath}" -t 3 -c:v libx264 -c:a aac "${escapedClip}"`;
+              const cmd = `ffmpeg -y -ss 0 -i "${tempVideoPath}" -t ${item.duration} -c:v libx264 -c:a aac "${escapedClip}"`;
               exec(cmd, (err) => { if (err) reject(err); else resolve(); });
             });
 
@@ -1736,33 +1980,48 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
               await fs.promises.mkdir(stockDir, { recursive: true });
             }
 
-            const stockFilename = `pexels_${video.id}.mp4`;
-            const finalStockPath = path.join(stockDir, stockFilename);
+            const rawStockFilename = `pexels_${video.id}_raw.mp4`;
+            const rawStockPath = path.join(stockDir, rawStockFilename);
 
-            if (!(await exists(finalStockPath))) {
-              await logMessage(`[FASE 3] Descargando y procesando stock: ${videoDownloadUrl}`);
+            if (!(await exists(rawStockPath))) {
+              await logMessage(`[FASE 3] Descargando original de stock de Pexels: ${videoDownloadUrl}`);
               const dlRes = await fetch(videoDownloadUrl);
               if (!dlRes.ok) throw new Error(`Error al descargar video de Pexels: ${dlRes.statusText}`);
               const buffer = await dlRes.arrayBuffer();
-              const tempDlPath = path.join(outDir, `temp_pexels_${clipNum}.mp4`);
-              await fs.promises.writeFile(tempDlPath, Buffer.from(buffer));
-
-              const filter = isVertical
-                ? 'crop=ih*9/16:ih,scale=1080:1920,setpts=0.8*PTS'
-                : 'crop=iw:iw*9/16,scale=1920:1080,setpts=0.8*PTS';
-
-              await new Promise<void>((resolve, reject) => {
-                const cmd = `ffmpeg -y -ss 0 -i "${tempDlPath}" -vf "${filter}" -t 3 -an "${finalStockPath}"`;
-                exec(cmd, (err) => { if (err) reject(err); else resolve(); });
-              });
-
-              try { await fs.promises.unlink(tempDlPath); } catch (e) {}
+              await fs.promises.writeFile(rawStockPath, Buffer.from(buffer));
             } else {
-              await logMessage(`[FASE 3] Usando stock existente: ${stockFilename}`);
+              await logMessage(`[FASE 3] Usando original de stock de Pexels existente en caché: ${rawStockFilename}`);
             }
 
-            // Copiar al path final del timeline
-            await fs.promises.copyFile(finalStockPath, clipPath);
+            let filter = '';
+            try {
+              const dimensions = await getVideoDimensions(rawStockPath);
+              const isVerticalOutput = aspectRatio === '9:16' || aspectRatio === 'vertical';
+              if (isVerticalOutput) {
+                if (dimensions.width > dimensions.height) {
+                  filter = 'crop=ih*9/16:ih,scale=1080:1920,setpts=0.8*PTS';
+                } else {
+                  filter = 'crop=iw:iw*16/9,scale=1080:1920,setpts=0.8*PTS';
+                }
+              } else {
+                if (dimensions.width > dimensions.height) {
+                  filter = 'crop=iw:iw*9/16,scale=1920:1080,setpts=0.8*PTS';
+                } else {
+                  filter = 'crop=iw:iw*9/16,scale=1920:1080,setpts=0.8*PTS';
+                }
+              }
+            } catch (dimErr) {
+              const isVertical = aspectRatio === '9:16' || aspectRatio === 'vertical';
+              filter = isVertical
+                ? 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,setpts=0.8*PTS'
+                : 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setpts=0.8*PTS';
+            }
+
+            const escapedRawStock = rawStockPath.replace(/"/g, '\\"');
+            await new Promise<void>((resolve, reject) => {
+              const cmd = `ffmpeg -y -ss 0 -i "${escapedRawStock}" -vf "${filter}" -t ${item.duration} -an "${escapedClip}"`;
+              exec(cmd, (err) => { if (err) reject(err); else resolve(); });
+            });
 
             // Copiar al directorio local de stock del proyecto
             if (activeProjectPath) {
@@ -1770,8 +2029,8 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
               if (!(await exists(localStockDir))) {
                 await fs.promises.mkdir(localStockDir, { recursive: true });
               }
-              const localStockPath = path.join(localStockDir, stockFilename);
-              await fs.promises.copyFile(finalStockPath, localStockPath);
+              const localStockPath = path.join(localStockDir, `pexels_${video.id}.mp4`);
+              await fs.promises.copyFile(clipPath, localStockPath);
             }
 
             success = true;
@@ -1786,7 +2045,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           const ts = item.timestamp ?? 0;
           try {
             await new Promise<void>((resolve, reject) => {
-              const cmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t 3 -c copy "${escapedClip}"`;
+              const cmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t ${item.duration} -c copy "${escapedClip}"`;
               exec(cmd, (err) => { if (err) reject(err); else resolve(); });
             });
             success = true;
@@ -1842,91 +2101,98 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
     await logMessage('[FASE 5] Ensamblando timeline...');
     let currentStart = 0;
     const finalClips: any[] = [];
+    const graphicClips: any[] = [];
 
-    for (let idx = 0; idx < createdClips.length; idx++) {
-      const clip = createdClips[idx];
-      clip.startSeconds = currentStart;
-      
-      const decision = clipsDecision[idx];
-      if (decision && decision.graphic) {
-        clip.graphic = decision.graphic;
-      } else {
-        clip.graphic = null;
-      }
+    let globalClipIdx = 0;
 
-      if (clip.startSeconds >= audioDuration) {
-        // Eliminar el archivo físico si empieza después del audio
-        try {
-          if (await exists(clip.path)) {
-            await fs.promises.unlink(clip.path);
-            const thumbPath = clip.path.replace('temp/originales', 'temp/thumbnails').replace('.mp4', '.jpg').replace('banco-clips/originales', 'banco-clips/thumbnails');
-            if (await exists(thumbPath)) await fs.promises.unlink(thumbPath);
-          }
-        } catch (e) {}
-        continue;
-      }
-      
-      if (clip.startSeconds + clip.durationSeconds > audioDuration) {
-        const targetDuration = parseFloat((audioDuration - clip.startSeconds).toFixed(2));
-        if (targetDuration > 0) {
-          const tempTrimPath = clip.path.replace('.mp4', '_trimmed.mp4');
-          const escapedClip = clip.path.replace(/"/g, '\\"');
-          const escapedTemp = tempTrimPath.replace(/"/g, '\\"');
-          
+    for (let phraseIdx = 0; phraseIdx < sanitizedPhrases.length; phraseIdx++) {
+      const phrase = sanitizedPhrases[phraseIdx];
+      const phraseStartSeconds = currentStart;
+
+      for (let clipIdx = 0; clipIdx < phrase.visualClips.length; clipIdx++) {
+        const clip = createdClips[globalClipIdx];
+        globalClipIdx++;
+        if (!clip) continue;
+
+        clip.startSeconds = currentStart;
+        clip.graphic = null; // ya no va anidado en el video clip
+
+        if (clip.startSeconds >= audioDuration) {
+          // Eliminar el archivo físico si empieza después del audio
           try {
-            await new Promise<void>((resolve, reject) => {
-              const cmd = `ffmpeg -y -i "${escapedClip}" -t ${targetDuration} -c:v libx264 -c:a aac "${escapedTemp}"`;
-              exec(cmd, (err) => { if (err) reject(err); else resolve(); });
-            });
-            
-            if (await exists(tempTrimPath)) {
-              try { await fs.promises.unlink(clip.path); } catch (e) {}
-              await fs.promises.rename(tempTrimPath, clip.path);
-              
-              clip.durationSeconds = targetDuration;
-              clip.duration = formatTimeMinutesSeconds(targetDuration);
-              const stat = await fs.promises.stat(clip.path);
-              clip.size = `${(stat.size / (1024 * 1024)).toFixed(2)} MB`;
-              
-              // Regenerar miniatura
+            if (await exists(clip.path)) {
+              await fs.promises.unlink(clip.path);
               const thumbPath = clip.path.replace('temp/originales', 'temp/thumbnails').replace('.mp4', '.jpg').replace('banco-clips/originales', 'banco-clips/thumbnails');
-              try {
-                await generateVideoThumbnail(clip.path, thumbPath);
-                if (await exists(thumbPath)) {
-                  clip.thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbPath)).toString('base64')}`;
-                }
-              } catch (e) {}
+              if (await exists(thumbPath)) await fs.promises.unlink(thumbPath);
             }
-          } catch (trimErr: any) {
-            await logMessage(`[FASE 5] Error al recortar clip final ${clip.name}: ${trimErr.message}`);
+          } catch (e) {}
+          continue;
+        }
+
+        if (clip.startSeconds + clip.durationSeconds > audioDuration) {
+          const targetDuration = parseFloat((audioDuration - clip.startSeconds).toFixed(2));
+          if (targetDuration > 0) {
+            const tempTrimPath = clip.path.replace('.mp4', '_trimmed.mp4');
+            const escapedClip = clip.path.replace(/"/g, '\\"');
+            const escapedTemp = tempTrimPath.replace(/"/g, '\\"');
+
+            try {
+              await new Promise<void>((resolve, reject) => {
+                const cmd = `ffmpeg -y -i "${escapedClip}" -t ${targetDuration} -c:v libx264 -c:a aac "${escapedTemp}"`;
+                exec(cmd, (err) => { if (err) reject(err); else resolve(); });
+              });
+
+              if (await exists(tempTrimPath)) {
+                try { await fs.promises.unlink(clip.path); } catch (e) {}
+                await fs.promises.rename(tempTrimPath, clip.path);
+
+                clip.durationSeconds = targetDuration;
+                clip.duration = formatTimeMinutesSeconds(targetDuration);
+                const stat = await fs.promises.stat(clip.path);
+                clip.size = `${(stat.size / (1024 * 1024)).toFixed(2)} MB`;
+
+                // Regenerar miniatura
+                const thumbPath = clip.path.replace('temp/originales', 'temp/thumbnails').replace('.mp4', '.jpg').replace('banco-clips/originales', 'banco-clips/thumbnails');
+                try {
+                  await generateVideoThumbnail(clip.path, thumbPath);
+                  if (await exists(thumbPath)) {
+                    clip.thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbPath)).toString('base64')}`;
+                  }
+                } catch (e) {}
+              }
+            } catch (trimErr: any) {
+              await logMessage(`[FASE 5] Error al recortar clip final ${clip.name}: ${trimErr.message}`);
+            }
           }
         }
+
+        finalClips.push(clip);
+        currentStart += clip.durationSeconds;
       }
-      
-      finalClips.push(clip);
-      currentStart += clip.durationSeconds;
+
+      // Si la frase tiene gráfico asignado, creamos un clip de gráfico independiente
+      if (phrase.graphic) {
+        const startSec = phraseStartSeconds + phrase.graphic.graphicStart;
+        const durSec = phrase.graphic.graphicEnd - phrase.graphic.graphicStart;
+        if (startSec < audioDuration && durSec > 0) {
+          graphicClips.push({
+            id: 'timeline-graphic-' + Math.random(),
+            name: 'Gráfico: ' + (phrase.graphic.label || phrase.graphic.type),
+            startSeconds: startSec,
+            durationSeconds: Math.min(durSec, audioDuration - startSec),
+            type: 'graphic',
+            graphicData: {
+              type: phrase.graphic.type,
+              value: phrase.graphic.value,
+              label: phrase.graphic.label,
+              unit: phrase.graphic.unit,
+              emoji: phrase.graphic.emoji
+            }
+          });
+        }
+      }
     }
 
-    // Agregar clips de gráfico independientes
-    const graphicClips: any[] = [];
-    for (const clip of finalClips) {
-      if (clip.type === 'video' && clip.graphic) {
-        graphicClips.push({
-          id: 'timeline-graphic-' + Math.random(),
-          name: 'Gráfico: ' + (clip.graphic.label || clip.graphic.type),
-          startSeconds: clip.startSeconds,
-          durationSeconds: 2.0,
-          type: 'graphic',
-          graphicData: {
-            type: clip.graphic.type,
-            value: clip.graphic.value,
-            label: clip.graphic.label,
-            unit: clip.graphic.unit,
-            emoji: clip.graphic.emoji
-          }
-        });
-      }
-    }
     finalClips.push(...graphicClips);
 
     await logMessage(`[generate-timeline-assets] Completado. Clips: ${finalClips.length} (Videos: ${finalClips.filter(c => c.type === 'video').length}, Gráficos: ${finalClips.filter(c => c.type === 'graphic').length})`);
