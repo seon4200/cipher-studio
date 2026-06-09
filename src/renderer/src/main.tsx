@@ -314,6 +314,7 @@ interface Clip {
   url?: string;
   category?: string;
   thumbnailUrl?: string;
+  graphicData?: any;
 }
 
 interface TimelineClip {
@@ -416,6 +417,10 @@ function App() {
   const [copiedClip, setCopiedClip] = useState<TimelineClip | null>(null)
   // Porcentaje global de generación de gráficos (valor por defecto 50%)
   const [graphicsPercent, setGraphicsPercent] = useState<number>(50);
+
+  // Estados para controlar el ciclo de vida y visibilidad de los gráficos animados
+  const [graphicVisible, setGraphicVisible] = useState(false);
+  const [graphicFading, setGraphicFading] = useState(false);
 
   // Reset panOffset when zoom resets to 1
   useEffect(() => {
@@ -552,11 +557,40 @@ function App() {
   // Dynamic total timeline duration (minimum 120 seconds, or max clip end + 10s buffer)
   const totalDuration = useMemo(() => Math.max(120, timelineVideoClips.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0) + 10), [timelineVideoClips]);
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
+  
   const sortedVideoClips = useMemo(() => {
     return timelineVideoClips
-      .filter(c => c.type !== 'audio')
+      .filter(c => c.type !== 'audio' && c.type !== 'graphic')
       .sort((a, b) => a.startSeconds - b.startSeconds);
   }, [timelineVideoClips]);
+
+  const graphicClips = useMemo(() => {
+    return timelineVideoClips.filter(c => c.type === 'graphic');
+  }, [timelineVideoClips]);
+
+  const activeGraphicClip = useMemo(() => {
+    const activeTime = audioRef.current ? audioRef.current.currentTime : currentTimeForUI;
+    return graphicClips.find(c => activeTime >= c.startSeconds && activeTime < c.startSeconds + c.durationSeconds) || null;
+  }, [graphicClips, currentTimeForUI]);
+
+  useEffect(() => {
+    if (activeGraphicClip?.id && isPlaying) {
+      setGraphicVisible(true);
+      setGraphicFading(false);
+      const fadeTimer = setTimeout(() => setGraphicFading(true), 800);
+      const hideTimer = setTimeout(() => {
+        setGraphicVisible(false);
+        setGraphicFading(false);
+      }, 1100);
+      return () => {
+        clearTimeout(fadeTimer);
+        clearTimeout(hideTimer);
+      };
+    } else {
+      setGraphicVisible(false);
+      setGraphicFading(false);
+    }
+  }, [activeGraphicClip?.id, isPlaying]);
 
   interface MilestoneState {
     label: string;
@@ -874,8 +908,9 @@ function App() {
   // Delete Clips central handler
   const handleDeleteClips = (clipIdsToDelete: string[]) => {
     const clips = timelineClipsRef.current || [];
-    const videoClips = clips.filter(c => c.type !== 'audio' && !clipIdsToDelete.includes(c.id));
+    const videoClips = clips.filter(c => c.type !== 'audio' && c.type !== 'graphic' && !clipIdsToDelete.includes(c.id));
     const audioClips = clips.filter(c => c.type === 'audio' && !clipIdsToDelete.includes(c.id));
+    const graphicClips = clips.filter(c => c.type === 'graphic' && !clipIdsToDelete.includes(c.id));
     
     // Sort remaining video clips by start time
     videoClips.sort((a, b) => a.startSeconds - b.startSeconds);
@@ -890,7 +925,7 @@ function App() {
       return updated;
     });
     
-    const updated = [...rebuiltVideoClips, ...audioClips];
+    const updated = [...rebuiltVideoClips, ...audioClips, ...graphicClips];
     setTimelineVideoClips(updated);
     setSelectedTimelineClipIds([]);
     pushHistory(updated);
@@ -901,35 +936,21 @@ function App() {
     const clip = timelineVideoClips.find(c => c.id === clipId)
     if (!clip) return
     
-    if (clip.type === 'audio') {
-      const newClip: TimelineClip = {
-        id: `timeline-${Math.random()}`,
-        name: `${clip.name} (Copy)`,
-        startSeconds: clip.startSeconds + clip.durationSeconds + 1,
-        durationSeconds: clip.durationSeconds,
-        type: clip.type,
-        path: clip.path,
-        url: clip.url
-      }
-      const updated = [...timelineVideoClips, newClip]
-      setTimelineVideoClips(updated)
-      pushHistory(updated)
-    } else {
-      const newClip: TimelineClip = {
-        id: `timeline-${Math.random()}`,
-        name: `${clip.name} (Copy)`,
-        startSeconds: clip.startSeconds + clip.durationSeconds,
-        durationSeconds: clip.durationSeconds,
-        type: clip.type,
-        path: clip.path,
-        url: clip.url,
-        category: clip.category,
-        thumbnailUrl: clip.thumbnailUrl
-      }
-      const updated = applyMagneticLayout([...timelineVideoClips, newClip])
-      setTimelineVideoClips(updated)
-      pushHistory(updated)
+    const newClip: TimelineClip = {
+      id: `timeline-${Math.random()}`,
+      name: `${clip.name} (Copy)`,
+      startSeconds: clip.startSeconds + clip.durationSeconds,
+      durationSeconds: clip.durationSeconds,
+      type: clip.type,
+      path: clip.path,
+      url: clip.url,
+      category: clip.category,
+      thumbnailUrl: clip.thumbnailUrl,
+      graphicData: clip.graphicData
     }
+    const updated = applyMagneticLayout([...timelineVideoClips, newClip])
+    setTimelineVideoClips(updated)
+    pushHistory(updated)
   }
 
   // Duplicate timeline clips batched
@@ -948,7 +969,8 @@ function App() {
         path: clip.path,
         url: clip.url,
         category: clip.category,
-        thumbnailUrl: clip.thumbnailUrl
+        thumbnailUrl: clip.thumbnailUrl,
+        graphicData: clip.graphicData
       };
       updated.push(newClip);
     });
@@ -2421,7 +2443,8 @@ function App() {
           url: newClip.url,
           path: newClip.path,
           category: 'minimax',
-          thumbnailUrl: newClip.thumbnailUrl
+          thumbnailUrl: newClip.thumbnailUrl,
+          graphicData: newClip.graphicData
         };
         const updated = [...timelineVideoClips, newTimelineClip];
         setTimelineVideoClips(updated);
@@ -3719,6 +3742,18 @@ function App() {
                      </div>
                    </div>
                  )}
+
+                 {/* Overlay de Gráficos Animados (Fase 3) */}
+                 {graphicVisible && activeGraphicClip && activeGraphicClip.graphicData && (
+                   <div 
+                     key={activeGraphicClip.id}
+                     className={`absolute inset-0 z-20 flex items-end justify-center pb-[8%] transition-opacity duration-300 select-none pointer-events-none ${
+                       graphicFading ? 'opacity-0' : 'opacity-100'
+                     }`}
+                   >
+                     <AnimatedGraphic graphic={activeGraphicClip.graphicData} />
+                   </div>
+                 )}
               </div>
             ) : (
               /* Beautiful visualizer block inside player */
@@ -4973,13 +5008,13 @@ function App() {
                   </div>
                 </div>
                 <div className="flex-1 h-12 bg-slate-900/60 border border-slate-800/80 rounded-xl relative overflow-hidden">
-                  {timelineVideoClips.filter(tClip => tClip.type !== 'audio').length === 0 && (
+                  {timelineVideoClips.filter(tClip => tClip.type !== 'audio' && tClip.type !== 'graphic').length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <span className="text-[10px] text-slate-600 font-medium">Arrastra o añade videos aquí</span>
                     </div>
                   )}
                   {timelineVideoClips
-                    .filter(tClip => tClip.type !== 'audio')
+                    .filter(tClip => tClip.type !== 'audio' && tClip.type !== 'graphic')
                     .map((tClip, index) => {
                       const leftPercent = (tClip.startSeconds / totalDuration) * 100;
                       const widthPercent = (tClip.durationSeconds / totalDuration) * 100;
@@ -5041,6 +5076,88 @@ function App() {
                             className="absolute right-0 top-0 bottom-0 w-2.5 bg-indigo-500/85 cursor-ew-resize opacity-0 group-hover/tclip:opacity-100 transition-opacity rounded-r-lg flex items-center justify-center hover:bg-indigo-400 z-10"
                           >
                             <div className="w-[1.5px] h-3 bg-white/60" />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Track 1.5: Gráficos Track */}
+              <div className="flex items-center space-x-3">
+                <div className="w-28 text-[11px] font-bold text-slate-400 flex flex-col justify-center space-y-1.5 flex-shrink-0 pr-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-1">
+                      <Sparkles className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
+                      <span>Gráficos g1</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 h-12 bg-slate-900/60 border border-slate-800/80 rounded-xl relative overflow-hidden">
+                  {timelineVideoClips.filter(tClip => tClip.type === 'graphic').length === 0 && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span className="text-[10px] text-slate-600 font-medium">Sin gráficos asignados</span>
+                    </div>
+                  )}
+                  {timelineVideoClips
+                    .filter(tClip => tClip.type === 'graphic')
+                    .map((tClip) => {
+                      const leftPercent = (tClip.startSeconds / totalDuration) * 100;
+                      const widthPercent = (tClip.durationSeconds / totalDuration) * 100;
+                      const emoji = tClip.graphicData?.type === 'decorativo_emoji' ? tClip.graphicData?.value : '📊';
+                      const label = tClip.graphicData?.label || tClip.graphicData?.type || tClip.name;
+                      
+                      return (
+                        <div 
+                          key={tClip.id}
+                          style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
+                          onMouseDown={(e) => handleClipMouseDown(e, tClip.id, 'move')}
+                          className={`absolute h-full border border-cyan-500/35 bg-cyan-950/15 text-cyan-300 rounded-lg flex items-center px-2 justify-between group/tclip cursor-move transition-shadow z-10 hover:bg-cyan-950/25`}
+                        >
+                          {/* Left Trim Handle */}
+                          <div 
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              handleClipMouseDown(e, tClip.id, 'trim-left');
+                            }}
+                            className="absolute left-0 top-0 bottom-0 w-2 bg-cyan-500/50 cursor-ew-resize opacity-0 group-hover/tclip:opacity-100 transition-opacity rounded-l-lg flex items-center justify-center hover:bg-cyan-400 z-10"
+                          >
+                            <div className="w-[1px] h-3 bg-white/60" />
+                          </div>
+
+                          <div className="flex items-center min-w-0 flex-1 select-none pointer-events-none">
+                            <span className="text-xs mr-1">{emoji}</span>
+                            <span className="text-[10px] truncate font-medium pr-1" title={label}>
+                              {label}
+                            </span>
+                          </div>
+                          
+                          <span className="text-[9px] font-mono px-1 rounded flex-shrink-0 select-none pointer-events-none bg-slate-950/60 text-slate-350 z-10 mr-1.5">
+                            {tClip.durationSeconds.toFixed(1)}s
+                          </span>
+
+                          {/* Delete button (X) */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTimelineVideoClips(prev => prev.filter(tc => tc.id !== tClip.id));
+                              setIsDirty(true);
+                            }}
+                            className="w-3.5 h-3.5 rounded-full bg-slate-950/40 hover:bg-rose-500/80 hover:text-white flex items-center justify-center text-[8px] font-bold transition-all z-20 cursor-pointer border-none"
+                            title="Eliminar gráfico"
+                          >
+                            ×
+                          </button>
+
+                          {/* Right Trim Handle */}
+                          <div 
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              handleClipMouseDown(e, tClip.id, 'trim-right');
+                            }}
+                            className="absolute right-0 top-0 bottom-0 w-2 bg-cyan-500/50 cursor-ew-resize opacity-0 group-hover/tclip:opacity-100 transition-opacity rounded-r-lg flex items-center justify-center hover:bg-cyan-400 z-10"
+                          >
+                            <div className="w-[1px] h-3 bg-white/60" />
                           </div>
                         </div>
                       );
