@@ -8,6 +8,301 @@ import {
 } from 'lucide-react'
 import './styles/globals.css'
 
+/* --------------------------------------------------------------
+   AnimatedGraphic – Fase 2
+   Renderiza los diferentes tipos de gráficos animados.
+   -------------------------------------------------------------- */
+
+type GraphicType =
+  | 'barra_horizontal'
+  | 'barra_vertical'
+  | 'barras_comparativas'
+  | 'donut'
+  | 'contador'
+  | 'comparacion_antes_despues'
+  | 'lista_numerada'
+  | 'checklist'
+  | 'pasos_proceso'
+  | 'flecha_crecimiento'
+  | 'flecha_caida'
+  | 'multiplicador'
+  | 'fraccion'
+  | 'ranking_top3'
+  | 'dato_grande'
+  | 'frase_clave'
+  | 'decorativo_emoji'
+  | 'decorativo_particulas'
+
+interface GraphicData {
+  type: GraphicType
+  /** valores numéricos o texto que el gráfico mostrará */
+  value?: number | string
+  /** etiqueta corta bajo el número / emoji */
+  label?: string
+  /** unidad opcional (%, pts, etc.) */
+  unit?: string
+  /** datos auxiliares para tipos complejos (ej. lista, donut) */
+  extra?: any
+}
+
+/** Helper: color palette */
+const COLORS = {
+  primary: '#00d4ff',
+  secondary: '#7F77DD',
+  accent: '#EF9F27',
+}
+
+export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic }) => {
+  const { type, value, label, unit, extra } = graphic
+  const [internal, setInternal] = useState<number>(0) // para animaciones numéricas
+
+  /* ------------------------------------------------------------------
+     Efectos de animación (counters, barras, donut, etc.)
+     ------------------------------------------------------------------ */
+  useEffect(() => {
+    // Reset state on type change
+    setInternal(0)
+    if (type === 'contador' && typeof value === 'number') {
+      const target = Number(value)
+      const start = performance.now()
+      const step = (now: number) => {
+        const elapsed = now - start
+        const progress = Math.min(elapsed / 1000, 1) // 1 s total
+        setInternal(Math.round(target * progress))
+        if (progress < 1) requestAnimationFrame(step)
+      }
+      requestAnimationFrame(step)
+    } else if (
+      (type === 'barra_horizontal' || type === 'barra_vertical') &&
+      typeof value === 'number'
+    ) {
+      // Simular la animación con retraso de 150 ms
+      const timer = setTimeout(() => setInternal(Number(value)), 150)
+      return () => clearTimeout(timer)
+    } else if (type === 'donut' && typeof value === 'number') {
+      // Donut se basa en stroke‑dashoffset; lo calculamos en render
+      setInternal(Number(value))
+    } else if (typeof value === 'number') {
+      setInternal(Number(value))
+    }
+  }, [type, value])
+
+  /* ------------------------------------------------------------------
+     Render helpers por tipo
+     ------------------------------------------------------------------ */
+  const renderNumber = () => (
+    <div className="text-5xl font-black text-[#00d4ff] animate-number-glow">
+      {internal}
+      {unit && <span className="text-2xl ml-1">{unit}</span>}
+    </div>
+  )
+
+
+
+  const renderBar = (horizontal: boolean) => {
+    const size = Math.max(0, Math.min(100, internal))
+    const style = horizontal
+      ? { width: `${size}%` }
+      : { height: `${size}%` }
+    return (
+      <div
+        className="bg-[#00d4ff] animate-bar-pulse"
+        style={{
+          ...style,
+          transition: 'all 1.2s ease',
+          minWidth: horizontal ? '4px' : 'auto',
+          minHeight: horizontal ? 'auto' : '4px',
+        }}
+      />
+    )
+  }
+
+  const renderDonut = () => {
+    const radius = 40
+    const circumference = 2 * Math.PI * radius
+    const offset = circumference - (circumference * internal) / 100
+    return (
+      <svg width={100} height={100} className="transform -rotate-90">
+        <circle cx={50} cy={50} r={radius} fill="none" stroke="#333" strokeWidth={8} />
+        <circle
+          cx={50}
+          cy={50}
+          r={radius}
+          fill="none"
+          stroke={COLORS.primary}
+          strokeWidth={8}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          style={{ transition: 'stroke-dashoffset 1s' }}
+        />
+        <text x={50} y={55} textAnchor="middle" className="text-sm font-semibold fill-[#00d4ff]">
+          {internal}%
+        </text>
+      </svg>
+    )
+  }
+
+  const renderList = (ordered: boolean) => (
+    <ul className={ordered ? 'list-decimal' : 'list-disc'} style={{ listStylePosition: 'inside' }}>
+      {(extra?.items ?? []).map((it: string, i: number) => (
+        <li key={i} className="text-sm text-slate-300">
+          {it}
+        </li>
+      ))}
+    </ul>
+  )
+
+  const renderChecklist = () => (
+    <ul className="list-none space-y-1">
+      {(extra?.items ?? []).map((it: string, i: number) => (
+        <li key={i} className="flex items-center space-x-2">
+          <input type="checkbox" className="form-checkbox h-4 w-4 text-[#00d4ff]" />
+          <span className="text-sm text-slate-300">{it}</span>
+        </li>
+      ))}
+    </ul>
+  )
+
+  const renderSteps = () => (
+    <ol className="list-decimal space-y-1" style={{ listStylePosition: 'inside' }}>
+      {(extra?.steps ?? []).map((st: string, i: number) => (
+        <li key={i} className="text-sm text-slate-300">
+          {st}
+        </li>
+      ))}
+    </ol>
+  )
+
+  const renderArrow = (up: boolean) => (
+    <div className="flex flex-col items-center">
+      <div
+        className={`w-0 h-0 border-${up ? 'b' : 't'}-8 border-${up ? 't' : 'b'}-0 border-l-8 border-r-8 border-transparent`}
+        style={{ borderBottomColor: up ? COLORS.primary : COLORS.secondary }}
+      />
+      <span className="text-sm text-slate-300 mt-1">{label}</span>
+    </div>
+  )
+
+  const renderMultiplicador = () => (
+    <div className="text-5xl font-black text-[#00d4ff] animate-number-glow">
+      x{internal}
+    </div>
+  )
+
+  const renderFraccion = () => (
+    <div className="text-4xl font-bold text-[#00d4ff]">
+      {value?.toString().split('/')?.[0]} / {value?.toString().split('/')?.[1]}
+    </div>
+  )
+
+  const renderRanking = () => (
+    <div className="grid grid-cols-3 gap-2 text-center">
+      {(extra?.rankings ?? []).map((r: any, i: number) => (
+        <div key={i} className="bg-[#020617] p-2 rounded-md shadow-md">
+          <div className="text-sm text-slate-400">#{i + 1}</div>
+          <div className="text-xl font-semibold text-[#00d4ff]">{r}</div>
+        </div>
+      ))}
+    </div>
+  )
+
+  const renderDatoGrande = () => (
+    <div className="text-6xl font-black text-[#00d4ff] animate-number-glow">
+      {value}
+    </div>
+  )
+
+  const renderFraseClave = () => (
+    <div className="text-xl font-semibold text-[#00d4ff] text-center">
+      “{value}”
+    </div>
+  )
+
+  const renderDecorative = (emoji: boolean) => (
+    <div className={emoji ? 'animate-gentle-zoom' : ''}>{value}</div>
+  )
+
+  // ------------------------------------------------------------------
+  // Main render switch
+  // ------------------------------------------------------------------
+  return (
+    <div className="min-w-[280px] p-5 rounded-2xl shadow-2xl backdrop-blur-md bg-slate-950/85 border border-slate-800/80 flex flex-col items-center space-y-3">
+      {/* LABEL */}
+      {label && <div className="text-sm font-semibold text-slate-300">{label}</div>}
+
+      {/* GRAPHIC CONTENT */}
+      {(() => {
+        switch (type) {
+          case 'contador':
+            return renderNumber()
+          case 'barra_horizontal':
+            return renderBar(true)
+          case 'barra_vertical':
+            return renderBar(false)
+          case 'donut':
+            return renderDonut()
+          case 'lista_numerada':
+            return renderList(true)
+          case 'checklist':
+            return renderChecklist()
+          case 'pasos_proceso':
+            return renderSteps()
+          case 'flecha_crecimiento':
+            return renderArrow(true)
+          case 'flecha_caida':
+            return renderArrow(false)
+          case 'multiplicador':
+            return renderMultiplicador()
+          case 'fraccion':
+            return renderFraccion()
+          case 'ranking_top3':
+            return renderRanking()
+          case 'dato_grande':
+            return renderDatoGrande()
+          case 'frase_clave':
+            return renderFraseClave()
+          case 'decorativo_emoji':
+            return renderDecorative(true)
+          case 'decorativo_particulas':
+            return renderDecorative(false)
+          case 'barras_comparativas':
+            return (
+              <div className="flex space-x-4 w-full">
+                <div className="flex-1 flex flex-col items-center">
+                  {renderBar(true)}
+                  <span className="text-xs text-slate-300 mt-1">{extra?.leftLabel}</span>
+                </div>
+                <div className="flex-1 flex flex-col items-center">
+                  {renderBar(true)}
+                  <span className="text-xs text-slate-300 mt-1">{extra?.rightLabel}</span>
+                </div>
+              </div>
+            )
+          case 'comparacion_antes_despues':
+            return (
+              <div className="flex space-x-2 w-full">
+                <div className="flex-1 flex flex-col items-center">
+                  <div className="text-sm text-slate-300 mb-1">Antes</div>
+                  {renderNumber()}
+                </div>
+                <div className="flex-1 flex flex-col items-center">
+                  <div className="text-sm text-slate-300 mb-1">Después</div>
+                  {renderNumber()}
+                </div>
+              </div>
+            )
+          default:
+            return <div className="text-sm text-slate-300">Tipo no soportado</div>
+        }
+      })()}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------
+   App component (ya existente)
+   ------------------------------------------------------------------ */
+
 interface Clip {
   id: string;
   name: string;
@@ -26,13 +321,16 @@ interface TimelineClip {
   name: string;
   startSeconds: number;
   durationSeconds: number;
-  type?: 'video' | 'audio';
+  /** Tipo de clip, incluye 'graphic' para gráficos animados */
+  type?: 'video' | 'audio' | 'graphic';
   path?: string;
   url?: string;
   origDurationSeconds?: number;
   segmentStartOffset?: number;
   segmentIndex?: number;
   text?: string;
+  /** Datos específicos del gráfico (emoji, valor, label, etc.) */
+  graphicData?: any;
   category?: string;
   thumbnailUrl?: string;
 }
@@ -116,6 +414,8 @@ function App() {
   const [activeCrop, setActiveCrop] = useState<{ left: number; top: number; right: number; bottom: number } | null>(null)
   const [isMirrored, setIsMirrored] = useState(false)
   const [copiedClip, setCopiedClip] = useState<TimelineClip | null>(null)
+  // Porcentaje global de generación de gráficos (valor por defecto 50%)
+  const [graphicsPercent, setGraphicsPercent] = useState<number>(50);
 
   // Reset panOffset when zoom resets to 1
   useEffect(() => {
@@ -156,7 +456,8 @@ function App() {
 
   // Magnetic timeline layout builder helper
   const applyMagneticLayout = useCallback((clips: TimelineClip[]): TimelineClip[] => {
-    const videoClips = clips.filter(c => c.type !== 'audio');
+    // Excluimos clips de tipo 'graphic' del cálculo magnético
+    const videoClips = clips.filter(c => c.type !== 'audio' && c.type !== 'graphic');
     const audioClips = clips.filter(c => c.type === 'audio');
     
     // Sort video clips by their startSeconds
@@ -172,7 +473,8 @@ function App() {
       return updated;
     });
     
-    return [...rebuiltVideoClips, ...audioClips];
+    const graphicClips = clips.filter(c => c.type === 'graphic');
+    return [...rebuiltVideoClips, ...audioClips, ...graphicClips];
   }, []);
 
   // Export Settings States
@@ -265,6 +567,8 @@ function App() {
     aiScript: string;
     originalTranscriptText: string;
     generatedVoices: any[];
+    /** optional percentage (0‑100) of graphic clips for this milestone */
+    graphicsPercent?: number;
   }
 
   const [isDirty, setIsDirty] = useState(false)
@@ -291,6 +595,7 @@ function App() {
         aiScript: customState?.aiScript ?? aiScript,
         originalTranscriptText: customState?.originalTranscriptText ?? originalTranscriptText,
         generatedVoices: customState?.generatedVoices ?? generatedVoices,
+        graphicsPercent: customState?.graphicsPercent ?? graphicsPercent,
       }
       return [...nextHistory, newState]
     })
@@ -315,6 +620,7 @@ function App() {
       setAiScript(state.aiScript)
       setOriginalTranscriptText(state.originalTranscriptText)
       setGeneratedVoices(state.generatedVoices)
+      if (state.graphicsPercent !== undefined) setGraphicsPercent(state.graphicsPercent)
     }
   }
 
@@ -332,6 +638,7 @@ function App() {
       setAiScript(state.aiScript)
       setOriginalTranscriptText(state.originalTranscriptText)
       setGeneratedVoices(state.generatedVoices)
+      if (state.graphicsPercent !== undefined) setGraphicsPercent(state.graphicsPercent)
     }
   }
 
@@ -1304,7 +1611,7 @@ function App() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent]);
 
   // Save-on-close handler
   useEffect(() => {
@@ -1338,6 +1645,9 @@ function App() {
           voiceSpeed,
           voiceStability,
           generatedVoices,
+          graphicsPercent,
+          activeProjectId,
+          activeProjectName,
           timelineWeights
         };
         
@@ -1350,7 +1660,7 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, activeProjectId, activeProjectName]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, activeProjectId, activeProjectName, timelineWeights]);
 
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
@@ -1383,6 +1693,7 @@ function App() {
         voiceSpeed,
         voiceStability,
         generatedVoices,
+        graphicsPercent,
         timelineWeights
       };
 
@@ -1435,6 +1746,7 @@ function App() {
         voiceSpeed,
         voiceStability,
         generatedVoices,
+        graphicsPercent,
         timelineWeights
       };
 
@@ -1493,6 +1805,7 @@ function App() {
         if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
         setGeneratedVoices(loadedData.generatedVoices || []);
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(loadedData.timelineWeights);
+        if (loadedData.graphicsPercent !== undefined) setGraphicsPercent(loadedData.graphicsPercent);
         
         setActiveProjectPath(projectPath);
         setActiveProjectId(loadedData.id || null);
@@ -1506,7 +1819,8 @@ function App() {
           transcriptSegments: loadedData.transcriptSegments || [],
           aiScript: loadedData.aiScript || '',
           originalTranscriptText: loadedOriginalText,
-          generatedVoices: loadedData.generatedVoices || []
+          generatedVoices: loadedData.generatedVoices || [],
+          graphicsPercent: loadedData.graphicsPercent ?? 50
         };
         setMilestoneHistory([loadedMilestone]);
         setMilestoneIndex(0);
@@ -1535,6 +1849,8 @@ function App() {
     try {
       const res = await window.electronAPI.createProject({ name });
       if (res && res.success && res.data) {
+        // Marca que la carga aún no terminó para evitar pantalla azul
+        hasLoaded.current = false;
         const loadedData = res.data;
         
         setClips([]);
@@ -1553,6 +1869,7 @@ function App() {
         setOriginalTranscriptText('');
         setGeneratedVoices([]);
         setTimelineWeights([40, 30, 30]);
+        setGraphicsPercent(50);
 
         setActiveProjectPath(res.projectPath || null);
         setActiveProjectId(loadedData.id || null);
@@ -1566,7 +1883,8 @@ function App() {
           transcriptSegments: [],
           aiScript: '',
           originalTranscriptText: '',
-          generatedVoices: []
+          generatedVoices: [],
+          graphicsPercent: 50
         };
         setMilestoneHistory([initialMilestone]);
         setMilestoneIndex(0);
@@ -1716,6 +2034,7 @@ function App() {
         if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
         setGeneratedVoices(loadedData.generatedVoices || []);
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(loadedData.timelineWeights);
+        if (loadedData.graphicsPercent !== undefined) setGraphicsPercent(loadedData.graphicsPercent);
         
         setActiveProjectPath(res.projectPath);
         setActiveProjectId(loadedData.id || null);
@@ -2005,6 +2324,43 @@ function App() {
     } finally {
       setIsGeneratingAssets(false);
       setGenerationProgress(null);
+    }
+  };
+
+  const handleRegenerateGraphics = async () => {
+    const textToUse = aiScript.trim() || originalTranscriptText.trim();
+    if (!textToUse) return;
+    const videoClips = timelineVideoClips.filter(c => c.type !== 'audio' && c.type !== 'graphic');
+    if (videoClips.length === 0) return;
+    setIsGeneratingAssets(true);
+    try {
+      const res = await window.electronAPI.regenerateGraphics({
+        scriptText: textToUse,
+        clips: videoClips.map(c => ({ id: c.id, name: c.name })),
+        graphicsPercent: graphicsPercent > 0 ? Math.max(50, graphicsPercent) : 0
+      });
+      if (res && res.success && res.clips) {
+        const nonGraphicClips = timelineVideoClips.filter(c => c.type !== 'graphic');
+        const newGraphicClips = res.clips
+          .filter((c: any) => c.graphicData)
+          .map((c: any) => {
+            const matchingVideo = nonGraphicClips.find((tc: any) => tc.id === c.id || tc.name === c.name);
+            return {
+              id: `timeline-graphic-${Math.random()}`,
+              name: `Gráfico: ${c.graphicData.label || c.graphicData.type}`,
+              startSeconds: matchingVideo?.startSeconds || 0,
+              durationSeconds: 1.1,
+              type: 'graphic' as const,
+              graphicData: c.graphicData
+            };
+          });
+        setTimelineVideoClips([...nonGraphicClips, ...newGraphicClips]);
+        setIsDirty(true);
+      }
+    } catch (err) {
+      console.error('Error regenerando gráficos:', err);
+    } finally {
+      setIsGeneratingAssets(false);
     }
   };
 
@@ -2920,14 +3276,55 @@ function App() {
                 )}
               </div>
             ) : (
-              <button 
-                onClick={handleBuildIATimeline}
-                disabled={!aiScript.trim()}
-                className="w-full mt-3 bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
-                <span>Construir Timeline IA</span>
-              </button>
+              <>
+                <button 
+                  onClick={handleBuildIATimeline}
+                  disabled={!aiScript.trim()}
+                  className="w-full mt-3 bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
+                  <span>Construir Timeline IA</span>
+                </button>
+                {/* ----- Slider – Porcentaje de Gráficos ----- */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Porcentaje de Gráficos
+                  </label>
+                  <div className="flex items-center">
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={graphicsPercent}
+                      className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                      onChange={e => {
+                        let val = Number(e.target.value);
+                        if (val > 0 && val < 50) val = 50;
+                        setGraphicsPercent(val);
+                      }}
+                    />
+                    <span className="ml-3 text-sm text-slate-300">{graphicsPercent}%</span>
+                    {graphicsPercent > 0 && graphicsPercent < 50 && (
+                      <span className="ml-2 text-xs text-amber-400">
+                        (Mín. 50% Int.)
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {/* ----- Botón Regenerar Gráficos ----- */}
+                <button
+                  className={`mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed`}
+                  disabled={
+                    (!aiScript?.trim() && !originalTranscriptText?.trim()) ||
+                    timelineVideoClips.filter(c => c.type !== 'audio' && c.type !== 'graphic').length === 0 ||
+                    isGeneratingAssets
+                  }
+                  onClick={handleRegenerateGraphics}
+                >
+                  {isGeneratingAssets ? 'Generando...' : 'Regenerar Gráficos'}
+                </button>
+              </>
             )}
             {generationError && (
               <div className="w-full mt-2 p-2 bg-red-950/20 border border-red-900/50 rounded-xl text-[9px] text-red-400 font-medium text-center select-text leading-relaxed">

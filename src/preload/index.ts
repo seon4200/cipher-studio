@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteAllProjects: () => ipcRenderer.invoke('delete-all-projects'),
   clearGlobalStockCache: () => ipcRenderer.invoke('clear-global-stock-cache'),
   readFileAsBlob: (params: { filePath: string }) => ipcRenderer.invoke('read-file-as-blob', params),
+  regenerateGraphics: (params: any) => ipcRenderer.invoke('regenerate-graphics', params),
   onSaveBeforeClose: (callback: () => void) => {
     const listener = () => callback()
     ipcRenderer.on('save-before-close', listener)

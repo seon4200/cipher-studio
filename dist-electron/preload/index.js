@@ -42,7 +42,10 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   loadProject: (params) => electron.ipcRenderer.invoke("load-project", params),
   closeProject: () => electron.ipcRenderer.invoke("close-project"),
   deleteProject: (params) => electron.ipcRenderer.invoke("delete-project", params),
+  deleteAllProjects: () => electron.ipcRenderer.invoke("delete-all-projects"),
+  clearGlobalStockCache: () => electron.ipcRenderer.invoke("clear-global-stock-cache"),
   readFileAsBlob: (params) => electron.ipcRenderer.invoke("read-file-as-blob", params),
+  regenerateGraphics: (params) => electron.ipcRenderer.invoke("regenerate-graphics", params),
   onSaveBeforeClose: (callback) => {
     const listener = () => callback();
     electron.ipcRenderer.on("save-before-close", listener);

@@ -54,3 +54,37 @@
 .scrollbar-timeline::-webkit-scrollbar-thumb:hover {
   background: #6366f1;
 }
+
+/* --------------------------------------------------------------
+   Animaciones y utilidades para AnimatedGraphic (Fase 1)
+   -------------------------------------------------------------- */
+
+/* Slide‑up de entrada del gráfico */
+@keyframes graphic-slide-up {
+  0%   { transform: translateY(40px); opacity: 0; }
+  100% { transform: translateY(0);    opacity: 1; }
+}
+
+/* Glow continuo para números */
+@keyframes graphic-number-glow {
+  0%, 100% { text-shadow: 0 0 8px #00d4ff, 0 0 20px #00d4ff; }
+  50%      { text-shadow: 0 0 16px #00d4ff, 0 0 40px #00d4ff, 0 0 60px #7F77DD; }
+}
+
+/* Zoom suave para emojis */
+@keyframes graphic-gentle-zoom {
+  0%, 100% { transform: scale(1);   filter: brightness(1); }
+  50%      { transform: scale(1.08); filter: brightness(1.2); }
+}
+
+/* Pulso de barra (horizontal / vertical) */
+@keyframes graphic-bar-pulse {
+  0%, 100% { box-shadow: 0 0 8px #00d4ff44; }
+  50%      { box-shadow: 0 0 20px #00d4ffaa, 0 0 40px #7F77DD44; }
+}
+
+/* Clases de conveniencia */
+.animate-graphic-enter   { animation: graphic-slide-up .5s cubic-bezier(.16,1,.3,1) forwards; }
+.animate-number-glow     { animation: graphic-number-glow 2s ease-in-out infinite; }
+.animate-gentle-zoom    { animation: graphic-gentle-zoom 2s ease-in-out infinite; }
+.animate-bar-pulse       { animation: graphic-bar-pulse 2s ease-in-out infinite; }

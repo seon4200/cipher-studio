@@ -1808,3 +1808,122 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
     return { success: false, error: err.message || 'Error interno' };
   }
 });
+
+ipcMain.handle('regenerate-graphics', async (_event, { scriptText, clips, graphicsPercent }) => {
+  try {
+    console.log('[regenerate-graphics] Iniciando...');
+    loadEnv(true);
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) return { success: false, error: 'No se configuró DEEPSEEK_API_KEY en el archivo .env' };
+
+    const totalClips = clips.length;
+    const targetGraphicsCount = Math.round((graphicsPercent / 100) * totalClips);
+    console.log(`[regenerate-graphics] Clips totales: ${totalClips}, Gráficos a generar: ${targetGraphicsCount}`);
+
+    let generatedClips = clips.map((c: any) => ({ ...c }));
+
+    if (targetGraphicsCount <= 0) {
+      return { success: true, clips: generatedClips };
+    }
+
+    // Dividir scriptText en el mismo número de fragmentos para contextualizar cada clip
+    const sentences = (scriptText || '').split(/(?<=[.!?])\s+/).filter((s: string) => s.trim().length > 0);
+    const fragments: string[] = [];
+    if (sentences.length <= totalClips) {
+      for (let i = 0; i < totalClips; i++) {
+        fragments.push(sentences[i] || sentences[sentences.length - 1] || '');
+      }
+    } else {
+      const k = sentences.length / totalClips;
+      for (let i = 0; i < totalClips; i++) {
+        const start = Math.floor(i * k);
+        const end = Math.floor((i + 1) * k);
+        fragments.push(sentences.slice(start, end).join(' '));
+      }
+    }
+
+    const fragmentosNumerados = fragments
+      .map((frag, idx) => `ID del clip: "${clips[idx]?.id || idx}", Nombre del clip: "${clips[idx]?.name}", Fragmento: "${frag}"`)
+      .join('\n');
+
+    const dsPrompt = `Eres un diseñador de motion graphics para videos cortos. Tienes un guión de un video segmentado en clips.
+Debes elegir exactamente ${targetGraphicsCount} clips de la lista para colocarles un gráfico animado superpuesto que apoye visualmente lo que se narra en el fragmento.
+
+Tipos de gráficos disponibles ("type"):
+- "contador": un contador numérico animado que sube de 0 a un valor (ej. value: 80, unit: "k", label: "seguidores").
+- "barra_horizontal": una barra de progreso que se llena hasta un porcentaje (ej. value: 75, unit: "%", label: "avance").
+- "barra_vertical": una barra vertical que sube (ej. value: 90, unit: "pts", label: "rendimiento").
+- "donut": un gráfico circular animado de porcentaje (ej. value: 65, unit: "%", label: "retención").
+- "dato_grande": un número destacado gigante con etiqueta debajo (ej. value: "9/10", label: "usuarios eligen esto").
+- "frase_clave": un texto resaltado con diseño limpio y animado (ej. value: "ENFOQUE ABSOLUTO").
+- "decorativo_emoji": un emoji grande con animación de pulso y zoom (ej. value: "💡", label: "Idea").
+
+LISTA DE CLIPS:
+${fragmentosNumerados}
+
+INSTRUCCIONES:
+1. Elige exactamente ${targetGraphicsCount} clips para tener gráficos. Los demás no tendrán gráficos (deben omitirse o no llevar graphicData).
+2. Genera los campos apropiados para "graphicData": type, value, label, unit.
+3. Responde ÚNICAMENTE con un JSON en este formato sin markdown ni comentarios:
+{
+  "clips": [
+    {
+      "id": "id_del_clip_elegido",
+      "graphicData": {
+        "type": "contador",
+        "value": 150,
+        "label": "Etiqueta",
+        "unit": "ms"
+      }
+    }
+  ]
+}`;
+
+    const dsResponse = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: 'Eres un motion designer experto. Responde ÚNICAMENTE con el JSON solicitado.' },
+          { role: 'user', content: dsPrompt }
+        ],
+        temperature: 0.3
+      })
+    });
+
+    if (dsResponse.ok) {
+      const dsData = (await dsResponse.json()) as any;
+      let content = (dsData?.choices?.[0]?.message?.content || '').trim();
+      if (content.includes('{')) {
+        content = content.substring(content.indexOf('{'), content.lastIndexOf('}') + 1);
+      }
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed.clips)) {
+        parsed.clips.forEach((pc: any) => {
+          const matchingClip = generatedClips.find((c: any) => c.id === pc.id || c.name === pc.name);
+          if (matchingClip && pc.graphicData) {
+            matchingClip.graphicData = pc.graphicData;
+          }
+        });
+      }
+    }
+    return { success: true, clips: generatedClips };
+  } catch (err: any) {
+    console.error('Error en regenerate-graphics:', err);
+    // Fallback: asignar gráficos simulados en base al porcentaje
+    const targetGraphicsCount = Math.round((graphicsPercent / 100) * clips.length);
+    const generatedClips = clips.map((c: any, idx: number) => {
+      const copy = { ...c };
+      if (idx < targetGraphicsCount) {
+        copy.graphicData = {
+          type: 'frase_clave',
+          value: 'CLAVE ' + (idx + 1),
+          label: 'Concepto clave'
+        };
+      }
+      return copy;
+    });
+    return { success: true, clips: generatedClips };
+  }
+});

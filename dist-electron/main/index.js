@@ -4157,6 +4157,7 @@ async function initProjectDirs(projectPath) {
     "temp/remotion",
     "temp/hyperframes",
     "temp/minimax",
+    "temp/stock",
     "temp/thumbnails"
   ];
   for (const f of folders) {
@@ -4280,6 +4281,35 @@ electron.ipcMain.handle("delete-project", async (_event, { projectPath }) => {
     if (await exists(projectPath)) {
       await fs.promises.rm(projectPath, { recursive: true, force: true });
       console.log(`[delete-project] Carpeta de proyecto eliminada: ${projectPath}`);
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+electron.ipcMain.handle("delete-all-projects", async () => {
+  try {
+    const projectsDir = await getProjectsDir();
+    const items = await fs.promises.readdir(projectsDir);
+    for (const item of items) {
+      const projectPath = path.join(projectsDir, item);
+      const stat = await fs.promises.stat(projectPath);
+      if (stat.isDirectory()) {
+        await fs.promises.rm(projectPath, { recursive: true, force: true });
+      }
+    }
+    activeProjectPath = null;
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+electron.ipcMain.handle("clear-global-stock-cache", async () => {
+  try {
+    const stockDir = path.join(getBancoClipsPath(), "stock");
+    if (await exists(stockDir)) {
+      await fs.promises.rm(stockDir, { recursive: true, force: true });
+      await fs.promises.mkdir(stockDir, { recursive: true });
     }
     return { success: true };
   } catch (err) {
@@ -4680,7 +4710,7 @@ electron.ipcMain.handle("generate-minimax-video", async (_event, { prompt }) => 
 });
 electron.ipcMain.handle("load-bank-clips", async (_event, { category }) => {
   try {
-    const isTempCategory = ["originales", "minimax"].includes(category.toLowerCase());
+    const isTempCategory = ["originales", "minimax", "stock"].includes(category.toLowerCase());
     const useActiveProj = !!(activeProjectPath && isTempCategory);
     const baseDir = useActiveProj ? activeProjectPath : getBancoClipsPath();
     const dirPath = useActiveProj ? path.join(baseDir, "temp", category) : path.join(baseDir, category);
@@ -4838,7 +4868,7 @@ electron.ipcMain.handle("read-file-as-blob", async (_event, { filePath }) => {
 });
 electron.ipcMain.handle("delete-bank-clip", async (_event, { category, file }) => {
   try {
-    const isTempCategory = category === "originales" || category === "minimax";
+    const isTempCategory = ["originales", "minimax", "stock"].includes(category.toLowerCase());
     const useActiveProj = !!(activeProjectPath && isTempCategory);
     const baseDir = useActiveProj ? activeProjectPath : getBancoClipsPath();
     const filePath = useActiveProj ? path.join(baseDir, "temp", category, file) : path.join(baseDir, category, file);
@@ -5231,6 +5261,14 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
               await logMessage(`[FASE 3] Usando stock existente: ${stockFilename}`);
             }
             await fs.promises.copyFile(finalStockPath, clipPath);
+            if (activeProjectPath) {
+              const localStockDir = path.join(activeProjectPath, "temp", "stock");
+              if (!await exists(localStockDir)) {
+                await fs.promises.mkdir(localStockDir, { recursive: true });
+              }
+              const localStockPath = path.join(localStockDir, stockFilename);
+              await fs.promises.copyFile(finalStockPath, localStockPath);
+            }
             success = true;
           } catch (stockErr) {
             await logMessage(`[FASE 3] Error Stock en clip ${item.index}: ${stockErr.message || stockErr}. Usando fallback original.`);
@@ -5356,6 +5394,116 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
     console.error(errMsg, err);
     await writeDebugLog(errMsg);
     return { success: false, error: err.message || "Error interno" };
+  }
+});
+electron.ipcMain.handle("regenerate-graphics", async (_event, { scriptText, clips, graphicsPercent }) => {
+  var _a, _b, _c;
+  try {
+    console.log("[regenerate-graphics] Iniciando...");
+    loadEnv(true);
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) return { success: false, error: "No se configuró DEEPSEEK_API_KEY en el archivo .env" };
+    const totalClips = clips.length;
+    const targetGraphicsCount = Math.round(graphicsPercent / 100 * totalClips);
+    console.log(`[regenerate-graphics] Clips totales: ${totalClips}, Gráficos a generar: ${targetGraphicsCount}`);
+    let generatedClips = clips.map((c) => ({ ...c }));
+    if (targetGraphicsCount <= 0) {
+      return { success: true, clips: generatedClips };
+    }
+    const sentences = (scriptText || "").split(new RegExp("(?<=[.!?])\\s+")).filter((s) => s.trim().length > 0);
+    const fragments = [];
+    if (sentences.length <= totalClips) {
+      for (let i = 0; i < totalClips; i++) {
+        fragments.push(sentences[i] || sentences[sentences.length - 1] || "");
+      }
+    } else {
+      const k = sentences.length / totalClips;
+      for (let i = 0; i < totalClips; i++) {
+        const start = Math.floor(i * k);
+        const end = Math.floor((i + 1) * k);
+        fragments.push(sentences.slice(start, end).join(" "));
+      }
+    }
+    const fragmentosNumerados = fragments.map((frag, idx) => {
+      var _a2, _b2;
+      return `ID del clip: "${((_a2 = clips[idx]) == null ? void 0 : _a2.id) || idx}", Nombre del clip: "${(_b2 = clips[idx]) == null ? void 0 : _b2.name}", Fragmento: "${frag}"`;
+    }).join("\n");
+    const dsPrompt = `Eres un diseñador de motion graphics para videos cortos. Tienes un guión de un video segmentado en clips.
+Debes elegir exactamente ${targetGraphicsCount} clips de la lista para colocarles un gráfico animado superpuesto que apoye visualmente lo que se narra en el fragmento.
+
+Tipos de gráficos disponibles ("type"):
+- "contador": un contador numérico animado que sube de 0 a un valor (ej. value: 80, unit: "k", label: "seguidores").
+- "barra_horizontal": una barra de progreso que se llena hasta un porcentaje (ej. value: 75, unit: "%", label: "avance").
+- "barra_vertical": una barra vertical que sube (ej. value: 90, unit: "pts", label: "rendimiento").
+- "donut": un gráfico circular animado de porcentaje (ej. value: 65, unit: "%", label: "retención").
+- "dato_grande": un número destacado gigante con etiqueta debajo (ej. value: "9/10", label: "usuarios eligen esto").
+- "frase_clave": un texto resaltado con diseño limpio y animado (ej. value: "ENFOQUE ABSOLUTO").
+- "decorativo_emoji": un emoji grande con animación de pulso y zoom (ej. value: "💡", label: "Idea").
+
+LISTA DE CLIPS:
+${fragmentosNumerados}
+
+INSTRUCCIONES:
+1. Elige exactamente ${targetGraphicsCount} clips para tener gráficos. Los demás no tendrán gráficos (deben omitirse o no llevar graphicData).
+2. Genera los campos apropiados para "graphicData": type, value, label, unit.
+3. Responde ÚNICAMENTE con un JSON en este formato sin markdown ni comentarios:
+{
+  "clips": [
+    {
+      "id": "id_del_clip_elegido",
+      "graphicData": {
+        "type": "contador",
+        "value": 150,
+        "label": "Etiqueta",
+        "unit": "ms"
+      }
+    }
+  ]
+}`;
+    const dsResponse = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          { role: "system", content: "Eres un motion designer experto. Responde ÚNICAMENTE con el JSON solicitado." },
+          { role: "user", content: dsPrompt }
+        ],
+        temperature: 0.3
+      })
+    });
+    if (dsResponse.ok) {
+      const dsData = await dsResponse.json();
+      let content = (((_c = (_b = (_a = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _a[0]) == null ? void 0 : _b.message) == null ? void 0 : _c.content) || "").trim();
+      if (content.includes("{")) {
+        content = content.substring(content.indexOf("{"), content.lastIndexOf("}") + 1);
+      }
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed.clips)) {
+        parsed.clips.forEach((pc) => {
+          const matchingClip = generatedClips.find((c) => c.id === pc.id || c.name === pc.name);
+          if (matchingClip && pc.graphicData) {
+            matchingClip.graphicData = pc.graphicData;
+          }
+        });
+      }
+    }
+    return { success: true, clips: generatedClips };
+  } catch (err) {
+    console.error("Error en regenerate-graphics:", err);
+    const targetGraphicsCount = Math.round(graphicsPercent / 100 * clips.length);
+    const generatedClips = clips.map((c, idx) => {
+      const copy = { ...c };
+      if (idx < targetGraphicsCount) {
+        copy.graphicData = {
+          type: "frase_clave",
+          value: "CLAVE " + (idx + 1),
+          label: "Concepto clave"
+        };
+      }
+      return copy;
+    });
+    return { success: true, clips: generatedClips };
   }
 });
 //# sourceMappingURL=index.js.map
