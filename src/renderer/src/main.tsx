@@ -60,8 +60,14 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
 
   useEffect(() => {
     setInternal(0)
-    if (type === 'contador' && typeof value === 'number') {
-      const target = Number(value)
+
+    const parsedNum = typeof value === 'number'
+      ? value
+      : (typeof value === 'string' && !isNaN(parseFloat(value)) ? parseFloat(value) : NaN)
+    const hasNum = !isNaN(parsedNum)
+
+    if (type === 'contador' && hasNum) {
+      const target = parsedNum
       const duration = 1500 // 1.5s
       const start = performance.now()
       let animId: number
@@ -77,14 +83,14 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
       return () => cancelAnimationFrame(animId)
     } else if (
       (type === 'barra_horizontal' || type === 'barra_vertical') &&
-      typeof value === 'number'
+      hasNum
     ) {
-      const timer = setTimeout(() => setInternal(Number(value)), 150)
+      const timer = setTimeout(() => setInternal(parsedNum), 150)
       return () => clearTimeout(timer)
-    } else if (type === 'donut' && typeof value === 'number') {
-      setInternal(Number(value))
-    } else if (typeof value === 'number') {
-      setInternal(Number(value))
+    } else if (type === 'donut' && hasNum) {
+      setInternal(parsedNum)
+    } else if (hasNum) {
+      setInternal(parsedNum)
     }
   }, [type, value])
 
@@ -144,8 +150,10 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
         )
       }
       case 'barras_comparativas': {
-        const leftVal = typeof value === 'number' ? value : 70
-        const rightVal = extra?.rightValue ?? 50
+        const parsedLeft = typeof value === 'number' ? value : (typeof value === 'string' && !isNaN(parseFloat(value)) ? parseFloat(value) : 70)
+        const parsedRight = typeof extra?.rightValue === 'number' ? extra.rightValue : (typeof extra?.rightValue === 'string' && !isNaN(parseFloat(extra.rightValue)) ? parseFloat(extra.rightValue) : 50)
+        const leftVal = Math.max(0, Math.min(100, parsedLeft))
+        const rightVal = Math.max(0, Math.min(100, parsedRight))
         return (
           <div className="flex space-x-6 w-full justify-around items-end h-28">
             <div className="flex flex-col items-center space-y-1">
@@ -248,7 +256,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
         )
       }
       case 'ranking_top3': {
-        const top3 = extra?.top3 || (typeof value === 'string' ? value.split(',') : ['#1 Item', '#2 Item', '#3 Item'])
+        const top3 = extra?.steps || extra?.items || extra?.top3 || (typeof value === 'string' ? value.split(',') : ['#1 Item', '#2 Item', '#3 Item'])
         return (
           <div className="flex items-end justify-center space-x-2 h-24 w-full">
             <div className="flex flex-col items-center bg-slate-900/80 border border-slate-800 rounded-t-lg p-1 w-16 h-16 justify-center">
@@ -291,7 +299,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
         )
       }
       case 'lista_numerada': {
-        const items = extra?.items || (typeof value === 'string' ? value.split(',') : ['Item A', 'Item B'])
+        const items = extra?.steps || extra?.items || (typeof value === 'string' ? value.split(',') : ['Item A', 'Item B'])
         return (
           <ol className="space-y-1 text-left w-full">
             {items.map((it: string, i: number) => (
@@ -304,7 +312,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
         )
       }
       case 'checklist': {
-        const items = extra?.items || (typeof value === 'string' ? value.split(',') : ['Check A', 'Check B'])
+        const items = extra?.steps || extra?.items || (typeof value === 'string' ? value.split(',') : ['Check A', 'Check B'])
         return (
           <ul className="space-y-1 text-left w-full">
             {items.map((it: string, i: number) => (
@@ -317,7 +325,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
         )
       }
       case 'pasos_proceso': {
-        const steps = extra?.steps || (typeof value === 'string' ? value.split('->') : ['Paso 1', 'Paso 2', 'Paso 3'])
+        const steps = extra?.steps || extra?.items || (typeof value === 'string' ? value.split('->') : ['Paso 1', 'Paso 2', 'Paso 3'])
         return (
           <div className="flex items-center space-x-2 overflow-x-auto py-1 w-full justify-center">
             {steps.map((st: string, i: number, arr: any[]) => (
@@ -338,12 +346,12 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
   }
 
   return (
-    <div className={`min-w-[280px] p-5 rounded-2xl shadow-2xl backdrop-blur-md bg-slate-950/85 border border-slate-800/80 flex flex-col items-center space-y-3 ${getAnimationClass()}`}>
+    <div className={`min-w-[320px] p-6 rounded-2xl shadow-2xl backdrop-blur-md bg-slate-950/85 border border-slate-800/80 flex flex-col items-center space-y-3 ${getAnimationClass()}`}>
       {/* EMOJI & LABEL HEADER */}
       {(emoji || label) && (
         <div className="flex items-center space-x-2 mb-1 justify-center w-full">
-          {emoji && <span className="text-2xl animate-gentle-zoom">{emoji}</span>}
-          {label && <span className="text-sm font-semibold text-slate-300">{label}</span>}
+          {emoji && <span className="text-3xl animate-gentle-zoom">{emoji}</span>}
+          {label && <span className="text-base font-semibold text-slate-300">{label}</span>}
         </div>
       )}
       {/* MAIN GRAPHIC CONTENT */}
@@ -3406,31 +3414,29 @@ function App() {
                   <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
                   <span>Construir Timeline IA</span>
                 </button>
-                {/* ----- Slider – Porcentaje de Gráficos ----- */}
+                {/* ----- Selector de Porcentaje de Gráficos ----- */}
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
                     Porcentaje de Gráficos
                   </label>
-                  <div className="flex items-center">
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      step={1}
-                      value={graphicsPercent}
-                      className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
-                      onChange={e => {
-                        let val = Number(e.target.value);
-                        if (val > 0 && val < 50) val = 50;
-                        setGraphicsPercent(val);
-                      }}
-                    />
-                    <span className="ml-3 text-sm text-slate-300">{graphicsPercent}%</span>
-                    {graphicsPercent > 0 && graphicsPercent < 50 && (
-                      <span className="ml-2 text-xs text-amber-400">
-                        (Mín. 50% Int.)
-                      </span>
-                    )}
+                  <div className="grid grid-cols-3 gap-2 bg-slate-900/60 p-1 rounded-xl border border-slate-800">
+                    {[0, 50, 100].map((val) => {
+                      const active = graphicsPercent === val;
+                      return (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setGraphicsPercent(val)}
+                          className={`py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                            active
+                              ? 'bg-indigo-650 text-white shadow-md shadow-indigo-500/20'
+                              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                          }`}
+                        >
+                          {val}%
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
                 {/* ----- Botón Regenerar Gráficos ----- */}
@@ -5202,7 +5208,7 @@ function App() {
                     .map((tClip) => {
                       const leftPercent = (tClip.startSeconds / totalDuration) * 100;
                       const widthPercent = (tClip.durationSeconds / totalDuration) * 100;
-                      const emoji = tClip.graphicData?.type === 'decorativo_emoji' ? tClip.graphicData?.value : '📊';
+                      const emoji = tClip.graphicData?.emoji || '📊';
                       const label = tClip.graphicData?.label || tClip.graphicData?.type || tClip.name;
                       
                       return (
@@ -5230,9 +5236,11 @@ function App() {
                             </span>
                           </div>
                           
-                          <span className="text-[9px] font-mono px-1 rounded flex-shrink-0 select-none pointer-events-none bg-slate-950/60 text-slate-350 z-10 mr-1.5">
-                            {tClip.durationSeconds.toFixed(1)}s
-                          </span>
+                          {tClip.durationSeconds >= 2.0 && (
+                            <span className="text-[9px] font-mono px-1 rounded flex-shrink-0 select-none pointer-events-none bg-slate-950/60 text-slate-350 z-10 mr-1.5">
+                              {tClip.durationSeconds.toFixed(1)}s
+                            </span>
+                          )}
 
                           {/* Delete button (X) */}
                           <button

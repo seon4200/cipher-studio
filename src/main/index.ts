@@ -1522,7 +1522,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         })
         .join('\n');
 
-      const dsPrompt = `Eres un editor de video. Tienes la transcripción del video original con timestamps y un guión reescrito dividido en frases (con timestamps reales de la voz generada).
+      const dsPromptClips = `Eres un editor de video. Tienes la transcripción del video original con timestamps y un guión reescrito dividido en frases (con timestamps reales de la voz generada).
 Para cada frase del guión, decide cómo ilustrarla. Si la duración de la frase supera los 4.0 segundos, debes dividirla en 2 o 3 sub-clips visuales (máximo 3.0s por sub-clip).
 Cada sub-clip visual puede ser de tipo original del video ('original'), buscando un clip de stock ('stock') o generándolo por IA ('ia').
 
@@ -1545,19 +1545,6 @@ INSTRUCCIONES DE CLIPS VISUALES:
 - Para clips tipo 'ia': genera un prompt descriptivo en inglés y altamente visual de 1 oración en el campo "prompt".
 - Distribuye los tipos de forma intercalada. Alterna entre 'original', 'stock' e 'ia' de forma variada y natural.
 
-INSTRUCCIONES DE GRÁFICOS ANIMADOS:
-- Para cada frase decide también si debe tener un gráfico animado superpuesto (en aproximadamente un ${pct}% del total de frases).
-- Si no necesita gráfico, pon 'graphic': null.
-- Si necesita un gráfico, pon 'graphic' con los siguientes campos:
-  * type: barra_horizontal, barra_vertical, barras_comparativas, donut, contador, comparacion_antes_despues, flecha_crecimiento, flecha_caida, multiplicador, fraccion, ranking_top3, dato_grande, frase_clave, decorativo_emoji, lista_numerada, checklist, o pasos_proceso
-  * value: número real o texto extraído de la frase (obligatorio para barras, donut, contador, flechas, multiplicador, fraccion)
-  * label: texto descriptivo corto en español
-  * unit: '%', 'x', 'k', etc.
-  * emoji: emoji relevante al tema
-  * graphicStart: segundo de inicio del gráfico relativo al comienzo de esta frase. Debe ser el momento exacto donde se menciona el concepto clave.
-  * graphicEnd: segundo de fin del gráfico relativo al comienzo de esta frase.
-  - REGLA CRÍTICA DE TIEMPO DEL GRÁFICO: La duración del gráfico (graphicEnd - graphicStart) no debe superar 1.5 segundos. Ambos valores deben estar entre 0.0 y la duración total de la frase.
-
 Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 {
   "phrases": [
@@ -1574,16 +1561,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           "timestamp": 12.5,
           "duration": 1.5
         }
-      ],
-      "graphic": {
-        "type": "contador",
-        "value": 100,
-        "label": "seguidores",
-        "unit": "k",
-        "emoji": "🚀",
-        "graphicStart": 1.2,
-        "graphicEnd": 2.7
-      }
+      ]
     },
     {
       "phraseIndex": 2,
@@ -1593,54 +1571,146 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           "prompt": "A cinematic shot of a computer monitor showing green code scrolling down",
           "duration": 3.2
         }
-      ],
+      ]
+    }
+  ]
+}`;
+
+      const dsPromptGraphics = `Eres un motion designer para videos cortos. Tienes un guión de video segmentado en frases con su respectiva duración.
+Debes colocar un gráfico animado superpuesto que apoye visualmente el concepto clave de cada frase.
+
+REGLAS DE COBERTURA Y CALIDAD PARA LOS GRÁFICOS:
+1. COBERTURA OBLIGATORIA DEL ${pct}%:
+   - Exactamente el ${pct}% de las frases procesadas DEBE tener un gráfico animado asignado. Es obligatorio respetar esta proporción exacta de cobertura.
+   - Solo debes asignar 'graphic': null para frases de transición extremadamente cortas (menores a 1.0 segundo de duración).
+
+2. DOS CATEGORÍAS VÁLIDAS DE GRÁFICOS (TIPO A Y TIPO B):
+   - TIPO A: Si la frase contiene un dato cuantificable (números, porcentajes, comparaciones, listas, rankings) -> SÍ crear gráfico estructurado usando el tipo adecuado: "contador", "barra_horizontal", "donut", "barras_comparativas", "comparacion_antes_despues", "flecha_crecimiento", "flecha_caida", "multiplicador", "fraccion", "ranking_top3", "lista_numerada", "checklist", "pasos_proceso".
+   - TIPO B: Si la frase NO contiene datos cuantificables -> DEBES destacar la idea o concepto principal usando:
+     * "decorativo_emoji": con un emoji altamente representativo del concepto y una etiqueta corta (label).
+     * "frase_clave": con el texto o frase más impactante (value) de esa frase.
+
+3. EJEMPLOS ESTRICTOS DE TIPO B:
+   - Si la frase es "tu mente es un software" -> usar type: "decorativo_emoji", emoji: "🧠", label: "Mente = Software"
+   - Si la frase es "dopamina es energía de la carne" -> usar type: "decorativo_emoji", emoji: "🔥", label: "Dopamina"
+   - Si la frase es "serotonina es del espíritu" -> usar type: "decorativo_emoji", emoji: "🧘", label: "Serotonina"
+   - Si la frase es "el cielo y el infierno viven dentro de ti" -> usar type: "frase_clave", value: "cielo e infierno están en ti"
+   - Si la frase es "nada es materia todo es energía" -> usar type: "decorativo_emoji", emoji: "⚡", label: "Todo es Energía"
+
+4. EMOJIS ESPECÍFICOS Y RELEVANTES:
+   - El emoji asignado en el campo "emoji" DEBE ser específico al concepto de la frase. NUNCA uses emojis genéricos como 📊 como comodín o fallback.
+
+5. EXTRACCIÓN DE DATOS PRECISA (NATIVOS) Y CAMPO EXTRA:
+   - El campo "value" debe conservar su tipo nativo limpio (número real/entero para contadores/barras/donuts, o string para frases o fracciones).
+   - Si el gráfico es estructurado, DEBES proporcionar el objeto "extra" con la siguiente estructura:
+     * "barras_comparativas" -> extra: { "rightValue": número, "rightLabel": "nombre etiqueta B" }
+     * "comparacion_antes_despues" -> extra: { "beforeValue": número/string, "afterValue": número/string }
+     * "pasos_proceso", "lista_numerada", "checklist", o "ranking_top3" -> extra: { "steps": ["item 1", "item 2", "item 3"] }
+
+6. REGLA CRÍTICA DE TIEMPO DEL GRÁFICO:
+   - "graphicStart": segundo de inicio del gráfico relativo al comienzo de esta frase. Debe ser el momento exacto donde se menciona el concepto clave o palabra más impactante.
+   - "graphicEnd": segundo de fin del gráfico relativo al comienzo de esta frase.
+   - La duración total del gráfico (graphicEnd - graphicStart) debe ser de máximo 1.5 segundos. Ambos valores deben estar entre 0.0 y la duración total de la frase.
+
+FRASES DEL GUIÓN A PROCESAR:
+${fragmentosNumerados}
+
+Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
+{
+  "phrases": [
+    {
+      "phraseIndex": 1,
+      "graphic": {
+        "type": "contador",
+        "value": 70,
+        "label": "de personas",
+        "unit": "%",
+        "emoji": "👥",
+        "extra": null,
+        "graphicStart": 1.2,
+        "graphicEnd": 2.7
+      }
+    },
+    {
+      "phraseIndex": 2,
       "graphic": null
     }
   ]
 }`;
 
-      const dsResponse = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages: [
-            { role: 'system', content: 'Eres un editor de video experto. Responde ÚNICAMENTE con el JSON solicitado.' },
-            { role: 'user', content: dsPrompt }
-          ],
-          temperature: 0.2
-        })
-      });
-
       let phrasesDecision: any[] = [];
-      if (dsResponse.ok) {
-        const dsData = (await dsResponse.json()) as any;
-        let content = (dsData?.choices?.[0]?.message?.content || '').trim();
-        if (content.includes('{')) {
-          content = content.substring(content.indexOf('{'), content.lastIndexOf('}') + 1);
+      let graphicsDecision: any[] = [];
+
+      try {
+        await logMessage('[FASE 2] LLAMADA 1: Solicitando clips visuales a DeepSeek...');
+        const dsResponseClips = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [
+              { role: 'system', content: 'Eres un editor de video experto. Responde ÚNICAMENTE con el JSON solicitado.' },
+              { role: 'user', content: dsPromptClips }
+            ],
+            temperature: 0.2
+          })
+        });
+
+        if (dsResponseClips.ok) {
+          const dsData = (await dsResponseClips.json()) as any;
+          let content = (dsData?.choices?.[0]?.message?.content || '').trim();
+          if (content.includes('{')) {
+            content = content.substring(content.indexOf('{'), content.lastIndexOf('}') + 1);
+          }
+          const parsed = JSON.parse(content);
+          if (Array.isArray(parsed.phrases)) {
+            phrasesDecision = parsed.phrases;
+          }
         }
-        const parsed = JSON.parse(content);
-        if (Array.isArray(parsed.phrases)) {
-          phrasesDecision = parsed.phrases;
-        }
+      } catch (err: any) {
+        await logMessage(`[FASE 2] Error en llamada de clips: ${err.message}`);
       }
 
-      // Procesar y sanitizar con phrasesDecision
+      try {
+        await logMessage('[FASE 2] LLAMADA 2: Solicitando motion graphics a DeepSeek...');
+        const dsResponseGraphics = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [
+              { role: 'system', content: 'Eres un motion designer experto. Responde ÚNICAMENTE con el JSON solicitado.' },
+              { role: 'user', content: dsPromptGraphics }
+            ],
+            temperature: 0.3
+          })
+        });
+
+        if (dsResponseGraphics.ok) {
+          const dsData = (await dsResponseGraphics.json()) as any;
+          let content = (dsData?.choices?.[0]?.message?.content || '').trim();
+          if (content.includes('{')) {
+            content = content.substring(content.indexOf('{'), content.lastIndexOf('}') + 1);
+          }
+          const parsed = JSON.parse(content);
+          if (Array.isArray(parsed.phrases)) {
+            graphicsDecision = parsed.phrases;
+          }
+        }
+      } catch (err: any) {
+        await logMessage(`[FASE 2] Error en llamada de gráficos: ${err.message}`);
+      }
+
+      // Procesar y sanitizar con phrasesDecision y graphicsDecision
       for (let idx = 0; idx < newAudioSegments.length; idx++) {
         const seg = newAudioSegments[idx];
         const phraseDuration = seg.end - seg.start;
         const numClipsExpected = phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
         
-        let match = phrasesDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
-        if (!match) {
-          match = {
-            phraseIndex: idx + 1,
-            visualClips: [],
-            graphic: null
-          };
-        }
+        const matchClips = phrasesDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
+        const matchGraphics = graphicsDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
 
-        let visualClips = match.visualClips || match.clips;
+        let visualClips = matchClips?.visualClips || matchClips?.clips;
         if (!Array.isArray(visualClips) || visualClips.length === 0) {
           visualClips = [];
           for (let c = 0; c < numClipsExpected; c++) {
@@ -1707,7 +1777,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           }
         }
 
-        let graphic = match.graphic;
+        let graphic = matchGraphics?.graphic;
         if (graphic && typeof graphic === 'object') {
           const type = graphic.type || 'decorativo_emoji';
           let start = parseFloat(Number(graphic.graphicStart).toFixed(2));
@@ -1733,12 +1803,13 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 
           graphic = {
             type,
-            value: graphic.value !== undefined ? String(graphic.value) : '📊',
+            value: graphic.value !== undefined ? graphic.value : '📊',
             label: graphic.label || 'Concepto clave',
             unit: graphic.unit || '',
             emoji: graphic.emoji || '💡',
             graphicStart: start,
-            graphicEnd: end
+            graphicEnd: end,
+            extra: graphic.extra !== undefined ? graphic.extra : null
           };
         } else {
           graphic = null;
@@ -2107,7 +2178,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 
     for (let phraseIdx = 0; phraseIdx < sanitizedPhrases.length; phraseIdx++) {
       const phrase = sanitizedPhrases[phraseIdx];
-      const phraseStartSeconds = currentStart;
+      const phraseStartSeconds = newAudioSegments[phraseIdx]?.start ?? currentStart;
 
       for (let clipIdx = 0; clipIdx < phrase.visualClips.length; clipIdx++) {
         const clip = createdClips[globalClipIdx];
@@ -2186,7 +2257,8 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
               value: phrase.graphic.value,
               label: phrase.graphic.label,
               unit: phrase.graphic.unit,
-              emoji: phrase.graphic.emoji
+              emoji: phrase.graphic.emoji,
+              extra: phrase.graphic.extra
             }
           });
         }
