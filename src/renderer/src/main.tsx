@@ -3851,7 +3851,7 @@ function App() {
                  {graphicVisible && activeGraphicClip && activeGraphicClip.graphicData && (
                    <div 
                      key={activeGraphicClip.id}
-                     className={`absolute inset-0 z-20 flex items-end justify-center pb-[8%] transition-opacity duration-300 select-none pointer-events-none ${
+                     className={`absolute inset-0 z-20 flex items-end justify-center pb-[20%] transition-opacity duration-300 select-none pointer-events-none ${
                        graphicFading ? 'opacity-0' : 'opacity-100'
                      }`}
                    >
