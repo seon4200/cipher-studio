@@ -5821,7 +5821,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         currentStart += clip.durationSeconds;
       }
       if (phrase.graphic) {
-        const startSec = phraseStartSeconds + phrase.graphic.graphicStart;
+        const startSec = phraseStartSeconds + phrase.graphic.graphicStart + 1;
         const durSec = phrase.graphic.graphicEnd - phrase.graphic.graphicStart;
         if (startSec < audioDuration && durSec > 0) {
           graphicClips.push({
