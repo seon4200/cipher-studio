@@ -5107,8 +5107,7 @@ electron.ipcMain.handle("export-video", async (_event, { clips, aspectRatio, res
   }
 });
 electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent, newAudioSegments }) => {
-  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
-  const isOriginalAudio = transcriptSegments && newAudioSegments && transcriptSegments.length === newAudioSegments.length && ((_a = transcriptSegments[0]) == null ? void 0 : _a.start) === ((_b = newAudioSegments[0]) == null ? void 0 : _b.start);
+  var _a, _b, _c, _d, _e, _f, _g, _h;
   const logMessage = async (msg) => {
     console.log(msg);
     await writeDebugLog(msg);
@@ -5143,7 +5142,7 @@ electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText, 
       paragraph: "Consultando DeepSeek para seleccionar fragmentos e IA...",
       type: "DeepSeek"
     });
-    const maxTsVal = (transcriptSegments == null ? void 0 : transcriptSegments.length) > 0 ? ((_c = transcriptSegments[transcriptSegments.length - 1]) == null ? void 0 : _c.end) ?? audioDuration : audioDuration;
+    const maxTsVal = (transcriptSegments == null ? void 0 : transcriptSegments.length) > 0 ? ((_a = transcriptSegments[transcriptSegments.length - 1]) == null ? void 0 : _a.end) ?? audioDuration : audioDuration;
     let totalVisualClipsCount = 0;
     if (newAudioSegments && Array.isArray(newAudioSegments)) {
       newAudioSegments.forEach((seg) => {
@@ -5303,7 +5302,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         });
         if (dsResponseClips.ok) {
           const dsData = await dsResponseClips.json();
-          let content = (((_f = (_e = (_d = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _d[0]) == null ? void 0 : _e.message) == null ? void 0 : _f.content) || "").trim();
+          let content = (((_d = (_c = (_b = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _b[0]) == null ? void 0 : _c.message) == null ? void 0 : _d.content) || "").trim();
           if (content.includes("{")) {
             content = content.substring(content.indexOf("{"), content.lastIndexOf("}") + 1);
           }
@@ -5331,7 +5330,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         });
         if (dsResponseGraphics.ok) {
           const dsData = await dsResponseGraphics.json();
-          let content = (((_i = (_h = (_g = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _g[0]) == null ? void 0 : _h.message) == null ? void 0 : _i.content) || "").trim();
+          let content = (((_g = (_f = (_e = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _e[0]) == null ? void 0 : _f.message) == null ? void 0 : _g.content) || "").trim();
           if (content.includes("{")) {
             content = content.substring(content.indexOf("{"), content.lastIndexOf("}") + 1);
           }
@@ -5355,7 +5354,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           for (let c = 0; c < numClipsExpected; c++) {
             visualClips.push({
               type: "original",
-              timestamp: parseFloat((((_j = newAudioSegments[idx]) == null ? void 0 : _j.start) ?? idx / newAudioSegments.length * maxTsVal).toFixed(1)),
+              timestamp: parseFloat((idx / newAudioSegments.length * maxTsVal).toFixed(1)),
               keyword: "broll",
               prompt: "cinematic video clip",
               duration: phraseDuration / numClipsExpected
@@ -5367,7 +5366,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
             while (visualClips.length < numClipsExpected) {
               visualClips.push({
                 type: "original",
-                timestamp: parseFloat((((_k = newAudioSegments[idx]) == null ? void 0 : _k.start) ?? idx / newAudioSegments.length * maxTsVal).toFixed(1)),
+                timestamp: parseFloat((idx / newAudioSegments.length * maxTsVal).toFixed(1)),
                 keyword: "broll",
                 prompt: "cinematic video clip",
                 duration: phraseDuration / numClipsExpected
@@ -5378,12 +5377,10 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           }
         }
         visualClips = visualClips.map((c) => {
-          var _a2;
           const type = ["original", "stock", "ia"].includes(c.type) ? c.type : "original";
-          const effectiveTimestamp = isOriginalAudio && type === "original" && ((_a2 = newAudioSegments[idx]) == null ? void 0 : _a2.start) !== void 0 ? newAudioSegments[idx].start : c.timestamp ?? parseFloat((idx / newAudioSegments.length * maxTsVal).toFixed(1));
           return {
             type,
-            timestamp: effectiveTimestamp,
+            timestamp: c.timestamp ?? parseFloat((idx / newAudioSegments.length * maxTsVal).toFixed(1)),
             keyword: c.keyword || "broll",
             prompt: c.prompt || "cinematic video clip",
             duration: parseFloat((c.duration || phraseDuration / numClipsExpected).toFixed(2))
@@ -5473,7 +5470,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           }
           visualClips.push({
             type: "original",
-            timestamp: parseFloat((((_l = newAudioSegments[idx]) == null ? void 0 : _l.start) ?? idx / newAudioSegments.length * maxTsVal).toFixed(1)),
+            timestamp: parseFloat((idx / newAudioSegments.length * maxTsVal).toFixed(1)),
             keyword: "broll",
             prompt: "cinematic video clip",
             duration: dur
@@ -5705,10 +5702,9 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         }
         if (item.type === "original") {
           const ts = item.timestamp ?? 0;
-          await logMessage(`[DEBUG_ORIG] clip ${item.index} ts=${ts} duration=${item.duration}`);
           try {
             await new Promise((resolve, reject) => {
-              const cmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t ${item.duration} -c copy "${escapedClip}"`;
+              const cmd = `ffmpeg -y -accurate_seek -ss ${ts} -i "${escapedVideo}" -t ${item.duration} -avoid_negative_ts make_zero -c copy "${escapedClip}"`;
               child_process.exec(cmd, (err) => {
                 if (err) reject(err);
                 else resolve();
@@ -5765,13 +5761,12 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
     let globalClipIdx = 0;
     for (let phraseIdx = 0; phraseIdx < sanitizedPhrases.length; phraseIdx++) {
       const phrase = sanitizedPhrases[phraseIdx];
-      const phraseStartSeconds = ((_m = newAudioSegments[phraseIdx]) == null ? void 0 : _m.start) ?? currentStart;
-      await logMessage(`[DEBUG3] phraseIdx=${phraseIdx} phraseStartSeconds=${phraseStartSeconds} currentStart=${currentStart}`);
+      const phraseStartSeconds = ((_h = newAudioSegments[phraseIdx]) == null ? void 0 : _h.start) ?? currentStart;
       for (let clipIdx = 0; clipIdx < phrase.visualClips.length; clipIdx++) {
         const clip = createdClips[globalClipIdx];
         globalClipIdx++;
         if (!clip) continue;
-        clip.startSeconds = phraseStartSeconds + (clipIdx > 0 ? sanitizedPhrases[phraseIdx].visualClips.slice(0, clipIdx).reduce((sum, c) => sum + (c.duration ?? 2), 0) : 0);
+        clip.startSeconds = currentStart;
         clip.graphic = null;
         if (clip.startSeconds >= audioDuration) {
           try {
