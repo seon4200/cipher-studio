@@ -1491,18 +1491,20 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
     const minimaxWeight = weights ? (weights[2] ?? 0) : 0;
     const stockWeight = weights ? (weights[1] ?? 0) : 0;
+    const visualWeight = weights ? (weights[3] ?? 0) : 0;
 
     let targetIaClips = Math.round((minimaxWeight / 100) * totalVisualClipsCount);
     let targetStockClips = Math.round((stockWeight / 100) * totalVisualClipsCount);
+    const targetVisualClips = Math.round((visualWeight / 100) * totalVisualClipsCount);
 
     if (targetIaClips + targetStockClips > totalVisualClipsCount) {
       const sum = targetIaClips + targetStockClips;
       targetIaClips = Math.floor((targetIaClips / sum) * totalVisualClipsCount);
       targetStockClips = totalVisualClipsCount - targetIaClips;
     }
-    const targetOriginalClips = totalVisualClipsCount - targetIaClips - targetStockClips;
+    const targetOriginalClips = totalVisualClipsCount - targetStockClips - targetIaClips - targetVisualClips;
 
-    await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}/${totalVisualClipsCount}`);
+    await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}, visual=${targetVisualClips}/${totalVisualClipsCount}`);
 
     const pct = typeof graphicsPercent === 'number' ? graphicsPercent : 50;
 
