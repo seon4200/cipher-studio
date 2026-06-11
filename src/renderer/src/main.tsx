@@ -2315,6 +2315,73 @@ function App() {
     setTimelineWeights(updatedWeights);
   };
 
+  const handleSyncTimeline = useCallback(() => {
+    if (!timelineVideoClips.length) return;
+    const segments = transcriptSegments.length > 0 
+      ? transcriptSegments 
+      : newAudioSegments;
+    if (!segments.length) return;
+
+    // Separar clips por tipo
+    const origClips = timelineVideoClips
+      .filter(c => c.category === 'original')
+      .sort((a, b) => a.startSeconds - b.startSeconds);
+    
+    const otherVideoClips = timelineVideoClips
+      .filter(c => c.type === 'video' && c.category !== 'original')
+      .sort((a, b) => a.startSeconds - b.startSeconds);
+    
+    const graphicClips = timelineVideoClips
+      .filter(c => c.type === 'graphic')
+      .sort((a, b) => a.startSeconds - b.startSeconds);
+
+    // Paso 1: Fijar clips originales a timestamps de Whisper
+    const fixedOriginals = origClips.map((clip, i) => {
+      if (i >= segments.length) return clip;
+      const seg = segments[i];
+      return {
+        ...clip,
+        startSeconds: parseFloat(seg.start.toFixed(2)),
+        durationSeconds: parseFloat((seg.end - seg.start).toFixed(2))
+      };
+    });
+
+    // Paso 2: Distribuir clips de stock/IA en huecos entre originales
+    const allFixed = [...fixedOriginals, ...otherVideoClips]
+      .sort((a, b) => a.startSeconds - b.startSeconds);
+    
+    for (let i = 0; i < allFixed.length - 1; i++) {
+      const current = allFixed[i];
+      const next = allFixed[i + 1];
+      const currentEnd = current.startSeconds + current.durationSeconds;
+      const gap = next.startSeconds - currentEnd;
+      if (Math.abs(gap) < 1.5 && gap !== 0) {
+        allFixed[i] = {
+          ...current,
+          durationSeconds: parseFloat((next.startSeconds - current.startSeconds).toFixed(2))
+        };
+      }
+    }
+
+    // Paso 3: Ajustar gráficos — mantener distancia relativa a su clip más cercano
+    const fixedGraphics = graphicClips.map(graphic => {
+      const closest = allFixed.reduce((prev, curr) => 
+        Math.abs(curr.startSeconds - graphic.startSeconds) < 
+        Math.abs(prev.startSeconds - graphic.startSeconds) ? curr : prev
+      );
+      const offset = graphic.startSeconds - closest.startSeconds;
+      return {
+        ...graphic,
+        startSeconds: parseFloat((closest.startSeconds + Math.max(0, offset)).toFixed(2))
+      };
+    });
+
+    const audioClips = timelineVideoClips.filter(c => c.type === 'audio');
+    const updated = [...allFixed, ...fixedGraphics, ...audioClips];
+    setTimelineVideoClips(updated);
+    pushHistory(updated);
+  }, [timelineVideoClips, transcriptSegments, newAudioSegments]);
+
   const handleBuildIATimeline = async () => {
     if (!aiScript.trim()) return;
 
@@ -3423,6 +3490,14 @@ function App() {
                   <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
                   <span>Construir Timeline IA</span>
                 </button>
+                {timelineVideoClips.length > 0 && (
+                  <button
+                    onClick={handleSyncTimeline}
+                    className="w-full mt-2 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/20 text-xs py-2 px-3 rounded-xl font-bold active:scale-95 transition-all cursor-pointer flex items-center justify-center space-x-2"
+                  >
+                    <span>⚡ Sincronizar Timeline</span>
+                  </button>
+                )}
                 {/* ----- Selector de Porcentaje de Gráficos ----- */}
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-slate-300 mb-2">
