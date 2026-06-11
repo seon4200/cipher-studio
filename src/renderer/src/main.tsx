@@ -1432,7 +1432,6 @@ function App() {
   const [transcriptSegments, setTranscriptSegments] = useState<{ start: number; end: number; text: string }[]>([])
   const [newAudioSegments, setNewAudioSegments] = useState<{ start: number; end: number; text: string }[]>([])
   const [originalTranscriptText, setOriginalTranscriptText] = useState<string>('')
-  const transcription = originalTranscriptText
   const [aiScript, setAiScript] = useState<string>('')
   const [isRewriting, setIsRewriting] = useState(false)
   const [rewriteError, setRewriteError] = useState<string>('')
@@ -2319,16 +2318,10 @@ function App() {
     if (!aiScript.trim()) return;
 
     const voiceClip = timelineVideoClips.find(c => c.type === 'audio');
-    const isUsingOriginalAudio = voiceClip?.name === 'Voz - Audio Original';
-    if (!voiceClip) {
-      setGenerationError('Debes agregar un audio al timeline primero.');
+    if (!voiceClip || !newAudioSegments || newAudioSegments.length === 0) {
+      setGenerationError('Debes generar la voz primero antes de construir el timeline para poder usar los timestamps reales.');
       return;
     }
-    if (!isUsingOriginalAudio && (!newAudioSegments || newAudioSegments.length === 0)) {
-      setGenerationError('Debes generar la voz primero antes de construir el timeline.');
-      return;
-    }
-    const effectiveAudioSegments = isUsingOriginalAudio ? transcriptSegments : newAudioSegments;
     
     setIsGeneratingAssets(true);
     setGenerationError('');
@@ -2364,7 +2357,7 @@ function App() {
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
         graphicsPercent,
-        newAudioSegments: effectiveAudioSegments
+        newAudioSegments
       });
       
       if (res && res.success && res.clips) {
@@ -3065,8 +3058,6 @@ function App() {
       </div>
     );
   }
-
-  const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
 
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
@@ -4377,19 +4368,6 @@ function App() {
                                   <span>{isRewriting ? 'Procesando...' : 'Reescribir'}</span>
                                 </button>
                                 <button
-                                  onClick={() => {
-                                    if (transcriptSegments && transcriptSegments.length > 0) {
-                                      const text = transcriptSegments.map((s: any) => s.text).join(' ');
-                                      setAiScript(text);
-                                    } else if (transcription) {
-                                      setAiScript(transcription);
-                                    }
-                                  }}
-                                  className="bg-slate-700/50 hover:bg-slate-600 text-slate-300 hover:text-white border border-slate-600/30 text-[10px] font-bold py-1.5 px-3 rounded-lg active:scale-95 transition-all cursor-pointer flex items-center space-x-1"
-                                >
-                                  <span>📋 Usar Transcripción</span>
-                                </button>
-                                <button
                                   onClick={() => setSelectedTool('voice')}
                                   className="flex-1 min-w-[100px] bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] py-1 px-2 rounded-lg font-semibold active:scale-95 transition-all flex items-center justify-center space-x-1 cursor-pointer border border-emerald-500/20"
                                   title="Confirmar y pasar a voz"
@@ -4664,30 +4642,6 @@ function App() {
                           <span className="font-bold block mb-1">Error de generación:</span>
                           <span className="font-mono text-[9px] select-text">{voiceGenerationError}</span>
                         </div>
-                      )}
-
-                      {firstVideoInLibrary && (
-                        <button
-                          onClick={() => {
-                            const durationSecs = firstVideoInLibrary.durationSeconds || 30;
-                            const newTimelineClip = {
-                              id: `timeline-voice-original-${Date.now()}`,
-                              name: `Voz - Audio Original`,
-                              startSeconds: 0,
-                              durationSeconds: durationSecs,
-                              type: 'audio' as const,
-                              url: firstVideoInLibrary.url,
-                              path: firstVideoInLibrary.path,
-                              newAudioSegments: transcriptSegments,
-                            };
-                            const updated = [...timelineVideoClips, newTimelineClip];
-                            setTimelineVideoClips(updated);
-                            pushHistory(updated);
-                          }}
-                          className="w-full bg-emerald-600/25 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/20 hover:border-emerald-500 text-[10px] font-bold py-2 px-3 rounded-lg active:scale-95 transition-all cursor-pointer"
-                        >
-                          🎙️ Usar Audio Original
-                        </button>
                       )}
 
                       {/* Lista de Versiones Generadas (Mini Reproductor) */}
