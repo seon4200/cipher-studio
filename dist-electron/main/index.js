@@ -5152,17 +5152,15 @@ electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText, 
     }
     const minimaxWeight = weights ? weights[2] ?? 0 : 0;
     const stockWeight = weights ? weights[1] ?? 0 : 0;
-    const visualWeight = weights ? weights[3] ?? 0 : 0;
     let targetIaClips = Math.round(minimaxWeight / 100 * totalVisualClipsCount);
     let targetStockClips = Math.round(stockWeight / 100 * totalVisualClipsCount);
-    const targetVisualClips = Math.round(visualWeight / 100 * totalVisualClipsCount);
     if (targetIaClips + targetStockClips > totalVisualClipsCount) {
       const sum = targetIaClips + targetStockClips;
       targetIaClips = Math.floor(targetIaClips / sum * totalVisualClipsCount);
       targetStockClips = totalVisualClipsCount - targetIaClips;
     }
-    const targetOriginalClips = totalVisualClipsCount - targetStockClips - targetIaClips - targetVisualClips;
-    await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}, visual=${targetVisualClips}/${totalVisualClipsCount}`);
+    const targetOriginalClips = totalVisualClipsCount - targetIaClips - targetStockClips;
+    await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}/${totalVisualClipsCount}`);
     const pct = typeof graphicsPercent === "number" ? graphicsPercent : 50;
     let sanitizedPhrases = [];
     try {
@@ -5174,11 +5172,10 @@ electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText, 
       }).join("\n");
       const dsPromptClips = `Eres un editor de video. Tienes la transcripción del video original con timestamps y un guión reescrito dividido en frases (con timestamps reales de la voz generada).
 Para cada frase del guión, decide cómo ilustrarla. Si la duración de la frase supera los 4.0 segundos, debes dividirla en 2 o 3 sub-clips visuales (máximo 3.0s por sub-clip).
-Cada sub-clip visual puede ser de tipo original del video ('original'), buscando un clip de stock ('stock'), generándolo por IA ('ia'), o un holograma visual Canvas ('visual').
+Cada sub-clip visual puede ser de tipo original del video ('original'), buscando un clip de stock ('stock') o generándolo por IA ('ia').
 
 De un total de ${totalVisualClipsCount} sub-clips visuales a generar a lo largo de todas las frases, debes clasificar exactamente:
 - ${targetIaClips} sub-clips como de tipo 'ia'
-- ${targetVisualClips} sub-clips como de tipo 'visual'
 - ${targetStockClips} sub-clips como de tipo 'stock'
 - ${targetOriginalClips} sub-clips como de tipo 'original'
 
@@ -5194,8 +5191,7 @@ INSTRUCCIONES DE CLIPS VISUALES:
 - Para clips tipo 'original': elige el timestamp de inicio más adecuado (rango 0 - ${Number(maxTsVal).toFixed(1)}) basándose en la transcripción del video original.
 - Para clips tipo 'stock': genera una palabra clave en inglés corta (1-2 palabras, ej. "cyberpunk city", "financial chart", "nervous man") para buscar en Pexels en el campo "keyword".
 - Para clips tipo 'ia': genera un prompt descriptivo en inglés y altamente visual de 1 oración en el campo "prompt".
-- Para clips tipo 'visual': elige UNA palabra clave en español (1 palabra exacta) del siguiente diccionario que mejor represente el concepto de la frase. Ponla en el campo "keyword". Diccionario válido: cerebro, neurona, aprendizaje, mente, inteligencia, memoria, pensamiento, cognicion, sinapsis, conexion, procesamiento, energia, impacto, destruccion, fuerza, potencia, choque, detonacion, ruptura, estallido, colapso, catastrofe, persona, gente, comunidad, multitud, sociedad, familia, grupo, equipo, humanidad, individuo, relacion, caida, descenso, lluvia, tristeza, perdida, decadencia, deterioro, melancolia, crisis, problema, dificultad, exito, progreso, mejora, evolucion, ascenso, logro, superacion, avance, desarrollo, prosperidad, abundancia, trampa, limite, restriccion, obstaculo, control, prision, barrera, bloqueo, dependencia, adiccion, encierro, sistema, ciclo, rotacion, planeta, universo, cosmos, gravedad, atraccion, orden, patron, periodicidad, dinero, riqueza, finanzas, economia, inversion, ganancias, ingresos, capital, fortuna, patrimonio, ahorro, amor, emocion, salud, pasion, sentimiento, corazon, bienestar, vitalidad, pulso, latido, afecto, musica, sonido, frecuencia, vibracion, ritmo, audio, comunicacion, voz, senal, onda, resonancia, mundo, global, internacional, geografia, pais, viaje, cultura, tierra, nacion, continente, fronteras, tiempo, plazo, urgencia, espera, paciencia, deadline, demora, duracion, momento, temporalidad, historia, justicia, equilibrio, decision, eleccion, comparar, balance, ventaja, desventaja, pros, contras, evaluacion, proceso, mecanismo, trabajo, industria, produccion, maquina, automatizacion, eficiencia, estructura, organizacion, manufactura, naturaleza, vida, origen, raiz, fundamento, tradicion, herencia, base, inicio, fuente, crecimiento, confusion, complejidad, busqueda, solucion, estrategia, ruta, camino, analisis, incertidumbre, navegacion, perderse, proteccion, seguridad, defensa, privacidad, riesgo, amenaza, vulnerabilidad, fortaleza, resistencia, inmunidad, prevencion, vigilancia, observacion, atencion, percepcion, vision, consciencia, enfoque, perspectiva, descubrimiento, insight, detalle, transicion, cambio, paso, union, integracion, enlace, acceso, oportunidad, cruce, nexo, vinculo, caos, desorden, vertigo, estres, ansiedad, desequilibrio, tormenta, saturacion, vorago, caotismo, turbulencia
-- Distribuye los tipos de forma intercalada. Alterna entre 'original', 'stock', 'ia' y 'visual' de forma variada y natural.
+- Distribuye los tipos de forma intercalada. Alterna entre 'original', 'stock' e 'ia' de forma variada y natural.
 
 Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 {
@@ -5314,13 +5310,6 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           if (Array.isArray(parsed.phrases)) {
             phrasesDecision = parsed.phrases;
           }
-          const allVisualClips = phrasesDecision.flatMap((p) => p.visualClips || p.clips || []);
-          await logMessage(`[DEBUG] Tipos devueltos por DeepSeek: ${JSON.stringify(
-            allVisualClips.reduce((acc, c) => {
-              acc[c.type] = (acc[c.type] || 0) + 1;
-              return acc;
-            }, {})
-          )}`);
         }
       } catch (err) {
         await logMessage(`[FASE 2] Error en llamada de clips: ${err.message}`);
@@ -5388,7 +5377,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           }
         }
         visualClips = visualClips.map((c) => {
-          const type = ["original", "stock", "ia", "visual"].includes(c.type) ? c.type : "original";
+          const type = ["original", "stock", "ia"].includes(c.type) ? c.type : "original";
           return {
             type,
             timestamp: c.timestamp ?? parseFloat((idx / newAudioSegments.length * maxTsVal).toFixed(1)),
@@ -5588,7 +5577,6 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         const clipPath = path.join(outDir, `clip_${clipNum}.mp4`);
         const escapedClip = clipPath.replace(/"/g, '\\"');
         const thumbPath = path.join(thumbDir, `clip_${clipNum}.jpg`);
-        let effectivePath = clipPath;
         event.sender.send("generation-progress", {
           index: item.index - 1,
           total: totalClips,
@@ -5712,15 +5700,11 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
             item.timestamp = parseFloat(((item.index - 1) / totalClips * maxTsVal).toFixed(1));
           }
         }
-        if (item.type === "visual") {
-          success = true;
-          effectivePath = "";
-        }
         if (item.type === "original") {
           const ts = item.timestamp ?? 0;
           try {
             await new Promise((resolve, reject) => {
-              const cmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t ${item.duration} -c copy "${escapedClip}"`;
+              const cmd = `ffmpeg -y -accurate_seek -ss ${ts} -i "${escapedVideo}" -t ${item.duration} -avoid_negative_ts make_zero -c copy "${escapedClip}"`;
               child_process.exec(cmd, (err) => {
                 if (err) reject(err);
                 else resolve();
@@ -5731,33 +5715,28 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
             await logMessage(`[FASE 3] FFmpeg error clip ${item.index}: ${ffErr.message}`);
           }
         }
-        await logMessage(`[DEBUG2] clip ${item.index} type=${item.type} success=${success} effectivePath="${effectivePath}"`);
-        if (success && (item.type === "visual" || await exists(effectivePath))) {
-          const isVisual = item.type === "visual";
-          const durationSeconds = isVisual ? item.duration ?? 2 : await getVideoDuration(clipPath);
+        if (success && await exists(clipPath)) {
+          const durationSeconds = await getVideoDuration(clipPath);
           let thumbnailUrl = "";
-          if (!isVisual) {
-            try {
-              await generateVideoThumbnail(clipPath, thumbPath);
-              if (await exists(thumbPath)) {
-                thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbPath)).toString("base64")}`;
-              }
-            } catch (e) {
+          try {
+            await generateVideoThumbnail(clipPath, thumbPath);
+            if (await exists(thumbPath)) {
+              thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbPath)).toString("base64")}`;
             }
+          } catch (e) {
           }
-          const stat = isVisual ? null : await fs.promises.stat(clipPath);
+          const stat = await fs.promises.stat(clipPath);
           results[item.index - 1] = {
             id: `bank-originales-clip_${clipNum}.mp4`,
             name: `clip_${clipNum}.mp4`,
-            path: effectivePath,
-            url: effectivePath ? `file:///${effectivePath.replace(/\\/g, "/")}` : "",
+            path: clipPath,
+            url: `file:///${clipPath.replace(/\\/g, "/")}`,
             duration: formatTimeMinutesSeconds(durationSeconds),
             durationSeconds,
-            type: isVisual ? "visual" : "video",
-            category: isVisual ? "visual" : item.type === "ia" ? "minimax" : item.type === "stock" ? "stock" : "original",
-            size: stat ? `${(stat.size / (1024 * 1024)).toFixed(2)} MB` : "0 MB",
-            thumbnailUrl,
-            keyword: isVisual ? item.keyword ?? "" : void 0
+            type: "video",
+            category: item.type === "ia" ? "minimax" : item.type === "stock" ? "stock" : "original",
+            size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
+            thumbnailUrl
           };
         }
       }
@@ -5800,7 +5779,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           }
           continue;
         }
-        if (clip.category !== "visual" && clip.startSeconds + clip.durationSeconds > audioDuration) {
+        if (clip.startSeconds + clip.durationSeconds > audioDuration) {
           const targetDuration = parseFloat((audioDuration - clip.startSeconds).toFixed(2));
           if (targetDuration > 0) {
             const tempTrimPath = clip.path.replace(".mp4", "_trimmed.mp4");
@@ -5842,7 +5821,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         currentStart += clip.durationSeconds;
       }
       if (phrase.graphic) {
-        const startSec = phraseStartSeconds + phrase.graphic.graphicStart + 1;
+        const startSec = phraseStartSeconds + phrase.graphic.graphicStart;
         const durSec = phrase.graphic.graphicEnd - phrase.graphic.graphicStart;
         if (startSec < audioDuration && durSec > 0) {
           graphicClips.push({

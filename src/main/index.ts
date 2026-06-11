@@ -1432,6 +1432,10 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
 })
 
 ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent, newAudioSegments }) => {
+  const isOriginalAudio = transcriptSegments && newAudioSegments && 
+    transcriptSegments.length === newAudioSegments.length &&
+    transcriptSegments[0]?.start === newAudioSegments[0]?.start;
+
   const logMessage = async (msg: string) => {
     console.log(msg);
     await writeDebugLog(msg);
@@ -1716,7 +1720,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           for (let c = 0; c < numClipsExpected; c++) {
             visualClips.push({
               type: 'original',
-              timestamp: parseFloat(((idx / newAudioSegments.length) * maxTsVal).toFixed(1)),
+              timestamp: parseFloat((newAudioSegments[idx]?.start ?? ((idx / newAudioSegments.length) * maxTsVal)).toFixed(1)),
               keyword: 'broll',
               prompt: 'cinematic video clip',
               duration: phraseDuration / numClipsExpected
@@ -1729,7 +1733,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
             while (visualClips.length < numClipsExpected) {
               visualClips.push({
                 type: 'original',
-                timestamp: parseFloat(((idx / newAudioSegments.length) * maxTsVal).toFixed(1)),
+                timestamp: parseFloat((newAudioSegments[idx]?.start ?? ((idx / newAudioSegments.length) * maxTsVal)).toFixed(1)),
                 keyword: 'broll',
                 prompt: 'cinematic video clip',
                 duration: phraseDuration / numClipsExpected
@@ -1742,9 +1746,12 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 
         visualClips = visualClips.map((c: any) => {
           const type = ['original', 'stock', 'ia'].includes(c.type) ? c.type : 'original';
+          const effectiveTimestamp = (isOriginalAudio && type === 'original' && newAudioSegments[idx]?.start !== undefined)
+            ? newAudioSegments[idx].start
+            : (c.timestamp ?? parseFloat(((idx / newAudioSegments.length) * maxTsVal).toFixed(1)));
           return {
             type,
-            timestamp: c.timestamp ?? parseFloat(((idx / newAudioSegments.length) * maxTsVal).toFixed(1)),
+            timestamp: effectiveTimestamp,
             keyword: c.keyword || 'broll',
             prompt: c.prompt || 'cinematic video clip',
             duration: parseFloat((c.duration || (phraseDuration / numClipsExpected)).toFixed(2))
@@ -1842,7 +1849,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           }
           visualClips.push({
             type: 'original',
-            timestamp: parseFloat(((idx / newAudioSegments.length) * maxTsVal).toFixed(1)),
+            timestamp: parseFloat((newAudioSegments[idx]?.start ?? ((idx / newAudioSegments.length) * maxTsVal)).toFixed(1)),
             keyword: 'broll',
             prompt: 'cinematic video clip',
             duration: dur
@@ -2114,6 +2121,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 
         if (item.type === 'original') {
           const ts = item.timestamp ?? 0;
+          await logMessage(`[DEBUG_ORIG] clip ${item.index} ts=${ts} duration=${item.duration}`);
           try {
             await new Promise<void>((resolve, reject) => {
               const cmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t ${item.duration} -c copy "${escapedClip}"`;
@@ -2179,13 +2187,18 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
     for (let phraseIdx = 0; phraseIdx < sanitizedPhrases.length; phraseIdx++) {
       const phrase = sanitizedPhrases[phraseIdx];
       const phraseStartSeconds = newAudioSegments[phraseIdx]?.start ?? currentStart;
+      await logMessage(`[DEBUG3] phraseIdx=${phraseIdx} phraseStartSeconds=${phraseStartSeconds} currentStart=${currentStart}`);
 
       for (let clipIdx = 0; clipIdx < phrase.visualClips.length; clipIdx++) {
         const clip = createdClips[globalClipIdx];
         globalClipIdx++;
         if (!clip) continue;
 
-        clip.startSeconds = currentStart;
+        clip.startSeconds = phraseStartSeconds + (clipIdx > 0 ? 
+          sanitizedPhrases[phraseIdx].visualClips
+            .slice(0, clipIdx)
+            .reduce((sum: number, c: any) => sum + (c.duration ?? 2), 0) 
+          : 0);
         clip.graphic = null; // ya no va anidado en el video clip
 
         if (clip.startSeconds >= audioDuration) {
