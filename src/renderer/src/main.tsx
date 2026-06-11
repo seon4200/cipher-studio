@@ -7,6 +7,7 @@ import {
   Undo, Redo, Sliders, ChevronDown, Save
 } from 'lucide-react'
 import './styles/globals.css'
+import { HologramCanvas, getArchetype } from './components/visual-holograms'
 
 /* --------------------------------------------------------------
    AnimatedGraphic – Fase 2
@@ -369,13 +370,14 @@ interface Clip {
   name: string;
   duration: string;
   durationSeconds: number;
-  type: 'video' | 'audio';
+  type: 'video' | 'audio' | 'visual';
   path: string;
   size: string;
   url?: string;
   category?: string;
   thumbnailUrl?: string;
   graphicData?: any;
+  keyword?: string;
 }
 
 interface TimelineClip {
@@ -384,7 +386,7 @@ interface TimelineClip {
   startSeconds: number;
   durationSeconds: number;
   /** Tipo de clip, incluye 'graphic' para gráficos animados */
-  type?: 'video' | 'audio' | 'graphic';
+  type?: 'video' | 'audio' | 'graphic' | 'visual';
   path?: string;
   url?: string;
   origDurationSeconds?: number;
@@ -395,6 +397,7 @@ interface TimelineClip {
   graphicData?: any;
   category?: string;
   thumbnailUrl?: string;
+  keyword?: string;
 }
 
 interface GeneratedVoiceVersion {
@@ -624,6 +627,8 @@ function App() {
       .filter(c => c.type !== 'audio' && c.type !== 'graphic')
       .sort((a, b) => a.startSeconds - b.startSeconds);
   }, [timelineVideoClips]);
+
+  const activeClip = sortedVideoClips[currentClipIndex] || null;
 
   const graphicClips = useMemo(() => {
     return timelineVideoClips.filter(c => c.type === 'graphic');
@@ -3756,7 +3761,7 @@ function App() {
             {/* Player Canvas Mockup / Real Player */}
             <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950/20" />
             
-            {activeVideoUrl ? (
+            {activeVideoUrl || (activeClip && activeClip.type === 'visual') ? (
               <div 
                 onWheel={handlePreviewWheel}
                 onMouseDown={handlePreviewMouseDown}
@@ -3771,25 +3776,34 @@ function App() {
                     : 'w-[95%] aspect-video'
                 }`}
               >
-                <video 
-                  id="preview-video"
-                  ref={videoRef}
-                  src={activeVideoUrl || ''}
-                  style={{
-                    display: activeVideoUrl ? 'block' : 'none',
-                    transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}`,
-                    clipPath: activeCrop 
-                      ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` 
-                      : 'none',
-                  }}
-                  className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-75 ease-out"
-                  controls={false}
-                  onLoadedMetadata={handleLoadedMetadata}
-                  onCanPlay={handleVideoCanPlay}
-                  onDurationChange={handleDurationChange}
-                  onEnded={handleEnded}
-                  onTimeUpdate={handleTimeUpdate}
-                />
+                {activeClip && activeClip.type === 'visual' ? (
+                  <HologramCanvas
+                    archetype={getArchetype(activeClip.keyword ?? 'ascenso')}
+                    width={480}
+                    height={854}
+                    isPlaying={isPlaying}
+                  />
+                ) : (
+                  <video 
+                    id="preview-video"
+                    ref={videoRef}
+                    src={activeVideoUrl || ''}
+                    style={{
+                      display: activeVideoUrl ? 'block' : 'none',
+                      transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}`,
+                      clipPath: activeCrop 
+                        ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` 
+                        : 'none',
+                    }}
+                    className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-75 ease-out"
+                    controls={false}
+                    onLoadedMetadata={handleLoadedMetadata}
+                    onCanPlay={handleVideoCanPlay}
+                    onDurationChange={handleDurationChange}
+                    onEnded={handleEnded}
+                    onTimeUpdate={handleTimeUpdate}
+                  />
+                )}
 
                 {/* Crop Editor Overlay */}
                 {isCropping && (
