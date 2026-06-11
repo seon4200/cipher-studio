@@ -2379,7 +2379,7 @@ function App() {
                 id: clipInfo.id || `timeline-graphic-${Math.random()}`,
                 name: clipInfo.name,
                 startSeconds: clipInfo.startSeconds || 0,
-                durationSeconds: clipInfo.durationSeconds || 1.5,
+                durationSeconds: clipInfo.durationSeconds || 2.0,
                 type: 'graphic',
                 graphicData: clipInfo.graphicData
               });
@@ -2473,7 +2473,7 @@ function App() {
               id: `timeline-graphic-${Math.random()}`,
               name: `Gráfico: ${c.graphicData.label || c.graphicData.type}`,
               startSeconds: matchingVideo?.startSeconds || 0,
-              durationSeconds: Math.min(1.5, matchingVideo?.durationSeconds || 1.5),
+              durationSeconds: Math.min(2.0, matchingVideo?.durationSeconds || 2.0),
               type: 'graphic' as const,
               graphicData: c.graphicData
             };

@@ -1610,7 +1610,7 @@ REGLAS DE COBERTURA Y CALIDAD PARA LOS GRÁFICOS:
 6. REGLA CRÍTICA DE TIEMPO DEL GRÁFICO:
    - "graphicStart": segundo de inicio del gráfico relativo al comienzo de esta frase. Debe ser el momento exacto donde se menciona el concepto clave o palabra más impactante.
    - "graphicEnd": segundo de fin del gráfico relativo al comienzo de esta frase.
-   - La duración total del gráfico (graphicEnd - graphicStart) debe ser de máximo 1.5 segundos. Ambos valores deben estar entre 0.0 y la duración total de la frase.
+   - La duración total del gráfico (graphicEnd - graphicStart) debe ser de máximo 2.0 segundos. Ambos valores deben estar entre 0.0 y la duración total de la frase.
 
 FRASES DEL GUIÓN A PROCESAR:
 ${fragmentosNumerados}
@@ -1785,15 +1785,15 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           
           if (isNaN(start) || start < 0) start = 0;
           if (start > phraseDuration) start = phraseDuration;
-          if (isNaN(end) || end < start) end = start + 1.5;
+          if (isNaN(end) || end < start) end = start + 2.0;
           if (end > phraseDuration) end = phraseDuration;
           
           let dur = end - start;
-          if (dur > 1.5) {
-            end = parseFloat((start + 1.5).toFixed(2));
+          if (dur > 2.0) {
+            end = parseFloat((start + 2.0).toFixed(2));
             if (end > phraseDuration) {
               end = phraseDuration;
-              start = parseFloat(Math.max(0, end - 1.5).toFixed(2));
+              start = parseFloat(Math.max(0, end - 2.0).toFixed(2));
             }
           }
           if (end - start < 0.2) {
