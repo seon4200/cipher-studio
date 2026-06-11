@@ -2277,44 +2277,6 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         }
       }
     }
-    // POST-PROCESO: Micro-ajuste de sincronización para audio original
-    if (isOriginalAudio && newAudioSegments.length > 0) {
-      await logMessage('[POST-PROCESO] Micro-ajuste de sincronización...');
-      
-      const videoClips = finalClips
-        .filter(c => c.type === 'video' || c.type === 'visual')
-        .sort((a, b) => a.startSeconds - b.startSeconds);
-      
-      // Paso 1: Fijar clips originales al timestamp exacto de Whisper
-      for (let segIdx = 0; segIdx < newAudioSegments.length; segIdx++) {
-        const seg = newAudioSegments[segIdx];
-        const origClip = videoClips.find(c => 
-          c.category === 'original' && 
-          Math.abs(c.startSeconds - seg.start) < 1.5
-        );
-        if (origClip) {
-          origClip.startSeconds = seg.start;
-          origClip.durationSeconds = parseFloat((seg.end - seg.start).toFixed(2));
-        }
-      }
-      
-      // Paso 2: Ajustar clips adyacentes para evitar huecos o solapamientos
-      for (let i = 0; i < videoClips.length - 1; i++) {
-        const current = videoClips[i];
-        const next = videoClips[i + 1];
-        const currentEnd = current.startSeconds + current.durationSeconds;
-        const gap = next.startSeconds - currentEnd;
-        
-        // Si hay hueco pequeño (<1s) o solape pequeño (<1s), ajustar duración
-        if (Math.abs(gap) < 1.0) {
-          current.durationSeconds = parseFloat(
-            (next.startSeconds - current.startSeconds).toFixed(2)
-          );
-        }
-      }
-      
-      await logMessage('[POST-PROCESO] Completado.');
-    }
 
     finalClips.push(...graphicClips);
 
