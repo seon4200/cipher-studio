@@ -7,7 +7,6 @@ import {
   Undo, Redo, Sliders, ChevronDown, Save
 } from 'lucide-react'
 import './styles/globals.css'
-import { HologramCanvas, getArchetype } from './components/visual-holograms'
 
 /* --------------------------------------------------------------
    AnimatedGraphic – Fase 2
@@ -370,14 +369,13 @@ interface Clip {
   name: string;
   duration: string;
   durationSeconds: number;
-  type: 'video' | 'audio' | 'visual';
+  type: 'video' | 'audio';
   path: string;
   size: string;
   url?: string;
   category?: string;
   thumbnailUrl?: string;
   graphicData?: any;
-  keyword?: string;
 }
 
 interface TimelineClip {
@@ -386,7 +384,7 @@ interface TimelineClip {
   startSeconds: number;
   durationSeconds: number;
   /** Tipo de clip, incluye 'graphic' para gráficos animados */
-  type?: 'video' | 'audio' | 'graphic' | 'visual';
+  type?: 'video' | 'audio' | 'graphic';
   path?: string;
   url?: string;
   origDurationSeconds?: number;
@@ -397,7 +395,6 @@ interface TimelineClip {
   graphicData?: any;
   category?: string;
   thumbnailUrl?: string;
-  keyword?: string;
 }
 
 interface GeneratedVoiceVersion {
@@ -627,8 +624,6 @@ function App() {
       .filter(c => c.type !== 'audio' && c.type !== 'graphic')
       .sort((a, b) => a.startSeconds - b.startSeconds);
   }, [timelineVideoClips]);
-
-  const activeClip = sortedVideoClips[currentClipIndex] || null;
 
   const graphicClips = useMemo(() => {
     return timelineVideoClips.filter(c => c.type === 'graphic');
@@ -1547,7 +1542,7 @@ function App() {
   const [isExporting, setIsExporting] = useState(false)
 
   // Timeline IA weights: [Original, Stock, MiniMax]
-  const [timelineWeights, setTimelineWeights] = useState<number[]>([40, 30, 20, 10])
+  const [timelineWeights, setTimelineWeights] = useState<number[]>([40, 30, 30])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
 
   // MiniMax Hub States
@@ -2277,7 +2272,6 @@ function App() {
 
   const handleWeightChange = (index: number, newValue: number) => {
     const updatedWeights = [...timelineWeights];
-    while (updatedWeights.length < 4) updatedWeights.push(0);
     const oldValue = updatedWeights[index];
     const diff = newValue - oldValue;
     
@@ -2285,7 +2279,7 @@ function App() {
     updatedWeights[index] = newValue;
     
     // Distribute the difference among other sliders
-    const otherIndices = [0, 1, 2, 3].filter(i => i !== index);
+    const otherIndices = [0, 1, 2].filter(i => i !== index);
     const sumOthers = otherIndices.reduce((sum, i) => sum + updatedWeights[i], 0);
     
     if (sumOthers > 0) {
@@ -3365,24 +3359,6 @@ function App() {
                 />
                 <span className="font-mono text-[10px] text-amber-400 font-bold w-8 text-right select-none">{timelineWeights[2]}%</span>
               </div>
-
-              {/* Slider 4: Visual */}
-              <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
-                <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Visual</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={timelineWeights[3] || 0}
-                  onChange={(e) => handleWeightChange(3, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-purple-500 transition-all outline-none"
-                  style={{
-                    background: `linear-gradient(to right, rgb(168, 85, 247) ${timelineWeights[3] || 0}%, rgb(30, 41, 59) 0%)`
-                  }}
-                />
-                <span className="font-mono text-[10px] text-purple-400 font-bold w-8 text-right select-none">{timelineWeights[3] || 0}%</span>
-              </div>
             </div>
 
             {/* Proportional Color Bar */}
@@ -3390,7 +3366,6 @@ function App() {
               <div style={{ width: `${timelineWeights[0]}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Original: ${timelineWeights[0]}%`} />
               <div style={{ width: `${timelineWeights[1]}%` }} className="h-full bg-sky-500 transition-all duration-300" title={`Stock: ${timelineWeights[1]}%`} />
               <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`MiniMax: ${timelineWeights[2]}%`} />
-              <div style={{ width: `${timelineWeights[3] || 0}%` }} className="h-full bg-purple-500 transition-all duration-300" title={`Visual: ${timelineWeights[3] || 0}%`} />
             </div>
 
             {/* Selector de Estilo IA */}
@@ -3761,7 +3736,7 @@ function App() {
             {/* Player Canvas Mockup / Real Player */}
             <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950/20" />
             
-            {activeVideoUrl || (activeClip && activeClip.type === 'visual') ? (
+            {activeVideoUrl ? (
               <div 
                 onWheel={handlePreviewWheel}
                 onMouseDown={handlePreviewMouseDown}
@@ -3776,34 +3751,25 @@ function App() {
                     : 'w-[95%] aspect-video'
                 }`}
               >
-                {activeClip && activeClip.type === 'visual' ? (
-                  <HologramCanvas
-                    archetype={getArchetype(activeClip.keyword ?? 'ascenso')}
-                    width={480}
-                    height={854}
-                    isPlaying={isPlaying}
-                  />
-                ) : (
-                  <video 
-                    id="preview-video"
-                    ref={videoRef}
-                    src={activeVideoUrl || ''}
-                    style={{
-                      display: activeVideoUrl ? 'block' : 'none',
-                      transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}`,
-                      clipPath: activeCrop 
-                        ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` 
-                        : 'none',
-                    }}
-                    className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-75 ease-out"
-                    controls={false}
-                    onLoadedMetadata={handleLoadedMetadata}
-                    onCanPlay={handleVideoCanPlay}
-                    onDurationChange={handleDurationChange}
-                    onEnded={handleEnded}
-                    onTimeUpdate={handleTimeUpdate}
-                  />
-                )}
+                <video 
+                  id="preview-video"
+                  ref={videoRef}
+                  src={activeVideoUrl || ''}
+                  style={{
+                    display: activeVideoUrl ? 'block' : 'none',
+                    transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}`,
+                    clipPath: activeCrop 
+                      ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` 
+                      : 'none',
+                  }}
+                  className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-75 ease-out"
+                  controls={false}
+                  onLoadedMetadata={handleLoadedMetadata}
+                  onCanPlay={handleVideoCanPlay}
+                  onDurationChange={handleDurationChange}
+                  onEnded={handleEnded}
+                  onTimeUpdate={handleTimeUpdate}
+                />
 
                 {/* Crop Editor Overlay */}
                 {isCropping && (

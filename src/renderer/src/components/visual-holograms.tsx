@@ -782,9 +782,7 @@ export function HologramCanvas({ archetype, width, height, isPlaying }: Hologram
       rafId.current = requestAnimationFrame(render);
     };
 
-    if (isPlayingRef.current) {
-      rafId.current = requestAnimationFrame(render);
-    }
+    rafId.current = requestAnimationFrame(render);
 
     return () => cancelAnimationFrame(rafId.current);
   }, [archetype, width, height]);
