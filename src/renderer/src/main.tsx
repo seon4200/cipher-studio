@@ -2408,9 +2408,12 @@ function App() {
 
         // Adjust all start times sequentially only for video clips
         let runningStart = 0;
+        const isOrigAudio = voiceClip?.name === 'Voz - Audio Original';
         for (let k = 0; k < newVideoClips.length; k++) {
           const oldStart = newVideoClips[k].startSeconds;
-          newVideoClips[k].startSeconds = runningStart;
+          if (!isOrigAudio) {
+            newVideoClips[k].startSeconds = runningStart;
+          }
           
           // Sync startSeconds of graphic clips corresponding to this video clip
           for (let m = 0; m < newGraphicClips.length; m++) {

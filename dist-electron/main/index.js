@@ -5715,10 +5715,6 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
               });
             });
             success = true;
-            const realDuration = await getVideoDuration(clipPath);
-            if (realDuration && realDuration > 0) {
-              item.duration = realDuration;
-            }
           } catch (ffErr) {
             await logMessage(`[FASE 3] FFmpeg error clip ${item.index}: ${ffErr.message}`);
           }
@@ -5740,7 +5736,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
             path: clipPath,
             url: `file:///${clipPath.replace(/\\/g, "/")}`,
             duration: formatTimeMinutesSeconds(durationSeconds),
-            durationSeconds: item.duration ?? durationSeconds,
+            durationSeconds,
             type: "video",
             category: item.type === "ia" ? "minimax" : item.type === "stock" ? "stock" : "original",
             size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
