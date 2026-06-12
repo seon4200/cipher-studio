@@ -5708,7 +5708,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           await logMessage(`[DEBUG_ORIG] clip ${item.index} ts=${ts} duration=${item.duration}`);
           try {
             await new Promise((resolve, reject) => {
-              const cmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t ${item.duration} -c copy "${escapedClip}"`;
+              const cmd = `ffmpeg -y -accurate_seek -ss ${ts} -i "${escapedVideo}" -t ${item.duration} -avoid_negative_ts make_zero -c copy "${escapedClip}"`;
               child_process.exec(cmd, (err) => {
                 if (err) reject(err);
                 else resolve();
