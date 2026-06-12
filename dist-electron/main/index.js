@@ -5343,9 +5343,26 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
       } catch (err) {
         await logMessage(`[FASE 2] Error en llamada de gráficos: ${err.message}`);
       }
+      if (isOriginalAudio) {
+        const merged = [];
+        let i = 0;
+        while (i < newAudioSegments.length) {
+          const seg = { ...newAudioSegments[i] };
+          while (i + 1 < newAudioSegments.length && seg.end - seg.start < 2) {
+            i++;
+            seg.end = newAudioSegments[i].end;
+            seg.text = (seg.text || "") + " " + (newAudioSegments[i].text || "");
+          }
+          merged.push(seg);
+          i++;
+        }
+        await logMessage(`[MERGE] Segmentos originales: ${newAudioSegments.length}, fusionados: ${merged.length}`);
+        newAudioSegments = merged;
+      }
       for (let idx = 0; idx < newAudioSegments.length; idx++) {
         const seg = newAudioSegments[idx];
         const phraseDuration = seg.end - seg.start;
+        await logMessage(`[DEBUG_DUR] seg ${idx} start=${seg.start.toFixed(2)} end=${seg.end.toFixed(2)} dur=${phraseDuration.toFixed(2)}`);
         const numClipsExpected = phraseDuration > 4 ? Math.ceil(phraseDuration / 3) : 1;
         const matchClips = phrasesDecision.find((p) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
         const matchGraphics = graphicsDecision.find((p) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
@@ -5708,7 +5725,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           await logMessage(`[DEBUG_ORIG] clip ${item.index} ts=${ts} duration=${item.duration}`);
           try {
             await new Promise((resolve, reject) => {
-              const cmd = `ffmpeg -y -accurate_seek -ss ${ts} -i "${escapedVideo}" -t ${item.duration} -avoid_negative_ts make_zero -c copy "${escapedClip}"`;
+              const cmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t ${item.duration} -c copy "${escapedClip}"`;
               child_process.exec(cmd, (err) => {
                 if (err) reject(err);
                 else resolve();
