@@ -5715,6 +5715,10 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
               });
             });
             success = true;
+            const realDuration = await getVideoDuration(clipPath);
+            if (realDuration && realDuration > 0) {
+              item.duration = realDuration;
+            }
           } catch (ffErr) {
             await logMessage(`[FASE 3] FFmpeg error clip ${item.index}: ${ffErr.message}`);
           }
@@ -5736,7 +5740,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
             path: clipPath,
             url: `file:///${clipPath.replace(/\\/g, "/")}`,
             duration: formatTimeMinutesSeconds(durationSeconds),
-            durationSeconds,
+            durationSeconds: item.duration ?? durationSeconds,
             type: "video",
             category: item.type === "ia" ? "minimax" : item.type === "stock" ? "stock" : "original",
             size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
@@ -5846,32 +5850,6 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           });
         }
       }
-    }
-    if (isOriginalAudio && newAudioSegments.length > 0) {
-      await logMessage("[POST-PROCESO] Micro-ajuste de sincronización...");
-      const videoClips = finalClips.filter((c) => c.type === "video" || c.type === "visual").sort((a, b) => a.startSeconds - b.startSeconds);
-      for (let segIdx = 0; segIdx < newAudioSegments.length; segIdx++) {
-        const seg = newAudioSegments[segIdx];
-        const origClip = videoClips.find(
-          (c) => c.category === "original" && Math.abs(c.startSeconds - seg.start) < 1.5
-        );
-        if (origClip) {
-          origClip.startSeconds = seg.start;
-          origClip.durationSeconds = parseFloat((seg.end - seg.start).toFixed(2));
-        }
-      }
-      for (let i = 0; i < videoClips.length - 1; i++) {
-        const current = videoClips[i];
-        const next = videoClips[i + 1];
-        const currentEnd = current.startSeconds + current.durationSeconds;
-        const gap = next.startSeconds - currentEnd;
-        if (Math.abs(gap) < 1) {
-          current.durationSeconds = parseFloat(
-            (next.startSeconds - current.startSeconds).toFixed(2)
-          );
-        }
-      }
-      await logMessage("[POST-PROCESO] Completado.");
     }
     finalClips.push(...graphicClips);
     await logMessage(`[generate-timeline-assets] Completado. Clips: ${finalClips.length} (Videos: ${finalClips.filter((c) => c.type === "video").length}, Gráficos: ${finalClips.filter((c) => c.type === "graphic").length})`);
