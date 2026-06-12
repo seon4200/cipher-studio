@@ -5109,6 +5109,24 @@ electron.ipcMain.handle("export-video", async (_event, { clips, aspectRatio, res
 electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent, newAudioSegments }) => {
   var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
   const isOriginalAudio = transcriptSegments && newAudioSegments && transcriptSegments.length === newAudioSegments.length && ((_a = transcriptSegments[0]) == null ? void 0 : _a.start) === ((_b = newAudioSegments[0]) == null ? void 0 : _b.start);
+  if (newAudioSegments && Array.isArray(newAudioSegments) && newAudioSegments.length > 0) {
+    const merged = [];
+    let i = 0;
+    while (i < newAudioSegments.length) {
+      const seg = { ...newAudioSegments[i] };
+      while (i + 1 < newAudioSegments.length && seg.end - seg.start < 2) {
+        i++;
+        seg.end = newAudioSegments[i].end;
+        seg.text = (seg.text || "") + " " + (newAudioSegments[i].text || "");
+      }
+      merged.push(seg);
+      i++;
+    }
+    if (merged.length < newAudioSegments.length) {
+      console.log(`[MERGE] Segmentos: ${newAudioSegments.length} → ${merged.length}`);
+    }
+    newAudioSegments = merged;
+  }
   const logMessage = async (msg) => {
     console.log(msg);
     await writeDebugLog(msg);
@@ -5343,26 +5361,9 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
       } catch (err) {
         await logMessage(`[FASE 2] Error en llamada de gráficos: ${err.message}`);
       }
-      if (isOriginalAudio) {
-        const merged = [];
-        let i = 0;
-        while (i < newAudioSegments.length) {
-          const seg = { ...newAudioSegments[i] };
-          while (i + 1 < newAudioSegments.length && seg.end - seg.start < 2) {
-            i++;
-            seg.end = newAudioSegments[i].end;
-            seg.text = (seg.text || "") + " " + (newAudioSegments[i].text || "");
-          }
-          merged.push(seg);
-          i++;
-        }
-        await logMessage(`[MERGE] Segmentos originales: ${newAudioSegments.length}, fusionados: ${merged.length}`);
-        newAudioSegments = merged;
-      }
       for (let idx = 0; idx < newAudioSegments.length; idx++) {
         const seg = newAudioSegments[idx];
         const phraseDuration = seg.end - seg.start;
-        await logMessage(`[DEBUG_DUR] seg ${idx} start=${seg.start.toFixed(2)} end=${seg.end.toFixed(2)} dur=${phraseDuration.toFixed(2)}`);
         const numClipsExpected = phraseDuration > 4 ? Math.ceil(phraseDuration / 3) : 1;
         const matchClips = phrasesDecision.find((p) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
         const matchGraphics = graphicsDecision.find((p) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));

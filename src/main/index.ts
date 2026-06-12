@@ -1436,6 +1436,30 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     transcriptSegments.length === newAudioSegments.length &&
     transcriptSegments[0]?.start === newAudioSegments[0]?.start;
 
+  // Fusionar segmentos cortos (<2.0s) para que los clips duren 2-3s
+  // Se hace DESPUÉS de calcular isOriginalAudio y ANTES de usar los segmentos
+  if (newAudioSegments && Array.isArray(newAudioSegments) && newAudioSegments.length > 0) {
+    const merged: any[] = [];
+    let i = 0;
+    while (i < newAudioSegments.length) {
+      const seg = { ...newAudioSegments[i] };
+      while (
+        i + 1 < newAudioSegments.length &&
+        (seg.end - seg.start) < 2.0
+      ) {
+        i++;
+        seg.end = newAudioSegments[i].end;
+        seg.text = (seg.text || '') + ' ' + (newAudioSegments[i].text || '');
+      }
+      merged.push(seg);
+      i++;
+    }
+    if (merged.length < newAudioSegments.length) {
+      console.log(`[MERGE] Segmentos: ${newAudioSegments.length} → ${merged.length}`);
+    }
+    newAudioSegments = merged;
+  }
+
   const logMessage = async (msg: string) => {
     console.log(msg);
     await writeDebugLog(msg);
