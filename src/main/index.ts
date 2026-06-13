@@ -1438,7 +1438,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
   // Fusionar segmentos cortos (<2.0s) para que los clips duren 2-3s
   // Se hace DESPUÉS de calcular isOriginalAudio y ANTES de usar los segmentos
-  if (newAudioSegments && Array.isArray(newAudioSegments) && newAudioSegments.length > 0) {
+  if (isOriginalAudio && newAudioSegments && Array.isArray(newAudioSegments) && newAudioSegments.length > 0) {
     const merged: any[] = [];
     let i = 0;
     while (i < newAudioSegments.length) {
@@ -2223,6 +2223,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
             .slice(0, clipIdx)
             .reduce((sum: number, c: any) => sum + (c.duration ?? 2), 0) 
           : 0);
+        clip.phraseIdx = phraseIdx;
         clip.graphic = null; // ya no va anidado en el video clip
 
         if (clip.startSeconds >= audioDuration) {
@@ -2287,6 +2288,8 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
             id: 'timeline-graphic-' + Math.random(),
             name: 'Gráfico: ' + (phrase.graphic.label || phrase.graphic.type),
             startSeconds: startSec,
+            graphicStartRelative: phrase.graphic.graphicStart,
+            phraseIdx: phraseIdx,
             durationSeconds: Math.min(durSec, audioDuration - startSec),
             type: 'graphic',
             graphicData: {

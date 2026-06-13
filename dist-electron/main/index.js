@@ -5109,7 +5109,7 @@ electron.ipcMain.handle("export-video", async (_event, { clips, aspectRatio, res
 electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent, newAudioSegments }) => {
   var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
   const isOriginalAudio = transcriptSegments && newAudioSegments && transcriptSegments.length === newAudioSegments.length && ((_a = transcriptSegments[0]) == null ? void 0 : _a.start) === ((_b = newAudioSegments[0]) == null ? void 0 : _b.start);
-  if (newAudioSegments && Array.isArray(newAudioSegments) && newAudioSegments.length > 0) {
+  if (isOriginalAudio && newAudioSegments && Array.isArray(newAudioSegments) && newAudioSegments.length > 0) {
     const merged = [];
     let i = 0;
     while (i < newAudioSegments.length) {
@@ -5790,6 +5790,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         globalClipIdx++;
         if (!clip) continue;
         clip.startSeconds = phraseStartSeconds + (clipIdx > 0 ? sanitizedPhrases[phraseIdx].visualClips.slice(0, clipIdx).reduce((sum, c) => sum + (c.duration ?? 2), 0) : 0);
+        clip.phraseIdx = phraseIdx;
         clip.graphic = null;
         if (clip.startSeconds >= audioDuration) {
           try {
@@ -5851,6 +5852,8 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
             id: "timeline-graphic-" + Math.random(),
             name: "Gráfico: " + (phrase.graphic.label || phrase.graphic.type),
             startSeconds: startSec,
+            graphicStartRelative: phrase.graphic.graphicStart,
+            phraseIdx,
             durationSeconds: Math.min(durSec, audioDuration - startSec),
             type: "graphic",
             graphicData: {

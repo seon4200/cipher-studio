@@ -2377,7 +2377,7 @@ function App() {
         const newVideoClips: any[] = [];
         const newGraphicClips: any[] = [];
 
-        for (let i = 0; i < res.clips.length; i++) {
+         for (let i = 0; i < res.clips.length; i++) {
           const item = res.clips[i];
           const clipInfo = item.clip || item;
           if (clipInfo) {
@@ -2386,6 +2386,8 @@ function App() {
                 id: clipInfo.id || `timeline-graphic-${Math.random()}`,
                 name: clipInfo.name,
                 startSeconds: clipInfo.startSeconds || 0,
+                graphicStartRelative: clipInfo.graphicStartRelative ?? 0,
+                phraseIdx: clipInfo.phraseIdx ?? -1,
                 durationSeconds: clipInfo.durationSeconds || 2.0,
                 type: 'graphic',
                 graphicData: clipInfo.graphicData
@@ -2395,6 +2397,7 @@ function App() {
                 id: `timeline-${Math.random()}`,
                 name: clipInfo.name,
                 startSeconds: clipInfo.startSeconds || 0,
+                phraseIdx: clipInfo.phraseIdx ?? -1,
                 durationSeconds: clipInfo.durationSeconds || 3,
                 type: 'video',
                 url: clipInfo.url,
@@ -2404,25 +2407,6 @@ function App() {
               });
             }
           }
-        }
-
-        // Adjust all start times sequentially only for video clips
-        let runningStart = 0;
-        const isOrigAudio = voiceClip?.name === 'Voz - Audio Original';
-        for (let k = 0; k < newVideoClips.length; k++) {
-          const oldStart = newVideoClips[k].startSeconds;
-          if (!isOrigAudio) {
-            newVideoClips[k].startSeconds = runningStart;
-          }
-          
-          // Sync startSeconds of graphic clips corresponding to this video clip
-          for (let m = 0; m < newGraphicClips.length; m++) {
-            if (newGraphicClips[m].startSeconds === oldStart) {
-              newGraphicClips[m].startSeconds = runningStart;
-            }
-          }
-          
-          runningStart += newVideoClips[k].durationSeconds;
         }
 
         // Keep all existing audio clips completely intact and untouched!
