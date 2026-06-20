@@ -1541,8 +1541,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     const pct = typeof graphicsPercent === 'number' ? graphicsPercent : 50;
     const totalPhrases = newAudioSegments.length;
     let flattenedClips: any[] = [];
-    const totalSubClips = flattenedClips.length || totalPhrases * 2;
-    const targetGraphics = Math.round(totalSubClips * pct / 100);
+    const targetGraphics = Math.min(
+      totalPhrases,
+      Math.round(totalPhrases * pct / 100)
+    );
 
     let sanitizedPhrases: any[] = [];
 

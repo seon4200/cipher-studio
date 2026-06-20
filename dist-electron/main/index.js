@@ -5190,8 +5190,10 @@ electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText, 
     const pct = typeof graphicsPercent === "number" ? graphicsPercent : 50;
     const totalPhrases = newAudioSegments.length;
     let flattenedClips = [];
-    const totalSubClips = flattenedClips.length || totalPhrases * 2;
-    const targetGraphics = Math.round(totalSubClips * pct / 100);
+    const targetGraphics = Math.min(
+      totalPhrases,
+      Math.round(totalPhrases * pct / 100)
+    );
     let sanitizedPhrases = [];
     try {
       const segmentsText = (transcriptSegments || []).map((s, i) => `[${i}] ${Number(s.start).toFixed(1)}s-${Number(s.end).toFixed(1)}s: "${s.text}"`).join("\n");
