@@ -1539,6 +1539,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}/${totalVisualClipsCount}`);
 
     const pct = typeof graphicsPercent === 'number' ? graphicsPercent : 50;
+    const totalPhrases = newAudioSegments.length;
+    let flattenedClips: any[] = [];
+    const totalSubClips = flattenedClips.length || totalPhrases * 2;
+    const targetGraphics = Math.round(totalSubClips * pct / 100);
 
     let sanitizedPhrases: any[] = [];
 
@@ -1614,8 +1618,10 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 Debes colocar un gráfico animado superpuesto que apoye visualmente el concepto clave de cada frase.
 
 REGLAS DE COBERTURA Y CALIDAD PARA LOS GRÁFICOS:
-1. COBERTURA OBLIGATORIA DEL ${pct}%:
-   - Exactamente el ${pct}% de las frases procesadas DEBE tener un gráfico animado asignado. Es obligatorio respetar esta proporción exacta de cobertura.
+1. COBERTURA OBLIGATORIA:
+   - Debes asignar exactamente ${targetGraphics} gráficos distribuidos a lo largo de las ${totalPhrases} frases.
+   - Puedes asignar más de un gráfico por frase si la frase dura más de 4 segundos.
+   - Ni uno más, ni uno menos.
    - Solo debes asignar 'graphic': null para frases de transición extremadamente cortas (menores a 1.0 segundo de duración).
 
 2. DOS CATEGORÍAS VÁLIDAS DE GRÁFICOS (TIPO A Y TIPO B):
@@ -1953,7 +1959,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
     }
 
     // Aplanar la lista de sub-clips para alimentar la cola de trabajadores
-    const flattenedClips: any[] = [];
+    flattenedClips = [];
     let globalIdx = 1;
     for (let phraseIdx = 0; phraseIdx < sanitizedPhrases.length; phraseIdx++) {
       const phrase = sanitizedPhrases[phraseIdx];
