@@ -935,7 +935,8 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
               '--language', 'Spanish',
               '--model', 'tiny',
               '--output_format', 'json',
-              '--output_dir', `"${transcriptsDir}"`
+              '--output_dir', `"${transcriptsDir}"`,
+              '--word_timestamps', 'True'
             ], { shell: true, env: { ...process.env, PYTHONIOENCODING: 'utf-8' } })
 
             whisperProcess.on('close', async (code) => {
@@ -948,7 +949,12 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
                       newAudioSegments = parsed.segments.map((seg: any) => ({
                         start: seg.start,
                         end: seg.end,
-                        text: seg.text
+                        text: seg.text,
+                        words: (seg.words || []).map((w: any) => ({
+                          word: w.word,
+                          start: w.start,
+                          end: w.end
+                        }))
                       }))
                       whisperSuccess = true
                     } else {
@@ -2281,7 +2287,31 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 
       // Si la frase tiene gráfico asignado, creamos un clip de gráfico independiente
       if (phrase.graphic) {
-        const startSec = phraseStartSeconds + phrase.graphic.graphicStart;
+        const seg = newAudioSegments[phraseIdx];
+        let graphicStartOffset = phrase.graphic.graphicStart;
+
+        if (seg && seg.words && seg.words.length > 0) {
+          const segStart = seg.start || 0;
+          const stopWords = ['el','la','los','las','un','una',
+            'de','del','al','en','y','a','que','se','es','por',
+            'con','su','sus','lo','le','les','me','te','nos',
+            'para','como','pero','mas','más','si','no','ya'];
+          
+          const keyWord = seg.words.find((w: any) => {
+            const clean = w.word.trim().toLowerCase()
+              .replace(/[^a-záéíóúñ]/g, '');
+            return clean.length > 2 && !stopWords.includes(clean);
+          });
+          
+          if (keyWord) {
+            const relative = Math.max(0,
+              parseFloat((keyWord.start - segStart).toFixed(2)));
+            const phraseDuration = seg.end - seg.start;
+            graphicStartOffset = Math.min(relative, phraseDuration * 0.7);
+          }
+        }
+
+        const startSec = phraseStartSeconds + graphicStartOffset;
         const durSec = phrase.graphic.graphicEnd - phrase.graphic.graphicStart;
         if (startSec < audioDuration && durSec > 0) {
           graphicClips.push({
