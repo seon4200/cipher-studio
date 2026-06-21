@@ -395,8 +395,6 @@ interface TimelineClip {
   graphicData?: any;
   category?: string;
   thumbnailUrl?: string;
-  phraseIdx?: number;
-  graphicStartRelative?: number;
 }
 
 interface GeneratedVoiceVersion {
@@ -2456,16 +2454,8 @@ function App() {
     try {
       const res = await window.electronAPI.regenerateGraphics({
         scriptText: textToUse,
-        clips: videoClips.map(c => ({ 
-          id: c.id, 
-          name: c.name,
-          startSeconds: c.startSeconds,
-          phraseIdx: c.phraseIdx ?? -1
-        })),
-        graphicsPercent: graphicsPercent,
-        totalPhrases: newAudioSegments?.length || 
-          transcriptSegments?.length || 
-          videoClips.length
+        clips: videoClips.map(c => ({ id: c.id, name: c.name })),
+        graphicsPercent: graphicsPercent > 0 ? Math.max(50, graphicsPercent) : 0
       });
       if (res && res.success && res.clips) {
         const nonGraphicClips = timelineVideoClips.filter(c => c.type !== 'graphic');
