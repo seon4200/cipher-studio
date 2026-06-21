@@ -5114,7 +5114,7 @@ electron.ipcMain.handle("export-video", async (_event, { clips, aspectRatio, res
   }
 });
 electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent, newAudioSegments }) => {
-  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
+  var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p;
   const isOriginalAudio = transcriptSegments && newAudioSegments && transcriptSegments.length === newAudioSegments.length && ((_a = transcriptSegments[0]) == null ? void 0 : _a.start) === ((_b = newAudioSegments[0]) == null ? void 0 : _b.start);
   if (isOriginalAudio && newAudioSegments && Array.isArray(newAudioSegments) && newAudioSegments.length > 0) {
     const merged = [];
@@ -5346,33 +5346,74 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
       } catch (err) {
         await logMessage(`[FASE 2] Error en llamada de clips: ${err.message}`);
       }
-      try {
-        await logMessage("[FASE 2] LLAMADA 2: Solicitando motion graphics a DeepSeek...");
-        const dsResponseGraphics = await fetch("https://api.deepseek.com/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-          body: JSON.stringify({
-            model: "deepseek-chat",
-            messages: [
-              { role: "system", content: "Eres un motion designer experto. Responde ÚNICAMENTE con el JSON solicitado." },
-              { role: "user", content: dsPromptGraphics }
-            ],
-            temperature: 0.3
-          })
-        });
-        if (dsResponseGraphics.ok) {
-          const dsData = await dsResponseGraphics.json();
-          let content = (((_i = (_h = (_g = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _g[0]) == null ? void 0 : _h.message) == null ? void 0 : _i.content) || "").trim();
-          if (content.includes("{")) {
-            content = content.substring(content.indexOf("{"), content.lastIndexOf("}") + 1);
+      if (newAudioSegments.length <= 25) {
+        try {
+          await logMessage("[FASE 2] LLAMADA 2: Motion graphics...");
+          const dsResp = await fetch("https://api.deepseek.com/chat/completions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+            body: JSON.stringify({
+              model: "deepseek-chat",
+              messages: [
+                { role: "system", content: "Eres un motion designer experto. Responde ÚNICAMENTE con el JSON solicitado." },
+                { role: "user", content: dsPromptGraphics }
+              ],
+              temperature: 0.3
+            })
+          });
+          if (dsResp.ok) {
+            const dsData = await dsResp.json();
+            let content = (((_i = (_h = (_g = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _g[0]) == null ? void 0 : _h.message) == null ? void 0 : _i.content) || "").trim();
+            if (content.includes("{")) content = content.substring(content.indexOf("{"), content.lastIndexOf("}") + 1);
+            const parsed = JSON.parse(content);
+            if (Array.isArray(parsed.phrases)) graphicsDecision = parsed.phrases;
           }
-          const parsed = JSON.parse(content);
-          if (Array.isArray(parsed.phrases)) {
-            graphicsDecision = parsed.phrases;
+        } catch (err) {
+          await logMessage("[FASE 2] Error graficos: " + err.message);
+        }
+      } else {
+        const BATCH_SIZE = 20;
+        let assignedGraphics = 0;
+        for (let batchStart = 0; batchStart < newAudioSegments.length; batchStart += BATCH_SIZE) {
+          const batchEnd = Math.min(batchStart + BATCH_SIZE, newAudioSegments.length);
+          const batchSegs = newAudioSegments.slice(batchStart, batchEnd);
+          const remaining = targetGraphics - assignedGraphics;
+          const batchTarget = Math.min(remaining, Math.round(targetGraphics * batchSegs.length / newAudioSegments.length));
+          if (batchTarget <= 0) continue;
+          const batchFragmentos = batchSegs.map((seg, idx) => {
+            const phraseNum = batchStart + idx + 1;
+            const duration = seg.end - seg.start;
+            return "[Frase " + phraseNum + '] "' + seg.text + '" (' + Number(seg.start).toFixed(1) + "s - " + Number(seg.end).toFixed(1) + "s, duracion: " + duration.toFixed(2) + "s).";
+          }).join("\n");
+          const batchPrompt = "Eres un motion designer para videos cortos.\nREGLAS:\n1. Asigna exactamente " + batchTarget + " graficos en estas " + batchSegs.length + " frases.\n2. TIPO A: contador, barra_horizontal, donut, barras_comparativas, flecha_crecimiento, flecha_caida, multiplicador, ranking_top3, lista_numerada, checklist, pasos_proceso.\n3. TIPO B: decorativo_emoji con emoji especifico y label corto, o frase_clave con texto impactante.\n4. graphicStart: timestamp de la palabra clave relativo al inicio de la frase.\n5. graphicEnd = graphicStart + 2.0 maximo.\n6. Responde SOLO JSON sin markdown.\nFRASES:\n" + batchFragmentos + '\nFORMATO:\n{"phrases":[{"phraseIndex":1,"graphic":{"type":"decorativo_emoji","value":null,"label":"Concepto","unit":"","emoji":"🔥","extra":null,"graphicStart":0.5,"graphicEnd":2.5}},{"phraseIndex":2,"graphic":null}]}';
+          try {
+            await logMessage("[FASE 2] Graficos lote " + (Math.floor(batchStart / BATCH_SIZE) + 1) + ": frases " + (batchStart + 1) + "-" + batchEnd);
+            const dsResp = await fetch("https://api.deepseek.com/chat/completions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+              body: JSON.stringify({
+                model: "deepseek-chat",
+                messages: [
+                  { role: "system", content: "Responde UNICAMENTE con JSON valido." },
+                  { role: "user", content: batchPrompt }
+                ],
+                temperature: 0.3
+              })
+            });
+            if (dsResp.ok) {
+              const dsData = await dsResp.json();
+              let content = (((_l = (_k = (_j = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _j[0]) == null ? void 0 : _k.message) == null ? void 0 : _l.content) || "").trim();
+              if (content.includes("{")) content = content.substring(content.indexOf("{"), content.lastIndexOf("}") + 1);
+              const parsed = JSON.parse(content);
+              if (Array.isArray(parsed.phrases)) {
+                graphicsDecision.push(...parsed.phrases);
+                assignedGraphics += parsed.phrases.filter((p) => p.graphic !== null).length;
+              }
+            }
+          } catch (err) {
+            await logMessage("[FASE 2] Error lote graficos: " + err.message);
           }
         }
-      } catch (err) {
-        await logMessage(`[FASE 2] Error en llamada de gráficos: ${err.message}`);
       }
       for (let idx = 0; idx < newAudioSegments.length; idx++) {
         const seg = newAudioSegments[idx];
@@ -5386,7 +5427,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           for (let c = 0; c < numClipsExpected; c++) {
             visualClips.push({
               type: "original",
-              timestamp: parseFloat((((_j = newAudioSegments[idx]) == null ? void 0 : _j.start) ?? idx / newAudioSegments.length * maxTsVal).toFixed(1)),
+              timestamp: parseFloat((((_m = newAudioSegments[idx]) == null ? void 0 : _m.start) ?? idx / newAudioSegments.length * maxTsVal).toFixed(1)),
               keyword: "broll",
               prompt: "cinematic video clip",
               duration: phraseDuration / numClipsExpected
@@ -5398,7 +5439,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
             while (visualClips.length < numClipsExpected) {
               visualClips.push({
                 type: "original",
-                timestamp: parseFloat((((_k = newAudioSegments[idx]) == null ? void 0 : _k.start) ?? idx / newAudioSegments.length * maxTsVal).toFixed(1)),
+                timestamp: parseFloat((((_n = newAudioSegments[idx]) == null ? void 0 : _n.start) ?? idx / newAudioSegments.length * maxTsVal).toFixed(1)),
                 keyword: "broll",
                 prompt: "cinematic video clip",
                 duration: phraseDuration / numClipsExpected
@@ -5504,7 +5545,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           }
           visualClips.push({
             type: "original",
-            timestamp: parseFloat((((_l = newAudioSegments[idx]) == null ? void 0 : _l.start) ?? idx / newAudioSegments.length * maxTsVal).toFixed(1)),
+            timestamp: parseFloat((((_o = newAudioSegments[idx]) == null ? void 0 : _o.start) ?? idx / newAudioSegments.length * maxTsVal).toFixed(1)),
             keyword: "broll",
             prompt: "cinematic video clip",
             duration: dur
@@ -5796,7 +5837,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
     let globalClipIdx = 0;
     for (let phraseIdx = 0; phraseIdx < sanitizedPhrases.length; phraseIdx++) {
       const phrase = sanitizedPhrases[phraseIdx];
-      const phraseStartSeconds = ((_m = newAudioSegments[phraseIdx]) == null ? void 0 : _m.start) ?? currentStart;
+      const phraseStartSeconds = ((_p = newAudioSegments[phraseIdx]) == null ? void 0 : _p.start) ?? currentStart;
       await logMessage(`[DEBUG3] phraseIdx=${phraseIdx} phraseStartSeconds=${phraseStartSeconds} currentStart=${currentStart}`);
       for (let clipIdx = 0; clipIdx < phrase.visualClips.length; clipIdx++) {
         const clip = createdClips[globalClipIdx];

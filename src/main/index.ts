@@ -1711,34 +1711,74 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         await logMessage(`[FASE 2] Error en llamada de clips: ${err.message}`);
       }
 
-      try {
-        await logMessage('[FASE 2] LLAMADA 2: Solicitando motion graphics a DeepSeek...');
-        const dsResponseGraphics = await fetch('https://api.deepseek.com/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-          body: JSON.stringify({
-            model: 'deepseek-chat',
-            messages: [
-              { role: 'system', content: 'Eres un motion designer experto. Responde ÚNICAMENTE con el JSON solicitado.' },
-              { role: 'user', content: dsPromptGraphics }
-            ],
-            temperature: 0.3
-          })
-        });
-
-        if (dsResponseGraphics.ok) {
-          const dsData = (await dsResponseGraphics.json()) as any;
-          let content = (dsData?.choices?.[0]?.message?.content || '').trim();
-          if (content.includes('{')) {
-            content = content.substring(content.indexOf('{'), content.lastIndexOf('}') + 1);
+      if (newAudioSegments.length <= 25) {
+        try {
+          await logMessage('[FASE 2] LLAMADA 2: Motion graphics...');
+          const dsResp = await fetch('https://api.deepseek.com/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+            body: JSON.stringify({
+              model: 'deepseek-chat',
+              messages: [
+                { role: 'system', content: 'Eres un motion designer experto. Responde ÚNICAMENTE con el JSON solicitado.' },
+                { role: 'user', content: dsPromptGraphics }
+              ],
+              temperature: 0.3
+            })
+          });
+          if (dsResp.ok) {
+            const dsData = (await dsResp.json()) as any;
+            let content = (dsData?.choices?.[0]?.message?.content || '').trim();
+            if (content.includes('{')) content = content.substring(content.indexOf('{'), content.lastIndexOf('}')+1);
+            const parsed = JSON.parse(content);
+            if (Array.isArray(parsed.phrases)) graphicsDecision = parsed.phrases;
           }
-          const parsed = JSON.parse(content);
-          if (Array.isArray(parsed.phrases)) {
-            graphicsDecision = parsed.phrases;
+        } catch (err: any) {
+          await logMessage('[FASE 2] Error graficos: ' + err.message);
+        }
+      } else {
+        const BATCH_SIZE = 20;
+        let assignedGraphics = 0;
+        for (let batchStart = 0; batchStart < newAudioSegments.length; batchStart += BATCH_SIZE) {
+          const batchEnd = Math.min(batchStart + BATCH_SIZE, newAudioSegments.length);
+          const batchSegs = newAudioSegments.slice(batchStart, batchEnd);
+          const remaining = targetGraphics - assignedGraphics;
+          const batchTarget = Math.min(remaining, Math.round(targetGraphics * batchSegs.length / newAudioSegments.length));
+          if (batchTarget <= 0) continue;
+          const batchFragmentos = batchSegs.map((seg: any, idx: number) => {
+            const phraseNum = batchStart + idx + 1;
+            const duration = seg.end - seg.start;
+            return '[Frase ' + phraseNum + '] "' + seg.text + '" (' + Number(seg.start).toFixed(1) + 's - ' + Number(seg.end).toFixed(1) + 's, duracion: ' + duration.toFixed(2) + 's).';
+          }).join('\n');
+          const batchPrompt = 'Eres un motion designer para videos cortos.\nREGLAS:\n1. Asigna exactamente ' + batchTarget + ' graficos en estas ' + batchSegs.length + ' frases.\n2. TIPO A: contador, barra_horizontal, donut, barras_comparativas, flecha_crecimiento, flecha_caida, multiplicador, ranking_top3, lista_numerada, checklist, pasos_proceso.\n3. TIPO B: decorativo_emoji con emoji especifico y label corto, o frase_clave con texto impactante.\n4. graphicStart: timestamp de la palabra clave relativo al inicio de la frase.\n5. graphicEnd = graphicStart + 2.0 maximo.\n6. Responde SOLO JSON sin markdown.\nFRASES:\n' + batchFragmentos + '\nFORMATO:\n{"phrases":[{"phraseIndex":1,"graphic":{"type":"decorativo_emoji","value":null,"label":"Concepto","unit":"","emoji":"🔥","extra":null,"graphicStart":0.5,"graphicEnd":2.5}},{"phraseIndex":2,"graphic":null}]}';
+          try {
+            await logMessage('[FASE 2] Graficos lote ' + (Math.floor(batchStart/BATCH_SIZE)+1) + ': frases ' + (batchStart+1) + '-' + batchEnd);
+            const dsResp = await fetch('https://api.deepseek.com/chat/completions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+              body: JSON.stringify({
+                model: 'deepseek-chat',
+                messages: [
+                  { role: 'system', content: 'Responde UNICAMENTE con JSON valido.' },
+                  { role: 'user', content: batchPrompt }
+                ],
+                temperature: 0.3
+              })
+            });
+            if (dsResp.ok) {
+              const dsData = (await dsResp.json()) as any;
+              let content = (dsData?.choices?.[0]?.message?.content || '').trim();
+              if (content.includes('{')) content = content.substring(content.indexOf('{'), content.lastIndexOf('}')+1);
+              const parsed = JSON.parse(content);
+              if (Array.isArray(parsed.phrases)) {
+                graphicsDecision.push(...parsed.phrases);
+                assignedGraphics += parsed.phrases.filter((p: any) => p.graphic !== null).length;
+              }
+            }
+          } catch (err: any) {
+            await logMessage('[FASE 2] Error lote graficos: ' + err.message);
           }
         }
-      } catch (err: any) {
-        await logMessage(`[FASE 2] Error en llamada de gráficos: ${err.message}`);
       }
 
       // Procesar y sanitizar con phrasesDecision y graphicsDecision
