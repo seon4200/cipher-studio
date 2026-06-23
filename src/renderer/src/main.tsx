@@ -5198,6 +5198,13 @@ function App() {
                     <div className="flex items-center space-x-1">
                       <Video className="h-3.5 w-3.5 text-sky-400" />
                       <span>Video v1</span>
+                      <button
+                        onClick={() => setShowVideoV2Track(!showVideoV2Track)}
+                        className='ml-1 text-slate-500 hover:text-slate-300 text-[9px]'
+                        title='Mostrar pista base v2'
+                      >
+                        {showVideoV2Track ? '▼' : '▶'}
+                      </button>
                     </div>
                     <button 
                       onClick={() => setIsVideoTrackMuted(!isVideoTrackMuted)}
@@ -5306,28 +5313,12 @@ function App() {
                 </div>
               </div>
 
-              {/* Botón expandir pista v2 */}
-              <div className="flex items-center space-x-3 mt-1">
-                <div className="w-28 flex-shrink-0">
-                  <button
-                    onClick={() => setShowVideoV2Track(!showVideoV2Track)}
-                    className="text-[10px] text-slate-500 hover:text-slate-300 flex items-center space-x-1"
-                  >
-                    {showVideoV2Track ? '▼' : '▶'}
-                    <span>Video v2</span>
-                  </button>
-                </div>
-              </div>
-
               {showVideoV2Track && (
                 <div className='flex items-center space-x-3'>
-                  <div className='w-28 text-[11px] font-bold text-slate-400 flex flex-col justify-center space-y-1.5 flex-shrink-0 pr-2'>
-                    <div className='flex items-center space-x-1'>
-                      <span>🎬</span>
-                      <span>Video v2</span>
-                    </div>
+                  <div className='w-28 text-[10px] text-slate-500 flex-shrink-0 pr-2 text-right'>
+                    v2 base
                   </div>
-                  <div className='flex-1 h-12 bg-slate-900/40 border border-slate-700/50 rounded-xl relative overflow-hidden border-dashed'>
+                  <div className='flex-1 h-12 bg-slate-900/40 border border-dashed border-slate-700/50 rounded-xl relative overflow-hidden'>
                     <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
                       <span className='text-[10px] text-slate-600'>
                         Arrastra video base aquí
