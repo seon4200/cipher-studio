@@ -1437,7 +1437,7 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
   }
 })
 
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent, newAudioSegments }) => {
+ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
   const isOriginalAudio = transcriptSegments && newAudioSegments && 
     transcriptSegments.length === newAudioSegments.length &&
     transcriptSegments[0]?.start === newAudioSegments[0]?.start;
@@ -1538,17 +1538,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
     await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}/${totalVisualClipsCount}`);
 
-    const pct = typeof graphicsPercent === 'number' ? graphicsPercent : 50;
-    const totalPhrases = newAudioSegments.length;
     let flattenedClips: any[] = [];
-    const targetGraphics = Math.min(
-      totalPhrases,
-      Math.round(totalPhrases * pct / 100)
-    );
-
     let sanitizedPhrases: any[] = [];
-    let graphicsDecision: any[] = [];
-    let dsPromptGraphics = '';
 
     try {
       const segmentsText = (transcriptSegments || [])
@@ -1618,70 +1609,6 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
   ]
 }`;
 
-      dsPromptGraphics = `Eres un motion designer para videos cortos. Tienes un guión de video segmentado en frases con su respectiva duración.
-Debes colocar un gráfico animado superpuesto que apoye visualmente el concepto clave de cada frase.
-
-REGLAS DE COBERTURA Y CALIDAD PARA LOS GRÁFICOS:
-1. COBERTURA OBLIGATORIA:
-   - Debes asignar exactamente ${targetGraphics} gráficos distribuidos a lo largo de las ${totalPhrases} frases.
-   - Puedes asignar más de un gráfico por frase si la frase dura más de 4 segundos.
-   - Ni uno más, ni uno menos.
-   - Solo debes asignar 'graphic': null para frases de transición extremadamente cortas (menores a 1.0 segundo de duración).
-
-2. DOS CATEGORÍAS VÁLIDAS DE GRÁFICOS (TIPO A Y TIPO B):
-   - TIPO A: Si la frase contiene un dato cuantificable (números, porcentajes, comparaciones, listas, rankings) -> SÍ crear gráfico estructurado usando el tipo adecuado: "contador", "barra_horizontal", "donut", "barras_comparativas", "comparacion_antes_despues", "flecha_crecimiento", "flecha_caida", "multiplicador", "fraccion", "ranking_top3", "lista_numerada", "checklist", "pasos_proceso".
-   - TIPO B: Si la frase NO contiene datos cuantificables -> DEBES destacar la idea o concepto principal usando:
-     * "decorativo_emoji": con un emoji altamente representativo del concepto y una etiqueta corta (label).
-     * "frase_clave": con el texto o frase más impactante (value) de esa frase.
-
-3. EJEMPLOS ESTRICTOS DE TIPO B:
-   - Si la frase es "tu mente es un software" -> usar type: "decorativo_emoji", emoji: "🧠", label: "Mente = Software"
-   - Si la frase es "dopamina es energía de la carne" -> usar type: "decorativo_emoji", emoji: "🔥", label: "Dopamina"
-   - Si la frase es "serotonina es del espíritu" -> usar type: "decorativo_emoji", emoji: "🧘", label: "Serotonina"
-   - Si la frase es "el cielo y el infierno viven dentro de ti" -> usar type: "frase_clave", value: "cielo e infierno están en ti"
-   - Si la frase es "nada es materia todo es energía" -> usar type: "decorativo_emoji", emoji: "⚡", label: "Todo es Energía"
-
-4. EMOJIS ESPECÍFICOS Y RELEVANTES:
-   - El emoji asignado en el campo "emoji" DEBE ser específico al concepto de la frase. NUNCA uses emojis genéricos como 📊 como comodín o fallback.
-
-5. EXTRACCIÓN DE DATOS PRECISA (NATIVOS) Y CAMPO EXTRA:
-   - El campo "value" debe conservar su tipo nativo limpio (número real/entero para contadores/barras/donuts, o string para frases o fracciones).
-   - Si el gráfico es estructurado, DEBES proporcionar el objeto "extra" con la siguiente estructura:
-     * "barras_comparativas" -> extra: { "rightValue": número, "rightLabel": "nombre etiqueta B" }
-     * "comparacion_antes_despues" -> extra: { "beforeValue": número/string, "afterValue": número/string }
-     * "pasos_proceso", "lista_numerada", "checklist", o "ranking_top3" -> extra: { "steps": ["item 1", "item 2", "item 3"] }
-
-6. REGLA CRÍTICA DE TIEMPO DEL GRÁFICO:
-   - "graphicStart": segundo de inicio del gráfico relativo al comienzo de esta frase. Debe ser el momento exacto donde se menciona el concepto clave o palabra más impactante.
-   - "graphicEnd": segundo de fin del gráfico relativo al comienzo de esta frase.
-   - La duración total del gráfico (graphicEnd - graphicStart) debe ser de máximo 2.0 segundos. Ambos valores deben estar entre 0.0 y la duración total de la frase.
-
-FRASES DEL GUIÓN A PROCESAR:
-${fragmentosNumerados}
-
-Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
-{
-  "phrases": [
-    {
-      "phraseIndex": 1,
-      "graphic": {
-        "type": "contador",
-        "value": 70,
-        "label": "de personas",
-        "unit": "%",
-        "emoji": "👥",
-        "extra": null,
-        "graphicStart": 1.2,
-        "graphicEnd": 2.7
-      }
-    },
-    {
-      "phraseIndex": 2,
-      "graphic": null
-    }
-  ]
-}`;
-
       let phrasesDecision: any[] = [];
 
       try {
@@ -1723,7 +1650,6 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         const numClipsExpected = phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
         
         const matchClips = phrasesDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
-        const matchGraphics = graphicsDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
 
         let visualClips = matchClips?.visualClips || matchClips?.clips;
         if (!Array.isArray(visualClips) || visualClips.length === 0) {
@@ -1795,43 +1721,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           }
         }
 
-        let graphic = matchGraphics?.graphic;
-        if (graphic && typeof graphic === 'object') {
-          const type = graphic.type || 'decorativo_emoji';
-          let start = parseFloat(Number(graphic.graphicStart).toFixed(2));
-          let end = parseFloat(Number(graphic.graphicEnd).toFixed(2));
-          
-          if (isNaN(start) || start < 0) start = 0;
-          if (start > phraseDuration) start = phraseDuration;
-          if (isNaN(end) || end < start) end = start + 2.0;
-          if (end > phraseDuration) end = phraseDuration;
-          
-          let dur = end - start;
-          if (dur > 2.0) {
-            end = parseFloat((start + 2.0).toFixed(2));
-            if (end > phraseDuration) {
-              end = phraseDuration;
-              start = parseFloat(Math.max(0, end - 2.0).toFixed(2));
-            }
-          }
-          if (end - start < 0.2) {
-            start = parseFloat(Math.max(0, end - 1.0).toFixed(2));
-            end = parseFloat(Math.min(phraseDuration, start + 1.0).toFixed(2));
-          }
-
-          graphic = {
-            type,
-            value: graphic.value !== undefined ? graphic.value : '📊',
-            label: graphic.label || '',
-            unit: graphic.unit || '',
-            emoji: graphic.emoji || '💡',
-            graphicStart: start,
-            graphicEnd: end,
-            extra: graphic.extra !== undefined ? graphic.extra : null
-          };
-        } else {
-          graphic = null;
-        }
+        let graphic = null;
 
         sanitizedPhrases.push({
           phraseIndex: idx + 1,
@@ -1899,39 +1789,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
       }
     }
 
-    const minGraphicsCount = Math.round((pct / 100) * sanitizedPhrases.length);
-    const currentGraphicsCount = sanitizedPhrases.filter(p => p.graphic !== null).length;
-    const needed = minGraphicsCount - currentGraphicsCount;
 
-    if (needed > 0) {
-      const eligibleIndices: number[] = [];
-      for (let i = 0; i < sanitizedPhrases.length; i++) {
-        if (!sanitizedPhrases[i].graphic) {
-          eligibleIndices.push(i);
-        }
-      }
-
-      if (eligibleIndices.length > 0) {
-        const step = eligibleIndices.length / needed;
-        for (let j = 0; j < needed; j++) {
-          const idx = eligibleIndices[Math.floor(j * step)];
-          if (idx !== undefined && sanitizedPhrases[idx]) {
-            const phraseDuration = newAudioSegments[idx].end - newAudioSegments[idx].start;
-            const start = parseFloat((phraseDuration * 0.1).toFixed(2));
-            const end = parseFloat(Math.min(phraseDuration, start + 1.2).toFixed(2));
-            sanitizedPhrases[idx].graphic = {
-              type: 'decorativo_emoji',
-              value: '📊',
-              label: 'Dato de interés',
-              unit: '',
-              emoji: '📊',
-              graphicStart: start,
-              graphicEnd: end
-            };
-          }
-        }
-      }
-    }
 
     // Aplanar la lista de sub-clips para alimentar la cola de trabajadores
     flattenedClips = [];
@@ -2190,143 +2048,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
     // FASE 5: Ensamblar timeline secuencial
     await logMessage('[FASE 5] Ensamblando timeline...');
 
-    // LLAMADA A DEEPSEEK PARA GRÁFICOS (Fase 5 tarde)
-    graphicsDecision = [];
-    if (pct > 0) {
-      if (newAudioSegments.length <= 25) {
-        try {
-          await logMessage('[FASE 5] LLAMADA 2: Motion graphics...');
-          const dsResp = await fetch('https://api.deepseek.com/chat/completions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-            body: JSON.stringify({
-              model: 'deepseek-chat',
-              messages: [
-                { role: 'system', content: 'Eres un motion designer experto. Responde ÚNICAMENTE con el JSON solicitado.' },
-                { role: 'user', content: dsPromptGraphics }
-              ],
-              temperature: 0.3
-            })
-          });
-          if (dsResp.ok) {
-            const dsData = (await dsResp.json()) as any;
-            let content = (dsData?.choices?.[0]?.message?.content || '').trim();
-            if (content.includes('{')) content = content.substring(content.indexOf('{'), content.lastIndexOf('}')+1);
-            const parsed = JSON.parse(content);
-            if (Array.isArray(parsed.phrases)) graphicsDecision = parsed.phrases;
-          }
-        } catch (err: any) {
-          await logMessage('[FASE 5] Error graficos: ' + err.message);
-        }
-      } else {
-        const BATCH_SIZE = 20;
-        let assignedGraphics = 0;
-        for (let batchStart = 0; batchStart < newAudioSegments.length; batchStart += BATCH_SIZE) {
-          const batchEnd = Math.min(batchStart + BATCH_SIZE, newAudioSegments.length);
-          const batchSegs = newAudioSegments.slice(batchStart, batchEnd);
-          const remaining = targetGraphics - assignedGraphics;
-          const batchTarget = Math.min(remaining, Math.round(targetGraphics * batchSegs.length / newAudioSegments.length));
-          if (batchTarget <= 0) continue;
-          const batchFragmentos = batchSegs.map((seg: any, idx: number) => {
-            const phraseNum = batchStart + idx + 1;
-            const duration = seg.end - seg.start;
-            return '[Frase ' + phraseNum + '] "' + seg.text + '" (' + Number(seg.start).toFixed(1) + 's - ' + Number(seg.end).toFixed(1) + 's, duracion: ' + duration.toFixed(2) + 's).';
-          }).join('\n');
-          const batchPrompt = 'Eres un motion designer para videos cortos.\nREGLAS:\n1. Asigna exactamente ' + batchTarget + ' graficos en estas ' + batchSegs.length + ' frases.\n2. TIPO A: contador, barra_horizontal, donut, barras_comparativas, flecha_crecimiento, flecha_caida, multiplicador, ranking_top3, lista_numerada, checklist, pasos_proceso.\n3. TIPO B: decorativo_emoji con emoji especifico y label corto, o frase_clave con texto impactante.\n4. graphicStart: timestamp de la palabra clave relativo al inicio de la frase.\n5. graphicEnd = graphicStart + 2.0 maximo.\n6. Responde SOLO JSON sin markdown.\nFRASES:\n' + batchFragmentos + '\nFORMATO:\n{"phrases":[{"phraseIndex":1,"graphic":{"type":"decorativo_emoji","value":null,"label":"Concepto","unit":"","emoji":"🔥","extra":null,"graphicStart":0.5,"graphicEnd":2.5}},{"phraseIndex":2,"graphic":null}]}';
-          try {
-            await logMessage('[FASE 5] Graficos lote ' + (Math.floor(batchStart/BATCH_SIZE)+1) + ': frases ' + (batchStart+1) + '-' + batchEnd);
-            const dsResp = await fetch('https://api.deepseek.com/chat/completions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-              body: JSON.stringify({
-                model: 'deepseek-chat',
-                messages: [
-                  { role: 'system', content: 'Responde UNICAMENTE con JSON valido.' },
-                  { role: 'user', content: batchPrompt }
-                ],
-                temperature: 0.3
-              })
-            });
-            if (dsResp.ok) {
-              const dsData = (await dsResp.json()) as any;
-              let content = (dsData?.choices?.[0]?.message?.content || '').trim();
-              if (content.includes('{')) content = content.substring(content.indexOf('{'), content.lastIndexOf('}')+1);
-              const parsed = JSON.parse(content);
-              if (Array.isArray(parsed.phrases)) {
-                graphicsDecision.push(...parsed.phrases);
-                assignedGraphics += parsed.phrases.filter((p: any) => p.graphic !== null).length;
-              }
-            }
-          } catch (err: any) {
-            await logMessage('[FASE 5] Error lote graficos: ' + err.message);
-          }
-        }
-      }
 
-      await logMessage('[DEBUG_TARGET] pct=' + pct + 
-        ' totalPhrases=' + totalPhrases + 
-        ' targetGraphics=' + targetGraphics);
-
-      let gCount = 0;
-      graphicsDecision = graphicsDecision.map(
-        (p: any) => {
-          if (p.graphic !== null && 
-              p.graphic !== undefined) {
-            gCount++;
-            if (gCount > targetGraphics) {
-              return { ...p, graphic: null };
-            }
-          }
-          return p;
-        }
-      );
-
-      // Mapear graphicsDecision a sanitizedPhrases
-      for (let phraseIdx = 0; phraseIdx < sanitizedPhrases.length; phraseIdx++) {
-        const phrase = sanitizedPhrases[phraseIdx];
-        const gDecision = graphicsDecision.find(
-          (g: any) => g && (g.phraseIndex === phraseIdx + 1 || g.index === phraseIdx + 1)
-        );
-        if (gDecision?.graphic) {
-          const graphic = gDecision.graphic;
-          const type = graphic.type || 'decorativo_emoji';
-          const seg = newAudioSegments[phraseIdx];
-          const phraseDuration = seg ? (seg.end - seg.start) : 2.0;
-
-          let start = parseFloat(Number(graphic.graphicStart).toFixed(2));
-          let end = parseFloat(Number(graphic.graphicEnd).toFixed(2));
-          
-          if (isNaN(start) || start < 0) start = 0;
-          if (start > phraseDuration) start = phraseDuration;
-          if (isNaN(end) || end < start) end = start + 2.0;
-          if (end > phraseDuration) end = phraseDuration;
-          
-          let dur = end - start;
-          if (dur > 2.0) {
-            end = parseFloat((start + 2.0).toFixed(2));
-            if (end > phraseDuration) {
-              end = phraseDuration;
-              start = parseFloat(Math.max(0, end - 2.0).toFixed(2));
-            }
-          }
-          if (end - start < 0.2) {
-            start = parseFloat(Math.max(0, end - 1.0).toFixed(2));
-            end = parseFloat(Math.min(phraseDuration, start + 1.0).toFixed(2));
-          }
-
-          phrase.graphic = {
-            type,
-            value: graphic.value !== undefined ? graphic.value : '📊',
-            label: graphic.label || 'Concepto clave',
-            unit: graphic.unit || '',
-            emoji: graphic.emoji || '💡',
-            graphicStart: start,
-            graphicEnd: end,
-            extra: graphic.extra !== undefined ? graphic.extra : null
-          };
-        }
-      }
-    }
     let currentStart = 0;
     const finalClips: any[] = [];
     const graphicClips: any[] = [];
@@ -2467,7 +2189,8 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
   }
 });
 
-ipcMain.handle('regenerate-graphics', async (_event, { scriptText, clips, graphicsPercent }) => {
+ipcMain.handle('regenerate-graphics', async (_event, params: any) => {
+  const { scriptText, clips, graphicsPercent } = params;
   try {
     console.log('[regenerate-graphics] Iniciando...');
     loadEnv(true);
@@ -2475,7 +2198,11 @@ ipcMain.handle('regenerate-graphics', async (_event, { scriptText, clips, graphi
     if (!apiKey) return { success: false, error: 'No se configuró DEEPSEEK_API_KEY en el archivo .env' };
 
     const totalClips = clips.length;
-    const targetGraphicsCount = Math.round((graphicsPercent / 100) * totalClips);
+    const totalPhrases = params.totalPhrases || clips.length;
+    const targetGraphicsCount = Math.min(
+      totalPhrases,
+      Math.round((graphicsPercent / 100) * totalPhrases)
+    );
     console.log(`[regenerate-graphics] Clips totales: ${totalClips}, Gráficos a generar: ${targetGraphicsCount}`);
 
     let generatedClips = clips.map((c: any) => ({ ...c }));

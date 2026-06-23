@@ -2454,8 +2454,14 @@ function App() {
     try {
       const res = await window.electronAPI.regenerateGraphics({
         scriptText: textToUse,
-        clips: videoClips.map(c => ({ id: c.id, name: c.name })),
-        graphicsPercent: graphicsPercent > 0 ? Math.max(50, graphicsPercent) : 0
+        clips: videoClips.map(c => ({ 
+          id: c.id, 
+          name: c.name,
+          startSeconds: c.startSeconds,
+          phraseIdx: (c as any).phraseIdx ?? -1
+        })),
+        graphicsPercent: graphicsPercent,
+        audioSegments: newAudioSegments || transcriptSegments
       });
       if (res && res.success && res.clips) {
         const nonGraphicClips = timelineVideoClips.filter(c => c.type !== 'graphic');
