@@ -421,6 +421,9 @@ interface TimelineVersion {
 function App() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState('00:00:15:22')
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showFullscreenControls, setShowFullscreenControls] = useState(false)
+  const fullscreenTimerRef = React.useRef<NodeJS.Timeout | null>(null)
   
   // Project Management States
   const [activeProjectPath, setActiveProjectPath] = useState<string | null>(null)
@@ -1201,6 +1204,26 @@ function App() {
   const handleCancelCrop = (e: React.MouseEvent) => {
     e.stopPropagation()
     setIsCropping(false)
+  }
+
+  useEffect(() => {
+    const handleFSChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', handleFSChange)
+    return () => document.removeEventListener(
+      'fullscreenchange', handleFSChange)
+  }, [])
+
+  const handleFullscreenMouseMove = () => {
+    if (!isFullscreen) return
+    setShowFullscreenControls(true)
+    if (fullscreenTimerRef.current) {
+      clearTimeout(fullscreenTimerRef.current)
+    }
+    fullscreenTimerRef.current = setTimeout(() => {
+      setShowFullscreenControls(false)
+    }, 3000)
   }
 
   // Global Keyboard Shortcuts (Undo, Redo, Split, Delete, Select All)
@@ -3740,6 +3763,7 @@ function App() {
         <section className="flex-1 bg-slate-950 flex flex-col p-4 overflow-hidden">
           <div 
             ref={playerWrapperRef}
+            onMouseMove={handleFullscreenMouseMove}
             className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl relative overflow-hidden flex items-center justify-center group shadow-inner"
           >
             {/* Player Canvas Mockup / Real Player */}
@@ -3884,6 +3908,47 @@ function App() {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               <span>{activeVideoUrl ? 'Reproductor Activo' : 'Full Res (1080p)'}</span>
             </div>
+
+            {isFullscreen && showFullscreenControls && (
+              <div className='absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center space-x-6 bg-black/60 backdrop-blur-sm rounded-full px-8 py-3'>
+                <button onClick={() => {
+                  const newTime = Math.max(0, 
+                    (currentTimeRef.current || 0) - 10);
+                  currentTimeRef.current = newTime;
+                  if (audioRef.current) 
+                    audioRef.current.currentTime = newTime;
+                }} className='text-white hover:text-indigo-400'>
+                  <svg width='28' height='28' viewBox='0 0 24 24' fill='currentColor'>
+                    <path d='M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z'/>
+                    <text x='9' y='15' fontSize='6' fill='white'>10</text>
+                  </svg>
+                </button>
+                <button onClick={() => setIsPlaying(!isPlaying)}
+                  className='text-white hover:text-indigo-400 w-14 h-14 bg-white/20 rounded-full flex items-center justify-center'>
+                  {isPlaying 
+                    ? <svg width='24' height='24' viewBox='0 0 24 24' fill='currentColor'>
+                        <path d='M6 19h4V5H6v14zm8-14v14h4V5h-4z'/>
+                      </svg>
+                    : <svg width='24' height='24' viewBox='0 0 24 24' fill='currentColor'>
+                        <path d='M8 5v14l11-7z'/>
+                      </svg>
+                  }
+                </button>
+                <button onClick={() => {
+                  const newTime = Math.min(
+                    audioRef.current?.duration || 0,
+                    (currentTimeRef.current || 0) + 10);
+                  currentTimeRef.current = newTime;
+                  if (audioRef.current)
+                    audioRef.current.currentTime = newTime;
+                }} className='text-white hover:text-indigo-400'>
+                  <svg width='28' height='28' viewBox='0 0 24 24' fill='currentColor'>
+                    <path d='M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z'/>
+                    <text x='9' y='15' fontSize='6' fill='white'>10</text>
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Player controls */}
