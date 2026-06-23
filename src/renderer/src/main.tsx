@@ -3911,13 +3911,8 @@ function App() {
 
             {isFullscreen && showFullscreenControls && (
               <div className='absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center space-x-6 bg-black/60 backdrop-blur-sm rounded-full px-8 py-3'>
-                <button onClick={() => {
-                  const newTime = Math.max(0, 
-                    (currentTimeRef.current || 0) - 10);
-                  currentTimeRef.current = newTime;
-                  if (audioRef.current) 
-                    audioRef.current.currentTime = newTime;
-                }} className='text-white hover:text-indigo-400'>
+                <button onClick={() => seekGlobalTime(Math.max(0, 
+                  (currentTimeRef.current || 0) - 10))} className='text-white hover:text-indigo-400'>
                   <svg width='28' height='28' viewBox='0 0 24 24' fill='currentColor'>
                     <path d='M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z'/>
                     <text x='9' y='15' fontSize='6' fill='white'>10</text>
@@ -3934,19 +3929,23 @@ function App() {
                       </svg>
                   }
                 </button>
-                <button onClick={() => {
-                  const newTime = Math.min(
-                    audioRef.current?.duration || 0,
-                    (currentTimeRef.current || 0) + 10);
-                  currentTimeRef.current = newTime;
-                  if (audioRef.current)
-                    audioRef.current.currentTime = newTime;
-                }} className='text-white hover:text-indigo-400'>
+                <button onClick={() => seekGlobalTime(Math.min(
+                  audioRef.current?.duration || 0,
+                  (currentTimeRef.current || 0) + 10))} className='text-white hover:text-indigo-400'>
                   <svg width='28' height='28' viewBox='0 0 24 24' fill='currentColor'>
                     <path d='M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z'/>
                     <text x='9' y='15' fontSize='6' fill='white'>10</text>
                   </svg>
                 </button>
+                <input 
+                  type='range'
+                  min={0}
+                  max={audioRef.current?.duration || 100}
+                  value={currentTimeRef.current || 0}
+                  onChange={(e) => seekGlobalTime(
+                    parseFloat(e.target.value))}
+                  className='w-48 accent-indigo-400'
+                />
               </div>
             )}
           </div>
