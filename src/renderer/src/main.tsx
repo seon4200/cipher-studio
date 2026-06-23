@@ -3929,9 +3929,11 @@ function App() {
                       </svg>
                   }
                 </button>
-                <button onClick={() => seekGlobalTime(Math.min(
-                  audioRef.current?.duration || 0,
-                  (currentTimeRef.current || 0) + 10))} className='text-white hover:text-indigo-400'>
+                <button onClick={() => {
+                  const dur = audioRef.current?.duration || 0;
+                  const cur = currentTimeRef.current || 0;
+                  seekGlobalTime(Math.min(dur, cur + 10));
+                }} className='text-white hover:text-indigo-400'>
                   <svg width='28' height='28' viewBox='0 0 24 24' fill='currentColor'>
                     <path d='M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z'/>
                     <text x='9' y='15' fontSize='6' fill='white'>10</text>
@@ -3946,6 +3948,14 @@ function App() {
                     parseFloat(e.target.value))}
                   className='w-48 accent-indigo-400'
                 />
+                <button onClick={toggleFullscreen}
+                  className='text-white hover:text-red-400 
+                    ml-2'>
+                  <svg width='24' height='24' 
+                    viewBox='0 0 24 24' fill='currentColor'>
+                    <path d='M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z'/>
+                  </svg>
+                </button>
               </div>
             )}
           </div>
