@@ -5190,8 +5190,10 @@ electron.ipcMain.handle("generate-timeline-assets", async (event, { scriptText, 
     const pct = typeof graphicsPercent === "number" ? graphicsPercent : 50;
     const totalPhrases = newAudioSegments.length;
     let flattenedClips = [];
-    const totalSubClips = flattenedClips.length || totalPhrases * 2;
-    const targetGraphics = Math.round(totalSubClips * pct / 100);
+    const targetGraphics = Math.min(
+      totalPhrases,
+      Math.round(totalPhrases * pct / 100)
+    );
     let sanitizedPhrases = [];
     let graphicsDecision = [];
     let dsPromptGraphics = "";
@@ -5441,7 +5443,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           graphic = {
             type,
             value: graphic.value !== void 0 ? graphic.value : "📊",
-            label: graphic.label || "Concepto clave",
+            label: graphic.label || "",
             unit: graphic.unit || "",
             emoji: graphic.emoji || "💡",
             graphicStart: start,
@@ -5834,6 +5836,19 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
           }
         }
       }
+      await logMessage("[DEBUG_TARGET] pct=" + pct + " totalPhrases=" + totalPhrases + " targetGraphics=" + targetGraphics);
+      let gCount = 0;
+      graphicsDecision = graphicsDecision.map(
+        (p) => {
+          if (p.graphic !== null && p.graphic !== void 0) {
+            gCount++;
+            if (gCount > targetGraphics) {
+              return { ...p, graphic: null };
+            }
+          }
+          return p;
+        }
+      );
       for (let phraseIdx = 0; phraseIdx < sanitizedPhrases.length; phraseIdx++) {
         const phrase = sanitizedPhrases[phraseIdx];
         const gDecision = graphicsDecision.find(
@@ -5885,8 +5900,11 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
       await logMessage(`[DEBUG3] phraseIdx=${phraseIdx} phraseStartSeconds=${phraseStartSeconds} currentStart=${currentStart}`);
       for (let clipIdx = 0; clipIdx < phrase.visualClips.length; clipIdx++) {
         const clip = createdClips[globalClipIdx];
+        if (!clip) {
+          globalClipIdx++;
+          continue;
+        }
         globalClipIdx++;
-        if (!clip) continue;
         clip.startSeconds = phraseStartSeconds + (clipIdx > 0 ? sanitizedPhrases[phraseIdx].visualClips.slice(0, clipIdx).reduce((sum, c) => sum + (c.duration ?? 2), 0) : 0);
         clip.phraseIdx = phraseIdx;
         clip.graphic = null;
