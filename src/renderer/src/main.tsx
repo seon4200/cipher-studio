@@ -424,6 +424,7 @@ function App() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showFullscreenControls, setShowFullscreenControls] = useState(false)
   const fullscreenTimerRef = React.useRef<NodeJS.Timeout | null>(null)
+  const [showVideoV2Track, setShowVideoV2Track] = useState(false)
   
   // Project Management States
   const [activeProjectPath, setActiveProjectPath] = useState<string | null>(null)
@@ -5304,6 +5305,37 @@ function App() {
                     })}
                 </div>
               </div>
+
+              {/* Botón expandir pista v2 */}
+              <div className="flex items-center space-x-3 mt-1">
+                <div className="w-28 flex-shrink-0">
+                  <button
+                    onClick={() => setShowVideoV2Track(!showVideoV2Track)}
+                    className="text-[10px] text-slate-500 hover:text-slate-300 flex items-center space-x-1"
+                  >
+                    {showVideoV2Track ? '▼' : '▶'}
+                    <span>Video v2</span>
+                  </button>
+                </div>
+              </div>
+
+              {showVideoV2Track && (
+                <div className='flex items-center space-x-3'>
+                  <div className='w-28 text-[11px] font-bold text-slate-400 flex flex-col justify-center space-y-1.5 flex-shrink-0 pr-2'>
+                    <div className='flex items-center space-x-1'>
+                      <span>🎬</span>
+                      <span>Video v2</span>
+                    </div>
+                  </div>
+                  <div className='flex-1 h-12 bg-slate-900/40 border border-slate-700/50 rounded-xl relative overflow-hidden border-dashed'>
+                    <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
+                      <span className='text-[10px] text-slate-600'>
+                        Arrastra video base aquí
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Track 1.5: Gráficos Track */}
               <div className="flex items-center space-x-3">
