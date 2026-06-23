@@ -5912,52 +5912,51 @@ electron.ipcMain.handle("regenerate-graphics", async (_event, params) => {
       return { success: true, clips: generatedClips };
     }
     const stopWords = ["el", "la", "los", "las", "un", "una", "de", "del", "al", "en", "y", "a", "que", "se", "es", "por", "con", "su", "sus", "lo", "le", "les", "me", "te", "nos", "para", "como", "pero", "mas", "más", "si", "no", "ya"];
-    const fragmentosNumerados = audioSegs.length > 0 ? audioSegs.map((seg, idx) => {
-      const duration = (seg.end - seg.start).toFixed(2);
-      const wordsStr = seg.words && seg.words.length > 0 ? seg.words.slice(0, 8).map((w) => {
-        const rel = Math.max(0, parseFloat((w.start - seg.start).toFixed(2)));
-        return w.word.trim() + "=" + rel + "s";
-      }).join(", ") : "";
-      return "[Frase " + (idx + 1) + '] "' + seg.text + '" (' + Number(seg.start).toFixed(1) + "s-" + Number(seg.end).toFixed(1) + "s, dur:" + duration + "s" + (wordsStr ? ", palabras:" + wordsStr : "") + ")";
-    }).join("\n") : clips.map((c, idx) => "[Frase " + (idx + 1) + '] "' + c.name + '"').join("\n");
-    const dsPrompt = `Eres un motion designer para videos cortos.
-REGLAS:
-1. Asigna exactamente ${targetGraphicsCount} graficos en ${totalPhrases} frases.
-2. TIPO A si hay datos cuantificables: contador, barra_horizontal, donut, barras_comparativas, comparacion_antes_despues, flecha_crecimiento, flecha_caida, multiplicador, fraccion, ranking_top3, lista_numerada, checklist, pasos_proceso.
-3. TIPO B si NO hay datos: decorativo_emoji con emoji MUY especifico del tema y label de 2-3 palabras. frase_clave con el texto mas impactante.
-4. EJEMPLOS:
-   - "el 70% no ahorra" -> barra_horizontal, value:70, unit:"%", label:"sin ahorros", emoji:"💰"
-   - "paso de 1M a 10M" -> comparacion_antes_despues, extra:{beforeValue:1,afterValue:10}, emoji:"📈"
-   - "3 pasos clave" -> pasos_proceso, extra:{steps:["Paso1","Paso2","Paso3"]}, emoji:"🎯"
-   - "universo en orden" -> decorativo_emoji, emoji:"🌌", label:"Orden Universal"
-5. graphicStart: usa los timestamps de palabras para ubicar el segundo exacto de la palabra clave (relativo al inicio de la frase). Si no hay palabras disponibles usa 0.3.
-6. graphicEnd = graphicStart + 2.0 maximo.
-7. Responde SOLO JSON sin markdown.
-
-FRASES:
-${fragmentosNumerados}
-
-FORMATO:
-{"phrases":[{"phraseIndex":1,"graphic":{"type":"decorativo_emoji","value":null,"label":"Concepto","unit":"","emoji":"🔥","extra":null,"graphicStart":0.5,"graphicEnd":2.5}},{"phraseIndex":2,"graphic":null}]}`;
-    const dsResponse = await fetch("https://api.deepseek.com/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [
-          { role: "system", content: "Responde UNICAMENTE con JSON valido." },
-          { role: "user", content: dsPrompt }
-        ],
-        temperature: 0.3
-      })
-    });
-    if (dsResponse.ok) {
-      const dsData = await dsResponse.json();
-      let content = (((_d = (_c = (_b = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _b[0]) == null ? void 0 : _c.message) == null ? void 0 : _d.content) || "").trim();
-      if (content.includes("{")) {
-        content = content.substring(content.indexOf("{"), content.lastIndexOf("}") + 1);
+    const allPhrases = [];
+    const sectionSize = Math.ceil(audioSegs.length / targetGraphicsCount);
+    for (let s = 0; s < targetGraphicsCount; s++) {
+      const sStart = s * sectionSize;
+      const sEnd = Math.min(sStart + sectionSize, audioSegs.length);
+      if (sStart >= audioSegs.length) break;
+      const sectionSegs = audioSegs.slice(sStart, sEnd);
+      const sectionFragmentos = sectionSegs.map((seg, idx) => {
+        const phraseNum = sStart + idx + 1;
+        const duration = (seg.end - seg.start).toFixed(2);
+        const wordsStr = seg.words && seg.words.length > 0 ? seg.words.slice(0, 5).map((w) => {
+          const rel = Math.max(0, parseFloat((w.start - seg.start).toFixed(2)));
+          return w.word.trim() + "=" + rel + "s";
+        }).join(", ") : "";
+        return "[Frase " + phraseNum + '] "' + seg.text + '" (dur:' + duration + "s" + (wordsStr ? ", palabras:" + wordsStr : "") + ")";
+      }).join("\n");
+      const sectionPrompt = "Eres un motion designer.\nElige EXACTAMENTE 1 frase de esta seccion para un grafico impactante.\nTIPO A si hay datos: contador, barra_horizontal, flecha_crecimiento, barras_comparativas, ranking_top3, lista_numerada, pasos_proceso.\nTIPO B si no hay datos: decorativo_emoji con emoji especifico y label, o frase_clave con texto impactante.\ngraphicStart: timestamp de la palabra clave (relativo al inicio de la frase). graphicEnd = graphicStart + 2.0\nResponde SOLO JSON.\nFRASES:\n" + sectionFragmentos + '\nFORMATO: {"phrases":[{"phraseIndex":' + (sStart + 1) + ',"graphic":{"type":"decorativo_emoji","value":null,"label":"Concepto","unit":"","emoji":"🔥","extra":null,"graphicStart":0.5,"graphicEnd":2.5}},{"phraseIndex":' + (sStart + 2) + ',"graphic":null}]}';
+      try {
+        const dsResp = await fetch("https://api.deepseek.com/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model: "deepseek-chat",
+            messages: [
+              { role: "system", content: "Responde UNICAMENTE con JSON valido." },
+              { role: "user", content: sectionPrompt }
+            ],
+            temperature: 0.3
+          })
+        });
+        if (dsResp.ok) {
+          const dsData = await dsResp.json();
+          let content = (((_d = (_c = (_b = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _b[0]) == null ? void 0 : _c.message) == null ? void 0 : _d.content) || "").trim();
+          if (content.includes("{")) content = content.substring(content.indexOf("{"), content.lastIndexOf("}") + 1);
+          const parsed = JSON.parse(content);
+          if (Array.isArray(parsed.phrases)) {
+            allPhrases.push(...parsed.phrases);
+          }
+        }
+      } catch (err) {
+        await logMessage("[REGEN] Error seccion " + s + ": " + err.message);
       }
-      const parsed = JSON.parse(content);
+    }
+    if (allPhrases.length > 0) {
+      const parsed = { phrases: allPhrases };
       if (Array.isArray(parsed.phrases)) {
         let gCount = 0;
         const limitedPhrases = parsed.phrases.map((p) => {
