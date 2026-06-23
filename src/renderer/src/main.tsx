@@ -1429,8 +1429,8 @@ function App() {
   // AI Transcription States
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [transcriptionStatus, setTranscriptionStatus] = useState<string>('')
-  const [transcriptSegments, setTranscriptSegments] = useState<{ start: number; end: number; text: string }[]>([])
-  const [newAudioSegments, setNewAudioSegments] = useState<{ start: number; end: number; text: string }[]>([])
+  const [transcriptSegments, setTranscriptSegments] = useState<{ start: number; end: number; text: string; words?: { word: string; start: number; end: number }[] }[]>([])
+  const [newAudioSegments, setNewAudioSegments] = useState<{ start: number; end: number; text: string; words?: { word: string; start: number; end: number }[] }[]>([])
   const [originalTranscriptText, setOriginalTranscriptText] = useState<string>('')
   const transcription = originalTranscriptText
   const [aiScript, setAiScript] = useState<string>('')
@@ -2448,12 +2448,16 @@ function App() {
   const handleRegenerateGraphics = async () => {
     const textToUse = aiScript.trim() || originalTranscriptText.trim();
     if (!textToUse) return;
+    const voiceClip = timelineVideoClips.find(
+      c => c.type === 'audio');
+    const audioPath = voiceClip?.path || '';
     const videoClips = timelineVideoClips.filter(c => c.type !== 'audio' && c.type !== 'graphic');
     if (videoClips.length === 0) return;
     setIsGeneratingAssets(true);
     try {
       const res = await window.electronAPI.regenerateGraphics({
         scriptText: textToUse,
+        audioPath: audioPath,
         clips: videoClips.map(c => ({ 
           id: c.id, 
           name: c.name,
@@ -2461,7 +2465,9 @@ function App() {
           phraseIdx: (c as any).phraseIdx ?? -1
         })),
         graphicsPercent: graphicsPercent,
-        audioSegments: newAudioSegments || transcriptSegments
+        audioSegments: newAudioSegments && newAudioSegments.length > 0 
+          ? newAudioSegments 
+          : transcriptSegments
       });
       if (res && res.success && res.clips) {
         const nonGraphicClips = timelineVideoClips.filter(c => c.type !== 'graphic');
@@ -2472,8 +2478,9 @@ function App() {
             return {
               id: `timeline-graphic-${Math.random()}`,
               name: `Gráfico: ${c.graphicData.label || c.graphicData.type}`,
-              startSeconds: matchingVideo?.startSeconds || 0,
-              durationSeconds: Math.min(2.0, matchingVideo?.durationSeconds || 2.0),
+              startSeconds: c.graphicAbsoluteStart ?? (matchingVideo?.startSeconds || 0),
+              durationSeconds: c.graphicDuration ?? Math.min(2.0, matchingVideo?.durationSeconds || 2.0),
+              phraseIdx: c.phraseIdx ?? -1,
               type: 'graphic' as const,
               graphicData: c.graphicData
             };

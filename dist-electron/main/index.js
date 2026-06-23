@@ -5250,6 +5250,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
   ]
 }`;
       let phrasesDecision = [];
+      let graphicsDecision = [];
       try {
         await logMessage("[FASE 2] LLAMADA 1: Solicitando clips visuales a DeepSeek...");
         const dsResponseClips = await fetch("https://api.deepseek.com/chat/completions", {
@@ -5283,6 +5284,7 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
         const phraseDuration = seg.end - seg.start;
         const numClipsExpected = phraseDuration > 4 ? Math.ceil(phraseDuration / 3) : 1;
         const matchClips = phrasesDecision.find((p) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
+        const matchGraphics = graphicsDecision.find((p) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
         let visualClips = (matchClips == null ? void 0 : matchClips.visualClips) || (matchClips == null ? void 0 : matchClips.clips);
         if (!Array.isArray(visualClips) || visualClips.length === 0) {
           visualClips = [];
@@ -5347,7 +5349,40 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
             }
           }
         }
-        let graphic = null;
+        let graphic = matchGraphics == null ? void 0 : matchGraphics.graphic;
+        if (graphic && typeof graphic === "object") {
+          const type = graphic.type || "decorativo_emoji";
+          let start = parseFloat(Number(graphic.graphicStart).toFixed(2));
+          let end = parseFloat(Number(graphic.graphicEnd).toFixed(2));
+          if (isNaN(start) || start < 0) start = 0;
+          if (start > phraseDuration) start = phraseDuration;
+          if (isNaN(end) || end < start) end = start + 2;
+          if (end > phraseDuration) end = phraseDuration;
+          let dur = end - start;
+          if (dur > 2) {
+            end = parseFloat((start + 2).toFixed(2));
+            if (end > phraseDuration) {
+              end = phraseDuration;
+              start = parseFloat(Math.max(0, end - 2).toFixed(2));
+            }
+          }
+          if (end - start < 0.2) {
+            start = parseFloat(Math.max(0, end - 1).toFixed(2));
+            end = parseFloat(Math.min(phraseDuration, start + 1).toFixed(2));
+          }
+          graphic = {
+            type,
+            value: graphic.value !== void 0 ? graphic.value : "📊",
+            label: graphic.label || "Concepto clave",
+            unit: graphic.unit || "",
+            emoji: graphic.emoji || "💡",
+            graphicStart: start,
+            graphicEnd: end,
+            extra: graphic.extra !== void 0 ? graphic.extra : null
+          };
+        } else {
+          graphic = null;
+        }
         sanitizedPhrases.push({
           phraseIndex: idx + 1,
           visualClips,
@@ -5639,11 +5674,8 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
       await logMessage(`[DEBUG3] phraseIdx=${phraseIdx} phraseStartSeconds=${phraseStartSeconds} currentStart=${currentStart}`);
       for (let clipIdx = 0; clipIdx < phrase.visualClips.length; clipIdx++) {
         const clip = createdClips[globalClipIdx];
-        if (!clip) {
-          globalClipIdx++;
-          continue;
-        }
         globalClipIdx++;
+        if (!clip) continue;
         clip.startSeconds = phraseStartSeconds + (clipIdx > 0 ? sanitizedPhrases[phraseIdx].visualClips.slice(0, clipIdx).reduce((sum, c) => sum + (c.duration ?? 2), 0) : 0);
         clip.phraseIdx = phraseIdx;
         clip.graphic = null;
@@ -5786,102 +5818,134 @@ Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
   }
 });
 electron.ipcMain.handle("regenerate-graphics", async (_event, params) => {
-  var _a, _b, _c;
-  const { scriptText, clips, graphicsPercent } = params;
+  var _a, _b, _c, _d;
+  const { clips, graphicsPercent } = params;
+  const logMessage = async (msg) => {
+    console.log(msg);
+    await writeDebugLog(msg);
+  };
   try {
-    console.log("[regenerate-graphics] Iniciando...");
+    await logMessage("[regenerate-graphics] Iniciando...");
     loadEnv(true);
     const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) return { success: false, error: "No se configuró DEEPSEEK_API_KEY en el archivo .env" };
     const totalClips = clips.length;
-    const totalPhrases = params.totalPhrases || clips.length;
+    let audioSegs = params.audioSegments || [];
+    if (params.audioPath && params.audioPath.length > 0) {
+      try {
+        await logMessage("[REGEN] Re-transcribiendo audio con word_timestamps...");
+        const transcriptsDir = path.join(
+          path.dirname(params.audioPath),
+          "transcripts"
+        );
+        await fs.promises.mkdir(transcriptsDir, { recursive: true });
+        const audioFileName = path.basename(
+          params.audioPath,
+          path.extname(params.audioPath)
+        );
+        const expectedJson = path.join(
+          transcriptsDir,
+          audioFileName + ".json"
+        );
+        await new Promise((resolve) => {
+          const whisper = child_process.spawn("whisper", [
+            params.audioPath,
+            "--language",
+            "Spanish",
+            "--model",
+            "tiny",
+            "--output_format",
+            "json",
+            "--output_dir",
+            transcriptsDir,
+            "--word_timestamps",
+            "True"
+          ], { shell: true, env: {
+            ...process.env,
+            PYTHONIOENCODING: "utf-8"
+          } });
+          whisper.on("close", () => resolve());
+          whisper.on("error", () => resolve());
+        });
+        if (await exists(expectedJson)) {
+          const raw = await fs.promises.readFile(expectedJson, "utf8");
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.segments)) {
+            audioSegs = parsed.segments.map((seg) => ({
+              start: seg.start,
+              end: seg.end,
+              text: seg.text,
+              words: (seg.words || []).map((w) => ({
+                word: w.word,
+                start: w.start,
+                end: w.end
+              }))
+            }));
+            await logMessage("[REGEN] Re-transcripcion exitosa: " + audioSegs.length + " segmentos con word_timestamps");
+          }
+        }
+      } catch (err) {
+        await logMessage("[REGEN] Error re-transcribiendo: " + err.message);
+      }
+    }
+    const totalPhrases = audioSegs.length > 0 ? audioSegs.length : totalClips;
     const targetGraphicsCount = Math.min(
       totalPhrases,
       Math.round(graphicsPercent / 100 * totalPhrases)
     );
+    console.log(
+      "[DEBUG_REGEN] clips.length:",
+      clips.length,
+      "audioSegs.length:",
+      audioSegs.length,
+      "graphicsPercent:",
+      graphicsPercent,
+      "primer clip phraseIdx:",
+      (_a = clips[0]) == null ? void 0 : _a.phraseIdx,
+      "targetGraphicsCount:",
+      targetGraphicsCount
+    );
     console.log(`[regenerate-graphics] Clips totales: ${totalClips}, Gráficos a generar: ${targetGraphicsCount}`);
     let generatedClips = clips.map((c) => ({ ...c }));
+    const clipsRef = generatedClips;
     if (targetGraphicsCount <= 0) {
       return { success: true, clips: generatedClips };
     }
-    const sentences = (scriptText || "").split(new RegExp("(?<=[.!?])\\s+")).filter((s) => s.trim().length > 0);
-    const fragments = [];
-    if (sentences.length <= totalClips) {
-      for (let i = 0; i < totalClips; i++) {
-        fragments.push(sentences[i] || sentences[sentences.length - 1] || "");
-      }
-    } else {
-      const k = sentences.length / totalClips;
-      for (let i = 0; i < totalClips; i++) {
-        const start = Math.floor(i * k);
-        const end = Math.floor((i + 1) * k);
-        fragments.push(sentences.slice(start, end).join(" "));
-      }
-    }
-    const fragmentosNumerados = fragments.map((frag, idx) => {
-      var _a2, _b2;
-      return `ID del clip: "${((_a2 = clips[idx]) == null ? void 0 : _a2.id) || idx}", Nombre del clip: "${(_b2 = clips[idx]) == null ? void 0 : _b2.name}", Fragmento: "${frag}"`;
-    }).join("\n");
-    const dsPrompt = `Eres un motion designer para videos cortos. Tienes un guión de un video segmentado en clips.
-Debes elegir exactamente ${targetGraphicsCount} clips de la lista para colocarles un gráfico animado superpuesto que apoye visualmente lo que se narra en el fragmento.
+    const stopWords = ["el", "la", "los", "las", "un", "una", "de", "del", "al", "en", "y", "a", "que", "se", "es", "por", "con", "su", "sus", "lo", "le", "les", "me", "te", "nos", "para", "como", "pero", "mas", "más", "si", "no", "ya"];
+    const fragmentosNumerados = audioSegs.length > 0 ? audioSegs.map((seg, idx) => {
+      const duration = (seg.end - seg.start).toFixed(2);
+      const wordsStr = seg.words && seg.words.length > 0 ? seg.words.slice(0, 8).map((w) => {
+        const rel = Math.max(0, parseFloat((w.start - seg.start).toFixed(2)));
+        return w.word.trim() + "=" + rel + "s";
+      }).join(", ") : "";
+      return "[Frase " + (idx + 1) + '] "' + seg.text + '" (' + Number(seg.start).toFixed(1) + "s-" + Number(seg.end).toFixed(1) + "s, dur:" + duration + "s" + (wordsStr ? ", palabras:" + wordsStr : "") + ")";
+    }).join("\n") : clips.map((c, idx) => "[Frase " + (idx + 1) + '] "' + c.name + '"').join("\n");
+    const dsPrompt = `Eres un motion designer para videos cortos.
+REGLAS:
+1. Asigna exactamente ${targetGraphicsCount} graficos en ${totalPhrases} frases.
+2. TIPO A si hay datos cuantificables: contador, barra_horizontal, donut, barras_comparativas, comparacion_antes_despues, flecha_crecimiento, flecha_caida, multiplicador, fraccion, ranking_top3, lista_numerada, checklist, pasos_proceso.
+3. TIPO B si NO hay datos: decorativo_emoji con emoji MUY especifico del tema y label de 2-3 palabras. frase_clave con el texto mas impactante.
+4. EJEMPLOS:
+   - "el 70% no ahorra" -> barra_horizontal, value:70, unit:"%", label:"sin ahorros", emoji:"💰"
+   - "paso de 1M a 10M" -> comparacion_antes_despues, extra:{beforeValue:1,afterValue:10}, emoji:"📈"
+   - "3 pasos clave" -> pasos_proceso, extra:{steps:["Paso1","Paso2","Paso3"]}, emoji:"🎯"
+   - "universo en orden" -> decorativo_emoji, emoji:"🌌", label:"Orden Universal"
+5. graphicStart: usa los timestamps de palabras para ubicar el segundo exacto de la palabra clave (relativo al inicio de la frase). Si no hay palabras disponibles usa 0.3.
+6. graphicEnd = graphicStart + 2.0 maximo.
+7. Responde SOLO JSON sin markdown.
 
-Tipos de gráficos disponibles ("type"):
-- "contador": un contador numérico animado (ej. value: 80, unit: "k", label: "seguidores").
-- "barra_horizontal": una barra de progreso horizontal (ej. value: 75, unit: "%", label: "avance").
-- "barra_vertical": una barra vertical que sube (ej. value: 90, unit: "pts", label: "rendimiento").
-- "barras_comparativas": dos barras para comparar datos (ej. value: 70, label: "Mención A", extra: { rightValue: 50, rightLabel: "Mención B" }).
-- "donut": un gráfico circular animado de porcentaje (ej. value: 65, unit: "%", label: "retención").
-- "comparacion_antes_despues": muestra un cambio antes/después (ej. value: 10, label: "millones", unit: "M", extra: { beforeValue: 1, afterValue: 10 }).
-- "flecha_crecimiento": flecha verde indicando subida (ej. value: 45, unit: "%", label: "crecimiento").
-- "flecha_caida": flecha roja indicando bajada (ej. value: 15, unit: "%", label: "caída").
-- "multiplicador": factor multiplicador (ej. value: 5, label: "retorno").
-- "fraccion": fracción numérica destacada (ej. value: "9/10", label: "usuarios").
-- "ranking_top3": podio de 3 posiciones (ej. value: "Elemento 1,Elemento 2,Elemento 3", extra: { top3: ["1st", "2nd", "3rd"] }).
-- "dato_grande": número destacado gigante (ej. value: 250, label: "millones").
-- "frase_clave": texto limpio y destacado (ej. value: "ENFOQUE ABSOLUTO").
-- "decorativo_emoji": emoji grande relevante (ej. value: "💡", label: "Idea").
-- "lista_numerada": items ordenados (ej. value: "Paso A,Paso B").
-- "checklist": items marcados (ej. value: "Item A,Item B").
-- "pasos_proceso": secuencia conectada (ej. value: "Fase 1->Fase 2->Fase 3").
-
-LISTA DE CLIPS:
+FRASES:
 ${fragmentosNumerados}
 
-INSTRUCCIONES:
-1. Elige exactamente ${targetGraphicsCount} clips para tener gráficos. Los demás no tendrán gráficos (deben omitirse o no llevar graphicData).
-2. Genera los campos apropiados para "graphicData": type, value, label, unit, emoji, extra.
-- CONTEXTO OBLIGATORIO: Analiza el fragmento del guión y extrae el dato más impactante. Si menciona número, porcentaje, comparación, ranking o concepto clave → úsalo.
-- EMOJIS: Elige el emoji más representativo del tema del fragmento.
-- EJEMPLOS:
-  * 'el 70% de colombianos no tiene ahorros' → barra_horizontal, value:70, label:'sin ahorros', unit:'%', emoji:'💰'
-  * 'pasó de ganar 1M a 10M en un año' → comparacion_antes_despues, value:10, label:'millones', unit:'M', emoji:'📈', extra: { beforeValue: 1, afterValue: 10 }
-  * 'el método tiene 3 pasos' → pasos_proceso, label:'3 pasos clave', emoji:'🎯', extra: { steps: ['Planificar', 'Ejecutar', 'Medir'] }
-  * 'creció 5 veces su inversión' → multiplicador, value:5, label:'retorno', emoji:'🚀'
-  * '9 de cada 10 expertos recomiendan' → fraccion, value:9, unit:'/10', label:'expertos', emoji:'⭐'
-- NUNCA uses decorativo_emoji si hay algún dato cuantificable en el fragmento.
-
-Responde ÚNICAMENTE con un JSON en este formato sin markdown ni comentarios:
-{
-  "clips": [
-    {
-      "id": "id_del_clip_elegido",
-      "graphicData": {
-        "type": "contador",
-        "value": 150,
-        "label": "Etiqueta",
-        "unit": "ms",
-        "emoji": "⏱️"
-      }
-    }
-  ]
-}`;
+FORMATO:
+{"phrases":[{"phraseIndex":1,"graphic":{"type":"decorativo_emoji","value":null,"label":"Concepto","unit":"","emoji":"🔥","extra":null,"graphicStart":0.5,"graphicEnd":2.5}},{"phraseIndex":2,"graphic":null}]}`;
     const dsResponse = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
       body: JSON.stringify({
         model: "deepseek-chat",
         messages: [
-          { role: "system", content: "Eres un motion designer experto. Responde ÚNICAMENTE con el JSON solicitado." },
+          { role: "system", content: "Responde UNICAMENTE con JSON valido." },
           { role: "user", content: dsPrompt }
         ],
         temperature: 0.3
@@ -5889,16 +5953,50 @@ Responde ÚNICAMENTE con un JSON en este formato sin markdown ni comentarios:
     });
     if (dsResponse.ok) {
       const dsData = await dsResponse.json();
-      let content = (((_c = (_b = (_a = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _a[0]) == null ? void 0 : _b.message) == null ? void 0 : _c.content) || "").trim();
+      let content = (((_d = (_c = (_b = dsData == null ? void 0 : dsData.choices) == null ? void 0 : _b[0]) == null ? void 0 : _c.message) == null ? void 0 : _d.content) || "").trim();
       if (content.includes("{")) {
         content = content.substring(content.indexOf("{"), content.lastIndexOf("}") + 1);
       }
       const parsed = JSON.parse(content);
-      if (Array.isArray(parsed.clips)) {
-        parsed.clips.forEach((pc) => {
-          const matchingClip = generatedClips.find((c) => c.id === pc.id || c.name === pc.name);
-          if (matchingClip && pc.graphicData) {
-            matchingClip.graphicData = pc.graphicData;
+      if (Array.isArray(parsed.phrases)) {
+        let gCount = 0;
+        const limitedPhrases = parsed.phrases.map((p) => {
+          if (p.graphic !== null && p.graphic !== void 0) {
+            gCount++;
+            if (gCount > targetGraphicsCount) return { ...p, graphic: null };
+          }
+          return p;
+        });
+        limitedPhrases.forEach((p) => {
+          if (!p.graphic) return;
+          const phraseIdx = p.phraseIndex - 1;
+          const seg = audioSegs[phraseIdx];
+          let graphicStart = p.graphic.graphicStart || 0.3;
+          if (seg && seg.words && seg.words.length > 0) {
+            const segStart = seg.start || 0;
+            const keyWord = seg.words.find((w) => {
+              const clean = w.word.trim().toLowerCase().replace(/[^a-záéíóúñ]/g, "");
+              return clean.length > 2 && !stopWords.includes(clean);
+            });
+            if (keyWord) {
+              const relative = Math.max(0, parseFloat((keyWord.start - segStart).toFixed(2)));
+              const phraseDuration = seg.end - seg.start;
+              graphicStart = Math.min(relative, phraseDuration * 0.7);
+            }
+          }
+          const absoluteStart = seg ? seg.start + graphicStart : graphicStart;
+          const durSec = Math.min(2, (p.graphic.graphicEnd || graphicStart + 2) - (p.graphic.graphicStart || 0));
+          const phraseClips = clipsRef.filter((c) => c.phraseIdx === phraseIdx);
+          const targetClip = phraseClips[0] || clipsRef.find((c) => {
+            const clipStart = c.startSeconds || 0;
+            return seg && clipStart >= seg.start - 0.5 && clipStart <= seg.end;
+          });
+          if (targetClip) {
+            targetClip.graphicData = p.graphic;
+            targetClip.graphicData.graphicStart = graphicStart;
+            targetClip.graphicData.graphicEnd = graphicStart + durSec;
+            targetClip.graphicAbsoluteStart = absoluteStart;
+            targetClip.graphicDuration = durSec;
           }
         });
       }
