@@ -3766,10 +3766,8 @@ function App() {
                   src={activeVideoUrl || ''}
                   style={{
                     display: activeVideoUrl ? 'block' : 'none',
-                    transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}`,
-                    clipPath: activeCrop 
-                      ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` 
-                      : 'none',
+                    transform: (() => { const cat = sortedVideoClips[currentClipIndex]?.category?.toLowerCase(); return (cat === 'original' || cat === 'originales') ? `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}` : 'translate(0px, 0px) scale(1)'; })(),
+                    clipPath: (() => { const cat = sortedVideoClips[currentClipIndex]?.category?.toLowerCase(); return activeCrop && (cat === 'original' || cat === 'originales') ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` : 'none'; })(),
                   }}
                   className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-75 ease-out"
                   controls={false}
