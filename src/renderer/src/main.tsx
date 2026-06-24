@@ -458,6 +458,7 @@ function App() {
   // Canvas Preview Active Video States
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null)
   const videoRef = React.useRef<HTMLVideoElement>(null)
+  const videoV2Ref = React.useRef<HTMLVideoElement>(null)
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
   
   // Timeline zoom and container refs
@@ -3831,6 +3832,24 @@ function App() {
                     : 'w-[95%] aspect-video'
                 }`}
               >
+                {videoV2Clip && (
+                  <video
+                    ref={videoV2Ref}
+                    src={videoV2Clip.url || ''}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      zIndex: 1
+                    }}
+                    controls={false}
+                    muted
+                    loop
+                    autoPlay
+                  />
+                )}
                 <video 
                   id="preview-video"
                   ref={videoRef}
@@ -3839,6 +3858,7 @@ function App() {
                     display: activeVideoUrl ? 'block' : 'none',
                     transform: (() => { const cat = sortedVideoClips[currentClipIndex]?.category?.toLowerCase(); return (cat === 'original' || cat === 'originales') ? `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}` : 'translate(0px, 0px) scale(1)'; })(),
                     clipPath: (() => { const cat = sortedVideoClips[currentClipIndex]?.category?.toLowerCase(); return activeCrop && (cat === 'original' || cat === 'originales') ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` : 'none'; })(),
+                    zIndex: videoV2Clip ? 2 : 1,
                   }}
                   className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-75 ease-out"
                   controls={false}
