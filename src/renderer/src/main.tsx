@@ -2379,6 +2379,7 @@ function App() {
 
       console.log('[handleBuildIATimeline] Iniciando generación de assets de Timeline IA...');
       const audioDuration = voiceClip ? voiceClip.durationSeconds : undefined;
+      const videoV2Clip = timelineVideoClips.find(c => c.category === 'v2' || c.category === 'v2_base') || null;
       const res = await window.electronAPI.generateTimelineAssets({ 
         scriptText: aiScript, 
         weights: timelineWeights, 
@@ -2388,7 +2389,8 @@ function App() {
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
         graphicsPercent,
-        newAudioSegments: effectiveAudioSegments
+        newAudioSegments: effectiveAudioSegments,
+        hasVideoV2: videoV2Clip !== null
       });
       
       if (res && res.success && res.clips) {

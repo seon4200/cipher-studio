@@ -1437,7 +1437,7 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
   }
 })
 
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
+ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments, hasVideoV2 }) => {
   const isOriginalAudio = transcriptSegments && newAudioSegments && 
     transcriptSegments.length === newAudioSegments.length &&
     transcriptSegments[0]?.start === newAudioSegments[0]?.start;
@@ -1534,7 +1534,17 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       targetIaClips = Math.floor((targetIaClips / sum) * totalVisualClipsCount);
       targetStockClips = totalVisualClipsCount - targetIaClips;
     }
-    const targetOriginalClips = totalVisualClipsCount - targetIaClips - targetStockClips;
+    let targetOriginalClips = totalVisualClipsCount - targetIaClips - targetStockClips;
+    const hasV2 = hasVideoV2 === true;
+    if (hasV2) {
+      const totalNonOrig = targetStockClips + targetIaClips || 1;
+      targetStockClips = Math.round(
+        (targetStockClips / totalNonOrig) * totalVisualClipsCount);
+      targetIaClips = totalVisualClipsCount - targetStockClips;
+      targetOriginalClips = 0;
+      await logMessage('[FASE 2] hasVideoV2=true: forzando 0 originales, stock=' + 
+        targetStockClips + ' ia=' + targetIaClips);
+    }
 
     await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}/${totalVisualClipsCount}`);
 
