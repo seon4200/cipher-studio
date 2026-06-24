@@ -2796,18 +2796,19 @@ function App() {
         if (isVideo) {
           setActiveVideoUrl(url);
           setIsPlaying(false);
+          setShowVideoV2Track(true);
           
-          const lastClip = timelineClipsRef.current[timelineClipsRef.current.length - 1];
-          const startSeconds = lastClip ? (lastClip.startSeconds + lastClip.durationSeconds + 2) : 0;
-          const updated = [...timelineClipsRef.current, {
-            id: `timeline-${Math.random()}`,
+          const withoutV2 = timelineClipsRef.current.filter(
+            c => c.category !== 'v2_base');
+          const updated = [...withoutV2, {
+            id: `timeline-v2-${Math.random()}`,
             name: file.name,
-            startSeconds,
+            startSeconds: 0,
             durationSeconds: duration,
             type: 'video' as const,
             path: (file as any).path || file.name,
             url: url,
-            category: 'original'
+            category: 'v2_base'
           }];
           setTimelineVideoClips(updated);
           pushMilestone('Video importado', {
