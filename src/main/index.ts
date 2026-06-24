@@ -1852,6 +1852,48 @@ Responde ÚNICAMENTE con JSON sin markdown:
     }
 
     clipsDecision = flattenedClips;
+
+    // Correccion post-DeepSeek para respetar porcentajes exactos
+    let countOrig = clipsDecision.filter((c:any) => c.type==='original').length;
+    let countStock = clipsDecision.filter((c:any) => c.type==='stock').length;
+    let countIa = clipsDecision.filter((c:any) => c.type==='ia').length;
+
+    for (let i = 0; i < clipsDecision.length; i++) {
+      const c = clipsDecision[i];
+      if (c.type === 'original' && countOrig > targetOriginalClips) {
+        if (countStock < targetStockClips) {
+          c.type = 'stock';
+          c.keyword = c.keyword || 'cinematic broll';
+          countOrig--; countStock++;
+        } else if (countIa < targetIaClips) {
+          c.type = 'ia';
+          c.prompt = c.prompt || 'cinematic video clip';
+          countOrig--; countIa++;
+        }
+      } else if (c.type === 'stock' && countStock > targetStockClips) {
+        if (countIa < targetIaClips) {
+          c.type = 'ia';
+          c.prompt = c.prompt || 'cinematic video clip';
+          countStock--; countIa++;
+        } else if (countOrig < targetOriginalClips) {
+          c.type = 'original';
+          countStock--; countOrig++;
+        }
+      } else if (c.type === 'ia' && countIa > targetIaClips) {
+        if (countStock < targetStockClips) {
+          c.type = 'stock';
+          c.keyword = c.keyword || 'cinematic broll';
+          countIa--; countStock++;
+        } else if (countOrig < targetOriginalClips) {
+          c.type = 'original';
+          countIa--; countOrig++;
+        }
+      }
+    }
+
+    await logMessage('[FASE 2] Tipos finales: original=' + countOrig + 
+      ' stock=' + countStock + ' ia=' + countIa);
+
     totalClips = flattenedClips.length;
 
     await logMessage(`[FASE 2] Decisiones de clips listas. Sub-clips totales: ${clipsDecision.length}. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}, Gráficos asignados: ${sanitizedPhrases.filter(p => p.graphic !== null).length}`);
