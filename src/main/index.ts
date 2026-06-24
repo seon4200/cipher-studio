@@ -1543,106 +1543,80 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     let sanitizedPhrases: any[] = [];
 
     try {
-      const segmentsText = (transcriptSegments || [])
-        .map((s: any, i: number) => `[${i}] ${Number(s.start).toFixed(1)}s-${Number(s.end).toFixed(1)}s: "${s.text}"`)
-        .join('\n');
-
-      // Usar directamente los textos reales de cada frase transcrita de ElevenLabs
-      const fragmentosNumerados = newAudioSegments
-        .map((seg: any, idx: number) => {
-          const duration = seg.end - seg.start;
-          const count = duration > 4.0 ? Math.ceil(duration / 3.0) : 1;
-          return `[Frase ${idx + 1}] "${seg.text}" (${Number(seg.start).toFixed(1)}s - ${Number(seg.end).toFixed(1)}s, duración: ${duration.toFixed(2)}s). Requiere exactamente ${count} sub-clip(s) visual(es) de aprox ${(duration / count).toFixed(2)}s cada uno.`;
-        })
-        .join('\n');
-
-      const dsPromptClips = `Eres un editor de video. Tienes la transcripción del video original con timestamps y un guión reescrito dividido en frases (con timestamps reales de la voz generada).
-Para cada frase del guión, decide cómo ilustrarla. Si la duración de la frase supera los 4.0 segundos, debes dividirla en 2 o 3 sub-clips visuales (máximo 3.0s por sub-clip).
-Cada sub-clip visual puede ser de tipo original del video ('original'), buscando un clip de stock ('stock') o generándolo por IA ('ia').
-
-De un total de ${totalVisualClipsCount} sub-clips visuales a generar a lo largo de todas las frases, debes clasificar exactamente:
-- ${targetIaClips} sub-clips como de tipo 'ia'
-- ${targetStockClips} sub-clips como de tipo 'stock'
-- ${targetOriginalClips} sub-clips como de tipo 'original'
-
-TRANSCRIPCIÓN DEL VIDEO ORIGINAL:
-${segmentsText}
-
-FRASES DEL GUIÓN A PROCESAR:
-${fragmentosNumerados}
-
-INSTRUCCIONES DE CLIPS VISUALES:
-- Para cada frase en orden, proporciona el array "visualClips" con el número exacto de sub-clips indicado.
-- La suma de las duraciones de los sub-clips dentro de una frase debe ser exactamente igual a la duración total de la frase.
-- Para clips tipo 'original': elige el timestamp de inicio más adecuado (rango 0 - ${Number(maxTsVal).toFixed(1)}) basándose en la transcripción del video original.
-- Para clips tipo 'stock': genera una palabra clave en inglés corta (1-2 palabras, ej. "cyberpunk city", "financial chart", "nervous man") para buscar en Pexels en el campo "keyword".
-- Para clips tipo 'ia': genera un prompt descriptivo en inglés y altamente visual de 1 oración en el campo "prompt".
-- Distribuye los tipos de forma intercalada. Alterna entre 'original', 'stock' e 'ia' de forma variada y natural.
-
-Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
-{
-  "phrases": [
-    {
-      "phraseIndex": 1,
-      "visualClips": [
-        {
-          "type": "stock",
-          "keyword": "brain connection",
-          "duration": 3.0
-        },
-        {
-          "type": "original",
-          "timestamp": 12.5,
-          "duration": 1.5
-        }
-      ]
-    },
-    {
-      "phraseIndex": 2,
-      "visualClips": [
-        {
-          "type": "ia",
-          "prompt": "A cinematic shot of a computer monitor showing green code scrolling down",
-          "duration": 3.2
-        }
-      ]
-    }
-  ]
-}`;
 
 
 
+      const BATCH_SIZE = 25;
       let phrasesDecision: any[] = [];
       let graphicsDecision: any[] = [];
 
-      try {
-        await logMessage('[FASE 2] LLAMADA 1: Solicitando clips visuales a DeepSeek...');
-        const dsResponseClips = await fetch('https://api.deepseek.com/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-          body: JSON.stringify({
-            model: 'deepseek-chat',
-            messages: [
-              { role: 'system', content: 'Eres un editor de video experto. Responde ÚNICAMENTE con el JSON solicitado.' },
-              { role: 'user', content: dsPromptClips }
-            ],
-            temperature: 0.2
-          })
-        });
+      for (let batchStart = 0; batchStart < newAudioSegments.length; batchStart += BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, newAudioSegments.length);
+        const batchSegs = newAudioSegments.slice(batchStart, batchEnd);
+        
+        const batchFragmentos = batchSegs.map((seg: any, idx: number) => {
+          const phraseNum = batchStart + idx + 1;
+          const duration = seg.end - seg.start;
+          const count = duration > 4.0 ? Math.ceil(duration / 3.0) : 1;
+          return '[Frase ' + phraseNum + '] \"' + seg.text + '\" (' + 
+            Number(seg.start).toFixed(1) + 's - ' + Number(seg.end).toFixed(1) + 
+            's, duración: ' + duration.toFixed(2) + 's). Requiere exactamente ' + 
+            count + ' sub-clip(s) visual(es) de aprox ' + 
+            (duration / count).toFixed(2) + 's cada uno.';
+        }).join('\n');
 
-        if (dsResponseClips.ok) {
-          const dsData = (await dsResponseClips.json()) as any;
-          let content = (dsData?.choices?.[0]?.message?.content || '').trim();
-          if (content.includes('{')) {
-            content = content.substring(content.indexOf('{'), content.lastIndexOf('}') + 1);
+        const batchVisualCount = batchSegs.reduce((acc: number, seg: any) => {
+          const duration = seg.end - seg.start;
+          return acc + (duration > 4.0 ? Math.ceil(duration / 3.0) : 1);
+        }, 0);
+        
+        const batchOriginal = Math.round((targetOriginalClips / totalVisualClipsCount) * batchVisualCount);
+        const batchStock = Math.round((targetStockClips / totalVisualClipsCount) * batchVisualCount);
+        const batchIa = batchVisualCount - batchOriginal - batchStock;
+
+        const batchPrompt = 'Eres un editor de video experto.\n' +
+          'Para cada frase decide cómo ilustrarla. Si dura más de 4.0s divide en 2-3 sub-clips (máximo 3.0s cada uno).\n' +
+          'Tipos disponibles: original, stock, ia.\n' +
+          'De ' + batchVisualCount + ' sub-clips totales asigna exactamente:\n' +
+          '- ' + batchIa + ' de tipo ia\n' +
+          '- ' + batchStock + ' de tipo stock\n' +
+          '- ' + batchOriginal + ' de tipo original\n' +
+          'Para original: elige timestamp (0-' + Number(maxTsVal).toFixed(1) + ') de la transcripción.\n' +
+          'Para stock: keyword en inglés corta para Pexels.\n' +
+          'Para ia: prompt descriptivo en inglés.\n' +
+          'FRASES:\n' + batchFragmentos + '\n' +
+          'Responde SOLO JSON:\n' +
+          '{"phrases":[{"phraseIndex":' + (batchStart+1) + ',"visualClips":[{"type":"stock","keyword":"example","duration":2.5}]}]}';
+
+        try {
+          await logMessage('[FASE 2] Lote ' + Math.ceil((batchStart+1)/BATCH_SIZE) + 
+            ' frases ' + (batchStart+1) + '-' + batchEnd);
+          const dsResp = await fetch('https://api.deepseek.com/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+            body: JSON.stringify({
+              model: 'deepseek-chat',
+              messages: [
+                { role: 'system', content: 'Responde UNICAMENTE con JSON valido.' },
+                { role: 'user', content: batchPrompt }
+              ],
+              temperature: 0.2
+            })
+          });
+          if (dsResp.ok) {
+            const dsData = (await dsResp.json()) as any;
+            let content = (dsData?.choices?.[0]?.message?.content || '').trim();
+            if (content.includes('{')) {
+              content = content.substring(content.indexOf('{'), content.lastIndexOf('}')+1);
+            }
+            const parsed = JSON.parse(content);
+            if (Array.isArray(parsed.phrases)) {
+              phrasesDecision.push(...parsed.phrases);
+            }
           }
-          const parsed = JSON.parse(content);
-          if (Array.isArray(parsed.phrases)) {
-            phrasesDecision = parsed.phrases;
-          }
+        } catch (err: any) {
+          await logMessage('[FASE 2] Error lote: ' + err.message);
         }
-      } catch (err: any) {
-        await logMessage(`[FASE 2] Error en llamada de clips: ${err.message}`);
       }
 
       // Gráficos se generan por separado con Regenerar Gráficos
