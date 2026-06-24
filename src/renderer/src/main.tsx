@@ -628,7 +628,9 @@ function App() {
   
   const sortedVideoClips = useMemo(() => {
     return timelineVideoClips
-      .filter(c => c.type !== 'audio' && c.type !== 'graphic')
+      .filter(c => c.type !== 'audio' && 
+        c.type !== 'graphic' && 
+        c.category !== 'v2_base')
       .sort((a, b) => a.startSeconds - b.startSeconds);
   }, [timelineVideoClips]);
 
