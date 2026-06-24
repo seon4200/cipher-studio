@@ -635,6 +635,11 @@ function App() {
       .sort((a, b) => a.startSeconds - b.startSeconds);
   }, [timelineVideoClips]);
 
+  const activeV1Clip = useMemo(() => {
+    const activeTime = audioRef.current ? audioRef.current.currentTime : currentTimeForUI;
+    return sortedVideoClips.find(c => activeTime >= c.startSeconds && activeTime < c.startSeconds + c.durationSeconds) || null;
+  }, [sortedVideoClips, currentTimeForUI]);
+
   const graphicClips = useMemo(() => {
     return timelineVideoClips.filter(c => c.type === 'graphic');
   }, [timelineVideoClips]);
@@ -809,6 +814,10 @@ function App() {
 
     if (audioRef.current) {
       audioRef.current.currentTime = boundedTime;
+    }
+
+    if (videoV2Ref.current && videoV2Clip) {
+      videoV2Ref.current.currentTime = boundedTime;
     }
 
     const targetClip = sortedVideoClips.find(c => 
@@ -1404,6 +1413,10 @@ function App() {
   }
 
   const handleEnded = () => {
+    if (videoV2Clip) {
+      setActiveVideoUrl(null);
+      return;
+    }
     const nextIdx = currentClipIndex + 1;
     if (nextIdx < sortedVideoClips.length) {
       loadClip(nextIdx, true);
@@ -1662,6 +1675,10 @@ function App() {
       if (audio) {
         audio.currentTime = currentT;
         audio.play().catch(e => console.error("Audio play error:", e));
+        if (videoV2Ref.current) {
+          videoV2Ref.current.currentTime = currentT;
+          videoV2Ref.current.play().catch(() => {});
+        }
       }
       
       const idx = Math.max(0, sortedVideoClips.findIndex((_, i) => {
@@ -1676,8 +1693,38 @@ function App() {
       if (video) {
         video.pause();
       }
+      if (videoV2Ref.current) {
+        videoV2Ref.current.pause();
+      }
     }
   }, [isPlaying, loadClip, sortedVideoClips]);
+
+  useEffect(() => {
+    if (!videoV2Clip) return;
+    const video = videoRef.current;
+    if (!video) return;
+    if (!activeV1Clip) {
+      setActiveVideoUrl(null);
+      return;
+    }
+    const fileUrl = activeV1Clip.url || 
+      (activeV1Clip.path 
+        ? 'file:///' + activeV1Clip.path.replace(/\\/g, '/') 
+        : '');
+    if (fileUrl) {
+      setActiveVideoUrl(fileUrl);
+      if (video.src !== fileUrl) {
+        video.src = fileUrl;
+        video.load();
+      }
+      const masterTime = audioRef.current?.currentTime || 0;
+      video.currentTime = Math.max(0, 
+        masterTime - activeV1Clip.startSeconds);
+      if (isPlaying) {
+        video.play().catch(() => {});
+      }
+    }
+  }, [activeV1Clip, videoV2Clip]);
 
   // Sync volume, mute, and speed of video & audio elements
   useEffect(() => {
