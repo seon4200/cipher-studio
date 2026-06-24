@@ -458,7 +458,6 @@ function App() {
   // Canvas Preview Active Video States
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null)
   const videoRef = React.useRef<HTMLVideoElement>(null)
-  const videoV2Ref = React.useRef<HTMLVideoElement>(null)
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
   
   // Timeline zoom and container refs
@@ -629,16 +628,9 @@ function App() {
   
   const sortedVideoClips = useMemo(() => {
     return timelineVideoClips
-      .filter(c => c.type !== 'audio' && 
-        c.type !== 'graphic' && 
-        c.category !== 'v2_base')
+      .filter(c => c.type !== 'audio' && c.type !== 'graphic')
       .sort((a, b) => a.startSeconds - b.startSeconds);
   }, [timelineVideoClips]);
-
-  const activeV1Clip = useMemo(() => {
-    const activeTime = audioRef.current ? audioRef.current.currentTime : currentTimeForUI;
-    return sortedVideoClips.find(c => activeTime >= c.startSeconds && activeTime < c.startSeconds + c.durationSeconds) || null;
-  }, [sortedVideoClips, currentTimeForUI]);
 
   const graphicClips = useMemo(() => {
     return timelineVideoClips.filter(c => c.type === 'graphic');
@@ -814,10 +806,6 @@ function App() {
 
     if (audioRef.current) {
       audioRef.current.currentTime = boundedTime;
-    }
-
-    if (videoV2Ref.current && videoV2Clip) {
-      videoV2Ref.current.currentTime = boundedTime;
     }
 
     const targetClip = sortedVideoClips.find(c => 
@@ -1413,10 +1401,6 @@ function App() {
   }
 
   const handleEnded = () => {
-    if (videoV2Clip) {
-      setActiveVideoUrl(null);
-      return;
-    }
     const nextIdx = currentClipIndex + 1;
     if (nextIdx < sortedVideoClips.length) {
       loadClip(nextIdx, true);
@@ -1675,10 +1659,6 @@ function App() {
       if (audio) {
         audio.currentTime = currentT;
         audio.play().catch(e => console.error("Audio play error:", e));
-        if (videoV2Ref.current) {
-          videoV2Ref.current.currentTime = currentT;
-          videoV2Ref.current.play().catch(() => {});
-        }
       }
       
       const idx = Math.max(0, sortedVideoClips.findIndex((_, i) => {
@@ -1693,38 +1673,8 @@ function App() {
       if (video) {
         video.pause();
       }
-      if (videoV2Ref.current) {
-        videoV2Ref.current.pause();
-      }
     }
   }, [isPlaying, loadClip, sortedVideoClips]);
-
-  useEffect(() => {
-    if (!videoV2Clip) return;
-    const video = videoRef.current;
-    if (!video) return;
-    if (!activeV1Clip) {
-      setActiveVideoUrl(null);
-      return;
-    }
-    const fileUrl = activeV1Clip.url || 
-      (activeV1Clip.path 
-        ? 'file:///' + activeV1Clip.path.replace(/\\/g, '/') 
-        : '');
-    if (fileUrl) {
-      setActiveVideoUrl(fileUrl);
-      if (video.src !== fileUrl) {
-        video.src = fileUrl;
-        video.load();
-      }
-      const masterTime = audioRef.current?.currentTime || 0;
-      video.currentTime = Math.max(0, 
-        masterTime - activeV1Clip.startSeconds);
-      if (isPlaying) {
-        video.play().catch(() => {});
-      }
-    }
-  }, [activeV1Clip, videoV2Clip]);
 
   // Sync volume, mute, and speed of video & audio elements
   useEffect(() => {
@@ -2844,19 +2794,18 @@ function App() {
         if (isVideo) {
           setActiveVideoUrl(url);
           setIsPlaying(false);
-          setShowVideoV2Track(true);
           
-          const withoutV2 = timelineClipsRef.current.filter(
-            c => c.category !== 'v2_base');
-          const updated = [...withoutV2, {
-            id: `timeline-v2-${Math.random()}`,
+          const lastClip = timelineClipsRef.current[timelineClipsRef.current.length - 1];
+          const startSeconds = lastClip ? (lastClip.startSeconds + lastClip.durationSeconds + 2) : 0;
+          const updated = [...timelineClipsRef.current, {
+            id: `timeline-${Math.random()}`,
             name: file.name,
-            startSeconds: 0,
+            startSeconds,
             durationSeconds: duration,
             type: 'video' as const,
             path: (file as any).path || file.name,
             url: url,
-            category: 'v2_base'
+            category: 'original'
           }];
           setTimelineVideoClips(updated);
           pushMilestone('Video importado', {
@@ -3879,24 +3828,6 @@ function App() {
                     : 'w-[95%] aspect-video'
                 }`}
               >
-                {videoV2Clip && (
-                  <video
-                    ref={videoV2Ref}
-                    src={videoV2Clip.url || ''}
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      zIndex: 1
-                    }}
-                    controls={false}
-                    muted
-                    loop
-                    autoPlay
-                  />
-                )}
                 <video 
                   id="preview-video"
                   ref={videoRef}
@@ -3905,7 +3836,6 @@ function App() {
                     display: activeVideoUrl ? 'block' : 'none',
                     transform: (() => { const cat = sortedVideoClips[currentClipIndex]?.category?.toLowerCase(); return (cat === 'original' || cat === 'originales') ? `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}` : 'translate(0px, 0px) scale(1)'; })(),
                     clipPath: (() => { const cat = sortedVideoClips[currentClipIndex]?.category?.toLowerCase(); return activeCrop && (cat === 'original' || cat === 'originales') ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` : 'none'; })(),
-                    zIndex: videoV2Clip ? 2 : 1,
                   }}
                   className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-75 ease-out"
                   controls={false}
