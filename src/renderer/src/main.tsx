@@ -621,6 +621,9 @@ function App() {
 
   // Dynamic total timeline duration (minimum 120 seconds, or max clip end + 10s buffer)
   const totalDuration = useMemo(() => Math.max(120, timelineVideoClips.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0) + 10), [timelineVideoClips]);
+  const videoV2Clip = useMemo(() => {
+    return timelineVideoClips.find(c => c.category === 'v2' || c.category === 'v2_base') || null;
+  }, [timelineVideoClips]);
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
   
   const sortedVideoClips = useMemo(() => {
@@ -2379,7 +2382,6 @@ function App() {
 
       console.log('[handleBuildIATimeline] Iniciando generación de assets de Timeline IA...');
       const audioDuration = voiceClip ? voiceClip.durationSeconds : undefined;
-      const videoV2Clip = timelineVideoClips.find(c => c.category === 'v2' || c.category === 'v2_base') || null;
       const res = await window.electronAPI.generateTimelineAssets({ 
         scriptText: aiScript, 
         weights: timelineWeights, 
