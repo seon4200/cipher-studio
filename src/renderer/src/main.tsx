@@ -2846,6 +2846,23 @@ function App() {
     pushHistory(updated);
   };
 
+  const addClipToV2 = (clip: any) => {
+    const newClip = {
+      id: `timeline-v2-${Math.random()}`,
+      name: clip.name,
+      startSeconds: 0,
+      durationSeconds: clip.durationSeconds,
+      type: 'video' as const,
+      path: clip.path,
+      url: clip.url,
+      category: 'v2_base',
+      thumbnailUrl: clip.thumbnailUrl
+    };
+    const withoutV2 = timelineVideoClips.filter(
+      c => c.category !== 'v2_base');
+    setTimelineVideoClips([...withoutV2, newClip]);
+  };
+
   const handleClipClick = (clip: Clip) => {
     if (clip.url) {
       setActiveVideoUrl(clip.url);
@@ -3628,6 +3645,16 @@ function App() {
                               <Plus className="h-3 w-3" />
                             </button>
                             <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addClipToV2(clip);
+                              }}
+                              className="p-1 bg-violet-650 hover:bg-violet-550 rounded-md text-white border-none shadow-sm cursor-pointer flex items-center justify-center font-bold text-[9px] min-w-[22px] h-[22px]"
+                              title="Añadir a pista V2"
+                            >
+                              V2
+                            </button>
+                            <button 
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 try {
@@ -3718,6 +3745,18 @@ function App() {
                     >
                       <Plus className="h-3 w-3" />
                     </button>
+                    {clip.type === 'video' && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addClipToV2(clip);
+                        }}
+                        className="p-1 bg-violet-650 hover:bg-violet-550 rounded-md text-white border-none shadow-sm cursor-pointer flex items-center justify-center font-bold text-[9px] min-w-[22px] h-[22px]"
+                        title="Añadir a pista V2"
+                      >
+                        V2
+                      </button>
+                    )}
                     {!(libraryTab === 'Principal' && clips.find(c => c.type === 'video')?.id === clip.id) && (
                       <button 
                         onClick={async (e) => {
@@ -5242,13 +5281,13 @@ function App() {
                   </div>
                 </div>
                 <div className="flex-1 h-12 bg-slate-900/60 border border-slate-800/80 rounded-xl relative overflow-hidden">
-                  {timelineVideoClips.filter(tClip => tClip.type !== 'audio' && tClip.type !== 'graphic').length === 0 && (
+                  {timelineVideoClips.filter(tClip => tClip.type !== 'audio' && tClip.type !== 'graphic' && tClip.category !== 'v2_base').length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <span className="text-[10px] text-slate-600 font-medium">Arrastra o añade videos aquí</span>
                     </div>
                   )}
                   {timelineVideoClips
-                    .filter(tClip => tClip.type !== 'audio' && tClip.type !== 'graphic')
+                    .filter(tClip => tClip.type !== 'audio' && tClip.type !== 'graphic' && tClip.category !== 'v2_base')
                     .map((tClip, index) => {
                       const leftPercent = (tClip.startSeconds / totalDuration) * 100;
                       const widthPercent = (tClip.durationSeconds / totalDuration) * 100;
@@ -5323,11 +5362,47 @@ function App() {
                     v2 base
                   </div>
                   <div className='flex-1 h-12 bg-slate-900/40 border border-dashed border-slate-700/50 rounded-xl relative overflow-hidden'>
-                    <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
-                      <span className='text-[10px] text-slate-600'>
-                        Arrastra video base aquí
-                      </span>
-                    </div>
+                    {(() => {
+                      const v2Clip = timelineVideoClips.find(c => c.category === 'v2_base');
+                      if (v2Clip) {
+                        return (
+                          <div 
+                            key={v2Clip.id}
+                            className="absolute inset-0 bg-violet-500/25 border border-violet-400/50 text-violet-300 rounded-lg flex items-center px-3 justify-between"
+                          >
+                            <div className="flex items-center min-w-0 flex-1 select-none pointer-events-none">
+                              {v2Clip.thumbnailUrl && (
+                                <img 
+                                  src={v2Clip.thumbnailUrl} 
+                                  alt="" 
+                                  className="h-8 w-12 object-cover rounded mr-2 flex-shrink-0" 
+                                />
+                              )}
+                              <span className="text-[10px] truncate font-medium pr-1" title={v2Clip.name}>
+                                {v2Clip.name}
+                              </span>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setTimelineVideoClips(prev => prev.filter(c => c.category !== 'v2_base'));
+                              }}
+                              className="p-1 bg-rose-650 hover:bg-rose-500 rounded text-white text-[9px] border-none cursor-pointer"
+                              title="Eliminar de la pista v2"
+                            >
+                              X
+                            </button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
+                          <span className='text-[10px] text-slate-600'>
+                            Arrastra video base aquí
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
