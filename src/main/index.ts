@@ -1437,7 +1437,7 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
   }
 })
 
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments, hasVideoV2 }) => {
+ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
   const isOriginalAudio = transcriptSegments && newAudioSegments && 
     transcriptSegments.length === newAudioSegments.length &&
     transcriptSegments[0]?.start === newAudioSegments[0]?.start;
@@ -1534,17 +1534,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       targetIaClips = Math.floor((targetIaClips / sum) * totalVisualClipsCount);
       targetStockClips = totalVisualClipsCount - targetIaClips;
     }
-    let targetOriginalClips = totalVisualClipsCount - targetIaClips - targetStockClips;
-    const hasV2 = hasVideoV2 === true;
-    if (hasV2) {
-      const totalNonOrig = targetStockClips + targetIaClips || 1;
-      targetStockClips = Math.round(
-        (targetStockClips / totalNonOrig) * totalVisualClipsCount);
-      targetIaClips = totalVisualClipsCount - targetStockClips;
-      targetOriginalClips = 0;
-      await logMessage('[FASE 2] hasVideoV2=true: forzando 0 originales, stock=' + 
-        targetStockClips + ' ia=' + targetIaClips);
-    }
+    const targetOriginalClips = totalVisualClipsCount - targetIaClips - targetStockClips;
 
     await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}/${totalVisualClipsCount}`);
 
@@ -1566,42 +1556,30 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         })
         .join('\n');
 
-      const tiposDisponibles = [
-        ...(targetOriginalClips > 0 ? ["original del video ('original')"] : []),
-        ...(targetStockClips > 0 ? ["clip de stock ('stock')"] : []),
-        ...(targetIaClips > 0 ? ["generado por IA ('ia')"] : [])
-      ].join(', ');
+      const dsPromptClips = `Eres un editor de video. Tienes la transcripción del video original con timestamps y un guión reescrito dividido en frases (con timestamps reales de la voz generada).
+Para cada frase del guión, decide cómo ilustrarla. Si la duración de la frase supera los 4.0 segundos, debes dividirla en 2 o 3 sub-clips visuales (máximo 3.0s por sub-clip).
+Cada sub-clip visual puede ser de tipo original del video ('original'), buscando un clip de stock ('stock') o generándolo por IA ('ia').
 
-      const instruccionesTipos = [
-        ...(targetOriginalClips > 0 ? [`- Para clips tipo 'original': elige el timestamp de inicio más adecuado (rango 0 - ${Number(maxTsVal).toFixed(1)}) basándose en la transcripción del video original.`] : []),
-        ...(targetStockClips > 0 ? [`- Para clips tipo 'stock': genera una palabra clave en inglés corta (1-2 palabras, ej. 'cyberpunk city', 'financial chart') para buscar en Pexels en el campo 'keyword'.`] : []),
-        ...(targetIaClips > 0 ? [`- Para clips tipo 'ia': genera un prompt descriptivo en inglés y altamente visual de 1 oración en el campo 'prompt'.`] : [])
-      ].join('\n');
-
-      const dsPromptClips = `Eres un editor de video experto.
-Para cada frase del guión, decide cómo ilustrarla visualmente.
-Si la duración supera 4.0 segundos, divide en 2-3 sub-clips (máximo 3.0s cada uno).
-SOLO puedes usar estos tipos de clips: ${tiposDisponibles}.
-NO uses ningún otro tipo.
-
-De un total de ${totalVisualClipsCount} sub-clips:
-${targetOriginalClips > 0 ? '- ' + targetOriginalClips + ' clips de tipo original' : ''}
-${targetStockClips > 0 ? '- ' + targetStockClips + ' clips de tipo stock' : ''}
-${targetIaClips > 0 ? '- ' + targetIaClips + ' clips de tipo ia' : ''}
+De un total de ${totalVisualClipsCount} sub-clips visuales a generar a lo largo de todas las frases, debes clasificar exactamente:
+- ${targetIaClips} sub-clips como de tipo 'ia'
+- ${targetStockClips} sub-clips como de tipo 'stock'
+- ${targetOriginalClips} sub-clips como de tipo 'original'
 
 TRANSCRIPCIÓN DEL VIDEO ORIGINAL:
 ${segmentsText}
 
-FRASES A PROCESAR:
+FRASES DEL GUIÓN A PROCESAR:
 ${fragmentosNumerados}
 
-INSTRUCCIONES:
-- Para cada frase proporciona el array visualClips con el número exacto de sub-clips.
-- La suma de duraciones debe ser exactamente igual a la duración de la frase.
-${instruccionesTipos}
-- Distribuye los tipos uniformemente a lo largo de todas las frases.
+INSTRUCCIONES DE CLIPS VISUALES:
+- Para cada frase en orden, proporciona el array "visualClips" con el número exacto de sub-clips indicado.
+- La suma de las duraciones de los sub-clips dentro de una frase debe ser exactamente igual a la duración total de la frase.
+- Para clips tipo 'original': elige el timestamp de inicio más adecuado (rango 0 - ${Number(maxTsVal).toFixed(1)}) basándose en la transcripción del video original.
+- Para clips tipo 'stock': genera una palabra clave en inglés corta (1-2 palabras, ej. "cyberpunk city", "financial chart", "nervous man") para buscar en Pexels en el campo "keyword".
+- Para clips tipo 'ia': genera un prompt descriptivo en inglés y altamente visual de 1 oración en el campo "prompt".
+- Distribuye los tipos de forma intercalada. Alterna entre 'original', 'stock' e 'ia' de forma variada y natural.
 
-Responde ÚNICAMENTE con JSON sin markdown:
+Responde ÚNICAMENTE con JSON en este formato sin markdown ni comentarios:
 {
   "phrases": [
     {
@@ -1611,6 +1589,21 @@ Responde ÚNICAMENTE con JSON sin markdown:
           "type": "stock",
           "keyword": "brain connection",
           "duration": 3.0
+        },
+        {
+          "type": "original",
+          "timestamp": 12.5,
+          "duration": 1.5
+        }
+      ]
+    },
+    {
+      "phraseIndex": 2,
+      "visualClips": [
+        {
+          "type": "ia",
+          "prompt": "A cinematic shot of a computer monitor showing green code scrolling down",
+          "duration": 3.2
         }
       ]
     }
@@ -1862,48 +1855,6 @@ Responde ÚNICAMENTE con JSON sin markdown:
     }
 
     clipsDecision = flattenedClips;
-
-    // Correccion post-DeepSeek para respetar porcentajes exactos
-    let countOrig = clipsDecision.filter((c:any) => c.type==='original').length;
-    let countStock = clipsDecision.filter((c:any) => c.type==='stock').length;
-    let countIa = clipsDecision.filter((c:any) => c.type==='ia').length;
-
-    for (let i = 0; i < clipsDecision.length; i++) {
-      const c = clipsDecision[i];
-      if (c.type === 'original' && countOrig > targetOriginalClips) {
-        if (countStock < targetStockClips) {
-          c.type = 'stock';
-          c.keyword = c.keyword || 'cinematic broll';
-          countOrig--; countStock++;
-        } else if (countIa < targetIaClips) {
-          c.type = 'ia';
-          c.prompt = c.prompt || 'cinematic video clip';
-          countOrig--; countIa++;
-        }
-      } else if (c.type === 'stock' && countStock > targetStockClips) {
-        if (countIa < targetIaClips) {
-          c.type = 'ia';
-          c.prompt = c.prompt || 'cinematic video clip';
-          countStock--; countIa++;
-        } else if (countOrig < targetOriginalClips) {
-          c.type = 'original';
-          countStock--; countOrig++;
-        }
-      } else if (c.type === 'ia' && countIa > targetIaClips) {
-        if (countStock < targetStockClips) {
-          c.type = 'stock';
-          c.keyword = c.keyword || 'cinematic broll';
-          countIa--; countStock++;
-        } else if (countOrig < targetOriginalClips) {
-          c.type = 'original';
-          countIa--; countOrig++;
-        }
-      }
-    }
-
-    await logMessage('[FASE 2] Tipos finales: original=' + countOrig + 
-      ' stock=' + countStock + ' ia=' + countIa);
-
     totalClips = flattenedClips.length;
 
     await logMessage(`[FASE 2] Decisiones de clips listas. Sub-clips totales: ${clipsDecision.length}. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}, Gráficos asignados: ${sanitizedPhrases.filter(p => p.graphic !== null).length}`);

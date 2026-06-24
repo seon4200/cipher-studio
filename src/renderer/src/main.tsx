@@ -421,10 +421,6 @@ interface TimelineVersion {
 function App() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState('00:00:15:22')
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [showFullscreenControls, setShowFullscreenControls] = useState(false)
-  const fullscreenTimerRef = React.useRef<NodeJS.Timeout | null>(null)
-  const [showVideoV2Track, setShowVideoV2Track] = useState(false)
   
   // Project Management States
   const [activeProjectPath, setActiveProjectPath] = useState<string | null>(null)
@@ -621,9 +617,6 @@ function App() {
 
   // Dynamic total timeline duration (minimum 120 seconds, or max clip end + 10s buffer)
   const totalDuration = useMemo(() => Math.max(120, timelineVideoClips.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0) + 10), [timelineVideoClips]);
-  const videoV2Clip = useMemo(() => {
-    return timelineVideoClips.find(c => c.category === 'v2' || c.category === 'v2_base') || null;
-  }, [timelineVideoClips]);
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
   
   const sortedVideoClips = useMemo(() => {
@@ -1208,26 +1201,6 @@ function App() {
   const handleCancelCrop = (e: React.MouseEvent) => {
     e.stopPropagation()
     setIsCropping(false)
-  }
-
-  useEffect(() => {
-    const handleFSChange = () => {
-      setIsFullscreen(!!document.fullscreenElement)
-    }
-    document.addEventListener('fullscreenchange', handleFSChange)
-    return () => document.removeEventListener(
-      'fullscreenchange', handleFSChange)
-  }, [])
-
-  const handleFullscreenMouseMove = () => {
-    if (!isFullscreen) return
-    setShowFullscreenControls(true)
-    if (fullscreenTimerRef.current) {
-      clearTimeout(fullscreenTimerRef.current)
-    }
-    fullscreenTimerRef.current = setTimeout(() => {
-      setShowFullscreenControls(false)
-    }, 3000)
   }
 
   // Global Keyboard Shortcuts (Undo, Redo, Split, Delete, Select All)
@@ -2391,8 +2364,7 @@ function App() {
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
         graphicsPercent,
-        newAudioSegments: effectiveAudioSegments,
-        hasVideoV2: videoV2Clip !== null
+        newAudioSegments: effectiveAudioSegments
       });
       
       if (res && res.success && res.clips) {
@@ -2844,23 +2816,6 @@ function App() {
     }];
     setTimelineVideoClips(updated);
     pushHistory(updated);
-  };
-
-  const addClipToV2 = (clip: any) => {
-    const newClip = {
-      id: `timeline-v2-${Math.random()}`,
-      name: clip.name,
-      startSeconds: 0,
-      durationSeconds: clip.durationSeconds,
-      type: 'video' as const,
-      path: clip.path,
-      url: clip.url,
-      category: 'v2_base',
-      thumbnailUrl: clip.thumbnailUrl
-    };
-    const withoutV2 = timelineVideoClips.filter(
-      c => c.category !== 'v2_base');
-    setTimelineVideoClips([...withoutV2, newClip]);
   };
 
   const handleClipClick = (clip: Clip) => {
@@ -3645,16 +3600,6 @@ function App() {
                               <Plus className="h-3 w-3" />
                             </button>
                             <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                addClipToV2(clip);
-                              }}
-                              className="p-1 bg-violet-650 hover:bg-violet-550 rounded-md text-white border-none shadow-sm cursor-pointer flex items-center justify-center font-bold text-[9px] min-w-[22px] h-[22px]"
-                              title="Añadir a pista V2"
-                            >
-                              V2
-                            </button>
-                            <button 
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 try {
@@ -3745,18 +3690,6 @@ function App() {
                     >
                       <Plus className="h-3 w-3" />
                     </button>
-                    {clip.type === 'video' && (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addClipToV2(clip);
-                        }}
-                        className="p-1 bg-violet-650 hover:bg-violet-550 rounded-md text-white border-none shadow-sm cursor-pointer flex items-center justify-center font-bold text-[9px] min-w-[22px] h-[22px]"
-                        title="Añadir a pista V2"
-                      >
-                        V2
-                      </button>
-                    )}
                     {!(libraryTab === 'Principal' && clips.find(c => c.type === 'video')?.id === clip.id) && (
                       <button 
                         onClick={async (e) => {
@@ -3807,7 +3740,6 @@ function App() {
         <section className="flex-1 bg-slate-950 flex flex-col p-4 overflow-hidden">
           <div 
             ref={playerWrapperRef}
-            onMouseMove={handleFullscreenMouseMove}
             className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl relative overflow-hidden flex items-center justify-center group shadow-inner"
           >
             {/* Player Canvas Mockup / Real Player */}
@@ -3952,56 +3884,6 @@ function App() {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               <span>{activeVideoUrl ? 'Reproductor Activo' : 'Full Res (1080p)'}</span>
             </div>
-
-            {isFullscreen && showFullscreenControls && (
-              <div className='absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center space-x-6 bg-black/60 backdrop-blur-sm rounded-full px-8 py-3'>
-                <button onClick={() => seekGlobalTime(Math.max(0, 
-                  (currentTimeRef.current || 0) - 10))} className='text-white hover:text-indigo-400'>
-                  <svg width='28' height='28' viewBox='0 0 24 24' fill='currentColor'>
-                    <path d='M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z'/>
-                    <text x='9' y='15' fontSize='6' fill='white'>10</text>
-                  </svg>
-                </button>
-                <button onClick={() => setIsPlaying(!isPlaying)}
-                  className='text-white hover:text-indigo-400 w-14 h-14 bg-white/20 rounded-full flex items-center justify-center'>
-                  {isPlaying 
-                    ? <svg width='24' height='24' viewBox='0 0 24 24' fill='currentColor'>
-                        <path d='M6 19h4V5H6v14zm8-14v14h4V5h-4z'/>
-                      </svg>
-                    : <svg width='24' height='24' viewBox='0 0 24 24' fill='currentColor'>
-                        <path d='M8 5v14l11-7z'/>
-                      </svg>
-                  }
-                </button>
-                <button onClick={() => {
-                  const dur = audioRef.current?.duration || 0;
-                  const cur = currentTimeRef.current || 0;
-                  seekGlobalTime(Math.min(dur, cur + 10));
-                }} className='text-white hover:text-indigo-400'>
-                  <svg width='28' height='28' viewBox='0 0 24 24' fill='currentColor'>
-                    <path d='M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z'/>
-                    <text x='9' y='15' fontSize='6' fill='white'>10</text>
-                  </svg>
-                </button>
-                <input 
-                  type='range'
-                  min={0}
-                  max={audioRef.current?.duration || 100}
-                  value={currentTimeRef.current || 0}
-                  onChange={(e) => seekGlobalTime(
-                    parseFloat(e.target.value))}
-                  className='w-48 accent-indigo-400'
-                />
-                <button onClick={toggleFullscreen}
-                  className='text-white hover:text-red-400 
-                    ml-2'>
-                  <svg width='24' height='24' 
-                    viewBox='0 0 24 24' fill='currentColor'>
-                    <path d='M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z'/>
-                  </svg>
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Player controls */}
@@ -5241,13 +5123,6 @@ function App() {
                     <div className="flex items-center space-x-1">
                       <Video className="h-3.5 w-3.5 text-sky-400" />
                       <span>Video v1</span>
-                      <button
-                        onClick={() => setShowVideoV2Track(!showVideoV2Track)}
-                        className='ml-1 text-slate-500 hover:text-slate-300 text-[9px]'
-                        title='Mostrar pista base v2'
-                      >
-                        {showVideoV2Track ? '▼' : '▶'}
-                      </button>
                     </div>
                     <button 
                       onClick={() => setIsVideoTrackMuted(!isVideoTrackMuted)}
@@ -5281,13 +5156,13 @@ function App() {
                   </div>
                 </div>
                 <div className="flex-1 h-12 bg-slate-900/60 border border-slate-800/80 rounded-xl relative overflow-hidden">
-                  {timelineVideoClips.filter(tClip => tClip.type !== 'audio' && tClip.type !== 'graphic' && tClip.category !== 'v2_base').length === 0 && (
+                  {timelineVideoClips.filter(tClip => tClip.type !== 'audio' && tClip.type !== 'graphic').length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <span className="text-[10px] text-slate-600 font-medium">Arrastra o añade videos aquí</span>
                     </div>
                   )}
                   {timelineVideoClips
-                    .filter(tClip => tClip.type !== 'audio' && tClip.type !== 'graphic' && tClip.category !== 'v2_base')
+                    .filter(tClip => tClip.type !== 'audio' && tClip.type !== 'graphic')
                     .map((tClip, index) => {
                       const leftPercent = (tClip.startSeconds / totalDuration) * 100;
                       const widthPercent = (tClip.durationSeconds / totalDuration) * 100;
@@ -5355,57 +5230,6 @@ function App() {
                     })}
                 </div>
               </div>
-
-              {showVideoV2Track && (
-                <div className='flex items-center space-x-3'>
-                  <div className='w-28 text-[10px] text-slate-500 flex-shrink-0 pr-2 text-right'>
-                    v2 base
-                  </div>
-                  <div className='flex-1 h-12 bg-slate-900/40 border border-dashed border-slate-700/50 rounded-xl relative overflow-hidden'>
-                    {(() => {
-                      const v2Clip = timelineVideoClips.find(c => c.category === 'v2_base');
-                      if (v2Clip) {
-                        return (
-                          <div 
-                            key={v2Clip.id}
-                            className="absolute inset-0 bg-violet-500/25 border border-violet-400/50 text-violet-300 rounded-lg flex items-center px-3 justify-between"
-                          >
-                            <div className="flex items-center min-w-0 flex-1 select-none pointer-events-none">
-                              {v2Clip.thumbnailUrl && (
-                                <img 
-                                  src={v2Clip.thumbnailUrl} 
-                                  alt="" 
-                                  className="h-8 w-12 object-cover rounded mr-2 flex-shrink-0" 
-                                />
-                              )}
-                              <span className="text-[10px] truncate font-medium pr-1" title={v2Clip.name}>
-                                {v2Clip.name}
-                              </span>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setTimelineVideoClips(prev => prev.filter(c => c.category !== 'v2_base'));
-                              }}
-                              className="p-1 bg-rose-650 hover:bg-rose-500 rounded text-white text-[9px] border-none cursor-pointer"
-                              title="Eliminar de la pista v2"
-                            >
-                              X
-                            </button>
-                          </div>
-                        );
-                      }
-                      return (
-                        <div className='absolute inset-0 flex items-center justify-center pointer-events-none'>
-                          <span className='text-[10px] text-slate-600'>
-                            Arrastra video base aquí
-                          </span>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              )}
 
               {/* Track 1.5: Gráficos Track */}
               <div className="flex items-center space-x-3">
