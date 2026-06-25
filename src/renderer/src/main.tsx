@@ -4866,13 +4866,86 @@ function App() {
                 )}
               </div>
             )) : (
-              <div className='flex flex-col h-full items-center justify-center p-6'>
-                <p className='text-slate-400 text-sm text-center'>
-                  Módulo de Sincronización Perfecta
-                </p>
-                <p className='text-slate-600 text-xs text-center mt-2'>
-                  Próximamente disponible
-                </p>
+              <div className='flex flex-col h-full overflow-y-auto'>
+                {/* Header */}
+                <div className='px-4 py-3 border-b border-slate-800'>
+                  <h3 className='text-[11px] font-bold text-slate-300 uppercase tracking-wider'>
+                    Sincronización Perfecta
+                  </h3>
+                  <p className='text-[10px] text-slate-500 mt-0.5'>
+                    Video original como base — Stock e IA como capas
+                  </p>
+                </div>
+
+                {/* Paso 1: Video base */}
+                <div className='px-4 py-3 border-b border-slate-800'>
+                  <p className='text-[10px] font-bold text-slate-400 mb-2'>
+                    PASO 1 — VIDEO BASE
+                  </p>
+                  {videoV2Clip ? (
+                    <div className='flex items-center justify-between bg-violet-900/20 border border-violet-700/30 rounded-lg px-3 py-2'>
+                      <span className='text-[10px] text-violet-300 truncate'>
+                        ✓ {videoV2Clip.name}
+                      </span>
+                      <button
+                        onClick={() => setTimelineVideoClips(
+                          prev => prev.filter(c => c.category !== 'v2_base'))}
+                        className='text-slate-500 hover:text-red-400 text-[10px] ml-2'
+                      >✕</button>
+                    </div>
+                  ) : (
+                    <p className='text-[10px] text-slate-600'>
+                      Importa un video para comenzar
+                    </p>
+                  )}
+                </div>
+
+                {/* Paso 2: Audio */}
+                <div className='px-4 py-3 border-b border-slate-800'>
+                  <p className='text-[10px] font-bold text-slate-400 mb-2'>
+                    PASO 2 — AUDIO
+                  </p>
+                  <p className='text-[10px] text-slate-500'>
+                    Usa los paneles de Whisper y ElevenLabs de arriba
+                  </p>
+                </div>
+
+                {/* Paso 3: Porcentajes */}
+                <div className='px-4 py-3 border-b border-slate-800'>
+                  <p className='text-[10px] font-bold text-slate-400 mb-3'>
+                    PASO 3 — CAPAS
+                  </p>
+                  {['Original', 'Stock', 'IA'].map((label, i) => (
+                    <div key={label} className='flex items-center space-x-2 mb-2'>
+                      <span className='text-[10px] text-slate-400 w-12'>{label}</span>
+                      <input
+                        type='range' min={0} max={100}
+                        value={syncWeights[i]}
+                        onChange={(e) => {
+                          const newWeights = [...syncWeights];
+                          newWeights[i] = parseInt(e.target.value);
+                          setSyncWeights(newWeights);
+                        }}
+                        className='flex-1 h-1 accent-indigo-500'
+                      />
+                      <span className='text-[10px] text-indigo-400 w-8 text-right'>
+                        {syncWeights[i]}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Botón construir */}
+                <div className='px-4 py-3'>
+                  <button
+                    disabled={!videoV2Clip}
+                    className='w-full py-2 bg-indigo-600 hover:bg-indigo-500 
+                      disabled:opacity-40 disabled:cursor-not-allowed
+                      text-white text-[11px] font-bold rounded-lg transition-all'
+                  >
+                    Construir Sincronización Perfecta
+                  </button>
+                </div>
               </div>
             )}
           </div>
