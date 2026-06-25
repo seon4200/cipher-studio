@@ -5552,10 +5552,19 @@ function App() {
                           <div
                             key={clip.id}
                             style={{ left: leftPct + '%', width: widthPct + '%' }}
-                            className={'absolute h-full border rounded-lg flex items-center px-1 ' + bgCol}
+                            className={'absolute h-full border rounded-lg flex items-center px-1 justify-between group/v2clip ' + bgCol}
                             title={clip.name}
+                            onMouseDown={(e) => {
+                              if (!showVideoV2Track) return;
+                              handleClipMouseDown(e, clip.id, 'move');
+                            }}
                           >
                             <span className='text-[8px] truncate'>{clip.durationSeconds?.toFixed(1)}s</span>
+                            <button
+                              onClick={() => setTimelineVideoClips(prev => 
+                                prev.filter(c => c.id !== clip.id))}
+                              className='text-[8px] opacity-0 group-hover/v2clip:opacity-100 hover:text-red-400 ml-1 flex-shrink-0'
+                            >✕</button>
                           </div>
                         );
                       })
