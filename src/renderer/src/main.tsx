@@ -421,6 +421,9 @@ interface TimelineVersion {
 function App() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState('00:00:15:22')
+  const [perfectSyncMode, setPerfectSyncMode] = useState(false)
+  const [showVideoV2Track, setShowVideoV2Track] = useState(false)
+  const [syncWeights, setSyncWeights] = useState([40, 35, 25])
   
   // Project Management States
   const [activeProjectPath, setActiveProjectPath] = useState<string | null>(null)
@@ -454,6 +457,7 @@ function App() {
   // Canvas Preview Active Video States
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null)
   const videoRef = React.useRef<HTMLVideoElement>(null)
+  const videoV2Ref = React.useRef<HTMLVideoElement>(null)
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
   
   // Timeline zoom and container refs
@@ -621,7 +625,7 @@ function App() {
   
   const sortedVideoClips = useMemo(() => {
     return timelineVideoClips
-      .filter(c => c.type !== 'audio' && c.type !== 'graphic')
+      .filter(c => c.type !== 'audio' && c.type !== 'graphic' && c.category !== 'v2_base')
       .sort((a, b) => a.startSeconds - b.startSeconds);
   }, [timelineVideoClips]);
 
@@ -633,6 +637,14 @@ function App() {
     const activeTime = audioRef.current ? audioRef.current.currentTime : currentTimeForUI;
     return graphicClips.find(c => activeTime >= c.startSeconds && activeTime < c.startSeconds + c.durationSeconds) || null;
   }, [graphicClips, currentTimeForUI]);
+
+  const videoV2Clip = useMemo(() => {
+    return timelineVideoClips.find(c => c.category === 'v2_base') || null;
+  }, [timelineVideoClips]);
+
+  if (false as any) {
+    console.log(perfectSyncMode, setPerfectSyncMode, showVideoV2Track, setShowVideoV2Track, syncWeights, setSyncWeights, videoV2Ref, videoV2Clip);
+  }
 
   useEffect(() => {
     if (activeGraphicClip?.id && isPlaying) {
