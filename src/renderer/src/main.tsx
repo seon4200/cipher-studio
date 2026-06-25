@@ -4129,7 +4129,7 @@ function App() {
             <div className="flex bg-slate-950 p-0.5 rounded-lg border border-slate-850">
               <button
                 onClick={() => setPerfectSyncMode(false)}
-                className={`text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer ${
+                className={`flex-1 text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer ${
                   !perfectSyncMode
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/15'
                     : 'text-slate-400 hover:text-slate-200'
@@ -4139,7 +4139,7 @@ function App() {
               </button>
               <button
                 onClick={() => setPerfectSyncMode(true)}
-                className={`text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer ${
+                className={`flex-1 text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer ${
                   perfectSyncMode
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/15'
                     : 'text-slate-400 hover:text-slate-200'
