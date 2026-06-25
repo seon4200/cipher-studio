@@ -2327,6 +2327,31 @@ function App() {
     setTimelineWeights(updatedWeights);
   };
 
+  const handleSyncWeightChange = (index: number, newValue: number) => {
+    const updated = [...syncWeights];
+    const oldValue = updated[index];
+    const diff = newValue - oldValue;
+    updated[index] = newValue;
+    const otherIndices = [0, 1, 2].filter(i => i !== index);
+    const sumOthers = otherIndices.reduce((s, i) => s + updated[i], 0);
+    if (sumOthers > 0) {
+      let rem = diff;
+      otherIndices.forEach((i, idx) => {
+        const share = Math.round((updated[i] / sumOthers) * diff);
+        const toSub = idx === otherIndices.length - 1 ? rem : share;
+        updated[i] = Math.max(0, updated[i] - toSub);
+        rem -= toSub;
+      });
+    }
+    const total = updated.reduce((a, b) => a + b, 0);
+    if (total !== 100) {
+      const adj = 100 - total;
+      const adjIdx = otherIndices.find(i => updated[i] + adj >= 0) ?? otherIndices[0];
+      updated[adjIdx] = Math.max(0, updated[adjIdx] + adj);
+    }
+    setSyncWeights(updated);
+  };
+
   const handleBuildIATimeline = async () => {
     if (!aiScript.trim()) return;
 
@@ -3498,11 +3523,7 @@ function App() {
                     <span className='text-[10px] font-semibold text-slate-400 w-16'>{label}</span>
                     <input type='range' min={0} max={100}
                       value={syncWeights[i]}
-                      onChange={(e) => {
-                        const w=[...syncWeights];
-                        w[i]=parseInt(e.target.value);
-                        setSyncWeights(w);
-                      }}
+                      onChange={(e) => handleSyncWeightChange(i, parseInt(e.target.value))}
                       className={`flex-1 h-1 ${accent} appearance-none cursor-pointer rounded-lg outline-none transition-all`}
                       style={{
                         background: 
@@ -5320,6 +5341,15 @@ function App() {
                     <div className="flex items-center space-x-1">
                       <Video className="h-3.5 w-3.5 text-sky-400" />
                       <span>Video v1</span>
+                      {perfectSyncMode && (
+                        <button
+                          onClick={() => setShowVideoV2Track(!showVideoV2Track)}
+                          className='ml-1 text-[9px] text-slate-500 hover:text-violet-400 transition-all'
+                          title='Ver pista base v2'
+                        >
+                          {showVideoV2Track ? '▼' : '▶'}
+                        </button>
+                      )}
                     </div>
                     <button 
                       onClick={() => setIsVideoTrackMuted(!isVideoTrackMuted)}
@@ -5382,9 +5412,12 @@ function App() {
                         <div 
                           key={tClip.id}
                           style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
-                          onMouseDown={(e) => handleClipMouseDown(e, tClip.id, 'move')}
+                          onMouseDown={(e) => {
+                            if (perfectSyncMode && !showVideoV2Track) return;
+                            handleClipMouseDown(e, tClip.id, 'move');
+                          }}
                           onContextMenu={(e) => handleClipContextMenu(e, tClip.id)}
-                          className={`absolute h-full border rounded-lg flex items-center px-2 justify-between group/tclip cursor-move transition-shadow ${
+                          className={`absolute h-full border rounded-lg flex items-center px-2 justify-between group/tclip ${perfectSyncMode && !showVideoV2Track ? 'cursor-default' : 'cursor-move'} transition-shadow ${
                             selectedTimelineClipIds.includes(tClip.id) 
                               ? 'ring-2 ring-indigo-500 border-indigo-400 z-20 shadow-[0_0_12px_rgba(99,102,241,0.25)]' 
                               : 'border-slate-800'
@@ -5427,6 +5460,24 @@ function App() {
                     })}
                 </div>
               </div>
+
+              {perfectSyncMode && showVideoV2Track && (
+                <div className='flex items-center space-x-3'>
+                  <div className='w-28 text-[10px] text-violet-400 flex-shrink-0 pr-2 flex items-center space-x-1'>
+                    <span>🎬</span>
+                    <span>v2 base</span>
+                  </div>
+                  <div className='flex-1 h-10 bg-violet-900/20 border border-dashed border-violet-700/40 rounded-xl relative overflow-hidden'>
+                    {videoV2Clip && (
+                      <div className='absolute inset-0 flex items-center px-3 bg-violet-900/30'>
+                        <span className='text-[10px] text-violet-300 truncate'>
+                          ✓ {videoV2Clip.name}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Track 1.5: Gráficos Track */}
               <div className="flex items-center space-x-3">
