@@ -4150,7 +4150,8 @@ function App() {
           </div>
 
           <div className="flex-1 flex flex-col overflow-hidden">
-            {!selectedTool ? (
+            {!perfectSyncMode ? (
+              !selectedTool ? (
               // List of Tool Cards
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {/* Smart Cut Tool */}
@@ -4863,6 +4864,15 @@ function App() {
                     </div>
                   </div>
                 )}
+              </div>
+            )) : (
+              <div className='flex flex-col h-full items-center justify-center p-6'>
+                <p className='text-slate-400 text-sm text-center'>
+                  Módulo de Sincronización Perfecta
+                </p>
+                <p className='text-slate-600 text-xs text-center mt-2'>
+                  Próximamente disponible
+                </p>
               </div>
             )}
           </div>
