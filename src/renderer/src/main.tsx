@@ -3520,8 +3520,32 @@ function App() {
                 <div style={{ width: `${syncWeights[1]}%` }} className='h-full bg-emerald-500 transition-all duration-300' />
                 <div style={{ width: `${syncWeights[2]}%` }} className='h-full bg-slate-400 transition-all duration-300' />
               </div>
-              <button onClick={() => {}} disabled={!videoV2Clip}
-                className='w-full mt-2 py-2 bg-gradient-to-r from-sky-600 to-blue-600 text-white text-xs font-bold rounded-xl disabled:opacity-50'>
+              <button
+                onClick={() => {
+                  const firstVideo = clips.find(c => c.type === 'video');
+                  if (!firstVideo) return;
+                  const withoutV2 = timelineVideoClips.filter(
+                    c => c.category !== 'v2_base' && c.type !== 'video');
+                  const v2Clip = {
+                    id: `timeline-v2-${Math.random()}`,
+                    name: firstVideo.name,
+                    startSeconds: 0,
+                    durationSeconds: firstVideo.durationSeconds,
+                    type: 'video' as const,
+                    path: firstVideo.path,
+                    url: firstVideo.url,
+                    category: 'v2_base'
+                  };
+                  setTimelineVideoClips([...withoutV2, v2Clip]);
+                  setShowVideoV2Track(true);
+                }}
+                disabled={
+                  !clips.find(c => c.type === 'video') ||
+                  transcriptSegments.length === 0 ||
+                  !timelineVideoClips.find(c => c.type === 'audio')
+                }
+                className='w-full mt-2 py-2 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl disabled:opacity-50 transition-all'
+              >
                 Construir Sincronización Perfecta
               </button>
               <div className='mt-3'>
