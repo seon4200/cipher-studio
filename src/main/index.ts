@@ -2417,3 +2417,329 @@ ipcMain.handle('regenerate-graphics', async (_event, params: any) => {
     return { success: true, clips: generatedClips };
   }
 });
+
+ipcMain.handle('generate-perfect-sync', async (event, {
+  videoPath,
+  transcriptSegments,
+  syncWeights,
+  aspectRatio,
+  audioPath,
+  iaStyle,
+  activeProjectPath: projPath
+}) => {
+  const logMessage = async (msg: string) => {
+    console.log(msg);
+    await writeDebugLog(msg);
+  };
+
+  try {
+    await logMessage('[generate-perfect-sync] Iniciando...');
+    loadEnv(true);
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) return { success: false, error: 'No DEEPSEEK_API_KEY' };
+    const pexelsApiKey = process.env.PEXELS_API_KEY;
+    const falApiKey = process.env.FAL_KEY;
+    if (falApiKey) process.env.FAL_KEY = falApiKey;
+
+    if (!videoPath || !(await exists(videoPath))) {
+      return { success: false, error: 'No se encontró el video: ' + videoPath };
+    }
+
+    const duracionTotal = await getVideoDuration(videoPath);
+    await logMessage('[FASE 1] Duración total: ' + duracionTotal + 's');
+
+    const stockWeight = syncWeights[1] ?? 35;
+    const iaWeight = syncWeights[2] ?? 25;
+    const segs = transcriptSegments || [];
+    const BATCH_SIZE = 25;
+
+    let totalVisualClipsCount = 0;
+    segs.forEach((seg: any) => {
+      const dur = seg.end - seg.start;
+      totalVisualClipsCount += dur > 4.0 ? Math.ceil(dur / 3.0) : 1;
+    });
+
+    let targetStockClips = Math.round((stockWeight / 100) * totalVisualClipsCount);
+    let targetIaClips = Math.round((iaWeight / 100) * totalVisualClipsCount);
+    if (targetStockClips + targetIaClips > totalVisualClipsCount) {
+      const sum = targetStockClips + targetIaClips;
+      targetStockClips = Math.floor((targetStockClips / sum) * totalVisualClipsCount);
+      targetIaClips = totalVisualClipsCount - targetStockClips;
+    }
+    const targetVacioSlots = totalVisualClipsCount - targetStockClips - targetIaClips;
+
+    await logMessage('[FASE 1] Total: ' + totalVisualClipsCount +
+      ' Stock: ' + targetStockClips + ' IA: ' + targetIaClips +
+      ' Vacíos: ' + targetVacioSlots);
+
+    // FASE 2 — DeepSeek en lotes
+    let phrasesDecision: any[] = [];
+
+    for (let batchStart = 0; batchStart < segs.length; batchStart += BATCH_SIZE) {
+      const batchEnd = Math.min(batchStart + BATCH_SIZE, segs.length);
+      const batchSegs = segs.slice(batchStart, batchEnd);
+
+      const batchVisualCount = batchSegs.reduce((acc: number, seg: any) => {
+        const dur = seg.end - seg.start;
+        return acc + (dur > 4.0 ? Math.ceil(dur / 3.0) : 1);
+      }, 0);
+
+      const batchStock = Math.round((targetStockClips / totalVisualClipsCount) * batchVisualCount);
+      const batchIa = Math.round((targetIaClips / totalVisualClipsCount) * batchVisualCount);
+      const batchVacio = batchVisualCount - batchStock - batchIa;
+
+      const batchFragmentos = batchSegs.map((seg: any, idx: number) => {
+        const phraseNum = batchStart + idx + 1;
+        const dur = seg.end - seg.start;
+        const count = dur > 4.0 ? Math.ceil(dur / 3.0) : 1;
+        return '[Frase ' + phraseNum + '] "' + seg.text + '" (' +
+          Number(seg.start).toFixed(1) + 's-' + Number(seg.end).toFixed(1) +
+          's, ' + dur.toFixed(2) + 's). Requiere ' + count + ' sub-clip(s).';
+      }).join('\n');
+
+      const batchPrompt = 'Eres un editor de video experto.\n' +
+        'El video original corre en v1. Los clips de stock e IA van en v2 como overlay.\n' +
+        'Para cada frase decide si poner un clip encima del video original o dejarlo solo.\n' +
+        'SOLO usa tipos: stock, ia, vacio.\n' +
+        'vacio = se ve solo el video original sin overlay.\n' +
+        'De ' + batchVisualCount + ' sub-clips asigna exactamente:\n' +
+        '- ' + batchStock + ' de tipo stock\n' +
+        '- ' + batchIa + ' de tipo ia\n' +
+        '- ' + batchVacio + ' de tipo vacio\n' +
+        'Para stock: keyword en inglés corta para Pexels.\n' +
+        'Para ia: prompt descriptivo en inglés.\n' +
+        'Para vacio: no necesita keyword ni prompt.\n' +
+        'FRASES:\n' + batchFragmentos + '\n' +
+        'Responde SOLO JSON:\n' +
+        '{"phrases":[{"phraseIndex":1,"visualClips":[{"type":"stock","keyword":"example","duration":2.5}]}]}';
+
+      event.sender.send('generation-progress', {
+        index: batchStart,
+        total: segs.length,
+        paragraph: 'Analizando frases ' + (batchStart+1) + '-' + batchEnd + '...',
+        type: 'DeepSeek'
+      });
+
+      try {
+        await logMessage('[FASE 2] Lote ' + (Math.floor(batchStart/BATCH_SIZE)+1));
+        const dsResp = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [
+              { role: 'system', content: 'Responde UNICAMENTE con JSON valido.' },
+              { role: 'user', content: batchPrompt }
+            ],
+            temperature: 0.2
+          })
+        });
+        if (dsResp.ok) {
+          const dsData = (await dsResp.json()) as any;
+          let content = (dsData?.choices?.[0]?.message?.content || '').trim();
+          if (content.includes('{')) {
+            content = content.substring(content.indexOf('{'), content.lastIndexOf('}')+1);
+          }
+          const parsed = JSON.parse(content);
+          if (Array.isArray(parsed.phrases)) {
+            phrasesDecision.push(...parsed.phrases);
+          }
+        }
+      } catch (err: any) {
+        await logMessage('[FASE 2] Error lote: ' + err.message);
+      }
+    }
+
+    // Forzar porcentajes post-DeepSeek
+    const allDecided: any[] = [];
+    phrasesDecision.forEach((p: any) => {
+      (p.visualClips || p.clips || []).forEach((vc: any) => allDecided.push(vc));
+    });
+    const currentVacio = allDecided.filter((c: any) => c.type === 'vacio').length;
+    if (currentVacio < targetVacioSlots * 0.8) {
+      const deficit = targetVacioSlots - currentVacio;
+      const step = Math.floor(allDecided.length / (deficit + 1)) || 1;
+      let converted = 0;
+      phrasesDecision.forEach((p: any) => {
+        (p.visualClips || p.clips || []).forEach((vc: any, idx: number) => {
+          if (converted < deficit && vc.type === 'stock') {
+            const gi = phrasesDecision.indexOf(p) * 3 + idx;
+            if (gi % step === 0) { vc.type = 'vacio'; converted++; }
+          }
+        });
+      });
+      await logMessage('[POST-DS] Vacíos forzados: ' + converted);
+    }
+
+    // FASE 3 — Generar clips físicos para v2
+    const outDir = projPath
+      ? path.join(projPath, 'temp', 'sync-perfecta')
+      : path.join(getBancoClipsPath(), 'sync-perfecta');
+    if (!(await exists(outDir))) {
+      await fs.promises.mkdir(outDir, { recursive: true });
+    }
+
+    const v2Clips: any[] = [];
+    let globalClipIdx = 0;
+
+    for (let phraseIdx = 0; phraseIdx < segs.length; phraseIdx++) {
+      const seg = segs[phraseIdx];
+      const phraseDuration = seg.end - seg.start;
+      const phraseStart = seg.start;
+      const numClips = phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
+
+      const match = phrasesDecision.find((p: any) =>
+        p && (p.phraseIndex === phraseIdx + 1 || p.index === phraseIdx + 1));
+      let visualClips = match?.visualClips || match?.clips;
+
+      if (!Array.isArray(visualClips) || visualClips.length === 0) {
+        visualClips = Array(numClips).fill(null).map(() => ({
+          type: 'vacio', duration: phraseDuration / numClips
+        }));
+      }
+
+      let clipOffset = 0;
+      for (let ci = 0; ci < visualClips.length; ci++) {
+        const vc = visualClips[ci];
+        const clipStart = phraseStart + clipOffset;
+        const clipDur = parseFloat((vc.duration || (phraseDuration / numClips)).toFixed(2));
+        clipOffset += clipDur;
+
+        if (vc.type === 'vacio' || vc.type === 'original') continue;
+
+        const clipNum = ++globalClipIdx;
+        event.sender.send('generation-progress', {
+          index: clipNum,
+          total: targetStockClips + targetIaClips,
+          paragraph: 'Generando clip ' + clipNum + ' de ' + (targetStockClips + targetIaClips) + '...',
+          type: vc.type === 'ia' ? 'IA' : 'Stock'
+        });
+
+        const clipName = 'sync_clip_' + clipNum + '.mp4';
+        const clipPath = path.join(outDir, clipName);
+        const escapedClip = clipPath.replace(/"/g, '\\"');
+        let success = false;
+
+        if (vc.type === 'ia') {
+          try {
+            let promptFinal = vc.prompt || 'cinematic video clip';
+            if (iaStyle === 'cartoon') promptFinal += ', 3D cartoon Pixar style';
+            else if (iaStyle === 'bw') promptFinal += ', black and white film noir';
+            const result = await fal.subscribe('fal-ai/minimax/video-01', {
+              input: { prompt: promptFinal }
+            }) as any;
+            const dlUrl = result?.video?.url || result?.data?.video?.url;
+            if (!dlUrl) throw new Error('No URL fal.ai');
+            const dlRes = await fetch(dlUrl);
+            const buf = await dlRes.arrayBuffer();
+            const tempPath = path.join(outDir, 'temp_ia_' + clipNum + '.mp4');
+            await fs.promises.writeFile(tempPath, Buffer.from(buf));
+            await new Promise<void>((resolve, reject) => {
+              const cmd = 'ffmpeg -y -ss 0 -i "' + tempPath + '" -t ' + clipDur + ' -c:v libx264 -c:a aac "' + escapedClip + '"';
+              exec(cmd, (err) => { if (err) reject(err); else resolve(); });
+            });
+            try { await fs.promises.unlink(tempPath); } catch(e) {}
+            success = true;
+          } catch (e: any) {
+            await logMessage('[FASE 3] Error IA clip ' + clipNum + ': ' + e.message);
+          }
+        }
+
+        if (vc.type === 'stock' || (!success && vc.type !== 'ia')) {
+          try {
+            if (!pexelsApiKey) throw new Error('No PEXELS_API_KEY');
+            const isVert = aspectRatio === '9:16' || aspectRatio === 'vertical';
+            const orient = isVert ? 'portrait' : 'landscape';
+            const pUrl = 'https://api.pexels.com/videos/search?query=' +
+              encodeURIComponent(vc.keyword || 'broll') + '&per_page=5&orientation=' + orient;
+            const pRes = await fetch(pUrl, { headers: { 'Authorization': pexelsApiKey } });
+            const pData = await pRes.json() as any;
+            const vid = pData?.videos?.[0];
+            if (!vid) throw new Error('No video Pexels');
+            const files = vid.video_files || [];
+            const best = files.find((f: any) => f.quality === 'hd' || f.width >= 720) || files[0];
+            const dlUrl = best?.link;
+            if (!dlUrl) throw new Error('No link Pexels');
+            const stockDir = path.join(getBancoClipsPath(), 'stock');
+            if (!(await exists(stockDir))) await fs.promises.mkdir(stockDir, { recursive: true });
+            const rawPath = path.join(stockDir, 'pexels_' + vid.id + '_raw.mp4');
+            if (!(await exists(rawPath))) {
+              const dlRes = await fetch(dlUrl);
+              const buf = await dlRes.arrayBuffer();
+              await fs.promises.writeFile(rawPath, Buffer.from(buf));
+            }
+            const filter = isVert
+              ? 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,setpts=0.8*PTS'
+              : 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setpts=0.8*PTS';
+            const escapedRaw = rawPath.replace(/"/g, '\\"');
+            await new Promise<void>((resolve, reject) => {
+              const cmd = 'ffmpeg -y -ss 0 -i "' + escapedRaw + '" -vf "' + filter + '" -t ' + clipDur + ' -an "' + escapedClip + '"';
+              exec(cmd, (err) => { if (err) reject(err); else resolve(); });
+            });
+            success = true;
+          } catch (e: any) {
+            await logMessage('[FASE 3] Error Stock clip ' + clipNum + ': ' + e.message);
+          }
+        }
+
+        if (success && await exists(clipPath)) {
+          const duration = await getVideoDuration(clipPath);
+          const thumbPath = clipPath.replace('.mp4', '.jpg');
+          let thumbnailUrl = '';
+          try {
+            await generateVideoThumbnail(clipPath, thumbPath);
+            if (await exists(thumbPath)) {
+              thumbnailUrl = 'data:image/jpeg;base64,' +
+                (await fs.promises.readFile(thumbPath)).toString('base64');
+            }
+          } catch(e) {}
+          v2Clips.push({
+            id: 'sync-v2-' + clipNum,
+            name: clipName,
+            startSeconds: clipStart,
+            durationSeconds: duration || clipDur,
+            type: 'video',
+            category: vc.type,
+            path: clipPath,
+            url: 'file:///' + clipPath.replace(/\\/g, '/'),
+            thumbnailUrl
+          });
+        }
+      }
+    }
+
+    // FASE 4 — Ensamblar
+    const v1Clip = {
+      id: 'v1-original-' + Date.now(),
+      name: path.basename(videoPath),
+      startSeconds: 0,
+      durationSeconds: duracionTotal,
+      type: 'video',
+      category: 'original',
+      path: videoPath,
+      url: 'file:///' + videoPath.replace(/\\/g, '/')
+    };
+
+    const audioClip = {
+      id: 'audio-sync-' + Date.now(),
+      name: 'Voz - Audio Original',
+      startSeconds: 0,
+      durationSeconds: duracionTotal,
+      type: 'audio',
+      path: audioPath || videoPath,
+      url: 'file:///' + (audioPath || videoPath).replace(/\\/g, '/')
+    };
+
+    await logMessage('[generate-perfect-sync] Completado. v2Clips: ' + v2Clips.length);
+
+    return {
+      success: true,
+      v1Clip,
+      v2Clips,
+      audioClip
+    };
+
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});

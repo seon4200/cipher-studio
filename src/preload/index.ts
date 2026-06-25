@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generateMinimaxVideo: (params: { prompt: string }) => ipcRenderer.invoke('generate-minimax-video', params),
   loadBankClips: (params: { category: string }) => ipcRenderer.invoke('load-bank-clips', params),
   generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; graphicsPercent?: number; hasVideoV2?: boolean }) => ipcRenderer.invoke('generate-timeline-assets', params),
+  generatePerfectSync: (params: any) => ipcRenderer.invoke('generate-perfect-sync', params),
   onGenerationProgress: (callback: (event: any, data: any) => void) => {
     const listener = (_event: any, value: any) => callback(_event, value)
     ipcRenderer.on('generation-progress', listener)
