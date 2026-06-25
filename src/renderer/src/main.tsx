@@ -4124,9 +4124,8 @@ function App() {
           </div>
 
           {/* Selector de Modo de Sincronización */}
-          <div className="px-3.5 py-2.5 bg-slate-950/40 border-b border-slate-800/80 flex items-center justify-between space-x-2">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Modo de Edición:</span>
-            <div className="flex bg-slate-950 p-0.5 rounded-lg border border-slate-850">
+          <div className="px-3.5 py-2 bg-slate-950/40 border-b border-slate-800/80">
+            <div className="flex w-full bg-slate-950 p-0.5 rounded-lg border border-slate-800">
               <button
                 onClick={() => setPerfectSyncMode(false)}
                 className={`flex-1 text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer ${
