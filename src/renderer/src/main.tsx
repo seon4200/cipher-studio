@@ -3320,6 +3320,7 @@ function App() {
           </div>
 
           {/* Mix del montaje Section */}
+          {!perfectSyncMode && (
           <div className="p-3 border-b border-slate-800/80 bg-slate-950/20 space-y-3 flex-shrink-0">
             <div className="flex items-center space-x-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               <Sliders className="h-3.5 w-3.5 text-indigo-400" />
@@ -3480,6 +3481,66 @@ function App() {
               </div>
             )}
           </div>
+          )}
+          {perfectSyncMode && (
+            <div className='p-3 border-b border-slate-800/80 bg-violet-950/10 space-y-3 flex-shrink-0'>
+              <div className='flex items-center space-x-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider'>
+                <span>Mix de Sincronización</span>
+              </div>
+              <div className='space-y-2.5'>
+                {[
+                  {label:'Original', dot:'bg-sky-500', accent:'accent-sky-500', text:'text-sky-400'},
+                  {label:'Stock', dot:'bg-emerald-500', accent:'accent-emerald-500', text:'text-emerald-400'},
+                  {label:'IA', dot:'bg-slate-400', accent:'accent-slate-400', text:'text-slate-400'}
+                ].map(({label, dot, accent, text}, i) => (
+                  <div key={label} className='flex items-center space-x-2.5'>
+                    <span className={`w-2 h-2 rounded-full ${dot} flex-shrink-0`} />
+                    <span className='text-[10px] font-semibold text-slate-400 w-16'>{label}</span>
+                    <input type='range' min={0} max={100}
+                      value={syncWeights[i]}
+                      onChange={(e) => {
+                        const w=[...syncWeights];
+                        w[i]=parseInt(e.target.value);
+                        setSyncWeights(w);
+                      }}
+                      className={`flex-1 h-1 ${accent} appearance-none cursor-pointer rounded-lg outline-none transition-all`}
+                      style={{
+                        background: 
+                          i === 0 ? `linear-gradient(to right, rgb(14, 165, 233) ${syncWeights[0]}%, rgb(30, 41, 59) 0%)` :
+                          i === 1 ? `linear-gradient(to right, rgb(16, 185, 129) ${syncWeights[1]}%, rgb(30, 41, 59) 0%)` :
+                          `linear-gradient(to right, rgb(148, 163, 184) ${syncWeights[2]}%, rgb(30, 41, 59) 0%)`
+                      }}
+                    />
+                    <span className={`text-[10px] ${text} w-8 text-right`}>{syncWeights[i]}%</span>
+                  </div>
+                ))}
+              </div>
+              <div className='h-1.5 w-full rounded-full overflow-hidden flex bg-slate-800 mt-2'>
+                <div style={{ width: `${syncWeights[0]}%` }} className='h-full bg-sky-500 transition-all duration-300' />
+                <div style={{ width: `${syncWeights[1]}%` }} className='h-full bg-emerald-500 transition-all duration-300' />
+                <div style={{ width: `${syncWeights[2]}%` }} className='h-full bg-slate-400 transition-all duration-300' />
+              </div>
+              <button onClick={() => {}} disabled={!videoV2Clip}
+                className='w-full mt-2 py-2 bg-gradient-to-r from-sky-600 to-blue-600 text-white text-xs font-bold rounded-xl disabled:opacity-50'>
+                Construir Sincronización Perfecta
+              </button>
+              <div className='mt-3'>
+                <div className='grid grid-cols-3 gap-2 bg-slate-900/60 p-1 rounded-xl border border-slate-800'>
+                  {[0,50,100].map((val) => (
+                    <button key={val} onClick={() => setGraphicsPercent(val)}
+                      className={`py-1.5 text-xs font-bold rounded-lg ${graphicsPercent===val ? 'bg-indigo-650 text-white' : 'text-slate-400'}`}>
+                      {val}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button onClick={handleRegenerateGraphics}
+                disabled={(!aiScript?.trim() && !originalTranscriptText?.trim()) || timelineVideoClips.filter(c=>c.type!=='audio'&&c.type!=='graphic').length===0 || isGeneratingAssets}
+                className='mt-3 w-full px-4 py-2 bg-indigo-650 hover:bg-indigo-500 text-white rounded disabled:opacity-50'>
+                {isGeneratingAssets ? 'Generando...' : 'Regenerar Gráficos'}
+              </button>
+            </div>
+          )}
 
           {/* Media Items List */}
           <div 
@@ -4866,86 +4927,77 @@ function App() {
                 )}
               </div>
             )) : (
-              <div className='flex flex-col h-full overflow-y-auto'>
-                {/* Header */}
-                <div className='px-4 py-3 border-b border-slate-800'>
-                  <h3 className='text-[11px] font-bold text-slate-300 uppercase tracking-wider'>
-                    Sincronización Perfecta
-                  </h3>
-                  <p className='text-[10px] text-slate-500 mt-0.5'>
-                    Video original como base — Stock e IA como capas
-                  </p>
-                </div>
-
-                {/* Paso 1: Video base */}
-                <div className='px-4 py-3 border-b border-slate-800'>
-                  <p className='text-[10px] font-bold text-slate-400 mb-2'>
-                    PASO 1 — VIDEO BASE
-                  </p>
-                  {videoV2Clip ? (
-                    <div className='flex items-center justify-between bg-violet-900/20 border border-violet-700/30 rounded-lg px-3 py-2'>
-                      <span className='text-[10px] text-violet-300 truncate'>
-                        ✓ {videoV2Clip.name}
-                      </span>
-                      <button
-                        onClick={() => setTimelineVideoClips(
-                          prev => prev.filter(c => c.category !== 'v2_base'))}
-                        className='text-slate-500 hover:text-red-400 text-[10px] ml-2'
-                      >✕</button>
-                    </div>
-                  ) : (
-                    <p className='text-[10px] text-slate-600'>
-                      Importa un video para comenzar
-                    </p>
-                  )}
-                </div>
-
-                {/* Paso 2: Audio */}
-                <div className='px-4 py-3 border-b border-slate-800'>
-                  <p className='text-[10px] font-bold text-slate-400 mb-2'>
-                    PASO 2 — AUDIO
-                  </p>
-                  <p className='text-[10px] text-slate-500'>
-                    Usa los paneles de Whisper y ElevenLabs de arriba
-                  </p>
-                </div>
-
-                {/* Paso 3: Porcentajes */}
-                <div className='px-4 py-3 border-b border-slate-800'>
-                  <p className='text-[10px] font-bold text-slate-400 mb-3'>
-                    PASO 3 — CAPAS
-                  </p>
-                  {['Original', 'Stock', 'IA'].map((label, i) => (
-                    <div key={label} className='flex items-center space-x-2 mb-2'>
-                      <span className='text-[10px] text-slate-400 w-12'>{label}</span>
-                      <input
-                        type='range' min={0} max={100}
-                        value={syncWeights[i]}
-                        onChange={(e) => {
-                          const newWeights = [...syncWeights];
-                          newWeights[i] = parseInt(e.target.value);
-                          setSyncWeights(newWeights);
-                        }}
-                        className='flex-1 h-1 accent-indigo-500'
-                      />
-                      <span className='text-[10px] text-indigo-400 w-8 text-right'>
-                        {syncWeights[i]}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Botón construir */}
-                <div className='px-4 py-3'>
-                  <button
-                    disabled={!videoV2Clip}
-                    className='w-full py-2 bg-indigo-600 hover:bg-indigo-500 
-                      disabled:opacity-40 disabled:cursor-not-allowed
-                      text-white text-[11px] font-bold rounded-lg transition-all'
+              <div className='flex-1 flex flex-col overflow-hidden'>
+                <div className='flex-1 overflow-y-auto p-4 space-y-4'>
+                  <div
+                    onClick={() => setSelectedTool('subtitles')}
+                    className='p-3 rounded-xl border bg-slate-900 border-slate-800/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2'
                   >
-                    Construir Sincronización Perfecta
-                  </button>
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center space-x-2'>
+                        <Type className='h-4 w-4 text-slate-400' />
+                        <span className='text-xs font-bold'>Transcripción de Voz</span>
+                      </div>
+                      <span className='text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-full font-semibold uppercase'>Whisper</span>
+                    </div>
+                    <p className='text-[11px] text-slate-400'>Transcribe el audio con timestamps exactos.</p>
+                  </div>
                 </div>
+                {selectedTool === 'subtitles' && (() => {
+                  const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
+                  return (
+                    <div className='flex-1 flex flex-col overflow-hidden p-4'>
+                      {!firstVideoInLibrary ? (
+                        <p className='text-[10px] text-slate-500'>Importa un video para transcribir.</p>
+                      ) : isTranscribing ? (
+                        <div className='flex items-center space-x-2'>
+                          <div className='w-3.5 h-3.5 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin' />
+                          <span className='text-[10px] text-indigo-300'>Transcribiendo...</span>
+                        </div>
+                      ) : (originalTranscriptText || transcriptSegments.length > 0) ? (
+                        <div className='space-y-3'>
+                          <textarea
+                            value={originalTranscriptText}
+                            onChange={(e) => setOriginalTranscriptText(e.target.value)}
+                            className='w-full h-32 bg-slate-950/80 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 outline-none resize-y'
+                            placeholder='Transcripción aparecerá aquí...'
+                          />
+                          <button
+                            onClick={() => {
+                              const existingAudio = timelineVideoClips.find(c => c.type === 'audio');
+                              const firstVideo = clips.find(c => c.type === 'video') || clips[0];
+                              if (!existingAudio && firstVideo) {
+                                setTimelineVideoClips(prev => [...prev, {
+                                  id: `audio-orig-${Math.random()}`,
+                                  name: 'Voz - Audio Original',
+                                  startSeconds: 0,
+                                  durationSeconds: firstVideo.durationSeconds,
+                                  type: 'audio' as const,
+                                  path: firstVideo.path,
+                                  url: firstVideo.url
+                                }]);
+                              }
+                            }}
+                            className='w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg'
+                          >
+                            Usar Audio Original
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (firstVideoInLibrary) {
+                              window.electronAPI.startTranscription(firstVideoInLibrary.path);
+                            }
+                          }}
+                          className='w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg'
+                        >
+                          Iniciar Transcripción
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
