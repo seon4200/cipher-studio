@@ -4135,7 +4135,7 @@ function App() {
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Flujo Normal
+                Normal
               </button>
               <button
                 onClick={() => setPerfectSyncMode(true)}
@@ -4145,7 +4145,7 @@ function App() {
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Sincronización Perfecta
+                Sync Perfecta
               </button>
             </div>
           </div>
