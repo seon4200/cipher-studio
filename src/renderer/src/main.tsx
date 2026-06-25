@@ -4123,6 +4123,33 @@ function App() {
             )}
           </div>
 
+          {/* Selector de Modo de Sincronización */}
+          <div className="px-3.5 py-2.5 bg-slate-950/40 border-b border-slate-800/80 flex items-center justify-between space-x-2">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Modo de Edición:</span>
+            <div className="flex bg-slate-950 p-0.5 rounded-lg border border-slate-850">
+              <button
+                onClick={() => setPerfectSyncMode(false)}
+                className={`text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer ${
+                  !perfectSyncMode
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/15'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Flujo Normal
+              </button>
+              <button
+                onClick={() => setPerfectSyncMode(true)}
+                className={`text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer ${
+                  perfectSyncMode
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/15'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Sincronización Perfecta
+              </button>
+            </div>
+          </div>
+
           <div className="flex-1 flex flex-col overflow-hidden">
             {!selectedTool ? (
               // List of Tool Cards
