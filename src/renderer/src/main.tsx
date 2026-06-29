@@ -2532,11 +2532,15 @@ function App() {
     const voiceClip = timelineVideoClips.find(
       c => c.type === 'audio');
     const audioPath = voiceClip?.path || '';
-    const videoClips = timelineVideoClips.filter(c => 
+    const v2Clips = timelineVideoClips.filter(c => c.category === 'v2_overlay');
+    const v1Clips = timelineVideoClips.filter(c => 
       c.type !== 'audio' && 
       c.type !== 'graphic' && 
       c.category !== 'v2_overlay'
     );
+    const videoClips = perfectSyncMode && v2Clips.length > 0
+      ? [...v1Clips, ...v2Clips]
+      : v1Clips;
     if (videoClips.length === 0) return;
     setIsGeneratingAssets(true);
     try {
