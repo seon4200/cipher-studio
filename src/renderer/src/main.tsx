@@ -512,6 +512,16 @@ function App() {
   const [selectedTimelineClipIds, setSelectedTimelineClipIds] = useState<string[]>([])
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; clipId: string } | null>(null)
 
+  const [showFullscreenControls, setShowFullscreenControls] = useState(false);
+  const fullscreenTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(!!document?.fullscreenElement);
+
+  useEffect(() => {
+    const handleFs = () => setIsFullscreen(!!document?.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleFs);
+    return () => document.removeEventListener('fullscreenchange', handleFs);
+  }, []);
+
   const trackRef = React.useRef<HTMLDivElement>(null)
   const trackV2Ref = React.useRef<HTMLDivElement>(null)
   const playerWrapperRef = React.useRef<HTMLDivElement>(null)
@@ -838,6 +848,14 @@ function App() {
       }
     }
   }
+
+  const handleFullscreenMouseMove = () => {
+    setShowFullscreenControls(true);
+    if (fullscreenTimerRef.current) clearTimeout(fullscreenTimerRef.current);
+    fullscreenTimerRef.current = setTimeout(() => {
+      setShowFullscreenControls(false);
+    }, 3000);
+  };
 
   // Helper to format duration to mm:ss
   const formatTimeMinutesSeconds = (seconds: number): string => {
@@ -3954,6 +3972,7 @@ function App() {
         <section className="flex-1 bg-slate-950 flex flex-col p-4 overflow-hidden">
           <div 
             ref={playerWrapperRef}
+            onMouseMove={handleFullscreenMouseMove}
             className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl relative overflow-hidden flex items-center justify-center group shadow-inner"
           >
             {/* Player Canvas Mockup / Real Player */}
@@ -4116,6 +4135,58 @@ function App() {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               <span>{activeVideoUrl ? 'Reproductor Activo' : 'Full Res (1080p)'}</span>
             </div>
+
+            {isFullscreen && (
+              <div
+                className={`absolute inset-0 z-50 flex flex-col justify-between p-4 transition-opacity duration-300 ${
+                  showFullscreenControls ? 'opacity-100' : 'opacity-0'
+                }`}
+                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.3) 100%)' }}
+              >
+                <div className='flex justify-end'>
+                  <button
+                    onClick={toggleFullscreen}
+                    className='text-white bg-black/40 hover:bg-black/60 rounded-lg px-3 py-1.5 text-xs font-bold'
+                  >
+                    ✕ Salir
+                  </button>
+                </div>
+                <div className='flex flex-col space-y-3'>
+                  <div className='flex items-center space-x-2'>
+                    <span className='text-white text-xs font-mono'>{currentTimeForUI.toFixed(0)}s</span>
+                    <div className='flex-1 h-1 bg-white/20 rounded-full overflow-hidden cursor-pointer'
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const pct = (e.clientX - rect.left) / rect.width;
+                        seekGlobalTime(pct * totalDuration);
+                      }}
+                    >
+                      <div
+                        className='h-full bg-white rounded-full'
+                        style={{ width: `${(currentTimeForUI / totalDuration) * 100}%` }}
+                      />
+                    </div>
+                    <span className='text-white text-xs font-mono'>{totalDuration.toFixed(0)}s</span>
+                  </div>
+                  <div className='flex items-center justify-center space-x-6'>
+                    <button
+                      onClick={() => seekGlobalTime(Math.max(0, currentTimeForUI - 10))}
+                      className='text-white text-2xl hover:scale-110 transition-transform'
+                    >⏪</button>
+                    <button
+                      onClick={() => setIsPlaying(!isPlaying)}
+                      className='text-white text-4xl hover:scale-110 transition-transform'
+                    >
+                      {isPlaying ? '⏸' : '▶'}
+                    </button>
+                    <button
+                      onClick={() => seekGlobalTime(Math.min(totalDuration, currentTimeForUI + 10))}
+                      className='text-white text-2xl hover:scale-110 transition-transform'
+                    >⏩</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Player controls */}
@@ -5458,11 +5529,14 @@ function App() {
                       {perfectSyncMode && (
                         <button
                           onClick={() => setShowVideoV2Track(!showVideoV2Track)}
-                          className='ml-1 text-[10px] hover:text-sky-400 transition-all'
-                          title='Ver/ocultar pista v2 overlay'
-                          style={{ opacity: showVideoV2Track ? 1 : 0.5 }}
+                          className={`ml-1 text-[11px] transition-all px-1 py-0.5 rounded ${
+                            showVideoV2Track 
+                              ? 'text-sky-400 bg-sky-500/20 border border-sky-500/40' 
+                              : 'text-slate-500 hover:text-sky-400'
+                          }`}
+                          title={showVideoV2Track ? 'Cerrar pista v2' : 'Abrir pista v2 overlay'}
                         >
-                          👁
+                          {showVideoV2Track ? '👁 v2' : '👁'}
                         </button>
                       )}
                     </div>
