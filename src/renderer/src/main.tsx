@@ -513,6 +513,7 @@ function App() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; clipId: string } | null>(null)
 
   const trackRef = React.useRef<HTMLDivElement>(null)
+  const trackV2Ref = React.useRef<HTMLDivElement>(null)
   const playerWrapperRef = React.useRef<HTMLDivElement>(null)
 
   // Refs to allow stable keyboard listener dependencies
@@ -3574,7 +3575,6 @@ function App() {
                   if (!firstVideo) return;
                   setIsGeneratingAssets(true);
                   setGenerationError('');
-                  setShowVideoV2Track(true);
                   try {
                     const audioClipExisting = timelineVideoClips.find(c => c.type === 'audio');
                     const res = await window.electronAPI.generatePerfectSync({
@@ -5460,7 +5460,7 @@ function App() {
                     </div>
                   )}
                   {timelineVideoClips
-                    .filter(tClip => tClip.type !== 'audio' && tClip.type !== 'graphic')
+                    .filter(tClip => tClip.type !== 'audio' && tClip.type !== 'graphic' && tClip.category !== 'v2_overlay')
                     .map((tClip, index) => {
                       const leftPercent = (tClip.startSeconds / totalDuration) * 100;
                       const widthPercent = (tClip.durationSeconds / totalDuration) * 100;
@@ -5468,7 +5468,9 @@ function App() {
                       const cat = tClip.category ? tClip.category.toLowerCase() : '';
                       let bgClass = 'bg-slate-500/20 border-slate-400/50 text-slate-300 hover:bg-slate-500/30';
                       if (cat === 'original' || cat === 'originales') {
-                        bgClass = 'bg-emerald-500/25 border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/35';
+                        bgClass = perfectSyncMode
+                          ? 'bg-sky-500/25 border-sky-400/50 text-sky-300 hover:bg-sky-500/35'
+                          : 'bg-emerald-500/25 border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/35';
                       } else if (cat === 'stock') {
                         bgClass = 'bg-sky-500/25 border-sky-400/50 text-sky-300 hover:bg-sky-500/35';
                       } else if (cat === 'minimax') {
@@ -5538,7 +5540,7 @@ function App() {
                     <span>🎬</span>
                     <span>v2 overlay</span>
                   </div>
-                  <div className='flex-1 h-10 bg-slate-900/40 border border-slate-700/40 rounded-xl relative overflow-hidden'>
+                  <div ref={trackV2Ref} className='flex-1 h-10 bg-slate-900/40 border border-slate-700/40 rounded-xl relative overflow-hidden'>
                     {timelineVideoClips
                       .filter(c => c.category === 'v2_overlay')
                       .sort((a,b) => a.startSeconds - b.startSeconds)
@@ -5555,14 +5557,35 @@ function App() {
                             className={'absolute h-full border rounded-lg flex items-center px-1 justify-between group/v2clip ' + bgCol}
                             title={clip.name}
                             onMouseDown={(e) => {
-                              if (!showVideoV2Track) return;
-                              handleClipMouseDown(e, clip.id, 'move');
+                              if (!showVideoV2Track || !trackV2Ref.current) return;
+                              e.stopPropagation();
+                              const rect = trackV2Ref.current.getBoundingClientRect();
+                              const trackWidth = rect.width;
+                              const startX = e.clientX;
+                              const initialStart = clip.startSeconds;
+                              const handleMove = (me: MouseEvent) => {
+                                const delta = ((me.clientX - startX) / trackWidth) * totalDuration;
+                                setTimelineVideoClips(prev => prev.map(c => 
+                                  c.id === clip.id 
+                                    ? {...c, startSeconds: Math.max(0, initialStart + delta)}
+                                    : c
+                                ));
+                              };
+                              const handleUp = () => {
+                                window.removeEventListener('mousemove', handleMove);
+                                window.removeEventListener('mouseup', handleUp);
+                              };
+                              window.addEventListener('mousemove', handleMove);
+                              window.addEventListener('mouseup', handleUp);
                             }}
                           >
                             <span className='text-[8px] truncate'>{clip.durationSeconds?.toFixed(1)}s</span>
                             <button
-                              onClick={() => setTimelineVideoClips(prev => 
-                                prev.filter(c => c.id !== clip.id))}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setTimelineVideoClips(prev => 
+                                  prev.filter(c => c.id !== clip.id));
+                              }}
                               className='text-[8px] opacity-0 group-hover/v2clip:opacity-100 hover:text-red-400 ml-1 flex-shrink-0'
                             >✕</button>
                           </div>
