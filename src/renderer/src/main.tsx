@@ -653,6 +653,22 @@ function App() {
   }, [timelineVideoClips, currentTimeForUI, perfectSyncMode]);
 
   useEffect(() => {
+    if (!perfectSyncMode || !videoV2Ref.current || !activeV2OverlayClip) return;
+    const v2video = videoV2Ref.current;
+    const masterTime = audioRef.current?.currentTime || 0;
+    const offsetInClip = Math.max(0, masterTime - activeV2OverlayClip.startSeconds);
+    const src = activeV2OverlayClip.url || 
+      (activeV2OverlayClip.path ? 'file:///' + activeV2OverlayClip.path.replace(/\\/g, '/') : '');
+    if (v2video.src !== src) {
+      v2video.src = src;
+      v2video.load();
+    }
+    v2video.currentTime = offsetInClip;
+    if (isPlaying) v2video.play().catch(() => {});
+    else v2video.pause();
+  }, [activeV2OverlayClip, perfectSyncMode, isPlaying]);
+
+  useEffect(() => {
     if (perfectSyncMode) {
       const overlayClips = timelineVideoClips.filter(c => c.category === 'v2_overlay');
       console.log('[V2_OVERLAY] clips:', overlayClips.length, 
@@ -2516,7 +2532,11 @@ function App() {
     const voiceClip = timelineVideoClips.find(
       c => c.type === 'audio');
     const audioPath = voiceClip?.path || '';
-    const videoClips = timelineVideoClips.filter(c => c.type !== 'audio' && c.type !== 'graphic');
+    const videoClips = timelineVideoClips.filter(c => 
+      c.type !== 'audio' && 
+      c.type !== 'graphic' && 
+      c.category !== 'v2_overlay'
+    );
     if (videoClips.length === 0) return;
     setIsGeneratingAssets(true);
     try {
@@ -3569,6 +3589,25 @@ function App() {
                 <div style={{ width: `${syncWeights[1]}%` }} className='h-full bg-emerald-500 transition-all duration-300' />
                 <div style={{ width: `${syncWeights[2]}%` }} className='h-full bg-slate-400 transition-all duration-300' />
               </div>
+              {isGeneratingAssets && generationProgress && (
+                <div className='w-full mt-2 p-2 bg-slate-900/60 border border-slate-800 rounded-xl space-y-1'>
+                  <div className='flex items-center justify-between text-[9px] text-slate-400'>
+                    <span className='truncate'>{generationProgress.paragraph}</span>
+                    <span className='text-sky-400 font-bold uppercase text-[8px] ml-1 flex-shrink-0'>
+                      {generationProgress.type}
+                    </span>
+                  </div>
+                  <div className='h-1 w-full bg-slate-950 rounded-full overflow-hidden'>
+                    <div
+                      className='h-full bg-sky-500 transition-all duration-300'
+                      style={{ width: `${Math.min(100, (generationProgress.current / Math.max(1, generationProgress.total)) * 100)}%` }}
+                    />
+                  </div>
+                  <div className='text-[8px] text-slate-500 text-right font-mono'>
+                    {generationProgress.current}/{generationProgress.total}
+                  </div>
+                </div>
+              )}
               <button
                 onClick={async () => {
                   const firstVideo = clips.find(c => c.type === 'video');
@@ -3934,6 +3973,7 @@ function App() {
                 {perfectSyncMode && activeV2OverlayClip && (
                   <video
                     key={activeV2OverlayClip.id}
+                    ref={videoV2Ref}
                     src={activeV2OverlayClip.url || (activeV2OverlayClip.path ? 'file:///' + activeV2OverlayClip.path.replace(/\\/g, '/') : '')}
                     style={{
                       position: 'absolute',
@@ -3943,8 +3983,7 @@ function App() {
                       objectFit: 'cover',
                       zIndex: 10
                     }}
-                    autoPlay
-                    muted={false}
+                    muted
                     controls={false}
                     className='pointer-events-none'
                   />
@@ -5415,10 +5454,11 @@ function App() {
                       {perfectSyncMode && (
                         <button
                           onClick={() => setShowVideoV2Track(!showVideoV2Track)}
-                          className='ml-1 text-[9px] text-slate-500 hover:text-violet-400 transition-all'
-                          title='Ver pista base v2'
+                          className='ml-1 text-[10px] hover:text-sky-400 transition-all'
+                          title='Ver/ocultar pista v2 overlay'
+                          style={{ opacity: showVideoV2Track ? 1 : 0.5 }}
                         >
-                          {showVideoV2Track ? '▼' : '▶'}
+                          👁
                         </button>
                       )}
                     </div>
@@ -5531,6 +5571,24 @@ function App() {
                         </div>
                       );
                     })}
+                  {perfectSyncMode && !showVideoV2Track && 
+                    timelineVideoClips
+                      .filter(c => c.category === 'v2_overlay')
+                      .map(clip => {
+                        const lp = (clip.startSeconds / totalDuration) * 100;
+                        const wp = (clip.durationSeconds / totalDuration) * 100;
+                        const bgCol = clip.originalCategory === 'ia'
+                          ? 'bg-slate-500/40 border-slate-400/30'
+                          : 'bg-emerald-500/40 border-emerald-400/30';
+                        return (
+                          <div
+                            key={'shadow-' + clip.id}
+                            style={{ left: lp + '%', width: wp + '%', opacity: 0.4 }}
+                            className={'absolute h-full border rounded-lg pointer-events-none ' + bgCol}
+                          />
+                        );
+                      })
+                  }
                 </div>
               </div>
 
