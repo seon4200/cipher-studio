@@ -5529,10 +5529,10 @@ function App() {
                       {perfectSyncMode && (
                         <button
                           onClick={() => setShowVideoV2Track(!showVideoV2Track)}
-                          className={`ml-1 text-[11px] transition-all px-1 py-0.5 rounded ${
+                          className={`ml-2 text-[13px] transition-all px-2 py-1 rounded-lg font-bold ${
                             showVideoV2Track 
-                              ? 'text-sky-400 bg-sky-500/20 border border-sky-500/40' 
-                              : 'text-slate-500 hover:text-sky-400'
+                              ? 'text-sky-400 bg-sky-500/20 border border-sky-500/40 shadow-sm shadow-sky-500/20' 
+                              : 'text-slate-400 hover:text-sky-400 bg-slate-800/60 border border-slate-700/50'
                           }`}
                           title={showVideoV2Track ? 'Cerrar pista v2' : 'Abrir pista v2 overlay'}
                         >
