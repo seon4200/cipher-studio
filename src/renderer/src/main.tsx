@@ -484,6 +484,25 @@ function App() {
   // Porcentaje global de generación de gráficos (valor por defecto 50%)
   const [graphicsPercent, setGraphicsPercent] = useState<number>(50);
 
+  // Estados para transiciones GL
+  const [transitionsPercent, setTransitionsPercent] = useState<number>(50);
+  const [showTransitionsPanel, setShowTransitionsPanel] = useState<boolean>(false);
+  const [transitionDuration, setTransitionDuration] = useState<number>(0.5);
+  const [isTransitionActive, setIsTransitionActive] = useState<boolean>(false);
+  const [selectedTransitions, setSelectedTransitions] = useState<string[]>([
+    'fade','dissolve','morph','CrossZoom','pixelize',
+    'GlitchDisplace','ripple','crosswarp','fadegrayscale',
+    'fadecolor','burn','luma','flyeye','randomsquares',
+    'wipeUp','LinearBlur','colorphase','rotate_scale_fade',
+    'multiply_blend','kaleidoscope','powerKaleido','TVStatic',
+    'static_wipe','SimpleZoom','SimpleZoomOut','zoomInOut',
+    'StereoViewer','displacement','DirectionalScaled',
+    'HSVfade','StaticFade','parametric_glitch','mosaic_transition',
+    'ButterflyWaveScrawler','old_tv_lost_signal','DefocusBlur',
+    'directionalwipe','Revolve_Left','crossZoom'
+  ]);
+
+
   // Estados para controlar el ciclo de vida y visibilidad de los gráficos animados
   const [graphicVisible, setGraphicVisible] = useState(false);
   const [graphicFading, setGraphicFading] = useState(false);
@@ -525,6 +544,8 @@ function App() {
   const trackRef = React.useRef<HTMLDivElement>(null)
   const trackV2Ref = React.useRef<HTMLDivElement>(null)
   const playerWrapperRef = React.useRef<HTMLDivElement>(null)
+  const transitionCanvasRef = React.useRef<HTMLCanvasElement>(null)
+  const hiddenVideoRef = React.useRef<HTMLVideoElement>(null)
 
   // Refs to allow stable keyboard listener dependencies
   const timelineClipsRef = React.useRef<TimelineClip[]>([])
@@ -697,7 +718,7 @@ function App() {
   }, [timelineVideoClips]);
 
   if (false as any) {
-    console.log(perfectSyncMode, setPerfectSyncMode, showVideoV2Track, setShowVideoV2Track, syncWeights, setSyncWeights, videoV2Ref, videoV2Clip, activeV2OverlayClip);
+    console.log(perfectSyncMode, setPerfectSyncMode, showVideoV2Track, setShowVideoV2Track, syncWeights, setSyncWeights, videoV2Ref, videoV2Clip, activeV2OverlayClip, transitionDuration, setTransitionDuration, setIsTransitionActive, selectedTransitions, setSelectedTransitions);
   }
 
   useEffect(() => {
@@ -3531,6 +3552,34 @@ function App() {
                   <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
                   <span>Construir Timeline IA</span>
                 </button>
+                {/* ----- Transiciones GL ----- */}
+                <div className='mt-4'>
+                  <button
+                    onClick={() => setShowTransitionsPanel(!showTransitionsPanel)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                      showTransitionsPanel
+                        ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
+                        : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span>✦ Transiciones</span>
+                    <span className='text-[10px] font-normal opacity-70'>{transitionsPercent}% activo</span>
+                  </button>
+                  {!showTransitionsPanel && (
+                    <div className='mt-2 grid grid-cols-3 gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800'>
+                      {[0,50,100].map((val) => (
+                        <button key={val} onClick={() => setTransitionsPercent(val)}
+                          className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
+                            transitionsPercent===val
+                              ? 'bg-violet-600 text-white shadow-md'
+                              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                          }`}>
+                          {val}%
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {/* ----- Selector de Porcentaje de Gráficos ----- */}
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -3683,6 +3732,34 @@ function App() {
                   <span>Construir Sincronización Perfecta</span>
                 )}
               </button>
+              {/* Transiciones en Sync Perfecta */}
+              <div className='mt-3'>
+                <button
+                  onClick={() => setShowTransitionsPanel(!showTransitionsPanel)}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
+                    showTransitionsPanel
+                      ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
+                      : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span>✦ Transiciones</span>
+                  <span className='text-[10px] font-normal opacity-70'>{transitionsPercent}% activo</span>
+                </button>
+                {!showTransitionsPanel && (
+                  <div className='mt-2 grid grid-cols-3 gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800'>
+                    {[0,50,100].map((val) => (
+                      <button key={val} onClick={() => setTransitionsPercent(val)}
+                        className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
+                          transitionsPercent===val
+                            ? 'bg-violet-600 text-white shadow-md'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        }`}>
+                        {val}%
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className='mt-3'>
                 <div className='grid grid-cols-3 gap-2 bg-slate-900/60 p-1 rounded-xl border border-slate-800'>
                   {[0,50,100].map((val) => (
@@ -4011,6 +4088,24 @@ function App() {
                     className='pointer-events-none'
                   />
                 )}
+                <video
+                  ref={hiddenVideoRef}
+                  style={{ display: 'none' }}
+                  muted
+                  preload='auto'
+                />
+                <canvas
+                  ref={transitionCanvasRef}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    zIndex: 15,
+                    display: isTransitionActive ? 'block' : 'none',
+                    pointerEvents: 'none'
+                  }}
+                />
                 <video 
                   id="preview-video"
                   ref={videoRef}
