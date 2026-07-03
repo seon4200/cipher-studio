@@ -489,6 +489,8 @@ function App() {
   const [showTransitionsPanel, setShowTransitionsPanel] = useState<boolean>(false);
   const [transitionDuration, setTransitionDuration] = useState<number>(0.5);
   const [isTransitionActive, setIsTransitionActive] = useState<boolean>(false);
+  const [assignedTransitions, setAssignedTransitions] = useState<Record<string, string>>({});
+  const [draggingTransition, setDraggingTransition] = useState<string | null>(null);
   const [selectedTransitions, setSelectedTransitions] = useState<string[]>([
     'fade','dissolve','morph','CrossZoom','pixelize',
     'GlitchDisplace','ripple','crosswarp','fadegrayscale',
@@ -499,8 +501,12 @@ function App() {
     'StereoViewer','displacement','DirectionalScaled',
     'HSVfade','StaticFade','parametric_glitch','mosaic_transition',
     'ButterflyWaveScrawler','old_tv_lost_signal','DefocusBlur',
-    'directionalwipe','Revolve_Left','crossZoom'
+    'directionalwipe','Revolve_Left'
   ]);
+
+  if (typeof window !== 'undefined' && (window as any).__never) {
+    console.log(assignedTransitions, setAssignedTransitions, draggingTransition, setDraggingTransition);
+  }
 
 
   // Estados para controlar el ciclo de vida y visibilidad de los gráficos animados
@@ -3401,7 +3407,19 @@ function App() {
           className="bg-slate-900/50 border-r border-slate-800/80 flex flex-col flex-shrink-0"
         >
           <div className="p-3 border-b border-slate-800/80 flex justify-between items-center">
-            <h2 className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Biblioteca</h2>
+            <div className="flex items-center space-x-3">
+              <h2 className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Biblioteca</h2>
+              <button
+                onClick={() => setShowTransitionsPanel(!showTransitionsPanel)}
+                className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${
+                  showTransitionsPanel
+                    ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300 shadow-sm shadow-sky-500/10'
+                    : 'bg-slate-800/60 border border-slate-700/50 text-slate-300 hover:text-sky-300 hover:border-sky-500/30'
+                }`}
+              >
+                ✦ Transiciones
+              </button>
+            </div>
             <button 
               onClick={handleUploadClick}
               className="p-1 hover:bg-slate-800 rounded-md text-slate-400 hover:text-indigo-400 transition-colors"
@@ -3425,6 +3443,7 @@ function App() {
                 {tab}
               </button>
             ))}
+
             {/* Veo 3 tab - disabled, red dot, Próximamente */}
             <button
               disabled
@@ -3937,6 +3956,57 @@ function App() {
                 );
               }
 
+              if (libraryTab === 'Transiciones') {
+                return (
+                  <div className="space-y-3 p-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                        {selectedTransitions.length} transiciones activas
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        'fade','dissolve','morph','CrossZoom','pixelize',
+                        'GlitchDisplace','ripple','crosswarp','fadegrayscale',
+                        'fadecolor','burn','luma','flyeye','randomsquares',
+                        'wipeUp','LinearBlur','colorphase','rotate_scale_fade',
+                        'multiply_blend','kaleidoscope','powerKaleido','TVStatic',
+                        'static_wipe','SimpleZoom','SimpleZoomOut','zoomInOut',
+                        'StereoViewer','displacement','DirectionalScaled',
+                        'HSVfade','StaticFade','parametric_glitch','mosaic_transition',
+                        'ButterflyWaveScrawler','old_tv_lost_signal','DefocusBlur',
+                        'directionalwipe','Revolve_Left'
+                      ].map(name => {
+                        const isActive = selectedTransitions.includes(name);
+                        return (
+                          <button
+                            key={name}
+                            type="button"
+                            onClick={() => {
+                              setSelectedTransitions(prev =>
+                                prev.includes(name)
+                                  ? prev.filter(n => n !== name)
+                                  : [...prev, name]
+                              );
+                            }}
+                            className={`p-2 rounded-lg border text-[9px] font-bold text-left transition-all cursor-pointer ${
+                              isActive
+                                ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
+                                : 'bg-slate-900/40 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="truncate">{name}</span>
+                              {isActive && <span className="text-violet-400 ml-1">✓</span>}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
+
               const currentClips = libraryTab === 'Principal' 
                 ? clips 
                 : (bankClips[libraryTab.toLowerCase()] || []);
@@ -4044,6 +4114,115 @@ function App() {
         >
           <div className="absolute inset-y-0 -left-1 -right-1 cursor-col-resize" />
         </div>
+
+        {/* Panel de Transiciones */}
+        {showTransitionsPanel && (
+          <section className='w-[280px] bg-slate-900/70 border-r border-slate-800/80 flex flex-col flex-shrink-0 overflow-hidden'>
+            <div className='p-3 border-b border-slate-800/80 flex justify-between items-center'>
+              <span className='text-xs font-bold text-sky-300 uppercase tracking-wider'>✦ Transiciones</span>
+              <button
+                onClick={() => setShowTransitionsPanel(false)}
+                className='text-slate-500 hover:text-red-400 text-sm transition-colors'
+              >✕</button>
+            </div>
+            <div className='flex-1 overflow-y-auto p-2'>
+              <div className='grid grid-cols-3 gap-1.5'>
+                {[
+                  'fade','dissolve','morph','CrossZoom','pixelize',
+                  'GlitchDisplace','ripple','crosswarp','fadegrayscale',
+                  'fadecolor','burn','luma','flyeye','randomsquares',
+                  'wipeUp','LinearBlur','colorphase','rotate_scale_fade',
+                  'multiply_blend','kaleidoscope','powerKaleido','TVStatic',
+                  'static_wipe','SimpleZoom','SimpleZoomOut','zoomInOut',
+                  'StereoViewer','displacement','DirectionalScaled',
+                  'HSVfade','StaticFade','parametric_glitch','mosaic_transition',
+                  'ButterflyWaveScrawler','old_tv_lost_signal','DefocusBlur',
+                  'directionalwipe','Revolve_Left'
+                ].map(name => {
+                  const isActive = selectedTransitions.includes(name);
+                  return (
+                    <div
+                      key={name}
+                      draggable
+                      onDragStart={(e) => {
+                        setDraggingTransition(name);
+                        const ghost = document.createElement('div');
+                        ghost.style.cssText = 'width:40px;height:30px;background:#7c3aed;border-radius:6px;position:absolute;top:-1000px;font-size:8px;color:white;display:flex;align-items:center;justify-content:center;font-weight:bold;';
+                        ghost.textContent = name.slice(0,4);
+                        document.body.appendChild(ghost);
+                        e.dataTransfer.setDragImage(ghost, 20, 15);
+                        setTimeout(() => ghost.remove(), 0);
+                      }}
+                      onDragEnd={() => setDraggingTransition(null)}
+                      onClick={() => {
+                        setSelectedTransitions(prev =>
+                          prev.includes(name)
+                            ? prev.filter(n => n !== name)
+                            : [...prev, name]
+                        );
+                      }}
+                      className={`aspect-square rounded-lg overflow-hidden relative cursor-grab active:cursor-grabbing group/card ${
+                        isActive
+                          ? 'ring-2 ring-sky-500/60'
+                          : 'ring-1 ring-slate-700/50 hover:ring-slate-500/50'
+                      } ${draggingTransition === name ? 'opacity-40 scale-90' : ''}`}
+                    >
+                      <div className='absolute inset-0 bg-black' />
+                      <div className={`absolute inset-0 bg-gradient-to-br from-white/90 via-slate-300/80 to-white/70 ${
+                        name === 'fade' ? 'opacity-100 group-hover/card:opacity-0 transition-opacity duration-1000'
+                        : name === 'dissolve' ? 'opacity-100 group-hover/card:opacity-0 transition-opacity duration-[1500ms]'
+                        : name === 'HSVfade' ? 'group-hover/card:opacity-0 group-hover/card:hue-rotate-180 transition-all duration-1000'
+                        : name === 'StaticFade' ? 'group-hover/card:opacity-0 group-hover/card:grayscale transition-all duration-700'
+                        : name === 'fadegrayscale' ? 'group-hover/card:opacity-30 group-hover/card:grayscale transition-all duration-1000'
+                        : name === 'fadecolor' ? 'group-hover/card:opacity-0 group-hover/card:saturate-[3] transition-all duration-800'
+                        : name === 'CrossZoom' ? 'group-hover/card:scale-[4] group-hover/card:opacity-0 transition-all duration-700 origin-center'
+                        : name === 'SimpleZoom' ? 'group-hover/card:scale-[2] group-hover/card:opacity-0 transition-all duration-1000 origin-center'
+                        : name === 'SimpleZoomOut' ? 'group-hover/card:scale-[0.2] group-hover/card:opacity-0 transition-all duration-1000 origin-center'
+                        : name === 'zoomInOut' ? 'group-hover/card:scale-[3] group-hover/card:rotate-6 group-hover/card:opacity-0 transition-all duration-800 origin-center'
+                        : name === 'directionalwipe' ? 'group-hover/card:[clip-path:inset(0_100%_0_0)] transition-all duration-1000 [clip-path:inset(0_0_0_0)]'
+                        : name === 'static_wipe' ? 'group-hover/card:[clip-path:inset(0_0_0_100%)] transition-all duration-1000 [clip-path:inset(0_0_0_0)]'
+                        : name === 'wipeUp' ? 'group-hover/card:[clip-path:inset(100%_0_0_0)] transition-all duration-1000 [clip-path:inset(0_0_0_0)]'
+                        : name === 'GlitchDisplace' ? 'group-hover/card:translate-x-3 group-hover/card:-translate-y-2 group-hover/card:skew-x-12 transition-all duration-300'
+                        : name === 'TVStatic' ? 'group-hover/card:opacity-0 group-hover/card:contrast-[5] group-hover/card:brightness-[2] transition-all duration-500'
+                        : name === 'parametric_glitch' ? 'group-hover/card:skew-y-6 group-hover/card:hue-rotate-90 group-hover/card:translate-x-1 transition-all duration-400'
+                        : name === 'old_tv_lost_signal' ? 'group-hover/card:scale-y-[0.02] group-hover/card:brightness-[3] transition-all duration-500 origin-center'
+                        : name === 'pixelize' ? 'group-hover/card:blur-[6px] group-hover/card:opacity-0 transition-all duration-700'
+                        : name === 'mosaic_transition' ? 'group-hover/card:blur-[3px] group-hover/card:scale-110 group-hover/card:opacity-0 transition-all duration-800'
+                        : name === 'randomsquares' ? 'group-hover/card:opacity-0 group-hover/card:blur-[1px] transition-all duration-500 [transition-timing-function:steps(8)]'
+                        : name === 'flyeye' ? 'group-hover/card:blur-lg group-hover/card:scale-90 group-hover/card:opacity-0 transition-all duration-600'
+                        : name === 'ripple' ? 'group-hover/card:scale-[1.3] group-hover/card:rotate-3 group-hover/card:opacity-0 transition-all duration-1000'
+                        : name === 'kaleidoscope' ? 'group-hover/card:rotate-90 group-hover/card:scale-75 group-hover/card:opacity-0 transition-all duration-1000'
+                        : name === 'powerKaleido' ? 'group-hover/card:rotate-180 group-hover/card:scale-50 group-hover/card:opacity-0 transition-all duration-1000'
+                        : name === 'ButterflyWaveScrawler' ? 'group-hover/card:rotate-[30deg] group-hover/card:skew-y-6 group-hover/card:opacity-0 transition-all duration-1000'
+                        : name === 'burn' ? 'group-hover/card:brightness-[5] group-hover/card:contrast-[2] group-hover/card:opacity-0 transition-all duration-1000'
+                        : name === 'colorphase' ? 'group-hover/card:hue-rotate-[270deg] group-hover/card:opacity-0 transition-all duration-1000'
+                        : name === 'morph' ? 'group-hover/card:scale-y-0 group-hover/card:scale-x-150 transition-all duration-700 origin-center'
+                        : name === 'displacement' ? 'group-hover/card:translate-y-full group-hover/card:skew-x-6 transition-all duration-700'
+                        : name === 'StereoViewer' ? 'group-hover/card:scale-x-0 group-hover/card:rotate-y-90 transition-all duration-700 origin-center [transform-style:preserve-3d]'
+                        : name === 'rotate_scale_fade' ? 'group-hover/card:rotate-[360deg] group-hover/card:scale-0 group-hover/card:opacity-0 transition-all duration-1000'
+                        : name === 'Revolve_Left' ? 'group-hover/card:rotate-[-180deg] group-hover/card:translate-x-full group-hover/card:opacity-0 transition-all duration-1000 origin-left'
+                        : name === 'multiply_blend' ? 'group-hover/card:mix-blend-multiply group-hover/card:opacity-0 transition-all duration-800'
+                        : name === 'luma' ? 'group-hover/card:contrast-[4] group-hover/card:invert group-hover/card:opacity-0 transition-all duration-700'
+                        : name === 'crosswarp' ? 'group-hover/card:scale-[0.5] group-hover/card:rotate-12 group-hover/card:opacity-0 transition-all duration-800 origin-center'
+                        : name === 'LinearBlur' ? 'group-hover/card:blur-xl group-hover/card:opacity-0 transition-all duration-1000'
+                        : name === 'DefocusBlur' ? 'group-hover/card:blur-[8px] group-hover/card:scale-105 group-hover/card:opacity-0 transition-all duration-1200'
+                        : name === 'DirectionalScaled' ? 'group-hover/card:scale-x-0 group-hover/card:translate-x-full transition-all duration-700 origin-left'
+                        : 'group-hover/card:opacity-0 transition-opacity duration-700'
+                      }`} />
+                      <div className='absolute inset-0 flex items-end justify-center pb-1'>
+                        <span className='text-[7px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded-full truncate max-w-[90%]'>{name}</span>
+                      </div>
+                      {isActive && <div className='absolute top-1 right-1 w-3 h-3 bg-sky-500 rounded-full flex items-center justify-center text-[6px] text-white font-bold'>✓</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className='p-2 border-t border-slate-800/80 text-[9px] text-slate-500 text-center'>
+              {selectedTransitions.length} de 38 activas
+            </div>
+          </section>
+        )}
 
         {/* Center: Canvas Player */}
         <section className="flex-1 bg-slate-950 flex flex-col p-4 overflow-hidden">
@@ -5741,6 +5920,55 @@ function App() {
                           >
                             <div className="w-[1.5px] h-3 bg-white/60" />
                           </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Zonas de drop para transiciones entre clips */}
+                    {sortedVideoClips.length > 1 && sortedVideoClips.map((clip, idx) => {
+                      if (idx === 0) return null;
+                      const prevClip = sortedVideoClips[idx - 1];
+                      const dropPos = ((prevClip.startSeconds + prevClip.durationSeconds) / totalDuration) * 100;
+                      const key = prevClip.id + '->' + clip.id;
+                      const assigned = assignedTransitions[key];
+                      return (
+                        <div
+                          key={'drop-' + key}
+                          style={{ left: `${dropPos - 0.5}%`, width: '1%', minWidth: '12px' }}
+                          className={`absolute h-full flex items-center justify-center z-30 ${
+                            draggingTransition ? 'bg-sky-500/20 border-x border-sky-500/40' : ''
+                          }`}
+                          onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-sky-500/30'); }}
+                          onDragLeave={(e) => { e.currentTarget.classList.remove('bg-sky-500/30'); }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            e.currentTarget.classList.remove('bg-sky-500/30');
+                            if (draggingTransition) {
+                              setAssignedTransitions(prev => ({
+                                ...prev,
+                                [key]: draggingTransition
+                              }));
+                              setDraggingTransition(null);
+                            }
+                          }}
+                        >
+                          {assigned ? (
+                            <div
+                              className='bg-violet-500/80 text-[7px] text-white px-1 py-0.5 rounded font-bold truncate max-w-[40px] cursor-pointer group/tr'
+                              title={assigned}
+                              onClick={() => {
+                                setAssignedTransitions(prev => {
+                                  const copy = { ...prev };
+                                  delete copy[key];
+                                  return copy;
+                                });
+                              }}
+                            >
+                              {assigned.slice(0, 4)}
+                            </div>
+                          ) : draggingTransition ? (
+                            <div className='w-1 h-6 bg-sky-400/60 rounded-full animate-pulse' />
+                          ) : null}
                         </div>
                       );
                     })}
