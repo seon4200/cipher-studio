@@ -1449,11 +1449,45 @@ function App() {
       if (autoPlay) {
         video.play().catch(e => console.error("loadClip play error:", e));
       }
+      // Efecto de entrada si hay transición asignada hacia este clip
+      const prevClip = sortedVideoClips[index - 1];
+      if (prevClip) {
+        const trKey = prevClip.id + '->' + clip.id;
+        const assigned = assignedTransitions[trKey];
+        if (assigned) {
+          const dur = Math.max(200, transitionDuration * 1000);
+          const isZoom = /zoom/i.test(assigned);
+          const isWipe = /wipe/i.test(assigned) || assigned === 'DirectionalScaled';
+          const isGlitch = /litch|static|TVStatic|old_tv/i.test(assigned);
+          const isBlur = /blur|pixelize|mosaic|flyeye/i.test(assigned);
+          const isSpin = /kaleido|Butterfly/i.test(assigned);
+          const isRotate = /rotate|Revolve/i.test(assigned);
+          video.style.transition = 'none';
+          if (isZoom) { video.style.transform = 'scale(1.8)'; video.style.opacity = '0.3'; }
+          else if (isWipe) { video.style.clipPath = 'inset(0 0 0 100%)'; }
+          else if (isGlitch) { video.style.transform = 'translateX(-8px) skewX(-4deg)'; video.style.opacity = '0.5'; }
+          else if (isBlur) { video.style.filter = 'blur(14px)'; video.style.opacity = '0.4'; }
+          else if (isSpin) { video.style.transform = 'rotate(-45deg) scale(1.4)'; video.style.opacity = '0.3'; }
+          else if (isRotate) { video.style.transform = 'rotate(-180deg) scale(0.3)'; video.style.opacity = '0'; }
+          else { video.style.opacity = '0'; }
+          requestAnimationFrame(() => {
+            video.style.transition = `all ${dur}ms ease-out`;
+            video.style.opacity = '1';
+            video.style.transform = 'none';
+            video.style.filter = 'none';
+            video.style.clipPath = 'inset(0 0 0 0)';
+            setTimeout(() => {
+              video.style.transition = 'none';
+              video.style.clipPath = 'none';
+            }, dur + 50);
+          });
+        }
+      }
     } else {
       setActiveVideoUrl(null);
       if (video) video.pause();
     }
-  }, [sortedVideoClips]);
+  }, [sortedVideoClips, assignedTransitions, transitionDuration]);
 
   const handleVideoCanPlay = () => {
     if (videoRef.current && isPlaying) {
@@ -3979,9 +4013,11 @@ function App() {
                       ].map(name => {
                         const isActive = selectedTransitions.includes(name);
                         return (
-                          <button
+                          <div
                             key={name}
-                            type="button"
+                            draggable
+                            onDragStart={() => setDraggingTransition(name)}
+                            onDragEnd={() => setDraggingTransition(null)}
                             onClick={() => {
                               setSelectedTransitions(prev =>
                                 prev.includes(name)
@@ -3989,17 +4025,59 @@ function App() {
                                   : [...prev, name]
                               );
                             }}
-                            className={`p-2 rounded-lg border text-[9px] font-bold text-left transition-all cursor-pointer ${
+                            className={`aspect-square rounded-lg overflow-hidden relative cursor-grab active:cursor-grabbing group/card ${
                               isActive
-                                ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
-                                : 'bg-slate-900/40 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'
-                            }`}
+                                ? 'ring-2 ring-sky-500/60'
+                                : 'ring-1 ring-slate-700/50 hover:ring-slate-500/50'
+                            } ${draggingTransition === name ? 'opacity-40 scale-90' : ''}`}
                           >
-                            <div className="flex items-center justify-between">
-                              <span className="truncate">{name}</span>
-                              {isActive && <span className="text-violet-400 ml-1">✓</span>}
+                            <div className='absolute inset-0 bg-black' />
+                            <div className={`absolute inset-0 bg-gradient-to-br from-white/90 via-slate-300/80 to-white/70 ${
+                              name === 'fade' ? 'opacity-100 group-hover/card:opacity-0 transition-opacity duration-1000'
+                              : name === 'dissolve' ? 'opacity-100 group-hover/card:opacity-0 transition-opacity duration-[1500ms]'
+                              : name === 'HSVfade' ? 'group-hover/card:opacity-0 group-hover/card:hue-rotate-180 transition-all duration-1000'
+                              : name === 'StaticFade' ? 'group-hover/card:opacity-0 group-hover/card:grayscale transition-all duration-700'
+                              : name === 'fadegrayscale' ? 'group-hover/card:opacity-30 group-hover/card:grayscale transition-all duration-1000'
+                              : name === 'fadecolor' ? 'group-hover/card:opacity-0 group-hover/card:saturate-[3] transition-all duration-800'
+                              : name === 'CrossZoom' ? 'group-hover/card:scale-[4] group-hover/card:opacity-0 transition-all duration-700 origin-center'
+                              : name === 'SimpleZoom' ? 'group-hover/card:scale-[2] group-hover/card:opacity-0 transition-all duration-1000 origin-center'
+                              : name === 'SimpleZoomOut' ? 'group-hover/card:scale-[0.2] group-hover/card:opacity-0 transition-all duration-1000 origin-center'
+                              : name === 'zoomInOut' ? 'group-hover/card:scale-[3] group-hover/card:rotate-6 group-hover/card:opacity-0 transition-all duration-800 origin-center'
+                              : name === 'directionalwipe' ? 'group-hover/card:[clip-path:inset(0_100%_0_0)] transition-all duration-1000 [clip-path:inset(0_0_0_0)]'
+                              : name === 'static_wipe' ? 'group-hover/card:[clip-path:inset(0_0_0_100%)] transition-all duration-1000 [clip-path:inset(0_0_0_0)]'
+                              : name === 'wipeUp' ? 'group-hover/card:[clip-path:inset(100%_0_0_0)] transition-all duration-1000 [clip-path:inset(0_0_0_0)]'
+                              : name === 'GlitchDisplace' ? 'group-hover/card:translate-x-3 group-hover/card:-translate-y-2 group-hover/card:skew-x-12 transition-all duration-300'
+                              : name === 'TVStatic' ? 'group-hover/card:opacity-0 group-hover/card:contrast-[5] group-hover/card:brightness-[2] transition-all duration-500'
+                              : name === 'parametric_glitch' ? 'group-hover/card:skew-y-6 group-hover/card:hue-rotate-90 group-hover/card:translate-x-1 transition-all duration-400'
+                              : name === 'old_tv_lost_signal' ? 'group-hover/card:scale-y-[0.02] group-hover/card:brightness-[3] transition-all duration-500 origin-center'
+                              : name === 'pixelize' ? 'group-hover/card:blur-[6px] group-hover/card:opacity-0 transition-all duration-700'
+                              : name === 'mosaic_transition' ? 'group-hover/card:blur-[3px] group-hover/card:scale-110 group-hover/card:opacity-0 transition-all duration-800'
+                              : name === 'randomsquares' ? 'group-hover/card:opacity-0 group-hover/card:blur-[1px] transition-all duration-500 [transition-timing-function:steps(8)]'
+                              : name === 'flyeye' ? 'group-hover/card:blur-lg group-hover/card:scale-90 group-hover/card:opacity-0 transition-all duration-600'
+                              : name === 'ripple' ? 'group-hover/card:scale-[1.3] group-hover/card:rotate-3 group-hover/card:opacity-0 transition-all duration-1000'
+                              : name === 'kaleidoscope' ? 'group-hover/card:rotate-90 group-hover/card:scale-75 group-hover/card:opacity-0 transition-all duration-1000'
+                              : name === 'powerKaleido' ? 'group-hover/card:rotate-180 group-hover/card:scale-50 group-hover/card:opacity-0 transition-all duration-1000'
+                              : name === 'ButterflyWaveScrawler' ? 'group-hover/card:rotate-[30deg] group-hover/card:skew-y-6 group-hover/card:opacity-0 transition-all duration-1000'
+                              : name === 'burn' ? 'group-hover/card:brightness-[5] group-hover/card:contrast-[2] group-hover/card:opacity-0 transition-all duration-1000'
+                              : name === 'colorphase' ? 'group-hover/card:hue-rotate-[270deg] group-hover/card:opacity-0 transition-all duration-1000'
+                              : name === 'morph' ? 'group-hover/card:scale-y-0 group-hover/card:scale-x-150 transition-all duration-700 origin-center'
+                              : name === 'displacement' ? 'group-hover/card:translate-y-full group-hover/card:skew-x-6 transition-all duration-700'
+                              : name === 'StereoViewer' ? 'group-hover/card:scale-x-0 group-hover/card:rotate-y-90 transition-all duration-700 origin-center [transform-style:preserve-3d]'
+                              : name === 'rotate_scale_fade' ? 'group-hover/card:rotate-[360deg] group-hover/card:scale-0 group-hover/card:opacity-0 transition-all duration-1000'
+                              : name === 'Revolve_Left' ? 'group-hover/card:rotate-[-180deg] group-hover/card:translate-x-full group-hover/card:opacity-0 transition-all duration-1000 origin-left'
+                              : name === 'multiply_blend' ? 'group-hover/card:mix-blend-multiply group-hover/card:opacity-0 transition-all duration-800'
+                              : name === 'luma' ? 'group-hover/card:contrast-[4] group-hover/card:invert group-hover/card:opacity-0 transition-all duration-700'
+                              : name === 'crosswarp' ? 'group-hover/card:scale-[0.5] group-hover/card:rotate-12 group-hover/card:opacity-0 transition-all duration-800 origin-center'
+                              : name === 'LinearBlur' ? 'group-hover/card:blur-xl group-hover/card:opacity-0 transition-all duration-1000'
+                              : name === 'DefocusBlur' ? 'group-hover/card:blur-[8px] group-hover/card:scale-105 group-hover/card:opacity-0 transition-all duration-1200'
+                              : name === 'DirectionalScaled' ? 'group-hover/card:scale-x-0 group-hover/card:translate-x-full transition-all duration-700 origin-left'
+                              : 'group-hover/card:opacity-0 transition-opacity duration-700'
+                            }`} />
+                            <div className='absolute inset-0 flex items-end justify-center pb-1'>
+                              <span className='text-[7px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded-full truncate max-w-[90%]'>{name}</span>
                             </div>
-                          </button>
+                            {isActive && <div className='absolute top-1 right-1 w-3 h-3 bg-sky-500 rounded-full flex items-center justify-center text-[6px] text-white font-bold'>✓</div>}
+                          </div>
                         );
                       })}
                     </div>
@@ -4144,15 +4222,7 @@ function App() {
                     <div
                       key={name}
                       draggable
-                      onDragStart={(e) => {
-                        setDraggingTransition(name);
-                        const ghost = document.createElement('div');
-                        ghost.style.cssText = 'width:40px;height:30px;background:#7c3aed;border-radius:6px;position:absolute;top:-1000px;font-size:8px;color:white;display:flex;align-items:center;justify-content:center;font-weight:bold;';
-                        ghost.textContent = name.slice(0,4);
-                        document.body.appendChild(ghost);
-                        e.dataTransfer.setDragImage(ghost, 20, 15);
-                        setTimeout(() => ghost.remove(), 0);
-                      }}
+                      onDragStart={() => setDraggingTransition(name)}
                       onDragEnd={() => setDraggingTransition(null)}
                       onClick={() => {
                         setSelectedTransitions(prev =>
@@ -5924,50 +5994,46 @@ function App() {
                       );
                     })}
 
-                    {/* Zonas de drop para transiciones entre clips */}
-                    {sortedVideoClips.length > 1 && sortedVideoClips.map((clip, idx) => {
+                    {!perfectSyncMode && sortedVideoClips.length > 1 && sortedVideoClips.map((clip, idx) => {
                       if (idx === 0) return null;
                       const prevClip = sortedVideoClips[idx - 1];
                       const dropPos = ((prevClip.startSeconds + prevClip.durationSeconds) / totalDuration) * 100;
-                      const key = prevClip.id + '->' + clip.id;
-                      const assigned = assignedTransitions[key];
+                      const trKey = prevClip.id + '->' + clip.id;
+                      const assigned = assignedTransitions[trKey];
+                      if (!assigned && !draggingTransition) return null;
                       return (
                         <div
-                          key={'drop-' + key}
-                          style={{ left: `${dropPos - 0.5}%`, width: '1%', minWidth: '12px' }}
-                          className={`absolute h-full flex items-center justify-center z-30 ${
-                            draggingTransition ? 'bg-sky-500/20 border-x border-sky-500/40' : ''
-                          }`}
-                          onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-sky-500/30'); }}
-                          onDragLeave={(e) => { e.currentTarget.classList.remove('bg-sky-500/30'); }}
+                          key={'trdrop-' + trKey}
+                          style={{ left: `${Math.max(0, dropPos - 1)}%`, width: '2%', minWidth: '18px' }}
+                          className='absolute h-full flex items-center justify-center z-30'
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.currentTarget.style.background = 'rgba(56,189,248,0.25)';
+                          }}
+                          onDragLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                          }}
                           onDrop={(e) => {
                             e.preventDefault();
-                            e.currentTarget.classList.remove('bg-sky-500/30');
+                            e.currentTarget.style.background = 'transparent';
                             if (draggingTransition) {
-                              setAssignedTransitions(prev => ({
-                                ...prev,
-                                [key]: draggingTransition
-                              }));
+                              setAssignedTransitions(prev => ({ ...prev, [trKey]: draggingTransition }));
                               setDraggingTransition(null);
                             }
                           }}
                         >
                           {assigned ? (
                             <div
-                              className='bg-violet-500/80 text-[7px] text-white px-1 py-0.5 rounded font-bold truncate max-w-[40px] cursor-pointer group/tr'
-                              title={assigned}
-                              onClick={() => {
-                                setAssignedTransitions(prev => {
-                                  const copy = { ...prev };
-                                  delete copy[key];
-                                  return copy;
-                                });
-                              }}
+                              className='bg-violet-500 text-[5px] text-white px-1 py-0.5 rounded font-bold truncate max-w-[36px] cursor-pointer hover:bg-red-500 transition-colors shadow-sm shadow-violet-500/30'
+                              title={'Click para eliminar: ' + assigned}
+                              onClick={() => setAssignedTransitions(prev => {
+                                const c = { ...prev };
+                                delete c[trKey];
+                                return c;
+                              })}
                             >
                               {assigned.slice(0, 4)}
                             </div>
-                          ) : draggingTransition ? (
-                            <div className='w-1 h-6 bg-sky-400/60 rounded-full animate-pulse' />
                           ) : null}
                         </div>
                       );
