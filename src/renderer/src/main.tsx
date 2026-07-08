@@ -3780,6 +3780,25 @@ function App() {
                         ...v2ClipsTagged,
                         res.audioClip
                       ]);
+                      // Asignar transiciones automáticamente en Sync Perfecta (entre clips v2_overlay)
+                      if (transitionsPercent !== null && transitionsPercent > 0 && selectedTransitions.length > 0 && v2ClipsTagged.length > 1) {
+                        const sorted = [...v2ClipsTagged].sort((a: any, b: any) => a.startSeconds - b.startSeconds);
+                        const totalCortes = sorted.length - 1;
+                        const cortesConTransicion = Math.round((transitionsPercent / 100) * totalCortes);
+                        const shuffled = [...selectedTransitions].sort(() => Math.random() - 0.5);
+                        const newAssigned: Record<string, string> = {};
+                        const step = totalCortes > 0 ? Math.floor(totalCortes / Math.max(1, cortesConTransicion)) : 1;
+                        let trIdx = 0;
+                        for (let i = 0; i < sorted.length - 1; i++) {
+                          const shouldAssign = transitionsPercent === 100 || (i % step === 0 && Object.keys(newAssigned).length < cortesConTransicion);
+                          if (shouldAssign) {
+                            const key = sorted[i].id + '->' + sorted[i + 1].id;
+                            newAssigned[key] = shuffled[trIdx % shuffled.length];
+                            trIdx++;
+                          }
+                        }
+                        setAssignedTransitions(newAssigned);
+                      }
                     } else {
                       setGenerationError(res?.error || 'Error');
                     }
