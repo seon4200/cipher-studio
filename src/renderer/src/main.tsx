@@ -2586,6 +2586,27 @@ function App() {
         setTimelineVersions(prev => [...prev, newVersion]);
         setActiveVersionId(newVersionId);
         setTimelineVideoClips(finalTimelineClips);
+        // Asignar transiciones automáticamente si transitionsPercent > 0
+        if (transitionsPercent !== null && transitionsPercent > 0 && selectedTransitions.length > 0) {
+          const videoOnly = finalTimelineClips
+            .filter(c => c.type !== 'audio' && c.type !== 'graphic')
+            .sort((a, b) => a.startSeconds - b.startSeconds);
+          const totalCortes = videoOnly.length - 1;
+          const cortesConTransicion = Math.round((transitionsPercent / 100) * totalCortes);
+          const shuffled = [...selectedTransitions].sort(() => Math.random() - 0.5);
+          const newAssigned: Record<string, string> = {};
+          const step = totalCortes > 0 ? Math.floor(totalCortes / Math.max(1, cortesConTransicion)) : 1;
+          let trIdx = 0;
+          for (let i = 0; i < videoOnly.length - 1; i++) {
+            const shouldAssign = transitionsPercent === 100 || (i % step === 0 && Object.keys(newAssigned).length < cortesConTransicion);
+            if (shouldAssign) {
+              const key = videoOnly[i].id + '->' + videoOnly[i + 1].id;
+              newAssigned[key] = shuffled[trIdx % shuffled.length];
+              trIdx++;
+            }
+          }
+          setAssignedTransitions(newAssigned);
+        }
         pushMilestone('Timeline construido', {
           timelineVideoClips: finalTimelineClips
         });
