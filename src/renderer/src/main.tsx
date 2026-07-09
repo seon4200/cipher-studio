@@ -489,6 +489,7 @@ function App() {
   const [showTransitionsPanel, setShowTransitionsPanel] = useState<boolean>(false);
   const [transitionDuration, setTransitionDuration] = useState<number>(0.5);
   const [isTransitionActive, setIsTransitionActive] = useState<boolean>(false);
+  const [transitionType, setTransitionType] = useState<string>('fade');
   const [assignedTransitions, setAssignedTransitions] = useState<Record<string, string>>({});
   const [draggingTransition, setDraggingTransition] = useState<string | null>(null);
   const [selectedTransitions, setSelectedTransitions] = useState<string[]>([
@@ -505,7 +506,7 @@ function App() {
   ]);
 
   if (typeof window !== 'undefined' && (window as any).__never) {
-    console.log(assignedTransitions, setAssignedTransitions, draggingTransition, setDraggingTransition);
+    console.log(assignedTransitions, setAssignedTransitions, draggingTransition, setDraggingTransition, transitionType, setTransitionType);
   }
 
 
@@ -550,7 +551,7 @@ function App() {
   const trackRef = React.useRef<HTMLDivElement>(null)
   const trackV2Ref = React.useRef<HTMLDivElement>(null)
   const playerWrapperRef = React.useRef<HTMLDivElement>(null)
-  const transitionCanvasRef = React.useRef<HTMLCanvasElement>(null)
+
   const hiddenVideoRef = React.useRef<HTMLVideoElement>(null)
 
   // Refs to allow stable keyboard listener dependencies
@@ -1476,13 +1477,25 @@ function App() {
 
   const handleEnded = () => {
     const nextIdx = currentClipIndex + 1;
-    if (nextIdx < sortedVideoClips.length) {
-      loadClip(nextIdx, true);
-    } else {
+    if (nextIdx >= sortedVideoClips.length) {
       setIsPlaying(false);
       const video = videoRef.current;
       if (video) video.pause();
       if (audioRef.current) audioRef.current.pause();
+      return;
+    }
+    const currentClip = sortedVideoClips[currentClipIndex];
+    const nextClip = sortedVideoClips[nextIdx];
+    const trKey = currentClip?.id + '->' + nextClip?.id;
+    const assigned = assignedTransitions[trKey];
+    if (assigned) {
+      setTransitionType(assigned);
+      setIsTransitionActive(true);
+      loadClip(nextIdx, true);
+      const dur = Math.max(200, transitionDuration * 1000);
+      setTimeout(() => setIsTransitionActive(false), dur);
+    } else {
+      loadClip(nextIdx, true);
     }
   };
 
@@ -2559,16 +2572,35 @@ function App() {
             .sort((a, b) => a.startSeconds - b.startSeconds);
           const totalCortes = videoOnly.length - 1;
           const cortesConTransicion = Math.round((transitionsPercent / 100) * totalCortes);
-          const shuffled = [...selectedTransitions].sort(() => Math.random() - 0.5);
+          const fisherYates = (arr: string[]) => {
+            const a = [...arr];
+            for (let i = a.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+          };
+          let queue = fisherYates(selectedTransitions);
+          let lastPicked = '';
+          const pickNext = () => {
+            if (queue.length === 0) {
+              queue = fisherYates(selectedTransitions);
+              if (queue[0] === lastPicked && queue.length > 1) {
+                const swapIdx = Math.floor(Math.random() * (queue.length - 1)) + 1;
+                [queue[0], queue[swapIdx]] = [queue[swapIdx], queue[0]];
+              }
+            }
+            lastPicked = queue.shift()!;
+            return lastPicked;
+          };
           const newAssigned: Record<string, string> = {};
+          const clips = videoOnly;
           const step = totalCortes > 0 ? Math.floor(totalCortes / Math.max(1, cortesConTransicion)) : 1;
-          let trIdx = 0;
-          for (let i = 0; i < videoOnly.length - 1; i++) {
+          for (let i = 0; i < clips.length - 1; i++) {
             const shouldAssign = transitionsPercent === 100 || (i % step === 0 && Object.keys(newAssigned).length < cortesConTransicion);
             if (shouldAssign) {
-              const key = videoOnly[i].id + '->' + videoOnly[i + 1].id;
-              newAssigned[key] = shuffled[trIdx % shuffled.length];
-              trIdx++;
+              const key = clips[i].id + '->' + clips[i + 1].id;
+              newAssigned[key] = pickNext();
             }
           }
           setAssignedTransitions(newAssigned);
@@ -3751,16 +3783,35 @@ function App() {
                         const sorted = [...v2ClipsTagged].sort((a: any, b: any) => a.startSeconds - b.startSeconds);
                         const totalCortes = sorted.length - 1;
                         const cortesConTransicion = Math.round((transitionsPercent / 100) * totalCortes);
-                        const shuffled = [...selectedTransitions].sort(() => Math.random() - 0.5);
+                        const fisherYates = (arr: string[]) => {
+                          const a = [...arr];
+                          for (let i = a.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [a[i], a[j]] = [a[j], a[i]];
+                          }
+                          return a;
+                        };
+                        let queue = fisherYates(selectedTransitions);
+                        let lastPicked = '';
+                        const pickNext = () => {
+                          if (queue.length === 0) {
+                            queue = fisherYates(selectedTransitions);
+                            if (queue[0] === lastPicked && queue.length > 1) {
+                              const swapIdx = Math.floor(Math.random() * (queue.length - 1)) + 1;
+                              [queue[0], queue[swapIdx]] = [queue[swapIdx], queue[0]];
+                            }
+                          }
+                          lastPicked = queue.shift()!;
+                          return lastPicked;
+                        };
                         const newAssigned: Record<string, string> = {};
+                        const clips = sorted;
                         const step = totalCortes > 0 ? Math.floor(totalCortes / Math.max(1, cortesConTransicion)) : 1;
-                        let trIdx = 0;
-                        for (let i = 0; i < sorted.length - 1; i++) {
+                        for (let i = 0; i < clips.length - 1; i++) {
                           const shouldAssign = transitionsPercent === 100 || (i % step === 0 && Object.keys(newAssigned).length < cortesConTransicion);
                           if (shouldAssign) {
-                            const key = sorted[i].id + '->' + sorted[i + 1].id;
-                            newAssigned[key] = shuffled[trIdx % shuffled.length];
-                            trIdx++;
+                            const key = clips[i].id + '->' + clips[i + 1].id;
+                            newAssigned[key] = pickNext();
                           }
                         }
                         setAssignedTransitions(newAssigned);
@@ -4349,18 +4400,27 @@ function App() {
                   muted
                   preload='auto'
                 />
-                <canvas
-                  ref={transitionCanvasRef}
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    width: '100%',
-                    height: '100%',
-                    zIndex: 15,
-                    display: isTransitionActive ? 'block' : 'none',
-                    pointerEvents: 'none'
-                  }}
-                />
+                {isTransitionActive && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      zIndex: 15,
+                      pointerEvents: 'none',
+                      transition: `all ${transitionDuration}s ease-out`,
+                      opacity: 0,
+                      background: 'black'
+                    }}
+                    ref={(el) => {
+                      if (el) {
+                        el.style.opacity = '1';
+                        requestAnimationFrame(() => {
+                          el.style.opacity = '0';
+                        });
+                      }
+                    }}
+                  />
+                )}
                 <video 
                   id="preview-video"
                   ref={videoRef}
