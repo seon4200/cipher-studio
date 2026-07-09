@@ -125,7 +125,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
         const size = Math.max(0, Math.min(100, internal))
         return (
           <div className="w-full space-y-2 flex flex-col items-center">
-            <div className="w-full bg-slate-800 h-4 rounded-full overflow-hidden border border-slate-700/50">
+            <div className="w-full bg-[#3a3a3c] h-4 rounded-full overflow-hidden border border-slate-700/50">
               <div 
                 className="bg-[#00d4ff] h-full rounded-full animate-bar-pulse" 
                 style={{ width: `${size}%`, transition: 'width 1.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
@@ -139,7 +139,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
         const size = Math.max(0, Math.min(100, internal))
         return (
           <div className="flex flex-col items-center space-y-2 h-36 justify-end w-full">
-            <div className="w-6 bg-slate-800 h-28 rounded-full overflow-hidden border border-slate-700/50 flex flex-col justify-end">
+            <div className="w-6 bg-[#3a3a3c] h-28 rounded-full overflow-hidden border border-slate-700/50 flex flex-col justify-end">
               <div 
                 className="bg-[#00d4ff] w-full rounded-full animate-bar-pulse" 
                 style={{ height: `${size}%`, transition: 'height 1.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
@@ -157,13 +157,13 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
         return (
           <div className="flex space-x-6 w-full justify-around items-end h-28">
             <div className="flex flex-col items-center space-y-1">
-              <div className="w-5 bg-slate-800 h-20 rounded-full flex flex-col justify-end overflow-hidden">
+              <div className="w-5 bg-[#3a3a3c] h-20 rounded-full flex flex-col justify-end overflow-hidden">
                 <div className="w-full rounded-full animate-bar-pulse" style={{ height: `${leftVal}%`, backgroundColor: '#00d4ff', transition: 'height 1.2s' }} />
               </div>
               <span className="text-xs text-slate-300 font-bold">{extra?.leftLabel || 'A'}</span>
             </div>
             <div className="flex flex-col items-center space-y-1">
-              <div className="w-5 bg-slate-800 h-20 rounded-full flex flex-col justify-end overflow-hidden">
+              <div className="w-5 bg-[#3a3a3c] h-20 rounded-full flex flex-col justify-end overflow-hidden">
                 <div className="w-full rounded-full" style={{ height: `${rightVal}%`, backgroundColor: '#7F77DD', transition: 'height 1.2s' }} />
               </div>
               <span className="text-xs text-slate-300 font-bold">{extra?.rightLabel || 'B'}</span>
@@ -210,11 +210,11 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
         const afterVal = extra?.afterValue ?? 100
         return (
           <div className="w-full flex space-x-4">
-            <div className="flex-1 flex flex-col items-center bg-slate-900/50 p-3 rounded-xl border border-slate-800 animate-slide-left">
+            <div className="flex-1 flex flex-col items-center bg-[#1C1C1E]/50 p-3 rounded-xl border border-[#3a3a3c] animate-slide-left">
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Antes</div>
               <div className="text-3xl font-black text-rose-500">{beforeVal}{unit}</div>
             </div>
-            <div className="flex-1 flex flex-col items-center bg-slate-900/50 p-3 rounded-xl border border-slate-800 animate-slide-right">
+            <div className="flex-1 flex flex-col items-center bg-[#1C1C1E]/50 p-3 rounded-xl border border-[#3a3a3c] animate-slide-right">
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Después</div>
               <div className="text-3xl font-black text-emerald-500">{afterVal}{unit}</div>
             </div>
@@ -259,17 +259,17 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
         const top3 = extra?.steps || extra?.items || extra?.top3 || (typeof value === 'string' ? value.split(',') : ['#1 Item', '#2 Item', '#3 Item'])
         return (
           <div className="flex items-end justify-center space-x-2 h-24 w-full">
-            <div className="flex flex-col items-center bg-slate-900/80 border border-slate-800 rounded-t-lg p-1 w-16 h-16 justify-center">
+            <div className="flex flex-col items-center bg-[#1C1C1E]/80 border border-[#3a3a3c] rounded-t-lg p-1 w-16 h-16 justify-center">
               <span className="text-lg">🥈</span>
               <span className="text-xs text-slate-400 font-bold">#2</span>
               <span className="text-[9px] text-slate-300 truncate w-full text-center">{top3[1] || '🥈'}</span>
             </div>
-            <div className="flex flex-col items-center bg-slate-800/80 border border-slate-700 rounded-t-lg p-1 w-18 h-20 justify-center">
+            <div className="flex flex-col items-center bg-[#3a3a3c]/80 border border-slate-700 rounded-t-lg p-1 w-18 h-20 justify-center">
               <span className="text-xl animate-bounce">👑</span>
               <span className="text-xs text-amber-400 font-black">#1</span>
               <span className="text-[9px] text-slate-200 font-bold truncate w-full text-center">{top3[0] || '👑'}</span>
             </div>
-            <div className="flex flex-col items-center bg-slate-900/80 border border-slate-800 rounded-t-lg p-1 w-16 h-12 justify-center">
+            <div className="flex flex-col items-center bg-[#1C1C1E]/80 border border-[#3a3a3c] rounded-t-lg p-1 w-16 h-12 justify-center">
               <span className="text-sm">🥉</span>
               <span className="text-xs text-slate-500 font-bold">#3</span>
               <span className="text-[9px] text-slate-400 truncate w-full text-center">{top3[2] || '🥉'}</span>
@@ -330,7 +330,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
           <div className="flex items-center space-x-2 overflow-x-auto py-1 w-full justify-center">
             {steps.map((st: string, i: number, arr: any[]) => (
               <React.Fragment key={i}>
-                <div className="bg-slate-900 border border-slate-800 p-2 rounded-lg text-center flex-1 min-w-[70px]">
+                <div className="bg-[#1C1C1E] border border-[#3a3a3c] p-2 rounded-lg text-center flex-1 min-w-[70px]">
                   <div className="text-[10px] text-[#00d4ff] font-bold">Paso {i + 1}</div>
                   <div className="text-xs text-slate-300 font-semibold truncate">{st.trim()}</div>
                 </div>
@@ -346,7 +346,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
   }
 
   return (
-    <div className={`min-w-[320px] p-6 rounded-2xl shadow-2xl backdrop-blur-md bg-slate-950/85 border border-slate-800/80 flex flex-col items-center space-y-3 ${getAnimationClass()}`}>
+    <div className={`min-w-[320px] p-6 rounded-2xl shadow-2xl backdrop-blur-md bg-[#0D0D0F]/85 border border-[#3a3a3c]/80 flex flex-col items-center space-y-3 ${getAnimationClass()}`}>
       {/* EMOJI & LABEL HEADER */}
       {(emoji || label) && (
         <div className="flex items-center space-x-2 mb-1 justify-center w-full">
@@ -3059,7 +3059,7 @@ function App() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#c084fc]/5 rounded-full blur-[120px] pointer-events-none" />
         
         {/* Header */}
-        <header className="flex justify-between items-center px-8 py-4 bg-slate-950/40 border-b border-slate-900/60 backdrop-blur-md">
+        <header className="flex justify-between items-center px-8 py-4 bg-[#0D0D0F]/40 border-b border-slate-900/60 backdrop-blur-md">
           <div className="flex items-center space-x-3">
             <div className="bg-gradient-to-tr from-[#6366f1] to-[#c084fc] p-2 rounded-xl shadow-lg shadow-indigo-500/10">
               <Sparkles className="h-5 w-5 text-white animate-pulse" />
@@ -3073,7 +3073,7 @@ function App() {
           </div>
           <button 
             onClick={handleOpenProject}
-            className="text-xs font-semibold text-slate-300 hover:text-white px-4 py-2 rounded-xl hover:bg-slate-900 border border-slate-800 transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95"
+            className="text-xs font-semibold text-slate-300 hover:text-white px-4 py-2 rounded-xl hover:bg-[#1C1C1E] border border-[#3a3a3c] transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95"
           >
             <FolderOpen className="h-4 w-4 text-[#6366f1]" />
             <span>Abrir desde Archivo</span>
@@ -3086,7 +3086,7 @@ function App() {
           <div className="grid grid-cols-2 gap-6">
             <div 
               onClick={() => setShowNewProjectModal(true)}
-              className="group bg-gradient-to-br from-slate-950 to-slate-900 hover:from-slate-900 hover:to-slate-950 border border-slate-850 hover:border-[#6366f1]/40 rounded-2xl p-8 flex flex-col justify-between items-start space-y-12 cursor-pointer shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-indigo-500/5"
+              className="group bg-gradient-to-br from-slate-950 to-slate-900 hover:from-slate-900 hover:to-slate-950 border border-[#3a3a3c] hover:border-[#6366f1]/40 rounded-2xl p-8 flex flex-col justify-between items-start space-y-12 cursor-pointer shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-indigo-500/5"
             >
               <div className="bg-indigo-500/10 group-hover:bg-[#6366f1]/20 p-4 rounded-2xl transition-all duration-300">
                 <Plus className="h-8 w-8 text-[#6366f1]" />
@@ -3103,7 +3103,7 @@ function App() {
 
             <div 
               onClick={handleOpenProject}
-              className="group bg-gradient-to-br from-slate-950 to-slate-900 hover:from-slate-900 hover:to-slate-950 border border-slate-850 hover:border-[#c084fc]/40 rounded-2xl p-8 flex flex-col justify-between items-start space-y-12 cursor-pointer shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-purple-500/5"
+              className="group bg-gradient-to-br from-slate-950 to-slate-900 hover:from-slate-900 hover:to-slate-950 border border-[#3a3a3c] hover:border-[#c084fc]/40 rounded-2xl p-8 flex flex-col justify-between items-start space-y-12 cursor-pointer shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-purple-500/5"
             >
               <div className="bg-purple-500/10 group-hover:bg-[#c084fc]/20 p-4 rounded-2xl transition-all duration-300">
                 <FolderOpen className="h-8 w-8 text-[#c084fc]" />
@@ -3129,7 +3129,7 @@ function App() {
               <div className="flex items-center space-x-2.5">
                 <button
                   onClick={handleClearGlobalStockCache}
-                  className="text-[10px] bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white px-2 py-1 rounded-md transition-all cursor-pointer active:scale-95 font-medium"
+                  className="text-[10px] bg-[#1C1C1E]/60 hover:bg-[#3a3a3c] border border-[#3a3a3c] text-slate-400 hover:text-white px-2 py-1 rounded-md transition-all cursor-pointer active:scale-95 font-medium"
                   title="Borrar todos los videos descargados de Pexels en disco para liberar espacio"
                 >
                   Limpiar Caché Stock
@@ -3146,7 +3146,7 @@ function App() {
             
             <div className="flex-1 overflow-y-auto pr-2 space-y-2.5">
               {projectsList.length === 0 ? (
-                <div className="h-48 border border-dashed border-slate-900 rounded-2xl flex flex-col items-center justify-center space-y-2 bg-slate-950/20">
+                <div className="h-48 border border-dashed border-slate-900 rounded-2xl flex flex-col items-center justify-center space-y-2 bg-[#0D0D0F]/20">
                   <FolderOpen className="h-8 w-8 text-slate-600" />
                   <p className="text-xs text-slate-550 font-medium">Aún no tienes proyectos creados</p>
                 </div>
@@ -3164,11 +3164,11 @@ function App() {
                     <div 
                       key={project.id}
                       onClick={() => handleLoadProject(project.projectPath)}
-                      className="group bg-slate-950/60 hover:bg-slate-900 border border-slate-900 hover:border-slate-850 rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all duration-200 animate-fade-in"
+                      className="group bg-[#0D0D0F]/60 hover:bg-[#1C1C1E] border border-slate-900 hover:border-[#3a3a3c] rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all duration-200 animate-fade-in"
                     >
                       <div className="flex items-center space-x-4">
                         {/* Thumbnail or Placeholder */}
-                        <div className="w-16 h-10 rounded-lg overflow-hidden bg-slate-900 flex-shrink-0 flex items-center justify-center border border-slate-850 relative group-hover:border-slate-800 transition-colors">
+                        <div className="w-16 h-10 rounded-lg overflow-hidden bg-[#1C1C1E] flex-shrink-0 flex items-center justify-center border border-[#3a3a3c] relative group-hover:border-[#3a3a3c] transition-colors">
                           {project.thumbnailUrl ? (
                             <img src={project.thumbnailUrl} alt={project.name} className="w-full h-full object-cover" />
                           ) : (
@@ -3205,8 +3205,8 @@ function App() {
 
         {/* New Project Modal */}
         {showNewProjectModal && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-[#020712] border border-slate-850 rounded-2xl w-full max-w-md p-6 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+          <div className="fixed inset-0 bg-[#0D0D0F]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#020712] border border-[#3a3a3c] rounded-2xl w-full max-w-md p-6 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
               <h3 className="text-base font-extrabold text-white tracking-tight flex items-center space-x-2">
                 <Sparkles className="h-4 w-4 text-[#6366f1] animate-pulse" />
                 <span>Crear Nuevo Proyecto</span>
@@ -3219,7 +3219,7 @@ function App() {
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
                   placeholder="Mi impresionante video..."
-                  className="w-full bg-slate-950 border border-slate-850 focus:border-[#6366f1]/50 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-650 outline-none transition-all font-sans"
+                  className="w-full bg-[#0D0D0F] border border-[#3a3a3c] focus:border-[#6366f1]/50 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-650 outline-none transition-all font-sans"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       handleCreateProject(newProjectName || 'Nuevo Proyecto');
@@ -3235,7 +3235,7 @@ function App() {
                     setShowNewProjectModal(false);
                     setNewProjectName('');
                   }}
-                  className="text-xs font-semibold text-slate-400 hover:text-white px-4 py-2 rounded-xl hover:bg-slate-900 transition-colors cursor-pointer"
+                  className="text-xs font-semibold text-slate-400 hover:text-white px-4 py-2 rounded-xl hover:bg-[#1C1C1E] transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -3267,7 +3267,7 @@ function App() {
         className="hidden" 
       />
       {/* Title Bar / Header */}
-      <header className="flex justify-between items-center px-4 py-2 bg-[#242426] border-b border-slate-800 backdrop-blur-md">
+      <header className="flex justify-between items-center px-4 py-2 bg-[#242426] border-b border-[#3a3a3c] backdrop-blur-md">
         <div className="flex items-center space-x-5">
           <div className="flex items-center space-x-2">
             <div className="bg-gradient-to-tr from-indigo-500 to-violet-500 p-1.5 rounded-lg shadow-lg shadow-indigo-500/20">
@@ -3284,14 +3284,14 @@ function App() {
           {/* Close Project / Back to Dashboard Button */}
           <button 
             onClick={handleCloseProject}
-            className="text-[10px] bg-slate-800 hover:bg-slate-700 hover:text-indigo-400 text-slate-300 font-bold px-2 py-1 rounded-md border border-slate-700/50 active:scale-95 transition-all cursor-pointer flex items-center space-x-1"
+            className="text-[10px] bg-[#3a3a3c] hover:bg-slate-700 hover:text-indigo-400 text-slate-300 font-bold px-2 py-1 rounded-md border border-slate-700/50 active:scale-95 transition-all cursor-pointer flex items-center space-x-1"
             title="Volver al inicio (Cierra y guarda el proyecto actual)"
           >
             <span>&larr; Proyectos</span>
           </button>
 
           {activeProjectName && (
-            <div className="flex items-center space-x-2.5 px-3 border-l border-slate-800/80">
+            <div className="flex items-center space-x-2.5 px-3 border-l border-[#3a3a3c]/80">
               <span className="text-xs font-bold text-slate-350 select-none tracking-wide">
                 {activeProjectName}
               </span>
@@ -3305,7 +3305,7 @@ function App() {
                     ? 'bg-amber-600 text-white cursor-wait'
                     : saveStatus === 'saved'
                     ? 'bg-emerald-600 text-white cursor-default'
-                    : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-750/30'
+                    : 'bg-[#3a3a3c] text-slate-500 cursor-not-allowed border border-slate-750/30'
                 }`}
                 title={
                   isDirty
@@ -3331,7 +3331,7 @@ function App() {
 
           {/* Selector de Versiones del Timeline */}
           {timelineVersions.length > 0 && (
-            <div className="flex items-center space-x-2 bg-slate-950/40 px-2.5 py-1 rounded-lg border border-slate-800/80 text-xs">
+            <div className="flex items-center space-x-2 bg-[#0D0D0F]/40 px-2.5 py-1 rounded-lg border border-[#3a3a3c]/80 text-xs">
               <span className="text-[10px] text-slate-500 font-bold select-none uppercase tracking-wider">Versión:</span>
               <div className="relative flex items-center">
                 <select
@@ -3340,7 +3340,7 @@ function App() {
                   className="bg-transparent text-slate-200 font-bold pr-6 outline-none appearance-none cursor-pointer hover:text-indigo-400 text-[11px] font-sans"
                 >
                   {timelineVersions.map(v => (
-                    <option key={v.id} value={v.id} className="bg-slate-950 text-slate-200 font-sans text-xs">
+                    <option key={v.id} value={v.id} className="bg-[#0D0D0F] text-slate-200 font-sans text-xs">
                       {v.name}
                     </option>
                   ))}
@@ -3354,7 +3354,7 @@ function App() {
           <div className="relative">
             <button 
               onClick={() => setIsFileMenuOpen(!isFileMenuOpen)}
-              className="text-xs font-semibold text-slate-300 hover:text-white px-2.5 py-1 rounded-md hover:bg-slate-800/80 border border-transparent hover:border-slate-800 transition-all flex items-center space-x-1"
+              className="text-xs font-semibold text-slate-300 hover:text-white px-2.5 py-1 rounded-md hover:bg-[#3a3a3c]/80 border border-transparent hover:border-[#3a3a3c] transition-all flex items-center space-x-1"
             >
               <span>Archivo</span>
               <span className="text-[8px] text-slate-500">▼</span>
@@ -3363,7 +3363,7 @@ function App() {
             {isFileMenuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setIsFileMenuOpen(false)} />
-                <div className="absolute left-0 mt-1 w-40 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-1.5 z-50 flex flex-col space-y-0.5 backdrop-blur-md">
+                <div className="absolute left-0 mt-1 w-40 bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl shadow-2xl p-1.5 z-50 flex flex-col space-y-0.5 backdrop-blur-md">
                   <button 
                     onClick={() => {
                       setIsFileMenuOpen(false);
@@ -3411,7 +3411,7 @@ function App() {
           <span className="hidden">{mainProcessTime}</span>
 
           {/* Auto-save Status Indicator */}
-          <div className="flex items-center space-x-1.5 bg-slate-950/40 px-2.5 py-1.5 rounded-xl border border-slate-800/50 text-[10px]">
+          <div className="flex items-center space-x-1.5 bg-[#0D0D0F]/40 px-2.5 py-1.5 rounded-xl border border-[#3a3a3c]/50 text-[10px]">
             <span className={`w-1.5 h-1.5 rounded-full ${
               saveStatus === 'saved' 
                 ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]' 
@@ -3452,9 +3452,9 @@ function App() {
         {/* Left Side: Project Media & Library */}
         <section 
           style={{ width: `${libraryWidth}px` }} 
-          className="bg-slate-900/50 border-r border-slate-800/80 flex flex-col flex-shrink-0"
+          className="bg-[#1C1C1E]/50 border-r border-[#3a3a3c]/80 flex flex-col flex-shrink-0"
         >
-          <div className="p-3 border-b border-slate-800/80 flex justify-between items-center">
+          <div className="p-3 border-b border-[#3a3a3c]/80 flex justify-between items-center">
             <div className="flex items-center space-x-3">
               <h2 className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Biblioteca</h2>
               <button
@@ -3462,7 +3462,7 @@ function App() {
                 className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${
                   showTransitionsPanel
                     ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300 shadow-sm shadow-sky-500/10'
-                    : 'bg-slate-800/60 border border-slate-700/50 text-slate-300 hover:text-sky-300 hover:border-sky-500/30'
+                    : 'bg-[#3a3a3c]/60 border border-slate-700/50 text-slate-300 hover:text-sky-300 hover:border-sky-500/30'
                 }`}
               >
                 ✦ Transiciones
@@ -3470,14 +3470,14 @@ function App() {
             </div>
             <button 
               onClick={handleUploadClick}
-              className="p-1 hover:bg-slate-800 rounded-md text-slate-400 hover:text-indigo-400 transition-colors"
+              className="p-1 hover:bg-[#3a3a3c] rounded-md text-slate-400 hover:text-indigo-400 transition-colors"
             >
               <Upload className="h-4 w-4" />
             </button>
           </div>
 
           {/* Library Tabs */}
-          <div className="flex border-b border-slate-800/80 bg-slate-900/40 p-1 overflow-x-auto scrollbar-none space-x-1 flex-shrink-0">
+          <div className="flex border-b border-[#3a3a3c]/80 bg-[#1C1C1E]/40 p-1 overflow-x-auto scrollbar-none space-x-1 flex-shrink-0">
             {['Principal', 'Originales', 'Stock', 'MiniMax'].map(tab => (
               <button
                 key={tab}
@@ -3485,7 +3485,7 @@ function App() {
                 className={`text-[10px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer whitespace-nowrap ${
                   libraryTab === tab 
                     ? 'bg-indigo-600 text-white shadow-sm' 
-                    : 'text-slate-400 hover:text-slate-205 hover:bg-slate-800/50'
+                    : 'text-slate-400 hover:text-slate-205 hover:bg-[#3a3a3c]/50'
                 }`}
               >
                 {tab}
@@ -3504,7 +3504,7 @@ function App() {
 
           {/* Mix del montaje Section */}
           {!perfectSyncMode && (
-          <div className="p-3 border-b border-slate-800/80 bg-slate-950/20 space-y-3 flex-shrink-0">
+          <div className="p-3 border-b border-[#3a3a3c]/80 bg-[#0D0D0F]/20 space-y-3 flex-shrink-0">
             <div className="flex items-center space-x-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               <Sliders className="h-3.5 w-3.5 text-indigo-400" />
               <span>Mix del montaje</span>
@@ -3513,7 +3513,7 @@ function App() {
             <div className="space-y-2.5">
               {/* Slider 1: Original */}
               <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-[#1D9E75] flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Original</span>
                 <input 
                   type="range" 
@@ -3521,17 +3521,17 @@ function App() {
                   max="100" 
                   value={timelineWeights[0]}
                   onChange={(e) => handleWeightChange(0, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-[#1D9E75] transition-all outline-none" 
+                  className="flex-1 h-1 bg-[#2c2c2e] rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all outline-none" 
                   style={{
-                    background: `linear-gradient(to right, rgb(29, 158, 117) ${timelineWeights[0]}%, rgb(30, 41, 59) 0%)`
+                    background: `linear-gradient(to right, rgb(16, 185, 129) ${timelineWeights[0]}%, rgb(30, 41, 59) 0%)`
                   }}
                 />
-                <span className="font-mono text-[10px] text-[#1D9E75] font-bold w-8 text-right select-none">{timelineWeights[0]}%</span>
+                <span className="font-mono text-[10px] text-emerald-400 font-bold w-8 text-right select-none">{timelineWeights[0]}%</span>
               </div>
 
               {/* Slider 2: Stock */}
               <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-[#378ADD] flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Stock</span>
                 <input 
                   type="range" 
@@ -3539,17 +3539,17 @@ function App() {
                   max="100" 
                   value={timelineWeights[1]}
                   onChange={(e) => handleWeightChange(1, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-[#378ADD] transition-all outline-none" 
+                  className="flex-1 h-1 bg-[#2c2c2e] rounded-lg appearance-none cursor-pointer accent-sky-500 transition-all outline-none" 
                   style={{
-                    background: `linear-gradient(to right, rgb(55, 138, 221) ${timelineWeights[1]}%, rgb(30, 41, 59) 0%)`
+                    background: `linear-gradient(to right, rgb(14, 165, 233) ${timelineWeights[1]}%, rgb(30, 41, 59) 0%)`
                   }}
                 />
-                <span className="font-mono text-[10px] text-[#378ADD] font-bold w-8 text-right select-none">{timelineWeights[1]}%</span>
+                <span className="font-mono text-[10px] text-sky-400 font-bold w-8 text-right select-none">{timelineWeights[1]}%</span>
               </div>
 
               {/* Slider 3: MiniMax */}
               <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-[#D85A30] flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">MiniMax</span>
                 <input
                   type="range"
@@ -3557,20 +3557,20 @@ function App() {
                   max="100"
                   value={timelineWeights[2]}
                   onChange={(e) => handleWeightChange(2, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-[#D85A30] transition-all outline-none"
+                  className="flex-1 h-1 bg-[#2c2c2e] rounded-lg appearance-none cursor-pointer accent-amber-500 transition-all outline-none"
                   style={{
-                    background: `linear-gradient(to right, rgb(216, 90, 48) ${timelineWeights[2]}%, rgb(30, 41, 59) 0%)`
+                    background: `linear-gradient(to right, rgb(245, 158, 11) ${timelineWeights[2]}%, rgb(30, 41, 59) 0%)`
                   }}
                 />
-                <span className="font-mono text-[10px] text-[#D85A30] font-bold w-8 text-right select-none">{timelineWeights[2]}%</span>
+                <span className="font-mono text-[10px] text-amber-400 font-bold w-8 text-right select-none">{timelineWeights[2]}%</span>
               </div>
             </div>
 
             {/* Proportional Color Bar */}
-            <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-slate-800 mt-2">
-              <div style={{ width: `${timelineWeights[0]}%` }} className="h-full bg-[#1D9E75] transition-all duration-300" title={`Original: ${timelineWeights[0]}%`} />
-              <div style={{ width: `${timelineWeights[1]}%` }} className="h-full bg-[#378ADD] transition-all duration-300" title={`Stock: ${timelineWeights[1]}%`} />
-              <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-[#D85A30] transition-all duration-300" title={`MiniMax: ${timelineWeights[2]}%`} />
+            <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-[#3a3a3c] mt-2">
+              <div style={{ width: `${timelineWeights[0]}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Original: ${timelineWeights[0]}%`} />
+              <div style={{ width: `${timelineWeights[1]}%` }} className="h-full bg-sky-500 transition-all duration-300" title={`Stock: ${timelineWeights[1]}%`} />
+              <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`MiniMax: ${timelineWeights[2]}%`} />
             </div>
 
             {/* Selector de Estilo IA */}
@@ -3579,7 +3579,7 @@ function App() {
               <select
                 value={iaStyle}
                 onChange={(e) => setIaStyle(e.target.value as any)}
-                className="bg-slate-900 border border-slate-800 text-[10px] text-slate-200 rounded-lg px-2 py-1 outline-none cursor-pointer focus:border-indigo-500 transition-all font-medium"
+                className="bg-[#1C1C1E] border border-[#3a3a3c] text-[10px] text-slate-200 rounded-lg px-2 py-1 outline-none cursor-pointer focus:border-indigo-500 transition-all font-medium"
               >
                 <option value="normal">Cinemático (Normal)</option>
                 <option value="cartoon">Cartoon 3D / Animación</option>
@@ -3589,7 +3589,7 @@ function App() {
 
             {/* Botón Construir Timeline IA */}
             {isGeneratingAssets ? (
-              <div className="w-full mt-3 p-3 bg-slate-900/60 border border-slate-800 rounded-xl space-y-2 select-none">
+              <div className="w-full mt-3 p-3 bg-[#1C1C1E]/60 border border-[#3a3a3c] rounded-xl space-y-2 select-none">
                 <div className="flex items-center space-x-2">
                   <div className="w-3.5 h-3.5 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
                   <span className="text-[10px] font-semibold text-indigo-300">Generando clips...</span>
@@ -3598,9 +3598,9 @@ function App() {
                   <div className="space-y-1">
                     <div className="flex justify-between text-[8px] text-slate-500 font-mono">
                       <span>{generationProgress.current}/{generationProgress.total}</span>
-                      <span className="uppercase text-[7px] bg-slate-850 px-1 py-0.5 rounded text-indigo-400 font-bold">{generationProgress.type}</span>
+                      <span className="uppercase text-[7px] bg-[#2c2c2e] px-1 py-0.5 rounded text-indigo-400 font-bold">{generationProgress.type}</span>
                     </div>
-                    <div className="h-1 w-full bg-slate-950 rounded-full overflow-hidden">
+                    <div className="h-1 w-full bg-[#0D0D0F] rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-indigo-500 transition-all duration-300"
                         style={{ width: `${(generationProgress.current / generationProgress.total) * 100}%` }}
@@ -3626,20 +3626,20 @@ function App() {
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
                       showTransitionsPanel
                         ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
-                        : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                        : 'bg-[#1C1C1E]/60 border-[#3a3a3c] text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     <span>✦ Transiciones</span>
                     <span className='text-[10px] font-normal opacity-70'>{transitionsPercent}% activo</span>
                   </button>
                   {!showTransitionsPanel && (
-                    <div className='mt-2 grid grid-cols-3 gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800'>
+                    <div className='mt-2 grid grid-cols-3 gap-1 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]'>
                       {[0,50,100].map((val) => (
                         <button key={val} onClick={() => setTransitionsPercent(val)}
                           className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
                             transitionsPercent===val
                               ? 'bg-violet-600 text-white shadow-md'
-                              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                              : 'text-slate-400 hover:text-slate-200 hover:bg-[#3a3a3c]/50'
                           }`}>
                           {val}%
                         </button>
@@ -3652,7 +3652,7 @@ function App() {
                   <label className="block text-sm font-medium text-slate-300 mb-2">
                     Porcentaje de Gráficos
                   </label>
-                  <div className="grid grid-cols-3 gap-2 bg-slate-900/60 p-1 rounded-xl border border-slate-800">
+                  <div className="grid grid-cols-3 gap-2 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]">
                     {[0, 50, 100].map((val) => {
                       const active = graphicsPercent === val;
                       return (
@@ -3663,7 +3663,7 @@ function App() {
                           className={`py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                             active
                               ? 'bg-indigo-650 text-white shadow-md shadow-indigo-500/20'
-                              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                              : 'text-slate-400 hover:text-slate-200 hover:bg-[#3a3a3c]/50'
                           }`}
                         >
                           {val}%
@@ -3694,7 +3694,7 @@ function App() {
           </div>
           )}
           {perfectSyncMode && (
-            <div className='p-3 border-b border-slate-800/80 bg-violet-950/10 space-y-3 flex-shrink-0'>
+            <div className='p-3 border-b border-[#3a3a3c]/80 bg-violet-950/10 space-y-3 flex-shrink-0'>
               <div className='flex items-center space-x-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider'>
                 <span>Mix de Sincronización</span>
               </div>
@@ -3722,20 +3722,20 @@ function App() {
                   </div>
                 ))}
               </div>
-              <div className='h-1.5 w-full rounded-full overflow-hidden flex bg-slate-800 mt-2'>
+              <div className='h-1.5 w-full rounded-full overflow-hidden flex bg-[#3a3a3c] mt-2'>
                 <div style={{ width: `${syncWeights[0]}%` }} className='h-full bg-sky-500 transition-all duration-300' />
                 <div style={{ width: `${syncWeights[1]}%` }} className='h-full bg-emerald-500 transition-all duration-300' />
                 <div style={{ width: `${syncWeights[2]}%` }} className='h-full bg-slate-400 transition-all duration-300' />
               </div>
               {isGeneratingAssets && generationProgress && (
-                <div className='w-full mt-2 p-2 bg-slate-900/60 border border-slate-800 rounded-xl space-y-1'>
+                <div className='w-full mt-2 p-2 bg-[#1C1C1E]/60 border border-[#3a3a3c] rounded-xl space-y-1'>
                   <div className='flex items-center justify-between text-[9px] text-slate-400'>
                     <span className='truncate'>{generationProgress.paragraph}</span>
                     <span className='text-sky-400 font-bold uppercase text-[8px] ml-1 flex-shrink-0'>
                       {generationProgress.type}
                     </span>
                   </div>
-                  <div className='h-1 w-full bg-slate-950 rounded-full overflow-hidden'>
+                  <div className='h-1 w-full bg-[#0D0D0F] rounded-full overflow-hidden'>
                     <div
                       className='h-full bg-sky-500 transition-all duration-300'
                       style={{ width: `${Math.min(100, (generationProgress.current / Math.max(1, generationProgress.total)) * 100)}%` }}
@@ -3844,20 +3844,20 @@ function App() {
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
                     showTransitionsPanel
                       ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
-                      : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                      : 'bg-[#1C1C1E]/60 border-[#3a3a3c] text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <span>✦ Transiciones</span>
                   <span className='text-[10px] font-normal opacity-70'>{transitionsPercent}% activo</span>
                 </button>
                 {!showTransitionsPanel && (
-                  <div className='mt-2 grid grid-cols-3 gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800'>
+                  <div className='mt-2 grid grid-cols-3 gap-1 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]'>
                     {[0,50,100].map((val) => (
                       <button key={val} onClick={() => setTransitionsPercent(val)}
                         className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
                           transitionsPercent===val
                             ? 'bg-violet-600 text-white shadow-md'
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-[#3a3a3c]/50'
                         }`}>
                         {val}%
                       </button>
@@ -3866,7 +3866,7 @@ function App() {
                 )}
               </div>
               <div className='mt-3'>
-                <div className='grid grid-cols-3 gap-2 bg-slate-900/60 p-1 rounded-xl border border-slate-800'>
+                <div className='grid grid-cols-3 gap-2 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]'>
                   {[0,50,100].map((val) => (
                     <button key={val} onClick={() => setGraphicsPercent(val)}
                       className={`py-1.5 text-xs font-bold rounded-lg ${graphicsPercent===val ? 'bg-indigo-650 text-white' : 'text-slate-400'}`}>
@@ -3896,7 +3896,7 @@ function App() {
                 className={`border border-dashed rounded-xl p-6 text-center flex flex-col items-center justify-center space-y-2 group cursor-pointer transition-all ${
                   isDragging 
                     ? 'border-indigo-500 bg-indigo-500/10 scale-[0.98]' 
-                    : 'border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-500/5'
+                    : 'border-[#3a3a3c] hover:border-indigo-500/50 hover:bg-indigo-500/5'
                 }`}
               >
                 <FolderOpen className={`h-8 w-8 transition-colors ${isDragging ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
@@ -3911,7 +3911,7 @@ function App() {
                 const currentClips = bankClips.minimax || [];
                 return (
                   <div className="space-y-3">
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3 select-none mb-3">
+                    <div className="bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl p-3 space-y-3 select-none mb-3">
                       <div className="flex items-center space-x-1.5 text-amber-500">
                         <Sparkles className="h-4 w-4 animate-pulse" />
                         <span className="text-xs font-bold uppercase tracking-wider">MiniMax Video Hub</span>
@@ -3926,7 +3926,7 @@ function App() {
                           value={minimaxPrompt}
                           onChange={(e) => setMinimaxPrompt(e.target.value)}
                           placeholder="Describe la escena a generar..."
-                          className="w-full bg-slate-950 border border-slate-850 focus:border-amber-500/50 rounded-lg p-2 text-xs text-white placeholder-slate-650 outline-none transition-all resize-none h-18 font-sans"
+                          className="w-full bg-[#0D0D0F] border border-[#3a3a3c] focus:border-amber-500/50 rounded-lg p-2 text-xs text-white placeholder-slate-650 outline-none transition-all resize-none h-18 font-sans"
                         />
                       </div>
 
@@ -3952,7 +3952,7 @@ function App() {
                         <button
                           onClick={handleOptimizePromptWithDeepSeek}
                           disabled={isOptimizingPrompt || !minimaxPrompt.trim()}
-                          className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] py-1.5 px-2.5 rounded-lg font-bold transition-all active:scale-95 flex items-center justify-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
+                          className="bg-[#3a3a3c] hover:bg-slate-700 text-slate-200 text-[11px] py-1.5 px-2.5 rounded-lg font-bold transition-all active:scale-95 flex items-center justify-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
                           title="Optimizar prompt con DeepSeek"
                         >
                           {isOptimizingPrompt ? (
@@ -3982,7 +3982,7 @@ function App() {
                           className={`border rounded-xl overflow-hidden p-2 flex space-x-3 transition-all cursor-pointer relative group/clip ${
                             activeVideoUrl === clip.url && clip.url
                               ? 'bg-indigo-950/30 border-indigo-500/55'
-                              : 'bg-slate-900 border-slate-800/60 hover:border-slate-700'
+                              : 'bg-[#1C1C1E] border-[#3a3a3c]/60 hover:border-slate-700'
                           }`}
                         >
                           <div className="w-20 h-14 bg-indigo-950/80 rounded-lg flex items-center justify-center relative overflow-hidden group flex-shrink-0">
@@ -4143,7 +4143,7 @@ function App() {
 
               if (libraryTab === 'Stock' && currentClips.length === 0) {
                 return (
-                  <div className="flex flex-col items-center justify-center py-10 text-slate-500 space-y-2.5 bg-slate-900/10 rounded-xl p-6 border border-dashed border-slate-800/40 select-none">
+                  <div className="flex flex-col items-center justify-center py-10 text-slate-500 space-y-2.5 bg-[#1C1C1E]/10 rounded-xl p-6 border border-dashed border-[#3a3a3c]/40 select-none">
                     <FolderOpen className="h-8 w-8 text-slate-600" />
                     <span className="text-xs font-semibold text-slate-400">Sin clips de stock aún</span>
                     <span className="text-[10px] text-slate-500 text-center max-w-[220px]">
@@ -4168,7 +4168,7 @@ function App() {
                   className={`border rounded-xl overflow-hidden p-2 flex space-x-3 transition-all cursor-pointer relative group/clip ${
                     activeVideoUrl === clip.url && clip.url
                       ? 'bg-indigo-950/30 border-indigo-500/55'
-                      : 'bg-slate-900 border-slate-800/60 hover:border-slate-700'
+                      : 'bg-[#1C1C1E] border-[#3a3a3c]/60 hover:border-slate-700'
                   }`}
                 >
                   <div className="w-20 h-14 bg-indigo-950/80 rounded-lg flex items-center justify-center relative overflow-hidden group flex-shrink-0">
@@ -4224,7 +4224,7 @@ function App() {
                             }
                           }
                         }}
-                        className="p-1 bg-slate-950/85 border border-slate-800 hover:border-red-500/50 hover:text-red-400 rounded-md text-slate-400 cursor-pointer"
+                        className="p-1 bg-[#0D0D0F]/85 border border-[#3a3a3c] hover:border-red-500/50 hover:text-red-400 rounded-md text-slate-400 cursor-pointer"
                         title="Eliminar de la biblioteca"
                       >
                         <Trash2 className="h-3 w-3" />
@@ -4240,15 +4240,15 @@ function App() {
         {/* Resizer 1: Library Resizer */}
         <div
           onMouseDown={handleLibraryResizeMouseDown}
-          className="w-1 bg-slate-950 hover:bg-indigo-500/85 active:bg-indigo-650 transition-colors cursor-col-resize flex-shrink-0 z-40 relative group"
+          className="w-1 bg-[#0D0D0F] hover:bg-indigo-500/85 active:bg-indigo-650 transition-colors cursor-col-resize flex-shrink-0 z-40 relative group"
         >
           <div className="absolute inset-y-0 -left-1 -right-1 cursor-col-resize" />
         </div>
 
         {/* Panel de Transiciones */}
         {showTransitionsPanel && (
-          <section className='w-[280px] bg-slate-900/70 border-r border-slate-800/80 flex flex-col flex-shrink-0 overflow-hidden'>
-            <div className='p-3 border-b border-slate-800/80 flex justify-between items-center'>
+          <section className='w-[280px] bg-[#1C1C1E]/70 border-r border-[#3a3a3c]/80 flex flex-col flex-shrink-0 overflow-hidden'>
+            <div className='p-3 border-b border-[#3a3a3c]/80 flex justify-between items-center'>
               <span className='text-xs font-bold text-sky-300 uppercase tracking-wider'>✦ Transiciones</span>
               <button
                 onClick={() => setShowTransitionsPanel(false)}
@@ -4340,7 +4340,7 @@ function App() {
                 })}
               </div>
             </div>
-            <div className='p-2 border-t border-slate-800/80 text-[9px] text-slate-500 text-center'>
+            <div className='p-2 border-t border-[#3a3a3c]/80 text-[9px] text-slate-500 text-center'>
               {selectedTransitions.length} de 38 activas
             </div>
           </section>
@@ -4351,7 +4351,7 @@ function App() {
           <div 
             ref={playerWrapperRef}
             onMouseMove={handleFullscreenMouseMove}
-            className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl relative overflow-hidden flex items-center justify-center group shadow-inner"
+            className="flex-1 bg-[#0D0D0F] border border-[#3a3a3c] rounded-2xl relative overflow-hidden flex items-center justify-center group shadow-inner"
           >
             {/* Player Canvas Mockup / Real Player */}
             <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950/20" />
@@ -4363,7 +4363,7 @@ function App() {
                 onMouseMove={handlePreviewMouseMove}
                 onMouseUp={handlePreviewMouseUpOrLeave}
                 onMouseLeave={handlePreviewMouseUpOrLeave}
-                className={`relative z-10 bg-black shadow-2xl transition-all duration-300 flex items-center justify-center overflow-hidden border border-slate-800 ${
+                className={`relative z-10 bg-black shadow-2xl transition-all duration-300 flex items-center justify-center overflow-hidden border border-[#3a3a3c] ${
                   aspectRatio === 'vertical' 
                     ? 'h-[95%] aspect-[9/16]' 
                     : aspectRatio === 'square' 
@@ -4492,7 +4492,7 @@ function App() {
                        />
 
                        {/* Confirm/Cancel */}
-                       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-slate-900/90 border border-slate-800 rounded-xl px-2.5 py-1.5 shadow-2xl flex items-center space-x-2 z-45">
+                       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-[#1C1C1E]/90 border border-[#3a3a3c] rounded-xl px-2.5 py-1.5 shadow-2xl flex items-center space-x-2 z-45">
                          <button 
                            onClick={handleConfirmCrop}
                            className="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded transition-colors active:scale-95 cursor-pointer"
@@ -4501,7 +4501,7 @@ function App() {
                          </button>
                          <button 
                            onClick={handleCancelCrop}
-                           className="bg-slate-800 hover:bg-slate-700 text-slate-355 text-[10px] font-bold px-2 py-1 rounded transition-colors active:scale-95 cursor-pointer"
+                           className="bg-[#3a3a3c] hover:bg-slate-700 text-slate-355 text-[10px] font-bold px-2 py-1 rounded transition-colors active:scale-95 cursor-pointer"
                          >
                            Cancelar
                          </button>
@@ -4536,7 +4536,7 @@ function App() {
             )}
 
             {/* Overlay controller */}
-            <div className="absolute bottom-4 right-4 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-[11px] font-mono text-slate-350 flex items-center space-x-2 z-20">
+            <div className="absolute bottom-4 right-4 bg-[#0D0D0F]/80 px-3 py-1.5 rounded-xl border border-[#3a3a3c] text-[11px] font-mono text-slate-350 flex items-center space-x-2 z-20">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               <span>{activeVideoUrl ? 'Reproductor Activo' : 'Full Res (1080p)'}</span>
             </div>
@@ -4595,7 +4595,7 @@ function App() {
           </div>
 
           {/* Player controls */}
-          <div className="flex flex-col mt-4 p-3 bg-slate-900/60 border border-slate-800/80 rounded-xl space-y-3">
+          <div className="flex flex-col mt-4 p-3 bg-[#1C1C1E]/60 border border-[#3a3a3c]/80 rounded-xl space-y-3">
             {/* Scrubber row */}
             <div className="w-full flex items-center space-x-3 px-1">
               <span 
@@ -4606,7 +4606,7 @@ function App() {
               </span>
               <div 
                 onMouseDown={handleScrubberMouseDown}
-                className="flex-1 h-2 bg-slate-800 rounded-full relative cursor-pointer group/scrub"
+                className="flex-1 h-2 bg-[#3a3a3c] rounded-full relative cursor-pointer group/scrub"
               >
                 <div 
                   id="cipher-scrub-fill"
@@ -4630,7 +4630,7 @@ function App() {
               <div className="flex items-center space-x-3">
                 <button 
                   onClick={seekBackward}
-                  className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg transition-all active:scale-90"
+                  className="p-1.5 hover:bg-[#3a3a3c] text-slate-400 hover:text-slate-200 rounded-lg transition-all active:scale-90"
                   title="Retroceder 10s"
                 >
                   <Rewind className="h-4 w-4" />
@@ -4644,7 +4644,7 @@ function App() {
                 </button>
                 <button 
                   onClick={seekForward}
-                  className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg transition-all active:scale-90"
+                  className="p-1.5 hover:bg-[#3a3a3c] text-slate-400 hover:text-slate-200 rounded-lg transition-all active:scale-90"
                   title="Adelantar 10s"
                 >
                   <FastForward className="h-4 w-4" />
@@ -4654,7 +4654,7 @@ function App() {
               {/* Timecode */}
               <div 
                 id="cipher-timecode"
-                className="text-base font-mono tracking-wider font-semibold text-slate-100 bg-slate-950/40 px-3 py-1 rounded-lg border border-slate-800/60"
+                className="text-base font-mono tracking-wider font-semibold text-slate-100 bg-[#0D0D0F]/40 px-3 py-1 rounded-lg border border-[#3a3a3c]/60"
               >
                 {currentTime}
               </div>
@@ -4665,7 +4665,7 @@ function App() {
                 <div className="flex items-center space-x-2 group/volume relative">
                   <button 
                     onClick={toggleMute}
-                    className="p-1.5 hover:bg-slate-850 text-slate-400 hover:text-slate-200 rounded-lg transition-colors"
+                    className="p-1.5 hover:bg-[#2c2c2e] text-slate-400 hover:text-slate-200 rounded-lg transition-colors"
                   >
                     {isMuted || volume === 0 ? (
                       <VolumeX className="h-4 w-4" />
@@ -4692,7 +4692,7 @@ function App() {
                   <select 
                     value={playbackRate}
                     onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
-                    className="bg-slate-950 border border-slate-800 text-xs rounded-lg p-1.5 text-slate-300 font-semibold cursor-pointer outline-none hover:border-indigo-500/50 transition-colors"
+                    className="bg-[#0D0D0F] border border-[#3a3a3c] text-xs rounded-lg p-1.5 text-slate-300 font-semibold cursor-pointer outline-none hover:border-indigo-500/50 transition-colors"
                   >
                     <option value="0.5">0.5x</option>
                     <option value="1">1.0x</option>
@@ -4706,7 +4706,7 @@ function App() {
                   <button 
                     onClick={() => setShowFormatDropdown(!showFormatDropdown)}
                     className={`p-1.5 rounded-lg transition-all flex items-center space-x-1 cursor-pointer ${
-                      showFormatDropdown ? 'bg-indigo-600/25 text-indigo-400 border border-indigo-500/30' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-transparent'
+                      showFormatDropdown ? 'bg-indigo-600/25 text-indigo-400 border border-indigo-500/30' : 'hover:bg-[#3a3a3c] text-slate-400 hover:text-slate-200 border border-transparent'
                     }`}
                     title="Formato y Pantalla Completa"
                   >
@@ -4723,7 +4723,7 @@ function App() {
                         className="fixed inset-0 z-40" 
                         onClick={() => setShowFormatDropdown(false)}
                       />
-                      <div className="absolute right-0 bottom-full mb-2 w-48 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-1.5 z-50 flex flex-col space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                      <div className="absolute right-0 bottom-full mb-2 w-48 bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl shadow-2xl p-1.5 z-50 flex flex-col space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-150">
                         <div className="px-2.5 py-1 text-[9px] font-bold text-slate-500 uppercase tracking-wider select-none">
                           Formato de Preview
                         </div>
@@ -4735,7 +4735,7 @@ function App() {
                           className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg font-medium transition-colors text-left ${
                             aspectRatio === 'horizontal' 
                               ? 'bg-indigo-600 text-white' 
-                              : 'text-slate-350 hover:bg-slate-800 hover:text-white'
+                              : 'text-slate-350 hover:bg-[#3a3a3c] hover:text-white'
                           }`}
                         >
                           <span>16:9 Horizontal</span>
@@ -4749,7 +4749,7 @@ function App() {
                           className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg font-medium transition-colors text-left ${
                             aspectRatio === 'vertical' 
                               ? 'bg-indigo-600 text-white' 
-                              : 'text-slate-350 hover:bg-slate-800 hover:text-white'
+                              : 'text-slate-350 hover:bg-[#3a3a3c] hover:text-white'
                           }`}
                         >
                           <span>9:16 Vertical</span>
@@ -4763,21 +4763,21 @@ function App() {
                           className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg font-medium transition-colors text-left ${
                             aspectRatio === 'square' 
                               ? 'bg-indigo-600 text-white' 
-                              : 'text-slate-350 hover:bg-slate-800 hover:text-white'
+                              : 'text-slate-350 hover:bg-[#3a3a3c] hover:text-white'
                           }`}
                         >
                           <span>1:1 Cuadrado</span>
                           <span className="text-[9px] opacity-70">Post / Feed</span>
                         </button>
                         
-                        <div className="border-t border-slate-800 my-1" />
+                        <div className="border-t border-[#3a3a3c] my-1" />
                         
                         <button
                           onClick={() => {
                             toggleFullscreen();
                             setShowFormatDropdown(false);
                           }}
-                          className="flex items-center space-x-2 px-2.5 py-1.5 text-xs rounded-lg font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-left"
+                          className="flex items-center space-x-2 px-2.5 py-1.5 text-xs rounded-lg font-medium text-slate-300 hover:bg-[#3a3a3c] hover:text-white transition-colors text-left"
                         >
                           <Maximize className="h-3.5 w-3.5 text-slate-400" />
                           <span>Pantalla Completa</span>
@@ -4794,7 +4794,7 @@ function App() {
         {/* Resizer 2: Tools Resizer */}
         <div
           onMouseDown={handleToolsResizeMouseDown}
-          className="w-1 bg-slate-950 hover:bg-indigo-500/85 active:bg-indigo-650 transition-colors cursor-col-resize flex-shrink-0 z-40 relative group"
+          className="w-1 bg-[#0D0D0F] hover:bg-indigo-500/85 active:bg-indigo-650 transition-colors cursor-col-resize flex-shrink-0 z-40 relative group"
         >
           <div className="absolute inset-y-0 -left-1 -right-1 cursor-col-resize" />
         </div>
@@ -4802,9 +4802,9 @@ function App() {
         {/* Right Side: AI Tools Panel */}
         <section 
           style={{ width: `${toolsWidth}px` }} 
-          className="bg-slate-900/50 border-l border-slate-800/80 flex flex-col h-full overflow-hidden flex-shrink-0"
+          className="bg-[#242426] border-l border-[#3a3a3c]/80 flex flex-col h-full overflow-hidden flex-shrink-0"
         >
-          <div className="p-3 border-b border-slate-800/80 flex items-center justify-between">
+          <div className="p-3 border-b border-[#3a3a3c]/80 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Sparkles className="h-4 w-4 text-indigo-400 animate-pulse" />
               <h2 className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Caja de Herramientas IA</h2>
@@ -4820,8 +4820,8 @@ function App() {
           </div>
 
           {/* Selector de Modo de Sincronización */}
-          <div className="px-3.5 py-2 bg-slate-950/40 border-b border-slate-800/80">
-            <div className="flex w-full bg-slate-950 p-0.5 rounded-lg border border-slate-800">
+          <div className="px-3.5 py-2 bg-[#0D0D0F]/40 border-b border-[#3a3a3c]/80">
+            <div className="flex w-full bg-[#0D0D0F] p-0.5 rounded-lg border border-[#3a3a3c]">
               <button
                 onClick={() => setPerfectSyncMode(false)}
                 className={`flex-1 text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer ${
@@ -4853,7 +4853,7 @@ function App() {
                 {/* Smart Cut Tool */}
                 <div 
                   onClick={() => setSelectedTool('smart-cut')}
-                  className="p-3 rounded-xl border bg-slate-900 border-slate-800/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
+                  className="p-3 rounded-xl border bg-[#1C1C1E] border-[#3a3a3c]/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
@@ -4868,14 +4868,14 @@ function App() {
                 {/* Transcript/Subtitles Tool */}
                 <div 
                   onClick={() => setSelectedTool('subtitles')}
-                  className="p-3 rounded-xl border bg-slate-900 border-slate-800/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
+                  className="p-3 rounded-xl border bg-[#1C1C1E] border-[#3a3a3c]/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Type className="h-4 w-4 text-slate-400" />
                       <span className="text-xs font-bold">Transcripción de Voz</span>
                     </div>
-                    <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Whisper</span>
+                    <span className="text-[9px] bg-[#3a3a3c] text-slate-400 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Whisper</span>
                   </div>
                   <p className="text-[11px] text-slate-400">Genera subtítulos editables y marcas de tiempo precisas para todo el audio detectado.</p>
                 </div>
@@ -4883,14 +4883,14 @@ function App() {
                 {/* Style Transfer */}
                 <div 
                   onClick={() => setSelectedTool('translate')}
-                  className="p-3 rounded-xl border bg-slate-900 border-slate-800/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
+                  className="p-3 rounded-xl border bg-[#1C1C1E] border-[#3a3a3c]/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Languages className="h-4 w-4 text-slate-400" />
                       <span className="text-xs font-bold">Traductor / Doblaje IA</span>
                     </div>
-                    <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Traducción</span>
+                    <span className="text-[9px] bg-[#3a3a3c] text-slate-400 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Traducción</span>
                   </div>
                   <p className="text-[11px] text-slate-400">Traduce diálogos a múltiples idiomas manteniendo la clonación de la voz original.</p>
                 </div>
@@ -4898,14 +4898,14 @@ function App() {
                 {/* Voice Generation Tool */}
                 <div 
                   onClick={() => setSelectedTool('voice')}
-                  className="p-3 rounded-xl border bg-slate-900 border-slate-800/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
+                  className="p-3 rounded-xl border bg-[#1C1C1E] border-[#3a3a3c]/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Volume2 className="h-4 w-4 text-slate-400" />
                       <span className="text-xs font-bold">Generación de Voz</span>
                     </div>
-                    <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Voz IA</span>
+                    <span className="text-[9px] bg-[#3a3a3c] text-slate-400 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Voz IA</span>
                   </div>
                   <p className="text-[11px] text-slate-400">Genera una pista de voz en off profesional a partir de tu guion reescrito usando clonación de voz.</p>
                 </div>
@@ -4913,14 +4913,14 @@ function App() {
                 {/* Timeline IA Tool */}
                 <div 
                   onClick={() => setSelectedTool('timeline-ia')}
-                  className="p-3 rounded-xl border bg-slate-900 border-slate-800/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
+                  className="p-3 rounded-xl border bg-[#1C1C1E] border-[#3a3a3c]/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Sparkles className="h-4 w-4 text-slate-400" />
                       <span className="text-xs font-bold">Timeline IA / Montaje</span>
                     </div>
-                    <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Montaje</span>
+                    <span className="text-[9px] bg-[#3a3a3c] text-slate-400 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Montaje</span>
                   </div>
                   <p className="text-[11px] text-slate-400">Distribuye y organiza de forma inteligente tus clips en la línea de tiempo basado en la reescritura del guión.</p>
                 </div>
@@ -4932,13 +4932,13 @@ function App() {
                    const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
                    return (
                      <div className="flex-1 flex flex-col overflow-hidden">
-                       <div className="flex items-center justify-between mb-3 border-b border-slate-850 pb-2">
+                       <div className="flex items-center justify-between mb-3 border-b border-[#3a3a3c] pb-2">
                          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wide">Transcripción Whisper</h3>
                          <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Whisper AI</span>
                        </div>
                        
                        {!firstVideoInLibrary ? (
-                         <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-800 rounded-xl space-y-3 bg-slate-950/20">
+                         <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border border-dashed border-[#3a3a3c] rounded-xl space-y-3 bg-[#0D0D0F]/20">
                            <Type className="h-8 w-8 text-slate-650" />
                            <div>
                              <p className="text-xs font-semibold text-slate-300">No hay videos importados</p>
@@ -4953,8 +4953,8 @@ function App() {
                            </button>
                          </div>
                        ) : isTranscribing ? (
-                         <div className="flex-1 flex flex-col overflow-hidden p-2 bg-slate-950/20 rounded-xl border border-slate-900 space-y-4">
-                           <div className="flex flex-col items-center justify-center text-center p-4 space-y-3 bg-slate-900/30 rounded-lg">
+                         <div className="flex-1 flex flex-col overflow-hidden p-2 bg-[#0D0D0F]/20 rounded-xl border border-slate-900 space-y-4">
+                           <div className="flex flex-col items-center justify-center text-center p-4 space-y-3 bg-[#1C1C1E]/30 rounded-lg">
                              <div className="w-8 h-8 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin flex items-center justify-center shadow-lg shadow-indigo-500/20" />
                              <div className="space-y-1">
                                <p className="text-xs font-semibold text-indigo-300">Ejecutando Whisper local...</p>
@@ -4963,7 +4963,7 @@ function App() {
                                </p>
                              </div>
                            </div>
-                           <div className="flex-1 flex flex-col min-h-0 bg-slate-950/60 rounded-lg p-3 border border-slate-900/80 font-mono text-[10px]">
+                           <div className="flex-1 flex flex-col min-h-0 bg-[#0D0D0F]/60 rounded-lg p-3 border border-slate-900/80 font-mono text-[10px]">
                              <span className="text-[9px] text-slate-500 font-bold uppercase mb-1.5 block tracking-wider">Log de progreso Whisper:</span>
                              <div className="flex-1 overflow-y-auto space-y-1 scrollbar-thin text-indigo-400 select-text leading-relaxed whitespace-pre-wrap break-all">
                                {transcriptionStatus || 'Iniciando proceso...'}
@@ -4973,8 +4973,8 @@ function App() {
                        ) : (originalTranscriptText || transcriptSegments.length > 0) ? (
                           <div className="flex-1 flex flex-col overflow-y-auto space-y-4 pr-1 scrollbar-thin">
                             {/* Transcripción Original Panel */}
-                            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col space-y-2 shadow-xl">
-                              <div className="flex justify-between items-center pb-1.5 border-b border-slate-800/80">
+                            <div className="bg-[#1C1C1E]/90 border border-[#3a3a3c] rounded-xl p-3 flex flex-col space-y-2 shadow-xl">
+                              <div className="flex justify-between items-center pb-1.5 border-b border-[#3a3a3c]/80">
                                 <div className="flex items-center space-x-1.5">
                                   <Type className="h-3.5 w-3.5 text-indigo-400" />
                                   <span className="text-[10px] font-bold text-slate-300 tracking-wider uppercase">Transcripción Original</span>
@@ -4984,7 +4984,7 @@ function App() {
                                     onClick={() => {
                                       navigator.clipboard.writeText(originalTranscriptText);
                                     }}
-                                    className="p-1 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded transition-colors cursor-pointer"
+                                    className="p-1 hover:bg-[#3a3a3c] text-slate-400 hover:text-slate-200 rounded transition-colors cursor-pointer"
                                     title="Copiar"
                                   >
                                     <Copy className="h-3 w-3" />
@@ -4996,14 +4996,14 @@ function App() {
                                         setOriginalTranscriptText(prev => prev + text);
                                       } catch (e) {}
                                     }}
-                                    className="p-1 hover:bg-slate-800 text-slate-400 hover:text-slate-205 rounded transition-colors cursor-pointer"
+                                    className="p-1 hover:bg-[#3a3a3c] text-slate-400 hover:text-slate-205 rounded transition-colors cursor-pointer"
                                     title="Pegar"
                                   >
                                     <Clipboard className="h-3 w-3" />
                                   </button>
                                   <button
                                     onClick={() => setOriginalTranscriptText('')}
-                                    className="p-1 hover:bg-slate-800 text-slate-400 hover:text-red-400 rounded transition-colors cursor-pointer"
+                                    className="p-1 hover:bg-[#3a3a3c] text-slate-400 hover:text-red-400 rounded transition-colors cursor-pointer"
                                     title="Eliminar"
                                   >
                                     <Trash2 className="h-3 w-3" />
@@ -5013,7 +5013,7 @@ function App() {
                               <textarea
                                 value={originalTranscriptText}
                                 onChange={(e) => setOriginalTranscriptText(e.target.value)}
-                                className="w-full h-36 bg-slate-950/80 border border-slate-850 rounded-lg p-2 text-xs text-slate-200 outline-none focus:border-indigo-500/50 resize-y leading-relaxed font-sans scrollbar-thin select-text"
+                                className="w-full h-36 bg-[#0D0D0F]/80 border border-[#3a3a3c] rounded-lg p-2 text-xs text-slate-200 outline-none focus:border-indigo-500/50 resize-y leading-relaxed font-sans scrollbar-thin select-text"
                                 placeholder="La transcripción de Whisper aparecerá aquí..."
                               />
                             {/* Actions Group */}
@@ -5031,7 +5031,7 @@ function App() {
                                     <span>Reescribir</span>
                                   </button>
                                 ) : (
-                                  <div className="flex-1 bg-slate-900 border border-indigo-500/30 rounded-xl py-2 px-3 flex items-center justify-center space-x-2">
+                                  <div className="flex-1 bg-[#1C1C1E] border border-indigo-500/30 rounded-xl py-2 px-3 flex items-center justify-center space-x-2">
                                     <div className="w-3.5 h-3.5 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
                                     <span className="text-[10px] text-indigo-300 font-semibold animate-pulse">Reescribiendo...</span>
                                   </div>
@@ -5041,7 +5041,7 @@ function App() {
                                   <button
                                     onClick={handleCutClipsClick}
                                     disabled={transcriptSegments.length === 0}
-                                    className={`flex-1 bg-slate-800 hover:bg-slate-700 hover:text-indigo-400 text-slate-205 text-xs py-2 px-3 rounded-xl font-bold active:scale-95 transition-all flex items-center justify-center space-x-1.5 border border-slate-700/50 ${
+                                    className={`flex-1 bg-[#3a3a3c] hover:bg-slate-700 hover:text-indigo-400 text-slate-205 text-xs py-2 px-3 rounded-xl font-bold active:scale-95 transition-all flex items-center justify-center space-x-1.5 border border-slate-700/50 ${
                                       transcriptSegments.length > 0 ? 'cursor-pointer opacity-100' : 'cursor-not-allowed opacity-55'
                                     }`}
                                     title="Analiza y segmenta el video usando los timestamps de la transcripción"
@@ -5050,7 +5050,7 @@ function App() {
                                     <span>Cortar en Clips</span>
                                   </button>
                                 ) : (
-                                  <div className="flex-1 bg-slate-900 border border-slate-700/30 rounded-xl py-2 px-3 flex items-center justify-center space-x-2">
+                                  <div className="flex-1 bg-[#1C1C1E] border border-slate-700/30 rounded-xl py-2 px-3 flex items-center justify-center space-x-2">
                                     <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-550/20 border-t-indigo-500 animate-spin" />
                                     <span className="text-[10px] text-slate-400 font-semibold animate-pulse">Cortando...</span>
                                   </div>
@@ -5074,8 +5074,8 @@ function App() {
                           </div>
 
                              {/* Guión IA Panel */}
-                            <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col space-y-2.5 shadow-xl">
-                              <div className="flex justify-between items-center pb-1 border-b border-slate-800/80">
+                            <div className="bg-[#1C1C1E]/90 border border-[#3a3a3c] rounded-xl p-3 flex flex-col space-y-2.5 shadow-xl">
+                              <div className="flex justify-between items-center pb-1 border-b border-[#3a3a3c]/80">
                                 <div className="flex items-center space-x-1.5">
                                   <Sparkles className="h-3.5 w-3.5 text-indigo-400 animate-pulse" />
                                   <span className="text-[10px] font-bold text-slate-300 tracking-wider uppercase font-sans">Guión IA</span>
@@ -5086,7 +5086,7 @@ function App() {
                               <div className="flex flex-wrap gap-1.5 py-1">
                                 <button
                                   onClick={handleCopyScript}
-                                  className="flex-1 min-w-[70px] bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] py-1 px-2 rounded-lg font-semibold active:scale-95 transition-all flex items-center justify-center space-x-1 cursor-pointer border border-slate-700/50"
+                                  className="flex-1 min-w-[70px] bg-[#3a3a3c] hover:bg-slate-700 text-slate-200 text-[10px] py-1 px-2 rounded-lg font-semibold active:scale-95 transition-all flex items-center justify-center space-x-1 cursor-pointer border border-slate-700/50"
                                   title="Copiar todo el texto"
                                 >
                                   <Copy className="h-3 w-3 text-slate-450" />
@@ -5094,7 +5094,7 @@ function App() {
                                 </button>
                                 <button
                                   onClick={() => setAiScript('')}
-                                  className="flex-1 min-w-[70px] bg-slate-800 hover:bg-red-955 hover:text-red-300 hover:border-red-900/40 text-slate-200 text-[10px] py-1 px-2 rounded-lg font-semibold active:scale-95 transition-all flex items-center justify-center space-x-1 cursor-pointer border border-slate-700/50"
+                                  className="flex-1 min-w-[70px] bg-[#3a3a3c] hover:bg-red-955 hover:text-red-300 hover:border-red-900/40 text-slate-200 text-[10px] py-1 px-2 rounded-lg font-semibold active:scale-95 transition-all flex items-center justify-center space-x-1 cursor-pointer border border-slate-700/50"
                                   title="Limpiar el panel"
                                 >
                                   <Trash2 className="h-3 w-3 text-slate-450" />
@@ -5134,13 +5134,13 @@ function App() {
                               <textarea
                                 value={aiScript}
                                 onChange={(e) => setAiScript(e.target.value)}
-                                className="w-full h-40 bg-slate-950/80 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 outline-none focus:border-indigo-500/50 resize-y leading-relaxed font-sans scrollbar-thin select-text"
+                                className="w-full h-40 bg-[#0D0D0F]/80 border border-[#3a3a3c] rounded-lg p-2.5 text-xs text-slate-200 outline-none focus:border-indigo-500/50 resize-y leading-relaxed font-sans scrollbar-thin select-text"
                                 placeholder="El guión generado aparecerá aquí..."
                               />
                             </div>
                           </div>
                        ) : (
-                         <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-800 rounded-xl space-y-4 bg-slate-950/20">
+                         <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border border-dashed border-[#3a3a3c] rounded-xl space-y-4 bg-[#0D0D0F]/20">
                            <Type className="h-8 w-8 text-indigo-400 animate-pulse" />
                            <div className="space-y-2">
                              <p className="text-xs font-semibold text-slate-300 leading-relaxed">
@@ -5192,7 +5192,7 @@ function App() {
                     
                     <div className="w-full space-y-2 text-left">
                       <label className="text-[10px] text-slate-500 font-bold uppercase">Idioma Destino</label>
-                      <select className="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg p-2 text-slate-300 outline-none">
+                      <select className="w-full bg-[#1C1C1E] border border-[#3a3a3c] text-xs rounded-lg p-2 text-slate-300 outline-none">
                         <option>Inglés (EE.UU.)</option>
                         <option>Español (España)</option>
                         <option>Portugués (Brasil)</option>
@@ -5209,11 +5209,11 @@ function App() {
 
                 {selectedTool === 'voice' && (
                   <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="flex items-center justify-between mb-3 border-b border-slate-800/60 pb-2">
+                    <div className="flex items-center justify-between mb-3 border-b border-[#3a3a3c]/60 pb-2">
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => setSelectedTool('subtitles')}
-                          className="text-[10px] bg-slate-800 hover:bg-slate-700 hover:text-indigo-400 text-slate-300 font-bold px-2 py-0.5 rounded-md border border-slate-700/50 active:scale-95 transition-all cursor-pointer flex items-center space-x-1"
+                          className="text-[10px] bg-[#3a3a3c] hover:bg-slate-700 hover:text-indigo-400 text-slate-300 font-bold px-2 py-0.5 rounded-md border border-slate-700/50 active:scale-95 transition-all cursor-pointer flex items-center space-x-1"
                           title="Volver a editar/reescribir el guion"
                         >
                           <span>&larr; Volver al Guión</span>
@@ -5224,17 +5224,17 @@ function App() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
-                      <div className="bg-slate-900/90 border border-slate-805 rounded-xl p-3 flex flex-col space-y-2.5 shadow-xl">
+                      <div className="bg-[#1C1C1E]/90 border border-slate-805 rounded-xl p-3 flex flex-col space-y-2.5 shadow-xl">
                         <span className="text-[10px] text-slate-400 font-bold uppercase font-sans">Guión de Entrada</span>
                         <textarea
                           value={aiScript}
                           onChange={(e) => setAiScript(e.target.value)}
-                          className="w-full h-32 bg-slate-950/80 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 outline-none focus:border-indigo-500/50 resize-y leading-relaxed font-sans scrollbar-thin select-text"
+                          className="w-full h-32 bg-[#0D0D0F]/80 border border-[#3a3a3c] rounded-lg p-2 text-xs text-slate-200 outline-none focus:border-indigo-500/50 resize-y leading-relaxed font-sans scrollbar-thin select-text"
                           placeholder="El guion a procesar aparecerá aquí..."
                         />
                       </div>
 
-                      <div className="bg-slate-900/90 border border-slate-805 rounded-xl p-3.5 flex flex-col space-y-4 shadow-xl">
+                      <div className="bg-[#1C1C1E]/90 border border-slate-805 rounded-xl p-3.5 flex flex-col space-y-4 shadow-xl">
                         <span className="text-[10px] text-slate-400 font-bold uppercase font-sans tracking-wide">Configuración de Voz</span>
                         
                         {/* Selector de Modelo (Eleven Multilingual v2) */}
@@ -5243,7 +5243,7 @@ function App() {
                           <select 
                             value={voiceModel}
                             onChange={(e) => setVoiceModel(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-805 text-xs rounded-lg p-2 text-slate-300 outline-none focus:border-indigo-500/50 cursor-pointer"
+                            className="w-full bg-[#0D0D0F] border border-slate-805 text-xs rounded-lg p-2 text-slate-300 outline-none focus:border-indigo-500/50 cursor-pointer"
                           >
                             <option value="Eleven Multilingual v2">Eleven Multilingual v2</option>
                             <option value="Eleven English v1">Eleven English v1</option>
@@ -5258,7 +5258,7 @@ function App() {
                             <button
                               type="button"
                               onClick={() => setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}
-                              className="w-full bg-slate-950 border border-slate-805 text-xs rounded-lg p-2 text-slate-355 flex items-center justify-between hover:bg-slate-900 transition-colors cursor-pointer select-none text-left"
+                              className="w-full bg-[#0D0D0F] border border-slate-805 text-xs rounded-lg p-2 text-slate-355 flex items-center justify-between hover:bg-[#1C1C1E] transition-colors cursor-pointer select-none text-left"
                             >
                               <span>
                                 {elevenLabsVoices.find(v => v.voice_id === selectedVoiceId)?.name || 'Clon de mi Voz (Mi voz)'}
@@ -5267,7 +5267,7 @@ function App() {
                             </button>
                             
                             {isVoiceDropdownOpen && (
-                              <div className="absolute left-0 right-0 mt-1 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto p-1 space-y-0.5 scrollbar-thin">
+                              <div className="absolute left-0 right-0 mt-1 bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto p-1 space-y-0.5 scrollbar-thin">
                                 {elevenLabsVoices.length === 0 ? (
                                   <div className="text-[10px] text-slate-500 italic p-2 text-center">
                                     Cargando voces desde ElevenLabs...
@@ -5280,7 +5280,7 @@ function App() {
                                         handleVoiceSelect(voice.voice_id);
                                         setIsVoiceDropdownOpen(false);
                                       }}
-                                      className={`flex items-center justify-between p-2 rounded-lg text-xs hover:bg-slate-800 transition-all cursor-pointer ${
+                                      className={`flex items-center justify-between p-2 rounded-lg text-xs hover:bg-[#3a3a3c] transition-all cursor-pointer ${
                                         selectedVoiceId === voice.voice_id
                                           ? 'bg-indigo-950/40 text-indigo-400 border border-indigo-500/20'
                                           : 'text-slate-300'
@@ -5291,7 +5291,7 @@ function App() {
                                           <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 flex-shrink-0 animate-pulse" />
                                         )}
                                         <span className="truncate font-semibold">{voice.name}</span>
-                                        <span className="text-[8px] px-1 py-0.2 bg-slate-950 text-slate-500 rounded text-right capitalize truncate font-mono">
+                                        <span className="text-[8px] px-1 py-0.2 bg-[#0D0D0F] text-slate-500 rounded text-right capitalize truncate font-mono">
                                           {voice.category}
                                         </span>
                                       </div>
@@ -5303,7 +5303,7 @@ function App() {
                                             e.stopPropagation();
                                             playVoicePreview(voice);
                                           }}
-                                          className={`p-1 bg-slate-950 hover:bg-slate-800 hover:text-white rounded border border-slate-850 flex items-center justify-center cursor-pointer transition-colors ${
+                                          className={`p-1 bg-[#0D0D0F] hover:bg-[#3a3a3c] hover:text-white rounded border border-[#3a3a3c] flex items-center justify-center cursor-pointer transition-colors ${
                                             playingPreviewVoiceId === voice.voice_id ? 'text-indigo-400 border-indigo-500/30' : 'text-slate-500'
                                           }`}
                                           title="Escuchar demostración"
@@ -5336,7 +5336,7 @@ function App() {
                             step="0.1" 
                             value={voiceSpeed}
                             onChange={(e) => setVoiceSpeed(parseFloat(e.target.value))}
-                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
+                            className="w-full h-1 bg-[#3a3a3c] rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
                             style={{
                               background: `linear-gradient(to right, rgb(99, 102, 241) ${Math.round(((voiceSpeed - 0.5) / 1.5) * 100)}%, rgb(30, 41, 59) 0%)`
                             }}
@@ -5359,7 +5359,7 @@ function App() {
                             max="100" 
                             value={voiceStability}
                             onChange={(e) => setVoiceStability(parseInt(e.target.value))}
-                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
+                            className="w-full h-1 bg-[#3a3a3c] rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
                             style={{
                               background: `linear-gradient(to right, rgb(99, 102, 241) ${voiceStability}%, rgb(30, 41, 59) 0%)`
                             }}
@@ -5377,7 +5377,7 @@ function App() {
                             type="text" 
                             readOnly 
                             value={voiceFormat}
-                            className="w-full bg-slate-950/50 border border-slate-805 text-xs rounded-lg p-2 text-slate-400 outline-none select-none font-mono cursor-not-allowed" 
+                            className="w-full bg-[#0D0D0F]/50 border border-slate-805 text-xs rounded-lg p-2 text-slate-400 outline-none select-none font-mono cursor-not-allowed" 
                           />
                         </div>
                       </div>
@@ -5424,7 +5424,7 @@ function App() {
                       )}
 
                       {/* Lista de Versiones Generadas (Mini Reproductor) */}
-                      <div className="bg-slate-900/90 border border-slate-805 rounded-xl p-3.5 flex flex-col space-y-3 shadow-xl">
+                      <div className="bg-[#1C1C1E]/90 border border-slate-805 rounded-xl p-3.5 flex flex-col space-y-3 shadow-xl">
                         <span className="text-[10px] text-slate-400 font-bold uppercase font-sans tracking-wide">
                           Versiones Generadas ({generatedVoices.length})
                         </span>
@@ -5457,7 +5457,7 @@ function App() {
                                   </button>
                                 </div>
                                 
-                                <div className="text-[9px] text-slate-450 bg-slate-950/40 p-2 rounded border border-slate-850 line-clamp-2 select-text" title={voice.text}>
+                                <div className="text-[9px] text-slate-450 bg-[#0D0D0F]/40 p-2 rounded border border-[#3a3a3c] line-clamp-2 select-text" title={voice.text}>
                                   "{voice.text}"
                                 </div>
 
@@ -5465,7 +5465,7 @@ function App() {
                                   <audio 
                                     controls 
                                     src={voice.audioUrl} 
-                                    className="flex-1 h-7 rounded bg-slate-950" 
+                                    className="flex-1 h-7 rounded bg-[#0D0D0F]" 
                                     style={{ outline: 'none' }}
                                   />
                                   <button
@@ -5486,11 +5486,11 @@ function App() {
 
                 {selectedTool === 'timeline-ia' && (
                   <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="flex items-center justify-between mb-3 border-b border-slate-800/60 pb-2">
+                    <div className="flex items-center justify-between mb-3 border-b border-[#3a3a3c]/60 pb-2">
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => setSelectedTool(null)}
-                          className="text-[10px] bg-slate-800 hover:bg-slate-700 hover:text-indigo-400 text-slate-300 font-bold px-2 py-0.5 rounded-md border border-slate-700/50 active:scale-95 transition-all cursor-pointer flex items-center space-x-1"
+                          className="text-[10px] bg-[#3a3a3c] hover:bg-slate-700 hover:text-indigo-400 text-slate-300 font-bold px-2 py-0.5 rounded-md border border-slate-700/50 active:scale-95 transition-all cursor-pointer flex items-center space-x-1"
                           title="Volver a la caja de herramientas"
                         >
                           <span>&larr; Volver</span>
@@ -5501,7 +5501,7 @@ function App() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
-                      <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex flex-col space-y-3 shadow-xl">
+                      <div className="bg-[#1C1C1E]/90 border border-[#3a3a3c] rounded-xl p-3.5 flex flex-col space-y-3 shadow-xl">
                         <div>
                           <h4 className="text-xs font-bold text-slate-200">Mezcla del Montaje</h4>
                           <p className="text-[10px] text-slate-400 mt-1">El sistema organizará los clips en el timeline utilizando los porcentajes que configures en el panel izquierdo ("Mix del montaje").</p>
@@ -5510,7 +5510,7 @@ function App() {
 
                       {/* Build Timeline IA Button */}
                       {isGeneratingAssets ? (
-                        <div className="flex flex-col items-center justify-center text-center p-6 space-y-4 bg-slate-900/90 border border-slate-800 rounded-xl shadow-xl select-none">
+                        <div className="flex flex-col items-center justify-center text-center p-6 space-y-4 bg-[#1C1C1E]/90 border border-[#3a3a3c] rounded-xl shadow-xl select-none">
                           <div className="w-8 h-8 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin flex items-center justify-center shadow-lg shadow-indigo-500/20" />
                           <div className="space-y-2 w-full">
                             <p className="text-xs font-semibold text-indigo-300">Generando clips con IA local...</p>
@@ -5520,7 +5520,7 @@ function App() {
                                   <span>Progreso: {generationProgress.current} de {generationProgress.total}</span>
                                   <span className="capitalize text-indigo-400 font-bold">{generationProgress.type}</span>
                                 </div>
-                                <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden">
+                                <div className="h-1.5 w-full bg-[#0D0D0F] rounded-full overflow-hidden">
                                   <div 
                                     className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 transition-all duration-300"
                                     style={{ width: `${(generationProgress.current / generationProgress.total) * 100}%` }}
@@ -5566,14 +5566,14 @@ function App() {
                 <div className='flex-1 overflow-y-auto p-4 space-y-4'>
                   <div
                     onClick={() => setSelectedTool('subtitles')}
-                    className='p-3 rounded-xl border bg-slate-900 border-slate-800/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2'
+                    className='p-3 rounded-xl border bg-[#1C1C1E] border-[#3a3a3c]/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2'
                   >
                     <div className='flex items-center justify-between'>
                       <div className='flex items-center space-x-2'>
                         <Type className='h-4 w-4 text-slate-400' />
                         <span className='text-xs font-bold'>Transcripción de Voz</span>
                       </div>
-                      <span className='text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded-full font-semibold uppercase'>Whisper</span>
+                      <span className='text-[9px] bg-[#3a3a3c] text-slate-400 px-1.5 py-0.5 rounded-full font-semibold uppercase'>Whisper</span>
                     </div>
                     <p className='text-[11px] text-slate-400'>Transcribe el audio con timestamps exactos.</p>
                   </div>
@@ -5594,7 +5594,7 @@ function App() {
                           <textarea
                             value={originalTranscriptText}
                             onChange={(e) => setOriginalTranscriptText(e.target.value)}
-                            className='w-full h-32 bg-slate-950/80 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 outline-none resize-y'
+                            className='w-full h-32 bg-[#0D0D0F]/80 border border-[#3a3a3c] rounded-lg p-2 text-xs text-slate-200 outline-none resize-y'
                             placeholder='Transcripción aparecerá aquí...'
                           />
                           <button
@@ -5642,7 +5642,7 @@ function App() {
       {/* Resizer 3: Timeline Resizer */}
       <div
         onMouseDown={handleTimelineResizeMouseDown}
-        className="h-1 bg-slate-950 hover:bg-indigo-500/85 active:bg-indigo-650 transition-colors cursor-row-resize flex-shrink-0 z-40 relative group"
+        className="h-1 bg-[#0D0D0F] hover:bg-indigo-500/85 active:bg-indigo-650 transition-colors cursor-row-resize flex-shrink-0 z-40 relative group"
       >
         <div className="absolute inset-x-0 -top-1 -bottom-1 cursor-row-resize" />
       </div>
@@ -5650,10 +5650,10 @@ function App() {
       {/* Bottom Timeline Editor */}
       <footer 
         style={{ height: `${timelineHeight}px` }} 
-        className="bg-slate-900 flex flex-col flex-shrink-0 overflow-hidden"
+        className="bg-[#1C1C1E] flex flex-col flex-shrink-0 overflow-hidden"
       >
         {/* Timeline toolbar */}
-        <div className="px-4 py-2 border-b border-slate-800/60 flex items-center justify-between text-xs text-slate-455">
+        <div className="px-4 py-2 border-b border-[#3a3a3c]/60 flex items-center justify-between text-xs text-slate-455">
           <div className="flex items-center space-x-4 flex-wrap">
             {/* Undo */}
             <button 
@@ -5683,7 +5683,7 @@ function App() {
               <Redo className="h-3.5 w-3.5" />
             </button>
 
-            <div className="w-[1px] h-4 bg-slate-800 mx-1" />
+            <div className="w-[1px] h-4 bg-[#3a3a3c] mx-1" />
 
             {/* Split / Tijeras */}
             <button 
@@ -5755,14 +5755,14 @@ function App() {
             {activeCrop && (
               <button 
                 onClick={() => setActiveCrop(null)}
-                className="text-[9px] bg-slate-800 hover:bg-slate-750 text-indigo-400 border border-slate-700 px-1.5 py-0.5 rounded transition-all active:scale-95 cursor-pointer"
+                className="text-[9px] bg-[#3a3a3c] hover:bg-slate-750 text-indigo-400 border border-slate-700 px-1.5 py-0.5 rounded transition-all active:scale-95 cursor-pointer"
                 title="Restaurar recorte original"
               >
                 Reset Crop
               </button>
             )}
 
-            <div className="w-[1px] h-4 bg-slate-800 mx-1" />
+            <div className="w-[1px] h-4 bg-[#3a3a3c] mx-1" />
 
             {/* Duplicar */}
             <button 
@@ -5795,7 +5795,7 @@ function App() {
             </button>
 
             {/* Zoom Slider Control */}
-            <div className="flex items-center space-x-2 text-slate-400 pl-4 border-l border-slate-800">
+            <div className="flex items-center space-x-2 text-slate-400 pl-4 border-l border-[#3a3a3c]">
               <span className="text-[10px] font-semibold text-slate-500 uppercase select-none">Zoom Preview:</span>
               <input 
                 type="range"
@@ -5815,7 +5815,7 @@ function App() {
               {zoom > 1 && (
                 <button 
                   onClick={() => setZoom(1)}
-                  className="text-[9px] bg-slate-800 hover:bg-slate-750 text-indigo-400 px-1.5 py-0.5 rounded font-bold border border-slate-700 transition-all active:scale-95 cursor-pointer"
+                  className="text-[9px] bg-[#3a3a3c] hover:bg-slate-750 text-indigo-400 px-1.5 py-0.5 rounded font-bold border border-slate-700 transition-all active:scale-95 cursor-pointer"
                   title="Restablecer zoom a 100%"
                 >
                   Reset
@@ -5827,11 +5827,11 @@ function App() {
             <span className="font-mono text-[10px] text-slate-500">Escala de Tiempo: 1s</span>
             
             {/* Timeline Zoom Slider Control (Regla 6) */}
-            <div className="flex items-center space-x-2 pl-4 border-l border-slate-800 text-slate-400">
+            <div className="flex items-center space-x-2 pl-4 border-l border-[#3a3a3c] text-slate-400">
               <span className="text-[10px] font-semibold text-slate-500 uppercase select-none">Zoom Timeline:</span>
               <button 
                 onClick={() => setTimelineZoom(prev => Math.max(1200, prev - 300))} 
-                className="text-xs text-slate-400 hover:text-white px-1.5 py-0.5 hover:bg-slate-800 rounded select-none cursor-pointer font-bold transition-colors"
+                className="text-xs text-slate-400 hover:text-white px-1.5 py-0.5 hover:bg-[#3a3a3c] rounded select-none cursor-pointer font-bold transition-colors"
                 title="Alejar"
               >
                 -
@@ -5850,7 +5850,7 @@ function App() {
               />
               <button 
                 onClick={() => setTimelineZoom(prev => Math.min(6000, prev + 300))} 
-                className="text-xs text-slate-400 hover:text-white px-1.5 py-0.5 hover:bg-slate-800 rounded select-none cursor-pointer font-bold transition-colors"
+                className="text-xs text-slate-400 hover:text-white px-1.5 py-0.5 hover:bg-[#3a3a3c] rounded select-none cursor-pointer font-bold transition-colors"
                 title="Acercar"
               >
                 +
@@ -5865,7 +5865,7 @@ function App() {
         {/* Tracks area */}
         <div 
           ref={timelineTracksRef}
-          className="flex-1 overflow-x-auto overflow-y-auto p-4 bg-slate-950/40 relative scrollbar-timeline"
+          className="flex-1 overflow-x-auto overflow-y-auto p-4 bg-[#0D0D0F]/40 relative scrollbar-timeline"
         >
           <div className="relative" style={{ minWidth: `${timelineZoom}px` }}>
             {/* Timeline Ruler */}
@@ -5874,7 +5874,7 @@ function App() {
               <div 
                 ref={trackRef}
                 onMouseDown={handleTimelineScrubMouseDown}
-                className="flex-1 h-6 relative cursor-col-resize border-b border-slate-800"
+                className="flex-1 h-6 relative cursor-col-resize border-b border-[#3a3a3c]"
               >
                 {/* Ruler Ticks */}
                 {(() => {
@@ -5937,7 +5937,7 @@ function App() {
                           className={`ml-2 text-[13px] transition-all px-2 py-1 rounded-lg font-bold ${
                             showVideoV2Track 
                               ? 'text-sky-400 bg-sky-500/20 border border-sky-500/40 shadow-sm shadow-sky-500/20' 
-                              : 'text-slate-400 hover:text-sky-400 bg-slate-800/60 border border-slate-700/50'
+                              : 'text-slate-400 hover:text-sky-400 bg-[#3a3a3c]/60 border border-slate-700/50'
                           }`}
                           title={showVideoV2Track ? 'Cerrar pista v2' : 'Abrir pista v2 overlay'}
                         >
@@ -5947,7 +5947,7 @@ function App() {
                     </div>
                     <button 
                       onClick={() => setIsVideoTrackMuted(!isVideoTrackMuted)}
-                      className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white cursor-pointer"
+                      className="p-1 hover:bg-[#3a3a3c] rounded text-slate-400 hover:text-white cursor-pointer"
                       title={isVideoTrackMuted ? "Desmutear pista" : "Mutear pista"}
                     >
                       {isVideoTrackMuted || videoTrackVolume === 0 ? (
@@ -5968,7 +5968,7 @@ function App() {
                         setVideoTrackVolume(parseFloat(e.target.value));
                         setIsVideoTrackMuted(false);
                       }}
-                      className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-sky-500 transition-all outline-none"
+                      className="w-full h-1 bg-[#3a3a3c] rounded appearance-none cursor-pointer accent-sky-500 transition-all outline-none"
                       style={{
                         background: `linear-gradient(to right, rgb(56, 189, 248) ${Math.round((isVideoTrackMuted ? 0 : videoTrackVolume) * 100)}%, rgb(30, 41, 59) 0%)`
                       }}
@@ -5976,7 +5976,7 @@ function App() {
                     <span className="font-mono text-[8px] text-sky-400 w-5 text-right">{Math.round((isVideoTrackMuted ? 0 : videoTrackVolume) * 100)}%</span>
                   </div>
                 </div>
-                <div className="flex-1 h-12 bg-slate-900/60 border border-slate-800/80 rounded-xl relative overflow-hidden">
+                <div className="flex-1 h-12 bg-[#1C1C1E]/60 border border-[#3a3a3c]/80 rounded-xl relative overflow-hidden">
                   {timelineVideoClips.filter(tClip => tClip.type !== 'audio' && tClip.type !== 'graphic').length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <span className="text-[10px] text-slate-600 font-medium">Arrastra o añade videos aquí</span>
@@ -6016,7 +6016,7 @@ function App() {
                           className={`absolute h-full border rounded-lg flex items-center px-2 justify-between group/tclip ${perfectSyncMode && !showVideoV2Track ? 'cursor-default' : 'cursor-move'} transition-shadow ${
                             selectedTimelineClipIds.includes(tClip.id) 
                               ? 'ring-2 ring-indigo-500 border-indigo-400 z-20 shadow-[0_0_12px_rgba(99,102,241,0.25)]' 
-                              : 'border-slate-800'
+                              : 'border-[#3a3a3c]'
                           } ${bgClass}`}
                         >
                           {/* Left Trim Handle */}
@@ -6040,7 +6040,7 @@ function App() {
                             </span>
                           </div>
                           
-                          <span className="text-[9px] font-mono px-1 rounded flex-shrink-0 select-none pointer-events-none bg-slate-950/60 text-slate-350 z-10">
+                          <span className="text-[9px] font-mono px-1 rounded flex-shrink-0 select-none pointer-events-none bg-[#0D0D0F]/60 text-slate-350 z-10">
                             {tClip.durationSeconds.toFixed(1)}s
                           </span>
 
@@ -6126,7 +6126,7 @@ function App() {
                     <span>🎬</span>
                     <span>v2 overlay</span>
                   </div>
-                  <div ref={trackV2Ref} className='flex-1 h-10 bg-slate-900/40 border border-slate-700/40 rounded-xl relative overflow-hidden'>
+                  <div ref={trackV2Ref} className='flex-1 h-10 bg-[#1C1C1E]/40 border border-slate-700/40 rounded-xl relative overflow-hidden'>
                     {timelineVideoClips
                       .filter(c => c.category === 'v2_overlay')
                       .sort((a,b) => a.startSeconds - b.startSeconds)
@@ -6192,7 +6192,7 @@ function App() {
                     </div>
                   </div>
                 </div>
-                <div className="flex-1 h-12 bg-slate-900/60 border border-slate-800/80 rounded-xl relative overflow-hidden">
+                <div className="flex-1 h-12 bg-[#1C1C1E]/60 border border-[#3a3a3c]/80 rounded-xl relative overflow-hidden">
                   {timelineVideoClips.filter(tClip => tClip.type === 'graphic').length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <span className="text-[10px] text-slate-600 font-medium">Sin gráficos asignados</span>
@@ -6232,7 +6232,7 @@ function App() {
                           </div>
                           
                           {tClip.durationSeconds >= 2.0 && (
-                            <span className="text-[9px] font-mono px-1 rounded flex-shrink-0 select-none pointer-events-none bg-slate-950/60 text-slate-350 z-10 mr-1.5">
+                            <span className="text-[9px] font-mono px-1 rounded flex-shrink-0 select-none pointer-events-none bg-[#0D0D0F]/60 text-slate-350 z-10 mr-1.5">
                               {tClip.durationSeconds.toFixed(1)}s
                             </span>
                           )}
@@ -6244,7 +6244,7 @@ function App() {
                               setTimelineVideoClips(prev => prev.filter(tc => tc.id !== tClip.id));
                               setIsDirty(true);
                             }}
-                            className="w-3.5 h-3.5 rounded-full bg-slate-950/40 hover:bg-rose-500/80 hover:text-white flex items-center justify-center text-[8px] font-bold transition-all z-20 cursor-pointer border-none"
+                            className="w-3.5 h-3.5 rounded-full bg-[#0D0D0F]/40 hover:bg-rose-500/80 hover:text-white flex items-center justify-center text-[8px] font-bold transition-all z-20 cursor-pointer border-none"
                             title="Eliminar gráfico"
                           >
                             ×
@@ -6276,7 +6276,7 @@ function App() {
                     </div>
                     <button 
                       onClick={() => setIsAudioTrackMuted(!isAudioTrackMuted)}
-                      className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white cursor-pointer"
+                      className="p-1 hover:bg-[#3a3a3c] rounded text-slate-400 hover:text-white cursor-pointer"
                       title={isAudioTrackMuted ? "Desmutear pista" : "Mutear pista"}
                     >
                       {isAudioTrackMuted || audioTrackVolume === 0 ? (
@@ -6297,7 +6297,7 @@ function App() {
                         setAudioTrackVolume(parseFloat(e.target.value));
                         setIsAudioTrackMuted(false);
                       }}
-                      className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-emerald-500 transition-all outline-none"
+                      className="w-full h-1 bg-[#3a3a3c] rounded appearance-none cursor-pointer accent-emerald-500 transition-all outline-none"
                       style={{
                         background: `linear-gradient(to right, rgb(52, 211, 153) ${Math.round((isAudioTrackMuted ? 0 : audioTrackVolume) * 100)}%, rgb(30, 41, 59) 0%)`
                       }}
@@ -6305,7 +6305,7 @@ function App() {
                     <span className="font-mono text-[8px] text-emerald-400 w-5 text-right">{Math.round((isAudioTrackMuted ? 0 : audioTrackVolume) * 100)}%</span>
                   </div>
                 </div>
-                <div className="flex-1 h-12 bg-slate-900/60 border border-slate-800/80 rounded-xl relative overflow-hidden">
+                <div className="flex-1 h-12 bg-[#1C1C1E]/60 border border-[#3a3a3c]/80 rounded-xl relative overflow-hidden">
                   {timelineVideoClips.filter(tClip => tClip.type === 'audio').length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <span className="text-[10px] text-slate-600 font-medium">Arrastra o añade audios aquí</span>
@@ -6327,7 +6327,7 @@ function App() {
                           className={`absolute h-full border rounded-lg flex items-center px-3 justify-between group/tclip cursor-move transition-shadow ${
                             selectedTimelineClipIds.includes(tClip.id) 
                               ? 'ring-2 ring-indigo-500 border-indigo-400 z-20 shadow-[0_0_12px_rgba(99,102,241,0.25)]' 
-                              : 'border-slate-800'
+                              : 'border-[#3a3a3c]'
                           } ${bgClass}`}
                         >
                           {/* Left Trim Handle */}
@@ -6341,7 +6341,7 @@ function App() {
                           <span className="text-[10px] truncate font-medium pr-1 select-none pointer-events-none" title={tClip.name}>
                             {tClip.name}
                           </span>
-                          <span className="text-[9px] font-mono px-1 rounded flex-shrink-0 select-none pointer-events-none bg-slate-950/60 text-slate-350">
+                          <span className="text-[9px] font-mono px-1 rounded flex-shrink-0 select-none pointer-events-none bg-[#0D0D0F]/60 text-slate-350">
                             {tClip.durationSeconds.toFixed(1)}s
                           </span>
 
@@ -6364,7 +6364,7 @@ function App() {
                   <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
                   <span>AI FX</span>
                 </div>
-                <div className="flex-1 h-10 bg-slate-900/30 border border-slate-800/40 rounded-xl relative overflow-hidden">
+                <div className="flex-1 h-10 bg-[#1C1C1E]/30 border border-[#3a3a3c]/40 rounded-xl relative overflow-hidden">
                   <div className="absolute left-[20%] w-[12%] h-full bg-indigo-500/10 border-l-2 border-indigo-400 flex items-center px-2">
                     <span className="text-[9px] text-indigo-300 font-semibold uppercase truncate">Smart-Cut</span>
                   </div>
@@ -6381,7 +6381,7 @@ function App() {
         {contextMenu && (
           <div 
             style={{ top: contextMenu.y, left: contextMenu.x }}
-            className="fixed bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-1 z-50 flex flex-col space-y-0.5 min-w-[120px] backdrop-blur-md"
+            className="fixed bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl shadow-2xl p-1 z-50 flex flex-col space-y-0.5 min-w-[120px] backdrop-blur-md"
           >
             <button 
               onClick={() => {
@@ -6407,8 +6407,8 @@ function App() {
 
       {/* Export Settings Modal */}
       {showExportModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#020712] border border-slate-850 rounded-2xl w-full max-w-md p-6 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-[#0D0D0F]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#020712] border border-[#3a3a3c] rounded-2xl w-full max-w-md p-6 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
             <h3 className="text-base font-extrabold text-white tracking-tight flex items-center space-x-2">
               <Download className="h-4 w-4 text-[#6366f1]" />
               <span>Ajustes de Exportación Avanzados</span>
@@ -6426,7 +6426,7 @@ function App() {
                       className={`text-xs font-bold py-2 px-3 rounded-xl border transition-all cursor-pointer ${
                         exportResolution === res
                           ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-600/10'
-                          : 'bg-slate-950 border-slate-850 hover:border-slate-700 text-slate-400'
+                          : 'bg-[#0D0D0F] border-[#3a3a3c] hover:border-slate-700 text-slate-400'
                       }`}
                     >
                       {res === '1080p' ? '1080p (FHD)' : res === '4K' ? '4K (UHD)' : '720p (HD)'}
@@ -6446,7 +6446,7 @@ function App() {
                       className={`text-xs font-bold py-2 px-3 rounded-xl border transition-all cursor-pointer capitalize ${
                         exportFormat === fmt
                           ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-600/10'
-                          : 'bg-slate-950 border-slate-850 hover:border-slate-700 text-slate-400'
+                          : 'bg-[#0D0D0F] border-[#3a3a3c] hover:border-slate-700 text-slate-400'
                       }`}
                     >
                       {fmt.toUpperCase()}
@@ -6466,7 +6466,7 @@ function App() {
                       className={`text-xs font-bold py-2 px-3 rounded-xl border transition-all cursor-pointer ${
                         exportQuality === qual
                           ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-600/10'
-                          : 'bg-slate-950 border-slate-850 hover:border-slate-700 text-slate-400'
+                          : 'bg-[#0D0D0F] border-[#3a3a3c] hover:border-slate-700 text-slate-400'
                       }`}
                     >
                       {qual === 'high' ? 'Alta' : qual === 'medium' ? 'Media' : 'Baja'}
@@ -6479,7 +6479,7 @@ function App() {
             <div className="flex items-center justify-end space-x-3 pt-2">
               <button 
                 onClick={() => setShowExportModal(false)}
-                className="text-xs font-semibold text-slate-400 hover:text-white px-4 py-2 rounded-xl hover:bg-slate-900 transition-colors cursor-pointer"
+                className="text-xs font-semibold text-slate-400 hover:text-white px-4 py-2 rounded-xl hover:bg-[#1C1C1E] transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
