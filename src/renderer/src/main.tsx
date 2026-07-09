@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { 
   Play, Pause, FastForward, Rewind, Video, Volume2, VolumeX, Sparkles, 
   Scissors, Type, Languages, Download, Upload, Plus, 
-  FolderOpen, Cpu, Trash2, Maximize, Copy, Clipboard, Crop, FlipHorizontal,
+  FolderOpen, Trash2, Maximize, Copy, Clipboard, Crop, FlipHorizontal,
   Undo, Redo, Sliders, ChevronDown, Save
 } from 'lucide-react'
 import './styles/globals.css'
@@ -3256,7 +3256,7 @@ function App() {
   const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
+    <div className="flex flex-col h-screen w-screen bg-[#1C1C1E] text-slate-100 overflow-hidden font-sans select-none">
       {/* Hidden File Input */}
       <input 
         type="file" 
@@ -3267,7 +3267,7 @@ function App() {
         className="hidden" 
       />
       {/* Title Bar / Header */}
-      <header className="flex justify-between items-center px-4 py-2 bg-slate-900/80 border-b border-slate-800 backdrop-blur-md">
+      <header className="flex justify-between items-center px-4 py-2 bg-[#242426] border-b border-slate-800 backdrop-blur-md">
         <div className="flex items-center space-x-5">
           <div className="flex items-center space-x-2">
             <div className="bg-gradient-to-tr from-indigo-500 to-violet-500 p-1.5 rounded-lg shadow-lg shadow-indigo-500/20">
@@ -3277,7 +3277,7 @@ function App() {
               <h1 className="text-sm font-bold tracking-wider bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
                 CIPHER STUDIO
               </h1>
-              <p className="text-[10px] text-indigo-400/80 font-medium">AI VIDEO EDITOR • v1.0.0</p>
+              <p className="text-[10px] text-slate-500 font-medium">Editor de Video IA</p>
             </div>
           </div>
 
@@ -3407,11 +3407,8 @@ function App() {
         </div>
 
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 bg-slate-950/60 px-3 py-1.5 rounded-full border border-slate-800 text-[11px]">
-            <Cpu className="h-3 w-3 text-indigo-400" />
-            <span className="text-slate-400">IPC Bridge:</span>
-            <span className="text-emerald-400 font-mono">{mainProcessTime}</span>
-          </div>
+          {/* IPC Bridge oculto - variable mantenida para el sistema */}
+          <span className="hidden">{mainProcessTime}</span>
 
           {/* Auto-save Status Indicator */}
           <div className="flex items-center space-x-1.5 bg-slate-950/40 px-2.5 py-1.5 rounded-xl border border-slate-800/50 text-[10px]">
@@ -3424,12 +3421,10 @@ function App() {
                 ? 'bg-rose-500 shadow-[0_0_6px_#f43f5e]'
                 : 'bg-emerald-500/60'
             }`} />
-            <span className="text-slate-400 font-medium font-sans">
-              {saveStatus === 'saving' 
-                ? 'Guardando...' 
-                : saveStatus === 'error' 
-                ? 'Error al guardar' 
-                : 'Guardado'}
+            <span className="text-slate-400 font-medium">
+              {saveStatus === 'saving' ? 'Guardando...'
+              : saveStatus === 'error' ? 'Error'
+              : 'Guardado'}
             </span>
           </div>
  
@@ -3518,7 +3513,7 @@ function App() {
             <div className="space-y-2.5">
               {/* Slider 1: Original */}
               <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-[#1D9E75] flex-shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Original</span>
                 <input 
                   type="range" 
@@ -3526,17 +3521,17 @@ function App() {
                   max="100" 
                   value={timelineWeights[0]}
                   onChange={(e) => handleWeightChange(0, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all outline-none" 
+                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-[#1D9E75] transition-all outline-none" 
                   style={{
-                    background: `linear-gradient(to right, rgb(16, 185, 129) ${timelineWeights[0]}%, rgb(30, 41, 59) 0%)`
+                    background: `linear-gradient(to right, rgb(29, 158, 117) ${timelineWeights[0]}%, rgb(30, 41, 59) 0%)`
                   }}
                 />
-                <span className="font-mono text-[10px] text-emerald-400 font-bold w-8 text-right select-none">{timelineWeights[0]}%</span>
+                <span className="font-mono text-[10px] text-[#1D9E75] font-bold w-8 text-right select-none">{timelineWeights[0]}%</span>
               </div>
 
               {/* Slider 2: Stock */}
               <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-[#378ADD] flex-shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Stock</span>
                 <input 
                   type="range" 
@@ -3544,17 +3539,17 @@ function App() {
                   max="100" 
                   value={timelineWeights[1]}
                   onChange={(e) => handleWeightChange(1, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-sky-500 transition-all outline-none" 
+                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-[#378ADD] transition-all outline-none" 
                   style={{
-                    background: `linear-gradient(to right, rgb(14, 165, 233) ${timelineWeights[1]}%, rgb(30, 41, 59) 0%)`
+                    background: `linear-gradient(to right, rgb(55, 138, 221) ${timelineWeights[1]}%, rgb(30, 41, 59) 0%)`
                   }}
                 />
-                <span className="font-mono text-[10px] text-sky-400 font-bold w-8 text-right select-none">{timelineWeights[1]}%</span>
+                <span className="font-mono text-[10px] text-[#378ADD] font-bold w-8 text-right select-none">{timelineWeights[1]}%</span>
               </div>
 
               {/* Slider 3: MiniMax */}
               <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-[#D85A30] flex-shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">MiniMax</span>
                 <input
                   type="range"
@@ -3562,20 +3557,20 @@ function App() {
                   max="100"
                   value={timelineWeights[2]}
                   onChange={(e) => handleWeightChange(2, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-amber-500 transition-all outline-none"
+                  className="flex-1 h-1 bg-slate-850 rounded-lg appearance-none cursor-pointer accent-[#D85A30] transition-all outline-none"
                   style={{
-                    background: `linear-gradient(to right, rgb(245, 158, 11) ${timelineWeights[2]}%, rgb(30, 41, 59) 0%)`
+                    background: `linear-gradient(to right, rgb(216, 90, 48) ${timelineWeights[2]}%, rgb(30, 41, 59) 0%)`
                   }}
                 />
-                <span className="font-mono text-[10px] text-amber-400 font-bold w-8 text-right select-none">{timelineWeights[2]}%</span>
+                <span className="font-mono text-[10px] text-[#D85A30] font-bold w-8 text-right select-none">{timelineWeights[2]}%</span>
               </div>
             </div>
 
             {/* Proportional Color Bar */}
             <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-slate-800 mt-2">
-              <div style={{ width: `${timelineWeights[0]}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Original: ${timelineWeights[0]}%`} />
-              <div style={{ width: `${timelineWeights[1]}%` }} className="h-full bg-sky-500 transition-all duration-300" title={`Stock: ${timelineWeights[1]}%`} />
-              <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`MiniMax: ${timelineWeights[2]}%`} />
+              <div style={{ width: `${timelineWeights[0]}%` }} className="h-full bg-[#1D9E75] transition-all duration-300" title={`Original: ${timelineWeights[0]}%`} />
+              <div style={{ width: `${timelineWeights[1]}%` }} className="h-full bg-[#378ADD] transition-all duration-300" title={`Stock: ${timelineWeights[1]}%`} />
+              <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-[#D85A30] transition-all duration-300" title={`MiniMax: ${timelineWeights[2]}%`} />
             </div>
 
             {/* Selector de Estilo IA */}
@@ -4352,7 +4347,7 @@ function App() {
         )}
 
         {/* Center: Canvas Player */}
-        <section className="flex-1 bg-slate-950 flex flex-col p-4 overflow-hidden">
+        <section className="flex-1 bg-[#0D0D0F] flex flex-col p-4 overflow-hidden">
           <div 
             ref={playerWrapperRef}
             onMouseMove={handleFullscreenMouseMove}
