@@ -482,10 +482,10 @@ function App() {
   const [isMirrored, setIsMirrored] = useState(false)
   const [copiedClip, setCopiedClip] = useState<TimelineClip | null>(null)
   // Porcentaje global de generación de gráficos (valor por defecto 50%)
-  const [graphicsPercent, setGraphicsPercent] = useState<number>(50);
+  const [graphicsPercent, setGraphicsPercent] = useState<number>(-1);
 
   // Estados para transiciones GL
-  const [transitionsPercent, setTransitionsPercent] = useState<number>(50);
+  const [transitionsPercent, setTransitionsPercent] = useState<number>(-1);
   const [showTransitionsPanel, setShowTransitionsPanel] = useState<boolean>(false);
   const [transitionDuration, setTransitionDuration] = useState<number>(0.5);
   const [isTransitionActive, setIsTransitionActive] = useState<boolean>(false);
@@ -2502,7 +2502,7 @@ function App() {
         transcriptSegments,
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
-        graphicsPercent,
+        graphicsPercent: 0,
         newAudioSegments: effectiveAudioSegments
       });
       
@@ -2565,8 +2565,45 @@ function App() {
         setTimelineVersions(prev => [...prev, newVersion]);
         setActiveVersionId(newVersionId);
         setTimelineVideoClips(finalTimelineClips);
-        // Asignar transiciones automáticamente si transitionsPercent > 0
-        if (transitionsPercent !== null && transitionsPercent > 0 && selectedTransitions.length > 0) {
+        // FASE 2: Gráficos
+        if (graphicsPercent > 0) {
+          setGenerationProgress({ current: 0, total: 1, paragraph: 'Generando gráficos...', type: 'Gráficos' });
+          try {
+            const textToUse = aiScript.trim() || originalTranscriptText.trim();
+            const voiceClip = finalTimelineClips.find(c => c.type === 'audio');
+            const videoClips = finalTimelineClips.filter(c => c.type !== 'audio' && c.type !== 'graphic');
+            const gRes = await window.electronAPI.regenerateGraphics({
+              scriptText: textToUse,
+              audioPath: voiceClip?.path || '',
+              clips: videoClips.map(c => ({ id: c.id, name: c.name, startSeconds: c.startSeconds, phraseIdx: (c as any).phraseIdx ?? -1 })),
+              graphicsPercent,
+              audioSegments: effectiveAudioSegments.length > 0 ? effectiveAudioSegments : transcriptSegments
+            });
+            if (gRes && gRes.success && gRes.clips) {
+              const newGClips = gRes.clips
+                .filter((c: any) => c.graphicData)
+                .map((c: any) => {
+                  const matchV = finalTimelineClips.find((tc: any) => tc.id === c.id || tc.name === c.name);
+                  return {
+                    id: `timeline-graphic-${Math.random()}`,
+                    name: `Gráfico: ${c.graphicData.label || c.graphicData.type}`,
+                    startSeconds: c.graphicAbsoluteStart ?? (matchV?.startSeconds || 0),
+                    durationSeconds: c.graphicDuration ?? Math.min(2.0, matchV?.durationSeconds || 2.0),
+                    phraseIdx: c.phraseIdx ?? -1,
+                    type: 'graphic' as const,
+                    graphicData: c.graphicData
+                  };
+                });
+              setTimelineVideoClips(prev => [...prev, ...newGClips]);
+            }
+          } catch (gErr) {
+            console.error('Error generando gráficos:', gErr);
+          }
+        }
+
+        // FASE 3: Transiciones
+        if (transitionsPercent > 0 && selectedTransitions.length > 0) {
+          setGenerationProgress({ current: 0, total: 1, paragraph: 'Asignando transiciones...', type: 'Transiciones' });
           const videoOnly = finalTimelineClips
             .filter(c => c.type !== 'audio' && c.type !== 'graphic')
             .sort((a, b) => a.startSeconds - b.startSeconds);
@@ -2594,12 +2631,11 @@ function App() {
             return lastPicked;
           };
           const newAssigned: Record<string, string> = {};
-          const clips = videoOnly;
           const step = totalCortes > 0 ? Math.floor(totalCortes / Math.max(1, cortesConTransicion)) : 1;
-          for (let i = 0; i < clips.length - 1; i++) {
+          for (let i = 0; i < videoOnly.length - 1; i++) {
             const shouldAssign = transitionsPercent === 100 || (i % step === 0 && Object.keys(newAssigned).length < cortesConTransicion);
             if (shouldAssign) {
-              const key = clips[i].id + '->' + clips[i + 1].id;
+              const key = videoOnly[i].id + '->' + videoOnly[i + 1].id;
               newAssigned[key] = pickNext();
             }
           }
