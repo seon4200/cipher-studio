@@ -1449,45 +1449,11 @@ function App() {
       if (autoPlay) {
         video.play().catch(e => console.error("loadClip play error:", e));
       }
-      // Efecto de entrada si hay transición asignada hacia este clip
-      const prevClip = sortedVideoClips[index - 1];
-      if (prevClip) {
-        const trKey = prevClip.id + '->' + clip.id;
-        const assigned = assignedTransitions[trKey];
-        if (assigned) {
-          const dur = Math.max(200, transitionDuration * 1000);
-          const isZoom = /zoom/i.test(assigned);
-          const isWipe = /wipe/i.test(assigned) || assigned === 'DirectionalScaled';
-          const isGlitch = /litch|static|TVStatic|old_tv/i.test(assigned);
-          const isBlur = /blur|pixelize|mosaic|flyeye/i.test(assigned);
-          const isSpin = /kaleido|Butterfly/i.test(assigned);
-          const isRotate = /rotate|Revolve/i.test(assigned);
-          video.style.transition = 'none';
-          if (isZoom) { video.style.transform = 'scale(1.8)'; video.style.opacity = '0.3'; }
-          else if (isWipe) { video.style.clipPath = 'inset(0 0 0 100%)'; }
-          else if (isGlitch) { video.style.transform = 'translateX(-8px) skewX(-4deg)'; video.style.opacity = '0.5'; }
-          else if (isBlur) { video.style.filter = 'blur(14px)'; video.style.opacity = '0.4'; }
-          else if (isSpin) { video.style.transform = 'rotate(-45deg) scale(1.4)'; video.style.opacity = '0.3'; }
-          else if (isRotate) { video.style.transform = 'rotate(-180deg) scale(0.3)'; video.style.opacity = '0'; }
-          else { video.style.opacity = '0'; }
-          requestAnimationFrame(() => {
-            video.style.transition = `all ${dur}ms ease-out`;
-            video.style.opacity = '1';
-            video.style.transform = 'none';
-            video.style.filter = 'none';
-            video.style.clipPath = 'inset(0 0 0 0)';
-            setTimeout(() => {
-              video.style.transition = 'none';
-              video.style.clipPath = 'none';
-            }, dur + 50);
-          });
-        }
-      }
     } else {
       setActiveVideoUrl(null);
       if (video) video.pause();
     }
-  }, [sortedVideoClips, assignedTransitions, transitionDuration]);
+  }, [sortedVideoClips]);
 
   const handleVideoCanPlay = () => {
     if (videoRef.current && isPlaying) {
@@ -6034,7 +6000,7 @@ function App() {
                       );
                     })}
 
-                    {!perfectSyncMode && sortedVideoClips.length > 1 && sortedVideoClips.map((clip, idx) => {
+                    {sortedVideoClips.length > 1 && sortedVideoClips.map((clip, idx) => {
                       if (idx === 0) return null;
                       const prevClip = sortedVideoClips[idx - 1];
                       const dropPos = ((prevClip.startSeconds + prevClip.durationSeconds) / totalDuration) * 100;
@@ -6064,7 +6030,7 @@ function App() {
                         >
                           {assigned ? (
                             <div
-                              className='bg-violet-500 text-[5px] text-white px-1 py-0.5 rounded font-bold truncate max-w-[36px] cursor-pointer hover:bg-red-500 transition-colors shadow-sm shadow-violet-500/30'
+                              className='bg-violet-500 text-[5px] text-white px-1 py-0.5 rounded font-bold truncate max-w-[44px] cursor-pointer hover:bg-red-500 transition-colors shadow-sm shadow-violet-500/30 z-40'
                               title={'Click para eliminar: ' + assigned}
                               onClick={() => setAssignedTransitions(prev => {
                                 const c = { ...prev };
@@ -6072,7 +6038,7 @@ function App() {
                                 return c;
                               })}
                             >
-                              {assigned.slice(0, 4)}
+                              {assigned.slice(0, 5)}
                             </div>
                           ) : null}
                         </div>
