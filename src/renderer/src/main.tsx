@@ -490,6 +490,14 @@ function App() {
   const [transitionDuration, setTransitionDuration] = useState<number>(0.5);
   const [isTransitionActive, setIsTransitionActive] = useState<boolean>(false);
   const [transitionType, setTransitionType] = useState<string>('fade');
+  const [transitionNextUrl, setTransitionNextUrl] = useState<string | null>(null);
+  const videoRef2 = React.useRef<HTMLVideoElement>(null);
+  const preloadedIndexRef = React.useRef<number | null>(null);
+  const isTransitioningRef = React.useRef<boolean>(false);
+  const [mainVideoOpacity, setMainVideoOpacity] = useState<number>(1);
+  const [mainVideoTransition, setMainVideoTransition] = useState<string>('');
+  const [video2Opacity, setVideo2Opacity] = useState<number>(0);
+  const [video2Transition, setVideo2Transition] = useState<string>('');
   const [assignedTransitions, setAssignedTransitions] = useState<Record<string, string>>({});
   const [draggingTransition, setDraggingTransition] = useState<string | null>(null);
   const [selectedTransitions, setSelectedTransitions] = useState<string[]>([
@@ -504,6 +512,12 @@ function App() {
     'ButterflyWaveScrawler','old_tv_lost_signal','DefocusBlur',
     'directionalwipe','Revolve_Left'
   ]);
+
+  useEffect(() => {
+    if (transitionNextUrl && videoRef2.current) {
+      videoRef2.current.load();
+    }
+  }, [transitionNextUrl]);
 
   if (typeof window !== 'undefined' && (window as any).__never) {
     console.log(assignedTransitions, setAssignedTransitions, draggingTransition, setDraggingTransition, transitionType, setTransitionType);
@@ -1437,6 +1451,18 @@ function App() {
 
     setCurrentClipIndex(index);
     
+    if (!isTransitioningRef.current) {
+      preloadedIndexRef.current = null;
+      setMainVideoTransition('');
+      setMainVideoOpacity(1);
+      setVideo2Transition('');
+      setVideo2Opacity(0);
+      setTransitionNextUrl(null);
+      if (videoRef2.current) {
+        videoRef2.current.src = '';
+      }
+    }
+    
     if (clip.path) {
       const fileUrl = `file:///${clip.path.replace(/\\/g, '/')}`;
       setActiveVideoUrl(fileUrl);
@@ -1476,6 +1502,7 @@ function App() {
   }
 
   const handleEnded = () => {
+    if (isTransitioningRef.current) return;
     const nextIdx = currentClipIndex + 1;
     if (nextIdx >= sortedVideoClips.length) {
       setIsPlaying(false);
@@ -1488,13 +1515,8 @@ function App() {
     const nextClip = sortedVideoClips[nextIdx];
     const trKey = currentClip?.id + '->' + nextClip?.id;
     const assigned = assignedTransitions[trKey];
-    if (assigned) {
-      setTransitionType(assigned);
-      setIsTransitionActive(true);
-      loadClip(nextIdx, true);
-      const dur = Math.max(200, transitionDuration * 1000);
-      setTimeout(() => setIsTransitionActive(false), dur);
-    } else {
+    
+    if (!assigned) {
       loadClip(nextIdx, true);
     }
   };
@@ -1506,6 +1528,74 @@ function App() {
       const audio = audioRef.current;
       const cursor = (audio && !audio.paused) ? audio.currentTime : (clip ? clip.startSeconds + video.currentTime : video.currentTime);
       updateCurrentTime(cursor);
+
+      if (clip) {
+        const clipEnd = clip.startSeconds + clip.durationSeconds;
+        const timeRemaining = clipEnd - cursor;
+
+        const nextIdx = currentClipIndex + 1;
+        const nextClip = sortedVideoClips[nextIdx];
+
+        if (nextClip && nextClip.path) {
+          const trKey = clip.id + '->' + nextClip.id;
+          const assigned = assignedTransitions[trKey];
+
+          if (assigned) {
+            // 1. Precargar el siguiente clip en videoRef2 cuando falten 1.5 segundos o menos
+            if (timeRemaining <= 1.5 && preloadedIndexRef.current !== nextIdx) {
+              const nextUrl = `file:///${nextClip.path.replace(/\\/g, '/')}`;
+              if (transitionNextUrl !== nextUrl) {
+                setTransitionNextUrl(nextUrl);
+                preloadedIndexRef.current = nextIdx;
+              }
+            }
+
+            // 2. Disparar la transición crossfade al llegar al fin lógico
+            if (cursor >= clipEnd && !isTransitioningRef.current) {
+              isTransitioningRef.current = true;
+              
+              if (videoRef2.current) {
+                videoRef2.current.currentTime = 0;
+                videoRef2.current.play().catch(e => console.error("videoRef2 play error during transition:", e));
+              }
+
+              // Aplicar transiciones CSS en los wrappers usando estados de React
+              setMainVideoTransition(`opacity ${transitionDuration}s ease-in-out`);
+              setVideo2Transition(`opacity ${transitionDuration}s ease-in-out`);
+
+              requestAnimationFrame(() => {
+                setMainVideoOpacity(0);
+                setVideo2Opacity(1);
+              });
+
+              const dur = Math.max(300, transitionDuration * 1000);
+              setTimeout(() => {
+                setMainVideoTransition('');
+                
+                loadClip(nextIdx, true);
+                
+                const checkReady = () => {
+                  const v = videoRef.current;
+                  if (v && v.readyState >= 2) {
+                    isTransitioningRef.current = false;
+                    setMainVideoOpacity(1);
+                    setVideo2Transition('');
+                    setVideo2Opacity(0);
+                    setTransitionNextUrl(null);
+                    preloadedIndexRef.current = null;
+                    if (videoRef2.current) {
+                      videoRef2.current.src = '';
+                    }
+                  } else {
+                    requestAnimationFrame(checkReady);
+                  }
+                };
+                requestAnimationFrame(checkReady);
+              }, dur);
+            }
+          }
+        }
+      }
     }
   };
 
@@ -3296,7 +3386,7 @@ function App() {
   const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
 
   if (typeof window !== 'undefined' && (window as any).__never) {
-    console.log(durationSeconds, handleScrubberMouseDown);
+    console.log(durationSeconds, handleScrubberMouseDown, isTransitionActive, setIsTransitionActive);
   }
 
   return (
@@ -4465,44 +4555,77 @@ function App() {
                   muted
                   preload='auto'
                 />
-                {isTransitionActive && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      zIndex: 15,
-                      pointerEvents: 'none',
-                      transition: `all ${transitionDuration}s ease-out`,
-                      opacity: 0,
-                      background: 'black'
-                    }}
-                    ref={(el) => {
-                      if (el) {
-                        el.style.opacity = '1';
-                        requestAnimationFrame(() => {
-                          el.style.opacity = '0';
-                        });
-                      }
-                    }}
-                  />
-                )}
-                <video 
-                  id="preview-video"
-                  ref={videoRef}
-                  src={activeVideoUrl || ''}
+                <div
                   style={{
-                    display: activeVideoUrl ? 'block' : 'none',
-                    transform: (() => { const cat = sortedVideoClips[currentClipIndex]?.category?.toLowerCase(); return (cat === 'original' || cat === 'originales') ? `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}` : 'translate(0px, 0px) scale(1)'; })(),
-                    clipPath: (() => { const cat = sortedVideoClips[currentClipIndex]?.category?.toLowerCase(); return activeCrop && (cat === 'original' || cat === 'originales') ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` : 'none'; })(),
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: mainVideoOpacity,
+                    transition: mainVideoTransition,
+                    zIndex: 9
                   }}
-                  className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-75 ease-out"
-                  controls={false}
-                  onLoadedMetadata={handleLoadedMetadata}
-                  onCanPlay={handleVideoCanPlay}
-                  onDurationChange={handleDurationChange}
-                  onEnded={handleEnded}
-                  onTimeUpdate={handleTimeUpdate}
-                />
+                  className="pointer-events-none"
+                >
+                  <video 
+                    id="preview-video"
+                    ref={videoRef}
+                    src={activeVideoUrl || ''}
+                    style={{
+                      display: activeVideoUrl ? 'block' : 'none',
+                      transform: (() => { const cat = sortedVideoClips[currentClipIndex]?.category?.toLowerCase(); return (cat === 'original' || cat === 'originales') ? `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}` : 'translate(0px, 0px) scale(1)'; })(),
+                      clipPath: (() => { const cat = sortedVideoClips[currentClipIndex]?.category?.toLowerCase(); return activeCrop && (cat === 'original' || cat === 'originales') ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)` : 'none'; })(),
+                    }}
+                    className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-75 ease-out"
+                    controls={false}
+                    onLoadedMetadata={handleLoadedMetadata}
+                    onCanPlay={handleVideoCanPlay}
+                    onDurationChange={handleDurationChange}
+                    onEnded={handleEnded}
+                    onTimeUpdate={handleTimeUpdate}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: video2Opacity,
+                    transition: video2Transition,
+                    zIndex: 10
+                  }}
+                  className="pointer-events-none"
+                >
+                  <video 
+                    id="preview-video-2"
+                    ref={videoRef2}
+                    src={transitionNextUrl || ''}
+                    style={{
+                      display: transitionNextUrl ? 'block' : 'none',
+                      transform: (() => {
+                        const nextIdx = currentClipIndex + 1;
+                        const nextClip = sortedVideoClips[nextIdx];
+                        const cat = nextClip?.category?.toLowerCase();
+                        return (cat === 'original' || cat === 'originales')
+                          ? `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom}) ${isMirrored ? 'scaleX(-1)' : 'scaleX(1)'}`
+                          : 'translate(0px, 0px) scale(1)';
+                      })(),
+                      clipPath: (() => {
+                        const nextIdx = currentClipIndex + 1;
+                        const nextClip = sortedVideoClips[nextIdx];
+                        const cat = nextClip?.category?.toLowerCase();
+                        return activeCrop && (cat === 'original' || cat === 'originales')
+                          ? `inset(${activeCrop.top}% ${activeCrop.right}% ${activeCrop.bottom}% ${activeCrop.left}%)`
+                          : 'none';
+                      })(),
+                    }}
+                    className="w-full h-full object-cover select-none pointer-events-none"
+                    controls={false}
+                    muted
+                  />
+                </div>
 
                 {/* Crop Editor Overlay */}
                 {isCropping && (
