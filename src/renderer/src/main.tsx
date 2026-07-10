@@ -3295,6 +3295,10 @@ function App() {
 
   const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
 
+  if (typeof window !== 'undefined' && (window as any).__never) {
+    console.log(durationSeconds, handleScrubberMouseDown);
+  }
+
   return (
     <div className="flex flex-col h-screen w-screen bg-[#1C1C1E] text-slate-100 overflow-hidden font-sans select-none">
       {/* Hidden File Input */}
@@ -4662,33 +4666,6 @@ function App() {
 
           {/* Player controls */}
           <div className="flex flex-col mt-4 p-3 bg-[#1C1C1E]/60 border border-[#3a3a3c]/80 rounded-xl space-y-3">
-            {/* Scrubber row */}
-            <div className="w-full flex items-center space-x-3 px-1">
-              <span 
-                id="cipher-time-text"
-                className="text-[10px] font-mono text-slate-400 select-none w-10 text-right"
-              >
-                {formatTimeMinutesSeconds(currentTimeForUI)}
-              </span>
-              <div 
-                onMouseDown={handleScrubberMouseDown}
-                className="flex-1 h-2 bg-[#3a3a3c] rounded-full relative cursor-pointer group/scrub"
-              >
-                <div 
-                  id="cipher-scrub-fill"
-                  style={{ width: `${durationSeconds > 0 ? (currentTimeForUI / durationSeconds) * 100 : 0}%` }}
-                  className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full absolute top-0 left-0"
-                />
-                <div 
-                  id="cipher-scrub-thumb"
-                  style={{ left: `${durationSeconds > 0 ? (currentTimeForUI / durationSeconds) * 100 : 0}%` }}
-                  className="w-3.5 h-3.5 bg-white border-2 border-indigo-500 rounded-full absolute top-1/2 -translate-y-1/2 -ml-1.5 opacity-0 group-hover/scrub:opacity-100 transition-opacity shadow-md"
-                />
-              </div>
-              <span className="text-[10px] font-mono text-slate-400 select-none w-10 text-left">
-                {formatTimeMinutesSeconds(durationSeconds)}
-              </span>
-            </div>
 
             {/* Controls row */}
             <div className="flex items-center justify-between">
