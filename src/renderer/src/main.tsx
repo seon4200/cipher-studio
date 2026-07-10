@@ -4424,7 +4424,7 @@ function App() {
             className="flex-1 bg-[#0D0D0F] border border-[#3a3a3c] rounded-2xl relative overflow-hidden flex items-center justify-center group shadow-inner"
           >
             {/* Player Canvas Mockup / Real Player */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950/20" />
+
             
             {activeVideoUrl ? (
               <div 
