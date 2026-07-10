@@ -2662,6 +2662,53 @@ function App() {
 
   const handleClearGraphics = () => {
     setTimelineVideoClips(prev => prev.filter(c => c.type !== 'graphic'));
+    setGraphicsPercent(-1);
+  };
+
+  const handleClearTransitions = () => {
+    setAssignedTransitions({});
+    setTransitionsPercent(-1);
+  };
+
+  const handleBuildTransitions = () => {
+    if (selectedTransitions.length === 0) return;
+    const videoOnly = timelineVideoClips
+      .filter(c => c.type !== 'audio' && c.type !== 'graphic')
+      .sort((a, b) => a.startSeconds - b.startSeconds);
+    if (videoOnly.length < 2) return;
+    const totalCortes = videoOnly.length - 1;
+    const cortesConTransicion = Math.round((transitionsPercent / 100) * totalCortes);
+    const fisherYates = (arr: string[]) => {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
+    let queue = fisherYates(selectedTransitions);
+    let lastPicked = '';
+    const pickNext = () => {
+      if (queue.length === 0) {
+        queue = fisherYates(selectedTransitions);
+        if (queue[0] === lastPicked && queue.length > 1) {
+          const swapIdx = Math.floor(Math.random() * (queue.length - 1)) + 1;
+          [queue[0], queue[swapIdx]] = [queue[swapIdx], queue[0]];
+        }
+      }
+      lastPicked = queue.shift()!;
+      return lastPicked;
+    };
+    const newAssigned: Record<string, string> = {};
+    const step = totalCortes > 0 ? Math.floor(totalCortes / Math.max(1, cortesConTransicion)) : 1;
+    for (let i = 0; i < videoOnly.length - 1; i++) {
+      const shouldAssign = transitionsPercent === 100 || (i % step === 0 && Object.keys(newAssigned).length < cortesConTransicion);
+      if (shouldAssign) {
+        const key = videoOnly[i].id + '->' + videoOnly[i + 1].id;
+        newAssigned[key] = pickNext();
+      }
+    }
+    setAssignedTransitions(newAssigned);
   };
 
   const handleRegenerateGraphics = async () => {
@@ -3296,7 +3343,7 @@ function App() {
   const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
 
   if (typeof window !== 'undefined' && (window as any).__never) {
-    console.log(durationSeconds, handleScrubberMouseDown);
+    console.log(durationSeconds, handleScrubberMouseDown, handleClearTransitions);
   }
 
   return (
@@ -3679,7 +3726,7 @@ function App() {
                   {!showTransitionsPanel && (
                     <div className='mt-2 grid grid-cols-3 gap-1 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]'>
                       {[0,50,100].map((val) => (
-                        <button key={val} onClick={() => setTransitionsPercent(val)}
+                        <button key={val} onClick={() => setTransitionsPercent(prev => prev === val ? -1 : val)}
                           className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
                             transitionsPercent===val
                               ? 'bg-violet-600 text-white shadow-md'
@@ -3703,16 +3750,26 @@ function App() {
                         disabled={
                           (!aiScript?.trim() && !originalTranscriptText?.trim()) ||
                           timelineVideoClips.filter(c => c.type !== 'audio' && c.type !== 'graphic').length === 0 ||
-                          isGeneratingAssets
+                          isGeneratingAssets ||
+                          (graphicsPercent === -1 && transitionsPercent === -1)
                         }
-                        onClick={handleRegenerateGraphics}
+                        onClick={() => {
+                          if (graphicsPercent !== -1) handleRegenerateGraphics();
+                          if (transitionsPercent !== -1) handleBuildTransitions();
+                        }}
                       >
                         {isGeneratingAssets ? '...' : '⟳ Generar'}
                       </button>
                       <button
                         className="text-xs px-3 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 text-red-400 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1"
-                        disabled={timelineVideoClips.filter(c => c.type === 'graphic').length === 0}
-                        onClick={handleClearGraphics}
+                        disabled={
+                          (graphicsPercent === -1 || timelineVideoClips.filter(c => c.type === 'graphic').length === 0) &&
+                          (transitionsPercent === -1 || Object.keys(assignedTransitions).length === 0)
+                        }
+                        onClick={() => {
+                          if (graphicsPercent !== -1) handleClearGraphics();
+                          if (transitionsPercent !== -1) handleClearTransitions();
+                        }}
                       >
                         🗑 Limpiar
                       </button>
@@ -3725,10 +3782,10 @@ function App() {
                         <button
                           key={val}
                           type="button"
-                          onClick={() => setGraphicsPercent(val)}
+                          onClick={() => setGraphicsPercent(prev => prev === val ? -1 : val)}
                           className={`py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
                             active
-                              ? 'bg-indigo-650 text-white shadow-md shadow-indigo-500/20'
+                              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 ring-2 ring-indigo-400/60'
                               : 'text-slate-400 hover:text-slate-200 hover:bg-[#3a3a3c]/50'
                           }`}
                         >
@@ -3907,7 +3964,7 @@ function App() {
                 {!showTransitionsPanel && (
                   <div className='mt-2 grid grid-cols-3 gap-1 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]'>
                     {[0,50,100].map((val) => (
-                      <button key={val} onClick={() => setTransitionsPercent(val)}
+                      <button key={val} onClick={() => setTransitionsPercent(prev => prev === val ? -1 : val)}
                         className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
                           transitionsPercent===val
                             ? 'bg-violet-600 text-white shadow-md'
@@ -3927,15 +3984,29 @@ function App() {
                   <div className="flex gap-1">
                     <button
                       className="text-xs px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow-sm shadow-indigo-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1"
-                      disabled={(!aiScript?.trim() && !originalTranscriptText?.trim()) || timelineVideoClips.filter(c=>c.type!=='audio'&&c.type!=='graphic').length===0 || isGeneratingAssets}
-                      onClick={handleRegenerateGraphics}
+                      disabled={
+                        (!aiScript?.trim() && !originalTranscriptText?.trim()) ||
+                        timelineVideoClips.filter(c=>c.type!=='audio'&&c.type!=='graphic').length===0 ||
+                        isGeneratingAssets ||
+                        (graphicsPercent === -1 && transitionsPercent === -1)
+                      }
+                      onClick={() => {
+                        if (graphicsPercent !== -1) handleRegenerateGraphics();
+                        if (transitionsPercent !== -1) handleBuildTransitions();
+                      }}
                     >
                       {isGeneratingAssets ? '...' : '⟳ Generar'}
                     </button>
                     <button
                       className="text-xs px-3 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 text-red-400 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1"
-                      disabled={timelineVideoClips.filter(c=>c.type==='graphic').length===0}
-                      onClick={handleClearGraphics}
+                      disabled={
+                        (graphicsPercent === -1 || timelineVideoClips.filter(c=>c.type==='graphic').length===0) &&
+                        (transitionsPercent === -1 || Object.keys(assignedTransitions).length===0)
+                      }
+                      onClick={() => {
+                        if (graphicsPercent !== -1) handleClearGraphics();
+                        if (transitionsPercent !== -1) handleClearTransitions();
+                      }}
                     >
                       🗑 Limpiar
                     </button>
@@ -3943,8 +4014,12 @@ function App() {
                 </div>
                 <div className='grid grid-cols-3 gap-2 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]'>
                   {[0,50,100].map((val) => (
-                    <button key={val} onClick={() => setGraphicsPercent(val)}
-                      className={`py-1.5 text-xs font-bold rounded-lg ${graphicsPercent===val ? 'bg-indigo-650 text-white' : 'text-slate-400'}`}>
+                    <button key={val} onClick={() => setGraphicsPercent(prev => prev === val ? -1 : val)}
+                      className={`py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                        graphicsPercent===val 
+                          ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 ring-2 ring-indigo-400/60' 
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-[#3a3a3c]/50'
+                      }`}>
                       {val}%
                     </button>
                   ))}
