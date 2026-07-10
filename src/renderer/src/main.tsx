@@ -3695,7 +3695,7 @@ function App() {
                     </label>
                     <div className="flex gap-1">
                       <button
-                        className="text-xs px-2 py-0.5 rounded border border-indigo-500 text-indigo-400 hover:bg-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        className="text-xs px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow-sm shadow-indigo-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1"
                         disabled={
                           (!aiScript?.trim() && !originalTranscriptText?.trim()) ||
                           timelineVideoClips.filter(c => c.type !== 'audio' && c.type !== 'graphic').length === 0 ||
@@ -3706,11 +3706,11 @@ function App() {
                         {isGeneratingAssets ? '...' : '⟳ Generar'}
                       </button>
                       <button
-                        className="text-xs px-2 py-0.5 rounded border border-red-500/50 text-red-400 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        className="text-xs px-3 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 text-red-400 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1"
                         disabled={timelineVideoClips.filter(c => c.type === 'graphic').length === 0}
                         onClick={handleClearGraphics}
                       >
-                        ✕
+                        🗑 Limpiar
                       </button>
                     </div>
                   </div>
@@ -3922,18 +3922,18 @@ function App() {
                   </label>
                   <div className="flex gap-1">
                     <button
-                      className="text-xs px-2 py-0.5 rounded border border-indigo-500 text-indigo-400 hover:bg-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      className="text-xs px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow-sm shadow-indigo-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1"
                       disabled={(!aiScript?.trim() && !originalTranscriptText?.trim()) || timelineVideoClips.filter(c=>c.type!=='audio'&&c.type!=='graphic').length===0 || isGeneratingAssets}
                       onClick={handleRegenerateGraphics}
                     >
                       {isGeneratingAssets ? '...' : '⟳ Generar'}
                     </button>
                     <button
-                      className="text-xs px-2 py-0.5 rounded border border-red-500/50 text-red-400 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      className="text-xs px-3 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 text-red-400 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1"
                       disabled={timelineVideoClips.filter(c=>c.type==='graphic').length===0}
                       onClick={handleClearGraphics}
                     >
-                      ✕
+                      🗑 Limpiar
                     </button>
                   </div>
                 </div>
