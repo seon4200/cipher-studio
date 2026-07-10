@@ -2660,6 +2660,10 @@ function App() {
     }
   };
 
+  const handleClearGraphics = () => {
+    setTimelineVideoClips(prev => prev.filter(c => c.type !== 'graphic'));
+  };
+
   const handleRegenerateGraphics = async () => {
     const textToUse = aiScript.trim() || originalTranscriptText.trim();
     if (!textToUse) return;
@@ -3685,9 +3689,31 @@ function App() {
                 </div>
                 {/* ----- Selector de Porcentaje de Gráficos ----- */}
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Porcentaje de Gráficos
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-slate-300">
+                      Porcentaje de Gráficos
+                    </label>
+                    <div className="flex gap-1">
+                      <button
+                        className="text-xs px-2 py-0.5 rounded border border-indigo-500 text-indigo-400 hover:bg-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        disabled={
+                          (!aiScript?.trim() && !originalTranscriptText?.trim()) ||
+                          timelineVideoClips.filter(c => c.type !== 'audio' && c.type !== 'graphic').length === 0 ||
+                          isGeneratingAssets
+                        }
+                        onClick={handleRegenerateGraphics}
+                      >
+                        {isGeneratingAssets ? '...' : '⟳ Generar'}
+                      </button>
+                      <button
+                        className="text-xs px-2 py-0.5 rounded border border-red-500/50 text-red-400 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        disabled={timelineVideoClips.filter(c => c.type === 'graphic').length === 0}
+                        onClick={handleClearGraphics}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-3 gap-2 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]">
                     {[0, 50, 100].map((val) => {
                       const active = graphicsPercent === val;
@@ -3708,18 +3734,6 @@ function App() {
                     })}
                   </div>
                 </div>
-                {/* ----- Botón Regenerar Gráficos ----- */}
-                <button
-                  className={`mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed`}
-                  disabled={
-                    (!aiScript?.trim() && !originalTranscriptText?.trim()) ||
-                    timelineVideoClips.filter(c => c.type !== 'audio' && c.type !== 'graphic').length === 0 ||
-                    isGeneratingAssets
-                  }
-                  onClick={handleRegenerateGraphics}
-                >
-                  {isGeneratingAssets ? 'Generando...' : 'Regenerar Gráficos'}
-                </button>
               </>
             )}
             {generationError && (
@@ -3902,6 +3916,27 @@ function App() {
                 )}
               </div>
               <div className='mt-3'>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-slate-300">
+                    Porcentaje de Gráficos
+                  </label>
+                  <div className="flex gap-1">
+                    <button
+                      className="text-xs px-2 py-0.5 rounded border border-indigo-500 text-indigo-400 hover:bg-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      disabled={(!aiScript?.trim() && !originalTranscriptText?.trim()) || timelineVideoClips.filter(c=>c.type!=='audio'&&c.type!=='graphic').length===0 || isGeneratingAssets}
+                      onClick={handleRegenerateGraphics}
+                    >
+                      {isGeneratingAssets ? '...' : '⟳ Generar'}
+                    </button>
+                    <button
+                      className="text-xs px-2 py-0.5 rounded border border-red-500/50 text-red-400 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      disabled={timelineVideoClips.filter(c=>c.type==='graphic').length===0}
+                      onClick={handleClearGraphics}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
                 <div className='grid grid-cols-3 gap-2 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]'>
                   {[0,50,100].map((val) => (
                     <button key={val} onClick={() => setGraphicsPercent(val)}
@@ -3911,11 +3946,6 @@ function App() {
                   ))}
                 </div>
               </div>
-              <button onClick={handleRegenerateGraphics}
-                disabled={(!aiScript?.trim() && !originalTranscriptText?.trim()) || timelineVideoClips.filter(c=>c.type!=='audio'&&c.type!=='graphic').length===0 || isGeneratingAssets}
-                className='mt-3 w-full px-4 py-2 bg-indigo-650 hover:bg-indigo-500 text-white rounded disabled:opacity-50'>
-                {isGeneratingAssets ? 'Generando...' : 'Regenerar Gráficos'}
-              </button>
             </div>
           )}
 
