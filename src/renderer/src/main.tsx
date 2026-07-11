@@ -421,6 +421,7 @@ interface TimelineVersion {
 
 function App() {
   const [isPlaying, setIsPlaying] = useState(false)
+  const [appMode, setAppMode] = useState<'editor' | 'crear'>('editor');
   const [currentTime, setCurrentTime] = useState('00:00:15:22')
   const [perfectSyncMode, setPerfectSyncMode] = useState(false)
   const [showVideoV2Track, setShowVideoV2Track] = useState(false)
@@ -3646,6 +3647,16 @@ function App() {
                 }`}
               >
                 ✦ Transiciones
+              </button>
+              <button
+                onClick={() => setAppMode(appMode === 'crear' ? 'editor' : 'crear')}
+                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  appMode === 'crear'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40'
+                    : 'bg-[#1C1C1E] text-slate-400 hover:text-white border border-[#3a3a3c] hover:border-indigo-500'
+                }`}
+              >
+                ✦ Crear con IA
               </button>
             </div>
             <button 
