@@ -3816,7 +3816,8 @@ function App() {
                     <div className='mt-2 grid grid-cols-3 gap-1 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]'>
                       {[0,50,100].map((val) => (
                         <button key={val} onClick={() => setTransitionsPercent(prev => prev === val ? -1 : val)}
-                          className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
+                          disabled={!timelineVideoClips.find(c => c.type === 'audio')}
+                          className={`py-1.5 text-xs font-bold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
                             transitionsPercent===val
                               ? 'bg-violet-600 text-white shadow-md'
                               : 'text-slate-400 hover:text-slate-200 hover:bg-[#3a3a3c]/50'
@@ -3831,7 +3832,7 @@ function App() {
                 <div className="mt-4">
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-sm font-medium text-slate-300">
-                      Porcentaje de Gráficos
+                      Gráficos
                     </label>
                     <div className="flex gap-1">
                       <button
@@ -3872,9 +3873,10 @@ function App() {
                           key={val}
                           type="button"
                           onClick={() => setGraphicsPercent(prev => prev === val ? -1 : val)}
-                          className={`py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                          disabled={!timelineVideoClips.find(c => c.type === 'audio')}
+                          className={`py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
                             active
-                              ? 'bg-indigo-650 text-white shadow-md shadow-indigo-500/20'
+                              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 ring-2 ring-indigo-400/60'
                               : 'text-slate-400 hover:text-slate-200 hover:bg-[#3a3a3c]/50'
                           }`}
                         >
@@ -4054,7 +4056,8 @@ function App() {
                   <div className='mt-2 grid grid-cols-3 gap-1 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]'>
                     {[0,50,100].map((val) => (
                       <button key={val} onClick={() => setTransitionsPercent(prev => prev === val ? -1 : val)}
-                        className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
+                        disabled={!timelineVideoClips.find(c => c.type === 'audio')}
+                        className={`py-1.5 text-xs font-bold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
                           transitionsPercent===val
                             ? 'bg-violet-600 text-white shadow-md'
                             : 'text-slate-400 hover:text-slate-200 hover:bg-[#3a3a3c]/50'
@@ -4068,7 +4071,7 @@ function App() {
               <div className='mt-3'>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium text-slate-300">
-                    Porcentaje de Gráficos
+                    Gráficos
                   </label>
                   <div className="flex gap-1">
                     <button
@@ -4104,7 +4107,8 @@ function App() {
                 <div className='grid grid-cols-3 gap-2 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]'>
                   {[0,50,100].map((val) => (
                     <button key={val} onClick={() => setGraphicsPercent(prev => prev === val ? -1 : val)}
-                      className={`py-1.5 text-xs font-bold rounded-lg ${graphicsPercent===val ? 'bg-indigo-650 text-white' : 'text-slate-400'}`}>
+                      disabled={!timelineVideoClips.find(c => c.type === 'audio')}
+                      className={`py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${graphicsPercent===val ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 ring-2 ring-indigo-400/60' : 'text-slate-400'}`}>
                       {val}%
                     </button>
                   ))}
