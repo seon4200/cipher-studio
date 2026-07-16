@@ -27,6 +27,7 @@ export interface IElectronAPI {
   deleteAllProjects: () => Promise<{ success: boolean; error?: string }>;
   clearGlobalStockCache: () => Promise<{ success: boolean; error?: string }>;
   readFileAsBlob: (params: { filePath: string }) => Promise<{ success: boolean; buffer?: Uint8Array; error?: string }>;
+  generateThumbnail: (videoPath: string) => Promise<{ success: boolean; thumbnail?: string; error?: string }>;
   regenerateGraphics: (params: { scriptText: string; clips: any[]; graphicsPercent: number; totalPhrases?: number; audioSegments?: any[]; audioPath?: string }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
 }
 

@@ -4717,15 +4717,30 @@ function App() {
                       input.type = 'file';
                       input.multiple = true;
                       input.accept = 'video/*,image/*';
-                      input.onchange = (e: any) => {
+                      input.onchange = async (e: any) => {
                         const files = Array.from(e.target.files || []) as File[];
-                        const newClips = files.map((f: File) => ({
-                          id: `import-${Date.now()}-${Math.random()}`,
-                          name: f.name,
-                          path: (f as any).path || f.name,
-                          type: f.type.startsWith('video') ? 'video' : 'image',
-                          size: f.size,
-                        }));
+                        const newClips: any[] = [];
+                        for (const f of files) {
+                          const clip: any = {
+                            id: `import-${Date.now()}-${Math.random()}`,
+                            name: f.name,
+                            path: (f as any).path || f.name,
+                            type: f.type.startsWith('video') ? 'video' : 'image',
+                            size: f.size,
+                            thumbnail: null,
+                          };
+                          if (clip.type === 'video' && clip.path) {
+                            try {
+                              const res = await window.electronAPI.generateThumbnail(clip.path);
+                              if (res && res.success && res.thumbnail) {
+                                clip.thumbnail = res.thumbnail;
+                              }
+                            } catch (err) {
+                              console.error('Error generando thumbnail:', err);
+                            }
+                          }
+                          newClips.push(clip);
+                        }
                         setImportedClips(prev => [...prev, ...newClips]);
                       };
                       input.click();
@@ -4736,45 +4751,68 @@ function App() {
                   </button>
                 </div>
               ) : (
-                <div className='space-y-1'>
-                  {importedClips.map(clip => (
-                    <div key={clip.id} className='flex items-center gap-2 p-2 bg-[#0D0D0F]/60 rounded-lg border border-[#3a3a3c]/50 hover:border-emerald-500/30 cursor-grab transition-all'>
-                      <div className='w-10 h-10 bg-[#3a3a3c] rounded-md flex items-center justify-center text-xs'>
-                        {clip.type === 'video' ? '🎬' : '🖼️'}
+                <div>
+                  <div className='grid grid-cols-3 gap-2'>
+                    {importedClips.map(clip => (
+                      <div key={clip.id} className='relative aspect-square bg-[#0D0D0F] rounded-lg border border-[#3a3a3c]/50 hover:border-emerald-500/40 cursor-grab transition-all overflow-hidden group'>
+                        <div className='absolute inset-0'>
+                          {clip.thumbnail ? (
+                            <img src={clip.thumbnail} className='w-full h-full object-cover' alt={clip.name} />
+                          ) : (
+                            <div className='w-full h-full flex flex-col items-center justify-center'>
+                              <div className='text-2xl mb-1'>{clip.type === 'video' ? '🎬' : '🖼️'}</div>
+                            </div>
+                          )}
+                          <div className='absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1'>
+                            <div className='text-[8px] text-white truncate'>{clip.name.replace(/\.[^/.]+$/, '')}</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setImportedClips(prev => prev.filter(c => c.id !== clip.id))}
+                          className='absolute top-1 right-1 w-4 h-4 bg-[#0D0D0F]/80 rounded-full text-slate-600 hover:text-red-400 text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all'
+                        >✕</button>
                       </div>
-                      <div className='flex-1 min-w-0'>
-                        <div className='text-[11px] text-slate-300 truncate'>{clip.name}</div>
-                        <div className='text-[9px] text-slate-600'>{clip.type}</div>
-                      </div>
-                      <button
-                        onClick={() => setImportedClips(prev => prev.filter(c => c.id !== clip.id))}
-                        className='text-slate-600 hover:text-red-400 text-xs transition-colors'
-                      >✕</button>
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => {
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.multiple = true;
-                      input.accept = 'video/*,image/*';
-                      input.onchange = (e: any) => {
-                        const files = Array.from(e.target.files || []) as File[];
-                        const newClips = files.map((f: File) => ({
-                          id: `import-${Date.now()}-${Math.random()}`,
-                          name: f.name,
-                          path: (f as any).path || f.name,
-                          type: f.type.startsWith('video') ? 'video' : 'image',
-                          size: f.size,
-                        }));
-                        setImportedClips(prev => [...prev, ...newClips]);
-                      };
-                      input.click();
-                    }}
-                    className='w-full mt-2 py-2 bg-[#0D0D0F] border border-dashed border-[#3a3a3c] text-slate-400 text-xs rounded-lg hover:border-emerald-500/40 hover:text-emerald-400 transition-all'
-                  >
-                    + Agregar más
-                  </button>
+                    ))}
+                    <button
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.multiple = true;
+                        input.accept = 'video/*,image/*';
+                        input.onchange = async (e: any) => {
+                          const files = Array.from(e.target.files || []) as File[];
+                          const newClips: any[] = [];
+                          for (const f of files) {
+                            const clip: any = {
+                              id: `import-${Date.now()}-${Math.random()}`,
+                              name: f.name,
+                              path: (f as any).path || f.name,
+                              type: f.type.startsWith('video') ? 'video' : 'image',
+                              size: f.size,
+                              thumbnail: null,
+                            };
+                            if (clip.type === 'video' && clip.path) {
+                              try {
+                                const res = await window.electronAPI.generateThumbnail(clip.path);
+                                if (res && res.success && res.thumbnail) {
+                                  clip.thumbnail = res.thumbnail;
+                                }
+                              } catch (err) {
+                                console.error('Error generando thumbnail:', err);
+                              }
+                            }
+                            newClips.push(clip);
+                          }
+                          setImportedClips(prev => [...prev, ...newClips]);
+                        };
+                        input.click();
+                      }}
+                      className='aspect-square bg-[#0D0D0F] border border-dashed border-[#3a3a3c] rounded-lg flex flex-col items-center justify-center hover:border-emerald-500/40 hover:text-emerald-400 text-slate-600 transition-all cursor-pointer'
+                    >
+                      <div className='text-lg mb-0.5'>+</div>
+                      <div className='text-[9px]'>Agregar</div>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

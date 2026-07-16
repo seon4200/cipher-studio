@@ -1282,6 +1282,26 @@ ipcMain.handle('read-file-as-blob', async (_event, { filePath }) => {
   }
 })
 
+ipcMain.handle('generate-thumbnail', async (_event, videoPath: string) => {
+  try {
+    const thumbDir = path.join(getBancoClipsPath(), 'thumbnails');
+    if (!(await exists(thumbDir))) {
+      await fs.promises.mkdir(thumbDir, { recursive: true });
+    }
+    const thumbName = `thumb_${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+    const thumbPath = path.join(thumbDir, thumbName);
+    await generateVideoThumbnail(videoPath, thumbPath);
+    if (await exists(thumbPath)) {
+      const base64 = (await fs.promises.readFile(thumbPath)).toString('base64');
+      return { success: true, thumbnail: `data:image/jpeg;base64,${base64}` };
+    }
+    return { success: false };
+  } catch (e) {
+    console.error('[generate-thumbnail] Error:', e);
+    return { success: false };
+  }
+});
+
 // IPC handle for deleting a clip inside a category folder of banco-clips
 ipcMain.handle('delete-bank-clip', async (_event, { category, file }) => {
   try {
