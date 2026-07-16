@@ -1673,7 +1673,7 @@ function App() {
   }, []);
 
   // Resizable panel dimensions
-  const [libraryWidth, setLibraryWidth] = useState(320)
+  const [libraryWidth, setLibraryWidth] = useState(360)
   const [toolsWidth, setToolsWidth] = useState(320)
   const [timelineHeight, setTimelineHeight] = useState(256)
 
@@ -3648,7 +3648,7 @@ function App() {
             <div className="grid grid-cols-4 gap-1">
               <button
                 onClick={() => setShowTrendsPanel(true)}
-                className={`py-1.5 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2.5 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   showTrendsPanel
                     ? 'bg-rose-500/20 border border-rose-500/40 text-rose-300'
                     : 'bg-[#242426] border border-[#3a3a3c] text-slate-400 hover:text-rose-300'
@@ -3658,7 +3658,7 @@ function App() {
               </button>
               <button
                 onClick={() => setAppMode(appMode === 'crear' ? 'editor' : 'crear')}
-                className={`py-1.5 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2.5 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   appMode === 'crear'
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
                     : 'bg-[#242426] border border-[#3a3a3c] text-slate-400 hover:text-indigo-300'
@@ -3668,7 +3668,7 @@ function App() {
               </button>
               <button
                 onClick={() => { setShowTransitionsPanel(!showTransitionsPanel); if (!showTransitionsPanel) setShowImportPanel(false); }}
-                className={`py-1.5 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2.5 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   showTransitionsPanel
                     ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300'
                     : 'bg-[#242426] border border-[#3a3a3c] text-slate-400 hover:text-sky-300'
@@ -3678,7 +3678,7 @@ function App() {
               </button>
               <button
                 onClick={() => { setShowImportPanel(!showImportPanel); if (!showImportPanel) setShowTransitionsPanel(false); }}
-                className={`py-1.5 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2.5 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   showImportPanel
                     ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
                     : 'bg-[#242426] border border-[#3a3a3c] text-slate-400 hover:text-emerald-300'
