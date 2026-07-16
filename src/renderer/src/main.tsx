@@ -422,6 +422,11 @@ interface TimelineVersion {
 function App() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [appMode, setAppMode] = useState<'editor' | 'crear'>('editor');
+  const [crearTab, setCrearTab] = useState<'idea' | 'guion' | 'url'>('idea');
+  const [crearDuration, setCrearDuration] = useState<string>('1m');
+  const [crearFormat, setCrearFormat] = useState<string>('9:16');
+  const [crearTone, setCrearTone] = useState<string>('documental');
+  const [crearIdea, setCrearIdea] = useState<string>('');
   const [currentTime, setCurrentTime] = useState('00:00:15:22')
   const [perfectSyncMode, setPerfectSyncMode] = useState(false)
   const [showVideoV2Track, setShowVideoV2Track] = useState(false)
@@ -4694,32 +4699,67 @@ function App() {
               <div className="w-full max-w-2xl">
 
                 <div className="flex gap-1 mb-5 bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl p-1">
-                  <button className="flex-1 py-2 rounded-lg bg-indigo-600 text-white text-xs font-medium">💡 Idea</button>
-                  <button className="flex-1 py-2 rounded-lg bg-transparent text-slate-400 text-xs font-medium hover:text-white">📄 Guión</button>
-                  <button className="flex-1 py-2 rounded-lg bg-transparent text-slate-400 text-xs font-medium hover:text-white">🔗 URL</button>
+                  {[
+                    { id: 'idea', label: '💡 Idea' },
+                    { id: 'guion', label: '📄 Guión' },
+                    { id: 'url', label: '🔗 URL' }
+                  ].map(tab => (
+                    <button key={tab.id} onClick={() => setCrearTab(tab.id as any)}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                        crearTab === tab.id
+                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+                          : 'text-slate-500 hover:text-slate-300 hover:bg-[#3a3a3c]/30'
+                      }`}>{tab.label}</button>
+                  ))}
                 </div>
 
-                <textarea
-                  placeholder="Describe tu idea o tema para el video..."
-                  className="w-full min-h-[100px] bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl p-4 text-white text-sm font-sans resize-y mb-4"
-                />
+                {crearTab === 'idea' && (
+                  <textarea
+                    value={crearIdea}
+                    onChange={(e) => setCrearIdea(e.target.value)}
+                    placeholder="Describe tu idea o tema para el video..."
+                    className="w-full min-h-[100px] bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl p-4 text-white text-sm font-sans resize-y mb-4 focus:border-indigo-500/50 focus:outline-none transition-colors"
+                  />
+                )}
+                {crearTab === 'guion' && (
+                  <textarea
+                    placeholder="Pega tu guión aquí..."
+                    className="w-full min-h-[140px] bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl p-4 text-white text-sm font-sans resize-y mb-4 focus:border-indigo-500/50 focus:outline-none transition-colors"
+                  />
+                )}
+                {crearTab === 'url' && (
+                  <input
+                    type="text"
+                    placeholder="Pega la URL de un artículo o noticia..."
+                    className="w-full bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl p-4 text-white text-sm font-sans mb-4 focus:border-indigo-500/50 focus:outline-none transition-colors"
+                  />
+                )}
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
                     <label className="block text-[11px] text-slate-500 mb-1.5">Duración</label>
-                    <div className="grid grid-cols-4 gap-1 bg-[#1C1C1E] border border-[#3a3a3c] rounded-lg p-1">
-                      <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">30s</button>
-                      <button className="py-1.5 rounded-md bg-indigo-600 text-white text-[11px]">1m</button>
-                      <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">3m</button>
-                      <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">5m</button>
+                    <div className="flex flex-wrap gap-1 bg-[#1C1C1E] border border-[#3a3a3c] rounded-lg p-1">
+                      {['30s','1m','3m','5m','10m','15m','30m'].map(d => (
+                        <button key={d} onClick={() => setCrearDuration(d)}
+                          className={`px-2 py-1.5 rounded-md text-[11px] font-medium transition-all ${
+                            crearDuration === d
+                              ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/30'
+                              : 'text-slate-500 hover:text-slate-300 hover:bg-[#3a3a3c]/40'
+                          }`}>{d}</button>
+                      ))}
                     </div>
                   </div>
                   <div>
                     <label className="block text-[11px] text-slate-500 mb-1.5">Formato</label>
                     <div className="grid grid-cols-3 gap-1 bg-[#1C1C1E] border border-[#3a3a3c] rounded-lg p-1">
-                      <button className="py-1.5 rounded-md bg-indigo-600 text-white text-[11px]">9:16</button>
-                      <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">16:9</button>
-                      <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">1:1</button>
+                      {['9:16','16:9','1:1'].map(f => (
+                        <button key={f} onClick={() => setCrearFormat(f)}
+                          className={`py-1.5 rounded-md text-[11px] font-medium transition-all ${
+                            crearFormat === f
+                              ? 'bg-violet-600 text-white shadow-sm shadow-violet-500/30'
+                              : 'text-slate-500 hover:text-slate-300 hover:bg-[#3a3a3c]/40'
+                          }`}>{f}</button>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -4727,27 +4767,39 @@ function App() {
                 <div className="mb-4">
                   <label className="block text-[11px] text-slate-500 mb-1.5">Tono narrativo</label>
                   <div className="grid grid-cols-4 gap-1 bg-[#1C1C1E] border border-[#3a3a3c] rounded-lg p-1">
-                    <button className="py-1.5 rounded-md bg-indigo-600 text-white text-[11px]">Documental</button>
-                    <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">Educativo</button>
-                    <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">Casual</button>
-                    <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">Dramático</button>
+                    {[
+                      { id: 'documental', label: 'Documental' },
+                      { id: 'educativo', label: 'Educativo' },
+                      { id: 'casual', label: 'Casual' },
+                      { id: 'dramatico', label: 'Dramático' }
+                    ].map(t => (
+                      <button key={t.id} onClick={() => setCrearTone(t.id)}
+                        className={`py-1.5 rounded-md text-[11px] font-medium transition-all ${
+                          crearTone === t.id
+                            ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/30'
+                            : 'text-slate-500 hover:text-slate-300 hover:bg-[#3a3a3c]/40'
+                        }`}>{t.label}</button>
+                    ))}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-5">
-                  <div className="bg-[#1C1C1E] border border-dashed border-[#3a3a3c] rounded-xl p-4 text-center cursor-pointer hover:border-indigo-500 transition-all">
+                  <div className="bg-[#1C1C1E] border border-dashed border-[#3a3a3c] rounded-xl p-4 text-center cursor-pointer hover:border-indigo-500/60 hover:bg-indigo-500/5 transition-all">
                     <div className="text-lg mb-1">📹</div>
                     <div className="text-[11px] text-slate-500">Video de referencia</div>
                     <div className="text-[9px] text-slate-600 mt-1">Opcional</div>
                   </div>
-                  <div className="bg-[#1C1C1E] border border-dashed border-[#3a3a3c] rounded-xl p-4 text-center cursor-pointer hover:border-indigo-500 transition-all">
+                  <div className="bg-[#1C1C1E] border border-dashed border-[#3a3a3c] rounded-xl p-4 text-center cursor-pointer hover:border-violet-500/60 hover:bg-violet-500/5 transition-all">
                     <div className="text-lg mb-1">🎵</div>
                     <div className="text-[11px] text-slate-500">Música de fondo</div>
                     <div className="text-[9px] text-slate-600 mt-1">Opcional</div>
                   </div>
                 </div>
 
-                <button className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-medium flex items-center justify-center gap-2 hover:from-indigo-500 hover:to-violet-500 transition-all shadow-lg shadow-indigo-600/30">
+                <button 
+                  disabled={!crearIdea.trim() && crearTab === 'idea'}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-medium flex items-center justify-center gap-2 hover:from-indigo-500 hover:to-violet-500 transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
                   ✦ Generar propuestas de guión
                 </button>
                 <p className="text-center text-[10px] text-slate-600 mt-2">La IA propondrá 3 enfoques narrativos para elegir</p>
