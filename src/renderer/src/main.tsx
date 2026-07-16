@@ -4691,7 +4691,7 @@ function App() {
         {appMode === 'crear' ? (
           <section className="flex-1 bg-[#0D0D0F] flex flex-col p-6 overflow-y-auto">
             <div className="flex-1 flex items-center justify-center">
-              <div className="w-full max-w-lg">
+              <div className="w-full max-w-2xl">
 
                 <div className="flex gap-1 mb-5 bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl p-1">
                   <button className="flex-1 py-2 rounded-lg bg-indigo-600 text-white text-xs font-medium">💡 Idea</button>
