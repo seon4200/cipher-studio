@@ -3666,7 +3666,101 @@ function App() {
               <Upload className="h-4 w-4" />
             </button>
           </div>
+          {appMode === 'crear' ? (
+            <div className="flex-1 overflow-y-auto p-3 space-y-4">
 
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-2">
+                <span>Mix del Montaje</span>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                  <span className="text-[11px] text-slate-400 w-12">Original</span>
+                  <div className="flex-1 h-1 bg-[#3a3a3c] rounded-full">
+                    <div className="h-full bg-[#555] rounded-full" style={{width:'0%'}}></div>
+                  </div>
+                  <span className="text-[10px] text-[#555] w-6 text-right">0%</span>
+                </div>
+                <div className="text-[9px] text-[#555] pl-4 -mt-2">Sube un video para activar</div>
+
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-sky-500"></div>
+                  <span className="text-[11px] text-slate-400 w-12">Stock</span>
+                  <div className="flex-1 h-1 bg-[#3a3a3c] rounded-full relative">
+                    <div className="h-full bg-sky-500 rounded-full" style={{width:'80%'}}></div>
+                  </div>
+                  <span className="text-[10px] text-sky-500 font-medium w-6 text-right">80%</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                  <span className="text-[11px] text-slate-400 w-12">IA</span>
+                  <div className="flex-1 h-1 bg-[#3a3a3c] rounded-full relative">
+                    <div className="h-full bg-amber-500 rounded-full" style={{width:'20%'}}></div>
+                  </div>
+                  <span className="text-[10px] text-amber-500 font-medium w-6 text-right">20%</span>
+                </div>
+
+                <div className="h-1 rounded-full flex overflow-hidden">
+                  <div style={{width:'80%'}} className="bg-sky-500"></div>
+                  <div style={{width:'20%'}} className="bg-amber-500"></div>
+                </div>
+              </div>
+
+              <div className="border-t border-[#3a3a3c] pt-3">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Voz</div>
+                <select className="w-full bg-[#0D0D0F] border border-[#3a3a3c] rounded-lg p-1.5 text-[11px] text-slate-300 mb-2">
+                  <option>Rachel (ES) - Femenina</option>
+                  <option>Antoni (ES) - Masculina</option>
+                </select>
+                <select className="w-full bg-[#0D0D0F] border border-[#3a3a3c] rounded-lg p-1.5 text-[11px] text-slate-300">
+                  <option>Velocidad: 1.0x</option>
+                  <option>Velocidad: 0.8x</option>
+                  <option>Velocidad: 1.2x</option>
+                </select>
+              </div>
+
+              <div className="border-t border-[#3a3a3c] pt-3">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Efectos</div>
+
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] text-slate-300">Transiciones</span>
+                  <div className="w-8 h-4 rounded-full bg-indigo-600 relative cursor-pointer">
+                    <div className="w-3 h-3 rounded-full bg-white absolute right-0.5 top-0.5"></div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] text-slate-300">Gráficos</span>
+                  <div className="w-8 h-4 rounded-full bg-[#3a3a3c] relative cursor-pointer">
+                    <div className="w-3 h-3 rounded-full bg-[#8e8e93] absolute left-0.5 top-0.5"></div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-slate-300">Música ambiental</span>
+                  <div className="w-8 h-4 rounded-full bg-indigo-600 relative cursor-pointer">
+                    <div className="w-3 h-3 rounded-full bg-white absolute right-0.5 top-0.5"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-[#3a3a3c] pt-3">
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">🪙</span>
+                    <div>
+                      <div className="text-[10px] font-medium text-amber-400">12 créditos</div>
+                      <div className="text-[9px] text-[#8e8e93]">4 clips IA · Tienes 45</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          ) : (
+            <>
           {/* Library Tabs */}
           <div className="flex border-b border-[#3a3a3c]/80 bg-[#1C1C1E]/40 p-1 overflow-x-auto scrollbar-none space-x-1 flex-shrink-0">
             {['Principal', 'Originales', 'Stock', 'MiniMax'].map(tab => (
@@ -4480,6 +4574,8 @@ function App() {
               ));
             })()}
           </div>
+          </>
+          )}
         </section>
 
         {/* Resizer 1: Library Resizer */}
