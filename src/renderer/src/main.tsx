@@ -7,6 +7,7 @@ import {
   Undo, Redo, Sliders, ChevronDown, Save
 } from 'lucide-react'
 import './styles/globals.css'
+import TrendsPanel from './TrendsPanel'
 
 /* --------------------------------------------------------------
    AnimatedGraphic – Fase 2
@@ -494,6 +495,7 @@ function App() {
   const [transitionsPercent, setTransitionsPercent] = useState<number>(-1);
   const [showTransitionsPanel, setShowTransitionsPanel] = useState<boolean>(false);
   const [showImportPanel, setShowImportPanel] = useState<boolean>(false);
+  const [showTrendsPanel, setShowTrendsPanel] = useState<boolean>(false);
   const [importedClips, setImportedClips] = useState<any[]>([]);
   const [transitionDuration, setTransitionDuration] = useState<number>(0.5);
   const [isTransitionActive, setIsTransitionActive] = useState<boolean>(false);
@@ -528,7 +530,7 @@ function App() {
   }, [transitionNextUrl]);
 
   if (typeof window !== 'undefined' && (window as any).__never) {
-    console.log(assignedTransitions, setAssignedTransitions, draggingTransition, setDraggingTransition, transitionType, setTransitionType, showImportPanel, setShowImportPanel, importedClips, setImportedClips);
+    console.log(assignedTransitions, setAssignedTransitions, draggingTransition, setDraggingTransition, transitionType, setTransitionType, showImportPanel, setShowImportPanel, importedClips, setImportedClips, showTrendsPanel, setShowTrendsPanel);
   }
 
 
@@ -3645,14 +3647,14 @@ function App() {
           <div className="p-3 border-b border-[#3a3a3c]/80 flex justify-between items-center">
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => { setShowTransitionsPanel(!showTransitionsPanel); if (!showTransitionsPanel) setShowImportPanel(false); }}
-                className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${
-                  showTransitionsPanel
-                    ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300 shadow-sm shadow-sky-500/10'
-                    : 'bg-[#3a3a3c]/60 border border-slate-700/50 text-slate-300 hover:text-sky-300 hover:border-sky-500/30'
+                onClick={() => setShowTrendsPanel(true)}
+                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                  showTrendsPanel
+                    ? 'bg-rose-500/20 border border-rose-500/40 text-rose-300 shadow-sm shadow-rose-500/10'
+                    : 'bg-[#3a3a3c]/60 border border-slate-700/50 text-slate-300 hover:text-rose-300 hover:border-rose-500/30'
                 }`}
               >
-                ✦ Transiciones
+                📡 Tendencias
               </button>
               <button
                 onClick={() => setAppMode(appMode === 'crear' ? 'editor' : 'crear')}
@@ -3663,6 +3665,18 @@ function App() {
                 }`}
               >
                 ✦ Crear con IA
+              </button>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => { setShowTransitionsPanel(!showTransitionsPanel); if (!showTransitionsPanel) setShowImportPanel(false); }}
+                className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${
+                  showTransitionsPanel
+                    ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300 shadow-sm shadow-sky-500/10'
+                    : 'bg-[#3a3a3c]/60 border border-slate-700/50 text-slate-300 hover:text-sky-300 hover:border-sky-500/30'
+                }`}
+              >
+                ✦ Transiciones
               </button>
               <button
                 onClick={() => { setShowImportPanel(!showImportPanel); if (!showImportPanel) setShowTransitionsPanel(false); }}
@@ -7093,6 +7107,7 @@ function App() {
           </div>
         </div>
       )}
+      <TrendsPanel isOpen={showTrendsPanel} onClose={() => setShowTrendsPanel(false)} />
     </div>
   )
 }
