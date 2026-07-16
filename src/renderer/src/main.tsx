@@ -493,6 +493,8 @@ function App() {
   // Estados para transiciones GL
   const [transitionsPercent, setTransitionsPercent] = useState<number>(-1);
   const [showTransitionsPanel, setShowTransitionsPanel] = useState<boolean>(false);
+  const [showImportPanel, setShowImportPanel] = useState<boolean>(false);
+  const [importedClips, setImportedClips] = useState<any[]>([]);
   const [transitionDuration, setTransitionDuration] = useState<number>(0.5);
   const [isTransitionActive, setIsTransitionActive] = useState<boolean>(false);
   const [transitionType, setTransitionType] = useState<string>('fade');
@@ -526,7 +528,7 @@ function App() {
   }, [transitionNextUrl]);
 
   if (typeof window !== 'undefined' && (window as any).__never) {
-    console.log(assignedTransitions, setAssignedTransitions, draggingTransition, setDraggingTransition, transitionType, setTransitionType);
+    console.log(assignedTransitions, setAssignedTransitions, draggingTransition, setDraggingTransition, transitionType, setTransitionType, showImportPanel, setShowImportPanel, importedClips, setImportedClips);
   }
 
 
@@ -3641,10 +3643,9 @@ function App() {
           className="bg-[#1C1C1E]/50 border-r border-[#3a3a3c]/80 flex flex-col flex-shrink-0"
         >
           <div className="p-3 border-b border-[#3a3a3c]/80 flex justify-between items-center">
-            <div className="flex items-center space-x-3">
-              <h2 className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Biblioteca</h2>
+            <div className="flex items-center space-x-2">
               <button
-                onClick={() => setShowTransitionsPanel(!showTransitionsPanel)}
+                onClick={() => { setShowTransitionsPanel(!showTransitionsPanel); if (!showTransitionsPanel) setShowImportPanel(false); }}
                 className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${
                   showTransitionsPanel
                     ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300 shadow-sm shadow-sky-500/10'
@@ -3655,7 +3656,7 @@ function App() {
               </button>
               <button
                 onClick={() => setAppMode(appMode === 'crear' ? 'editor' : 'crear')}
-                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
                   appMode === 'crear'
                     ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40'
                     : 'bg-[#1C1C1E] text-slate-400 hover:text-white border border-[#3a3a3c] hover:border-indigo-500'
@@ -3663,13 +3664,17 @@ function App() {
               >
                 ✦ Crear con IA
               </button>
+              <button
+                onClick={() => { setShowImportPanel(!showImportPanel); if (!showImportPanel) setShowTransitionsPanel(false); }}
+                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                  showImportPanel
+                    ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/10'
+                    : 'bg-[#3a3a3c]/60 border border-slate-700/50 text-slate-300 hover:text-emerald-300 hover:border-emerald-500/30'
+                }`}
+              >
+                📥 Importar
+              </button>
             </div>
-            <button 
-              onClick={handleUploadClick}
-              className="p-1 hover:bg-[#3a3a3c] rounded-md text-slate-400 hover:text-indigo-400 transition-colors"
-            >
-              <Upload className="h-4 w-4" />
-            </button>
           </div>
           {appMode === 'crear' ? (
             <div className="flex-1 overflow-y-auto p-3 space-y-4">
@@ -4688,6 +4693,93 @@ function App() {
             </div>
             <div className='p-2 border-t border-[#3a3a3c]/80 text-[9px] text-slate-500 text-center'>
               {selectedTransitions.length} de 38 activas
+            </div>
+          </section>
+        )}
+
+        {showImportPanel && (
+          <section className='w-[280px] bg-[#1C1C1E]/70 border-r border-[#3a3a3c]/80 flex flex-col flex-shrink-0 overflow-hidden'>
+            <div className='p-3 border-b border-[#3a3a3c]/80 flex justify-between items-center'>
+              <span className='text-xs font-bold text-emerald-300 uppercase tracking-wider'>📥 Clips Importados</span>
+              <button
+                onClick={() => setShowImportPanel(false)}
+                className='text-slate-500 hover:text-red-400 text-sm transition-colors'
+              >✕</button>
+            </div>
+            <div className='flex-1 overflow-y-auto p-2'>
+              {importedClips.length === 0 ? (
+                <div className='flex flex-col items-center justify-center h-full py-12'>
+                  <div className='text-3xl mb-3'>📁</div>
+                  <p className='text-xs text-slate-500 text-center mb-3'>No hay clips importados</p>
+                  <button
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.multiple = true;
+                      input.accept = 'video/*,image/*';
+                      input.onchange = (e: any) => {
+                        const files = Array.from(e.target.files || []) as File[];
+                        const newClips = files.map((f: File) => ({
+                          id: `import-${Date.now()}-${Math.random()}`,
+                          name: f.name,
+                          path: (f as any).path || f.name,
+                          type: f.type.startsWith('video') ? 'video' : 'image',
+                          size: f.size,
+                        }));
+                        setImportedClips(prev => [...prev, ...newClips]);
+                      };
+                      input.click();
+                    }}
+                    className='px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium rounded-lg transition-all shadow-sm shadow-emerald-500/30'
+                  >
+                    Importar archivos
+                  </button>
+                </div>
+              ) : (
+                <div className='space-y-1'>
+                  {importedClips.map(clip => (
+                    <div key={clip.id} className='flex items-center gap-2 p-2 bg-[#0D0D0F]/60 rounded-lg border border-[#3a3a3c]/50 hover:border-emerald-500/30 cursor-grab transition-all'>
+                      <div className='w-10 h-10 bg-[#3a3a3c] rounded-md flex items-center justify-center text-xs'>
+                        {clip.type === 'video' ? '🎬' : '🖼️'}
+                      </div>
+                      <div className='flex-1 min-w-0'>
+                        <div className='text-[11px] text-slate-300 truncate'>{clip.name}</div>
+                        <div className='text-[9px] text-slate-600'>{clip.type}</div>
+                      </div>
+                      <button
+                        onClick={() => setImportedClips(prev => prev.filter(c => c.id !== clip.id))}
+                        className='text-slate-600 hover:text-red-400 text-xs transition-colors'
+                      >✕</button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.multiple = true;
+                      input.accept = 'video/*,image/*';
+                      input.onchange = (e: any) => {
+                        const files = Array.from(e.target.files || []) as File[];
+                        const newClips = files.map((f: File) => ({
+                          id: `import-${Date.now()}-${Math.random()}`,
+                          name: f.name,
+                          path: (f as any).path || f.name,
+                          type: f.type.startsWith('video') ? 'video' : 'image',
+                          size: f.size,
+                        }));
+                        setImportedClips(prev => [...prev, ...newClips]);
+                      };
+                      input.click();
+                    }}
+                    className='w-full mt-2 py-2 bg-[#0D0D0F] border border-dashed border-[#3a3a3c] text-slate-400 text-xs rounded-lg hover:border-emerald-500/40 hover:text-emerald-400 transition-all'
+                  >
+                    + Agregar más
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className='p-2 border-t border-[#3a3a3c]/80 text-[9px] text-slate-500 text-center'>
+              {importedClips.length} clips importados
             </div>
           </section>
         )}
