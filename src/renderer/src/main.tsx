@@ -3644,46 +3644,44 @@ function App() {
           style={{ width: `${libraryWidth}px` }} 
           className="bg-[#1C1C1E]/50 border-r border-[#3a3a3c]/80 flex flex-col flex-shrink-0"
         >
-          <div className="p-3 border-b border-[#3a3a3c]/80 flex justify-between items-center">
-            <div className="flex items-center space-x-2">
+          <div className="p-2 border-b border-[#3a3a3c]/80">
+            <div className="grid grid-cols-4 gap-1">
               <button
                 onClick={() => setShowTrendsPanel(true)}
-                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                className={`py-1.5 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   showTrendsPanel
-                    ? 'bg-rose-500/20 border border-rose-500/40 text-rose-300 shadow-sm shadow-rose-500/10'
-                    : 'bg-[#3a3a3c]/60 border border-slate-700/50 text-slate-300 hover:text-rose-300 hover:border-rose-500/30'
+                    ? 'bg-rose-500/20 border border-rose-500/40 text-rose-300'
+                    : 'bg-[#242426] border border-[#3a3a3c] text-slate-400 hover:text-rose-300'
                 }`}
               >
-                📡 Tendencias
+                📡 <span className="hidden xl:inline">Tendencias</span><span className="xl:hidden">Ideas</span>
               </button>
               <button
                 onClick={() => setAppMode(appMode === 'crear' ? 'editor' : 'crear')}
-                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                className={`py-1.5 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   appMode === 'crear'
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40'
-                    : 'bg-[#1C1C1E] text-slate-400 hover:text-white border border-[#3a3a3c] hover:border-indigo-500'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+                    : 'bg-[#242426] border border-[#3a3a3c] text-slate-400 hover:text-indigo-300'
                 }`}
               >
-                ✦ Crear con IA
+                ✦ Crear IA
               </button>
-            </div>
-            <div className="flex items-center space-x-2">
               <button
                 onClick={() => { setShowTransitionsPanel(!showTransitionsPanel); if (!showTransitionsPanel) setShowImportPanel(false); }}
-                className={`text-xs font-bold px-3 py-1 rounded-lg transition-all ${
+                className={`py-1.5 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   showTransitionsPanel
-                    ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300 shadow-sm shadow-sky-500/10'
-                    : 'bg-[#3a3a3c]/60 border border-slate-700/50 text-slate-300 hover:text-sky-300 hover:border-sky-500/30'
+                    ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300'
+                    : 'bg-[#242426] border border-[#3a3a3c] text-slate-400 hover:text-sky-300'
                 }`}
               >
-                ✦ Transiciones
+                ✦ Efectos
               </button>
               <button
                 onClick={() => { setShowImportPanel(!showImportPanel); if (!showImportPanel) setShowTransitionsPanel(false); }}
-                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                className={`py-1.5 text-[10px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   showImportPanel
-                    ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/10'
-                    : 'bg-[#3a3a3c]/60 border border-slate-700/50 text-slate-300 hover:text-emerald-300 hover:border-emerald-500/30'
+                    ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
+                    : 'bg-[#242426] border border-[#3a3a3c] text-slate-400 hover:text-emerald-300'
                 }`}
               >
                 📥 Importar
