@@ -4592,6 +4592,74 @@ function App() {
         )}
 
         {/* Center: Canvas Player */}
+        {appMode === 'crear' ? (
+          <section className="flex-1 bg-[#0D0D0F] flex flex-col p-6 overflow-y-auto">
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-full max-w-lg">
+
+                <div className="flex gap-1 mb-5 bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl p-1">
+                  <button className="flex-1 py-2 rounded-lg bg-indigo-600 text-white text-xs font-medium">💡 Idea</button>
+                  <button className="flex-1 py-2 rounded-lg bg-transparent text-slate-400 text-xs font-medium hover:text-white">📄 Guión</button>
+                  <button className="flex-1 py-2 rounded-lg bg-transparent text-slate-400 text-xs font-medium hover:text-white">🔗 URL</button>
+                </div>
+
+                <textarea
+                  placeholder="Describe tu idea o tema para el video..."
+                  className="w-full min-h-[100px] bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl p-4 text-white text-sm font-sans resize-y mb-4"
+                />
+
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="block text-[11px] text-slate-500 mb-1.5">Duración</label>
+                    <div className="grid grid-cols-4 gap-1 bg-[#1C1C1E] border border-[#3a3a3c] rounded-lg p-1">
+                      <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">30s</button>
+                      <button className="py-1.5 rounded-md bg-indigo-600 text-white text-[11px]">1m</button>
+                      <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">3m</button>
+                      <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">5m</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-500 mb-1.5">Formato</label>
+                    <div className="grid grid-cols-3 gap-1 bg-[#1C1C1E] border border-[#3a3a3c] rounded-lg p-1">
+                      <button className="py-1.5 rounded-md bg-indigo-600 text-white text-[11px]">9:16</button>
+                      <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">16:9</button>
+                      <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">1:1</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-[11px] text-slate-500 mb-1.5">Tono narrativo</label>
+                  <div className="grid grid-cols-4 gap-1 bg-[#1C1C1E] border border-[#3a3a3c] rounded-lg p-1">
+                    <button className="py-1.5 rounded-md bg-indigo-600 text-white text-[11px]">Documental</button>
+                    <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">Educativo</button>
+                    <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">Casual</button>
+                    <button className="py-1.5 rounded-md bg-transparent text-slate-500 text-[11px]">Dramático</button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="bg-[#1C1C1E] border border-dashed border-[#3a3a3c] rounded-xl p-4 text-center cursor-pointer hover:border-indigo-500 transition-all">
+                    <div className="text-lg mb-1">📹</div>
+                    <div className="text-[11px] text-slate-500">Video de referencia</div>
+                    <div className="text-[9px] text-slate-600 mt-1">Opcional</div>
+                  </div>
+                  <div className="bg-[#1C1C1E] border border-dashed border-[#3a3a3c] rounded-xl p-4 text-center cursor-pointer hover:border-indigo-500 transition-all">
+                    <div className="text-lg mb-1">🎵</div>
+                    <div className="text-[11px] text-slate-500">Música de fondo</div>
+                    <div className="text-[9px] text-slate-600 mt-1">Opcional</div>
+                  </div>
+                </div>
+
+                <button className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-medium flex items-center justify-center gap-2 hover:from-indigo-500 hover:to-violet-500 transition-all shadow-lg shadow-indigo-600/30">
+                  ✦ Generar propuestas de guión
+                </button>
+                <p className="text-center text-[10px] text-slate-600 mt-2">La IA propondrá 3 enfoques narrativos para elegir</p>
+
+              </div>
+            </div>
+          </section>
+        ) : (
         <section className="flex-1 bg-[#0D0D0F] flex flex-col p-4 overflow-hidden">
           <div 
             ref={playerWrapperRef}
@@ -5041,6 +5109,7 @@ function App() {
             </div>
           </div>
         </section>
+        )}
 
         {/* Resizer 2: Tools Resizer */}
         <div
