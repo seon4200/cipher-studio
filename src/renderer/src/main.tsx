@@ -3650,7 +3650,7 @@ function App() {
                 onClick={() => setShowTrendsPanel(true)}
                 className={`py-2.5 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   showTrendsPanel
-                    ? 'bg-rose-500/20 border border-rose-500/40 text-rose-300'
+                    ? 'bg-rose-500/25 border border-rose-400 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.5)] ring-1 ring-rose-400/50'
                     : 'bg-[#242426] border border-[#3a3a3c] text-slate-400 hover:text-rose-300'
                 }`}
               >
@@ -3660,7 +3660,7 @@ function App() {
                 onClick={() => setAppMode(appMode === 'crear' ? 'editor' : 'crear')}
                 className={`py-2.5 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   appMode === 'crear'
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+                    ? 'bg-indigo-600 border border-indigo-400 text-white shadow-[0_0_12px_rgba(99,102,241,0.5)] ring-1 ring-indigo-400/50'
                     : 'bg-[#242426] border border-[#3a3a3c] text-slate-400 hover:text-indigo-300'
                 }`}
               >
@@ -3670,7 +3670,7 @@ function App() {
                 onClick={() => { setShowTransitionsPanel(!showTransitionsPanel); if (!showTransitionsPanel) setShowImportPanel(false); }}
                 className={`py-2.5 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   showTransitionsPanel
-                    ? 'bg-sky-500/20 border border-sky-500/40 text-sky-300'
+                    ? 'bg-sky-500/25 border border-sky-400 text-sky-300 shadow-[0_0_12px_rgba(14,165,233,0.5)] ring-1 ring-sky-400/50'
                     : 'bg-[#242426] border border-[#3a3a3c] text-slate-400 hover:text-sky-300'
                 }`}
               >
@@ -3680,7 +3680,7 @@ function App() {
                 onClick={() => { setShowImportPanel(!showImportPanel); if (!showImportPanel) setShowTransitionsPanel(false); }}
                 className={`py-2.5 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   showImportPanel
-                    ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
+                    ? 'bg-emerald-500/25 border border-emerald-400 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.5)] ring-1 ring-emerald-400/50'
                     : 'bg-[#242426] border border-[#3a3a3c] text-slate-400 hover:text-emerald-300'
                 }`}
               >
