@@ -5216,6 +5216,7 @@ function App() {
         </div>
 
         {/* Right Side: AI Tools Panel */}
+        {appMode === 'editor' && (
         <section 
           style={{ width: `${toolsWidth}px` }} 
           className="bg-[#242426] border-l border-[#3a3a3c]/80 flex flex-col h-full overflow-hidden flex-shrink-0"
@@ -6053,6 +6054,7 @@ function App() {
             )}
           </div>
         </section>
+        )}
       </main>
 
       {/* Resizer 3: Timeline Resizer */}
