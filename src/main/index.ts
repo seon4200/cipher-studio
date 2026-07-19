@@ -2038,7 +2038,47 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               }
             }
 
-            // TODO: Agregar más proveedores aquí (NASA, etc.)
+            // Buscar en NASA Images (sin API key, público)
+            try {
+              const nasaUrl = `https://images-api.nasa.gov/search?q=${encodeURIComponent(keyword)}&media_type=video&page_size=3`;
+              await logMessage(`[FASE 3] Buscando stock en NASA para: "${keyword}"`);
+              const nasaRes = await fetch(nasaUrl);
+              if (nasaRes.ok) {
+                const nasaData = await nasaRes.json() as any;
+                const nasaItems = nasaData?.collection?.items || [];
+                const prevCount = stockResults.length;
+                for (const item of nasaItems.slice(0, 2)) {
+                  const nasaId = item?.data?.[0]?.nasa_id;
+                  if (!nasaId) continue;
+                  try {
+                    const assetRes = await fetch(`https://images-api.nasa.gov/asset/${nasaId}`);
+                    if (assetRes.ok) {
+                      const assetData = await assetRes.json() as any;
+                      const mp4Files = (assetData?.collection?.items || [])
+                        .filter((f: any) => f.href && f.href.endsWith('.mp4'))
+                        .sort((a: any, b: any) => (b.href.includes('large') ? 1 : 0) - (a.href.includes('large') ? 1 : 0));
+                      if (mp4Files.length > 0) {
+                        stockResults.push({
+                          provider: 'nasa',
+                          id: nasaId,
+                          downloadUrl: mp4Files[0].href,
+                          width: 1920,
+                          height: 1080,
+                          duration: undefined
+                        });
+                      }
+                    }
+                  } catch (assetErr) {
+                    await logMessage(`[FASE 3] Error obteniendo asset NASA ${nasaId}: ${assetErr}`);
+                  }
+                }
+                await logMessage(`[FASE 3] NASA devolvió ${stockResults.length - prevCount} resultados para: "${keyword}"`);
+              }
+            } catch (nasaErr) {
+              await logMessage(`[FASE 3] Error en NASA: ${nasaErr}`);
+            }
+
+            // TODO: Agregar más proveedores aquí
 
             await logMessage(`[FASE 3] Pool total: ${stockResults.length} clips de stock para: "${keyword}"`);
 
