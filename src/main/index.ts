@@ -1521,6 +1521,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       process.env.FAL_KEY = falApiKey;
     }
     const pexelsApiKey = process.env.PEXELS_API_KEY;
+    const pixabayApiKey = process.env.PIXABAY_API_KEY || '';
 
     let clipsDecision: any[] = [];
 
@@ -2017,9 +2018,91 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
             success = true;
           } catch (stockErr: any) {
-            await logMessage(`[FASE 3] Error Stock en clip ${item.index}: ${stockErr.message || stockErr}. Usando fallback original.`);
-            item.type = 'original';
-            item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
+            await logMessage(`[FASE 3] Error Pexels en clip ${item.index}: ${stockErr.message || stockErr}. Intentando fallback con Pixabay...`);
+            let pixabaySuccess = false;
+            if (pixabayApiKey) {
+              try {
+                const stockDir = path.join(getBancoClipsPath(), 'stock');
+                if (!(await exists(stockDir))) {
+                  await fs.promises.mkdir(stockDir, { recursive: true });
+                }
+                const pixabayUrl = `https://pixabay.com/api/videos/?key=${pixabayApiKey}&q=${encodeURIComponent(item.keyword || 'broll')}&per_page=5&safesearch=true`;
+                await logMessage(`[FASE 3] Fallback: Buscando en Pixabay para: "${item.keyword}"`);
+                const pixRes = await fetch(pixabayUrl);
+                if (pixRes.ok) {
+                  const pixData = await pixRes.json() as any;
+                  const pixVideo = pixData?.hits?.[0];
+                  if (pixVideo) {
+                    const pixVideoUrl = pixVideo.videos?.large?.url || pixVideo.videos?.medium?.url || pixVideo.videos?.small?.url || pixVideo.videos?.tiny?.url;
+                    if (pixVideoUrl) {
+                      const rawPixFilename = `pixabay_${pixVideo.id}_raw.mp4`;
+                      const rawPixPath = path.join(stockDir, rawPixFilename);
+                      if (!(await exists(rawPixPath))) {
+                        await logMessage(`[FASE 3] Descargando de Pixabay: ${pixVideoUrl}`);
+                        const pixDlRes = await fetch(pixVideoUrl);
+                        if (pixDlRes.ok) {
+                          const pixBuffer = await pixDlRes.arrayBuffer();
+                          await fs.promises.writeFile(rawPixPath, Buffer.from(pixBuffer));
+                        }
+                      } else {
+                        await logMessage(`[FASE 3] Usando caché de Pixabay: ${rawPixFilename}`);
+                      }
+                      if (await exists(rawPixPath)) {
+                        let filter = '';
+                        try {
+                          const dimensions = await getVideoDimensions(rawPixPath);
+                          const isVerticalOutput = aspectRatio === '9:16' || aspectRatio === 'vertical';
+                          if (isVerticalOutput) {
+                            if (dimensions.width > dimensions.height) {
+                              filter = 'crop=ih*9/16:ih,scale=1080:1920,setpts=0.8*PTS';
+                            } else {
+                              filter = 'crop=iw:iw*16/9,scale=1080:1920,setpts=0.8*PTS';
+                            }
+                          } else {
+                            if (dimensions.width > dimensions.height) {
+                              filter = 'crop=iw:iw*9/16,scale=1920:1080,setpts=0.8*PTS';
+                            } else {
+                              filter = 'crop=iw:iw*9/16,scale=1920:1080,setpts=0.8*PTS';
+                            }
+                          }
+                        } catch (dimErr) {
+                          const isVertical = aspectRatio === '9:16' || aspectRatio === 'vertical';
+                          filter = isVertical
+                            ? 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,setpts=0.8*PTS'
+                            : 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setpts=0.8*PTS';
+                        }
+                        const escapedRawPix = rawPixPath.replace(/"/g, '\\"');
+                        await new Promise<void>((resolve, reject) => {
+                          const cmd = `ffmpeg -y -ss 0 -i "${escapedRawPix}" -vf "${filter}" -t ${item.duration} -an "${escapedClip}"`;
+                          exec(cmd, (err) => { if (err) reject(err); else resolve(); });
+                        });
+
+                        if (activeProjectPath) {
+                          const localStockDir = path.join(activeProjectPath, 'temp', 'stock');
+                          if (!(await exists(localStockDir))) {
+                            await fs.promises.mkdir(localStockDir, { recursive: true });
+                          }
+                          const localStockPath = path.join(localStockDir, `pixabay_${pixVideo.id}.mp4`);
+                          await fs.promises.copyFile(clipPath, localStockPath);
+                        }
+
+                        success = true;
+                        pixabaySuccess = true;
+                        await logMessage(`[FASE 3] ✓ Pixabay fallback exitoso para: "${item.keyword}"`);
+                      }
+                    }
+                  }
+                }
+              } catch (pixErr) {
+                await logMessage(`[FASE 3] Pixabay también falló: ${pixErr}`);
+              }
+            }
+
+            if (!pixabaySuccess) {
+              await logMessage(`[FASE 3] Error Stock (Pexels y Pixabay) en clip ${item.index}. Usando fallback original.`);
+              item.type = 'original';
+              item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
+            }
           }
         }
 
