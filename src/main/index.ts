@@ -2046,8 +2046,18 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               if (nasaRes.ok) {
                 const nasaData = await nasaRes.json() as any;
                 const nasaItems = nasaData?.collection?.items || [];
+                // Filtrar solo videos cortos (menos de 120 segundos)
+                const shortNasaItems = nasaItems.filter((item: any) => {
+                  const desc = item?.data?.[0]?.description || '';
+                  // Excluir conferencias de prensa, webinars, y videos muy largos
+                  const isLong = desc.toLowerCase().includes('conference') || 
+                                 desc.toLowerCase().includes('briefing') || 
+                                 desc.toLowerCase().includes('webinar') ||
+                                 desc.toLowerCase().includes('full length');
+                  return !isLong;
+                });
                 const prevCount = stockResults.length;
-                for (const item of nasaItems.slice(0, 2)) {
+                for (const item of shortNasaItems.slice(0, 2)) {
                   const nasaId = item?.data?.[0]?.nasa_id;
                   if (!nasaId) continue;
                   try {
