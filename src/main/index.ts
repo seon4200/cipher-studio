@@ -2235,21 +2235,37 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     });
 
     await Promise.all(workers);
-    const createdClips = results.filter(c => c !== undefined);
+        // ═══ FASE 4: Rellenar slots fallidos SIN compactar ═══
+        // CRÍTICO: results es posicional (results[item.index - 1]).
+        // Filtrar y compactar desplaza todos los clips siguientes y rompe
+        // la correspondencia frase → clip. Se rellena en el lugar.
+        const validCount = results.filter((c: any) => c !== undefined).length;
+        if (validCount === 0) {
+          return { success: false, error: 'No se pudo crear ningun clip. Verifica la configuracion de las APIs y FFmpeg.' };
+        }
 
-    // FASE 4: Repetir últimos clips si FFmpeg o la IA produjeron menos de lo esperado
-    if (createdClips.length < totalClips && createdClips.length > 0) {
-      const before = createdClips.length;
-      while (createdClips.length < totalClips) {
-        const last = createdClips[createdClips.length - 1];
-        createdClips.push({ ...last, id: `${last.id}-dup-${createdClips.length}` });
-      }
-      await logMessage(`[FASE 4] Duplicados: ${before} → ${createdClips.length} clips.`);
-    }
+        let filled = 0;
+        for (let i = 0; i < results.length; i++) {
+          if (results[i] !== undefined) continue;
+          // Buscar el clip valido anterior mas cercano
+          let donor: any = undefined;
+          for (let b = i - 1; b >= 0; b--) {
+            if (results[b] !== undefined) { donor = results[b]; break; }
+          }
+          // Si no hay anterior, buscar el siguiente valido
+          if (!donor) {
+            for (let f = i + 1; f < results.length; f++) {
+              if (results[f] !== undefined) { donor = results[f]; break; }
+            }
+          }
+          if (donor) {
+            results[i] = { ...donor, id: `${donor.id}-fill-${i}` };
+            filled++;
+          }
+        }
 
-    if (createdClips.length === 0) {
-      return { success: false, error: 'No se pudo crear ningún clip. Verifica la configuración de las APIs y FFmpeg.' };
-    }
+        const createdClips = results;
+        await logMessage(`[FASE 4] Slots rellenados en posicion: ${filled}. Total: ${createdClips.length} (validos originales: ${validCount})`);
 
     // FASE 5: Ensamblar timeline secuencial
     await logMessage('[FASE 5] Ensamblando timeline...');
@@ -2258,10 +2274,12 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     const graphicClips: any[] = [];
 
     let globalClipIdx = 0;
+        await logMessage(`[DIAG] sanitizedPhrases=${sanitizedPhrases.length} newAudioSegments=${newAudioSegments.length}`);
 
     for (let phraseIdx = 0; phraseIdx < sanitizedPhrases.length; phraseIdx++) {
       const phrase = sanitizedPhrases[phraseIdx];
       const phraseStartSeconds = newAudioSegments[phraseIdx]?.start ?? currentStart;
+          await logMessage(`[DIAG] phraseIdx=${phraseIdx} phraseIndex=${phrase.phraseIndex} segStart=${newAudioSegments[phraseIdx]?.start} segEnd=${newAudioSegments[phraseIdx]?.end} clips=${phrase.visualClips.length} tieneGrafico=${!!phrase.graphic}`);
       await logMessage(`[DEBUG3] phraseIdx=${phraseIdx} phraseStartSeconds=${phraseStartSeconds} currentStart=${currentStart}`);
 
       for (let clipIdx = 0; clipIdx < phrase.visualClips.length; clipIdx++) {
@@ -2381,6 +2399,24 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     }
 
     finalClips.push(...graphicClips);
+
+        // ═══ NORMALIZACIÓN: cada clip llena hasta el inicio del siguiente ═══
+        // Evita huecos por diferencia entre duración planificada y duración real de FFmpeg
+        finalClips.sort((a: any, b: any) => a.startSeconds - b.startSeconds);
+        const voiceClipRef = ((globalThis as any).timelineVideoClips as any[])?.find((c: any) => c.type === 'audio') || null;
+        const audioTotal = voiceClipRef?.durationSeconds || audioDuration || currentStart;
+        let normalized = 0;
+        for (let i = 0; i < finalClips.length; i++) {
+          const isLast = i === finalClips.length - 1;
+          const slotEnd = isLast ? audioTotal : finalClips[i + 1].startSeconds;
+          const slotDuration = slotEnd - finalClips[i].startSeconds;
+          if (slotDuration > 0 && Math.abs(slotDuration - finalClips[i].durationSeconds) > 0.01) {
+            finalClips[i].durationSeconds = slotDuration;
+            normalized++;
+          }
+        }
+        await logMessage(`[FASE 5] Normalización: ${normalized} de ${finalClips.length} clips ajustados para cobertura continua (audio: ${audioTotal.toFixed(2)}s)`);
+        currentStart = audioTotal;
 
     await logMessage(`[generate-timeline-assets] Completado. Clips: ${finalClips.length} (Videos: ${finalClips.filter(c => c.type === 'video').length}, Gráficos: ${finalClips.filter(c => c.type === 'graphic').length})`);
     return { success: true, clips: finalClips };

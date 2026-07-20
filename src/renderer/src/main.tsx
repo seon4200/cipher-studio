@@ -2848,6 +2848,7 @@ function App() {
           .filter((c: any) => c.graphicData)
           .map((c: any) => {
             const matchingVideo = nonGraphicClips.find((tc: any) => tc.id === c.id || tc.name === c.name);
+            console.log('[DIAG-GRAFICO]', { phraseIdx: c.phraseIdx, absoluteStart: c.graphicAbsoluteStart, fallbackStart: matchingVideo?.startSeconds, usaFallback: c.graphicAbsoluteStart === undefined || c.graphicAbsoluteStart === null });
             return {
               id: `timeline-graphic-${Math.random()}`,
               name: `Gráfico: ${c.graphicData.label || c.graphicData.type}`,
