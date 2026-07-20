@@ -1642,7 +1642,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // Procesar y sanitizar con phrasesDecision y graphicsDecision
       for (let idx = 0; idx < newAudioSegments.length; idx++) {
         const seg = newAudioSegments[idx];
-        const phraseDuration = seg.end - seg.start;
+        const nextSegStart = newAudioSegments[idx + 1]?.start;
+        const phraseDuration = (typeof nextSegStart === 'number' && nextSegStart > seg.start)
+          ? (nextSegStart - seg.start)
+          : (seg.end - seg.start);
         const numClipsExpected = phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
         
         const matchClips = phrasesDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
