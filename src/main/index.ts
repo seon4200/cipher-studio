@@ -1328,7 +1328,7 @@ ipcMain.handle('delete-bank-clip', async (_event, { category, file }) => {
 })
 
 // IPC handle for exporting video (single clip or concatenating multiple clips) with aspect ratio crop
-ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, format, quality }) => {
+ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, format, quality }) => {
   try {
     if (!win) return { success: false, error: 'Ventana no disponible' }
 
@@ -1346,7 +1346,8 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
     }
 
     const exportStart = Date.now();
-    await writeDebugLog(`[EXPORT] Iniciando exportacion: ${clips.filter((c: any) => c.path && c.type !== 'graphic' && c.type !== 'audio').length} clips de video, aspect=${aspectRatio}, res=${resolution}, quality=${quality}`);
+    const videoClipsOnly = clips.filter((c: any) => c.path && c.type !== 'graphic' && c.type !== 'audio');
+    await writeDebugLog(`[EXPORT] Iniciando exportacion: ${videoClipsOnly.length} clips de video, aspect=${aspectRatio}, res=${resolution}, quality=${quality}`);
 
     if (!clips || clips.length === 0) {
       return { success: false, error: 'No hay clips en el Timeline para exportar.' }
@@ -1441,6 +1442,13 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
       for (let i = 0; i < videoOnly.length; i++) {
         const clip = videoOnly[i];
         if (!(await exists(clip.path))) continue;
+
+        event.sender.send('export-progress', { 
+          step: 'normalizing', 
+          current: i + 1, 
+          total: videoOnly.length, 
+          message: `Normalizando clip ${i + 1} de ${videoOnly.length}...` 
+        });
         const normPath = path.join(normDir, `norm_${String(i).padStart(4, '0')}.mp4`);
         const escapedIn = clip.path.replace(/"/g, '\\"');
         const escapedNorm = normPath.replace(/"/g, '\\"');
@@ -1471,6 +1479,13 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
       await fs.promises.writeFile(tempTxtPath, fileContent, 'utf8');
       const escapedTxt = tempTxtPath.replace(/"/g, '\\"');
 
+      event.sender.send('export-progress', { 
+        step: 'concatenating', 
+        current: videoOnly.length, 
+        total: videoOnly.length, 
+        message: 'Concatenando clips y mezclando audio...' 
+      });
+
       await writeDebugLog(`[EXPORT] Concatenando...`);
       const concatStart = Date.now();
 
@@ -1495,6 +1510,13 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
 
       await writeDebugLog(`[EXPORT] Concat: ${((Date.now() - concatStart) / 1000).toFixed(1)}s`);
     }
+
+    event.sender.send('export-progress', { 
+      step: 'done', 
+      current: videoClipsOnly.length, 
+      total: videoClipsOnly.length, 
+      message: 'Exportacion completada' 
+    });
 
     const exportEnd = Date.now();
     const exportSeconds = ((exportEnd - exportStart) / 1000).toFixed(1);

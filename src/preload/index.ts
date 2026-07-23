@@ -31,6 +31,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('generation-progress', listener)
     }
   },
+  onExportProgress: (callback: (event: any, data: any) => void) => {
+    const listener = (_event: any, value: any) => callback(_event, value)
+    ipcRenderer.on('export-progress', listener)
+    return () => {
+      ipcRenderer.removeListener('export-progress', listener)
+    }
+  },
   cutVideoClips: (params: { videoPath: string, timestamps?: number[], aspectRatio?: string }) => ipcRenderer.invoke('cut-video-clips', params),
   saveProjectState: (state: any) => ipcRenderer.invoke('save-project-state', state),
   loadProjectState: () => ipcRenderer.invoke('load-project-state'),

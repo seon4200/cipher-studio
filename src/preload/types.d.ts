@@ -9,6 +9,7 @@ export interface IElectronAPI {
   generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; graphicsPercent?: number; newAudioSegments?: any[]; hasVideoV2?: boolean }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
   generatePerfectSync: (params: { videoPath: string; transcriptSegments: any[]; syncWeights: number[]; aspectRatio?: string; audioPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; activeProjectPath?: string }) => Promise<{ success: boolean; v1Clip?: any; v2Clips?: any[]; audioClip?: any; error?: string }>;
   onGenerationProgress: (callback: (event: any, data: any) => void) => () => void;
+  onExportProgress: (callback: (event: any, data: { step: string; current: number; total: number; message: string }) => void) => () => void;
   cutVideoClips: (params: { videoPath: string; timestamps?: number[]; aspectRatio?: string }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
   saveProjectState: (state: any) => Promise<{ success: boolean; error?: string }>;
   loadProjectState: () => Promise<{ success: boolean; data?: any; error?: string }>;

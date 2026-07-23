@@ -1672,6 +1672,16 @@ function App() {
     return undefined;
   }, []);
 
+  useEffect(() => {
+    const cleanup = window.electronAPI.onExportProgress((_event: any, data: any) => {
+      setExportProgress(data);
+      if (data.step === 'done') {
+        setTimeout(() => setExportProgress(null), 3000);
+      }
+    });
+    return cleanup;
+  }, []);
+
   // Resizable panel dimensions
   const [libraryWidth, setLibraryWidth] = useState(360)
   const [toolsWidth, setToolsWidth] = useState(320)
@@ -1755,6 +1765,7 @@ function App() {
   const [isCuttingClips, setIsCuttingClips] = useState(false)
   const [cuttingClipsError, setCuttingClipsError] = useState('')
   const [isExporting, setIsExporting] = useState(false)
+  const [exportProgress, setExportProgress] = useState<{ step: string; current: number; total: number; message: string } | null>(null);
 
   // Timeline IA weights: [Original, Stock, MiniMax]
   const [timelineWeights, setTimelineWeights] = useState<number[]>([40, 30, 30])
@@ -7106,6 +7117,53 @@ function App() {
           </div>
         </div>
       )}
+
+      {(isExporting || exportProgress) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#1a1a2e] border border-indigo-500/20 rounded-2xl p-8 w-[480px] shadow-2xl">
+            <h3 className="text-white text-lg font-bold mb-6 flex items-center gap-2">
+              {exportProgress?.step === 'done' ? '✅' : '🎬'} 
+              {exportProgress?.step === 'done' ? 'Exportación Completada' : 'Exportando Video...'}
+            </h3>
+
+            <div className="w-full bg-[#2a2a3e] rounded-full h-3 mb-4 overflow-hidden">
+              <div 
+                className={`h-3 rounded-full transition-all duration-500 ${exportProgress?.step === 'done' ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                style={{ width: `${exportProgress ? Math.round((exportProgress.current / exportProgress.total) * 100) : 0}%` }}
+              />
+            </div>
+
+            <div className="flex justify-between items-center mb-6">
+              <p className="text-slate-300 text-sm">
+                {exportProgress?.message || 'Preparando exportación...'}
+              </p>
+              <span className="text-white text-sm font-bold">
+                {exportProgress ? `${Math.round((exportProgress.current / exportProgress.total) * 100)}%` : '0%'}
+              </span>
+            </div>
+
+            {exportProgress?.step !== 'done' && (
+              <div className="bg-[#12122a] border border-[#3a3a5c] rounded-xl p-4 space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500">Clips procesados</span>
+                  <span className="text-slate-300">{exportProgress?.current || 0} / {exportProgress?.total || 0}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500">Paso actual</span>
+                  <span className="text-indigo-400">{exportProgress?.step === 'normalizing' ? 'Normalizando clips' : exportProgress?.step === 'concatenating' ? 'Concatenando' : 'Preparando'}</span>
+                </div>
+              </div>
+            )}
+
+            {exportProgress?.step === 'done' && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-center">
+                <p className="text-emerald-400 text-sm font-medium">Video exportado exitosamente</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <TrendsPanel isOpen={showTrendsPanel} onClose={() => setShowTrendsPanel(false)} />
     </div>
   )
