@@ -1,0 +1,97 @@
+{
+  "version": "2.0",
+  "defaultStyle": "motion_graphics",
+  "styles": {
+    "motion_graphics": {
+      "label": "Motion Graphics Editorial",
+      "enabled": true,
+      "description": "Ilustración editorial fotográfica: una imagen = una metáfora visual clara, sin texto, leíble en menos de 2 segundos.",
+      "techniques": {
+        "silueta_plana": {
+          "label": "silueta plana negra",
+          "promptFragment": "silueta plana negra vectorial, sin rasgos faciales, recorte limpio tipo papel"
+        },
+        "foto_doodle": {
+          "label": "foto real con doodle a mano",
+          "promptFragment": "fotografía documental real combinada con garabato dibujado a mano en tinta negra encima, estilo boceto de cuaderno"
+        },
+        "collage_halftone": {
+          "label": "collage halftone",
+          "promptFragment": "fotografía en blanco y negro con trama de medio tono (halftone), recortada estilo collage editorial de revista, con acentos gráficos como flechas o rayos"
+        },
+        "foto_enmarcada": {
+          "label": "foto real enmarcada en forma de color",
+          "promptFragment": "fotografía documental a color, recortada dentro de una forma geométrica simple (círculo u óvalo) de color sólido"
+        },
+        "metafora_ilustrada": {
+          "label": "metáfora ilustrada pura",
+          "promptFragment": "ilustración u objeto fotorealista aislado sobre fondo plano, representando la metáfora de forma directa y minimalista"
+        }
+      },
+      "colorPalette": {
+        "rojo_granate": { "hex": "#8B1E1E", "emotion": ["alerta", "vigilancia", "urgencia", "perdida_dinero", "miedo"] },
+        "azul_marino": { "hex": "#0B1F3A", "emotion": ["sistemas", "medios", "desconexion", "frialdad_institucional"] },
+        "amarillo_mostaza": { "hex": "#C9A227", "emotion": ["dinero", "valor", "atencion", "oportunidad"] },
+        "verde": { "hex": "#2E7D32", "emotion": ["justicia", "equilibrio", "decision", "crecimiento"] },
+        "naranja": { "hex": "#D2601A", "emotion": ["frustracion", "esfuerzo", "ruido", "friccion"] },
+        "beige_papel": { "hex": "#E8E0CF", "emotion": ["introspeccion", "memoria", "reflexion_personal", "calma"] },
+        "negro_acento": { "hex": "#0A0A0A", "emotion": ["poder", "control", "vigilancia", "opresion", "revelacion"] },
+        "morado": { "hex": "#5B3A9E", "emotion": ["confusion_mental", "sobrecarga", "dialogo_interno"] },
+        "teal": { "hex": "#1D6E63", "emotion": ["cansancio", "encierro", "rutina", "agotamiento"] }
+      },
+      "metaphors": {
+        "dinero_economia": [
+          { "concept": "perdida_de_valor", "conceptLabel": "la pérdida de valor del dinero", "keywords": ["perder dinero", "pierde dinero", "pierden dinero", "perdí dinero", "perdiendo dinero", "devaluación", "inflación", "menos vale"], "object": "billete roto", "technique": "collage_halftone", "colorSuggestion": "rojo_granate" },
+          { "concept": "perdida_de_valor_alt", "conceptLabel": "la pérdida de los ahorros", "keywords": ["ahorro perdido", "ahorros perdidos", "se acaba el dinero", "se acabó el dinero", "se acaban los ahorros"], "object": "alcancía rota con monedas cayendo", "technique": "metafora_ilustrada", "colorSuggestion": "azul_marino" },
+          { "concept": "decision_financiera", "conceptLabel": "una decisión financiera", "keywords": ["decidir", "decide", "deciden", "decido", "decidió", "decidiendo", "elegir invertir", "elige invertir", "eligen invertir", "elegí invertir", "riesgo financiero"], "object": "balanza con dinero", "technique": "collage_halftone", "colorSuggestion": "verde" },
+          { "concept": "riesgo_equilibrio", "conceptLabel": "el riesgo de una decisión financiera", "keywords": ["arriesgar", "arriesga", "arriesgan", "arriesgué", "arriesgando", "cuerda floja", "equilibrio financiero"], "object": "funambulista sobre pilas de monedas", "technique": "metafora_ilustrada", "colorSuggestion": "azul_marino" },
+          { "concept": "sacrificio_prioridad", "conceptLabel": "un sacrificio económico", "keywords": ["sacrificar", "sacrifica", "sacrifican", "sacrifiqué", "sacrificando", "elegir entre", "elige entre", "eligen entre", "elegí entre", "prioridad de gasto"], "object": "plato con billete y tenedor", "technique": "collage_halftone", "colorSuggestion": "rojo_granate" },
+          { "concept": "sacrificio_prioridad_alt", "conceptLabel": "elegir entre lo necesario y el lujo", "keywords": ["pan o dinero", "necesidad básica vs lujo"], "object": "balanza con pan de un lado y dinero del otro", "technique": "metafora_ilustrada", "colorSuggestion": "amarillo_mostaza" }
+        ],
+        "comunicacion_medios": [
+          { "concept": "hablar_persuadir", "conceptLabel": "el acto de persuadir hablando", "keywords": ["convencer", "convence", "convencen", "convenzo", "convenció", "convenciendo", "hablar en público", "habla en público", "hablan en público", "habló en público", "anunciar", "anuncia", "anuncian", "anunció"], "object": "silueta con megáfono", "technique": "foto_doodle", "colorSuggestion": "negro_acento" },
+          { "concept": "hablar_persuadir_alt", "conceptLabel": "expresar una opinión", "keywords": ["opinar", "opina", "opinan", "opinó", "expresar ideas", "expresa ideas", "expresan ideas", "expresó ideas", "expresando ideas"], "object": "silueta con globos de diálogo alrededor", "technique": "silueta_plana", "colorSuggestion": "morado" },
+          { "concept": "desinformacion_ruido", "conceptLabel": "la desinformación mediática", "keywords": ["noticias falsas", "desinformación", "ruido mediático"], "object": "televisión con estática", "technique": "collage_halftone", "colorSuggestion": "azul_marino" },
+          { "concept": "silencio_impuesto", "conceptLabel": "el silencio impuesto", "keywords": ["callar", "calla", "callan", "calló", "censura", "no poder hablar", "no puede hablar", "no pueden hablar", "no pude hablar"], "object": "persona tapándose los oídos", "technique": "collage_halftone", "colorSuggestion": "naranja" },
+          { "concept": "vigilancia_control", "conceptLabel": "la vigilancia y el control", "keywords": ["vigilar", "vigila", "vigilan", "vigiló", "control", "big brother", "monitoreo"], "object": "ojo dentro de triángulo con luz", "technique": "metafora_ilustrada", "colorSuggestion": "negro_acento" }
+        ],
+        "estado_mental_productividad": [
+          { "concept": "agotamiento", "conceptLabel": "el agotamiento", "keywords": ["cansado", "cansada", "cansados", "exhausto", "exhausta", "exhaustos", "sin energía"], "object": "persona dormida en escritorio", "technique": "foto_enmarcada", "colorSuggestion": "teal" },
+          { "concept": "confusion", "conceptLabel": "la confusión mental", "keywords": ["confundido", "confundida", "no entiendo", "no entiende", "no entienden", "perdido mentalmente", "perdida mentalmente"], "object": "laberinto dibujado sobre rostro", "technique": "foto_doodle", "colorSuggestion": "morado" },
+          { "concept": "rutina_repetitiva", "conceptLabel": "una rutina repetitiva", "keywords": ["lo mismo de siempre", "círculo vicioso", "rutina"], "object": "símbolo de infinito dibujado sobre rostro cansado", "technique": "foto_doodle", "colorSuggestion": "teal" },
+          { "concept": "presion_tiempo", "conceptLabel": "la presión del tiempo", "keywords": ["se acaba el tiempo", "se acabó el tiempo", "urgencia", "plazo", "plazos"], "object": "cronómetro en mano", "technique": "collage_halftone", "colorSuggestion": "rojo_granate" },
+          { "concept": "tristeza_carga", "conceptLabel": "una carga emocional", "keywords": ["triste", "tristes", "carga emocional", "peso encima"], "object": "silueta bajo nube de lluvia", "technique": "foto_doodle", "colorSuggestion": "beige_papel" }
+        ],
+        "relaciones_apoyo": [
+          { "concept": "colaboracion_confianza", "conceptLabel": "la colaboración y la confianza", "keywords": ["trabajar juntos", "trabaja juntos", "trabajan juntos", "trabajamos juntos", "confianza", "acuerdo"], "object": "manos entrelazadas tipo pulso", "technique": "collage_halftone", "colorSuggestion": "naranja" },
+          { "concept": "ayuda", "conceptLabel": "el acto de ayudar", "keywords": ["ayudar", "ayuda", "ayudan", "ayudó", "apoyo", "tender la mano", "tiende la mano", "tienden la mano", "tendió la mano"], "object": "mano ofreciendo o sosteniendo algo", "technique": "foto_doodle", "colorSuggestion": "beige_papel" }
+        ],
+        "objetivos_crecimiento": [
+          { "concept": "meta_lograda", "conceptLabel": "una meta lograda", "keywords": ["lograr", "logra", "logran", "logré", "logró", "cumplir meta", "cumple meta", "cumplen meta", "cumplí meta", "acertar", "acierta", "aciertan", "acertó"], "object": "dardo en el centro de la diana", "technique": "collage_halftone", "colorSuggestion": "azul_marino" },
+          { "concept": "ambicion_aspiracion", "conceptLabel": "la ambición de crecer", "keywords": ["aspirar", "aspira", "aspiran", "aspiró", "querer más", "quiere más", "quieren más", "quise más", "subir", "sube", "suben", "subió"], "object": "escalera hacia el cielo dibujada", "technique": "foto_doodle", "colorSuggestion": "beige_papel" },
+          { "concept": "nuevo_comienzo", "conceptLabel": "un nuevo comienzo", "keywords": ["empezar de nuevo", "empieza de nuevo", "empezaron de nuevo", "empecé de nuevo", "nueva etapa", "cambio de vida"], "object": "persona caminando hacia la luz", "technique": "foto_enmarcada", "colorSuggestion": "amarillo_mostaza" },
+          { "concept": "libertad", "conceptLabel": "la libertad", "keywords": ["libertad", "liberarse", "libera", "liberan", "liberé", "liberó", "romper cadenas", "rompe cadenas", "rompen cadenas", "rompí cadenas"], "object": "pájaro saliendo de frasco roto", "technique": "metafora_ilustrada", "colorSuggestion": "teal" },
+          { "concept": "revelacion_verdad", "conceptLabel": "la revelación de una verdad", "keywords": ["revelar", "revela", "revelan", "reveló", "la verdad es", "descubrir", "descubre", "descubren", "descubrió"], "object": "cortina de teatro abriéndose", "technique": "metafora_ilustrada", "colorSuggestion": "rojo_granate" },
+          { "concept": "trabajo_enfocado", "conceptLabel": "el trabajo enfocado", "keywords": ["trabajar", "trabaja", "trabajan", "trabajó", "concentrarse", "concentra", "concentran", "concentró", "enfocarse en la tarea", "enfoca en la tarea", "enfocan en la tarea"], "object": "persona escribiendo en laptop", "technique": "silueta_plana", "colorSuggestion": "beige_papel" }
+        ]
+      },
+      "promptTemplate": "{techniquePromptFragment} de {object} representando {conceptLabel}, sobre fondo {colorHex} sólido, sin texto, composición vertical 9:16, alto contraste, sin marcas de agua",
+      "fallbackRule": {
+        "defaultTechnique": "silueta_plana",
+        "defaultColor": "beige_papel"
+      }
+    },
+    "cartoon": {
+      "label": "Cartoon 3D",
+      "enabled": false,
+      "description": "Deshabilitado. Reservado para futura activación.",
+      "promptFragment": "3D cartoon style, vibrant colors, Pixar animation movie style"
+    },
+    "bw": {
+      "label": "Blanco y negro cinematográfico",
+      "enabled": false,
+      "description": "Deshabilitado. Reservado para futura activación.",
+      "promptFragment": "black and white, classic film noir movie style, moody lighting"
+    }
+  }
+}

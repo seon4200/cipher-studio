@@ -1345,6 +1345,9 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
       return { success: false, error: 'Exportación cancelada por el usuario' }
     }
 
+    const exportStart = Date.now();
+    await writeDebugLog(`[EXPORT] Iniciando exportacion: ${clips.filter((c: any) => c.path && c.type !== 'graphic' && c.type !== 'audio').length} clips de video, aspect=${aspectRatio}, res=${resolution}, quality=${quality}`);
+
     if (!clips || clips.length === 0) {
       return { success: false, error: 'No hay clips en el Timeline para exportar.' }
     }
@@ -1410,7 +1413,7 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
       const ffmpegCmd = `ffmpeg -y -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -c:a aac "${escapedOut}"`
       
       await new Promise<void>((resolve, reject) => {
-        exec(ffmpegCmd, (err) => {
+        exec(ffmpegCmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => {
           if (err) reject(err)
           else resolve()
         })
@@ -1420,14 +1423,19 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
       const bankDir = getBancoClipsPath()
       const tempTxtPath = path.join(bankDir, `temp_concat_${Date.now()}.txt`)
       
+      // Filtrar SOLO clips de video — excluir audio, graficos, overlays
+      const videoOnly = clips.filter((c: any) => 
+        c.path && c.type !== 'audio' && c.type !== 'graphic' && c.category !== 'v2_overlay'
+      );
+      const audioClip = clips.find((c: any) => c.type === 'audio' && c.path);
+
       let fileContent = ''
-      for (const clip of clips) {
-        if (clip.path && (await exists(clip.path))) {
-          // Escape single quotes and backslashes for FFmpeg concat list
+      for (const clip of videoOnly) {
+        if (await exists(clip.path)) {
           const escapedPath = clip.path.replace(/\\/g, '/').replace(/'/g, "'\\''")
           fileContent += `file '${escapedPath}'\n`
         } else {
-          console.warn(`[export-video] Advertencia: clip sin ruta válida en disco: ${clip.name}`)
+          console.warn(`[export-video] Clip no encontrado: ${clip.name}`)
         }
       }
 
@@ -1439,16 +1447,28 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
       const escapedTxt = tempTxtPath.replace(/"/g, '\\"')
 
       // Concat and crop
-      const ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" ${filterStr} -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -c:a aac "${escapedOut}"`
+      let ffmpegCmd = '';
+      if (audioClip && audioClip.path && (await exists(audioClip.path))) {
+        const escapedAudio = audioClip.path.replace(/"/g, '\\"');
+        ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" -i "${escapedAudio}" ${filterStr} -map 0:v -map 1:a -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -c:a aac -b:a 128k -shortest -movflags +faststart "${escapedOut}"`;
+      } else {
+        ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" ${filterStr} -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -an -movflags +faststart "${escapedOut}"`;
+      }
       
       await new Promise<void>((resolve, reject) => {
-        exec(ffmpegCmd, async (err) => {
+        exec(ffmpegCmd, { maxBuffer: 1024 * 1024 * 50 }, async (err) => {
           try { await fs.promises.unlink(tempTxtPath) } catch (e) {}
           if (err) reject(err)
           else resolve()
         })
       })
     }
+
+    const exportEnd = Date.now();
+    const exportSeconds = ((exportEnd - exportStart) / 1000).toFixed(1);
+    const fileStats = await fs.promises.stat(filePath);
+    const fileSizeMB = (fileStats.size / (1024 * 1024)).toFixed(1);
+    await writeDebugLog(`[EXPORT] Completado en ${exportSeconds}s — archivo: ${fileSizeMB}MB — calidad: ${quality}`);
 
     return { success: true, filePath }
   } catch (err: any) {

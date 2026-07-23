@@ -1,0 +1,452 @@
+﻿diff --git a/src/main/index.ts b/src/main/index.ts
+index 899e94f..27cdf4f 100644
+--- a/src/main/index.ts
++++ b/src/main/index.ts
+@@ -3,7 +3,11 @@ import path from 'path'
+ import { spawn, exec } from 'child_process'
+ import fs from 'fs'
+ import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, getVideoDimensions } from './services/ffmpeg'
++import { buildStylePrompt, StylePrompts } from './services/stylePromptBuilder'
+ import { fal } from '@fal-ai/client'
++import * as playwright from 'playwright'
++import { generateImage } from './providers/nanoBananaProvider'
++import { animateImage } from './providers/vibes-bot'
+ 
+ // Helper to manually load .env file in main process from multiple potential paths
+ let envLoaded = false
+@@ -1345,6 +1349,10 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution,
+       return { success: false, error: 'Exportaci├│n cancelada por el usuario' }
+     }
+ 
++    const exportStart = Date.now();
++    const videoClipsOnly = clips.filter((c: any) => c.path && c.type !== 'graphic' && c.type !== 'audio');
++    await writeDebugLog(`[EXPORT] Iniciando exportacion: ${videoClipsOnly.length} clips de video, aspect=${aspectRatio}, res=${resolution}, quality=${quality}`);
++
+     if (!clips || clips.length === 0) {
+       return { success: false, error: 'No hay clips en el Timeline para exportar.' }
+     }
+@@ -1410,46 +1418,95 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution,
+       const ffmpegCmd = `ffmpeg -y -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -c:a aac "${escapedOut}"`
+       
+       await new Promise<void>((resolve, reject) => {
+-        exec(ffmpegCmd, (err) => {
++        exec(ffmpegCmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => {
+           if (err) reject(err)
+           else resolve()
+         })
+       })
+     } else {
+-      // Multiple clips concatenation
+-      const bankDir = getBancoClipsPath()
+-      const tempTxtPath = path.join(bankDir, `temp_concat_${Date.now()}.txt`)
+-      
+-      let fileContent = ''
+-      for (const clip of clips) {
+-        if (clip.path && (await exists(clip.path))) {
+-          // Escape single quotes and backslashes for FFmpeg concat list
+-          const escapedPath = clip.path.replace(/\\/g, '/').replace(/'/g, "'\\''")
+-          fileContent += `file '${escapedPath}'\n`
+-        } else {
+-          console.warn(`[export-video] Advertencia: clip sin ruta v├ílida en disco: ${clip.name}`)
++      const videoOnly = clips.filter((c: any) => 
++        c.path && c.type !== 'audio' && c.type !== 'graphic' && c.category !== 'v2_overlay'
++      );
++      const audioClip = clips.find((c: any) => c.type === 'audio' && c.path);
++
++      if (videoOnly.length === 0) {
++        return { success: false, error: 'No hay clips de video validos para exportar.' };
++      }
++
++      await writeDebugLog(`[EXPORT] Normalizando ${videoOnly.length} clips a ${targetW}x${targetH}...`);
++      const normStart = Date.now();
++
++      const bankDir = getBancoClipsPath();
++      const normDir = path.join(bankDir, 'temp_export');
++      if (!(await exists(normDir))) {
++        await fs.promises.mkdir(normDir, { recursive: true });
++      }
++
++      const normalizedPaths: string[] = [];
++      for (let i = 0; i < videoOnly.length; i++) {
++        const clip = videoOnly[i];
++        if (!(await exists(clip.path))) continue;
++        const normPath = path.join(normDir, `norm_${String(i).padStart(4, '0')}.mp4`);
++        const escapedIn = clip.path.replace(/"/g, '\\"');
++        const escapedNorm = normPath.replace(/"/g, '\\"');
++        try {
++          await new Promise<void>((resolve, reject) => {
++            const cmd = `ffmpeg -y -i "${escapedIn}" ${filterStr} -r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an "${escapedNorm}"`;
++            exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => {
++              if (err) reject(err); else resolve();
++            });
++          });
++          normalizedPaths.push(normPath);
++        } catch (normErr: any) {
++          await writeDebugLog(`[EXPORT] Error normalizando clip ${i}: ${normErr.message}`);
+         }
+       }
+ 
+-      if (!fileContent.trim()) {
+-        return { success: false, error: 'Ninguno de los clips del Timeline tiene un archivo de origen v├ílido en disco.' }
++      await writeDebugLog(`[EXPORT] Normalizacion: ${((Date.now() - normStart) / 1000).toFixed(1)}s ÔÇö ${normalizedPaths.length} clips`);
++
++      if (normalizedPaths.length === 0) {
++        return { success: false, error: 'No se pudo normalizar ningun clip.' };
++      }
++
++      const tempTxtPath = path.join(bankDir, `temp_concat_${Date.now()}.txt`);
++      let fileContent = '';
++      for (const np of normalizedPaths) {
++        fileContent += `file '${np.replace(/\\/g, '/').replace(/'/g, "'\\''")}'\n`;
+       }
++      await fs.promises.writeFile(tempTxtPath, fileContent, 'utf8');
++      const escapedTxt = tempTxtPath.replace(/"/g, '\\"');
+ 
+-      await fs.promises.writeFile(tempTxtPath, fileContent, 'utf8')
+-      const escapedTxt = tempTxtPath.replace(/"/g, '\\"')
++      await writeDebugLog(`[EXPORT] Concatenando...`);
++      const concatStart = Date.now();
++
++      let ffmpegCmd = '';
++      if (audioClip && audioClip.path && (await exists(audioClip.path))) {
++        const escapedAudio = audioClip.path.replace(/"/g, '\\"');
++        ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" -i "${escapedAudio}" -map 0:v -map 1:a -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart "${escapedOut}"`;
++      } else {
++        ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" -c:v copy -an -movflags +faststart "${escapedOut}"`;
++      }
+ 
+-      // Concat and crop
+-      const ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" ${filterStr} -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -c:a aac "${escapedOut}"`
+-      
+       await new Promise<void>((resolve, reject) => {
+-        exec(ffmpegCmd, async (err) => {
+-          try { await fs.promises.unlink(tempTxtPath) } catch (e) {}
+-          if (err) reject(err)
+-          else resolve()
+-        })
+-      })
++        exec(ffmpegCmd, { maxBuffer: 1024 * 1024 * 50 }, async (err) => {
++          try { await fs.promises.unlink(tempTxtPath); } catch (e) {}
++          for (const np of normalizedPaths) {
++            try { await fs.promises.unlink(np); } catch (e) {}
++          }
++          try { await fs.promises.rmdir(normDir); } catch (e) {}
++          if (err) reject(err); else resolve();
++        });
++      });
++
++      await writeDebugLog(`[EXPORT] Concat: ${((Date.now() - concatStart) / 1000).toFixed(1)}s`);
+     }
+ 
++    const exportEnd = Date.now();
++    const exportSeconds = ((exportEnd - exportStart) / 1000).toFixed(1);
++    const fileStats = await fs.promises.stat(filePath);
++    const fileSizeMB = (fileStats.size / (1024 * 1024)).toFixed(1);
++    await writeDebugLog(`[EXPORT] Completado en ${exportSeconds}s ÔÇö archivo: ${fileSizeMB}MB ÔÇö clips: ${videoClipsOnly.length} ÔÇö calidad: ${quality}`);
++
+     return { success: true, filePath }
+   } catch (err: any) {
+     console.error(`[export-video] Error: ${err.message}`)
+@@ -1492,6 +1549,48 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
+   };
+ 
+   try {
++    class VibesQueue {
++      private chain: Promise<any> = Promise.resolve();
++      private browserContext: any = null;
++      private browserPage: any = null;
++      private activeCount: number = 0;
++
++      async enqueue<T>(task: (page: playwright.Page) => Promise<T>): Promise<T> {
++        this.activeCount++;
++        
++        const next = this.chain.then(async () => {
++          if (!this.browserContext) {
++            await logMessage('[Vibes Queue] Iniciando instancia de navegador persistente...');
++            const userDataDir = path.join(app.getPath('userData'), 'vibes-session');
++            this.browserContext = await playwright.chromium.launchPersistentContext(userDataDir, {
++              headless: false,
++              viewport: { width: 1280, height: 720 }
++            });
++            this.browserPage = await this.browserContext.newPage();
++          }
++          return await task(this.browserPage);
++        });
++
++        this.chain = next.catch((err) => {
++          console.error('[Vibes Queue] Error en tarea:', err);
++        });
++
++        try {
++          return await next;
++        } finally {
++          this.activeCount--;
++          if (this.activeCount === 0 && this.browserContext) {
++            await logMessage('[Vibes Queue] Sin clips pendientes. Cerrando navegador...');
++            const ctx = this.browserContext;
++            this.browserContext = null;
++            this.browserPage = null;
++            await ctx.close().catch(() => {});
++          }
++        }
++      }
++    }
++    const vibesQueue = new VibesQueue();
++
+     await logMessage(`[generate-timeline-assets] Iniciando... Gui├│n a procesar: "${scriptText ? scriptText.substring(0, 60) + '...' : ''}"`);
+ 
+     // FASE 1: Calcular clips necesarios
+@@ -1761,6 +1860,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
+ 
+         sanitizedPhrases.push({
+           phraseIndex: idx + 1,
++          phraseText: seg.text,
+           visualClips,
+           graphic
+         });
+@@ -1794,6 +1894,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
+         }
+         sanitizedPhrases.push({
+           phraseIndex: idx + 1,
++          phraseText: seg.text || '',
+           visualClips,
+           graphic: null
+         });
+@@ -1838,9 +1939,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
+           index: globalIdx,
+           phraseIndex: phraseIdx,
+           clipIndexInPhrase: clipIdx,
++          phraseText: phrase.phraseText,
+           type: subClip.type,
+           timestamp: subClip.timestamp,
+           keyword: subClip.keyword,
++          // TODO: cuando se conecte vibes-bot.ts (Playwright), DeepSeek en FASE 2 generar├í image_prompt y video_prompt por separado.
+           prompt: subClip.prompt,
+           duration: subClip.duration,
+           graphic: null
+@@ -1870,6 +1973,119 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
+     const results = new Array(totalClips);
+     const escapedVideo = videoPath.replace(/"/g, '\\"');
+ 
++    const originalClipsCountRef = { value: 0 };
++    const stockClipsCountRef = { value: 0 };
++    const iaClipsCountRef = { value: 0 };
++    const allowIaOverflow: boolean = false;
++    const vibesProviderReady: boolean = !!process.env.GEMINI_API_KEY;
++
++    /**
++     * Reserva at├│mica de slot para evitar condiciones de carrera entre workers.
++     */
++    const tryReserveIaSlot = (): boolean => {
++      if (!vibesProviderReady) return false;
++      const canUseIa = allowIaOverflow || (iaClipsCountRef.value < targetIaClips);
++      if (canUseIa) {
++        iaClipsCountRef.value++; // Incremento at├│mico inmediato
++        return true;
++      }
++      return false;
++    };
++
++    const releaseIaSlot = (): void => {
++      iaClipsCountRef.value = Math.max(0, iaClipsCountRef.value - 1);
++    };
++
++    /**
++     * Generaci├│n de clip de video mediante API de Gemini (imagen) y Vibes AI (animaci├│n).
++     */
++    const generateVibesClip = async (
++      prompts: StylePrompts,
++      item: any,
++      clipNum: string,
++      _escapedClip: string
++    ): Promise<string | null> => {
++      if (!vibesProviderReady) {
++        await logMessage(`[Vibes Provider] Generaci├│n omitida en clip ${item.index}: vibesProviderReady es false (GEMINI_API_KEY faltante).`);
++        return null;
++      }
++
++      await logMessage(`[Vibes Provider] Iniciando generaci├│n de clip ${item.index}...`);
++
++      const tempImageDir = path.join(outDir, 'temp-images');
++      // Asegurar que el directorio temp-images exista antes de la generaci├│n
++      await fs.promises.mkdir(tempImageDir, { recursive: true });
++      
++      const tempImagePath = path.join(tempImageDir, `clip_${clipNum}.png`);
++      const finalVideoPath = path.join(outDir, `clip_${clipNum}.mp4`);
++
++      // Paso 1: Generar la imagen base (HTTP, paralela)
++      const imgResult = await generateImage(prompts.imagePrompt, tempImagePath, '9:16');
++      if (!imgResult.success) {
++        await logMessage(`[Vibes Provider] Fall├│ la generaci├│n de la imagen base con Nano Banana en clip ${item.index}: ${imgResult.error}`);
++        return null;
++      }
++
++      // Paso 2: Animar la imagen (Encolada y serializada con Playwright)
++      const videoResult = await vibesQueue.enqueue(async (page) => {
++        await logMessage(`[Vibes Provider] [Vibes Bot] Animando imagen para clip ${item.index} (videoPrompt: "${prompts.videoPrompt}")`);
++        return await animateImage(page, tempImagePath, prompts.videoPrompt, finalVideoPath);
++      });
++
++      // Paso 3: Limpieza e informes
++      if (videoResult.success) {
++        // Borrar imagen temporal de forma as├¡ncrona
++        await fs.promises.unlink(tempImagePath).catch((unlinkErr) => {
++          console.warn(`[Vibes Provider] No se pudo borrar la imagen temporal en ${tempImagePath}:`, unlinkErr);
++        });
++        await logMessage(`[Vibes Provider] Ô£ô Clip ${item.index} generado exitosamente por Vibes.`);
++        return finalVideoPath;
++      } else {
++        await logMessage(`[Vibes Provider] Fall├│ la animaci├│n del video para el clip ${item.index}: ${videoResult.error}. Se conserva la imagen temporal para debugging.`);
++        return null;
++      }
++    };
++
++    /**
++     * Eval├║a qu├® categor├¡a ('ia' u 'original') est├í proporcionalmente m├ís atrasada respecto a su meta.
++     */
++    const getPreferredFallbackCategory = (): 'ia' | 'original' => {
++      const targetOrig = Math.max(1, targetOriginalClips);
++      const targetIa = Math.max(1, targetIaClips);
++      const ratioOrig = originalClipsCountRef.value / targetOrig;
++      const ratioIa = iaClipsCountRef.value / targetIa;
++
++      if (ratioIa <= ratioOrig && (allowIaOverflow || iaClipsCountRef.value < targetIaClips)) {
++        return 'ia';
++      }
++      return 'original';
++    };
++
++    const handleStockFallback = async (
++      item: any,
++      clipNum: string,
++      escapedClip: string
++    ): Promise<boolean> => {
++      const preferred = getPreferredFallbackCategory();
++      await logMessage(`[FASE 3] Evaluando fallback para clip ${item.index}: preferido="${preferred}" (actual: IA=${iaClipsCountRef.value}/${targetIaClips}, Orig=${originalClipsCountRef.value}/${targetOriginalClips})`);
++
++      if (preferred === 'ia' && tryReserveIaSlot()) {
++        const prompts = buildStylePrompt(item.phraseText || item.prompt, iaStyle);
++        const generatedPath = await generateVibesClip(prompts, item, clipNum, escapedClip);
++        if (generatedPath) {
++          item.type = 'ia';
++          await logMessage(`[FASE 3] Ô£ô Fallback IA exitoso en clip ${item.index} (total IA: ${iaClipsCountRef.value})`);
++          return true;
++        }
++        releaseIaSlot(); // Roll-back de reserva si la generaci├│n falla
++        await logMessage(`[FASE 3] Fallback IA no estuvo disponible o fall├│ en clip ${item.index}. Derivando a original.`);
++      }
++
++      item.type = 'original';
++      item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
++      return false;
++    };
++
+     // Cola de procesamiento
+     const queue = [...clipsDecision];
+ 
+@@ -1894,40 +2110,20 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
+ 
+         if (item.type === 'ia') {
+           try {
+-            let promptFinal = item.prompt || 'cinematic video clip';
+-            if (iaStyle === 'cartoon') {
+-              promptFinal += ', 3D cartoon style, vibrant colors, Pixar animation movie style';
+-            } else if (iaStyle === 'bw') {
+-              promptFinal += ', black and white, classic film noir movie style, moody lighting';
++            const prompts = buildStylePrompt(item.phraseText || item.prompt, iaStyle);
++            if (tryReserveIaSlot()) {
++              const generatedPath = await generateVibesClip(prompts, item, clipNum, escapedClip);
++              if (generatedPath) {
++                success = true;
++              } else {
++                releaseIaSlot();
++                throw new Error('Vibes AI no disponible (stub)');
++              }
++            } else {
++              throw new Error('Sin cuota para clip IA');
+             }
+-
+-            // Llamada a fal.ai
+-            const result = await fal.subscribe("fal-ai/minimax/video-01", {
+-              input: { prompt: promptFinal }
+-            }) as any;
+-
+-            const downloadUrl = result?.video?.url || result?.data?.video?.url;
+-            if (!downloadUrl) throw new Error('No se recibi├│ la URL de video de fal.ai');
+-
+-            // Descargar el clip temporalmente
+-            const downloadRes = await fetch(downloadUrl);
+-            if (!downloadRes.ok) throw new Error(`Download failed: ${downloadRes.statusText}`);
+-            
+-            const arrayBuffer = await downloadRes.arrayBuffer();
+-            const tempVideoPath = path.join(outDir, `temp_ia_${clipNum}.mp4`);
+-            await fs.promises.writeFile(tempVideoPath, Buffer.from(arrayBuffer));
+-
+-            // Recortar el video de IA (6s) a su duraci├│n real con re-codificaci├│n h264/aac
+-            await new Promise<void>((resolve, reject) => {
+-              const cmd = `ffmpeg -y -ss 0 -i "${tempVideoPath}" -t ${item.duration} -c:v libx264 -c:a aac "${escapedClip}"`;
+-              exec(cmd, (err) => { if (err) reject(err); else resolve(); });
+-            });
+-
+-            try { await fs.promises.unlink(tempVideoPath); } catch (e) {}
+-            success = true;
+           } catch (iaErr: any) {
+             await logMessage(`[FASE 3] Error IA en clip ${item.index}: ${iaErr.message || iaErr}. Usando fallback original.`);
+-            // Ca├¡da de seguridad: convertimos el clip a tipo original y le asignamos un timestamp proporcional
+             item.type = 'original';
+             item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
+           }
+@@ -2139,15 +2335,18 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
+ 
+               if (await exists(rawStockPath)) {
+                 stockClipPath = rawStockPath;
++                stockClipsCountRef.value++;
+                 await logMessage(`[FASE 3] Ô£ô Stock seleccionado de ${best.provider} (${best.width}x${best.height}) para: "${keyword}"`);
+               }
+             }
+ 
+-            // Si no se encontr├│ stock en ning├║n proveedor, usar clip original como fallback
++            // Si no se encontr├│ stock en ning├║n proveedor, usar fallback proporcional
+             if (!stockClipPath) {
+-              await logMessage(`[FASE 3] Sin stock disponible para: "${keyword}". Usando fallback original.`);
+-              item.type = 'original';
+-              item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
++              await logMessage(`[FASE 3] Sin stock disponible para: "${keyword}". Iniciando fallback proporcional...`);
++              const fallbackIaSuccess = await handleStockFallback(item, clipNum, escapedClip);
++              if (fallbackIaSuccess) {
++                success = true;
++              }
+             } else {
+               let filter = '';
+               try {
+@@ -2191,9 +2390,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
+               success = true;
+             }
+           } catch (stockErr: any) {
+-            await logMessage(`[FASE 3] Error Stock en clip ${item.index}: ${stockErr.message || stockErr}. Usando fallback original.`);
+-            item.type = 'original';
+-            item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
++            await logMessage(`[FASE 3] Error Stock en clip ${item.index}: ${stockErr.message || stockErr}. Iniciando fallback proporcional...`);
++            const fallbackIaSuccess = await handleStockFallback(item, clipNum, escapedClip);
++            if (fallbackIaSuccess) {
++              success = true;
++            }
+           }
+         }
+ 
+@@ -2206,6 +2407,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
+               exec(cmd, (err) => { if (err) reject(err); else resolve(); });
+             });
+             success = true;
++            originalClipsCountRef.value++;
+           } catch (ffErr: any) {
+             await logMessage(`[FASE 3] FFmpeg error clip ${item.index}: ${ffErr.message}`);
+           }
+@@ -2238,6 +2440,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
+     });
+ 
+     await Promise.all(workers);
++    await logMessage(`[FASE 3] Resumen de clips generados: IA=${iaClipsCountRef.value}/${targetIaClips}, Stock=${stockClipsCountRef.value}/${targetStockClips}, Original=${originalClipsCountRef.value}/${targetOriginalClips}`);
+         // ÔòÉÔòÉÔòÉ FASE 4: Rellenar slots fallidos SIN compactar ÔòÉÔòÉÔòÉ
+         // CR├ìTICO: results es posicional (results[item.index - 1]).
+         // Filtrar y compactar desplaza todos los clips siguientes y rompe
