@@ -7049,7 +7049,7 @@ function App() {
                       onClick={() => setExportResolution(res)}
                       className={`text-xs font-bold py-2 px-3 rounded-xl border transition-all cursor-pointer ${
                         exportResolution === res
-                          ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-600/10'
+                          ? 'bg-white border-transparent text-black'
                           : 'bg-[#0D0D0F] border-[#3a3a3c] hover:border-slate-700 text-slate-400'
                       }`}
                     >
@@ -7069,7 +7069,7 @@ function App() {
                       onClick={() => setExportFormat(fmt)}
                       className={`text-xs font-bold py-2 px-3 rounded-xl border transition-all cursor-pointer capitalize ${
                         exportFormat === fmt
-                          ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-600/10'
+                          ? 'bg-white border-transparent text-black'
                           : 'bg-[#0D0D0F] border-[#3a3a3c] hover:border-slate-700 text-slate-400'
                       }`}
                     >
@@ -7089,7 +7089,7 @@ function App() {
                       onClick={() => setExportQuality(qual)}
                       className={`text-xs font-bold py-2 px-3 rounded-xl border transition-all cursor-pointer ${
                         exportQuality === qual
-                          ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-600/10'
+                          ? 'bg-white border-transparent text-black'
                           : 'bg-[#0D0D0F] border-[#3a3a3c] hover:border-slate-700 text-slate-400'
                       }`}
                     >
@@ -7109,7 +7109,7 @@ function App() {
               </button>
               <button 
                 onClick={handleExportClick}
-                className="bg-indigo-650 hover:bg-[#6366f1] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-indigo-600/10 active:scale-95"
+                className="bg-white text-black font-bold text-xs px-5 py-2.5 rounded-xl transition-all cursor-pointer hover:bg-slate-200 active:scale-95"
               >
                 Exportar Video
               </button>
@@ -7120,15 +7120,15 @@ function App() {
 
       {(isExporting || exportProgress) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-[#1a1a2e] border border-indigo-500/20 rounded-2xl p-8 w-[480px] shadow-2xl">
+          <div className="bg-[#1C1C1E] border border-[#3a3a3c] rounded-2xl p-8 w-[480px] shadow-2xl">
             <h3 className="text-white text-lg font-bold mb-6 flex items-center gap-2">
               {exportProgress?.step === 'done' ? '✅' : '🎬'} 
               {exportProgress?.step === 'done' ? 'Exportación Completada' : 'Exportando Video...'}
             </h3>
 
-            <div className="w-full bg-[#2a2a3e] rounded-full h-3 mb-4 overflow-hidden">
+            <div className="w-full bg-[#3a3a3c] rounded-full h-3 mb-4 overflow-hidden">
               <div 
-                className={`h-3 rounded-full transition-all duration-500 ${exportProgress?.step === 'done' ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                className={`h-3 rounded-full transition-all duration-500 ${exportProgress?.step === 'done' ? 'bg-emerald-500' : 'bg-white'}`}
                 style={{ width: `${exportProgress ? Math.round((exportProgress.current / exportProgress.total) * 100) : 0}%` }}
               />
             </div>
@@ -7143,14 +7143,14 @@ function App() {
             </div>
 
             {exportProgress?.step !== 'done' && (
-              <div className="bg-[#12122a] border border-[#3a3a5c] rounded-xl p-4 space-y-2">
+              <div className="bg-[#141416] border border-[#3a3a3c] rounded-xl p-4 space-y-2">
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-500">Clips procesados</span>
                   <span className="text-slate-300">{exportProgress?.current || 0} / {exportProgress?.total || 0}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-500">Paso actual</span>
-                  <span className="text-indigo-400">{exportProgress?.step === 'normalizing' ? 'Normalizando clips' : exportProgress?.step === 'concatenating' ? 'Concatenando' : 'Preparando'}</span>
+                  <span className="text-slate-300">{exportProgress?.step === 'normalizing' ? 'Normalizando clips' : exportProgress?.step === 'concatenating' ? 'Concatenando' : 'Preparando'}</span>
                 </div>
               </div>
             )}
