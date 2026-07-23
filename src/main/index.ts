@@ -1419,49 +1419,81 @@ ipcMain.handle('export-video', async (_event, { clips, aspectRatio, resolution, 
         })
       })
     } else {
-      // Multiple clips concatenation
-      const bankDir = getBancoClipsPath()
-      const tempTxtPath = path.join(bankDir, `temp_concat_${Date.now()}.txt`)
-      
-      // Filtrar SOLO clips de video — excluir audio, graficos, overlays
       const videoOnly = clips.filter((c: any) => 
         c.path && c.type !== 'audio' && c.type !== 'graphic' && c.category !== 'v2_overlay'
       );
       const audioClip = clips.find((c: any) => c.type === 'audio' && c.path);
 
-      let fileContent = ''
-      for (const clip of videoOnly) {
-        if (await exists(clip.path)) {
-          const escapedPath = clip.path.replace(/\\/g, '/').replace(/'/g, "'\\''")
-          fileContent += `file '${escapedPath}'\n`
-        } else {
-          console.warn(`[export-video] Clip no encontrado: ${clip.name}`)
+      if (videoOnly.length === 0) {
+        return { success: false, error: 'No hay clips de video validos para exportar.' };
+      }
+
+      await writeDebugLog(`[EXPORT] Normalizando ${videoOnly.length} clips a ${targetW}x${targetH}...`);
+      const normStart = Date.now();
+
+      const bankDir = getBancoClipsPath();
+      const normDir = path.join(bankDir, 'temp_export');
+      if (!(await exists(normDir))) {
+        await fs.promises.mkdir(normDir, { recursive: true });
+      }
+
+      const normalizedPaths: string[] = [];
+      for (let i = 0; i < videoOnly.length; i++) {
+        const clip = videoOnly[i];
+        if (!(await exists(clip.path))) continue;
+        const normPath = path.join(normDir, `norm_${String(i).padStart(4, '0')}.mp4`);
+        const escapedIn = clip.path.replace(/"/g, '\\"');
+        const escapedNorm = normPath.replace(/"/g, '\\"');
+        try {
+          await new Promise<void>((resolve, reject) => {
+            const cmd = `ffmpeg -y -i "${escapedIn}" ${filterStr} -r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an "${escapedNorm}"`;
+            exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => {
+              if (err) reject(err); else resolve();
+            });
+          });
+          normalizedPaths.push(normPath);
+        } catch (normErr: any) {
+          await writeDebugLog(`[EXPORT] Error normalizando clip ${i}: ${normErr.message}`);
         }
       }
 
-      if (!fileContent.trim()) {
-        return { success: false, error: 'Ninguno de los clips del Timeline tiene un archivo de origen válido en disco.' }
+      await writeDebugLog(`[EXPORT] Normalizacion: ${((Date.now() - normStart) / 1000).toFixed(1)}s — ${normalizedPaths.length} clips`);
+
+      if (normalizedPaths.length === 0) {
+        return { success: false, error: 'No se pudo normalizar ningun clip.' };
       }
 
-      await fs.promises.writeFile(tempTxtPath, fileContent, 'utf8')
-      const escapedTxt = tempTxtPath.replace(/"/g, '\\"')
+      const tempTxtPath = path.join(bankDir, `temp_concat_${Date.now()}.txt`);
+      let fileContent = '';
+      for (const np of normalizedPaths) {
+        fileContent += `file '${np.replace(/\\/g, '/').replace(/'/g, "'\\''")}'\n`;
+      }
+      await fs.promises.writeFile(tempTxtPath, fileContent, 'utf8');
+      const escapedTxt = tempTxtPath.replace(/"/g, '\\"');
 
-      // Concat and crop
+      await writeDebugLog(`[EXPORT] Concatenando...`);
+      const concatStart = Date.now();
+
       let ffmpegCmd = '';
       if (audioClip && audioClip.path && (await exists(audioClip.path))) {
         const escapedAudio = audioClip.path.replace(/"/g, '\\"');
-        ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" -i "${escapedAudio}" ${filterStr} -map 0:v -map 1:a -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -c:a aac -b:a 128k -shortest -movflags +faststart "${escapedOut}"`;
+        ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" -i "${escapedAudio}" -map 0:v -map 1:a -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart "${escapedOut}"`;
       } else {
-        ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" ${filterStr} -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -an -movflags +faststart "${escapedOut}"`;
+        ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" -c:v copy -an -movflags +faststart "${escapedOut}"`;
       }
-      
+
       await new Promise<void>((resolve, reject) => {
         exec(ffmpegCmd, { maxBuffer: 1024 * 1024 * 50 }, async (err) => {
-          try { await fs.promises.unlink(tempTxtPath) } catch (e) {}
-          if (err) reject(err)
-          else resolve()
-        })
-      })
+          try { await fs.promises.unlink(tempTxtPath); } catch (e) {}
+          for (const np of normalizedPaths) {
+            try { await fs.promises.unlink(np); } catch (e) {}
+          }
+          try { await fs.promises.rmdir(normDir); } catch (e) {}
+          if (err) reject(err); else resolve();
+        });
+      });
+
+      await writeDebugLog(`[EXPORT] Concat: ${((Date.now() - concatStart) / 1000).toFixed(1)}s`);
     }
 
     const exportEnd = Date.now();
