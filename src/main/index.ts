@@ -1440,9 +1440,39 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
         })
       })
     } else {
-      const videoOnly = clips.filter((c: any) => 
+      const videoOnly = clips.filter((c: any) =>
         c.path && c.type !== 'audio' && c.type !== 'graphic' && c.category !== 'v2_overlay'
       );
+
+      // A1: mapear transiciones asignadas a pares de indices consecutivos de videoOnly (solo lectura + logs)
+      const transitionByIndex: Record<number, string> = {};
+      if (hasTransitions) {
+        const consumedKeys = new Set<string>();
+        for (let i = 0; i < videoOnly.length - 1; i++) {
+          const key = `${videoOnly[i].id}->${videoOnly[i + 1].id}`;
+          const assigned = assignedTransitions[key];
+          if (assigned) {
+            transitionByIndex[i] = mapTransition(assigned);
+            consumedKeys.add(key);
+          }
+        }
+        await writeDebugLog(`[EXPORT-TR] Pares con transicion: ${Object.keys(transitionByIndex).length} de ${videoOnly.length - 1} cortes. Detalle: ${Object.entries(transitionByIndex).slice(0, 10).map(([i, t]) => `${i}:${t}`).join(', ')}`);
+
+        // Diagnostico: distingue los 3 modos de fallo posibles del mapeo
+        const totalKeys = Object.keys(assignedTransitions);
+        const orphanKeys = totalKeys.filter((k) => !consumedKeys.has(k));
+        const isSorted = videoOnly.every((c: any, i: number) =>
+          i === 0 || (c.startSeconds ?? 0) >= (videoOnly[i - 1].startSeconds ?? 0)
+        );
+        const overlayCount = clips.filter((c: any) => c.category === 'v2_overlay').length;
+        const noPathCount = clips.filter((c: any) => !c.path && c.type !== 'audio' && c.type !== 'graphic').length;
+        await writeDebugLog(`[EXPORT-TR] DIAG huerfanas: ${orphanKeys.length}/${totalKeys.length} | ordenado por startSeconds: ${isSorted} | v2_overlay excluidos: ${overlayCount} | sin path excluidos: ${noPathCount}`);
+        if (orphanKeys.length > 0) {
+          await writeDebugLog(`[EXPORT-TR] DIAG primeras huerfanas: ${orphanKeys.slice(0, 4).join(' | ')}`);
+          await writeDebugLog(`[EXPORT-TR] DIAG primeros ids videoOnly: ${videoOnly.slice(0, 5).map((c: any) => c.id).join(' | ')}`);
+        }
+      }
+
       const audioClip = clips.find((c: any) => c.type === 'audio' && c.path);
 
       if (videoOnly.length === 0) {
