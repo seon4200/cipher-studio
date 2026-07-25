@@ -733,7 +733,7 @@ ipcMain.handle('rewrite-transcript', async (_event, text) => {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
+        model: 'deepseek-v4-pro',
         messages: [
           {
             role: 'system',
@@ -742,6 +742,8 @@ ipcMain.handle('rewrite-transcript', async (_event, text) => {
           { role: 'user', content: finalPrompt }
         ],
         temperature: 0.7,
+        max_tokens: 8000,
+        thinking: { type: 'disabled' },
         stream: false
       })
     })
@@ -1737,16 +1739,22 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
-              model: 'deepseek-chat',
+              model: 'deepseek-v4-pro',
               messages: [
                 { role: 'system', content: 'Responde UNICAMENTE con JSON valido.' },
                 { role: 'user', content: batchPrompt }
               ],
-              temperature: 0.2
+              temperature: 0.2,
+              max_tokens: 8000,
+              thinking: { type: 'disabled' }
             })
           });
           if (dsResp.ok) {
             const dsData = (await dsResp.json()) as any;
+            const finishReason = dsData?.choices?.[0]?.finish_reason;
+            if (finishReason === 'length') {
+              await logMessage(`[FASE 2] AVISO: respuesta truncada (finish_reason=length). El lote se perdera y esas frases caeran a original.`);
+            }
             let content = (dsData?.choices?.[0]?.message?.content || '').trim();
             if (content.includes('{')) {
               content = content.substring(content.indexOf('{'), content.lastIndexOf('}')+1);
@@ -1755,6 +1763,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             if (Array.isArray(parsed.phrases)) {
               phrasesDecision.push(...parsed.phrases);
             }
+          } else {
+            const errBody = await dsResp.text().catch(() => '');
+            await logMessage(`[FASE 2] DeepSeek HTTP ${dsResp.status}: ${errBody.slice(0, 300)}`);
           }
         } catch (err: any) {
           await logMessage('[FASE 2] Error lote: ' + err.message);
@@ -2676,12 +2687,14 @@ ipcMain.handle('regenerate-graphics', async (_event, params: any) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
           body: JSON.stringify({
-            model: 'deepseek-chat',
+            model: 'deepseek-v4-pro',
             messages: [
               { role: 'system', content: 'Responde UNICAMENTE con JSON valido.' },
               { role: 'user', content: sectionPrompt }
             ],
-            temperature: 0.3
+            temperature: 0.3,
+            max_tokens: 8000,
+            thinking: { type: 'disabled' }
           })
         });
         if (dsResp.ok) {
@@ -2692,6 +2705,9 @@ ipcMain.handle('regenerate-graphics', async (_event, params: any) => {
           if (Array.isArray(parsed.phrases)) {
             allPhrases.push(...parsed.phrases);
           }
+        } else {
+          const errBody = await dsResp.text().catch(() => '');
+          await logMessage('[REGEN] DeepSeek HTTP ' + dsResp.status + ': ' + errBody.slice(0, 300));
         }
       } catch (err: any) {
         await logMessage('[REGEN] Error seccion ' + s + ': ' + err.message);
@@ -2880,12 +2896,14 @@ ipcMain.handle('generate-perfect-sync', async (event, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
           body: JSON.stringify({
-            model: 'deepseek-chat',
+            model: 'deepseek-v4-pro',
             messages: [
               { role: 'system', content: 'Responde UNICAMENTE con JSON valido.' },
               { role: 'user', content: batchPrompt }
             ],
-            temperature: 0.2
+            temperature: 0.2,
+            max_tokens: 8000,
+            thinking: { type: 'disabled' }
           })
         });
         if (dsResp.ok) {
@@ -2898,6 +2916,9 @@ ipcMain.handle('generate-perfect-sync', async (event, {
           if (Array.isArray(parsed.phrases)) {
             phrasesDecision.push(...parsed.phrases);
           }
+        } else {
+          const errBody = await dsResp.text().catch(() => '');
+          await logMessage('[FASE 2] DeepSeek HTTP ' + dsResp.status + ': ' + errBody.slice(0, 300));
         }
       } catch (err: any) {
         await logMessage('[FASE 2] Error lote: ' + err.message);
