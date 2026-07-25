@@ -2744,13 +2744,12 @@ function App() {
             return lastPicked;
           };
           const newAssigned: Record<string, string> = {};
-          const step = totalCortes > 0 ? Math.floor(totalCortes / Math.max(1, cortesConTransicion)) : 1;
-          for (let i = 0; i < videoOnly.length - 1; i++) {
-            const shouldAssign = transitionsPercent === 100 || (i % step === 0 && Object.keys(newAssigned).length < cortesConTransicion);
-            if (shouldAssign) {
-              const key = videoOnly[i].id + '->' + videoOnly[i + 1].id;
-              newAssigned[key] = pickNext();
-            }
+          // Reparto uniforme: la transicion n cae en el corte (n+0.5)*total/cantidad,
+          // asi quedan repartidas de punta a punta y no amontonadas al principio.
+          for (let n = 0; n < cortesConTransicion; n++) {
+            const i = Math.min(totalCortes - 1, Math.floor(((n + 0.5) * totalCortes) / cortesConTransicion));
+            const key = videoOnly[i].id + '->' + videoOnly[i + 1].id;
+            newAssigned[key] = pickNext();
           }
           setAssignedTransitions(newAssigned);
         }
@@ -2812,13 +2811,12 @@ function App() {
       return lastPicked;
     };
     const newAssigned: Record<string, string> = {};
-    const step = totalCortes > 0 ? Math.floor(totalCortes / Math.max(1, cortesConTransicion)) : 1;
-    for (let i = 0; i < videoOnly.length - 1; i++) {
-      const shouldAssign = transitionsPercent === 100 || (i % step === 0 && Object.keys(newAssigned).length < cortesConTransicion);
-      if (shouldAssign) {
-        const key = videoOnly[i].id + '->' + videoOnly[i + 1].id;
-        newAssigned[key] = pickNext();
-      }
+    // Reparto uniforme: la transicion n cae en el corte (n+0.5)*total/cantidad,
+    // asi quedan repartidas de punta a punta y no amontonadas al principio.
+    for (let n = 0; n < cortesConTransicion; n++) {
+      const i = Math.min(totalCortes - 1, Math.floor(((n + 0.5) * totalCortes) / cortesConTransicion));
+      const key = videoOnly[i].id + '->' + videoOnly[i + 1].id;
+      newAssigned[key] = pickNext();
     }
     setAssignedTransitions(newAssigned);
   };
@@ -4144,13 +4142,12 @@ function App() {
                         };
                         const newAssigned: Record<string, string> = {};
                         const clips = sorted;
-                        const step = totalCortes > 0 ? Math.floor(totalCortes / Math.max(1, cortesConTransicion)) : 1;
-                        for (let i = 0; i < clips.length - 1; i++) {
-                          const shouldAssign = transitionsPercent === 100 || (i % step === 0 && Object.keys(newAssigned).length < cortesConTransicion);
-                          if (shouldAssign) {
-                            const key = clips[i].id + '->' + clips[i + 1].id;
-                            newAssigned[key] = pickNext();
-                          }
+                        // Reparto uniforme: la transicion n cae en el corte (n+0.5)*total/cantidad,
+                        // asi quedan repartidas de punta a punta y no amontonadas al principio.
+                        for (let n = 0; n < cortesConTransicion; n++) {
+                          const i = Math.min(totalCortes - 1, Math.floor(((n + 0.5) * totalCortes) / cortesConTransicion));
+                          const key = clips[i].id + '->' + clips[i + 1].id;
+                          newAssigned[key] = pickNext();
                         }
                         setAssignedTransitions(newAssigned);
                       }
