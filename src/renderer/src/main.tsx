@@ -2479,7 +2479,9 @@ function App() {
         aspectRatio: aspectRatio,
         resolution: exportResolution,
         format: exportFormat,
-        quality: exportQuality
+        quality: exportQuality,
+        assignedTransitions: assignedTransitions,
+        transitionDuration: transitionDuration
       });
       
       if (res && res.success && res.filePath) {

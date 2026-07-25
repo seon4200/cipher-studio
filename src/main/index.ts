@@ -1328,8 +1328,28 @@ ipcMain.handle('delete-bank-clip', async (_event, { category, file }) => {
 })
 
 // IPC handle for exporting video (single clip or concatenating multiple clips) with aspect ratio crop
-ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, format, quality }) => {
+ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, format, quality, assignedTransitions, transitionDuration }) => {
   try {
+    // Mapeo de nombres internos de transiciones a nombres de FFmpeg xfade
+    const XFADE_MAP: Record<string, string> = {
+      'fade': 'fade', 'dissolve': 'dissolve', 'morph': 'smoothup',
+      'CrossZoom': 'circleopen', 'pixelize': 'pixelize', 'GlitchDisplace': 'diagtl',
+      'ripple': 'smoothleft', 'crosswarp': 'diagtr', 'fadegrayscale': 'fadegrays',
+      'fadecolor': 'fadeblack', 'burn': 'fadewhite', 'luma': 'dissolve',
+      'flyeye': 'circleclose', 'randomsquares': 'pixelize', 'wipeUp': 'wipeup',
+      'LinearBlur': 'hblur', 'colorphase': 'fadegrays', 'rotate_scale_fade': 'circleopen',
+      'multiply_blend': 'dissolve', 'kaleidoscope': 'circleopen', 'powerKaleido': 'circleclose',
+      'TVStatic': 'pixelize', 'static_wipe': 'wipeleft', 'SimpleZoom': 'circleopen',
+      'SimpleZoomOut': 'circleclose', 'zoomInOut': 'circleopen', 'StereoViewer': 'slideright',
+      'displacement': 'slidedown', 'DirectionalScaled': 'slideleft', 'HSVfade': 'fadegrays',
+      'StaticFade': 'fade', 'parametric_glitch': 'diagbl', 'mosaic_transition': 'pixelize',
+      'ButterflyWaveScrawler': 'smoothright', 'old_tv_lost_signal': 'hblur', 'DefocusBlur': 'hblur',
+      'directionalwipe': 'wipeleft', 'Revolve_Left': 'radial'
+    };
+    const mapTransition = (name: string): string => XFADE_MAP[name] || 'fade';
+    const trDuration = typeof transitionDuration === 'number' ? transitionDuration : 0.5;
+    const hasTransitions = assignedTransitions && Object.keys(assignedTransitions).length > 0;
+    await writeDebugLog(`[EXPORT] Transiciones asignadas: ${hasTransitions ? Object.keys(assignedTransitions).length : 0}, duracion: ${trDuration}s, primer mapa de test: ${mapTransition('fade')}`);
     if (!win) return { success: false, error: 'Ventana no disponible' }
 
     const ext = format === 'mov' ? 'mov' : 'mp4';
