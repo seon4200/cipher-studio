@@ -89,7 +89,11 @@ Se implementó la **variante con log ampliado** (no la del plan original), que d
 ```
 Los IDs cuadran perfecto entre frontend y backend. **Luz verde para A2.**
 
-**Checkpoint A1:** ☑ log correcto · ☑ commit · ☐ **regresión al 0% pendiente** (nunca se corrió; con 0% el bloque ni se ejecuta y el export debe salir como siempre)
+**Reparto verificado en la app (export del 25/07 19:01, 79 clips, 50%):** `Detalle: 1:pixelize, 3:diagtl, 5:hblur, 7:wipeleft, 9:radial...` — índices salteados de dos en dos, ya no consecutivos. 39 de 78 cortes, último en el corte 77 de 77. Confirma el fix `6294a8f`.
+
+**Checkpoint A1:** ☑ log correcto · ☑ reparto verificado en la app · ☑ commit · ☐ **regresión al 0% SIGUE PENDIENTE**
+
+> Comprobado el 29/07: el log **no se escribe desde el 25/07 14:02**. La línea `[EXPORT] Transiciones asignadas` (~L1352) se emite **antes** del diálogo de guardar, así que hasta un export cancelado dejaría rastro. No hay ninguno → el handler de export no se ha invocado. La regresión al 0% no se ha corrido todavía.
 
 **Riesgos que A1 despejó (documentar por si reaparecen):**
 - El filtro del frontend (`handleBuildTransitions`) y el del backend NO son idénticos: el backend además exige `c.path`, excluye `v2_overlay` y **no ordena**. En este proyecto coincidieron, pero en un proyecto de Sync Perfecta las transiciones se asignan entre clips `v2_overlay` (L4120) que el backend descarta → saldría `Pares: 0`. El DIAG lo distingue.
@@ -109,16 +113,37 @@ Los IDs cuadran perfecto entre frontend y backend. **Luz verde para A2.**
 - **`setsar=1` en la normalización antes de cualquier xfade** (si un clip trae SAR ≠ 1:1, xfade falla o da artefactos aunque las dimensiones coincidan).
 - Si el clip dura < 1.0s → NO aplicar transición en ese lado (corte seco).
 
-> ### ⚠️ PREGUNTA ABIERTA — RESOLVER ANTES DE ESCRIBIR CÓDIGO DE A2
-> **La premisa de A2 puede no sostenerse.** La matemática dice `body = slot − 0.25`, lo que asume que se conoce la duración del *slot* de cada clip. Pero el comando de normalización actual (**`src/main/index.ts` ~L1477**) **no aplica `-ss` ni `-t`**:
-> ```
-> ffmpeg -y -i "<clip.path>" <filterStr> -r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an "<norm>"
-> ```
-> Es decir, usa el **archivo fuente entero**, no el tramo del timeline. Eso solo funciona si los archivos en disco **ya vienen cortados exactamente a la duración de su slot** durante la generación (FASE 3/5).
+> ### ✅ PREMISA DEL SLOT — MEDIDA Y RESUELTA (29/07/2026)
+> Se midieron con `ffprobe` los **79 clips** del proyecto `jhjhgjh-1785005691088` (el del export del 25/07) contra su `durationSeconds`.
 >
-> **Verificar ANTES de A2:** comparar `durationSeconds` de unos clips del timeline contra la duración real del archivo con `ffprobe`. Si NO coinciden, A2 necesita rediseño: habría que recortar por slot en la normalización, y eso toca directamente la sincronización con el audio maestro.
+> **El archivo dura MÁS que el slot, no menos** (la hipótesis inicial tenía el signo invertido): 49 de 79 más largos, 29 exactos, 1 más corto.
+>
+> | categoría | n | delta medio | máx | exactos |
+> |---|---|---|---|---|
+> | **original** (`-c copy`, ~L2340) | 19 | **+0.110s** | +0.167s | **0 de 19** |
+> | **stock** (recodificado, ~L2313) | 60 | +0.011s | +0.04s | 29 de 60 |
+>
+> **Causa:** `ffmpeg -ss X -i v -t D -c copy` no puede cortar en un punto arbitrario; se extiende hasta el siguiente keyframe y el archivo sale **largo**. Por eso los originales fallan en 19 de 19 y el stock (que se recodifica) acierta en la mitad.
+>
+> **Consecuencia para el diseño de A2 — el `tpad` con frame clonado es CORRECTO:** hay sobrante, pero **ningún clip alcanza los 0.25s** que harían falta por lado. Máximo 0.167s, medio 0.035s, y 30 clips tienen exactamente cero. Handles reales desde la fuente **no son viables** con este material.
 
-**Checkpoint A2:** ☐ premisa del slot verificada · ☐ tails/heads solo donde corresponde · ☐ regresión 0% OK · ☐ commit
+> ### 🛑 BLOQUEANTE DE A2 — DERIVA ACUMULADA DE 2.758s (descubierta el 29/07/2026)
+> La normalización del export mete el **archivo entero sin `-t`**, así que cada clip empuja al siguiente:
+> ```
+> suma de slots (durationSeconds) = 210.811s
+> suma de archivos reales         = 213.569s
+> audio maestro                   = 210.700s
+> DERIVA                          =   2.758s
+> ```
+> Es **progresiva y monótona**: `idx 19 → +0.91s · idx 39 → +1.74s · idx 59 → +2.42s · idx 78 → +2.76s`.
+>
+> **Al final del video la imagen va 2.76s por detrás de la narración**, y el `-shortest` del concat recorta los últimos ~2.9s de video en silencio. Es exactamente la prueba definitiva que describe A4 ("los labios/voz cuadran en el último minuto"): **hoy no cuadran**. Es un bug de producto que ya existe, sin transiciones de por medio.
+>
+> **Por qué bloquea A2:** `body = slot − 0.25` asume que el clip normalizado dura el slot. Hoy no. Si se hace A2 encima, el `-t` entraría solo en los clips **con** transición y el resto seguiría derivando → desincronización desigual, más difícil de diagnosticar. **Decisión tomada: arreglar la deriva primero, como cambio propio y verificable (duración del export == audio ±0.1s), y luego A2 sobre base sólida.**
+>
+> **Pendiente de decidir antes de escribir A2:** 18 de 78 clips tienen `durationSeconds` distinto del hueco entre `startSeconds` consecutivos. Hay que fijar cuál manda como "slot".
+
+**Checkpoint A2:** ☑ premisa del slot verificada · ☐ **deriva arreglada (previo)** · ☐ tails/heads solo donde corresponde · ☐ regresión 0% OK · ☐ commit
 
 ---
 
@@ -201,6 +226,13 @@ Con `deepseek-chat` la asignación siempre quedaba **corta**; con `v4-pro` se **
 
 ### P2 — La degradación silenciosa sigue viva (prioridad alta para producto comercial)
 El bug de fondo no era el modelo, era `if (dsResp.ok)` sin `else`. El relleno hardcodeado a `'original'` de `~L1779` sigue ahí: **si DeepSeek falla por cualquier otra razón, el usuario final verá un video de puros clips originales sin saber por qué.** Ahora al menos queda en el log, pero **no avisa en la UI**. Para un producto que se vende, esto debería mostrarse al usuario.
+
+### P0 — DERIVA DE 2.758s ENTRE VIDEO Y AUDIO (BLOQUEANTE de A2, bug de producto HOY)
+La normalización del export usa el archivo entero sin `-t`. Los clips duran más que su slot (media +0.035s, los `original` +0.110s por el `-c copy` de FASE 3), y el error se **acumula**: al final del video la imagen va **2.76s** por detrás de la narración. El `-shortest` del concat recorta los últimos ~2.9s sin avisar.
+
+**Es el fallo más grave detectado hasta ahora**, porque contradice la premisa central del proyecto ("el audio es el reloj maestro"). **Arreglo acordado: `-t <slot>` en la normalización para TODOS los clips**, antes de tocar A2. Verificación: `ffprobe` de la duración del export == duración del audio (±0.1s). Ver el recuadro de la FASE A2.
+
+Fuente de la imprecisión aguas arriba: `ffmpeg -ss ${ts} -i "${video}" -t ${item.duration} -c copy` (~L2340) — `-c copy` no corta en puntos arbitrarios. Arreglarlo ahí también es opción, pero recodificar los originales cuesta tiempo de generación; recortar en el export es más barato y no toca el pipeline de generación.
 
 ### P3 — `normalizedPaths` se compacta (BLOQUEANTE de A4)
 Ver el recuadro de la FASE A4. Mismo bug del array compactado ya corregido en FASE 4 de la generación.
@@ -351,10 +383,12 @@ BACKLOG                    ← las ALTA antes de empaquetar y vender
 | Fase | Estado | Fecha | Notas / mediciones |
 |------|--------|-------|--------------------|
 | A0 commit estado | ☑ | 24/07/2026 | `eb6b66e` |
-| A1 mapa transiciones | ☑ | 24/07/2026 | `ebfca7b` · **38 de 75 pares** · 0 huérfanas · ordenado ✓ · regresión 0% pendiente |
+| A1 mapa transiciones | ☑ | 24/07/2026 | `ebfca7b` · **38 de 75 pares** · 0 huérfanas · ordenado ✓ · **regresión 0% NO corrida** |
 | — fix DeepSeek | ☑ | 24/07/2026 | `50ea4ac` · 148.9s truncado → 16.0s con 25/25 |
-| — fix reparto transiciones | ☑ | 24/07/2026 | `6294a8f` · 50%: `0..37` → `0,2,4..74` · falta verlo en la app |
-| A2 body+tail/head | ⬜ | | **bloqueado por la pregunta del slot** |
+| — fix reparto transiciones | ☑ | 24/07/2026 | `6294a8f` · 50%: `0..37` → `0,2,4..74` · **verificado en la app 25/07**: `1,3,5,7,9...` |
+| — premisa del slot (A2) | ☑ | 29/07/2026 | archivo **más largo** que el slot (no más corto) · sobrante máx 0.167s < 0.25s → **tpad clonado correcto** |
+| **P0 deriva 2.758s** | ⬜ | 29/07/2026 | **BLOQUEANTE de A2** · video 213.57s vs audio 210.70s · acordado: `-t` en la normalización |
+| A2 body+tail/head | ⬜ | | **bloqueado por P0 (deriva)** |
 | A3 mini-renders | ⬜ | | |
 | A4 ensamblado | ⬜ | | **bloqueado por P3 (normalizedPaths compacta)** |
 | A5 pruebas | ⬜ | | |
