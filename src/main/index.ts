@@ -1490,6 +1490,34 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
         await fs.promises.mkdir(normDir, { recursive: true });
       }
 
+      // P0: cada clip normalizado debe durar EXACTAMENTE su slot del timeline.
+      // Los archivos en disco duran mas que su slot (los 'original' hasta +0.167s por el
+      // -ss/-t con -c copy de FASE 3, que no corta en puntos arbitrarios), y al concatenar
+      // el error se acumula: medido, 2.758s de deriva del video respecto al audio maestro.
+      // Se calcula en frames enteros arrastrando el error acumulado, para que la suma total
+      // cuadre con el timeline en vez de que cada clip redondee por su cuenta.
+      const FPS = 30;
+      const frameTargets: number[] = [];
+      let idealAcum = 0;
+      let framesAcum = 0;
+      for (let i = 0; i < videoOnly.length; i++) {
+        const slot = Number(videoOnly[i].durationSeconds);
+        if (!Number.isFinite(slot) || slot <= 0) {
+          frameTargets.push(0); // 0 = sin recorte, se usa el comando de siempre (degradacion elegante)
+          continue;
+        }
+        idealAcum += slot;
+        const frames = Math.round(idealAcum * FPS) - framesAcum;
+        frameTargets.push(frames > 0 ? frames : 1);
+        framesAcum += frameTargets[i];
+      }
+      const sinSlot = frameTargets.filter(f => f === 0).length;
+      await writeDebugLog(`[EXPORT] P0 recorte por slot: ${framesAcum} frames = ${(framesAcum / FPS).toFixed(3)}s (suma de slots: ${idealAcum.toFixed(3)}s, clips sin slot valido: ${sinSlot})`);
+
+      // El tpad sostiene el ultimo frame por si el archivo es MAS CORTO que su slot
+      // (medido: 1 de 79 clips, -0.018s). El -frames:v recorta despues al valor exacto.
+      const normFilterStr = filterStr.slice(0, -1) + ',tpad=stop_mode=clone:stop_duration=1"';
+
       const normalizedPaths: string[] = [];
       for (let i = 0; i < videoOnly.length; i++) {
         const clip = videoOnly[i];
@@ -1506,7 +1534,10 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
         const escapedNorm = normPath.replace(/"/g, '\\"');
         try {
           await new Promise<void>((resolve, reject) => {
-            const cmd = `ffmpeg -y -i "${escapedIn}" ${filterStr} -r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an "${escapedNorm}"`;
+            const frames = frameTargets[i];
+            const vf = frames > 0 ? normFilterStr : filterStr;
+            const trim = frames > 0 ? `-frames:v ${frames} ` : '';
+            const cmd = `ffmpeg -y -i "${escapedIn}" ${vf} -r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an ${trim}"${escapedNorm}"`;
             exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => {
               if (err) reject(err); else resolve();
             });
