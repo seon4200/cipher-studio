@@ -211,7 +211,24 @@ Lista concat intercalando `body_0, transition_0, body_1, ...`. El resto del coma
 
 ## PENDIENTES NUEVOS (deuda detectada el 24/07/2026)
 
-### P1 — `v4-pro` se pasa de stock (prioridad media)
+### P1 — `v4-pro` desvía la cuota de stock (DEUDA APLAZADA el 30/07/2026)
+**Decisión: aplazado.** Con la tercera muestra el desvío fue de **+1**, así que lo que parecía sesgo sistemático es más bien **varianza alta** del modelo, como planteó John desde el principio. Se retoma solo si vuelve a desviarse mucho en próximos vídeos.
+
+| run | pedido stock | obtenido | desvío |
+|---|---|---|---|
+| 25/07 03:05 | 46 | 63 | +17 |
+| 25/07 03:17 | 47 | 59 | +12 |
+| 30/07 05:01 | 47 | 48 | **+1** |
+
+**Diseño ya acordado, por si se retoma** (~55 líneas, entre el sanitizado y el aplanado de `generate-timeline-assets`): forzar los conteos contra el total real, convirtiendo el excedente con reparto uniforme `floor((n+0.5)·k/m)`. **La guarda es por DIRECCIÓN, no por estado del lote** (idea de John, mejor que la primera propuesta):
+- `stock → original`: siempre permitido, solo necesita `timestamp` — y desde `7270b95` ya no hace falta recalcularlo, porque la pasada de escalonado va después y lo corrige. Requiere que exista `videoPath`.
+- `original → stock`: solo si el clip trae `keyword` propio distinto de `'broll'`; si no, se salta ese clip.
+
+Esta regla cubre por construcción el caso de DeepSeek caído (produce todo `original` con `'broll'`, dirección que la guarda restringe).
+
+**Intento fallido, NO repetir:** se probó pedir en el prompt un `keyword` para todos los tipos, como prerrequisito. Resultado: el modelo interpretó que todo debía ser stock y pasó de 63/13 a **76/0**, cero clips originales. Revertido sin commitear. El prompt es sensible; la corrección de cuota debe ser determinista en código.
+
+### P1b — `v4-pro` se pasa de stock (contexto original)
 Con `deepseek-chat` la asignación siempre quedaba **corta**; con `v4-pro` se **pasa**:
 
 | modelo | pedido stock | obtenido | desvío |
@@ -387,8 +404,10 @@ BACKLOG                    ← las ALTA antes de empaquetar y vender
 | — fix DeepSeek | ☑ | 24/07/2026 | `50ea4ac` · 148.9s truncado → 16.0s con 25/25 |
 | — fix reparto transiciones | ☑ | 24/07/2026 | `6294a8f` · 50%: `0..37` → `0,2,4..74` · **verificado en la app 25/07**: `1,3,5,7,9...` |
 | — premisa del slot (A2) | ☑ | 29/07/2026 | archivo **más largo** que el slot (no más corto) · sobrante máx 0.167s < 0.25s → **tpad clonado correcto** |
-| **P0 deriva 2.758s** | ⬜ | 29/07/2026 | **BLOQUEANTE de A2** · video 213.57s vs audio 210.70s · acordado: `-t` en la normalización |
-| A2 body+tail/head | ⬜ | | **bloqueado por P0 (deriva)** |
+| **P0 deriva 2.758s** | ☑ | 29/07/2026 | `83a92ff` · frames enteros por slot · 2.758s → 0.102s · verificado con ffprobe (0 ms de error en 3 casos límite) |
+| — escalonado de timestamps | ☑ | 30/07/2026 | `7270b95` · **18 de 28 originales (64%) repetían metraje** · verificado visualmente |
+| — cuota de stock (ARREGLO 1) | ⏸ | 30/07/2026 | **aplazado**: 3ª muestra en +1 → varianza, no sesgo. Diseño acordado en P1 |
+| A2 body+tail/head | ⬜ | | **desbloqueada** · escribir en FRAMES: 0.25s = 7.5 frames, repartir la transición como 7+8 |
 | A3 mini-renders | ⬜ | | |
 | A4 ensamblado | ⬜ | | **bloqueado por P3 (normalizedPaths compacta)** |
 | A5 pruebas | ⬜ | | |
