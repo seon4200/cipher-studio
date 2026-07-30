@@ -1516,7 +1516,10 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
 
       // El tpad sostiene el ultimo frame por si el archivo es MAS CORTO que su slot
       // (medido: 1 de 79 clips, -0.018s). El -frames:v recorta despues al valor exacto.
-      const normFilterStr = filterStr.slice(0, -1) + ',tpad=stop_mode=clone:stop_duration=1"';
+      // setsar=1 es obligatorio antes de cualquier xfade: si un clip trae SAR != 1:1 el
+      // filtro falla o da artefactos aunque las dimensiones coincidan.
+      const normBase = filterStr.slice(0, -1) + ',setsar=1"';
+      const normFilterStr = filterStr.slice(0, -1) + ',tpad=stop_mode=clone:stop_duration=1,setsar=1"';
 
       const normalizedPaths: string[] = [];
       for (let i = 0; i < videoOnly.length; i++) {
@@ -1535,7 +1538,7 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
         try {
           await new Promise<void>((resolve, reject) => {
             const frames = frameTargets[i];
-            const vf = frames > 0 ? normFilterStr : filterStr;
+            const vf = frames > 0 ? normFilterStr : normBase;
             const trim = frames > 0 ? `-frames:v ${frames} ` : '';
             const cmd = `ffmpeg -y -i "${escapedIn}" ${vf} -r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an ${trim}"${escapedNorm}"`;
             exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => {
@@ -1552,6 +1555,59 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
 
       if (normalizedPaths.length === 0) {
         return { success: false, error: 'No se pudo normalizar ningun clip.' };
+      }
+
+      // ═══ A2: material para las transiciones (tails/heads) ═══
+      // Por cada par con transicion se generan dos ficheros de 15 frames (0.5s a 30fps):
+      //   tail_i = ultimos 7 frames reales del clip i + 8 clonados
+      //   head_j = 7 clonados + primeros 8 frames reales del clip j
+      // El reparto 7+8 sale de que 0.25s son 7.5 frames y no puede ser fraccionario.
+      // Se conserva la aritmetica: (frames_A - 7) + 15 + (frames_B - 8) = frames_A + frames_B
+      // A2 SOLO genera estos ficheros. El recorte de bodies y el intercalado son de A4, para
+      // que entre fase y fase el export siga saliendo exactamente igual que hoy.
+      const FRAMES_TR = 15, FRAMES_TAIL = 7, FRAMES_HEAD = 8;
+      const MIN_FRAMES_TR = 30; // clips de menos de 1s: corte seco, sin transicion
+      const tempExtraPaths: string[] = [];
+
+      if (hasTransitions && Object.keys(transitionByIndex).length > 0) {
+        const trStart = Date.now();
+        // Se reconstruye la ruta desde el indice i, no desde normalizedPaths[i]: ese array
+        // se compacta si algun clip falla (P3) y desalinearia los pares.
+        const normPathFor = (i: number) => path.join(normDir, `norm_${String(i).padStart(4, '0')}.mp4`);
+
+        const buildSegment = async (i: number, kind: 'tail' | 'head') => {
+          const src = normPathFor(i);
+          if (!(await exists(src))) return null;
+          const F = frameTargets[i];
+          if (!F || F < MIN_FRAMES_TR) return null;
+          const out = path.join(normDir, `${kind}_${String(i).padStart(4, '0')}.mp4`);
+          const chain = kind === 'tail'
+            ? `trim=start_frame=${F - FRAMES_TAIL},setpts=PTS-STARTPTS,tpad=stop=${FRAMES_HEAD}:stop_mode=clone,setsar=1`
+            : `trim=end_frame=${FRAMES_HEAD},setpts=PTS-STARTPTS,tpad=start=${FRAMES_TAIL}:start_mode=clone,setsar=1`;
+          const cmd = `ffmpeg -y -i "${src.replace(/"/g, '\\"')}" -vf "${chain}" -r 30 ` +
+            `-c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an -frames:v ${FRAMES_TR} ` +
+            `"${out.replace(/"/g, '\\"')}"`;
+          try {
+            await new Promise<void>((resolve, reject) => {
+              exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => { if (err) reject(err); else resolve(); });
+            });
+            tempExtraPaths.push(out);
+            return out;
+          } catch (e: any) {
+            await writeDebugLog(`[EXPORT-A2] Error generando ${kind}_${i}: ${e.message}`);
+            return null;
+          }
+        };
+
+        let pares = 0, descartados = 0;
+        for (const key of Object.keys(transitionByIndex)) {
+          const i = Number(key);
+          const tail = await buildSegment(i, 'tail');
+          const head = await buildSegment(i + 1, 'head');
+          if (tail && head) pares++; else descartados++;
+        }
+        await writeDebugLog(`[EXPORT-A2] Tails/heads: ${pares} pares listos, ${descartados} descartados ` +
+          `(clip corto o error) — ${tempExtraPaths.length} ficheros en ${((Date.now() - trStart) / 1000).toFixed(1)}s`);
       }
 
       const tempTxtPath = path.join(bankDir, `temp_concat_${Date.now()}.txt`);
@@ -1585,6 +1641,10 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
           try { await fs.promises.unlink(tempTxtPath); } catch (e) {}
           for (const np of normalizedPaths) {
             try { await fs.promises.unlink(np); } catch (e) {}
+          }
+          // A2: tails/heads. Sin esto se acumulan Y ademas impiden el rmdir de normDir.
+          for (const tp of tempExtraPaths) {
+            try { await fs.promises.unlink(tp); } catch (e) {}
           }
           try { await fs.promises.rmdir(normDir); } catch (e) {}
           if (err) reject(err); else resolve();
