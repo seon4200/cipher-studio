@@ -1993,6 +1993,31 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
 
 
+    // ═══ TIMESTAMPS ESCALONADOS PARA LOS CLIPS 'original' ═══
+    // Hasta ahora todos los sub-clips de una frase recibian el mismo timestamp (el inicio
+    // de la frase), asi que una frase partida en 3 mostraba el mismo trozo del video fuente
+    // 3 veces seguidas, y con los labios desincronizados en el 2o y el 3o.
+    // Se recalcula aqui, ya con las duraciones definitivas (se ajustan en el bucle de
+    // sanitizado), avanzando el timestamp por la duracion de los sub-clips anteriores.
+    if (isOriginalAudio) {
+      let escalonados = 0;
+      for (let p = 0; p < sanitizedPhrases.length; p++) {
+        const base = newAudioSegments[p]?.start;
+        if (base === undefined) continue;
+        let offset = 0;
+        for (const c of sanitizedPhrases[p].visualClips) {
+          if (c.type === 'original') {
+            if (offset > 0) escalonados++;
+            c.timestamp = parseFloat(Math.min(base + offset, maxTsVal).toFixed(2));
+          }
+          // El offset avanza con TODOS los sub-clips, no solo los 'original': la posicion
+          // dentro de la frase progresa sea cual sea el tipo del sub-clip anterior.
+          offset += c.duration || 0;
+        }
+      }
+      await logMessage(`[FASE 2] Timestamps escalonados: ${escalonados} sub-clips 'original' movidos dentro de su frase`);
+    }
+
     // Aplanar la lista de sub-clips para alimentar la cola de trabajadores
     flattenedClips = [];
     let globalIdx = 1;
