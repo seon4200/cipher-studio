@@ -2053,6 +2053,135 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
 
 
+    // ═══ CUOTA Y REPARTO: conteos exactos + distribucion uniforme ═══
+    // Dos garantias, en este orden de prioridad:
+    //  1. Contenido valido: solo se pone 'stock' donde hay keyword propio de esa frase.
+    //     Sin keyword la busqueda seria generica ('broll') y el clip no ilustraria nada.
+    //     'original' se puede poner en cualquier sitio: solo necesita timestamp, y la
+    //     pasada de escalonado que corre justo despues lo deja correcto.
+    //  2. Conteos de los sliders y reparto uniforme, dentro de lo que permita el punto 1.
+    // Medido: v4-pro desvia la cuota de forma erratica (+17, +12, +1, +19 en 4 runs) y
+    // amontona (una racha de 28 clips 'original', 70s sin un solo plano de stock, mientras
+    // las rachas de stock no pasaban de 4).
+    // Un intento previo de pedirlo en el prompt colapso el reparto a 76 stock / 0 original:
+    // el prompt es sensible y la correccion tiene que ser determinista, en codigo.
+    const cuotaLista: { phraseIdx: number; clip: any }[] = [];
+    for (let p = 0; p < sanitizedPhrases.length; p++) {
+      for (const c of sanitizedPhrases[p].visualClips) cuotaLista.push({ phraseIdx: p, clip: c });
+    }
+    const totalReal = cuotaLista.length;
+
+    if (totalReal > 0) {
+      // Objetivos directos desde los pesos contra el total REAL de sub-clips. No se
+      // reescalan los target* previos: si totalVisualClipsCount fuese 0 daria NaN.
+      // Misma normalizacion que L1767-1772, que garantiza objOriginal >= 0.
+      let objIa = Math.round((minimaxWeight / 100) * totalReal);
+      let objStock = Math.round((stockWeight / 100) * totalReal);
+      if (objIa + objStock > totalReal) {
+        const sum = objIa + objStock;
+        objIa = Math.floor((objIa / sum) * totalReal);
+        objStock = totalReal - objIa;
+      }
+      const objOriginal = totalReal - objIa - objStock;
+
+      const antesStock = cuotaLista.filter(x => x.clip.type === 'stock').length;
+      const antesOriginal = cuotaLista.filter(x => x.clip.type === 'original').length;
+
+      // Los 'ia' no se tocan: generarlos cuesta dinero y no se pueden inventar.
+      const reasignables: number[] = [];
+      for (let j = 0; j < totalReal; j++) {
+        const t = cuotaLista[j].clip.type;
+        if (t === 'stock' || t === 'original') reasignables.push(j);
+      }
+      const conKeyword = reasignables.filter(
+        j => cuotaLista[j].clip.keyword && cuotaLista[j].clip.keyword !== 'broll'
+      );
+
+      const objStockReal = Math.min(objStock, reasignables.length);
+      const cuantosStock = Math.min(objStockReal, conKeyword.length);
+      const sinKeyword = objStockReal - cuantosStock;
+
+      // Colocacion optima: en vez de repartir uniformemente sobre la lista de clips con
+      // keyword (que amontona si los keywords estan agrupados), se eligen las posiciones
+      // que MINIMIZAN la racha maxima de stock. Los clips sin keyword son originales
+      // forzados y parten la secuencia en tramos; los cortes van dentro de cada tramo.
+      const cortesDisp = conKeyword.length - cuantosStock;
+      const esCandidato = new Set(conKeyword);
+
+      // Tramos maximales de candidatos consecutivos (indices dentro de reasignables)
+      const tramos: { ini: number; len: number }[] = [];
+      let t = 0;
+      while (t < reasignables.length) {
+        if (!esCandidato.has(reasignables[t])) { t++; continue; }
+        const ini = t;
+        while (t < reasignables.length && esCandidato.has(reasignables[t])) t++;
+        tramos.push({ ini, len: t - ini });
+      }
+
+      // Cortes minimos para que un tramo de longitud L no deje rachas mayores que r:
+      //   L - f <= r*(f+1)   ->   f >= (L - r)/(r + 1)
+      const cortesPara = (L: number, r: number) => Math.max(0, Math.ceil((L - r) / (r + 1)));
+      const cabe = (r: number) => tramos.reduce((s, x) => s + cortesPara(x.len, r), 0) <= cortesDisp;
+
+      // Busqueda binaria de la racha minima alcanzable con los cortes disponibles. O(n log n).
+      const maxTramo = tramos.reduce((m, x) => Math.max(m, x.len), 0);
+      let lo = 1, hi = Math.max(1, maxTramo);
+      while (lo < hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        if (cabe(mid)) hi = mid; else lo = mid + 1;
+      }
+      const rachaAlcanzada = cuantosStock > 0 ? lo : 0;
+      // Minimo teorico si TODOS los clips tuvieran keyword: el ratio puro (67/33 -> 2).
+      const nOriginal = reasignables.length - cuantosStock;
+      const rachaIdeal = (cuantosStock > 0 && nOriginal > 0)
+        ? Math.max(1, Math.ceil(cuantosStock / nOriginal)) : cuantosStock;
+
+      // Reparto por tramo: el minimo para alcanzar r, y los sobrantes al tramo que peor
+      // este en cada momento. Hay que gastarlos todos: los conteos son exactos.
+      const alloc = tramos.map(x => Math.min(x.len, cortesPara(x.len, rachaAlcanzada)));
+      let sobran = cortesDisp - alloc.reduce((s, a) => s + a, 0);
+      while (sobran > 0) {
+        let peor = -1, peorVal = -1;
+        for (let i = 0; i < tramos.length; i++) {
+          if (alloc[i] >= tramos[i].len) continue;
+          const val = Math.ceil((tramos[i].len - alloc[i]) / (alloc[i] + 1));
+          if (val > peorVal) { peorVal = val; peor = i; }
+        }
+        if (peor < 0) break;
+        alloc[peor]++; sobran--;
+      }
+
+      // Todos los candidatos son stock salvo los cortes, repartidos dentro de su tramo.
+      // Los offsets son estrictamente crecientes, asi que no se borra dos veces el mismo
+      // clip y el conteo se mantiene exacto.
+      const elegidos = new Set<number>(cuantosStock > 0 ? conKeyword : []);
+      if (cuantosStock > 0) {
+        for (let i = 0; i < tramos.length; i++) {
+          const { ini, len } = tramos[i];
+          const f = alloc[i];
+          for (let j = 0; j < f; j++) {
+            const off = Math.min(len - 1, Math.floor(((j + 1) * len) / (f + 1)));
+            elegidos.delete(reasignables[ini + off]);
+          }
+        }
+      }
+
+      for (const j of reasignables) {
+        cuotaLista[j].clip.type = elegidos.has(j) ? 'stock' : 'original';
+      }
+
+      const finStock = cuotaLista.filter(x => x.clip.type === 'stock').length;
+      const finOriginal = cuotaLista.filter(x => x.clip.type === 'original').length;
+      await logMessage(`[FASE 2] Cuota: objetivo original=${objOriginal} stock=${objStock} ia=${objIa} | ` +
+        `antes original=${antesOriginal} stock=${antesStock} | ahora original=${finOriginal} stock=${finStock} | ` +
+        `con keyword propio=${conKeyword.length}/${reasignables.length} | ` +
+        `racha stock: alcanzada=${rachaAlcanzada} ideal=${rachaIdeal} ` +
+        `(${rachaAlcanzada > rachaIdeal ? 'limite del material: faltan keywords' : 'optimo'})` +
+        (sinKeyword > 0
+          ? ` | AVISO: ${sinKeyword} slots de stock van como original por falta de keyword propio (evita b-roll generico)`
+          : ''));
+    }
+
     // ═══ TIMESTAMPS ESCALONADOS PARA LOS CLIPS 'original' ═══
     // Hasta ahora todos los sub-clips de una frase recibian el mismo timestamp (el inicio
     // de la frase), asi que una frase partida en 3 mostraba el mismo trozo del video fuente
