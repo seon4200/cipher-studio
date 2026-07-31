@@ -171,7 +171,30 @@ Idea de John: que cada transición dure lo que le pega (un `fade` corto, un `pix
 >
 > Al hacerlo hay que tocar A2 **y** A3 a la vez: los `FRAMES_TAIL` / `FRAMES_HEAD` dejan de ser constantes y pasan a calcularse por par según el nombre de la transición. Y A4 tendrá que recortar cada body con el valor de su propio par, no con 7+8 fijo.
 
-### 🔁 DEUDA — las transiciones se repiten: 38 asignadas, solo 21 efectos distintos
+### 🐛 BUG — el crop y el zoom del vídeo importado no llegan al timeline ni al export
+
+**Reportado por John el 31/07/2026. Sin diagnosticar.**
+
+Al importar un vídeo y aplicarle **crop** o **zoom**, los ajustes **se ven en la previsualización pero NO se aplican** al construir el timeline ni al exportar. El vídeo final sale sin ellos.
+
+**Comportamiento esperado:** que se apliquen **al confirmar el crop**, de modo que los clips ya se corten con el formato correcto desde FASE 3, en vez de intentar arrastrar los parámetros hasta el export.
+
+**Por dónde empezar a mirar** (sin verificar aún):
+- Dónde guarda el frontend los valores de crop/zoom y si llegan a `cut-video-clips` o a `generate-timeline-assets`.
+- El export tiene su propio `filterStr` con `crop=...,scale=...` calculado solo desde `aspectRatio`, así que ignora cualquier crop manual del usuario.
+- Si se aplica al confirmar, el vídeo fuente recortado pasa a ser el material de partida y ni el timeline ni el export necesitan saber nada.
+
+**Sospecha a confirmar:** que sea solo una transformación CSS del reproductor, sin contrapartida en el pipeline de ffmpeg.
+
+### 🔁 DEUDA — las transiciones se repiten: 38 asignadas, solo 21 efectos distintos — ✅ RESUELTO (`c72cbfd`, 31/07/2026)
+
+**Resuelto:** los 38 nombres internos apuntan ahora a 38 destinos distintos. Los 17 que cambiaron se validaron **ejecutando xfade de verdad** sobre un tail/head reales (38 de 38 dan 15 frames), no solo comprobando que salen en el listado.
+
+**Medido con 110 transiciones al 100%: 38 efectos distintos, el máximo posible.** El reparto es óptimo — 34 efectos salen 3 veces y 4 salen 2, así que entre el más y el menos usado hay 1 de diferencia. Con 110 transiciones y 38 efectos, `ceil(110/38) = 3` es el mínimo inevitable.
+
+Quedan 20 destinos sin usar por si hay que afinar: `coverleft/right/up/down`, `revealleft/right/up/down`, `wipedown`, `wipetl/tr/bl/br`, `slideup`, `horzopen/close`, `diagbr`, `hrslice`, `vuslice`, `vdwind`.
+
+<details><summary>Contexto original del problema</summary>
 
 Medido en el export de A4: las 38 transiciones del vídeo usan **solo 21 nombres xfade distintos**. `circleopen` sale **5 veces**, `pixelize` 4, y `circleclose`, `dissolve`, `fadegrays` y `hblur` 3 cada una.
 
@@ -185,6 +208,8 @@ Ejemplos del colapso:
 **Arreglo:** repartir los 38 nombres internos sobre destinos xfade distintos. El build de ffmpeg 8.1.1 soporta bastantes más de 21 (`wiperight`, `slideup`, `circlecrop`, `rectcrop`, `distance`, `vertopen`, `vertclose`, `horzopen`, `horzclose`, `hlslice`, `hrslice`, `vuslice`, `vdslice`, `squeezeh`, `squeezev`, `zoomin`, `hlwind`, `hrwind`…). Hay que **listar los soportados con `ffmpeg -h filter=xfade`** y reasignar el mapa para que cada nombre interno tenga el destino más parecido a su efecto real, sin duplicar.
 
 **Ojo:** los 38 nombres internos NO se pueden renombrar — hay previews CSS y dos paneles duplicados en el frontend que dependen de ellos. Solo cambia el destino en `XFADE_MAP`.
+
+</details>
 
 ### 🔍 DEUDA — déficit de 6 frames (0.2s), preexistente a A4
 
