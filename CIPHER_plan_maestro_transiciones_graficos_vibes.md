@@ -153,6 +153,26 @@ Los IDs cuadran perfecto entre frontend y backend. **Luz verde para A2.**
 
 ---
 
+### MEJORA FUTURA — duraciones variables por tipo de transición
+
+Idea de John: que cada transición dure lo que le pega (un `fade` corto, un `pixelize` más largo) en vez de 0.5s para todas. Se hará **después** de tener A3 verificado con duración fija, para que si algo falla se sepa de qué parte viene.
+
+> ### ⚠️ REGLA: SOLO VALORES QUE CAIGAN EN FRAME ENTERO
+> A 30fps un frame dura 33.3ms. La duración hay que elegirla **en frames**, no en segundos sueltos, o se reintroduce la cuantización que se eliminó en `83a92ff`.
+>
+> | duración | frames | reparto tail+head |
+> |---|---|---|
+> | 0.2s | **6** | 3 + 3 |
+> | 0.3s | **9** | 4 + 5 |
+> | 0.4s | **12** | 6 + 6 |
+> | 0.5s | **15** | 7 + 8 |
+>
+> **0.25s serían 7.5 frames y no existe.** Cualquier valor que no dé entero queda descartado.
+>
+> Al hacerlo hay que tocar A2 **y** A3 a la vez: los `FRAMES_TAIL` / `FRAMES_HEAD` dejan de ser constantes y pasan a calcularse por par según el nombre de la transición. Y A4 tendrá que recortar cada body con el valor de su propio par, no con 7+8 fijo.
+
+---
+
 ### FASE A3 — Mini-renders xfade (el corazón) — ⬜
 ```
 ffmpeg -y -i tail_i.mp4 -i head_(i+1).mp4 -filter_complex "[0][1]xfade=transition=<transitionByIndex[i]>:duration=0.5:offset=0" -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an transition_i.mp4
@@ -166,6 +186,10 @@ ffmpeg -y -i tail_i.mp4 -i head_(i+1).mp4 -filter_complex "[0][1]xfade=transitio
 ---
 
 ### FASE A4 — Ensamblado final — ⬜
+
+> ### 🚧 CERRAR B1 ANTES DE EMPEZAR A4 (decisión de John, 31/07/2026)
+> A4 es la primera fase que **cambia el vídeo exportado**. B1 (el `tpad` limitado a 1s que hace perder los últimos segundos de narración) tiene que estar arreglado antes, para no mezclar dos causas: si el export sale mal, hay que poder saber si fue el intercalado de transiciones o la pérdida de narración que ya existía. **No empezar A4 con B1 abierto.**
+
 Lista concat intercalando `body_0, transition_0, body_1, ...`. El resto del comando NO cambia. Limpiar tails/heads/transitions en el cleanup.
 
 > ### ⚠️ BLOQUEANTE CONOCIDO DE A4 — `normalizedPaths` SE COMPACTA

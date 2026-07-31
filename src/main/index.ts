@@ -1608,6 +1608,62 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
         }
         await writeDebugLog(`[EXPORT-A2] Tails/heads: ${pares} pares listos, ${descartados} descartados ` +
           `(clip corto o error) — ${tempExtraPaths.length} ficheros en ${((Date.now() - trStart) / 1000).toFixed(1)}s`);
+
+        // ═══ A3: mini-renders xfade ═══
+        // Cada par produce un transition_i.mp4 de 15 frames: xfade da
+        // durA + durB - duracion = 0.5 + 0.5 - 0.5 = 0.5s exactos, justo lo que A4 insertara.
+        // offset=0 SIEMPRE: ambos inputs duran ya exactamente la transicion, asi que no hay
+        // error que se pueda acumular de un par al siguiente.
+        // Igual que A2, esto SOLO genera ficheros: la lista de concat no se toca hasta A4.
+        // Verificado antes de escribirlo, sobre clips reales: los 21 nombres destino del
+        // XFADE_MAP existen en el build de ffmpeg, y la cadena norm -> tail/head -> xfade
+        // da 15 frames exactos con SAR 1:1 y el mismo pix_fmt que los bodies (~0.26s/render).
+        const a3Start = Date.now();
+        const fallosPorNombre: Record<string, number> = {};
+        let trOk = 0, trFallidas = 0;
+        const clavesTr = Object.keys(transitionByIndex);
+
+        for (let n = 0; n < clavesTr.length; n++) {
+          const i = Number(clavesTr[n]);
+          const tail = path.join(normDir, `tail_${String(i).padStart(4, '0')}.mp4`);
+          const head = path.join(normDir, `head_${String(i + 1).padStart(4, '0')}.mp4`);
+          // A2 pudo descartar el par por clip corto o por error; ese corte ira seco.
+          if (!(await exists(tail)) || !(await exists(head))) { trFallidas++; continue; }
+
+          const nombre = transitionByIndex[i];
+          const out = path.join(normDir, `transition_${String(i).padStart(4, '0')}.mp4`);
+
+          event.sender.send('export-progress', {
+            step: 'transitions',
+            current: n + 1,
+            total: clavesTr.length,
+            message: `Generando transicion ${n + 1} de ${clavesTr.length}...`
+          });
+
+          const cmd = `ffmpeg -y -i "${tail.replace(/"/g, '\\"')}" -i "${head.replace(/"/g, '\\"')}" ` +
+            `-filter_complex "[0][1]xfade=transition=${nombre}:duration=${(FRAMES_TR / 30).toFixed(3)}:offset=0" ` +
+            `-r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an ` +
+            `-frames:v ${FRAMES_TR} "${out.replace(/"/g, '\\"')}"`;
+          try {
+            await new Promise<void>((resolve, reject) => {
+              exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => { if (err) reject(err); else resolve(); });
+            });
+            tempExtraPaths.push(out);
+            trOk++;
+          } catch (e: any) {
+            // Un xfade puede fallar si este build no soporta ese nombre. Se agrupa POR NOMBRE
+            // para poder corregir el XFADE_MAP en vez de perder el corte en silencio.
+            fallosPorNombre[nombre] = (fallosPorNombre[nombre] ?? 0) + 1;
+            trFallidas++;
+          }
+        }
+
+        const detalleFallos = Object.entries(fallosPorNombre)
+          .sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}:${v}`).join(', ');
+        await writeDebugLog(`[EXPORT-A3] Transiciones renderizadas: ${trOk} de ${clavesTr.length} ` +
+          `(${trFallidas} sin render, esos cortes quedaran secos) en ` +
+          `${((Date.now() - a3Start) / 1000).toFixed(1)}s` +
+          (detalleFallos ? ` | fallos por nombre: ${detalleFallos}` : ''));
       }
 
       const tempTxtPath = path.join(bankDir, `temp_concat_${Date.now()}.txt`);
