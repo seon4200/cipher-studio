@@ -267,7 +267,21 @@ EXPORT REAL                  : 1045.067s  (31.353 frames)  ← faltan 107 frames
 pista de audio del export    : 1045.060s  ← se perdieron 3.24s de narración
 freezedetect                 : congelado el ultimo 1.03s (justo el tpad)
 ```
-**No es solo un fallo visual: se pierde contenido hablado.** Arreglo propuesto (1 línea): que el `stop_duration` cubra el déficit real en vez de 1s fijo. Degrada a un congelado más largo, que es preferible a cortar la última frase.
+**No es solo un fallo visual: se pierde contenido hablado.**
+
+### ✅ B1 RESUELTO — `58e8d79` (31/07/2026)
+`MAX_CLONADO = 10` segundos, y aviso en el log si el desfase lo supera. Medido en el mismo proyecto: déficit de 107 → 13 frames, y **la pista de audio pasa de recortada a 1045.06s a íntegra en 1048.311s**. No se pierde narración.
+
+**Por qué 10 y no 5:** el desfase es el silencio tras la última palabra transcrita, una propiedad de la **grabación**, no de su duración. Medido en 26 proyectos, tres vídeos fuente dan −0.07s, +0.06s y +3.11s con independencia de que el audio dure 199s o 286s. El máximo conocido es 4.09s. Pasarse del tope cuesta narración; quedarse largo no cuesta nada, porque `tpad` solo genera los frames que `-frames:v` consume.
+
+> ### 🔍 PENDIENTE MENOR — los 13 frames sin explicar
+> Tras B1 quedan **13 frames (0.43s)** de déficit sin causa probada. Descartado: no es el clip final desbordando el tope (no hay `AVISO B1`) ni clips sin slot válido. **Sospecha no verificada:** clips cuyo material fuente tiene una tasa de frames rara y pierden alguno al convertir a 30fps.
+>
+> **Cómo cerrarlo, cuando se quiera** (dos opciones, de menor a mayor coste):
+> 1. **Parsear la salida de ffmpeg, gratis.** El `exec` de la normalización ya recibe `stdout`/`stderr` en el callback y hoy se descartan. ffmpeg reporta `frame=N` en su última línea de estadísticas: comparar ese N con `frameTargets[i]` y loggear **solo los que no cuadren** identifica los clips culpables sin un solo proceso extra.
+> 2. **Export de diagnóstico.** Una variable de entorno tipo `CIPHER_KEEP_TEMP=1` que salte el `unlink` del cleanup, para poder medir los `norm_*.mp4` con `ffprobe` una vez. Son ~3 líneas, pero deja cientos de ficheros en `temp_export` que hay que borrar a mano.
+>
+> **La opción 1 es mejor**: no cuesta nada, no deja basura, y señala el clip exacto en vez de obligar a medir cientos. No es urgente: el contenedor conserva el audio completo, así que no se pierde nada.
 
 ### B2 — FASE 5 estira el último clip sin tope ni aviso
 ```ts

@@ -1535,7 +1535,12 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
       const normFilterStr = filterStr.slice(0, -1) +
         `,tpad=stop_mode=clone:stop_duration=${MAX_CLONADO},setsar=1"`;
 
-      const normalizedPaths: string[] = [];
+      // P3: se indexa POR POSICION, no se compacta. Si un clip falla, su hueco queda vacio
+      // en vez de desplazar a todos los siguientes. Es el mismo error que ya se corrigio en
+      // FASE 4 de la generacion (results[item.index - 1] posicional): compactar rompe la
+      // correspondencia con transitionByIndex, que se indexa contra videoOnly. A4 tendra que
+      // intercalar body_i con transition_i, asi que necesita esa correspondencia intacta.
+      const normPorIndice: (string | undefined)[] = new Array(videoOnly.length);
       for (let i = 0; i < videoOnly.length; i++) {
         const clip = videoOnly[i];
         if (!(await exists(clip.path))) continue;
@@ -1578,13 +1583,19 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
               if (err) reject(err); else resolve();
             });
           });
-          normalizedPaths.push(normPath);
+          normPorIndice[i] = normPath;
         } catch (normErr: any) {
           await writeDebugLog(`[EXPORT] Error normalizando clip ${i}: ${normErr.message}`);
         }
       }
 
-      await writeDebugLog(`[EXPORT] Normalizacion: ${((Date.now() - normStart) / 1000).toFixed(1)}s — ${normalizedPaths.length} clips`);
+      // Aplanar SI es correcto aqui: esta lista solo se recorre en orden (concat y limpieza),
+      // nadie indexa dentro de ella. La correspondencia por posicion vive en normPorIndice.
+      const normalizedPaths = normPorIndice.filter((p): p is string => !!p);
+      const huecos = videoOnly.length - normalizedPaths.length;
+      await writeDebugLog(`[EXPORT] Normalizacion: ${((Date.now() - normStart) / 1000).toFixed(1)}s — ` +
+        `${normalizedPaths.length} clips` +
+        (huecos > 0 ? ` | ${huecos} huecos: esos cortes van secos y sus transiciones se descartan` : ''));
 
       if (normalizedPaths.length === 0) {
         return { success: false, error: 'No se pudo normalizar ningun clip.' };
@@ -1604,13 +1615,12 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
 
       if (hasTransitions && Object.keys(transitionByIndex).length > 0) {
         const trStart = Date.now();
-        // Se reconstruye la ruta desde el indice i, no desde normalizedPaths[i]: ese array
-        // se compacta si algun clip falla (P3) y desalinearia los pares.
-        const normPathFor = (i: number) => path.join(normDir, `norm_${String(i).padStart(4, '0')}.mp4`);
 
         const buildSegment = async (i: number, kind: 'tail' | 'head') => {
-          const src = normPathFor(i);
-          if (!(await exists(src))) return null;
+          // normPorIndice es la fuente de verdad: si ese clip fallo, su hueco esta vacio y
+          // no hay tail/head que generar. Evita ademas 2 consultas al disco por par.
+          const src = normPorIndice[i];
+          if (!src) return null;
           const F = frameTargets[i];
           if (!F || F < MIN_FRAMES_TR) return null;
           const out = path.join(normDir, `${kind}_${String(i).padStart(4, '0')}.mp4`);
