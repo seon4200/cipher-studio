@@ -2248,6 +2248,20 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     if (!(await exists(thumbDir))) await fs.promises.mkdir(thumbDir, { recursive: true });
 
     const results = new Array(totalClips);
+    // Fuentes de stock ya usadas en esta generacion (provider_id, la misma identidad que el
+    // fichero de cache) y cuantas veces. Keywords distintas pueden rankear el mismo video
+    // generico: medido, uno llego a aparecer 4 veces en el mismo montaje.
+    const usosPorFuente = new Map<string, number>();
+    // Inversa radical en base 2 (van der Corput): 0, 1/2, 1/4, 3/4, 1/8, 5/8...
+    // Coloca puntos incrementalmente sin saber cuantos vendran, cada uno en el hueco mas
+    // grande que queda. Se usa para que dos usos de la misma fuente nunca arranquen en el
+    // mismo segundo. Un simple (avance % margen) SI colisiona: con consumo 2.5 y margen 5,
+    // el uso 1 cae en 2.5 y el uso 3 en 7.5%5 = 2.5.
+    const vdc = (n: number) => {
+      let r = 0, denom = 1;
+      while (n > 0) { denom *= 2; r += (n % 2) / denom; n = Math.floor(n / 2); }
+      return r; // en [0, 1)
+    };
     const escapedVideo = videoPath.replace(/"/g, '\\"');
 
     // Cola de procesamiento
@@ -2477,6 +2491,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
             // Seleccionar el mejor clip del pool
             let stockClipPath = '';
+            let stockOffset = 0; // segundo de inicio del recorte; varia si la fuente se reutiliza
             if (stockResults.length > 0) {
               // Rankear: preferir orientación correcta, resolución HD, duración 3-10s
               const ranked = stockResults.sort((a, b) => {
@@ -2498,8 +2513,28 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
                 return scoreB - scoreA;
               });
 
-              const best = ranked[0];
-              const rawStockFilename = `${best.provider}_${best.id}_raw.mp4`;
+              // Preferir la mejor candidata que no se haya usado ya en este video.
+              let best = ranked.find((r: any) => !usosPorFuente.has(`${r.provider}_${r.id}`));
+              let repetido = false;
+              if (!best) { best = ranked[0]; repetido = true; } // pool agotado: mejor repetir que no tener clip
+              const claveFuente = `${best.provider}_${best.id}`;
+              const usosPrevios = usosPorFuente.get(claveFuente) ?? 0;
+              // Se marca ANTES de cualquier await: con 3 workers en paralelo, marcarlo
+              // despues de la descarga dejaria que dos frases eligieran la misma fuente.
+              usosPorFuente.set(claveFuente, usosPrevios + 1);
+
+              // Al reutilizar una fuente se corta desde otro segundo, para que no se vea el
+              // mismo fragmento exacto. El filtro aplica setpts=0.8*PTS, asi que cada clip
+              // consume duracion/0.8 de metraje. vdc(0)=0, asi que el primer uso arranca en 0
+              // sin necesidad de caso especial. No garantiza que no se solapen (haria falta
+              // (usos-1)*consumo de margen), pero si que el arranque sea siempre distinto.
+              const consumo = item.duration / 0.8;
+              const margen = Math.max(0, (Number(best.duration) || 0) - consumo);
+              if (margen > 0.2) {
+                stockOffset = Math.round(margen * vdc(usosPrevios) * 100) / 100;
+              }
+
+              const rawStockFilename = `${claveFuente}_raw.mp4`;
               const rawStockPath = path.join(stockDir, rawStockFilename);
 
               if (!(await exists(rawStockPath))) {
@@ -2519,7 +2554,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
               if (await exists(rawStockPath)) {
                 stockClipPath = rawStockPath;
-                await logMessage(`[FASE 3] ✓ Stock seleccionado de ${best.provider} (${best.width}x${best.height}) para: "${keyword}"`);
+                await logMessage(`[FASE 3] ✓ Stock seleccionado de ${best.provider} (${best.width}x${best.height}) para: "${keyword}"` +
+                  (repetido ? ` [REPETIDO uso #${usosPrevios + 1}, corte desde ${stockOffset}s]` : ''));
               }
             }
 
@@ -2555,7 +2591,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
               const escapedRawStock = stockClipPath.replace(/"/g, '\\"');
               await new Promise<void>((resolve, reject) => {
-                const cmd = `ffmpeg -y -ss 0 -i "${escapedRawStock}" -vf "${filter}" -t ${item.duration} -an "${escapedClip}"`;
+                const cmd = `ffmpeg -y -ss ${stockOffset} -i "${escapedRawStock}" -vf "${filter}" -t ${item.duration} -an "${escapedClip}"`;
                 exec(cmd, (err) => { if (err) reject(err); else resolve(); });
               });
 
