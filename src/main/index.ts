@@ -1332,21 +1332,34 @@ ipcMain.handle('delete-bank-clip', async (_event, { category, file }) => {
 // IPC handle for exporting video (single clip or concatenating multiple clips) with aspect ratio crop
 ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, format, quality, assignedTransitions, transitionDuration }) => {
   try {
-    // Mapeo de nombres internos de transiciones a nombres de FFmpeg xfade
+    // Mapeo de nombres internos de transiciones a nombres de FFmpeg xfade.
+    // Los 38 nombres internos apuntan a 38 destinos DISTINTOS. Antes colapsaban en 21
+    // (circleopen salia 5 veces, pixelize 4), asi que un video con las 38 asignadas
+    // mostraba solo 21 efectos. El sorteo del frontend siempre fue correcto: el colapso
+    // estaba aqui. Los nombres internos NO se pueden renombrar: hay previews CSS y dos
+    // paneles del frontend que dependen de ellos; solo cambia el destino.
+    // Los 38 destinos se probaron ejecutando xfade de verdad sobre un tail/head reales:
+    // 38 de 38 dan 15 frames exactos en este build (ffmpeg 8.1.1).
+    // Nota: algunas asignaciones son aproximaciones, no equivalencias. xfade tiene un solo
+    // desenfoque (hblur) y una sola rotacion (radial), pero el mapa tiene dos nombres de
+    // blur y cuatro rotacionales. Ya pasaba antes: estos nombres vienen de transiciones GL
+    // que xfade no reproduce. Quedan 20 destinos sin usar por si hay que afinar alguno:
+    // coverleft/right/up/down, revealleft/right/up/down, wipedown, wipetl/tr/bl/br,
+    // slideup, horzopen/close, diagbr, hrslice, vuslice, vdwind.
     const XFADE_MAP: Record<string, string> = {
       'fade': 'fade', 'dissolve': 'dissolve', 'morph': 'smoothup',
       'CrossZoom': 'circleopen', 'pixelize': 'pixelize', 'GlitchDisplace': 'diagtl',
       'ripple': 'smoothleft', 'crosswarp': 'diagtr', 'fadegrayscale': 'fadegrays',
-      'fadecolor': 'fadeblack', 'burn': 'fadewhite', 'luma': 'dissolve',
-      'flyeye': 'circleclose', 'randomsquares': 'pixelize', 'wipeUp': 'wipeup',
-      'LinearBlur': 'hblur', 'colorphase': 'fadegrays', 'rotate_scale_fade': 'circleopen',
-      'multiply_blend': 'dissolve', 'kaleidoscope': 'circleopen', 'powerKaleido': 'circleclose',
-      'TVStatic': 'pixelize', 'static_wipe': 'wipeleft', 'SimpleZoom': 'circleopen',
-      'SimpleZoomOut': 'circleclose', 'zoomInOut': 'circleopen', 'StereoViewer': 'slideright',
-      'displacement': 'slidedown', 'DirectionalScaled': 'slideleft', 'HSVfade': 'fadegrays',
-      'StaticFade': 'fade', 'parametric_glitch': 'diagbl', 'mosaic_transition': 'pixelize',
-      'ButterflyWaveScrawler': 'smoothright', 'old_tv_lost_signal': 'hblur', 'DefocusBlur': 'hblur',
-      'directionalwipe': 'wipeleft', 'Revolve_Left': 'radial'
+      'fadecolor': 'fadeblack', 'burn': 'fadewhite', 'luma': 'distance',
+      'flyeye': 'hlslice', 'randomsquares': 'rectcrop', 'wipeUp': 'wipeup',
+      'LinearBlur': 'hblur', 'colorphase': 'fadefast', 'rotate_scale_fade': 'zoomin',
+      'multiply_blend': 'vertclose', 'kaleidoscope': 'circlecrop', 'powerKaleido': 'circleclose',
+      'TVStatic': 'hrwind', 'static_wipe': 'wipeleft', 'SimpleZoom': 'vertopen',
+      'SimpleZoomOut': 'squeezev', 'zoomInOut': 'squeezeh', 'StereoViewer': 'slideright',
+      'displacement': 'slidedown', 'DirectionalScaled': 'slideleft', 'HSVfade': 'smoothdown',
+      'StaticFade': 'hlwind', 'parametric_glitch': 'diagbl', 'mosaic_transition': 'vdslice',
+      'ButterflyWaveScrawler': 'smoothright', 'old_tv_lost_signal': 'vuwind', 'DefocusBlur': 'fadeslow',
+      'directionalwipe': 'wiperight', 'Revolve_Left': 'radial'
     };
     const mapTransition = (name: string): string => XFADE_MAP[name] || 'fade';
     const trDuration = typeof transitionDuration === 'number' ? transitionDuration : 0.5;
