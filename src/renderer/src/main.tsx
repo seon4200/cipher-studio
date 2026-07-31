@@ -2581,7 +2581,34 @@ function App() {
       return;
     }
     const effectiveAudioSegments = isUsingOriginalAudio ? transcriptSegments : newAudioSegments;
-    
+
+    // Guarda: la transcripcion tiene que cubrir el audio del timeline. Si no, FASE 5
+    // estira el ultimo clip para tapar el hueco y esa parte sale congelada.
+    // Medido: un desfase de 645s convirtio un clip de 2.5s en uno de 648s (11 minutos).
+    // Umbral 10s = el MAX_CLONADO del export (main/index.ts): por debajo, el tpad absorbe
+    // el hueco clonando el ultimo frame y el video sale bien; por encima ya no puede.
+    // El numero no sale de holgura estadistica sino de ahi: es el punto exacto en el que el
+    // pipeline deja de poder arreglarlo solo.
+    // El silencio final legitimo medido en 33 proyectos va de -0.07s a 8.56s, asi que el
+    // margen real es de 1.44s y NINGUNO de ellos disparaba la guarda.
+    // Sin segmentos y con audio, el desfase es el audio entero: la misma condicion lo
+    // bloquea sin caso aparte, solo cambia el mensaje.
+    const DESFASE_MAX = 10;
+    const finSegmentos = effectiveAudioSegments.length > 0
+      ? Number(effectiveAudioSegments[effectiveAudioSegments.length - 1]?.end) || 0
+      : 0;
+    const duracionAudio = voiceClip.durationSeconds || 0;
+    if (duracionAudio > 0 && (duracionAudio - finSegmentos) > DESFASE_MAX) {
+      const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+      setGenerationError(
+        finSegmentos === 0
+          ? 'No hay transcripción del audio. Transcribe primero y después construye el timeline.'
+          : `La transcripción no cubre todo el audio: termina en ${mmss(finSegmentos)} y el audio dura ${mmss(duracionAudio)}. ` +
+            `Vuelve a transcribir antes de construir el timeline, o la parte final del vídeo se quedará congelada.`
+      );
+      return;
+    }
+
     setIsGeneratingAssets(true);
     setGenerationError('');
     setGenerationProgress(null);

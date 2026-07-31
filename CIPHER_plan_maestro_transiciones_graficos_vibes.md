@@ -315,7 +315,36 @@ El log lista **el segundo y el índice** de cada transición (`[12] 26.3s circle
 
 Al generar un vídeo de 28 minutos, el montaje solo llegaba a los ~17 minutos y el último clip aparecía estirado a 648 segundos. Son **tres defectos encadenados**, ninguno introducido por el trabajo de estos días.
 
-### A — `newAudioSegments` obsoleto (CAUSA RAÍZ, en el frontend)
+### A — la transcripción no corresponde al audio del timeline (CAUSA RAÍZ, en el frontend)
+
+> **CORRECCIÓN (31/07/2026):** esto se anotó como *"`newAudioSegments` obsoleto"* y **era incorrecto**. En el proyecto de 28 minutos `newAudioSegments` está **vacío**. El array que llegó truncado era `transcriptSegments`.
+
+**Diagnóstico probado:**
+- La transcripción **no es progresiva**: los segmentos se asignan una sola vez en `status === 'success'` (`main.tsx` L1810). Un array corto no puede venir de generar mientras Whisper trabajaba.
+- La fusión del backend **no trunca**: simulada sobre la transcripción guardada, `523 → 463 segmentos cubriendo 0 → 1681.92s`, cobertura íntegra.
+- Pero FASE 1 recibió **235 acabando en 1045.06s**. Ni el conteo ni el final coinciden con lo que daría la transcripción guardada. Y ese **463 es exactamente lo que recibió FASE 1 en el primer run de 28 min, el que salió bien**.
+
+**Conclusión: la transcripción usada al generar era completa pero de OTRO audio**, uno de ~17.4 minutos. Nadie comprueba que los segmentos correspondan al audio del timeline: se mandaron 1045s de transcripción con un audio de 1690s, y FASE 5 remató estirando el último clip 645 segundos.
+
+**Mitigado el 31/07/2026** con una guarda en `handleBuildIATimeline` que bloquea la generación si el desfase supera 10s (el mismo `MAX_CLONADO` del export: el punto donde el `tpad` deja de poder taparlo). **Es una mitigación, no la cura**: impide producir el vídeo roto, pero no evita que ambos se desalineen.
+
+### A1 — DEUDA: el nombre del clip como fuente de verdad
+`handleBuildIATimeline` (`main.tsx` ~L2574) decide qué segmentos mandar comparando el **nombre** del clip de audio con la cadena literal `'Voz - Audio Original'`:
+```ts
+const isUsingOriginalAudio = voiceClip?.name === 'Voz - Audio Original';
+```
+Si ese nombre cambia por cualquier vía, la rama se invierte **en silencio** y se manda el array equivocado. Debería apoyarse en una marca explícita del clip, no en su texto.
+
+### A2 — DEUDA: el reset por clip de librería desincroniza
+El `useEffect` de `main.tsx` L1788 vacía `transcriptSegments` cuando cambia `firstLibraryClipId`, pero **no toca el audio del timeline**. Es una vía directa para que la transcripción y el audio dejen de corresponderse sin que nada avise.
+
+### A3 — DEUDA menor: no se bloquea generar sin transcripción
+Con audio original y `transcriptSegments` vacío, `handleBuildIATimeline` sigue adelante (el guard de L2579 solo cubre el caso de voz generada). La guarda nueva tampoco lo ataja, porque exige `finSegmentos > 0`. Es el mismo fallo llevado al extremo.
+
+---
+
+<details><summary>Contexto original (redacción incorrecta, se conserva por trazabilidad)</summary>
+
 El frontend manda a generar un array de segmentos que **no corresponde a la transcripción actual**.
 
 | | vídeo 17 min | vídeo 28 min |
@@ -326,7 +355,9 @@ El frontend manda a generar un array de segmentos que **no corresponde a la tran
 | audio | 1048.31s | **1690.48s** |
 | déficit | 4.09s | **645.4s** |
 
-**Los dos runs se paran en ~1044-1045s.** En el de 17 min es el final natural del audio; en el de 28 min es un corte a los 17.4 minutos. Apunta a que el proyecto de 28 min llevaba la transcripción nueva pero los segmentos de un audio anterior. **Sin diagnosticar aún: hay que mirar dónde se construye y se refresca `newAudioSegments` en `main.tsx`.**
+**Los dos runs se paran en ~1044-1045s.** En el de 17 min es el final natural del audio; en el de 28 min es un corte a los 17.4 minutos.
+
+</details>
 
 ### B1 — El `tpad` limitado a 1s hace que el export pierda narración
 En la normalización del export, `tpad=stop_mode=clone:stop_duration=1` solo puede clonar **1 segundo**. Si el slot de un clip es mayor que su metraje más ese segundo, el clip sale corto y el vídeo entero se acorta. Como el concat usa `-shortest`, **el audio se recorta para igualar**.
