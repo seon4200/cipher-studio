@@ -1805,23 +1805,32 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           return acc + (duration > 4.0 ? Math.ceil(duration / 3.0) : 1);
         }, 0);
         
-        const batchOriginal = Math.round((targetOriginalClips / totalVisualClipsCount) * batchVisualCount);
-        const batchStock = Math.round((targetStockClips / totalVisualClipsCount) * batchVisualCount);
-        const batchIa = batchVisualCount - batchOriginal - batchStock;
+        // Ya no se piden cuotas de tipo: los tipos se asignan en codigo, por posicion, para
+        // garantizar los conteos y el intercalado. Pedirlas aqui era lo que limitaba el
+        // reparto: DeepSeek solo daba keyword a los que el marcaba como stock (66% de los
+        // clips), y el 34% restante quedaba como original forzado, creando rachas de hasta
+        // 16 clips seguidos que ningun algoritmo podia romper.
+        // La unica excepcion es la IA: generar un clip de IA cuesta dinero y no se puede
+        // inventar desde el codigo, asi que su cuota se sigue pidiendo, pero solo cuando el
+        // usuario la ha pedido de verdad.
+        const batchIa = minimaxWeight > 0
+          ? Math.round((targetIaClips / totalVisualClipsCount) * batchVisualCount)
+          : 0;
+        const lineaTipos = minimaxWeight > 0
+          ? 'De ' + batchVisualCount + ' sub-clips marca exactamente ' + batchIa +
+            ' con "type":"ia" y dales ademas un prompt descriptivo en ingles. El resto NO lleva campo type.\n'
+          : 'NO asignes tipos de clip. Eso se decide despues; tu unica tarea es describir cada sub-clip.\n';
 
         const batchPrompt = 'Eres un editor de video experto.\n' +
-          'Para cada frase decide cómo ilustrarla. Si dura más de 4.0s divide en 2-3 sub-clips (máximo 3.0s cada uno).\n' +
-          'Tipos disponibles: original, stock, ia.\n' +
-          'De ' + batchVisualCount + ' sub-clips totales asigna exactamente:\n' +
-          '- ' + batchIa + ' de tipo ia\n' +
-          '- ' + batchStock + ' de tipo stock\n' +
-          '- ' + batchOriginal + ' de tipo original\n' +
-          'Para original: elige timestamp (0-' + Number(maxTsVal).toFixed(1) + ') de la transcripción.\n' +
-          'Para stock: keyword en inglés corta para Pexels.\n' +
-          'Para ia: prompt descriptivo en inglés.\n' +
+          'Para cada frase decide como ilustrarla visualmente. Si dura mas de 4.0s divide en 2-3 sub-clips (maximo 3.0s cada uno).\n' +
+          'Para CADA sub-clip da SIEMPRE estos dos campos:\n' +
+          '- keyword: en ingles, corta y concreta, algo filmable que ilustre ESE trozo. Nunca abstracta: evita palabras como "consequences", "awareness" o "meaning".\n' +
+          '- timestamp: el segundo del video original (0-' + Number(maxTsVal).toFixed(1) + ') que mejor acompana ese trozo.\n' +
+          lineaTipos +
           'FRASES:\n' + batchFragmentos + '\n' +
           'Responde SOLO JSON:\n' +
-          '{"phrases":[{"phraseIndex":' + (batchStart+1) + ',"visualClips":[{"type":"stock","keyword":"example","duration":2.5}]}]}';
+          '{"phrases":[{"phraseIndex":' + (batchStart+1) + ',"visualClips":[{"keyword":"protest march","timestamp":12.3,"duration":2.5}]},' +
+          '{"phraseIndex":' + (batchStart+2) + ',"visualClips":[{"keyword":"empty stadium","timestamp":45.0,"duration":2.5}]}]}';
 
         try {
           await logMessage('[FASE 2] Lote ' + Math.ceil((batchStart+1)/BATCH_SIZE) + 
@@ -2087,11 +2096,15 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       const antesStock = cuotaLista.filter(x => x.clip.type === 'stock').length;
       const antesOriginal = cuotaLista.filter(x => x.clip.type === 'original').length;
 
-      // Los 'ia' no se tocan: generarlos cuesta dinero y no se pueden inventar.
+      // Los 'ia' no se tocan: generarlos cuesta dinero y no se pueden inventar. Pero un 'ia'
+      // entrante solo se respeta si el usuario pidio IA de verdad: ahora que el prompt ya no
+      // fija cuotas de tipo, un 'ia' espontaneo del modelo dispararia llamadas de pago a
+      // fal.ai que nadie solicito.
+      const respetarIa = minimaxWeight > 0;
       const reasignables: number[] = [];
       for (let j = 0; j < totalReal; j++) {
         const t = cuotaLista[j].clip.type;
-        if (t === 'stock' || t === 'original') reasignables.push(j);
+        if (t === 'stock' || t === 'original' || (t === 'ia' && !respetarIa)) reasignables.push(j);
       }
       const conKeyword = reasignables.filter(
         j => cuotaLista[j].clip.keyword && cuotaLista[j].clip.keyword !== 'broll'
