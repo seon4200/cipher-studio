@@ -1613,7 +1613,25 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
       const MIN_FRAMES_TR = 30; // clips de menos de 1s: corte seco, sin transicion
       const tempExtraPaths: string[] = [];
 
-      if (hasTransitions && Object.keys(transitionByIndex).length > 0) {
+      // A4: bodies (por defecto, el norm entero sin recortar) y transiciones que A3 dejo
+      // realmente en disco, ambos POR INDICE (P3). transicionPorIndice es la UNICA fuente
+      // de verdad para recortar y para insertar: se rellena solo si el render de A3
+      // termino bien, asi que nunca se recorta un body para una transicion que no existe.
+      const bodyPorIndice: (string | undefined)[] = normPorIndice.slice();
+      const transicionPorIndice: (string | undefined)[] = new Array(videoOnly.length);
+
+      // Interruptor de emergencia: CIPHER_SIN_TRANSICIONES=1 en el .env apaga TODO el
+      // pipeline (A2, A3 y A4) sin revertir nada: no se generan tails/heads ni transiciones
+      // y el concat sale con los norms enteros, como antes del Proyecto A.
+      // loadEnv(true) relee el .env en cada export: para alternar basta editar el valor
+      // (1 = apagado, 0 = encendido), sin reabrir la app.
+      loadEnv(true);
+      const transicionesActivas = process.env.CIPHER_SIN_TRANSICIONES !== '1';
+      if (!transicionesActivas) {
+        await writeDebugLog('[EXPORT] Pipeline de transiciones DESACTIVADO por CIPHER_SIN_TRANSICIONES=1');
+      }
+
+      if (transicionesActivas && hasTransitions && Object.keys(transitionByIndex).length > 0) {
         const trStart = Date.now();
 
         const buildSegment = async (i: number, kind: 'tail' | 'head') => {
@@ -1692,6 +1710,7 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
               exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => { if (err) reject(err); else resolve(); });
             });
             tempExtraPaths.push(out);
+            transicionPorIndice[i] = out; // A4: registra la transicion por indice
             trOk++;
           } catch (e: any) {
             // Un xfade puede fallar si este build no soporta ese nombre. Se agrupa POR NOMBRE
@@ -1707,12 +1726,97 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
           `(${trFallidas} sin render, esos cortes quedaran secos) en ` +
           `${((Date.now() - a3Start) / 1000).toFixed(1)}s` +
           (detalleFallos ? ` | fallos por nombre: ${detalleFallos}` : ''));
+
+        // ═══ A4: recortar los bodies e intercalar ═══
+        // Aritmetica que conserva la duracion, par a par:
+        //   con transicion: (f_i − 7) + 15 + (f_{i+1} − 8) = f_i + f_{i+1}
+        //   corte seco:      f_i            +  f_{i+1}     = f_i + f_{i+1}
+        // MIN_FRAMES_TR = 30 garantiza que un body nunca queda por debajo de 15 frames.
+        const a4Start = Date.now();
+        let recortados = 0;
+        let a4Fallo = false;
+        for (let i = 0; i < videoOnly.length && !a4Fallo; i++) {
+          const src = normPorIndice[i];
+          if (!src) continue;
+          const F = frameTargets[i];
+          const quitaFin = transicionPorIndice[i] ? FRAMES_TAIL : 0;                // transicion DESPUES
+          const quitaIni = (i > 0 && transicionPorIndice[i - 1]) ? FRAMES_HEAD : 0; // transicion ANTES
+          if (quitaIni + quitaFin === 0) continue; // sin vecinas: el norm va tal cual, sin re-encode
+          const bodyFrames = F - quitaIni - quitaFin;
+          const out = path.join(normDir, `body_${String(i).padStart(4, '0')}.mp4`);
+          const cmd = `ffmpeg -y -i "${src.replace(/"/g, '\\"')}" ` +
+            `-vf "trim=start_frame=${quitaIni}:end_frame=${F - quitaFin},setpts=PTS-STARTPTS,setsar=1" ` +
+            `-r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an -frames:v ${bodyFrames} ` +
+            `"${out.replace(/"/g, '\\"')}"`;
+          try {
+            await new Promise<void>((resolve, reject) => {
+              exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => { if (err) reject(err); else resolve(); });
+            });
+            tempExtraPaths.push(out);
+            bodyPorIndice[i] = out;
+            recortados++;
+          } catch (e: any) {
+            await writeDebugLog(`[EXPORT-A4] Error recortando body ${i}: ${e.message}`);
+            a4Fallo = true;
+          }
+        }
+
+        // Contabilidad ANTES de concatenar: si no cuadra, ni hace falta abrir el video.
+        let framesBodies = 0, framesTr = 0, nTr = 0, sinSlot = 0, acumF = 0;
+        const puntos: string[] = [];
+        for (let i = 0; i < videoOnly.length; i++) {
+          const F = frameTargets[i];
+          if (bodyPorIndice[i]) {
+            if (F > 0) {
+              const qF = transicionPorIndice[i] ? FRAMES_TAIL : 0;
+              const qI = (i > 0 && transicionPorIndice[i - 1]) ? FRAMES_HEAD : 0;
+              framesBodies += F - qI - qF;
+            } else sinSlot++;
+          }
+          acumF += F;
+          if (transicionPorIndice[i]) {
+            framesTr += FRAMES_TR; nTr++;
+            // [indice] segundo nombre — el indice es el mismo de EXPORT-TR y del timeline
+            puntos.push(`[${i}] ${((acumF - FRAMES_TAIL) / FPS).toFixed(1)}s ${transitionByIndex[i]}`);
+          }
+        }
+        const totalA4 = framesBodies + framesTr;
+        const cuadra = totalA4 === framesAcum;
+
+        if (a4Fallo || !cuadra) {
+          // Degradacion todo-o-nada: recorte e insercion son inseparables (un body sin
+          // recortar junto a una transicion insertada sumaria frames y desincronizaria el
+          // audio, que es lo unico intocable). Se vuelve al export clasico: norms enteros,
+          // cero transiciones. El video sale correcto, sin fundidos.
+          for (let k = 0; k < videoOnly.length; k++) {
+            bodyPorIndice[k] = normPorIndice[k];
+            transicionPorIndice[k] = undefined;
+          }
+          await writeDebugLog(`[EXPORT-A4] AVISO: ${a4Fallo ? 'fallo un recorte' : `DESCUADRE (${totalA4} vs ${framesAcum})`} — se exporta SIN transiciones (corte seco en todos los cortes)`);
+        } else {
+          await writeDebugLog(`[EXPORT-A4] bodies: ${bodyPorIndice.filter(b => !!b).length} (${recortados} recortados) = ${framesBodies} frames | ` +
+            `transiciones: ${nTr} = ${framesTr} frames | TOTAL ${totalA4} = objetivo P0 ${framesAcum} OK` +
+            (sinSlot > 0 ? ` | ${sinSlot} clips sin slot fuera de la cuenta` : '') +
+            ` — ${((Date.now() - a4Start) / 1000).toFixed(1)}s`);
+          if (puntos.length > 0) {
+            await writeDebugLog(`[EXPORT-A4] transiciones en: ${puntos.join(', ')}`);
+          }
+        }
       }
 
       const tempTxtPath = path.join(bankDir, `temp_concat_${Date.now()}.txt`);
+      const lineaConcat = (p: string) => `file '${p.replace(/\\/g, '/').replace(/'/g, "'\\''")}'\n`;
+      // A4: se intercala body_i + transition_i recorriendo INDICES (P3): un clip fallido es
+      // un hueco y no desplaza nada. Con el interruptor apagado, sin transiciones asignadas
+      // o tras una degradacion, bodyPorIndice contiene los norms enteros y transicionPorIndice
+      // esta vacio, asi que esto es identico al export de siempre.
       let fileContent = '';
-      for (const np of normalizedPaths) {
-        fileContent += `file '${np.replace(/\\/g, '/').replace(/'/g, "'\\''")}'\n`;
+      for (let i = 0; i < videoOnly.length; i++) {
+        const body = bodyPorIndice[i];
+        if (!body) continue;
+        fileContent += lineaConcat(body);
+        const tr = transicionPorIndice[i];
+        if (tr) fileContent += lineaConcat(tr);
       }
       await fs.promises.writeFile(tempTxtPath, fileContent, 'utf8');
       const escapedTxt = tempTxtPath.replace(/"/g, '\\"');
