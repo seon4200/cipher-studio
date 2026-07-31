@@ -1518,15 +1518,48 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
       // (medido: 1 de 79 clips, -0.018s). El -frames:v recorta despues al valor exacto.
       // setsar=1 es obligatorio antes de cualquier xfade: si un clip trae SAR != 1:1 el
       // filtro falla o da artefactos aunque las dimensiones coincidan.
+      //
+      // B1: el clonado del ultimo frame cubre el desfase entre el slot y el metraje real.
+      // Estaba en 1s, y con desfases mayores el clip salia corto, el video se acortaba y el
+      // -shortest del concat recortaba el AUDIO. Medido: 3.24s de narracion perdidos.
+      // Subir el tope no cuesta nada porque tpad solo genera los frames que -frames:v llega
+      // a consumir: con un desfase de 3s, un tope de 10s produce lo mismo que uno de 5s.
+      // El desfase es el silencio tras la ultima palabra transcrita, una propiedad de la
+      // GRABACION y no de su duracion: medido en 26 proyectos, tres videos fuente distintos
+      // dan -0.07s, +0.06s y +3.11s con independencia de que duren 199s o 286s. El maximo
+      // conocido es 4.09s, asi que 10s deja un margen de 2.4x.
+      // El tope existe porque ante un desfase enorme (medido: 645s, por segmentos de
+      // transcripcion obsoletos) clonar un frame 11 minutos seria peor que el fallo.
+      const MAX_CLONADO = 10; // segundos de frame congelado, como maximo
       const normBase = filterStr.slice(0, -1) + ',setsar=1"';
-      const normFilterStr = filterStr.slice(0, -1) + ',tpad=stop_mode=clone:stop_duration=1,setsar=1"';
+      const normFilterStr = filterStr.slice(0, -1) +
+        `,tpad=stop_mode=clone:stop_duration=${MAX_CLONADO},setsar=1"`;
 
       const normalizedPaths: string[] = [];
       for (let i = 0; i < videoOnly.length; i++) {
         const clip = videoOnly[i];
         if (!(await exists(clip.path))) continue;
 
-        event.sender.send('export-progress', { 
+        // B1: si el slot supera al tope de clonado, comprobar que hay metraje para llenarlo.
+        // Un desfase mayor que MAX_CLONADO exige, por definicion, un slot mayor que
+        // MAX_CLONADO, asi que esta condicion es completa. Los clips normales duran 2-4s,
+        // de modo que en un export sano esto son CERO ffprobe.
+        const slotSeg = frameTargets[i] > 0 ? frameTargets[i] / FPS : 0;
+        if (slotSeg > MAX_CLONADO) {
+          const real = await new Promise<number>((resolve) => {
+            exec(`ffprobe -v error -show_entries format=duration -of csv=p=0 "${clip.path.replace(/"/g, '\\"')}"`,
+              (err, stdout) => resolve(err ? 0 : (parseFloat(String(stdout).trim().replace(',', '.')) || 0)));
+          });
+          const desfase = slotSeg - real;
+          if (real > 0 && desfase > MAX_CLONADO) {
+            await writeDebugLog(`[EXPORT] AVISO B1: clip ${i} (${path.basename(clip.path)}) tiene un slot de ` +
+              `${slotSeg.toFixed(1)}s pero solo ${real.toFixed(1)}s de metraje. Faltan ${desfase.toFixed(1)}s que NO ` +
+              `se clonan (tope ${MAX_CLONADO}s): el video quedara mas corto que el audio y el -shortest recortara ` +
+              `el final. Causa tipica: los segmentos de la transcripcion no cubren todo el audio (deuda A).`);
+          }
+        }
+
+        event.sender.send('export-progress', {
           step: 'normalizing', 
           current: i + 1, 
           total: videoOnly.length, 
