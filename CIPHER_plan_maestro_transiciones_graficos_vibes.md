@@ -171,6 +171,44 @@ Idea de John: que cada transición dure lo que le pega (un `fade` corto, un `pix
 >
 > Al hacerlo hay que tocar A2 **y** A3 a la vez: los `FRAMES_TAIL` / `FRAMES_HEAD` dejan de ser constantes y pasan a calcularse por par según el nombre de la transición. Y A4 tendrá que recortar cada body con el valor de su propio par, no con 7+8 fijo.
 
+### 🔁 DEUDA — las transiciones se repiten: 38 asignadas, solo 21 efectos distintos
+
+Medido en el export de A4: las 38 transiciones del vídeo usan **solo 21 nombres xfade distintos**. `circleopen` sale **5 veces**, `pixelize` 4, y `circleclose`, `dissolve`, `fadegrays` y `hblur` 3 cada una.
+
+**La causa NO es el sorteo del frontend.** `handleBuildTransitions` reparte correctamente 38 nombres internos sin repetir (Fisher-Yates + cola que se rellena al agotarse). **El colapso está en `XFADE_MAP`** (`src/main/index.ts` ~L1334): sus 38 entradas apuntan a solo 21 destinos.
+
+Ejemplos del colapso:
+- `CrossZoom`, `rotate_scale_fade`, `kaleidoscope`, `SimpleZoom`, `zoomInOut` → **todos `circleopen`**
+- `fadegrayscale`, `colorphase`, `HSVfade` → **todos `fadegrays`**
+- `pixelize`, `randomsquares`, `TVStatic`, `mosaic_transition` → **todos `pixelize`**
+
+**Arreglo:** repartir los 38 nombres internos sobre destinos xfade distintos. El build de ffmpeg 8.1.1 soporta bastantes más de 21 (`wiperight`, `slideup`, `circlecrop`, `rectcrop`, `distance`, `vertopen`, `vertclose`, `horzopen`, `horzclose`, `hlslice`, `hrslice`, `vuslice`, `vdslice`, `squeezeh`, `squeezev`, `zoomin`, `hlwind`, `hrwind`…). Hay que **listar los soportados con `ffmpeg -h filter=xfade`** y reasignar el mapa para que cada nombre interno tenga el destino más parecido a su efecto real, sin duplicar.
+
+**Ojo:** los 38 nombres internos NO se pueden renombrar — hay previews CSS y dos paneles duplicados en el frontend que dependen de ellos. Solo cambia el destino en `XFADE_MAP`.
+
+### 🔍 DEUDA — déficit de 6 frames (0.2s), preexistente a A4
+
+El archivo final tiene **5976 frames de los 5982** contabilizados. **No lo introdujo A4:** el mismo proyecto exportado justo antes ya daba 5977 de 5981, así que el déficit venía de antes y A4 solo lo hace algo mayor (4 → 6 frames).
+
+Es el mismo residuo que apareció como "13 frames" en el proyecto de 17 minutos, y que **no ocurre siempre**: el proyecto de 50 clips dio 3912 de 3912, déficit cero.
+
+**Sospecha sin verificar:** algún `norm_*.mp4` sale con un frame menos de lo que pide P0 pese al `tpad`, y un `tail` construido sobre ese norm produce una transición de 14 frames en vez de 15. La contabilidad de A4 no lo detecta porque suma `frameTargets`, no los frames reales de los ficheros.
+
+**Cómo cerrarlo (gratis):** parsear el `frame=N` que ffmpeg ya devuelve en el callback del `exec` de la normalización —hoy se descarta— y loggear solo los clips cuyo conteo real no cuadre con `frameTargets[i]`. Cero procesos extra y señala el clip exacto.
+
+**Impacto:** ~0.2s de desfase acumulado al final de un vídeo de 3.3 minutos. El audio sale íntegro.
+
+### MEJORA FUTURA — handles reales en vez de frames clonados (anotada el 31/07/2026)
+
+Hoy el material del solape se fabrica clonando el último/primer frame (`tpad`), así que **el plano saliente queda congelado durante la segunda mitad del fundido**. Los editores profesionales usan *handles*: metraje real sobrante a cada lado del corte.
+
+Implica tocar tres sitios a la vez:
+- **FASE 3 (generación):** cortar ~8 frames extra por lado (~0.27s). Los clips `original` cortados con `-c copy` ya traen +0.11s de regalo por la imprecisión de keyframe.
+- **A2:** usar ese metraje real en vez de `tpad` clonado.
+- **Escalonado de timestamps:** descontar el handle para no duplicar material entre clips vecinos del mismo vídeo fuente.
+
+**Decisión de John: evaluar solo después de ver A4 funcionando, y únicamente si el congelado molesta de verdad al ver el vídeo.**
+
 ---
 
 ### FASE A3 — Mini-renders xfade (el corazón) — ⬜
@@ -185,12 +223,21 @@ ffmpeg -y -i tail_i.mp4 -i head_(i+1).mp4 -filter_complex "[0][1]xfade=transitio
 
 ---
 
-### FASE A4 — Ensamblado final — ⬜
+### FASE A4 — Ensamblado final — ✅ HECHA Y VERIFICADA (`fea9eac`, 31/07/2026)
 
-> ### 🚧 CERRAR B1 ANTES DE EMPEZAR A4 (decisión de John, 31/07/2026)
-> A4 es la primera fase que **cambia el vídeo exportado**. B1 (el `tpad` limitado a 1s que hace perder los últimos segundos de narración) tiene que estar arreglado antes, para no mezclar dos causas: si el export sale mal, hay que poder saber si fue el intercalado de transiciones o la pérdida de narración que ya existía. **No empezar A4 con B1 abierto.**
+**Las transiciones ya se ven en el vídeo exportado.** Verificado visualmente en la app.
 
-Lista concat intercalando `body_0, transition_0, body_1, ...`. El resto del comando NO cambia. Limpiar tails/heads/transitions en el cleanup.
+Cada body se recorta según sus vecinas: **8 frames del inicio** si tiene transición antes, **7 del final** si la tiene después. Los clips sin vecinas no se re-encodean. La lista de concat se arma recorriendo **índices** (gracias a P3), intercalando `body_i + transition_i`.
+
+**El punto crítico:** el recorte y la inserción leen la **misma** fuente de verdad — que `transition_i.mp4` exista de verdad en disco, no que esté en `transitionByIndex`. A2 pudo descartar el par por clip corto y A3 pudo fallar el render; recortar por el mapa habría dejado 15 frames de menos por cada transición inexistente.
+
+**Degradación todo-o-nada:** si falla un recorte o la contabilidad no cuadra con el objetivo de P0, se exporta **sin ninguna transición** en vez de recuperar corte a corte. Un body ya recortado junto a una transición anulada sumaría frames y desincronizaría el audio, que es lo único intocable.
+
+**Interruptor de emergencia:** `CIPHER_SIN_TRANSICIONES=1` en el `.env` apaga A2, A3 y A4 sin revertir nada. Se relee con `loadEnv(true)` en cada export, así que basta alternar entre `1` y `0` **sin reabrir la app**.
+
+**Medido** (76 clips, 38 transiciones): bodies 5412 + transiciones 570 = **5982**, igual al objetivo P0. A4 tarda **25.4s**; el export completo pasa de 66.5s a **93.0s**.
+
+El log lista **el segundo y el índice** de cada transición (`[12] 26.3s circleopen`), en el mismo espacio de índices que `EXPORT-TR` y el timeline, para poder saltar a verificarlas.
 
 > ### ⚠️ BLOQUEANTE CONOCIDO DE A4 — `normalizedPaths` SE COMPACTA
 > `transitionByIndex` se indexa contra **`videoOnly`**, pero la lista de concat se construye desde **`normalizedPaths`**, que **se compacta**:
@@ -528,9 +575,13 @@ BACKLOG                    ← las ALTA antes de empaquetar y vender
 | — cuota y reparto de tipos | ☑ | 30/07/2026 | `ed2ebfc` · conteos exactos · racha mínima demostrable por búsqueda binaria |
 | — dedup de fuentes de stock | ☑ | 31/07/2026 | `c849003` · 62→57 fuentes distintas pasó a 367→367 · van der Corput para el offset al reutilizar |
 | — prompt sin cuotas de tipo | ☑ | 31/07/2026 | `6afeb90` · **keywords 66% → 100%** · racha 28 → 3 · `alcanzada=2 ideal=2 (optimo)` |
-| **A / B1 / B2 (crítica)** | ⬜ | 31/07/2026 | **el vídeo no cubre el audio** · ver la sección de deuda crítica · orden: B1 → B2 → A |
-| A3 mini-renders | ⬜ | | **SIGUIENTE** en el Proyecto A |
-| A4 ensamblado | ⬜ | | **bloqueado por P3 (normalizedPaths compacta)** |
+| A3 mini-renders | ☑ | 31/07/2026 | `bb4fd98` · 38 de 38, 0.276s/render · nombres y cadena validados antes de escribir el código |
+| **B1** tope de clonado | ☑ | 31/07/2026 | `58e8d79` · 10s · déficit 107 → 13 frames · **audio íntegro, no se pierde narración** |
+| **P3** índice por posición | ☑ | 31/07/2026 | `2b7e2de` · `normPorIndice` · desbloquea A4 |
+| **A4 ensamblado** | ☑ | 31/07/2026 | `fea9eac` · **las transiciones se ven en el vídeo** · 5412+570=5982 = objetivo P0 · +25.4s |
+| — deuda: 38 transiciones, 21 efectos | ⬜ | 31/07/2026 | `XFADE_MAP` colapsa 38 nombres en 21 destinos · `circleopen` ×5 |
+| — deuda: déficit de 6 frames | ⬜ | 31/07/2026 | 0.2s · **preexistente a A4** (4 frames antes) · no ocurre siempre |
+| **A / B2 (crítica)** | ⬜ | 31/07/2026 | **el vídeo no cubre el audio** · ver la sección de deuda crítica · orden: B2 → A |
 | A5 pruebas | ⬜ | | |
 | B1-B5 | ⬜ | | |
 | C1-C5 | ⬜ | | falta `GEMINI_API_KEY` |
