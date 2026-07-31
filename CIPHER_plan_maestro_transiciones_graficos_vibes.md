@@ -26,17 +26,23 @@
 5. Producto comercial: nada puede romper el export. Todo fallo debe degradar elegante, nunca crashear.
 6. **Compilar no es funcionar.** Verificar el comportamiento real, no el build.
 
-**Estado verificado (commits en master, 24 julio 2026):**
+**Estado verificado (commits en master, 31 julio 2026 — todo pusheado a GitHub):**
 ```
+6afeb90 feat: quitar las cuotas de tipo del prompt y pedir keyword para todos los clips
+2a7c4ce chore: dejar de trackear .env — contiene las claves de API
+c849003 fix: no reutilizar la misma fuente de stock en un mismo montaje
+ed2ebfc feat: cuota exacta de tipos y reparto con racha minima demostrable
+6455626 feat: A2 genera los tails/heads para las transiciones (sin cambiar el export)
+7270b95 fix: escalonar los timestamps de los sub-clips 'original' dentro de su frase
+83a92ff fix: cada clip normalizado dura exactamente su slot — elimina la deriva video/audio
 6294a8f fix: repartir las transiciones a lo largo del video, no amontonadas al inicio
 50ea4ac fix: DeepSeek retiro deepseek-chat — migrar a deepseek-v4-pro sin razonamiento
 ebfca7b feat: A1 mapa de transiciones por indice en export (solo lectura + logs)
 eb6b66e feat: XFADE_MAP + assignedTransitions/transitionDuration llegan al export   <- FASE A0
-15e9bde feat: modales de export en gris profesional
-b0c1bb1 feat: modal de progreso de exportacion
-3517e96 feat: export con normalizacion individual + concat remux
 ```
-Working tree limpio salvo `dist/index.html`, que es artefacto de build trackeado en git y se ensucia en cada `npm run build` (preexistente, sin arreglar).
+Working tree limpio salvo `dist/index.html` y `project-state.json`: los dos están en `.gitignore` pero **trackeados**, así que el `.gitignore` no les afecta y ensucian todo `git status`. Mismo caso que tenía `.env`, que ya se destrackeó en `2a7c4ce`. Se limpian con `git rm --cached` cuando se quiera.
+
+**AVISO DE SEGURIDAD:** el `.env` estuvo trackeado desde el `initial commit`, así que las claves de DeepSeek, ElevenLabs, fal.ai, Pexels, Pixabay y Coverr **están en la historia ya publicada**. El repo es privado, pero destrackearlo no las borra del pasado: **hay que rotarlas en cada proveedor.**
 
 **Export actual (funciona, medido):** 76-79 clips → ~37-41s, 54-81MB según contenido.
 
@@ -209,10 +215,53 @@ Lista concat intercalando `body_0, transition_0, body_1, ...`. El resto del coma
 
 ---
 
+## 🛑 DEUDA CRÍTICA — el vídeo no cubre el audio (detectada el 31/07/2026)
+
+Al generar un vídeo de 28 minutos, el montaje solo llegaba a los ~17 minutos y el último clip aparecía estirado a 648 segundos. Son **tres defectos encadenados**, ninguno introducido por el trabajo de estos días.
+
+### A — `newAudioSegments` obsoleto (CAUSA RAÍZ, en el frontend)
+El frontend manda a generar un array de segmentos que **no corresponde a la transcripción actual**.
+
+| | vídeo 17 min | vídeo 28 min |
+|---|---|---|
+| `transcriptSegments` | 215 (0 → 1044.22s) | **523 (0 → 1681.92s)** |
+| frases que recibió FASE 1 | 207 | **235** |
+| última frase termina en | 1044.22s | **1045.06s** |
+| audio | 1048.31s | **1690.48s** |
+| déficit | 4.09s | **645.4s** |
+
+**Los dos runs se paran en ~1044-1045s.** En el de 17 min es el final natural del audio; en el de 28 min es un corte a los 17.4 minutos. Apunta a que el proyecto de 28 min llevaba la transcripción nueva pero los segmentos de un audio anterior. **Sin diagnosticar aún: hay que mirar dónde se construye y se refresca `newAudioSegments` en `main.tsx`.**
+
+### B1 — El `tpad` limitado a 1s hace que el export pierda narración
+En la normalización del export, `tpad=stop_mode=clone:stop_duration=1` solo puede clonar **1 segundo**. Si el slot de un clip es mayor que su metraje más ese segundo, el clip sale corto y el vídeo entero se acorta. Como el concat usa `-shortest`, **el audio se recorta para igualar**.
+
+Medido en el export del vídeo de 17 min (410 clips):
+```
+objetivo del export (log P0) : 1048.667s  (31.460 frames)
+audio del timeline           : 1048.310s
+EXPORT REAL                  : 1045.067s  (31.353 frames)  ← faltan 107 frames
+pista de audio del export    : 1045.060s  ← se perdieron 3.24s de narración
+freezedetect                 : congelado el ultimo 1.03s (justo el tpad)
+```
+**No es solo un fallo visual: se pierde contenido hablado.** Arreglo propuesto (1 línea): que el `stop_duration` cubra el déficit real en vez de 1s fijo. Degrada a un congelado más largo, que es preferible a cortar la última frase.
+
+### B2 — FASE 5 estira el último clip sin tope ni aviso
+```ts
+const slotEnd = isLast ? audioTotal : finalClips[i + 1].startSeconds;
+finalClips[i].durationSeconds = slotEnd - finalClips[i].startSeconds;
+```
+Al último clip le asigna **todo lo que falte hasta el final del audio**, sin límite y sin loggearlo. Con 4s de déficit no se nota; con 645s convierte un clip de 2.5s en uno de 648s. **Está activo en todos los vídeos**, y aunque se arregle A seguiría degradando en silencio ante cualquier desfase futuro. Necesita un tope y una línea de log.
+
+**Orden recomendado:** B1 (1 línea, protege hoy mismo) → B2 (hace el fallo detectable) → A (elimina la causa).
+
+---
+
 ## PENDIENTES NUEVOS (deuda detectada el 24/07/2026)
 
-### P1 — `v4-pro` desvía la cuota de stock (DEUDA APLAZADA el 30/07/2026)
-**Decisión: aplazado.** Con la tercera muestra el desvío fue de **+1**, así que lo que parecía sesgo sistemático es más bien **varianza alta** del modelo, como planteó John desde el principio. Se retoma solo si vuelve a desviarse mucho en próximos vídeos.
+### P1 — cuota y reparto de tipos — ✅ RESUELTO el 30-31/07/2026
+Se resolvió por completo en `ed2ebfc` (cuota exacta + reparto con racha mínima demostrable) y `6afeb90` (quitar las cuotas de tipo del prompt). Ver la sección "Calidad del montaje" más abajo. Se deja el contexto original por el valor de los intentos fallidos.
+
+**Contexto de cuando se aplazó:** con la tercera muestra el desvío fue de **+1**, así que parecía varianza. La cuarta muestra volvió a +19 y se retomó.
 
 | run | pedido stock | obtenido | desvío |
 |---|---|---|---|
@@ -259,6 +308,36 @@ Ver el recuadro de la FASE A4. Mismo bug del array compactado ya corregido en FA
 
 ### P5 — Asimetría menor introducida en `50ea4ac`
 El aviso de `finish_reason === 'length'` solo se puso en la FASE 2 principal (~L1754), no en la de regeneración (~L2899). Improbable ahora que el razonamiento está apagado.
+
+---
+
+## CALIDAD DEL MONTAJE — resuelto el 30-31/07/2026
+
+Tres problemas distintos que se confundían entre sí: **cantidad** (salía menos original del pedido), **distribución** (los tipos se amontonaban en bloques) y **repetición** (el mismo vídeo aparecía varias veces).
+
+| métrica | antes | ahora |
+|---|---|---|
+| racha máxima del mismo tipo | **28** | **3** |
+| rachas de 4 o más | 4 | **0** |
+| clips con keyword propio | 66% | **100%** |
+| conteos vs sliders | 19 de 33 pedidos | **clavados** |
+| primer clip 'original' | 68.8s | 6.5s |
+| fuentes de stock repetidas | 5 (una ×4) | **0** |
+| reparto por quintos | 0%-83% | 38%-50% |
+
+**Cómo se llegó, y por qué importa el orden:**
+
+1. **`ed2ebfc` — la asignación de tipos pasa al código.** Los objetivos se calculan desde los pesos contra el total REAL de sub-clips (reescalar los `target*` previos daba `NaN` si `totalVisualClipsCount` era 0). Solo se pone `stock` donde hay keyword propio; `original` puede ir en cualquier posición porque solo necesita timestamp. Para minimizar la racha se usa **búsqueda binaria** sobre `r`: un tramo de longitud `L` necesita `f ≥ (L − r)/(r + 1)` cortes. Es el óptimo demostrable, y el log reporta `alcanzada` junto al `ideal` del ratio para saber si el límite es del algoritmo o del material.
+
+2. **`6afeb90` — quitar las cuotas de tipo del prompt.** Era el techo real: DeepSeek solo generaba keyword para los clips que él marcaba como stock (66%), y el 34% restante quedaba como original forzado, creando rachas que ningún algoritmo podía romper. Al pedir keyword para todos y no pedir tipos, el reparto pasó a tener libertad total.
+
+**Validado a escala:** vídeos de 623 y 410 sub-clips, 19 y 10 lotes, sin un solo lote fallido ni truncamiento. El riesgo de truncamiento se descartó **midiendo antes de probar**: el peor lote real (25 frases, 44 sub-clips) consume 1.579 tokens de 8.000, un 20%. El techo teórico (75 sub-clips) serían ~2.700, un 34%. No hizo falta bajar `BATCH_SIZE`.
+
+**Intentos fallidos, documentados para no repetirlos:**
+- **Pedir keyword para todos SIN quitar las cuotas de tipo**: el modelo interpretó que todo debía ser stock. Pasó de 63/13 a **76/0**, cero originales. La lección no era "no pedir keyword a todos", era que **no se pueden pedir las dos cosas a la vez**.
+- **Elegir candidatos evitando los aislados**: mejor que el reparto uniforme, pero no crea intercalado donde DeepSeek no lo puso.
+- **Buscar el clip con keyword más cercano a cada posición ideal**: O(n²) y además peor, porque amontona los stock en el borde del grupo.
+- **`avance % margen` para el offset al reutilizar una fuente**: colisiona. Con consumo 2.5 y margen 5, el uso 1 cae en 2.5 y el uso 3 en `7.5%5 = 2.5`. Se sustituyó por van der Corput, verificado sin colisiones en 4.096 usos.
 
 ---
 
@@ -407,8 +486,12 @@ BACKLOG                    ← las ALTA antes de empaquetar y vender
 | **P0 deriva 2.758s** | ☑ | 29/07/2026 | `83a92ff` · frames enteros por slot · 2.758s → 0.102s · verificado con ffprobe (0 ms de error en 3 casos límite) |
 | — escalonado de timestamps | ☑ | 30/07/2026 | `7270b95` · **18 de 28 originales (64%) repetían metraje** · verificado visualmente |
 | — cuota de stock (ARREGLO 1) | ⏸ | 30/07/2026 | **aplazado**: 3ª muestra en +1 → varianza, no sesgo. Diseño acordado en P1 |
-| A2 body+tail/head | ⬜ | | **desbloqueada** · escribir en FRAMES: 0.25s = 7.5 frames, repartir la transición como 7+8 |
-| A3 mini-renders | ⬜ | | |
+| A2 body+tail/head | ☑ | 30/07/2026 | `6455626` · 38 pares, 0 descartados, `temp_export` limpio · reordenado: A2 solo genera, el recorte va en A4 |
+| — cuota y reparto de tipos | ☑ | 30/07/2026 | `ed2ebfc` · conteos exactos · racha mínima demostrable por búsqueda binaria |
+| — dedup de fuentes de stock | ☑ | 31/07/2026 | `c849003` · 62→57 fuentes distintas pasó a 367→367 · van der Corput para el offset al reutilizar |
+| — prompt sin cuotas de tipo | ☑ | 31/07/2026 | `6afeb90` · **keywords 66% → 100%** · racha 28 → 3 · `alcanzada=2 ideal=2 (optimo)` |
+| **A / B1 / B2 (crítica)** | ⬜ | 31/07/2026 | **el vídeo no cubre el audio** · ver la sección de deuda crítica · orden: B1 → B2 → A |
+| A3 mini-renders | ⬜ | | **SIGUIENTE** en el Proyecto A |
 | A4 ensamblado | ⬜ | | **bloqueado por P3 (normalizedPaths compacta)** |
 | A5 pruebas | ⬜ | | |
 | B1-B5 | ⬜ | | |
