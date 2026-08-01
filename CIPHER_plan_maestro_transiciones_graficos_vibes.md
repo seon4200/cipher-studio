@@ -171,20 +171,49 @@ Idea de John: que cada transición dure lo que le pega (un `fade` corto, un `pix
 >
 > Al hacerlo hay que tocar A2 **y** A3 a la vez: los `FRAMES_TAIL` / `FRAMES_HEAD` dejan de ser constantes y pasan a calcularse por par según el nombre de la transición. Y A4 tendrá que recortar cada body con el valor de su propio par, no con 7+8 fijo.
 
-### 🐛 BUG — el crop y el zoom del vídeo importado no llegan al timeline ni al export
+### 🐛 BUG — el crop y el zoom del vídeo importado no llegan al timeline ni al export — ✅ RESUELTO (`6b8a0de` → `df951b7`, 31/07/2026)
 
-**Reportado por John el 31/07/2026. Sin diagnosticar.**
+**Reportado por John el 31/07/2026. La sospecha era correcta:** era solo una transformación CSS del reproductor, sin contrapartida en ffmpeg.
 
-Al importar un vídeo y aplicarle **crop** o **zoom**, los ajustes **se ven en la previsualización pero NO se aplican** al construir el timeline ni al exportar. El vídeo final sale sin ellos.
+**Cómo se resolvió: en la NORMALIZACIÓN del export, no al confirmar el crop.** Se descartó recodificar el vídeo fuente de forma destructiva. El crop viaja hasta el export y se compone en la cadena `-vf` del bucle de normalización.
 
-**Comportamiento esperado:** que se apliquen **al confirmar el crop**, de modo que los clips ya se corten con el formato correcto desde FASE 3, en vez de intentar arrastrar los parámetros hasta el export.
+**Opción B — solo los clips de categoría `original`.** Lo que cierra la decisión: cuando John aplica el crop, los clips de stock y de IA **todavía no existen**, se descargan al construir. Su vídeo es lo único que hay en ese momento. Y es lo que ya hacía el preview, así que preview y archivo coinciden **por construcción** — que era la divergencia de fondo. Si hay ajustes y ningún clip `original`, el export **se bloquea** antes de normalizar en vez de salir en silencio sin el ajuste.
 
-**Por dónde empezar a mirar** (sin verificar aún):
-- Dónde guarda el frontend los valores de crop/zoom y si llegan a `cut-video-clips` o a `generate-timeline-assets`.
-- El export tiene su propio `filterStr` con `crop=...,scale=...` calculado solo desde `aspectRatio`, así que ignora cualquier crop manual del usuario.
-- Si se aplica al confirmar, el vídeo fuente recortado pasa a ser el material de partida y ni el timeline ni el export necesitan saber nada.
+**Estado: pasos 1, 2 y 3 completados.** Verificado por John sobre un export real: el crop se ve en el archivo y solo en sus clips.
 
-**Sospecha a confirmar:** que sea solo una transformación CSS del reproductor, sin contrapartida en el pipeline de ffmpeg.
+| paso | qué | commit |
+|---|---|---|
+| 1 | `construirVF` sustituye la cirugía de `slice` | `6b8a0de` |
+| 2 | `construirAjustes()` + condición por categoría + bloqueo | `e07d285` |
+| 3 | El frontend manda `ajustesVideo` + guarda del zoom epsilon | `df951b7` |
+| 4 | **PENDIENTE** — persistencia de los ajustes en el estado del proyecto | — |
+| 5 | **PENDIENTE** — control de fondo (blur/negro) y modal del fotograma, desde `stash@{0}` | — |
+
+**Dónde entra el crop en el pipeline** (confirmado leyendo el código): la normalización es el **único** sitio donde aparece un crop del usuario. A2 (`index.ts:1746`), A3 (`:1810`) y A4 (`:1845`) leen todos de `normPorIndice` y solo recortan en el **tiempo** con `trim`, nunca en el espacio. Los tails/heads salen ya del clip recortado y el `xfade` opera sobre el encuadre final. El `overlay` sustituyó al `pad`, así que la salida conserva W×H con recorte o sin él y el `xfade` nunca ve dimensiones distintas.
+
+**Consecuencia asumida de la opción B:** en una transición entre un clip propio y uno de stock se funden **dos encuadres distintos**. Es inherente al diseño —solo el material del usuario se reencuadra— y lo que lo suaviza es el fondo: con `blur` los dos lados del `xfade` son imágenes a sangre; con negro se ve el stock invadir los bordes vacíos. Se decide en el paso 5.
+
+**Pendiente del paso 4:** hasta que exista, los ajustes viven **solo en memoria**. Al cerrar y reabrir el proyecto se pierden y el export vuelve a salir sin crop. El pan debe persistirse como **fracción**, nunca en píxeles de pantalla, y al cargar hay que reconstruir `panOffset` en píxeles esperando a que la caja del preview sea medible.
+
+### 🐛 BUG — el crop se ve desincronizado en el preview durante las transiciones
+
+**Detectado el 31/07/2026 al cerrar el paso 3. NO afecta al archivo exportado.**
+
+Durante una transición, el vídeo original vuelve a verse **sin recortar** en la previsualización. El archivo sale correcto.
+
+El segundo `<video>` (`preview-video-2`, `main.tsx:5082`) **sí tiene** su propia lógica de crop, con la misma condición por categoría que el primero. El problema es de **qué índice** depende: su estilo se calcula con `sortedVideoClips[currentClipIndex + 1]` (L5089 y L5097), mientras que su `src` viene de `transitionNextUrl`, que se fija en otro momento (`main.tsx:1555`, al quedar 1.5s). Cuando `currentClipIndex` avanza, el estilo pasa a mirar al clip *siguiente al nuevo* mientras el elemento todavía muestra los frames del anterior: si ese nuevo siguiente es stock, se pinta sin recorte enseñando aún el original.
+
+**Mecanismo deducido de leer el código, no medido** — encaja con el síntoma y con los índices, pero no se ha reproducido con la app delante.
+
+No toca al archivo: esos dos `<video>` son marcado del renderer con CSS, y el archivo lo produce el pipeline del proceso principal a partir de `normPorIndice`, que no los consulta jamás.
+
+### 🔮 FUNCIÓN FUTURA — crop/zoom por clip individual, estilo CapCut
+
+**Pedida por John el 31/07/2026. NO ahora.**
+
+Seleccionar un clip concreto del timeline ya construido y aplicarle recorte o zoom **solo a él**. Es **distinto** del crop global: aquel reencuadra el material del usuario antes de construir; este actuaría sobre un clip ya generado, sea original, stock o IA.
+
+Implicaría guardar los ajustes **por clip** en `timelineVideoClips` y que la normalización del export los lea de cada uno en vez de un ajuste único. `construirAjustes()` ya sirve tal cual —es pura y recibe los ajustes como parámetro—; lo que cambiaría es de dónde salen.
 
 ### 🔁 DEUDA — las transiciones se repiten: 38 asignadas, solo 21 efectos distintos — ✅ RESUELTO (`c72cbfd`, 31/07/2026)
 
