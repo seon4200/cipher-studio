@@ -1417,15 +1417,22 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
       }
     }
 
-    // Determine crop & scale filter
-    let filterStr = ''
+    // Determine crop & scale filter. Se guarda SIN el envoltorio -vf "..." para poder
+    // componer sobre la cadena sin cirugia de strings.
+    let baseVF = ''
     if (aspectRatio === 'vertical') {
-      filterStr = `-vf "crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}"`
+      baseVF = `crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}`
     } else if (aspectRatio === 'square') {
-      filterStr = `-vf "crop=w='min(iw,ih)':h='min(ih,iw)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}"`
+      baseVF = `crop=w='min(iw,ih)':h='min(ih,iw)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}`
     } else { // horizontal
-      filterStr = `-vf "crop=w='min(iw,ih*16/9)':h='min(ih,iw*9/16)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}"`
+      baseVF = `crop=w='min(iw,ih*16/9)':h='min(ih,iw*9/16)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}`
     }
+
+    // Antes esto se hacia con filterStr.slice(0, -1) + ',algo"', que asume que la cadena
+    // termina en un filtro simple: en cuanto acabe en un overlay con etiquetas, esa
+    // cirugia deja de ser fiable.
+    const construirVF = (extra = '') => `-vf "${baseVF}${extra}"`
+    const filterStr = construirVF()
 
     // Determine quality options
     let crf = 23
@@ -1544,9 +1551,8 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
       // El tope existe porque ante un desfase enorme (medido: 645s, por segmentos de
       // transcripcion obsoletos) clonar un frame 11 minutos seria peor que el fallo.
       const MAX_CLONADO = 10; // segundos de frame congelado, como maximo
-      const normBase = filterStr.slice(0, -1) + ',setsar=1"';
-      const normFilterStr = filterStr.slice(0, -1) +
-        `,tpad=stop_mode=clone:stop_duration=${MAX_CLONADO},setsar=1"`;
+      const normBase = construirVF(',setsar=1');
+      const normFilterStr = construirVF(`,tpad=stop_mode=clone:stop_duration=${MAX_CLONADO},setsar=1`);
 
       // P3: se indexa POR POSICION, no se compacta. Si un clip falla, su hueco queda vacio
       // en vez de desplazar a todos los siguientes. Es el mismo error que ya se corrigio en
