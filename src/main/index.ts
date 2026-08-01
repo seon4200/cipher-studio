@@ -1329,8 +1329,75 @@ ipcMain.handle('delete-bank-clip', async (_event, { category, file }) => {
   }
 })
 
+// Ajustes de encuadre que el usuario aplica sobre SU video en el preview. Viajan desde el
+// frontend a partir del paso 3; hasta entonces llegan undefined y construirAjustes devuelve
+// '', de modo que el -vf sale identico al de hoy.
+type AjustesVideo = {
+  crop?: { left: number; top: number; right: number; bottom: number } | null  // PORCENTAJE 0-100
+  zoom?: number
+  panXFrac?: number   // fraccion del ancho, NO pixeles de pantalla
+  panYFrac?: number
+  isMirrored?: boolean
+  background?: 'blur' | 'black'
+}
+
+// Devuelve el TRAMO que se engancha detras de baseVF (que ya termina en scale=W:H), o ''
+// si no hay nada que aplicar. Reproduce la cadena del preview en su mismo orden:
+// object-cover -> recorte -> espejo -> zoom -> overlay sobre el fondo.
+// El overlay sustituye al pad: recorta lo que se sale y deja ver el fondo donde no llega,
+// asi que la salida conserva W×H y el concat sigue cuadrando.
+function construirAjustes(a: AjustesVideo | undefined, W: number, H: number): string {
+  if (!a) return ''
+
+  // h264 con yuv420p exige dimensiones pares; crop/overlay/scale exigen enteros.
+  const par = (n: number) => Math.max(2, Math.round(n / 2) * 2)
+
+  const cl = Math.max(0, (a.crop?.left ?? 0) / 100)
+  const cr = Math.max(0, (a.crop?.right ?? 0) / 100)
+  const ct = Math.max(0, (a.crop?.top ?? 0) / 100)
+  const cb = Math.max(0, (a.crop?.bottom ?? 0) / 100)
+  // Un recorte que no deja area visible se ignora en vez de tumbar el export entero.
+  if (cl + cr >= 1 || ct + cb >= 1) return ''
+
+  const z = Math.max(1, Math.min(4, Number(a.zoom) || 1))
+  const mirror = !!a.isMirrored
+  // Identidad: nada que componer, se devuelve la cadena de siempre.
+  if (cl === 0 && cr === 0 && ct === 0 && cb === 0 && z === 1 && !mirror) return ''
+
+  // Con z=1 el pan es 0 por definicion.
+  const panX = z <= 1 ? 0 : (Number(a.panXFrac) || 0) * W
+  const panY = z <= 1 ? 0 : (Number(a.panYFrac) || 0) * H
+
+  const wc = Math.min(par(W * (1 - cl - cr)), W)
+  const hc = Math.min(par(H * (1 - ct - cb)), H)
+  // El redondeo a par puede empujar el recorte fuera del borde: clamp.
+  const cx = Math.min(Math.round(W * cl), W - wc)
+  const cy = Math.min(Math.round(H * ct), H - hc)
+
+  // Con espejo, la esquina que queda a la IZQUIERDA en pantalla es la del borde DERECHO
+  // del recorte, de ahi lef = cr.
+  const lef = mirror ? cr : cl
+  const x0 = Math.round(W / 2 + z * (W * lef - W / 2) + panX)
+  const y0 = Math.round(H / 2 + z * (H * ct - H / 2) + panY)
+  const zw = par(z * wc)
+  const zh = par(z * hc)
+
+  // El negro se deriva del propio stream con drawbox y no de una fuente color=: una fuente
+  // sintetica impondria SU framerate al overlay y cambiaria el conteo de frames, que es
+  // justo lo unico que no puede moverse.
+  const ramaFondo = a.background === 'black'
+    ? `[bg]drawbox=x=0:y=0:w=iw:h=ih:color=black@1:t=fill[fondo]`
+    : `[bg]scale=${par(W * 1.2)}:${par(H * 1.2)},crop=${W}:${H},boxblur=24:2[fondo]`
+
+  const ramaRecorte =
+    `[fg]crop=${wc}:${hc}:${cx}:${cy}${mirror ? ',hflip' : ''},scale=${zw}:${zh}[rec]`
+
+  return `,split=2[bg][fg];${ramaFondo};${ramaRecorte};` +
+    `[fondo][rec]overlay=x=${x0}:y=${y0}:shortest=1`
+}
+
 // IPC handle for exporting video (single clip or concatenating multiple clips) with aspect ratio crop
-ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, format, quality, assignedTransitions, transitionDuration }) => {
+ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, format, quality, assignedTransitions, transitionDuration, ajustesVideo }) => {
   try {
     // Mapeo de nombres internos de transiciones a nombres de FFmpeg xfade.
     // Los 38 nombres internos apuntan a 38 destinos DISTINTOS. Antes colapsaban en 21
@@ -1428,10 +1495,14 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
       baseVF = `crop=w='min(iw,ih*16/9)':h='min(ih,iw*9/16)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}`
     }
 
+    // Se calcula UNA vez: la geometria depende del formato de salida, no del clip.
+    const cadenaAjustes = construirAjustes(ajustesVideo as AjustesVideo | undefined, targetW, targetH)
+
     // Antes esto se hacia con filterStr.slice(0, -1) + ',algo"', que asume que la cadena
-    // termina en un filtro simple: en cuanto acabe en un overlay con etiquetas, esa
-    // cirugia deja de ser fiable.
-    const construirVF = (extra = '') => `-vf "${baseVF}${extra}"`
+    // termina en un filtro simple: con el overlay etiquetado de cadenaAjustes esa cirugia
+    // dejaria de ser fiable.
+    const construirVF = (extra = '', conAjustes = false) =>
+      `-vf "${baseVF}${conAjustes ? cadenaAjustes : ''}${extra}"`
     const filterStr = construirVF()
 
     // Determine quality options
@@ -1465,6 +1536,18 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
       const videoOnly = clips.filter((c: any) =>
         c.path && c.type !== 'audio' && c.type !== 'graphic' && c.category !== 'v2_overlay'
       );
+
+      // Se comprueba ANTES de normalizar nada: si el ajuste no va a aplicarse a ningun clip,
+      // exportar seria gastar minutos en un video que sale sin el, y en silencio.
+      if (cadenaAjustes) {
+        const nOrig = videoOnly.filter((c: any) =>
+          (c.category || '').toLowerCase().startsWith('original')).length;
+        if (nOrig === 0) {
+          await writeDebugLog(`[EXPORT] BLOQUEADO: hay ajustes de encuadre pero 0 de ${videoOnly.length} clips son 'original'`);
+          return { success: false, error: 'Has aplicado recorte, zoom o espejo, pero el timeline no tiene ningun clip tuyo (categoria "original"): el ajuste no se aplicaria a nada. Quita el ajuste o anade tus clips.' };
+        }
+        await writeDebugLog(`[EXPORT] Ajustes de encuadre activos en ${nOrig} de ${videoOnly.length} clips (solo 'original')`);
+      }
 
       // A1: mapear transiciones asignadas a pares de indices consecutivos de videoOnly (solo lectura + logs)
       const transitionByIndex: Record<number, string> = {};
@@ -1551,8 +1634,6 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
       // El tope existe porque ante un desfase enorme (medido: 645s, por segmentos de
       // transcripcion obsoletos) clonar un frame 11 minutos seria peor que el fallo.
       const MAX_CLONADO = 10; // segundos de frame congelado, como maximo
-      const normBase = construirVF(',setsar=1');
-      const normFilterStr = construirVF(`,tpad=stop_mode=clone:stop_duration=${MAX_CLONADO},setsar=1`);
 
       // P3: se indexa POR POSICION, no se compacta. Si un clip falla, su hueco queda vacio
       // en vez de desplazar a todos los siguientes. Es el mismo error que ya se corrigio en
@@ -1595,7 +1676,13 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
         try {
           await new Promise<void>((resolve, reject) => {
             const frames = frameTargets[i];
-            const vf = frames > 0 ? normFilterStr : normBase;
+            // Los ajustes solo tocan los clips del usuario: cuando aplica el crop, el stock
+            // y la IA todavia NO existen (se descargan al construir). Es ademas lo que ya
+            // hace el preview, asi que preview y archivo coinciden por construccion.
+            const conAjustes = (clip.category || '').toLowerCase().startsWith('original');
+            const vf = frames > 0
+              ? construirVF(`,tpad=stop_mode=clone:stop_duration=${MAX_CLONADO},setsar=1`, conAjustes)
+              : construirVF(',setsar=1', conAjustes);
             const trim = frames > 0 ? `-frames:v ${frames} ` : '';
             const cmd = `ffmpeg -y -i "${escapedIn}" ${vf} -r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an ${trim}"${escapedNorm}"`;
             exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => {
