@@ -1359,7 +1359,11 @@ function construirAjustes(a: AjustesVideo | undefined, W: number, H: number): st
   // Un recorte que no deja area visible se ignora en vez de tumbar el export entero.
   if (cl + cr >= 1 || ct + cb >= 1) return ''
 
-  const z = Math.max(1, Math.min(4, Number(a.zoom) || 1))
+  // El zoom del preview se acumula con la rueda (prev + delta) y puede quedarse en
+  // 1.0000001 al volver al minimo. Sin esta guarda ese residuo invisible construiria el
+  // grafo entero de split/overlay para no mover nada, y activaria el bloqueo por categoria.
+  const zBruto = Math.max(1, Math.min(4, Number(a.zoom) || 1))
+  const z = zBruto < 1.001 ? 1 : zBruto
   const mirror = !!a.isMirrored
   // Identidad: nada que componer, se devuelve la cadena de siempre.
   if (cl === 0 && cr === 0 && ct === 0 && cb === 0 && z === 1 && !mirror) return ''

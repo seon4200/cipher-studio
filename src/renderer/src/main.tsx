@@ -1269,6 +1269,29 @@ function App() {
     setIsPanning(false)
   }
 
+  // Los ajustes de encuadre que viajan al export. El pan se convierte a FRACCION del cuadro
+  // del preview: panOffset se guarda en pixeles de pantalla (e.clientX - panStart.x), asi
+  // que en crudo significaria otra cosa con la ventana a otro tamano. El backend necesita la
+  // fraccion de todos modos, porque multiplica por el ancho de EXPORT, no por el de pantalla.
+  const construirAjustesVideo = () => {
+    // videoRef ES el cuadro: lleva w-full h-full object-cover y es el mismo elemento sobre
+    // el que se aplica el translate, asi que su caja es el denominador correcto.
+    const box = videoRef.current
+    if (zoom > 1 && (panOffset.x !== 0 || panOffset.y !== 0) && !box?.clientWidth) {
+      console.warn('[EXPORT] El preview no es medible: el desplazamiento no se aplicara.')
+    }
+    return {
+      crop: activeCrop,
+      zoom,
+      panXFrac: box?.clientWidth ? panOffset.x / box.clientWidth : 0,
+      panYFrac: box?.clientHeight ? panOffset.y / box.clientHeight : 0,
+      isMirrored,
+      // El paso 5 sustituye este literal por el control de fondo del stash. Negro porque es
+      // lo que enseña el preview detras del recorte (el bg-[#0D0D0F] del contenedor).
+      background: 'black' as const
+    }
+  }
+
   // Crop resize handles
   const handleCropResizeMouseDown = (
     e: React.MouseEvent,
@@ -2481,7 +2504,8 @@ function App() {
         format: exportFormat,
         quality: exportQuality,
         assignedTransitions: assignedTransitions,
-        transitionDuration: transitionDuration
+        transitionDuration: transitionDuration,
+        ajustesVideo: construirAjustesVideo()
       });
       
       if (res && res.success && res.filePath) {
