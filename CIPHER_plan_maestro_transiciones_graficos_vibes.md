@@ -533,6 +533,9 @@ Tres problemas distintos que se confundían entre sí: **cantidad** (salía meno
 > - `requestAnimationFrame` y bucles propios.
 > - `setTimeout` / `setInterval` para disparar estados.
 > - `transition` de CSS. **Es la trampa menos evidente**: una transición no existe en el timeline hasta que cambia el valor, nace en el reloj de pared, y al arrastrar el cursor hacia atrás dispara transiciones inversas. Fue lo que obligó a reescribir las barras.
+> - **SMIL de SVG** (`<animate>`, `<animateTransform>`). Medido: `getAnimations()` devuelve `CSSAnimation` y `CSSTransition` pero **no** las SMIL, y al fijar `currentTime` el elemento animado con SMIL **no se mueve** — sigue su propio reloj. Si un gráfico necesita animar un atributo SVG, se hace con `@keyframes` sobre una propiedad CSS (`stroke-dashoffset`, `transform`, `opacity`), no con SMIL.
+> - Vídeo o GIF incrustados: corren con su reloj.
+> - `Math.random()` en el render: dos capturas del mismo gráfico saldrían distintas. Si hace falta variedad, que se derive del `graphicData`.
 >
 > **PERMITIDO:**
 > - `@keyframes` de CSS y Web Animations API: `getAnimations({subtree:true})` las pausa y las coloca en `currentTime`. El componente se fija su propio subárbol, sin depender de que alguien lo pause desde fuera.
@@ -551,6 +554,17 @@ Tres problemas distintos que se confundían entre sí: **cantidad** (salía meno
 > El reverso también: una imagen mala puede venir del **instrumento**. Editar el script de prueba con PowerShell corrompió el emoji del propio test (`🚀` → `ðŸš€`) y el frame parecía denunciar un fallo del componente que no existía. Antes de arreglar nada por lo que se ve en una imagen, comprobar de dónde sale.
 >
 > **Toda verificación de un gráfico lleva las dos cosas: aserciones y al menos un fotograma mirado.**
+
+> ## ⚠️ REGLA DE PRODUCTO — tarjetas y pantalla completa se EXCLUYEN EN EL TIEMPO
+>
+> Los dos tipos de gráfico **conviven en el mismo vídeo**, pero **nunca a la vez**.
+>
+> - **Tarjetas actuales** (`AnimatedGraphic` con alpha): apoyo visual ENCIMA del vídeo, que se sigue viendo detrás. **No se reemplazan ni se retiran**: son la forma principal y se seguirán usando.
+> - **Gráficos de pantalla completa**: opción ADICIONAL, ocupan su propio tramo como un clip más.
+>
+> **La exclusión:** si un tramo lleva gráfico de pantalla completa, ahí **no va tarjeta**. Nunca una tarjeta superpuesta sobre un gráfico de pantalla completa.
+>
+> Consecuencia para el reparto: al colocar los gráficos hay que reservar los tramos de pantalla completa y excluirlos de los candidatos a tarjeta, no repartir cada tipo por su cuenta y confiar en que no coincidan.
 
 **Por qué HyperFrames** (`github.com/heygen-com/hyperframes`): HTML+CSS+GSAP/Lottie/Three.js → MP4 determinista. **Apache 2.0 → gratis y comercializable.** CLI no-interactivo. Requiere Node 22 + FFmpeg.
 
