@@ -512,13 +512,19 @@ ipcMain.handle('close-project', async () => {
   }
 });
 
+// En Windows el antivirus o el indexador retienen un handle un instante y rm devuelve
+// EPERM. Reintentar lo resuelve: medido aqui, una carpeta que fallo con EPERM se borro sin
+// problema al reintentarla despues. NO es el atributo ReadOnly ni la ACL heredada — ambos
+// estan presentes en carpetas que se borran a la primera.
+const OPCIONES_BORRADO = { recursive: true, force: true, maxRetries: 10, retryDelay: 150 };
+
 ipcMain.handle('delete-project', async (_event, { projectPath }) => {
   try {
     if (activeProjectPath === projectPath) {
       activeProjectPath = null;
     }
     if (await exists(projectPath)) {
-      await fs.promises.rm(projectPath, { recursive: true, force: true });
+      await fs.promises.rm(projectPath, OPCIONES_BORRADO);
       console.log(`[delete-project] Carpeta de proyecto eliminada: ${projectPath}`);
     }
     return { success: true };
@@ -528,21 +534,38 @@ ipcMain.handle('delete-project', async (_event, { projectPath }) => {
 });
 
 ipcMain.handle('delete-all-projects', async () => {
+  const projectsDir = await getProjectsDir();
+  let items: string[] = [];
   try {
-    const projectsDir = await getProjectsDir();
-    const items = await fs.promises.readdir(projectsDir);
-    for (const item of items) {
-      const projectPath = path.join(projectsDir, item);
-      const stat = await fs.promises.stat(projectPath);
-      if (stat.isDirectory()) {
-        await fs.promises.rm(projectPath, { recursive: true, force: true });
-      }
-    }
-    activeProjectPath = null;
-    return { success: true };
+    items = await fs.promises.readdir(projectsDir);
   } catch (err: any) {
     return { success: false, error: err.message };
   }
+
+  const fallidos: { nombre: string; error: string }[] = [];
+  let borrados = 0;
+  for (const item of items) {
+    const projectPath = path.join(projectsDir, item);
+    try {
+      if (!(await fs.promises.stat(projectPath)).isDirectory()) continue;
+      await fs.promises.rm(projectPath, OPCIONES_BORRADO);
+      borrados++;
+    } catch (err: any) {
+      // Un proyecto que no se deja borrar NO puede impedir que se borren los demas.
+      // Antes un solo throw salia del bucle entero y dejaba el resto intacto en silencio.
+      fallidos.push({ nombre: item, error: err.code || err.message });
+    }
+  }
+  // Se limpia SIEMPRE, tambien con fallos: los que si se borraron ya no existen.
+  activeProjectPath = null;
+  console.log(`[delete-all-projects] ${borrados} borrados, ${fallidos.length} fallidos`);
+
+  if (fallidos.length === 0) return { success: true, borrados };
+  return {
+    success: false, borrados, fallidos,
+    error: `Se borraron ${borrados} proyecto(s). ${fallidos.length} no se pudieron borrar: ` +
+      fallidos.map(f => `${f.nombre} (${f.error})`).join(', ')
+  };
 });
 
 ipcMain.handle('clear-global-stock-cache', async () => {

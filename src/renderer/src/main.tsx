@@ -1974,19 +1974,33 @@ function App() {
     if (!confirm('¿De verdad quieres borrar absolutamente todos los proyectos y sus archivos del disco?')) return;
     try {
       const res = await window.electronAPI.deleteAllProjects();
+      const borrados = (res as any)?.borrados ?? 0;
+
+      // El estado se limpia tambien cuando el borrado es PARCIAL: lo que si se elimino ya
+      // no existe, y dejar la UI apuntando a un proyecto borrado es peor que vaciarla.
+      setClips([]);
+      setTimelineVideoClips([]);
+      setTimelineVersions([]);
+      setActiveProjectPath(null);
+      setActiveProjectId(null);
+      setActiveProjectName(null);
+      refreshProjectsList();
+
       if (res && res.success) {
-        setClips([]);
-        setTimelineVideoClips([]);
-        setTimelineVersions([]);
-        setActiveProjectPath(null);
-        setActiveProjectId(null);
-        setActiveProjectName(null);
-        refreshProjectsList();
+        // Un 0 con exito TAMBIEN hay que decirlo: sin este aviso el boton parecia no hacer
+        // nada y el usuario no podia distinguirlo de un fallo.
+        alert(borrados > 0
+          ? `${borrados} proyecto(s) eliminados.`
+          : 'No habia ningun proyecto que eliminar.');
       } else {
-        alert('Error al eliminar todos los proyectos: ' + (res?.error || 'Desconocido'));
+        alert(res?.error || 'Error desconocido al eliminar los proyectos.');
       }
     } catch (err: any) {
+      // Si el handler revienta, el usuario TIENE que enterarse. Antes esto solo iba a la
+      // consola y el boton se quedaba mudo: ni borraba ni avisaba.
       console.error('Failed to delete all projects:', err);
+      refreshProjectsList();
+      alert('No se pudo completar el borrado: ' + (err?.message || err));
     }
   };
 
