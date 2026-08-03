@@ -2,8 +2,20 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import { spawn, exec } from 'child_process'
 import fs from 'fs'
+import { pathToFileURL } from 'url'
 import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, getVideoDimensions } from './services/ffmpeg'
 import { fal } from '@fal-ai/client'
+
+// Construir "file:///" concatenando la ruta FALLA con espacios, acentos y '#'. Medido en un
+// Chromium real con webSecurity:false, cargando un video desde
+// ".../prueba url/acentuacion nandu/video de prueba #1.mp4":
+//   file:///<ruta>          -> MEDIA_ELEMENT_ERROR: Format error
+//   file:///encodeURI(...)  -> MEDIA_ELEMENT_ERROR (no escapa '#', que corta la URL como ancla)
+//   pathToFileURL(...)      -> CARGA
+// Hoy no se nota porque el proyecto vive en C:\Proyectos\mi-app\cipher-studio, sin espacios
+// ni acentos. En C:\Users\Jose\... o "Archivos de programa" no se reproduciria NADA.
+// Hace el replace de barras por dentro, asi que las llamadas ya no lo necesitan.
+const urlDeRuta = (p: string) => pathToFileURL(p).href
 
 // Helper to manually load .env file in main process from multiple potential paths
 let envLoaded = false
@@ -549,7 +561,7 @@ ipcMain.handle('extract-master-audio', async (_event, { videoPath }) => {
     return {
       success: true, path: destino, durationSeconds,
       // file:/// en vez del blob: del renderer, que muere con la pagina que lo creo.
-      url: `file:///${destino.replace(/\\/g, '/')}`
+      url: urlDeRuta(destino)
     };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -1170,7 +1182,7 @@ ipcMain.handle('generate-minimax-video', async (_event, { prompt }) => {
     let thumbnailUrl = '';
     try {
       await generateVideoThumbnail(filePath, thumbPath);
-      thumbnailUrl = `file:///${thumbPath.replace(/\\/g, '/')}`;
+      thumbnailUrl = urlDeRuta(thumbPath);
     } catch (e) {
       console.error('[generate-minimax-video] Error generating thumbnail:', e);
     }
@@ -1242,7 +1254,7 @@ ipcMain.handle('load-bank-clips', async (_event, { category }) => {
           id: `bank-${category}-${file}`,
           name: file,
           path: filePath,
-          url: `file:///${filePath.replace(/\\/g, '/')}`,
+          url: urlDeRuta(filePath),
           duration: durationStr,
           durationSeconds,
           type: 'video',
@@ -1344,7 +1356,7 @@ ipcMain.handle('cut-video-clips', async (_event, { videoPath, timestamps }) => {
           id: `bank-originales-${file}`,
           name: file,
           path: clipPath,
-          url: `file:///${clipPath.replace(/\\/g, '/')}`,
+          url: urlDeRuta(clipPath),
           duration: formatTimeMinutesSeconds(durationSeconds),
           durationSeconds,
           type: 'video',
@@ -3059,7 +3071,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             id: `bank-originales-clip_${clipNum}.mp4`,
             name: `clip_${clipNum}.mp4`,
             path: clipPath,
-            url: `file:///${clipPath.replace(/\\/g, '/')}`,
+            url: urlDeRuta(clipPath),
             duration: formatTimeMinutesSeconds(durationSeconds),
             durationSeconds,
             type: 'video',
@@ -3775,7 +3787,7 @@ ipcMain.handle('generate-perfect-sync', async (event, {
             type: 'video',
             category: vc.type,
             path: clipPath,
-            url: 'file:///' + clipPath.replace(/\\/g, '/'),
+            url: urlDeRuta(clipPath),
             thumbnailUrl
           });
         }
@@ -3791,7 +3803,7 @@ ipcMain.handle('generate-perfect-sync', async (event, {
       type: 'video',
       category: 'original',
       path: videoPath,
-      url: 'file:///' + videoPath.replace(/\\/g, '/')
+      url: urlDeRuta(videoPath)
     };
 
     const audioClip = {
@@ -3801,7 +3813,7 @@ ipcMain.handle('generate-perfect-sync', async (event, {
       durationSeconds: duracionTotal,
       type: 'audio',
       path: audioPath || videoPath,
-      url: 'file:///' + (audioPath || videoPath).replace(/\\/g, '/')
+      url: urlDeRuta(audioPath || videoPath)
     };
 
     await logMessage('[generate-perfect-sync] Completado. v2Clips: ' + v2Clips.length);
