@@ -1835,7 +1835,18 @@ function App() {
         setActiveVersionId(restoredActiveId);
 
         const activeVersion = restoredVersions.find((v: any) => v.id === restoredActiveId);
-        setTimelineVideoClips(activeVersion ? activeVersion.timelineVideoClips : (loadedData.timelineVideoClips || []));
+        const clipsDelTimeline = activeVersion ? activeVersion.timelineVideoClips : (loadedData.timelineVideoClips || []);
+        setTimelineVideoClips(clipsDelTimeline);
+
+        // El preview arranca vacio si nadie fija activeVideoUrl: el <video> lleva
+        // display:none mientras sea null, asi que al reabrir un proyecto no se veia NADA
+        // hasta mover el cursor. No era un fotograma que faltara — medido, el <video>
+        // pinta con cualquier preload — sino que el elemento no estaba en pantalla.
+        // Se apunta al primer clip por tiempo, que es lo que corresponde al cursor en 0.
+        const primerVideo = (clipsDelTimeline || [])
+          .filter((c: any) => c.type === 'video' && (c.url || c.path))
+          .sort((a: any, b: any) => (a.startSeconds || 0) - (b.startSeconds || 0))[0];
+        setActiveVideoUrl(primerVideo ? (primerVideo.url || rutaAUrl(primerVideo.path)) : null);
         setTranscriptionStatus(loadedData.transcriptionStatus || '');
         setTranscriptSegments(loadedData.transcriptSegments || []);
         setNewAudioSegments(loadedData.newAudioSegments || []);
@@ -2084,7 +2095,18 @@ function App() {
         setActiveVersionId(restoredActiveId);
 
         const activeVersion = restoredVersions.find((v: any) => v.id === restoredActiveId);
-        setTimelineVideoClips(activeVersion ? activeVersion.timelineVideoClips : (loadedData.timelineVideoClips || []));
+        const clipsDelTimeline = activeVersion ? activeVersion.timelineVideoClips : (loadedData.timelineVideoClips || []);
+        setTimelineVideoClips(clipsDelTimeline);
+
+        // El preview arranca vacio si nadie fija activeVideoUrl: el <video> lleva
+        // display:none mientras sea null, asi que al reabrir un proyecto no se veia NADA
+        // hasta mover el cursor. No era un fotograma que faltara — medido, el <video>
+        // pinta con cualquier preload — sino que el elemento no estaba en pantalla.
+        // Se apunta al primer clip por tiempo, que es lo que corresponde al cursor en 0.
+        const primerVideo = (clipsDelTimeline || [])
+          .filter((c: any) => c.type === 'video' && (c.url || c.path))
+          .sort((a: any, b: any) => (a.startSeconds || 0) - (b.startSeconds || 0))[0];
+        setActiveVideoUrl(primerVideo ? (primerVideo.url || rutaAUrl(primerVideo.path)) : null);
         setTranscriptionStatus(loadedData.transcriptionStatus || '');
         setTranscriptSegments(loadedData.transcriptSegments || []);
         setNewAudioSegments(loadedData.newAudioSegments || []);
