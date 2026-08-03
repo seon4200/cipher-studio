@@ -1813,9 +1813,12 @@ function App() {
       if (res && res.success && res.data) {
         const loadedData = res.data;
         
+        // La url se DERIVA del path al cargar. El guardado descarta la url de los clips de
+        // video, asi que al reabrir se quedaban sin nada que reproducir aunque el fichero
+        // siguiera en su sitio.
         const restoredClips = (loadedData.clips || []).map((c: any) => ({
           ...c,
-          url: c.type === 'audio' ? c.url : undefined
+          url: c.url || (c.path ? rutaAUrl(c.path) : undefined)
         }));
 
         setClips(restoredClips);
@@ -2059,9 +2062,12 @@ function App() {
       const res = await window.electronAPI.openProject();
       if (res && res.success && res.projectPath && res.data) {
         const loadedData = res.data;
+        // La url se DERIVA del path al cargar. El guardado descarta la url de los clips de
+        // video, asi que al reabrir se quedaban sin nada que reproducir aunque el fichero
+        // siguiera en su sitio.
         const restoredClips = (loadedData.clips || []).map((c: any) => ({
           ...c,
-          url: c.type === 'audio' ? c.url : undefined
+          url: c.url || (c.path ? rutaAUrl(c.path) : undefined)
         }));
 
         setClips(restoredClips);
@@ -2886,7 +2892,17 @@ function App() {
         return;
       }
 
-      const url = URL.createObjectURL(file);
+      // Ruta real en disco. Antes se caia en `file.name` cuando no habia ruta: un nombre
+      // suelto sin carpeta, que falla mas tarde, en otro sitio y sin decir por que.
+      const rutaReal = window.electronAPI.rutaDeFichero(file) || (file as any).path || '';
+      if (!rutaReal) {
+        alert(`No se pudo obtener la ruta de "${file.name}". Importalo desde el boton de archivo.`);
+        return;
+      }
+
+      // file:// en vez de URL.createObjectURL: el blob muere con la pagina que lo creo, y al
+      // reabrir el proyecto el clip apuntaba a una referencia muerta.
+      const url = rutaAUrl(rutaReal);
       const element = isAudio ? document.createElement('audio') : document.createElement('video');
       element.src = url;
       element.onloadedmetadata = () => {
@@ -2903,7 +2919,7 @@ function App() {
           duration: formattedDuration,
           durationSeconds: duration,
           type: isAudio ? 'audio' : 'video',
-          path: (file as any).path || file.name,
+          path: rutaReal,
           size: formatSize(file.size),
           url: url
         };
@@ -2924,7 +2940,7 @@ function App() {
             startSeconds,
             durationSeconds: duration,
             type: 'video' as const,
-            path: (file as any).path || file.name,
+            path: rutaReal,
             url: url,
             category: 'original'
           }];
@@ -4335,7 +4351,7 @@ function App() {
                     >
                       <Plus className="h-3 w-3" />
                     </button>
-                    {!(libraryTab === 'Principal' && clips.find(c => c.type === 'video')?.id === clip.id) && (
+                    {(
                       <button 
                         onClick={async (e) => {
                           e.stopPropagation();

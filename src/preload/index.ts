@@ -1,7 +1,13 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 // Expose safe, structured APIs to the React renderer
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Ruta real en disco de un fichero arrastrado. webUtils.getPathForFile es el reemplazo
+  // oficial de File.path, que Electron retiro en la 32. Medido en 31.7.7: las dos formas
+  // existen y devuelven la MISMA ruta, asi que se usa esta primero para que actualizar
+  // Electron no rompa la importacion. webUtils viene del modulo 'electron' y SI esta
+  // disponible en el preload aunque vaya en sandbox — al contrario que los modulos de Node.
+  rutaDeFichero: (f: File) => { try { return webUtils.getPathForFile(f) } catch { return '' } },
   onMainMessage: (callback: (message: string) => void) => {
     const listener = (_event: any, value: string) => callback(value)
     ipcRenderer.on('main-process-message', listener)

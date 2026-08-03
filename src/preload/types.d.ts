@@ -1,4 +1,5 @@
 export interface IElectronAPI {
+  rutaDeFichero: (f: File) => string;
   onMainMessage: (callback: (message: string) => void) => () => void;
   startTranscription: (filePath: string) => void;
   onTranscriptionUpdate: (callback: (event: any, data: any) => void) => () => void;
