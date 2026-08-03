@@ -339,7 +339,7 @@ async function getProjectsDir(): Promise<string> {
 //   ia/       era 'minimax', nombre de proveedor, y el proveedor ya cambio una vez.
 //   pista-v2/ era 'sync-perfecta', nombre de funcion. Guarda una MEZCLA de stock e IA
 //             cortada para la pista secundaria, asi que no puede colgar de ia/.
-const SUB_MATERIALES = ['audio', 'voices', 'originales', 'stock', 'minimax', 'sync-perfecta'];
+const SUB_MATERIALES = ['audio', 'voices', 'originales', 'stock', 'ia', 'pista-v2'];
 const SUB_CACHE = ['thumbnails', 'graficos'];
 
 const dirMat = (proj: string, sub?: string) =>
@@ -1082,14 +1082,14 @@ ipcMain.handle('generate-minimax-video', async (_event, { prompt }) => {
 
     // Save to temp folder
     const targetDir = activeProjectPath
-      ? dirMat(activeProjectPath, 'minimax')
-      : path.join(process.cwd(), 'cipher-studio', 'banco-clips', 'minimax');
+      ? dirMat(activeProjectPath, 'ia')
+      : path.join(process.cwd(), 'cipher-studio', 'banco-clips', 'ia');
       
     if (!(await exists(targetDir))) {
       await fs.promises.mkdir(targetDir, { recursive: true });
     }
 
-    const filename = `minimax-${Date.now()}.mp4`;
+    const filename = `ia-${Date.now()}.mp4`;
     const filePath = path.join(targetDir, filename);
     await fs.promises.writeFile(filePath, buffer);
 
@@ -1130,7 +1130,7 @@ ipcMain.handle('generate-minimax-video', async (_event, { prompt }) => {
 // IPC handle for loading clips in a category folder of banco-clips
 ipcMain.handle('load-bank-clips', async (_event, { category }) => {
   try {
-    const isTempCategory = ['originales', 'minimax', 'stock'].includes(category.toLowerCase())
+    const isTempCategory = ['originales', 'ia', 'stock'].includes(category.toLowerCase())
     const useActiveProj = !!(activeProjectPath && isTempCategory)
     const baseDir = useActiveProj ? activeProjectPath! : getBancoClipsPath()
     const dirPath = useActiveProj ? dirMat(baseDir, category) : path.join(baseDir, category)
@@ -1338,7 +1338,7 @@ ipcMain.handle('generate-thumbnail', async (_event, videoPath: string) => {
 // IPC handle for deleting a clip inside a category folder of banco-clips
 ipcMain.handle('delete-bank-clip', async (_event, { category, file }) => {
   try {
-    const isTempCategory = ['originales', 'minimax', 'stock'].includes(category.toLowerCase())
+    const isTempCategory = ['originales', 'ia', 'stock'].includes(category.toLowerCase())
     const useActiveProj = !!(activeProjectPath && isTempCategory)
     const baseDir = useActiveProj ? activeProjectPath! : getBancoClipsPath()
     const filePath = useActiveProj ? path.join(dirMat(baseDir, category), file) : path.join(baseDir, category, file)
@@ -2102,10 +2102,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       });
     }
 
-    const minimaxWeight = weights ? (weights[2] ?? 0) : 0;
+    const pesoIa = weights ? (weights[2] ?? 0) : 0;
     const stockWeight = weights ? (weights[1] ?? 0) : 0;
 
-    let targetIaClips = Math.round((minimaxWeight / 100) * totalVisualClipsCount);
+    let targetIaClips = Math.round((pesoIa / 100) * totalVisualClipsCount);
     let targetStockClips = Math.round((stockWeight / 100) * totalVisualClipsCount);
 
     if (targetIaClips + targetStockClips > totalVisualClipsCount) {
@@ -2157,10 +2157,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         // La unica excepcion es la IA: generar un clip de IA cuesta dinero y no se puede
         // inventar desde el codigo, asi que su cuota se sigue pidiendo, pero solo cuando el
         // usuario la ha pedido de verdad.
-        const batchIa = minimaxWeight > 0
+        const batchIa = pesoIa > 0
           ? Math.round((targetIaClips / totalVisualClipsCount) * batchVisualCount)
           : 0;
-        const lineaTipos = minimaxWeight > 0
+        const lineaTipos = pesoIa > 0
           ? 'De ' + batchVisualCount + ' sub-clips marca exactamente ' + batchIa +
             ' con "type":"ia" y dales ademas un prompt descriptivo en ingles. El resto NO lleva campo type.\n'
           : 'NO asignes tipos de clip. Eso se decide despues; tu unica tarea es describir cada sub-clip.\n';
@@ -2428,7 +2428,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // Objetivos directos desde los pesos contra el total REAL de sub-clips. No se
       // reescalan los target* previos: si totalVisualClipsCount fuese 0 daria NaN.
       // Misma normalizacion que L1767-1772, que garantiza objOriginal >= 0.
-      let objIa = Math.round((minimaxWeight / 100) * totalReal);
+      let objIa = Math.round((pesoIa / 100) * totalReal);
       let objStock = Math.round((stockWeight / 100) * totalReal);
       if (objIa + objStock > totalReal) {
         const sum = objIa + objStock;
@@ -2444,7 +2444,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // entrante solo se respeta si el usuario pidio IA de verdad: ahora que el prompt ya no
       // fija cuotas de tipo, un 'ia' espontaneo del modelo dispararia llamadas de pago a
       // fal.ai que nadie solicito.
-      const respetarIa = minimaxWeight > 0;
+      const respetarIa = pesoIa > 0;
       const reasignables: number[] = [];
       for (let j = 0; j < totalReal; j++) {
         const t = cuotaLista[j].clip.type;
@@ -3002,7 +3002,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             duration: formatTimeMinutesSeconds(durationSeconds),
             durationSeconds,
             type: 'video',
-            category: item.type === 'ia' ? 'minimax' : (item.type === 'stock' ? 'stock' : 'original'),
+            category: item.type === 'ia' ? 'ia' : (item.type === 'stock' ? 'stock' : 'original'),
             size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
             thumbnailUrl
           };
@@ -3586,7 +3586,7 @@ ipcMain.handle('generate-perfect-sync', async (event, {
 
     // FASE 3 — Generar clips físicos para v2
     const outDir = projPath
-      ? dirMat(projPath, 'sync-perfecta')
+      ? dirMat(projPath, 'pista-v2')
       : path.join(getBancoClipsPath(), 'sync-perfecta');
     if (!(await exists(outDir))) {
       await fs.promises.mkdir(outDir, { recursive: true });

@@ -1431,7 +1431,7 @@ function App() {
   const [bankClips, setBankClips] = useState<Record<string, any[]>>({
     originales: [],
     stock: [],
-    minimax: [],
+    ia: [],
     veo3: []
   })
   const [isCuttingClips, setIsCuttingClips] = useState(false)
@@ -1439,15 +1439,15 @@ function App() {
   const [isExporting, setIsExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState<{ step: string; current: number; total: number; message: string } | null>(null);
 
-  // Timeline IA weights: [Original, Stock, MiniMax]
+  // Timeline IA weights: [Original, Stock, IA]
   const [timelineWeights, setTimelineWeights] = useState<number[]>([40, 30, 30])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
 
-  // MiniMax Hub States
-  const [minimaxPrompt, setMinimaxPrompt] = useState<string>('')
-  const [isGeneratingMinimax, setIsGeneratingMinimax] = useState(false)
+  // Hub de IA — estados
+  const [promptIa, setPromptIa] = useState<string>('')
+  const [isGenerandoIa, setIsGenerandoIa] = useState(false)
   const [isOptimizingPrompt, setIsOptimizingPrompt] = useState(false)
-  const [minimaxError, setMinimaxError] = useState<string>('')
+  const [errorIa, setErrorIa] = useState<string>('')
 
   // Project persistence state
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -1822,7 +1822,7 @@ function App() {
         
         // Refresh bank clips for temp folders
         await loadClipsForCategory('originales');
-        await loadClipsForCategory('minimax');
+        await loadClipsForCategory('ia');
 
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2500);
@@ -1887,7 +1887,7 @@ function App() {
         setBankClips({
           originales: [],
           stock: [],
-          minimax: [],
+          ia: [],
           veo3: []
         });
 
@@ -2038,7 +2038,7 @@ function App() {
         
         // Refresh bank clips for temp folders
         await loadClipsForCategory('originales');
-        await loadClipsForCategory('minimax');
+        await loadClipsForCategory('ia');
 
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2500);
@@ -2324,7 +2324,7 @@ function App() {
         
         // Refresh library bank folders so generated clips appear in their tabs
         await loadClipsForCategory('originales');
-        await loadClipsForCategory('minimax');
+        await loadClipsForCategory('ia');
 
         const newVideoClips: any[] = [];
         const newGraphicClips: any[] = [];
@@ -2581,30 +2581,30 @@ function App() {
   };
 
   const handleOptimizePromptWithDeepSeek = async () => {
-    if (!minimaxPrompt.trim()) return;
+    if (!promptIa.trim()) return;
     setIsOptimizingPrompt(true);
-    setMinimaxError('');
+    setErrorIa('');
     try {
-      const instructions = `Optimiza el siguiente texto y conviértelo en un prompt altamente detallado y visual en inglés para generación de video por IA (MiniMax). Agrega detalles de cámara, iluminación cinemática y estilo fotorrealista. IMPORTANTE: Responde ÚNICAMENTE con el prompt final optimizado en inglés. No incluyes explicaciones, introducciones ni comillas. Texto original: "${minimaxPrompt}"`;
+      const instructions = `Optimiza el siguiente texto y conviértelo en un prompt altamente detallado y visual en inglés para generación de video por IA (MiniMax). Agrega detalles de cámara, iluminación cinemática y estilo fotorrealista. IMPORTANTE: Responde ÚNICAMENTE con el prompt final optimizado en inglés. No incluyes explicaciones, introducciones ni comillas. Texto original: "${promptIa}"`;
       const res = await window.electronAPI.rewriteTranscript(instructions);
       if (res && res.success && res.data) {
-        setMinimaxPrompt(res.data.trim());
+        setPromptIa(res.data.trim());
       } else {
-        setMinimaxError(res?.error || 'Error al optimizar el prompt con DeepSeek.');
+        setErrorIa(res?.error || 'Error al optimizar el prompt con DeepSeek.');
       }
     } catch (e: any) {
-      setMinimaxError(e.message || 'Excepción al optimizar prompt.');
+      setErrorIa(e.message || 'Excepción al optimizar prompt.');
     } finally {
       setIsOptimizingPrompt(false);
     }
   };
 
-  const handleGenerateMinimaxVideo = async () => {
-    if (!minimaxPrompt.trim()) return;
-    setIsGeneratingMinimax(true);
-    setMinimaxError('');
+  const handleGenerarVideoIa = async () => {
+    if (!promptIa.trim()) return;
+    setIsGenerandoIa(true);
+    setErrorIa('');
     try {
-      const res = await window.electronAPI.generateMinimaxVideo({ prompt: minimaxPrompt });
+      const res = await window.electronAPI.generateMinimaxVideo({ prompt: promptIa });
       if (res && res.success && res.filePath) {
         const fileUrl = `file:///${res.filePath.replace(/\\/g, '/')}`;
         const newClip: Clip = {
@@ -2616,7 +2616,7 @@ function App() {
           path: res.filePath,
           size: '12 MB',
           url: fileUrl,
-          category: 'minimax',
+          category: 'ia',
           thumbnailUrl: res.thumbnailUrl
         };
         
@@ -2624,7 +2624,7 @@ function App() {
         setClips(prev => [...prev, newClip]);
         
         // Add to active library bank category
-        await loadClipsForCategory('minimax');
+        await loadClipsForCategory('ia');
         
         // Automatically append to the end of the timeline
         const startSec = timelineVideoClips.filter(c => c.type !== 'audio').reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0);
@@ -2636,7 +2636,7 @@ function App() {
           type: 'video',
           url: newClip.url,
           path: newClip.path,
-          category: 'minimax',
+          category: 'ia',
           thumbnailUrl: newClip.thumbnailUrl,
           graphicData: newClip.graphicData
         };
@@ -2644,14 +2644,14 @@ function App() {
         setTimelineVideoClips(updated);
         pushHistory(updated);
         
-        setMinimaxPrompt('');
+        setPromptIa('');
       } else {
-        setMinimaxError(res?.error || 'Error al generar video con la API de MiniMax.');
+        setErrorIa(res?.error || 'Error al generar video con la API de MiniMax.');
       }
     } catch (e: any) {
-      setMinimaxError(e.message || 'Excepción al generar video con MiniMax.');
+      setErrorIa(e.message || 'Excepción al generar video con MiniMax.');
     } finally {
-      setIsGeneratingMinimax(false);
+      setIsGenerandoIa(false);
     }
   };
 
@@ -3497,7 +3497,7 @@ function App() {
             <>
           {/* Library Tabs */}
           <div className="flex border-b border-[#3a3a3c]/80 bg-[#1C1C1E]/40 p-1 overflow-x-auto scrollbar-none space-x-1 flex-shrink-0">
-            {['Principal', 'Originales', 'Stock', 'MiniMax'].map(tab => (
+            {['Principal', 'Originales', 'Stock', 'IA'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setLibraryTab(tab)}
@@ -3566,10 +3566,10 @@ function App() {
                 <span className="font-mono text-[10px] text-sky-400 font-bold w-8 text-right select-none">{timelineWeights[1]}%</span>
               </div>
 
-              {/* Slider 3: MiniMax */}
+              {/* Slider 3: IA */}
               <div className="flex items-center space-x-2.5">
                 <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
-                <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">MiniMax</span>
+                <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">IA</span>
                 <input
                   type="range"
                   min="0"
@@ -3979,14 +3979,14 @@ function App() {
 
             {/* Clips List */}
             {(() => {
-              if (libraryTab === 'MiniMax') {
-                const currentClips = bankClips.minimax || [];
+              if (libraryTab === 'IA') {
+                const currentClips = bankClips.ia || [];
                 return (
                   <div className="space-y-3">
                     <div className="bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl p-3 space-y-3 select-none mb-3">
                       <div className="flex items-center space-x-1.5 text-amber-500">
                         <Sparkles className="h-4 w-4 animate-pulse" />
-                        <span className="text-xs font-bold uppercase tracking-wider">MiniMax Video Hub</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">IA Video Hub</span>
                       </div>
                       <p className="text-[10px] text-slate-400 leading-relaxed">
                         Genera videos fotorrealistas por IA de 6 segundos en resolución 1080p usando MiniMax.
@@ -3995,8 +3995,8 @@ function App() {
                       <div className="space-y-1.5">
                         <label className="text-[9px] font-bold text-slate-500 uppercase">Prompt del Video</label>
                         <textarea
-                          value={minimaxPrompt}
-                          onChange={(e) => setMinimaxPrompt(e.target.value)}
+                          value={promptIa}
+                          onChange={(e) => setPromptIa(e.target.value)}
                           placeholder="Describe la escena a generar..."
                           className="w-full bg-[#0D0D0F] border border-[#3a3a3c] focus:border-amber-500/50 rounded-lg p-2 text-xs text-white placeholder-slate-650 outline-none transition-all resize-none h-18 font-sans"
                         />
@@ -4004,11 +4004,11 @@ function App() {
 
                       <div className="flex space-x-2">
                         <button
-                          onClick={handleGenerateMinimaxVideo}
-                          disabled={isGeneratingMinimax || !minimaxPrompt.trim()}
+                          onClick={handleGenerarVideoIa}
+                          disabled={isGenerandoIa || !promptIa.trim()}
                           className="flex-1 bg-gradient-to-r from-amber-600 to-orange-650 hover:from-amber-500 hover:to-orange-550 text-white text-[11px] py-1.5 px-2.5 rounded-lg font-bold transition-all active:scale-95 flex items-center justify-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
                         >
-                          {isGeneratingMinimax ? (
+                          {isGenerandoIa ? (
                             <>
                               <div className="w-3 h-3 rounded-full border border-white/20 border-t-white animate-spin mr-1" />
                               <span>Generando...</span>
@@ -4023,7 +4023,7 @@ function App() {
 
                         <button
                           onClick={handleOptimizePromptWithDeepSeek}
-                          disabled={isOptimizingPrompt || !minimaxPrompt.trim()}
+                          disabled={isOptimizingPrompt || !promptIa.trim()}
                           className="bg-[#3a3a3c] hover:bg-slate-700 text-slate-200 text-[11px] py-1.5 px-2.5 rounded-lg font-bold transition-all active:scale-95 flex items-center justify-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
                           title="Optimizar prompt con DeepSeek"
                         >
@@ -4035,16 +4035,16 @@ function App() {
                         </button>
                       </div>
 
-                      {minimaxError && (
+                      {errorIa && (
                         <div className="text-[9px] text-red-400 font-medium bg-red-950/20 border border-red-900/40 p-2 rounded-lg leading-relaxed select-text">
-                          Error: {minimaxError}
+                          Error: {errorIa}
                         </div>
                       )}
                     </div>
 
                     {currentClips.length === 0 ? (
                       <div className="text-center py-10 text-slate-500 text-xs italic">
-                        No hay videos de MiniMax generados aún.
+                        No hay videos de IA generados aún.
                       </div>
                     ) : (
                       currentClips.map(clip => (
@@ -4090,12 +4090,12 @@ function App() {
                                 e.stopPropagation();
                                 try {
                                   const res = await window.electronAPI.deleteBankClip({
-                                    category: 'minimax',
+                                    category: 'ia',
                                     file: clip.name
                                   });
                                   if (res && res.success) {
-                                    await loadClipsForCategory('minimax');
-                                    setTimelineVideoClips(prev => prev.filter(t => t.name !== `${clip.name} (minimax)`));
+                                    await loadClipsForCategory('ia');
+                                    setTimelineVideoClips(prev => prev.filter(t => t.name !== `${clip.name} (ia)`));
                                   }
                                 } catch (err) {
                                   console.error(err);
@@ -6319,7 +6319,7 @@ function App() {
                           : 'bg-emerald-500/25 border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/35';
                       } else if (cat === 'stock') {
                         bgClass = 'bg-sky-500/25 border-sky-400/50 text-sky-300 hover:bg-sky-500/35';
-                      } else if (cat === 'minimax') {
+                      } else if (cat === 'ia') {
                         bgClass = 'bg-amber-600/25 border-amber-500/50 text-amber-300 hover:bg-amber-600/35';
                       } else {
                         bgClass = index % 2 === 0 

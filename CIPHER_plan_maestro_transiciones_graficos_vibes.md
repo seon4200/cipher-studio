@@ -207,6 +207,22 @@ El segundo `<video>` (`preview-video-2`, `main.tsx:5082`) **sí tiene** su propi
 
 No toca al archivo: esos dos `<video>` son marcado del renderer con CSS, y el archivo lo produce el pipeline del proceso principal a partir de `normPorIndice`, que no los consulta jamás.
 
+### 🔁 DEUDA — la pestaña de la librería ES la ruta de la carpeta
+
+`loadClipsForCategory(libraryTab.toLowerCase())` (`main.tsx:2107`) convierte la **etiqueta visible** de la pestaña en el nombre de la carpeta que lee el backend. Hoy funciona porque la pestaña se llama `IA` y la carpeta `materiales/ia`, pero el día que alguien la renombre a "IA Video" el backend buscará `materiales/ia video` y **creará esa carpeta vacía sin avisar** (`index.ts:1139`).
+
+**Desacoplar en un cambio aparte**, con su propia verificación: la pestaña debe llevar `{ etiqueta, categoria }` y no una sola cadena que haga de las dos cosas.
+
+### 🔁 DEUDA — `'vacio'` es una categoría que miente
+
+`sync-perfecta`/`pista-v2` marca clips como `type: 'vacio'` (`index.ts:3563`) para forzar un déficit, pero la condición de `index.ts:3644` es verdadera para ese valor, así que **descarga stock de Pexels igualmente** y guarda el clip con `category: 'vacio'`. Un clip etiquetado "vacío" contiene stock real.
+
+Ninguna lógica que filtre por categoría lo reconoce: no recibe crop (correcto, no es material del usuario) y no se colorea en el timeline. Está bien FUERA de las listas `isTempCategory`, que son nombres de carpeta, pero el nombre debería decir lo que es.
+
+### 🔁 DEUDA menor — el canal IPC `generate-minimax-video`
+
+La carpeta, la categoría y la UI ya son `ia`. El canal IPC y el método del preload siguen llamándose por el proveedor. No afecta a rutas ni a datos guardados; se cambia cuando se toque el preload por otra cosa.
+
 ### 🔮 FUNCIÓN FUTURA — crop/zoom por clip individual, estilo CapCut
 
 **Pedida por John el 31/07/2026. NO ahora.**
@@ -556,6 +572,12 @@ Tres problemas distintos que se confundían entre sí: **cantidad** (salía meno
 > El reverso también: una imagen mala puede venir del **instrumento**. Editar el script de prueba con PowerShell corrompió el emoji del propio test (`🚀` → `ðŸš€`) y el frame parecía denunciar un fallo del componente que no existía. Antes de arreglar nada por lo que se ve en una imagen, comprobar de dónde sale.
 >
 > **Toda verificación de un gráfico lleva las dos cosas: aserciones y al menos un fotograma mirado.**
+
+> ## PIEZA A — qué tiene que contar el aviso al abrir un proyecto
+>
+> No solo **ficheros ausentes**. También **clips con categoría no reconocida**, porque ese es un fallo igual de silencioso: un clip cuya categoría no empieza por `original` no recibe el crop, y hoy nadie lo dice. Casos reales medidos: un clip con `category` vacía (1 de 112 en un proyecto guardado) y los clips `'vacio'` de `pista-v2`.
+>
+> El aviso debe distinguir **de dónde** falta cada cosa, porque decide si se puede recuperar: `originales/` no vuelve sin reimportar el vídeo, `stock/` es re-cortable desde `banco-clips`, e `ia/` y `pista-v2/` costaron dinero.
 
 > ## ⚠️ REGLA DE PRODUCTO — tarjetas y pantalla completa se EXCLUYEN EN EL TIEMPO
 >
