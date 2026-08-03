@@ -326,16 +326,27 @@ async function getProjectsDir(): Promise<string> {
   return dir;
 }
 
+// Lo unico que se borra al salir de un proyecto: lo que se regenera solo y NO lo
+// referencia el timeline. Antes se borraba `temp/` ENTERA, y ahi viven los clips.
+// originales/ y minimax/ no se borran NUNCA automaticamente: los primeros no se
+// recuperan sin reimportar el video (banco-clips/originales esta VACIO) y los segundos
+// costaron dinero. stock/ tampoco aqui, aunque sea re-cortable desde banco-clips: lo
+// referencia el timeline, y su borrado va por caducidad, no por salir del proyecto.
+const TEMP_DESECHABLE = ['thumbnails'];
+
 async function cleanupProjectTemp(projectPath: string) {
   const tempPath = path.join(projectPath, 'temp');
-  if (await exists(tempPath)) {
-    try {
-      await fs.promises.rm(tempPath, { recursive: true, force: true });
-      console.log(`[cleanupProjectTemp] Temporales eliminados en: ${tempPath}`);
-    } catch (e) {
-      console.error(`[cleanupProjectTemp] Error al eliminar temporales:`, e);
+  if (!(await exists(tempPath))) return;
+  let n = 0;
+  for (const sub of TEMP_DESECHABLE) {
+    const p = path.join(tempPath, sub);
+    if (await exists(p)) {
+      try { await fs.promises.rm(p, { recursive: true, force: true }); n++; }
+      catch (e) { console.error(`[cleanupProjectTemp] no se pudo borrar ${p}:`, e); }
     }
   }
+  console.log(`[cleanupProjectTemp] ${n} carpeta(s) desechable(s) en ${tempPath}. ` +
+    `originales/, stock/ y minimax/ intactos.`);
 }
 
 async function initProjectDirs(projectPath: string) {
@@ -404,11 +415,7 @@ ipcMain.handle('create-project', async (_event, { name }) => {
     const projectsDir = await getProjectsDir();
     const id = `${slugify(name || 'Nuevo Proyecto')}-${Date.now()}`;
     const projectPath = path.join(projectsDir, id);
-    
-    if (activeProjectPath) {
-      await cleanupProjectTemp(activeProjectPath);
-    }
-    
+
     await initProjectDirs(projectPath);
     
     const initialState = {
@@ -432,8 +439,13 @@ ipcMain.handle('create-project', async (_event, { name }) => {
     
     const stateFile = path.join(projectPath, 'project-state.json');
     await fs.promises.writeFile(stateFile, JSON.stringify(initialState, null, 2), 'utf8');
-    
+
+    // El anterior se limpia cuando el nuevo YA existe. Antes se limpiaba primero, asi que
+    // si la creacion fallaba te quedabas sin el viejo y sin el nuevo.
+    const anterior = activeProjectPath;
     activeProjectPath = projectPath;
+    if (anterior && anterior !== projectPath) await cleanupProjectTemp(anterior);
+
     console.log(`[create-project] Proyecto creado en: ${projectPath}`);
     return { success: true, data: initialState, projectPath };
   } catch (err: any) {
@@ -443,23 +455,26 @@ ipcMain.handle('create-project', async (_event, { name }) => {
 
 ipcMain.handle('load-project', async (_event, { projectPath }) => {
   try {
-    if (activeProjectPath && activeProjectPath !== projectPath) {
-      await cleanupProjectTemp(activeProjectPath);
-    }
-    
     const stateFile = path.join(projectPath, 'project-state.json');
     if (!(await exists(stateFile))) {
       return { success: false, error: 'No se encontró el estado del proyecto en la carpeta seleccionada.' };
     }
-    
-    await initProjectDirs(projectPath);
-    await cleanupProjectTemp(projectPath);
-    await initProjectDirs(projectPath); // recreate empty temp directories
-    
+
     const raw = await fs.promises.readFile(stateFile, 'utf8');
     const parsed = await sanitizeProjectState(JSON.parse(raw));
-    
+
+    // Se crean las carpetas que falten, pero NO se limpia el temp del proyecto que se
+    // ABRE: ahi viven sus clips. Antes era initProjectDirs -> cleanup -> initProjectDirs,
+    // o sea borrar los clips y recrear las carpetas vacias. Por eso al reabrir un
+    // proyecto no se veia nada: lo destruia el propio acto de abrirlo.
+    await initProjectDirs(projectPath);
+
+    // La limpieza del ANTERIOR va DESPUES de que el nuevo este cargado. Antes iba
+    // primero, asi que una carga fallida destruia el viejo sin abrir el nuevo.
+    const anterior = activeProjectPath;
     activeProjectPath = projectPath;
+    if (anterior && anterior !== projectPath) await cleanupProjectTemp(anterior);
+
     console.log(`[load-project] Proyecto cargado desde: ${projectPath}`);
     return { success: true, data: parsed, projectPath };
   } catch (err: any) {
@@ -603,18 +618,17 @@ ipcMain.handle('open-project', async () => {
     const filePath = filePaths[0];
     const projectPath = path.dirname(filePath);
     
-    // Check if the directory name matches projects directory hierarchy
-    if (activeProjectPath && activeProjectPath !== projectPath) {
-      await cleanupProjectTemp(activeProjectPath);
-    }
-    
-    await initProjectDirs(projectPath);
-    await cleanupProjectTemp(projectPath);
-    await initProjectDirs(projectPath);
-    
     const raw = await fs.promises.readFile(filePath, 'utf8');
     const parsed = await sanitizeProjectState(JSON.parse(raw));
+
+    // Mismo criterio que load-project: NO se limpia el temp del proyecto que se abre,
+    // y el anterior se limpia solo cuando el nuevo ya esta cargado.
+    await initProjectDirs(projectPath);
+
+    const anterior = activeProjectPath;
     activeProjectPath = projectPath;
+    if (anterior && anterior !== projectPath) await cleanupProjectTemp(anterior);
+
     return { success: true, data: parsed, projectPath };
   } catch (err: any) {
     return { success: false, error: err.message };
