@@ -525,6 +525,33 @@ Tres problemas distintos que se confundían entre sí: **cantidad** (salía meno
 
 **Objetivo:** clips de motion graphics (2-3s) generados por código, como CUARTA categoría (Original/Stock/IA/Gráfico), exportados por el pipeline existente.
 
+> ## ⚠️ REGLA DE DISEÑO — todo template debe ser FUNCIÓN PURA DE `t`
+>
+> **Vale para cualquier gráfico nuevo, y para tocar los que ya existen.** Un template que no cumpla esto no se puede capturar, ni previsualizar en un fotograma suelto, ni recorrer con el cursor del timeline.
+>
+> **PROHIBIDO** — nada de esto se puede posicionar en un instante `t`:
+> - `requestAnimationFrame` y bucles propios.
+> - `setTimeout` / `setInterval` para disparar estados.
+> - `transition` de CSS. **Es la trampa menos evidente**: una transición no existe en el timeline hasta que cambia el valor, nace en el reloj de pared, y al arrastrar el cursor hacia atrás dispara transiciones inversas. Fue lo que obligó a reescribir las barras.
+>
+> **PERMITIDO:**
+> - `@keyframes` de CSS y Web Animations API: `getAnimations({subtree:true})` las pausa y las coloca en `currentTime`. El componente se fija su propio subárbol, sin depender de que alguien lo pause desde fuera.
+> - Cualquier valor derivado de `t` con aritmética. Si hace falta una curva de CSS, se resuelve la `cubic-bezier` de verdad (hay un solver Newton-Raphson en `AnimatedGraphic.tsx`) en vez de aproximarla: aproximar reintroduce la divergencia preview/archivo.
+>
+> **Si más adelante se usa GSAP**, hay que darle reloj manual (`gsap.ticker` a mano, o parchear `performance.now` + rAF). Con su reloj propio se capturarían N frames idénticos.
+>
+> ### Lección 1 — el valor rampado también alimenta el TEXTO
+> Al convertir una animación en función de `t`, el valor deja de ser el número final y pasa a ser el intermedio. Si ese valor se pinta como texto, hay que **redondearlo**, o donde debía poner `87%` sale `86.65878666273098%`. Pasó de verdad, en `barra_horizontal`, `barra_vertical` y `donut`.
+>
+> Y el redondeo va **condicionado al modo dirigido**, nunca a secas: sin el prop, un dato con decimales (`87.5`) debe seguir mostrándose con ellos. Redondear sin condición cambia el comportamiento de siempre.
+>
+> ### Lección 2 — hay que MIRAR un frame, no solo medirlo
+> Las aserciones numéricas (bytes del buffer, píxeles opacos, huella del canal alfa) dieron **"EL ENTRY POINT FUNCIONA"** con el número roto en pantalla. El fallo solo apareció al abrir el PNG.
+>
+> El reverso también: una imagen mala puede venir del **instrumento**. Editar el script de prueba con PowerShell corrompió el emoji del propio test (`🚀` → `ðŸš€`) y el frame parecía denunciar un fallo del componente que no existía. Antes de arreglar nada por lo que se ve en una imagen, comprobar de dónde sale.
+>
+> **Toda verificación de un gráfico lleva las dos cosas: aserciones y al menos un fotograma mirado.**
+
 **Por qué HyperFrames** (`github.com/heygen-com/hyperframes`): HTML+CSS+GSAP/Lottie/Three.js → MP4 determinista. **Apache 2.0 → gratis y comercializable.** CLI no-interactivo. Requiere Node 22 + FFmpeg.
 
 **Nota comercial crítica:** verificar en B1 si el render funciona en la máquina del usuario FINAL al empaquetar (¿usa el Node del sistema o hay que embeberlo?).
