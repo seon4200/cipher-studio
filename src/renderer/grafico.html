@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>CIPHER — render de gráficos</title>
+    <style>
+      /* Fondo transparente: lo necesita el overlay de las tarjetas actuales.
+         Para los gráficos de pantalla completa da igual, se pinta encima. */
+      html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <div id="sonda"></div>
+    <div id="lienzo"></div>
+    <script type="module" src="/src/grafico.tsx"></script>
+  </body>
+</html>

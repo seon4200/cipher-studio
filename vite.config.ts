@@ -52,5 +52,13 @@ export default defineConfig({
   build: {
     outDir: path.join(__dirname, 'dist'),
     emptyOutDir: true,
+    rollupOptions: {
+      // Al declarar input explicito Vite deja de detectar index.html solo: hay que
+      // listar los DOS o la app se queda sin punto de entrada.
+      input: {
+        principal: path.join(__dirname, 'src/renderer/index.html'),
+        grafico: path.join(__dirname, 'src/renderer/grafico.html'),
+      },
+    },
   }
 })

@@ -180,7 +180,10 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData; t?: number }> = (
                 style={{ width: `${size}%`, transition: dirigido ? 'none' : 'width 1.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
               />
             </div>
-            <div className="text-3xl font-black text-[#00d4ff]">{size}{unit || '%'}</div>
+            {/* En modo dirigido `size` es el valor rampado que hace crecer la barra, y sin
+                redondear saldria "86.658786...%". Sin el prop NO se redondea: si el dato
+                viene con decimales (87.5) hoy se muestran, y eso no puede cambiar. */}
+            <div className="text-3xl font-black text-[#00d4ff]">{dirigido ? Math.round(size) : size}{unit || '%'}</div>
           </div>
         )
       }
@@ -194,7 +197,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData; t?: number }> = (
                 style={{ height: `${size}%`, transition: dirigido ? 'none' : 'height 1.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
               />
             </div>
-            <div className="text-2xl font-black text-[#00d4ff]">{size}{unit}</div>
+            <div className="text-2xl font-black text-[#00d4ff]">{dirigido ? Math.round(size) : size}{unit}</div>
           </div>
         )
       }
@@ -240,7 +243,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData; t?: number }> = (
                 style={{ transition: dirigido ? 'none' : 'stroke-dashoffset 1s ease-in-out' }}
               />
               <text x={45} y={50} textAnchor="middle" className="text-sm font-black fill-[#00d4ff] transform rotate-90 origin-center">
-                {internal}%
+                {dirigido ? Math.round(internal) : internal}%
               </text>
             </svg>
           </div>
