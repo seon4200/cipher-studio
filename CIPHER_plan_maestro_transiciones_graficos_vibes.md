@@ -543,6 +543,8 @@ Tres problemas distintos que se confundían entre sí: **cantidad** (salía meno
 >
 > **Si más adelante se usa GSAP**, hay que darle reloj manual (`gsap.ticker` a mano, o parchear `performance.now` + rAF). Con su reloj propio se capturarían N frames idénticos.
 >
+> **Pendiente de medir — `@property` para animar números desde CSS.** Registrando una custom property con `@property --n { syntax: '<number>'; ... }` se puede animar un valor numérico con `@keyframes` en vez de calcularlo en JS. Si funciona, permitiría que una barra o un contador dependientes del dato se animaran con CSS y quedaran posicionables como cualquier otra `@keyframes`, en lugar de necesitar una función tipo `valorEn`. **NO verificado**: hay que comprobar que aparece en `getAnimations()` y que responde a `currentTime`.
+>
 > ### Lección 1 — el valor rampado también alimenta el TEXTO
 > Al convertir una animación en función de `t`, el valor deja de ser el número final y pasa a ser el intermedio. Si ese valor se pinta como texto, hay que **redondearlo**, o donde debía poner `87%` sale `86.65878666273098%`. Pasó de verdad, en `barra_horizontal`, `barra_vertical` y `donut`.
 >
