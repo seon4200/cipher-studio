@@ -326,39 +326,56 @@ async function getProjectsDir(): Promise<string> {
   return dir;
 }
 
-// Lo unico que se borra al salir de un proyecto: lo que se regenera solo y NO lo
-// referencia el timeline. Antes se borraba `temp/` ENTERA, y ahi viven los clips.
-// originales/ y minimax/ no se borran NUNCA automaticamente: los primeros no se
-// recuperan sin reimportar el video (banco-clips/originales esta VACIO) y los segundos
-// costaron dinero. stock/ tampoco aqui, aunque sea re-cortable desde banco-clips: lo
-// referencia el timeline, y su borrado va por caducidad, no por salir del proyecto.
-const TEMP_DESECHABLE = ['thumbnails'];
+// ── Estructura de un proyecto ────────────────────────────────────────────────────
+// MATERIALES: lo que el proyecto NECESITA para funcionar. No se borra NUNCA de forma
+//   automatica. originales/ no se recupera sin reimportar el video (banco-clips/
+//   originales esta vacio); ia/ y pista-v2/ costaron dinero; stock/ es re-cortable pero
+//   lo referencia el timeline.
+// CACHE: lo que se regenera solo. Es lo unico que caduca.
+// La carpeta `temp/` desaparece como concepto: su nombre invitaba a borrarla, y el
+// propio codigo lo hacia — destruia los clips del usuario al abrir el proyecto.
+//
+// Los nombres describen el CONTENIDO, no el proveedor ni la funcion que los pidio:
+//   ia/       era 'minimax', nombre de proveedor, y el proveedor ya cambio una vez.
+//   pista-v2/ era 'sync-perfecta', nombre de funcion. Guarda una MEZCLA de stock e IA
+//             cortada para la pista secundaria, asi que no puede colgar de ia/.
+const SUB_MATERIALES = ['audio', 'voices', 'originales', 'stock', 'minimax', 'sync-perfecta'];
+const SUB_CACHE = ['thumbnails', 'graficos'];
 
+const dirMat = (proj: string, sub?: string) =>
+  sub ? path.join(proj, 'materiales', sub) : path.join(proj, 'materiales');
+const dirCache = (proj: string, sub?: string) =>
+  sub ? path.join(proj, 'cache', sub) : path.join(proj, 'cache');
+
+// Miniatura de un clip: mismo nombre base con extension .jpg, en cache/thumbnails.
+// Sustituye a los replace() de cadena, que asumian separador '/' y que el fragmento
+// aparecia exactamente una vez.
+const rutaMiniatura = (clipPath: string) => {
+  const nombre = path.basename(clipPath, path.extname(clipPath)) + '.jpg';
+  return activeProjectPath && clipPath.toLowerCase().startsWith(activeProjectPath.toLowerCase())
+    ? path.join(dirCache(activeProjectPath, 'thumbnails'), nombre)
+    : path.join(getBancoClipsPath(), 'thumbnails', nombre);
+};
+
+// Solo cache/. materiales/ no se toca aqui jamas.
 async function cleanupProjectTemp(projectPath: string) {
-  const tempPath = path.join(projectPath, 'temp');
-  if (!(await exists(tempPath))) return;
+  const base = dirCache(projectPath);
+  if (!(await exists(base))) return;
   let n = 0;
-  for (const sub of TEMP_DESECHABLE) {
-    const p = path.join(tempPath, sub);
+  for (const sub of SUB_CACHE) {
+    const p = path.join(base, sub);
     if (await exists(p)) {
       try { await fs.promises.rm(p, { recursive: true, force: true }); n++; }
       catch (e) { console.error(`[cleanupProjectTemp] no se pudo borrar ${p}:`, e); }
     }
   }
-  console.log(`[cleanupProjectTemp] ${n} carpeta(s) desechable(s) en ${tempPath}. ` +
-    `originales/, stock/ y minimax/ intactos.`);
+  console.log(`[cleanupProjectTemp] ${n} carpeta(s) de cache en ${base}. materiales/ intacto.`);
 }
 
 async function initProjectDirs(projectPath: string) {
   const folders = [
-    'voices',
-    'temp',
-    'temp/originales',
-    'temp/remotion',
-    'temp/hyperframes',
-    'temp/minimax',
-    'temp/stock',
-    'temp/thumbnails'
+    'materiales', ...SUB_MATERIALES.map(s => path.join('materiales', s)),
+    'cache', ...SUB_CACHE.map(s => path.join('cache', s))
   ];
   for (const f of folders) {
     const dir = path.join(projectPath, f);
@@ -905,7 +922,7 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
 
       // Ensure directory exists
       const voicesDir = activeProjectPath 
-        ? path.join(activeProjectPath, 'voices')
+        ? dirMat(activeProjectPath, 'voices')
         : path.join(app.getPath('userData'), 'generated-voices')
       if (!(await exists(voicesDir))) {
         await fs.promises.mkdir(voicesDir, { recursive: true })
@@ -1065,7 +1082,7 @@ ipcMain.handle('generate-minimax-video', async (_event, { prompt }) => {
 
     // Save to temp folder
     const targetDir = activeProjectPath
-      ? path.join(activeProjectPath, 'temp', 'minimax')
+      ? dirMat(activeProjectPath, 'minimax')
       : path.join(process.cwd(), 'cipher-studio', 'banco-clips', 'minimax');
       
     if (!(await exists(targetDir))) {
@@ -1081,7 +1098,7 @@ ipcMain.handle('generate-minimax-video', async (_event, { prompt }) => {
     // Generate thumbnail
     const thumbFilename = `thumb-${path.basename(filename, '.mp4')}.jpg`;
     const thumbDir = activeProjectPath
-      ? path.join(activeProjectPath, 'temp', 'thumbnails')
+      ? dirCache(activeProjectPath, 'thumbnails')
       : path.join(process.cwd(), 'cipher-studio', 'banco-clips', 'thumbnails');
 
     if (!(await exists(thumbDir))) {
@@ -1116,8 +1133,8 @@ ipcMain.handle('load-bank-clips', async (_event, { category }) => {
     const isTempCategory = ['originales', 'minimax', 'stock'].includes(category.toLowerCase())
     const useActiveProj = !!(activeProjectPath && isTempCategory)
     const baseDir = useActiveProj ? activeProjectPath! : getBancoClipsPath()
-    const dirPath = useActiveProj ? path.join(baseDir, 'temp', category) : path.join(baseDir, category)
-    const thumbnailDir = useActiveProj ? path.join(baseDir, 'temp', 'thumbnails') : path.join(baseDir, 'thumbnails')
+    const dirPath = useActiveProj ? dirMat(baseDir, category) : path.join(baseDir, category)
+    const thumbnailDir = useActiveProj ? dirCache(baseDir, 'thumbnails') : path.join(baseDir, 'thumbnails')
 
     if (!(await exists(dirPath))) {
       await fs.promises.mkdir(dirPath, { recursive: true })
@@ -1187,8 +1204,8 @@ ipcMain.handle('cut-video-clips', async (_event, { videoPath, timestamps }) => {
     console.log(`[cut-video-clips] Slicing video: ${videoPath}, timestamps length: ${timestamps?.length || 0}`)
     const bankDir = getBancoClipsPath()
     const useActiveProj = !!activeProjectPath
-    const outDir = useActiveProj ? path.join(activeProjectPath!, 'temp', 'originales') : path.join(bankDir, 'originales')
-    const thumbnailDir = useActiveProj ? path.join(activeProjectPath!, 'temp', 'thumbnails') : path.join(bankDir, 'thumbnails')
+    const outDir = useActiveProj ? dirMat(activeProjectPath!, 'originales') : path.join(bankDir, 'originales')
+    const thumbnailDir = useActiveProj ? dirCache(activeProjectPath!, 'thumbnails') : path.join(bankDir, 'thumbnails')
     
     if (!(await exists(outDir))) {
       await fs.promises.mkdir(outDir, { recursive: true })
@@ -1324,14 +1341,14 @@ ipcMain.handle('delete-bank-clip', async (_event, { category, file }) => {
     const isTempCategory = ['originales', 'minimax', 'stock'].includes(category.toLowerCase())
     const useActiveProj = !!(activeProjectPath && isTempCategory)
     const baseDir = useActiveProj ? activeProjectPath! : getBancoClipsPath()
-    const filePath = useActiveProj ? path.join(baseDir, 'temp', category, file) : path.join(baseDir, category, file)
+    const filePath = useActiveProj ? path.join(dirMat(baseDir, category), file) : path.join(baseDir, category, file)
     
     if (await exists(filePath)) {
       await fs.promises.unlink(filePath)
     }
     const thumbnailName = `${path.basename(file, path.extname(file))}.jpg`
     const thumbnailPath = useActiveProj 
-      ? path.join(baseDir, 'temp', 'thumbnails', thumbnailName) 
+      ? path.join(dirCache(baseDir, 'thumbnails'), thumbnailName) 
       : path.join(baseDir, 'thumbnails', thumbnailName)
     if (await exists(thumbnailPath)) {
       await fs.promises.unlink(thumbnailPath)
@@ -2578,12 +2595,12 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     await logMessage(`[FASE 3] Generando ${totalClips} clips con FFmpeg, Pexels y fal.ai (IA)...`);
 
     const outDir = activeProjectPath
-      ? path.join(activeProjectPath, 'temp', 'originales')
+      ? dirMat(activeProjectPath, 'originales')
       : path.join(getBancoClipsPath(), 'originales');
     if (!(await exists(outDir))) await fs.promises.mkdir(outDir, { recursive: true });
 
     const thumbDir = activeProjectPath
-      ? path.join(activeProjectPath, 'temp', 'thumbnails')
+      ? dirCache(activeProjectPath, 'thumbnails')
       : path.join(getBancoClipsPath(), 'thumbnails');
     if (!(await exists(thumbDir))) await fs.promises.mkdir(thumbDir, { recursive: true });
 
@@ -2936,7 +2953,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               });
 
               if (activeProjectPath) {
-                const localStockDir = path.join(activeProjectPath, 'temp', 'stock');
+                const localStockDir = dirMat(activeProjectPath, 'stock');
                 if (!(await exists(localStockDir))) {
                   await fs.promises.mkdir(localStockDir, { recursive: true });
                 }
@@ -3059,7 +3076,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           try {
             if (await exists(clip.path)) {
               await fs.promises.unlink(clip.path);
-              const thumbPath = clip.path.replace('temp/originales', 'temp/thumbnails').replace('.mp4', '.jpg').replace('banco-clips/originales', 'banco-clips/thumbnails');
+              const thumbPath = rutaMiniatura(clip.path);
               if (await exists(thumbPath)) await fs.promises.unlink(thumbPath);
             }
           } catch (e) {}
@@ -3089,7 +3106,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
                 clip.size = `${(stat.size / (1024 * 1024)).toFixed(2)} MB`;
 
                 // Regenerar miniatura
-                const thumbPath = clip.path.replace('temp/originales', 'temp/thumbnails').replace('.mp4', '.jpg').replace('banco-clips/originales', 'banco-clips/thumbnails');
+                const thumbPath = rutaMiniatura(clip.path);
                 try {
                   await generateVideoThumbnail(clip.path, thumbPath);
                   if (await exists(thumbPath)) {
@@ -3569,7 +3586,7 @@ ipcMain.handle('generate-perfect-sync', async (event, {
 
     // FASE 3 — Generar clips físicos para v2
     const outDir = projPath
-      ? path.join(projPath, 'temp', 'sync-perfecta')
+      ? dirMat(projPath, 'sync-perfecta')
       : path.join(getBancoClipsPath(), 'sync-perfecta');
     if (!(await exists(outDir))) {
       await fs.promises.mkdir(outDir, { recursive: true });
