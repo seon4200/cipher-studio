@@ -14,6 +14,20 @@ import { AnimatedGraphic } from './AnimatedGraphic'
    App component (ya existente)
    ------------------------------------------------------------------ */
 
+// Convierte una ruta de Windows en una url file:// que el reproductor pueda abrir.
+// Concatenar la ruta a pelo NO carga si lleva espacios, acentos o '#': medido en un
+// Chromium real, da MEDIA_ELEMENT_ERROR. Hoy no se nota porque el proyecto vive en
+// C:\Proyectos\..., pero en C:\Users\Jose\... no se veria NADA.
+//
+// No se usa pathToFileURL de Node: el preload va en SANDBOX y su require('url') devuelve un
+// polyfill de navegador SIN pathToFileURL — existe como funcion y revienta al llamarla.
+// Esta version escapa por segmentos dejando la unidad ("C:") intacta. Sobre-escapa & + = [ ]
+// respecto a pathToFileURL, y eso es INOCUO: medido cargando ficheros reales con esos
+// caracteres, las dos formas cargan igual.
+const rutaAUrl = (p: string) =>
+  'file:///' + p.replace(/\\/g, '/').split('/')
+    .map((seg, i) => (i === 0 ? seg : encodeURIComponent(seg))).join('/')
+
 interface Clip {
   id: string;
   name: string;
@@ -370,7 +384,7 @@ function App() {
     const masterTime = audioRef.current?.currentTime || 0;
     const offsetInClip = Math.max(0, masterTime - activeV2OverlayClip.startSeconds);
     const src = activeV2OverlayClip.url || 
-      (activeV2OverlayClip.path ? 'file:///' + activeV2OverlayClip.path.replace(/\\/g, '/') : '');
+      (activeV2OverlayClip.path ? rutaAUrl(activeV2OverlayClip.path) : '');
     if (v2video.src !== src) {
       v2video.src = src;
       v2video.load();
@@ -588,7 +602,7 @@ function App() {
       setCurrentClipIndex(newIdx);
       
       if (targetClip.path) {
-        const fileUrl = `file:///${targetClip.path.replace(/\\/g, '/')}`;
+        const fileUrl = rutaAUrl(targetClip.path);
         const scale = targetClip.origDurationSeconds 
           ? (targetClip.origDurationSeconds / targetClip.durationSeconds) 
           : 1;
@@ -1182,7 +1196,7 @@ function App() {
     }
     
     if (clip.path) {
-      const fileUrl = `file:///${clip.path.replace(/\\/g, '/')}`;
+      const fileUrl = rutaAUrl(clip.path);
       setActiveVideoUrl(fileUrl);
       if (video.src !== fileUrl) {
         video.src = fileUrl;
@@ -1261,7 +1275,7 @@ function App() {
           if (assigned) {
             // 1. Precargar el siguiente clip en videoRef2 cuando falten 1.5 segundos o menos
             if (timeRemaining <= 1.5 && preloadedIndexRef.current !== nextIdx) {
-              const nextUrl = `file:///${nextClip.path.replace(/\\/g, '/')}`;
+              const nextUrl = rutaAUrl(nextClip.path);
               if (transitionNextUrl !== nextUrl) {
                 setTransitionNextUrl(nextUrl);
                 preloadedIndexRef.current = nextIdx;
@@ -2656,7 +2670,7 @@ function App() {
     try {
       const res = await window.electronAPI.generateMinimaxVideo({ prompt: promptIa });
       if (res && res.success && res.filePath) {
-        const fileUrl = `file:///${res.filePath.replace(/\\/g, '/')}`;
+        const fileUrl = rutaAUrl(res.filePath);
         const newClip: Clip = {
           id: `minimax-${Date.now()}`,
           name: res.name || `minimax-${Date.now()}.mp4`,
@@ -4739,7 +4753,7 @@ function App() {
                   <video
                     key={activeV2OverlayClip.id}
                     ref={videoV2Ref}
-                    src={activeV2OverlayClip.url || (activeV2OverlayClip.path ? 'file:///' + activeV2OverlayClip.path.replace(/\\/g, '/') : '')}
+                    src={activeV2OverlayClip.url || (activeV2OverlayClip.path ? rutaAUrl(activeV2OverlayClip.path) : '')}
                     style={{
                       position: 'absolute',
                       inset: 0,
