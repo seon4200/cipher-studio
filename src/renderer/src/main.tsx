@@ -55,17 +55,74 @@ const COLORS = {
   accent: '#EF9F27',
 }
 
-export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic }) => {
+// Resuelve cubic-bezier(x1,y1,x2,y2) para un avance x en 0..1, con Newton-Raphson.
+// Es la MISMA curva que usa la transicion CSS, no una aproximacion: asi el frame que se
+// captura para el export coincide con lo que se ve en el preview.
+const cubicBezier = (x1: number, y1: number, x2: number, y2: number) => (x: number) => {
+  if (x <= 0) return 0
+  if (x >= 1) return 1
+  const bx = (u: number) => 3 * x1 * u * (1 - u) * (1 - u) + 3 * x2 * u * u * (1 - u) + u * u * u
+  const by = (u: number) => 3 * y1 * u * (1 - u) * (1 - u) + 3 * y2 * u * u * (1 - u) + u * u * u
+  let u = x
+  for (let i = 0; i < 8; i++) {
+    const err = bx(u) - x
+    if (Math.abs(err) < 1e-6) break
+    const d = 3 * x1 * (1 - u) * (1 - 3 * u) + 3 * x2 * u * (2 - 3 * u) + 3 * u * u
+    if (Math.abs(d) < 1e-9) break
+    u = Math.min(1, Math.max(0, u - err / d))
+  }
+  return by(u)
+}
+const EASE_BARRA = cubicBezier(0.16, 1, 0.3, 1)   // la de las barras (1.2s)
+const EASE_DONUT = cubicBezier(0.42, 0, 0.58, 1)  // ease-in-out del donut (1s)
+
+/**
+ * `t` OPCIONAL, en segundos desde que el grafico entra.
+ * SIN `t` el componente se comporta exactamente igual que siempre: reloj propio.
+ * CON `t` es una funcion PURA del tiempo — nada de rAF, setTimeout ni transiciones —
+ * de modo que sirve igual para capturar frames, previsualizar uno suelto o avanzar
+ * con el cursor del timeline, incluso hacia atras.
+ */
+export const AnimatedGraphic: React.FC<{ graphic: GraphicData; t?: number }> = ({ graphic, t }) => {
   const { type, value, label, unit, emoji, extra } = graphic
-  const [internal, setInternal] = useState<number>(0)
+  const [internalAuto, setInternalAuto] = useState<number>(0)
+  const raizRef = React.useRef<HTMLDivElement>(null)
+
+  const parsedNum = typeof value === 'number'
+    ? value
+    : (typeof value === 'string' && !isNaN(parseFloat(value)) ? parseFloat(value) : NaN)
+  const hasNum = !isNaN(parsedNum)
+
+  const dirigido = t !== undefined
+
+  // El equivalente PURO de lo que hacen el rAF y el setTimeout de mas abajo.
+  const valorEn = (tt: number) => {
+    if (!hasNum) return 0
+    if (type === 'contador') return Math.round(parsedNum * Math.min(tt / 1.5, 1))
+    if (type === 'barra_horizontal' || type === 'barra_vertical') {
+      // El setTimeout(150) solo ponia el valor final; quien crecia era la transicion CSS.
+      // Aqui el crecimiento ES el valor, porque una transicion no se puede posicionar en t.
+      return parsedNum * EASE_BARRA(Math.min(Math.max((tt - 0.15) / 1.2, 0), 1))
+    }
+    if (type === 'donut') return parsedNum * EASE_DONUT(Math.min(Math.max(tt / 1, 0), 1))
+    return parsedNum
+  }
+
+  const internal = dirigido ? valorEn(t as number) : internalAuto
+
+  // Las animaciones @keyframes SI se pueden posicionar. Se fijan sobre el propio subarbol
+  // para que el componente no dependa de que alguien las pause desde fuera.
+  React.useLayoutEffect(() => {
+    if (!dirigido || !raizRef.current) return
+    for (const a of raizRef.current.getAnimations({ subtree: true })) {
+      a.pause()
+      a.currentTime = (t as number) * 1000
+    }
+  })
 
   useEffect(() => {
-    setInternal(0)
-
-    const parsedNum = typeof value === 'number'
-      ? value
-      : (typeof value === 'string' && !isNaN(parseFloat(value)) ? parseFloat(value) : NaN)
-    const hasNum = !isNaN(parsedNum)
+    if (dirigido) return   // en modo dirigido el reloj lo pone quien llama
+    setInternalAuto(0)
 
     if (type === 'contador' && hasNum) {
       const target = parsedNum
@@ -75,7 +132,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
       const step = (now: number) => {
         const elapsed = now - start
         const progress = Math.min(elapsed / duration, 1)
-        setInternal(Math.round(target * progress))
+        setInternalAuto(Math.round(target * progress))
         if (progress < 1) {
           animId = requestAnimationFrame(step)
         }
@@ -86,14 +143,14 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
       (type === 'barra_horizontal' || type === 'barra_vertical') &&
       hasNum
     ) {
-      const timer = setTimeout(() => setInternal(parsedNum), 150)
+      const timer = setTimeout(() => setInternalAuto(parsedNum), 150)
       return () => clearTimeout(timer)
     } else if (type === 'donut' && hasNum) {
-      setInternal(parsedNum)
+      setInternalAuto(parsedNum)
     } else if (hasNum) {
-      setInternal(parsedNum)
+      setInternalAuto(parsedNum)
     }
-  }, [type, value])
+  }, [type, value, dirigido])
 
   const getAnimationClass = () => {
     switch (type) {
@@ -129,7 +186,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
             <div className="w-full bg-[#3a3a3c] h-4 rounded-full overflow-hidden border border-slate-700/50">
               <div 
                 className="bg-[#00d4ff] h-full rounded-full animate-bar-pulse" 
-                style={{ width: `${size}%`, transition: 'width 1.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
+                style={{ width: `${size}%`, transition: dirigido ? 'none' : 'width 1.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
               />
             </div>
             <div className="text-3xl font-black text-[#00d4ff]">{size}{unit || '%'}</div>
@@ -143,7 +200,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
             <div className="w-6 bg-[#3a3a3c] h-28 rounded-full overflow-hidden border border-slate-700/50 flex flex-col justify-end">
               <div 
                 className="bg-[#00d4ff] w-full rounded-full animate-bar-pulse" 
-                style={{ height: `${size}%`, transition: 'height 1.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
+                style={{ height: `${size}%`, transition: dirigido ? 'none' : 'height 1.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
               />
             </div>
             <div className="text-2xl font-black text-[#00d4ff]">{size}{unit}</div>
@@ -189,7 +246,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
                 strokeWidth={8}
                 strokeDasharray={circumference}
                 strokeDashoffset={offset}
-                style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}
+                style={{ transition: dirigido ? 'none' : 'stroke-dashoffset 1s ease-in-out' }}
               />
               <text x={45} y={50} textAnchor="middle" className="text-sm font-black fill-[#00d4ff] transform rotate-90 origin-center">
                 {internal}%
@@ -347,7 +404,7 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData }> = ({ graphic })
   }
 
   return (
-    <div className={`min-w-[320px] p-6 rounded-2xl shadow-2xl backdrop-blur-md bg-[#0D0D0F]/85 border border-[#3a3a3c]/80 flex flex-col items-center space-y-3 ${getAnimationClass()}`}>
+    <div ref={raizRef} className={`min-w-[320px] p-6 rounded-2xl shadow-2xl backdrop-blur-md bg-[#0D0D0F]/85 border border-[#3a3a3c]/80 flex flex-col items-center space-y-3 ${getAnimationClass()}`}>
       {/* EMOJI & LABEL HEADER */}
       {(emoji || label) && (
         <div className="flex items-center space-x-2 mb-1 justify-center w-full">
