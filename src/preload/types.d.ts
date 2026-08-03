@@ -24,6 +24,7 @@ export interface IElectronAPI {
   createProject: (params: { name: string }) => Promise<{ success: boolean; data?: any; projectPath?: string; error?: string }>;
   loadProject: (params: { projectPath: string }) => Promise<{ success: boolean; data?: any; projectPath?: string; error?: string }>;
   closeProject: () => Promise<{ success: boolean; error?: string }>;
+  extractMasterAudio: (params: { videoPath: string }) => Promise<{ success: boolean; path?: string; url?: string; durationSeconds?: number; error?: string }>;
   deleteProject: (params: { projectPath: string }) => Promise<{ success: boolean; error?: string }>;
   deleteAllProjects: () => Promise<{ success: boolean; error?: string }>;
   clearGlobalStockCache: () => Promise<{ success: boolean; error?: string }>;

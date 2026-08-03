@@ -131,6 +131,7 @@ function App() {
   const [zoom, setZoom] = useState(1)
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
+  const [extrayendoAudio, setExtrayendoAudio] = useState(false)
   const [panStart, setPanStart] = useState({ x: 0, y: 0 })
   const [isCropping, setIsCropping] = useState(false)
   const [cropRect, setCropRect] = useState({ left: 10, top: 10, right: 10, bottom: 10 })
@@ -916,6 +917,41 @@ function App() {
 
   const handlePreviewMouseUpOrLeave = () => {
     setIsPanning(false)
+  }
+
+  // El audio maestro se EXTRAE dentro del proyecto. Antes el clip apuntaba al video del
+  // usuario, FUERA de la carpeta del proyecto, y su url era un blob: creado con
+  // URL.createObjectURL, que muere con la pagina que lo creo. Por eso al reabrir un proyecto
+  // no habia audio aunque el fichero de origen siguiera existiendo.
+  // Vive aqui, en una sola funcion, porque hay DOS botones "Usar Audio Original" en paneles
+  // distintos y antes cada uno duplicaba el mismo codigo roto.
+  const usarAudioOriginal = async (video: { path: string; durationSeconds?: number }) => {
+    if (extrayendoAudio || !video?.path) return
+    setExtrayendoAudio(true)
+    try {
+      const res = await window.electronAPI.extractMasterAudio({ videoPath: video.path })
+      if (!res?.success) {
+        alert('No se pudo extraer el audio: ' + (res?.error || 'error desconocido'))
+        return
+      }
+      const nuevo = {
+        id: `timeline-voice-original-${Date.now()}`,
+        name: 'Voz - Audio Original',
+        startSeconds: 0,
+        durationSeconds: res.durationSeconds || video.durationSeconds || 30,
+        type: 'audio' as const,
+        url: res.url,     // file:///, dentro del proyecto: sobrevive al cierre
+        path: res.path,
+        newAudioSegments: transcriptSegments,
+      }
+      const updated = [...timelineVideoClips, nuevo]
+      setTimelineVideoClips(updated)
+      pushHistory(updated)
+    } catch (e: any) {
+      alert('No se pudo extraer el audio: ' + (e?.message || e))
+    } finally {
+      setExtrayendoAudio(false)
+    }
   }
 
   // Los ajustes de encuadre que viajan al export. El pan se convierte a FRACCION del cuadro
@@ -5737,25 +5773,11 @@ function App() {
 
                       {firstVideoInLibrary && (
                         <button
-                          onClick={() => {
-                            const durationSecs = firstVideoInLibrary.durationSeconds || 30;
-                            const newTimelineClip = {
-                              id: `timeline-voice-original-${Date.now()}`,
-                              name: `Voz - Audio Original`,
-                              startSeconds: 0,
-                              durationSeconds: durationSecs,
-                              type: 'audio' as const,
-                              url: firstVideoInLibrary.url,
-                              path: firstVideoInLibrary.path,
-                              newAudioSegments: transcriptSegments,
-                            };
-                            const updated = [...timelineVideoClips, newTimelineClip];
-                            setTimelineVideoClips(updated);
-                            pushHistory(updated);
-                          }}
-                          className="w-full bg-emerald-600/25 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/20 hover:border-emerald-500 text-[10px] font-bold py-2 px-3 rounded-lg active:scale-95 transition-all cursor-pointer"
+                          onClick={() => usarAudioOriginal(firstVideoInLibrary)}
+                          disabled={extrayendoAudio}
+                          className="w-full bg-emerald-600/25 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/20 hover:border-emerald-500 text-[10px] font-bold py-2 px-3 rounded-lg active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait"
                         >
-                          🎙️ Usar Audio Original
+                          {extrayendoAudio ? 'Extrayendo audio…' : '🎙️ Usar Audio Original'}
                         </button>
                       )}
 
@@ -5934,24 +5956,15 @@ function App() {
                             placeholder='Transcripción aparecerá aquí...'
                           />
                           <button
-                            onClick={() => {
+                            onClick={async () => {
                               const existingAudio = timelineVideoClips.find(c => c.type === 'audio');
                               const firstVideo = clips.find(c => c.type === 'video') || clips[0];
-                              if (!existingAudio && firstVideo) {
-                                setTimelineVideoClips(prev => [...prev, {
-                                  id: `audio-orig-${Math.random()}`,
-                                  name: 'Voz - Audio Original',
-                                  startSeconds: 0,
-                                  durationSeconds: firstVideo.durationSeconds,
-                                  type: 'audio' as const,
-                                  path: firstVideo.path,
-                                  url: firstVideo.url
-                                }]);
-                              }
+                              if (!existingAudio && firstVideo) await usarAudioOriginal(firstVideo);
                             }}
-                            className='w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg'
+                            disabled={extrayendoAudio}
+                            className='w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg disabled:opacity-50 disabled:cursor-wait'
                           >
-                            Usar Audio Original
+                            {extrayendoAudio ? 'Extrayendo audio…' : 'Usar Audio Original'}
                           </button>
                         </div>
                       ) : (
