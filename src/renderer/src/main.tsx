@@ -144,6 +144,9 @@ function App() {
   // Zoom, pan, crop and mirror states
   const [zoom, setZoom] = useState(1)
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
+  // El pan se PERSISTE en fraccion y se APLICA en pixeles. Al cargar un proyecto la caja del
+  // preview aun no mide nada, asi que la fraccion espera aqui hasta poder convertirse.
+  const [panFraccionPendiente, setPanFraccionPendiente] = useState<{ x: number; y: number } | null>(null)
   const [isPanning, setIsPanning] = useState(false)
   const [extrayendoAudio, setExtrayendoAudio] = useState(false)
   const [panStart, setPanStart] = useState({ x: 0, y: 0 })
@@ -933,6 +936,20 @@ function App() {
     setIsPanning(false)
   }
 
+  // El pan se guarda en fraccion y se aplica en pixeles. La caja del preview no mide nada
+  // hasta que el video esta montado, asi que la conversion espera a que lo este. Se reintenta
+  // cuando cambia activeVideoUrl, que es lo que hace aparecer el reproductor.
+  useEffect(() => {
+    if (!panFraccionPendiente) return
+    const caja = videoRef.current
+    if (!caja?.clientWidth || !caja?.clientHeight) return
+    setPanOffset({
+      x: panFraccionPendiente.x * caja.clientWidth,
+      y: panFraccionPendiente.y * caja.clientHeight
+    })
+    setPanFraccionPendiente(null)
+  }, [panFraccionPendiente, activeVideoUrl])
+
   // El audio maestro se EXTRAE dentro del proyecto. Antes el clip apuntaba al video del
   // usuario, FUERA de la carpeta del proyecto, y su url era un blob: creado con
   // URL.createObjectURL, que muere con la pagina que lo creo. Por eso al reabrir un proyecto
@@ -1650,46 +1667,44 @@ function App() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+
+  // UN solo sitio construye lo que se guarda. Estaba copiado en TRES (guardar al cerrar,
+  // guardar, y guardar como), y por eso cada funcion nueva nacia sin persistencia en dos de
+  // los tres caminos aunque alguien se acordara del primero.
+  const construirEstadoAGuardar = () => ({
+    id: activeProjectId,
+    name: activeProjectName,
+    clips: clips.map(c => ({
+      id: c.id, name: c.name, duration: c.duration, durationSeconds: c.durationSeconds,
+      type: c.type, path: c.path, size: c.size,
+      url: c.type === 'audio' ? c.url : undefined
+    })),
+    timelineVideoClips, timelineVersions, activeVersionId,
+    transcriptionStatus, transcriptSegments, newAudioSegments,
+    aiScript, originalTranscriptText,
+    libraryWidth, toolsWidth, timelineHeight,
+    voiceModel, voiceSpeaker, voiceSpeed, voiceStability,
+    generatedVoices, graphicsPercent, timelineWeights,
+
+    // ─── Lo que decide COMO sale el video exportado ───
+    // aspectRatio es el mas peligroso de los siete: NO aparece en el modal de exportacion,
+    // asi que un proyecto vertical reabria en horizontal y se exportaba mal sin que nada lo
+    // dijera. Ademas entra en generate-timeline-assets y generate-perfect-sync, donde los
+    // clips se cortan y escalan al formato equivocado, y eso SI queda escrito en disco.
+    aspectRatio,
+    exportResolution, exportFormat, exportQuality,
+    assignedTransitions, transitionDuration,
+    // El pan se guarda como FRACCION, no en pixeles: en crudo significaria otra cosa con la
+    // ventana a otro tamano. Es la misma forma que ya consume el export.
+    ajustesVideo: construirAjustesVideo(),
+  })
 
   // Save-on-close handler
   useEffect(() => {
     if (window.electronAPI && typeof window.electronAPI.onSaveBeforeClose === 'function') {
       const unsubscribe = window.electronAPI.onSaveBeforeClose(async () => {
-        const stateToSave = {
-          id: activeProjectId,
-          name: activeProjectName,
-          clips: clips.map(c => ({
-            id: c.id,
-            name: c.name,
-            duration: c.duration,
-            durationSeconds: c.durationSeconds,
-            type: c.type,
-            path: c.path,
-            size: c.size,
-            url: c.type === 'audio' ? c.url : undefined
-          })),
-          timelineVideoClips,
-          timelineVersions,
-          activeVersionId,
-          transcriptionStatus,
-          transcriptSegments,
-          newAudioSegments,
-          aiScript,
-          originalTranscriptText,
-          libraryWidth,
-          toolsWidth,
-          timelineHeight,
-          voiceModel,
-          voiceSpeaker,
-          voiceSpeed,
-          voiceStability,
-          generatedVoices,
-          graphicsPercent,
-          activeProjectId,
-          activeProjectName,
-          timelineWeights
-        };
+        const stateToSave = construirEstadoAGuardar();
         
         try {
           await window.electronAPI.saveProjectState(stateToSave);
@@ -1700,43 +1715,12 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, activeProjectId, activeProjectName, timelineWeights]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
 
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
     try {
-      const stateToSave = {
-        id: activeProjectId,
-        name: activeProjectName,
-        clips: clips.map(c => ({
-          id: c.id,
-          name: c.name,
-          duration: c.duration,
-          durationSeconds: c.durationSeconds,
-          type: c.type,
-          path: c.path,
-          size: c.size,
-          url: c.type === 'audio' ? c.url : undefined
-        })),
-        timelineVideoClips,
-        timelineVersions,
-        activeVersionId,
-        transcriptionStatus,
-        transcriptSegments,
-        newAudioSegments,
-        aiScript,
-        originalTranscriptText,
-        libraryWidth,
-        toolsWidth,
-        timelineHeight,
-        voiceModel,
-        voiceSpeaker,
-        voiceSpeed,
-        voiceStability,
-        generatedVoices,
-        graphicsPercent,
-        timelineWeights
-      };
+      const stateToSave = construirEstadoAGuardar();
 
       const res = await window.electronAPI.saveProjectState(stateToSave);
       if (res && res.success) {
@@ -1759,38 +1743,7 @@ function App() {
   const handleSaveProjectAs = async () => {
     setSaveStatus('saving');
     try {
-      const stateToSave = {
-        id: activeProjectId,
-        name: activeProjectName,
-        clips: clips.map(c => ({
-          id: c.id,
-          name: c.name,
-          duration: c.duration,
-          durationSeconds: c.durationSeconds,
-          type: c.type,
-          path: c.path,
-          size: c.size,
-          url: c.type === 'audio' ? c.url : undefined
-        })),
-        timelineVideoClips,
-        timelineVersions,
-        activeVersionId,
-        transcriptionStatus,
-        transcriptSegments,
-        newAudioSegments,
-        aiScript,
-        originalTranscriptText,
-        libraryWidth,
-        toolsWidth,
-        timelineHeight,
-        voiceModel,
-        voiceSpeaker,
-        voiceSpeed,
-        voiceStability,
-        generatedVoices,
-        graphicsPercent,
-        timelineWeights
-      };
+      const stateToSave = construirEstadoAGuardar();
 
       const res = await window.electronAPI.saveProjectAs(stateToSave);
       if (res && res.success) {
@@ -1862,6 +1815,23 @@ function App() {
         if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
         setGeneratedVoices(loadedData.generatedVoices || []);
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(loadedData.timelineWeights);
+
+        // ─── Lo que decide COMO sale el video exportado ───
+        // Solo se restaura lo que VENGA: un proyecto guardado antes de esto no trae estos
+        // campos, y machacar con undefined lo dejaria peor que con el valor por defecto.
+        if (loadedData.aspectRatio) setAspectRatio(loadedData.aspectRatio);
+        if (loadedData.exportResolution) setExportResolution(loadedData.exportResolution);
+        if (loadedData.exportFormat) setExportFormat(loadedData.exportFormat);
+        if (loadedData.exportQuality) setExportQuality(loadedData.exportQuality);
+        if (loadedData.assignedTransitions) setAssignedTransitions(loadedData.assignedTransitions);
+        if (loadedData.transitionDuration !== undefined) setTransitionDuration(loadedData.transitionDuration);
+        const aj = loadedData.ajustesVideo;
+        if (aj) {
+          setActiveCrop(aj.crop ?? null);
+          setZoom(aj.zoom ?? 1);
+          setIsMirrored(!!aj.isMirrored);
+          setPanFraccionPendiente({ x: aj.panXFrac ?? 0, y: aj.panYFrac ?? 0 });
+        }
         if (loadedData.graphicsPercent !== undefined) setGraphicsPercent(loadedData.graphicsPercent);
         
         setActiveProjectPath(projectPath);
@@ -2122,6 +2092,23 @@ function App() {
         if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
         setGeneratedVoices(loadedData.generatedVoices || []);
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(loadedData.timelineWeights);
+
+        // ─── Lo que decide COMO sale el video exportado ───
+        // Solo se restaura lo que VENGA: un proyecto guardado antes de esto no trae estos
+        // campos, y machacar con undefined lo dejaria peor que con el valor por defecto.
+        if (loadedData.aspectRatio) setAspectRatio(loadedData.aspectRatio);
+        if (loadedData.exportResolution) setExportResolution(loadedData.exportResolution);
+        if (loadedData.exportFormat) setExportFormat(loadedData.exportFormat);
+        if (loadedData.exportQuality) setExportQuality(loadedData.exportQuality);
+        if (loadedData.assignedTransitions) setAssignedTransitions(loadedData.assignedTransitions);
+        if (loadedData.transitionDuration !== undefined) setTransitionDuration(loadedData.transitionDuration);
+        const aj = loadedData.ajustesVideo;
+        if (aj) {
+          setActiveCrop(aj.crop ?? null);
+          setZoom(aj.zoom ?? 1);
+          setIsMirrored(!!aj.isMirrored);
+          setPanFraccionPendiente({ x: aj.panXFrac ?? 0, y: aj.panYFrac ?? 0 });
+        }
         if (loadedData.graphicsPercent !== undefined) setGraphicsPercent(loadedData.graphicsPercent);
         
         setActiveProjectPath(res.projectPath);
