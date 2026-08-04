@@ -359,6 +359,13 @@ const dirMat = (proj: string, sub?: string) =>
 const dirCache = (proj: string, sub?: string) =>
   sub ? path.join(proj, 'cache', sub) : path.join(proj, 'cache');
 
+// path.relative en vez de startsWith: `C:\p\proyecto-copia` empieza por `C:\p\proyecto`
+// y daria un falso "esta dentro".
+const dentroDelProyecto = (p: string, proj: string) => {
+  const rel = path.relative(proj, p);
+  return !!rel && !rel.startsWith('..') && !path.isAbsolute(rel);
+};
+
 // Miniatura de un clip: mismo nombre base con extension .jpg, en cache/thumbnails.
 // Sustituye a los replace() de cadena, que asumian separador '/' y que el fragmento
 // aparecia exactamente una vez.
@@ -534,35 +541,40 @@ const OPCIONES_BORRADO = { recursive: true, force: true, maxRetries: 10, retryDe
 // dependa de un fichero de FUERA de su carpeta. Medido: los ficheros externos que
 // referenciaban los proyectos pesaban 45.9 MB de media; la pista sola de un video de 286 s
 // son ~4.4 MB. Se extrae el audio, no se copia el video.
+// Extrae la pista de audio a materiales/audio/maestro.m4a. Vive en UNA funcion porque tiene
+// DOS llamadores: el boton "Usar Audio Original" y la sincronia perfecta. Cuando el codigo
+// solo estaba en el handler, la sincronia perfecta abrio una tercera puerta al mismo bug.
+async function extraerAudioMaestro(videoPath: string, projPath: string) {
+  const destDir = dirMat(projPath, 'audio');
+  if (!(await exists(destDir))) await fs.promises.mkdir(destDir, { recursive: true });
+  const destino = path.join(destDir, 'maestro.m4a');
+
+  // -vn quita el video. Se recodifica a AAC en vez de -c:a copy porque la pista de origen
+  // puede venir en un formato que el <audio> del renderer no reproduzca.
+  const cmd = `ffmpeg -y -i "${videoPath.replace(/"/g, '\\"')}" -vn -c:a aac -b:a 128k ` +
+    `-movflags +faststart "${destino.replace(/"/g, '\\"')}"`;
+  await new Promise<void>((res, rej) => {
+    exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => err ? rej(err) : res());
+  });
+  if (!(await exists(destino))) throw new Error('ffmpeg no genero el audio.');
+
+  const durationSeconds = await getVideoDuration(destino);
+  const { size } = await fs.promises.stat(destino);
+  await writeDebugLog(`[AUDIO-MAESTRO] ${(size / 1048576).toFixed(1)} MB, ` +
+    `${durationSeconds.toFixed(2)}s extraidos de ${videoPath}`);
+
+  return { path: destino, durationSeconds, url: urlDeRuta(destino) };
+}
+
 ipcMain.handle('extract-master-audio', async (_event, { videoPath }) => {
   try {
     if (!activeProjectPath) return { success: false, error: 'No hay proyecto activo.' };
     if (!videoPath || !(await exists(videoPath))) {
       return { success: false, error: `El video no existe: ${videoPath}` };
     }
-    const destDir = dirMat(activeProjectPath, 'audio');
-    if (!(await exists(destDir))) await fs.promises.mkdir(destDir, { recursive: true });
-    const destino = path.join(destDir, 'maestro.m4a');
-
-    // -vn quita el video. Se recodifica a AAC en vez de -c:a copy porque la pista de origen
-    // puede venir en un formato que el <audio> del renderer no reproduzca.
-    const cmd = `ffmpeg -y -i "${videoPath.replace(/"/g, '\\"')}" -vn -c:a aac -b:a 128k ` +
-      `-movflags +faststart "${destino.replace(/"/g, '\\"')}"`;
-    await new Promise<void>((res, rej) => {
-      exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => err ? rej(err) : res());
-    });
-    if (!(await exists(destino))) return { success: false, error: 'ffmpeg no genero el audio.' };
-
-    const durationSeconds = await getVideoDuration(destino);
-    const { size } = await fs.promises.stat(destino);
-    await writeDebugLog(`[AUDIO-MAESTRO] ${(size / 1048576).toFixed(1)} MB, ` +
-      `${durationSeconds.toFixed(2)}s extraidos de ${videoPath}`);
-
-    return {
-      success: true, path: destino, durationSeconds,
-      // file:/// en vez del blob: del renderer, que muere con la pagina que lo creo.
-      url: urlDeRuta(destino)
-    };
+    // url file:/// en vez del blob: del renderer, que muere con la pagina que lo creo.
+    const r = await extraerAudioMaestro(videoPath, activeProjectPath);
+    return { success: true, path: r.path, durationSeconds: r.durationSeconds, url: r.url };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
@@ -3806,14 +3818,43 @@ ipcMain.handle('generate-perfect-sync', async (event, {
       url: urlDeRuta(videoPath)
     };
 
+    // El clip de audio tiene que vivir DENTRO del proyecto. Si el frontend ya mando el audio
+    // maestro extraido se reutiliza; si mando el video del usuario —lo que pasa cuando no se
+    // ha pulsado "Usar Audio Original"— se extrae aqui. Sin esto el clip de tipo audio era el
+    // .mp4 entero del usuario y el proyecto volvia a depender de un fichero externo.
+    let audioFinal = audioPath;
+    let audioDuracion = duracionTotal;
+    let audioExterno = false;
+
+    if (!projPath) {
+      audioExterno = true;
+      await logMessage('[FASE 4] Sin proyecto activo: el audio se queda fuera.');
+    } else if (!audioFinal || !dentroDelProyecto(audioFinal, projPath)) {
+      event.sender.send('generation-progress', {
+        index: 0, total: 1,
+        paragraph: 'Extrayendo el audio del proyecto...',
+        type: 'Audio'
+      });
+      try {
+        const extraido = await extraerAudioMaestro(audioFinal || videoPath, projPath);
+        audioFinal = extraido.path;
+        audioDuracion = extraido.durationSeconds || duracionTotal;
+      } catch (e: any) {
+        // No se aborta: a estas alturas ya se han generado los clips y gastado dinero en IA.
+        // Se sigue con el audio externo, pero se dice. Avisarlo en la UI es cosa de PIEZA A.
+        audioExterno = true;
+        await logMessage('[FASE 4] No se pudo extraer el audio, queda fuera: ' + e.message);
+      }
+    }
+
     const audioClip = {
       id: 'audio-sync-' + Date.now(),
       name: 'Voz - Audio Original',
       startSeconds: 0,
-      durationSeconds: duracionTotal,
+      durationSeconds: audioDuracion,
       type: 'audio',
-      path: audioPath || videoPath,
-      url: urlDeRuta(audioPath || videoPath)
+      path: audioFinal || videoPath,
+      url: urlDeRuta(audioFinal || videoPath)
     };
 
     await logMessage('[generate-perfect-sync] Completado. v2Clips: ' + v2Clips.length);
@@ -3822,7 +3863,9 @@ ipcMain.handle('generate-perfect-sync', async (event, {
       success: true,
       v1Clip,
       v2Clips,
-      audioClip
+      audioClip,
+      // Para PIEZA A: el audio no se pudo meter dentro y el proyecto depende de un externo.
+      audioExterno
     };
 
   } catch (err: any) {
