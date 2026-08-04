@@ -62,6 +62,164 @@ Working tree limpio salvo `dist/index.html` y `project-state.json`: los dos est�
 
 ---
 
+# SESIÓN 3 AGOSTO 2026 — CIMIENTOS: ESTRUCTURA, RUTAS Y PERSISTENCIA
+
+> **Por qué esta sesión no fue sobre gráficos.** Se iba a integrar los gráficos y aparecieron tres fallos que los habrían contaminado: los proyectos se autodestruían al abrirlos, las urls no funcionaban con acentos, y nada de lo que decide el vídeo exportado se guardaba. Construir los gráficos encima habría multiplicado los tres.
+
+## 1. `temp/` → `materiales/` + `cache/` (`527f15b`)
+
+**El fallo de origen: `temp/` se diseñó como área de trabajo desechable pero los clips acabaron viviendo ahí.** Lo delatan el comentario *"recreate empty temp directories"* y las carpetas `temp/hyperframes` y `temp/remotion` creadas vacías para un HyperFrames que nunca se hizo. Una carpeta declarada desechable pasó a ser el único hogar de datos irreemplazables — y el propio código la borraba.
+
+**Medido:** de 44 proyectos con clips, 19 tenían ficheros ausentes y **el 100% de los que faltaban estaban dentro de `temp/`**. Y `banco-clips/originales` está **VACÍO**: los clips del usuario solo existen en `temp/originales`, sin copia en ningún sitio.
+
+```
+materiales/   audio  voices  originales  stock  ia  pista-v2   ← permanente, nunca automático
+cache/        thumbnails  graficos                              ← regenerable, caduca
+```
+
+**La regla vive en la estructura, no en la disciplina de quien lea el código.** `sync-perfecta` subió a `materiales/` tras comprobar que guarda clips de fal.ai que costaron dinero.
+
+**Y `abrir` un proyecto lo destruía** (`5961f13`): `load-project` hacía `initProjectDirs → cleanupProjectTemp(projectPath) → initProjectDirs`, o sea borrar los clips y recrear las carpetas vacías. Había **dos** caminos de carga con el mismo patrón; arreglar solo uno lo habría dejado vivo.
+
+## 2. El audio maestro se extrae al proyecto (`c987cce`)
+
+**Por qué extraer y no copiar el vídeo:** el pipeline **ya corta** el fuente a `materiales/originales`, y después nadie lo necesita. El vídeo solo hacía falta para dar su pista de audio. Medido: **4.46 MB la pista frente a 102 MB el fichero** — 97.5 MB menos por proyecto. Copiar el vídeo sería pagar por una capacidad (recortar planos nuevos de un proyecto viejo) que John no usa: cuando hay que cambiar algo, reconstruye el timeline.
+
+El `url` era un **`blob:`** de `URL.createObjectURL`, que muere con la página. Por eso al reabrir no había audio aunque el fichero existiera.
+
+## 3. Las 14 urls `file://` (`6a06d63` backend, `8074522` frontend)
+
+**Sin esto, ningún usuario con acentos en su ruta vería NADA** — ni preview, ni librería, ni transiciones. Y `C:\Users\José\` o `C:\Archivos de programa\` es lo normal en Windows en español.
+
+Concatenar la ruta **no carga**. Medido en Chromium real:
+
+| forma | resultado |
+|---|---|
+| `` `file:///${ruta}` `` | **MEDIA_ELEMENT_ERROR** |
+| `encodeURI(ruta)` | **falla** (no escapa `#`, que corta la url como ancla) |
+| `pathToFileURL` | **carga** |
+
+**Backend:** `pathToFileURL` de Node. **Frontend:** implementación manual por segmentos — el preload va en **sandbox** y su `require('url')` devuelve un polyfill de navegador **sin** `pathToFileURL`; la función existe y revienta al llamarla. La manual sobre-escapa `& + = [ ]` y eso es **inocuo**: medido cargando ficheros reales, las dos formas cargan igual.
+
+**Verificado con la app "instalada" en `C:\Usuarios\José Ángel\Mis Aplicaciones\`**: crear proyecto, cortar, extraer audio, reproducir, exportar y reproducir el resultado. 8 de 8.
+
+## 4. La persistencia (`7d5d2ec` + el test)
+
+De las **ocho** entradas de `export-video`, solo `clips` sobrevivía. **`aspectRatio` era el peligroso**: no aparece en el modal de exportación, así que un proyecto vertical reabría en horizontal y se exportaba mal **sin que nada lo dijera**. Y entra en `generate-timeline-assets` y `generate-perfect-sync`, donde los clips se cortan al formato equivocado y **eso queda escrito en disco**.
+
+Los otros seis se persisten igual por decisión de producto: que el usuario abra su proyecto y vea que perdió el recorte y las transiciones le lleva a concluir que la app no guarda bien.
+
+**Dos hallazgos que el plan no preveía:**
+
+- El payload estaba **duplicado en tres sitios**. Por eso cada función nueva nacía sin persistencia: había que acordarse tres veces. Ahora lo construye `construirEstadoAGuardar()`.
+- **Las listas de dependencias** de los `useEffect` que guardan no incluían los campos nuevos. **El build no ve eso**: cambiar el formato no disparaba el autoguardado y al cerrar se escribía el valor anterior.
+
+**El test** (`npm run test:persistencia`) comprueba las dos formas de olvido leyendo el código, y hace el viaje real campo a campo. Al ejecutarlo por primera vez encontró que el autoguardado no vigilaba `newAudioSegments`, `activeProjectId` ni `activeProjectName`.
+
+---
+
+# DECISIONES TOMADAS — no rediscutir
+
+| decisión | por qué |
+|---|---|
+| **Proyecto autocontenido** (opción 1, no referencias) | CIPHER ya es un producto de copia: descarga el stock dentro, genera la IA dentro, corta los originales dentro. **111 de 112 clips ya estaban dentro.** La referencia suelta no era arquitectura, era una inconsistencia. Premiere/Resolve referencian porque manejan terabytes; iMovie y CapCut copian porque su usuario mueve archivos sin pensar. CIPHER es lo segundo. |
+| **El crop solo a clips `original`** (opción B) | Cuando el usuario aplica el crop, **el stock y la IA todavía no existen**: se descargan al construir. Su vídeo es lo único que hay. Y es lo que ya hacía el preview, así que preview y archivo coinciden **por construcción**. |
+| **Los gráficos por troceado, no dentro de A4** | A4 sale más barato (ya recodifica los bodies) pero mete aritmética nueva donde un error desincroniza el audio, y tiene una trampa: si A4 degrada, los tails/heads con gráfico se descartan y **los gráficos desaparecerían en silencio**. El troceado es una pasada posterior: si falla, queda el vídeo correcto sin gráficos. **Mejor modo de fallo gana a mejor rendimiento.** |
+| **No copiar el vídeo importado** | El pipeline lo corta y después nadie lo necesita. La dependencia externa se queda y se resuelve **avisando** (PIEZA A), no copiando 500 MB. |
+| **Se descartó la opción C del mecanismo de persistencia** | Declarar la persistencia en el propio `useState` es la solución buena (~95%), pero exige tocar **23 declaraciones** — el refactor del núcleo, justo antes de integrar los gráficos. Se eligió el **test** en su lugar: ataca los dos fallos que sí han ocurrido, no defiende contra efímeros colados, que no han ocurrido nunca. |
+| **`webUtils.getPathForFile` antes que `File.path`** | Las dos funcionan en Electron 31.7.7 y devuelven la misma ruta, pero `File.path` está retirado desde la 32. Actualizar Electron no romperá la importación. |
+
+---
+
+# PLAN DE LOS GRÁFICOS — medido, listo para ejecutar
+
+## La Vía G: renderizar desde dentro de Electron
+
+Ventana `BrowserWindow` con `offscreen: true`, se capturan los frames por el evento `paint` y se meten a ffmpeg por stdin. **Renderiza el DOM completo**, así que reutiliza el componente `AnimatedGraphic` que ya existe — sin reescribir plantillas y sin HyperFrames ni Node 22 en la máquina del usuario.
+
+**Los 8 detalles que no se pueden saltar:**
+
+1. **El handshake `invalidate()` → `paint` NO basta.** Medido: entrega un frame **~4 atrasado**, 0 de 90 exactos. Subir el framerate del compositor acelera pero **empeora** la exactitud. Lo único que funciona es el **lazo cerrado**: leer una sonda del bitmap y reintentar hasta que llegue el frame pedido. **90/90 exactos, 3.7 intentos por frame.**
+2. **El bitmap es BGRA**, se declara así a ffmpeg.
+3. **`getBitmap()` no copia**: hay que hacer `Buffer.from` en el mismo tick. Cuesta 2.9 ms/frame, el 39% del total.
+4. **Backpressure del pipe**: `if (!stdin.write(buf)) await once(stdin,'drain')`. Medido: nunca fue cuello.
+5. **El reloj no cubre todo.** `getAnimations()` controla CSS y WAAPI pero **no** rAF ni GSAP. Lo que dependa de JS tiene que ser **función pura de t**.
+6. **Preflight**: `await document.fonts.ready` (1.9 ms).
+7. **El arranque de la ventana son 150 ms** y se amortiza: **una sola ventana para todos los gráficos**.
+8. **`paint` entrega el frame COMPLETO**, no el área sucia. Verificado con un testigo en la esquina opuesta: 0 parciales en 270 frames.
+
+**Y un hallazgo que entierra la vía de `drawtext`: el emoji sale a color.**
+
+## El alpha
+
+**El bitmap SÍ trae alpha real** (zona vacía A=0, 0/1600 píxeles opacos) pero **premultiplicado** — se compone con `overlay=...:alpha=premultiplied`.
+
+| códec | alpha | encode |
+|---|---|---|
+| **mov / qtrle** | **conservado** | 1078 ms · 10.8 MB |
+| webm / vp9 | perdido con el comando probado | 2031 ms · 104 KB |
+| mp4 / h264 | perdido (control) | 322 ms |
+
+*No está demostrado que VP9 no pueda; está demostrado que mi comando no lo consiguió.*
+
+## Los datos reales (13 proyectos, 579 gráficos)
+
+| tipo | % |
+|---|---|
+| `decorativo_emoji` | **83.8%** |
+| `frase_clave` | 8.5% |
+| el resto (5 tipos) | 7.7% |
+
+**Duración: 2.00 s exactos en los 579** → 60 frames. La caché por hash ahorra **0-9% dentro de un proyecto**: su valor real es el **re-export**, no la deduplicación.
+
+## Coste medido
+
+| | |
+|---|---|
+| Por gráfico (ponderado por el reparto real) | **1634 ms** |
+| 19 gráficos | render **31.2 s** |
+| Pasada de overlay entera | 45.5 s (recodifica el 100%) |
+| **Troceado** | **33.5 s**, solo **25.5%** recodificado, **74.5% en copia** |
+| **Total añadido al export de 121 s** | **+72 s** → ~193 s |
+
+**El troceado necesita el muxer `segment`.** Cortar con `-ss`/`-to` por trozo da 17.1 s pero produce **8707 frames en vez de 8579** — descalificatorio. Con `segment`: **frames exactos**, verificado.
+
+## Las 5 piezas
+
+1. **`renderGraphicClip(graphicData, opciones)`** — ventana offscreen reutilizada, lazo cerrado, salida `.mov` qtrle, caché por `hash(graphicData + WxH + duración + fps)`, fallback a `null`.
+2. **Renderizar al pulsar "Generar Gráficos"**, no al exportar. El coste se paga ahí y el export solo compone.
+3. **El export recoge las tarjetas aparte** — `videoOnly` las sigue excluyendo, la aritmética de frames no se entera.
+4. **La pasada de troceado**, después del concat. **Si el recuento de frames no cuadra, se descarta la pasada** y queda el vídeo sin tarjetas.
+5. **Limpieza** — barrido de los `.mov` cuyo hash ya no esté en el conjunto actual.
+
+## Las 4 cosas que hay que cubrir
+
+1. **Invalidación** — mover un clip **no** invalida: la posición vive en el clip. Sí invalidan `graphicData`, la duración y `WxH`, y por eso los tres entran en la clave del hash.
+2. **Fallo silencioso** — el export **cuenta** cuántas esperaba y cuántas compuso, y lo dice. Nunca 17 de 19 en silencio.
+3. **Preview vs archivo** — el `.mov` se llama como su hash: un `graphicData` distinto es un fallo de caché detectable, no un MOV viejo compuesto sin avisar.
+4. **Acumulación** — el barrido de la pieza 5. Tres tandas no se apilan.
+
+**Tamaño:** ~1.65 MB por gráfico → 19 gráficos ≈ **31 MB**; el proyecto de 261 gráficos ≈ 431 MB.
+
+---
+
+# DEUDA ABIERTA, por gravedad
+
+| gravedad | qué |
+|---|---|
+| **ALTA** | **Vía 4** — `generate-perfect-sync` devuelve el `v1Clip` y el `audioClip` apuntando **fuera del proyecto**. Es el mismo bug que cerró M1, por una tercera puerta: si usas sincronía perfecta, el audio vuelve a depender de un fichero externo. |
+| **ALTA** | **PIEZA A** — avisar al abrir: cuántos materiales faltan, **de dónde** (`originales` no vuelve, `stock` es re-cortable, `ia` costó dinero) y **cuántos clips tienen categoría no reconocida**, que es un fallo igual de silencioso. Hoy la app se queda vacía sin decir nada. |
+| **MEDIA** | **PIEZA B** — caducidad de `cache/`. **Nada borra desde que se arregló la limpieza**: ni `temp/originales`, ni `banco-clips/stock` (18.7 GB medidos), ni los restos de exports interrumpidos en `banco-clips/temp_export`. Cada proyecto nuevo son ~221 MB que nadie recoge. |
+| **MEDIA** | **`project-state.json` de 18 MB** — el 49% son **miniaturas en base64** embebidas, y las voces generadas meten el MP3 entero como data URI. Se lee y escribe completo en cada guardado. |
+| **MEDIA** | **El prompt de gráficos** — `decorativo_emoji` sale el 84% por tres razones medidas: el **único ejemplo del `FORMATO`** es de ese tipo, la puerta es *"si hay datos / si no hay datos"*, y los 7 tipos de TIPO A son **solo nombres sin descripción**. Además **8 de los 17 tipos no se mencionan** y son inalcanzables. **Decidido: el prompt va ANTES que el movimiento** — invertir en animar los dos tipos que dominan sería circular, porque dominan *porque* el prompt los empuja. |
+| **BAJA** | La pestaña de la librería **ES** la ruta de la carpeta (`libraryTab.toLowerCase()`). Renombrarla a "IA Video" crearía `materiales/ia video` en silencio. |
+| **BAJA** | `'vacio'` es una categoría que miente: esos clips contienen stock real descargado. |
+| **BAJA** | El canal IPC `generate-minimax-video` sigue con nombre de proveedor. |
+| **BAJA** | `handleDeleteProject` (individual) tiene el mismo `catch` mudo que se arregló en "Eliminar todo". |
+| **BAJA** | El vídeo importado sigue **fuera** del proyecto (decidido: se avisa, no se copia). *"Consolidar proyecto"* queda como función futura. |
+
+---
+
 # PROYECTO A — TRANSICIONES AL EXPORTAR
 
 **Objetivo:** las transiciones asignadas se ven en el video EXPORTADO. Preview no importa. Audio jamás se desincroniza. Escalable a 560+ clips.
@@ -222,6 +380,31 @@ Ninguna lógica que filtre por categoría lo reconoce: no recibe crop (correcto,
 ### 🔁 DEUDA menor — el canal IPC `generate-minimax-video`
 
 La carpeta, la categoría y la UI ya son `ia`. El canal IPC y el método del preload siguen llamándose por el proveedor. No afecta a rutas ni a datos guardados; se cambia cuando se toque el preload por otra cosa.
+
+### 🛑 DEUDA — la persistencia se enumera a mano y va perdiendo funciones
+
+`handleSaveProjectDirectly` construye el estado a guardar **enumerando 21 variables a mano**. La app tiene **118 piezas de estado**. Cada función nueva nace sin persistencia salvo que alguien se acuerde de añadirla a esa lista, y desde que se escribió se han añadido transiciones, crop, formato de export y modo de sincronía sin tocarla.
+
+**No es una lista de olvidos: es el mecanismo.** Arreglar una variable deja el problema intacto para la siguiente.
+
+**Rompen el vídeo resultante:**
+
+| estado | qué pierdes al reabrir |
+|---|---|
+| `aspectRatio` | **el formato del vídeo** — vuelve al valor por defecto |
+| `exportResolution`, `exportFormat`, `exportQuality` | los ajustes de exportación |
+| `assignedTransitions`, `transitionDuration`, `transitionsPercent` | **las transiciones asignadas** |
+| `activeCrop`, `zoom`, `panOffset`, `isMirrored`, `cropRect` | los ajustes de encuadre |
+| `perfectSyncMode`, `syncWeights` | el modo de sincronía y sus pesos |
+| `iaStyle` | el estilo de generación IA |
+
+**Molestan pero no rompen:** `videoTrackVolume`, `audioTrackVolume`, `timelineZoom`, `durationSeconds`, `milestoneHistory`/`milestoneIndex` (el deshacer/rehacer se pierde entero), y los campos del panel Crear (`crearIdea`, `crearTone`, `crearDuration`, `crearFormat`, `appMode`).
+
+**Antes de arreglar variable por variable**, decidir si el payload sigue enumerándose a mano o pasa a derivarse de una lista declarada junto a los propios estados. Lo segundo es lo que impide que vuelva a pasar.
+
+### 🔮 FUNCIÓN FUTURA — restaurar la posición del cursor al reabrir
+
+Hoy `currentTime` no se persiste y el proyecto reabre **siempre al principio**, con el preview en el primer clip. Es coherente y no engaña, pero volver donde lo dejaste sería mejor. Va con la deuda de persistencia de arriba, no aparte.
 
 ### 🔮 FUNCIÓN FUTURA — crop/zoom por clip individual, estilo CapCut
 
