@@ -1,37 +1,38 @@
 {
-  "name": "cipher-studio",
-  "version": "1.0.0",
-  "description": "CIPHER Studio - AI Video Editor",
-  "main": "dist-electron/main/index.js",
-  "author": "John Benites",
-  "license": "MIT",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@fal-ai/client": "^1.10.1",
-    "gl-transition": "^2.1.0",
-    "gl-transitions": "^1.71.0",
-    "lucide-react": "^0.475.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "zustand": "^5.0.3"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4.0.0",
-    "@types/node": "^20.11.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "electron": "^31.0.0",
-    "electron-builder": "^24.13.3",
-    "postcss": "^8.4.38",
-    "tailwindcss": "^4.0.0",
-    "typescript": "^5.4.5",
-    "vite": "^5.2.11",
-    "vite-plugin-electron": "^0.28.7",
-    "vite-plugin-electron-renderer": "^0.14.5"
-  }
+    "name":  "cipher-studio",
+    "version":  "1.0.0",
+    "description":  "CIPHER Studio - AI Video Editor",
+    "main":  "dist-electron/main/index.js",
+    "author":  "John Benites",
+    "license":  "MIT",
+    "scripts":  {
+                    "dev":  "vite",
+                    "build":  "tsc \u0026\u0026 vite build",
+                    "preview":  "vite preview",
+                    "test:persistencia":  "electron tests/persistencia.js"
+                },
+    "dependencies":  {
+                         "@fal-ai/client":  "^1.10.1",
+                         "gl-transition":  "^2.1.0",
+                         "gl-transitions":  "^1.71.0",
+                         "lucide-react":  "^0.475.0",
+                         "react":  "^19.0.0",
+                         "react-dom":  "^19.0.0",
+                         "zustand":  "^5.0.3"
+                     },
+    "devDependencies":  {
+                            "@tailwindcss/postcss":  "^4.0.0",
+                            "@types/node":  "^20.11.0",
+                            "@types/react":  "^19.0.0",
+                            "@types/react-dom":  "^19.0.0",
+                            "@vitejs/plugin-react":  "^4.3.4",
+                            "electron":  "^31.0.0",
+                            "electron-builder":  "^24.13.3",
+                            "postcss":  "^8.4.38",
+                            "tailwindcss":  "^4.0.0",
+                            "typescript":  "^5.4.5",
+                            "vite":  "^5.2.11",
+                            "vite-plugin-electron":  "^0.28.7",
+                            "vite-plugin-electron-renderer":  "^0.14.5"
+                        }
 }

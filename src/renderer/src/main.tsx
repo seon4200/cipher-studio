@@ -1667,7 +1667,7 @@ function App() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
 
   // UN solo sitio construye lo que se guarda. Estaba copiado en TRES (guardar al cerrar,
   // guardar, y guardar como), y por eso cada funcion nueva nacia sin persistencia en dos de
