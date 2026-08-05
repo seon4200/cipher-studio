@@ -390,8 +390,27 @@ const origenDe = (p: string, projPath: string | null) => {
 // proposito (decision cerrada: no se copia, se avisa).
 async function auditarClips(clips: any[], projPath: string | null) {
   const faltan: any[] = [], fuera: any[] = [], sinRuta: any[] = [], categorias: any[] = [];
+  const graficos: any[] = [];
 
   for (const c of clips || []) {
+    // G0: los clips 'graphic' NO son material de video y se resuelven ANTES que nada. No
+    // tienen path —se construyen sin el en main.tsx:2642 y :2489— asi que sin esta rama
+    // caerian en sinRuta, hayProblema se volveria true y la guarda bloquearia el export
+    // diciendo "faltan 19 de N clips" con los 19 perfectamente correctos.
+    //
+    // Vive AQUI y no en la guarda del export porque auditarClips tiene DOS llamadores: la
+    // guarda y load-project. Arreglarlo en la guarda dejaria el mismo falso positivo
+    // esperando en el aviso al abrir (pieza 2). Es el patron de las dos vias de carga otra
+    // vez: cerrar una puerta y dejar la otra abierta.
+    //
+    // El bucket solo lleva identidad. Cuando la pieza 1 renderice los MOV, la pregunta
+    // "¿tengo los 19?" nace en la COBERTURA 2 de la pieza 3, que es donde esta la
+    // informacion para contestarla. Fijar aqui la forma de ese dato seria adivinar.
+    if (c && c.type === 'graphic') {
+      graficos.push({ id: c && c.id, name: (c && c.name) || '(sin nombre)' });
+      continue;
+    }
+
     if (c && c.category && !CATEGORIAS_CONOCIDAS.has(c.category)) {
       categorias.push({ id: c.id, name: c.name, category: c.category });
     }
@@ -415,8 +434,11 @@ async function auditarClips(clips: any[], projPath: string | null) {
   for (const f of fuera) anotar(f.origen, 'fuera');
 
   return {
-    faltan, fuera, sinRuta, categorias, porOrigen,
-    total: (clips || []).length,
+    faltan, fuera, sinRuta, categorias, porOrigen, graficos,
+    // total es lo AUDITADO como material. Si contase los graficos, el mensaje de la guarda
+    // mentiria: "faltan 3 de 25" en un proyecto de 6 videos y 19 graficos.
+    total: (clips || []).length - graficos.length,
+    totalGraficos: graficos.length,
     hayProblema: faltan.length > 0 || sinRuta.length > 0
   };
 }

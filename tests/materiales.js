@@ -71,7 +71,12 @@ async function partesAyB () {
     { id: 'c3', name: 'la ia que pague', type: 'video', category: 'ia', path: ausenteIa },
     { id: 'c4', name: 'mi grabacion', type: 'video', category: 'original', path: ausenteOrig },
     { id: 'c5', name: 'sin ruta ninguna', type: 'video', category: 'stock' },
-    { id: 'c6', name: 'categoria inventada', type: 'video', category: 'brollicious', path: dentro }
+    { id: 'c6', name: 'categoria inventada', type: 'video', category: 'brollicious', path: dentro },
+    // Construidos como en produccion (main.tsx:2642): sin path y sin category.
+    { id: 'g1', name: 'Gráfico: Concepto', type: 'graphic', startSeconds: 1,
+      durationSeconds: 2, graphicData: { type: 'decorativo_emoji', emoji: '🔥' } },
+    { id: 'g2', name: 'Gráfico: 87%', type: 'graphic', startSeconds: 5,
+      durationSeconds: 2, graphicData: { type: 'dato_grande', value: 87 } }
   ]
 
   // ── A) la auditoria clasifica bien ────────────────────────────────────────────────
@@ -104,6 +109,21 @@ async function partesAyB () {
   ok(a.fuera[0] && a.fuera[0].origen === 'externo',
     'lo de fuera se marca como externo, no como una subcarpeta')
 
+  // ── A bis) los clips graphic no son material ausente (G0) ─────────────────────────
+  console.log('\n=== A bis) LOS CLIPS GRAPHIC NO SON MATERIAL AUSENTE ===')
+  ok(ids(a.graficos) === 'g1,g2', 'los graficos van a su propio bucket',
+    'graficos: ' + ids(a.graficos))
+  ok(!ids(a.sinRuta).includes('g1') && !ids(a.sinRuta).includes('g2'),
+    'NO entran en sinRuta aunque no tengan path',
+    'sinRuta sigue siendo solo: ' + ids(a.sinRuta))
+  ok(!ids(a.faltan).includes('g1') && !ids(a.faltan).includes('g2'),
+    'NO entran en faltan')
+  ok(ids(a.categorias) === 'c6',
+    'no se cuentan como categoria desconocida por no traer category')
+  ok(a.total === 6 && a.totalGraficos === 2,
+    'total cuenta el material; los graficos van aparte',
+    `total=${a.total} totalGraficos=${a.totalGraficos} (8 clips en el timeline)`)
+
   // Un proyecto sano no debe dar falsos positivos.
   await llamar('save-project-state', {
     id: p.data.id, name: p.data.name, clips: [], timelineVideoClips: [clips[0]]
@@ -112,6 +132,24 @@ async function partesAyB () {
   ok(sano.auditoria && sano.auditoria.hayProblema === false &&
      sano.auditoria.faltan.length === 0 && sano.auditoria.categorias.length === 0,
     'un proyecto sano no da ningun aviso')
+
+  // Y sano CON graficos tampoco: es lo que G0 tiene que garantizar. Se comprueba sobre un
+  // conjunto sano a proposito — con el fixture roto, hayProblema seria true por c3/c4/c5
+  // pasara lo que pasara con los graficos, y la asercion no probaria nada.
+  await llamar('save-project-state', {
+    id: p.data.id, name: p.data.name, clips: [],
+    timelineVideoClips: [clips[0], clips[6], clips[7]]
+  })
+  const sanoG = await llamar('load-project', { projectPath: proyecto })
+  ok(sanoG.auditoria && sanoG.auditoria.hayProblema === false,
+    'un proyecto sano CON graficos tampoco da aviso',
+    'hayProblema=' + (sanoG.auditoria && sanoG.auditoria.hayProblema) +
+    ' con 2 graficos sin path en el timeline')
+  ok(sanoG.auditoria && sanoG.auditoria.sinRuta.length === 0 &&
+     sanoG.auditoria.totalGraficos === 2 && sanoG.auditoria.total === 1,
+    'los 2 graficos se contabilizan sin ensuciar sinRuta',
+    `sinRuta=${sanoG.auditoria.sinRuta.length} total=${sanoG.auditoria.total} ` +
+    `totalGraficos=${sanoG.auditoria.totalGraficos}`)
 
   // ── B) la guarda del export ───────────────────────────────────────────────────────
   console.log('\n=== B) LA GUARDA DEL EXPORT ===')
@@ -177,6 +215,19 @@ async function partesAyB () {
     ok(ordenLlamadas.join(' -> ') === 'guardar',
       'un clip FUERA pero presente no bloquea el export',
       'es el estado del v1Clip del video importado, y exporta bien')
+
+    // B5 — el caso que motiva G0. Sin el bucket, la guarda bloquearia TODO export con
+    // graficos: son clips sin path y caerian en sinRuta.
+    ordenLlamadas = []
+    const rG = await llamar('export-video', { clips: [clips[0], clips[6], clips[7]],
+      aspectRatio: '16:9', resolution: '1080p', format: 'mp4', quality: 'alta',
+      assignedTransitions: {}, transitionDuration: 0.5 })
+    ok(ordenLlamadas.join(' -> ') === 'guardar',
+      'un proyecto sano CON graficos NO dispara la guarda',
+      'orden: ' + ordenLlamadas.join(' -> ') +
+      '   (antes de G0 esto decia "faltan 2 de 3 clips")')
+    ok(rG && /cancelada por el usuario/i.test(rG.error || ''),
+      'llega al dialogo de guardar con normalidad')
   } finally {
     dialog.showMessageBox = originalMsg
     dialog.showSaveDialog = originalSave
@@ -198,6 +249,13 @@ async function parteC (proyecto) {
     fs.writeFileSync(f, 'x')
     muchos.push({ id: 'g' + i, name: 'clip ' + i, type: 'video', category: 'stock', path: f })
   }
+  // Con graficos dentro, que es como sera de verdad: el fixture original no tenia ninguno y
+  // por eso G0 no se caso aqui.
+  muchos.push(
+    { id: 'gCarga1', name: 'Gráfico carga 1', type: 'graphic', durationSeconds: 2,
+      graphicData: { type: 'decorativo_emoji', emoji: '🔥' } },
+    { id: 'gCarga2', name: 'Gráfico carga 2', type: 'graphic', durationSeconds: 2,
+      graphicData: { type: 'frase_clave', value: 'x' } })
   await llamar('save-project-state', {
     id: 'carga', name: MARCA, clips: [], timelineVideoClips: muchos
   })
@@ -214,8 +272,11 @@ async function parteC (proyecto) {
   const mediana = tiempos[2]
 
   const ultima = await medir()
-  ok(ultima.r.auditoria && ultima.r.auditoria.total === N,
-    `la auditoria recorre los ${N} clips`, 'total: ' + ultima.r.auditoria.total)
+  ok(ultima.r.auditoria && ultima.r.auditoria.total === N &&
+     ultima.r.auditoria.totalGraficos === 2 && ultima.r.auditoria.hayProblema === false,
+    `la auditoria recorre los ${N} clips y los 2 graficos sin dar aviso`,
+    `total=${ultima.r.auditoria.total} totalGraficos=${ultima.r.auditoria.totalGraficos} ` +
+    `hayProblema=${ultima.r.auditoria.hayProblema}`)
 
   // El numero de arriba es load-project ENTERO: leer el json, parsearlo, crear carpetas y
   // auditar. Para saber que parte es la auditoria se acota por los dos lados.
