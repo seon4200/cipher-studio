@@ -366,6 +366,61 @@ const dentroDelProyecto = (p: string, proj: string) => {
   return !!rel && !rel.startsWith('..') && !path.isAbsolute(rel);
 };
 
+// Las que el codigo usa hoy. Una categoria fuera de esta lista no es una errata inocua: el
+// clip deja de aparecer en la vista que le toca y no lo dice nadie.
+const CATEGORIAS_CONOCIDAS = new Set([
+  'original', 'stock', 'ia', 'vacio', 'v2_overlay', 'v2_base', 'cloned'
+]);
+
+// De que subcarpeta de materiales/ viene. Decide que puede hacer el usuario: originales no
+// vuelve (banco-clips/originales esta vacio), stock es re-cortable, ia y pista-v2 costaron
+// dinero.
+const origenDe = (p: string, projPath: string | null) => {
+  if (!p) return 'sin ruta';
+  if (!projPath || !dentroDelProyecto(p, projPath)) return 'externo';
+  const rel = path.relative(dirMat(projPath), p);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) return 'otro';
+  const sub = rel.split(path.sep)[0];
+  return SUB_MATERIALES.includes(sub) ? sub : 'otro';
+};
+
+// Tres estados, porque "falta" y "esta fuera pero existe" no son lo mismo y no pueden dar el
+// mismo mensaje: lo primero esta roto AHORA, lo segundo funciona hoy y se rompe el dia que el
+// usuario mueva el fichero. El v1Clip del video importado vive en el segundo estado a
+// proposito (decision cerrada: no se copia, se avisa).
+async function auditarClips(clips: any[], projPath: string | null) {
+  const faltan: any[] = [], fuera: any[] = [], sinRuta: any[] = [], categorias: any[] = [];
+
+  for (const c of clips || []) {
+    if (c && c.category && !CATEGORIAS_CONOCIDAS.has(c.category)) {
+      categorias.push({ id: c.id, name: c.name, category: c.category });
+    }
+    const ficha = {
+      id: c && c.id, name: (c && c.name) || '(sin nombre)', path: c && c.path,
+      tipo: c && c.type, origen: origenDe(c && c.path, projPath)
+    };
+    // Un clip de timeline sin ruta se descarta en el export sin decir nada: el DIAG de A1 ya
+    // los contaba como "sin path excluidos". Cuenta como ausencia, no como caso aparte.
+    if (!c || !c.path) { sinRuta.push(ficha); continue; }
+    if (!(await exists(c.path))) faltan.push(ficha);
+    else if (projPath && !dentroDelProyecto(c.path, projPath)) fuera.push(ficha);
+  }
+
+  const porOrigen: Record<string, { faltan: number; fuera: number }> = {};
+  const anotar = (o: string, campo: 'faltan' | 'fuera') => {
+    if (!porOrigen[o]) porOrigen[o] = { faltan: 0, fuera: 0 };
+    porOrigen[o][campo]++;
+  };
+  for (const f of faltan) anotar(f.origen, 'faltan');
+  for (const f of fuera) anotar(f.origen, 'fuera');
+
+  return {
+    faltan, fuera, sinRuta, categorias, porOrigen,
+    total: (clips || []).length,
+    hayProblema: faltan.length > 0 || sinRuta.length > 0
+  };
+}
+
 // Miniatura de un clip: mismo nombre base con extension .jpg, en cache/thumbnails.
 // Sustituye a los replace() de cadena, que asumian separador '/' y que el fragmento
 // aparecia exactamente una vez.
@@ -511,8 +566,19 @@ ipcMain.handle('load-project', async (_event, { projectPath }) => {
     activeProjectPath = projectPath;
     if (anterior && anterior !== projectPath) await cleanupProjectTemp(anterior);
 
+    // La auditoria se calcula AQUI, en el backend, y no en el frontend: hay dos caminos de
+    // carga en main.tsx y es el patron que ya mordio una vez —arreglar uno y dejar el otro
+    // vivo. Se devuelve; la PIEZA 2 sera quien la muestre.
+    const auditoria = await auditarClips(
+      [...(parsed.clips || []), ...(parsed.timelineVideoClips || [])], projectPath);
+    if (auditoria.hayProblema || auditoria.categorias.length) {
+      await writeDebugLog(`[LOAD-AUDIT] ${projectPath}: faltan=${auditoria.faltan.length} ` +
+        `fuera=${auditoria.fuera.length} sinRuta=${auditoria.sinRuta.length} ` +
+        `categoriasRaras=${auditoria.categorias.length}`);
+    }
+
     console.log(`[load-project] Proyecto cargado desde: ${projectPath}`);
-    return { success: true, data: parsed, projectPath };
+    return { success: true, data: parsed, projectPath, auditoria };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
@@ -1553,6 +1619,45 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
     const hasTransitions = assignedTransitions && Object.keys(assignedTransitions).length > 0;
     await writeDebugLog(`[EXPORT] Transiciones asignadas: ${hasTransitions ? Object.keys(assignedTransitions).length : 0}, duracion: ${trDuration}s, primer mapa de test: ${mapTransition('fade')}`);
     if (!win) return { success: false, error: 'Ventana no disponible' }
+
+    // ANTES del dialogo de guardar: preguntar donde guardar y despues decir que el video
+    // saldra incompleto es peor que no avisar. Hoy los clips cuyo fichero no esta se
+    // descartan en silencio y el video sale mas corto sin que nada lo diga.
+    const auditoria = await auditarClips(clips, activeProjectPath);
+    if (auditoria.hayProblema) {
+      const ausentes = [...auditoria.faltan, ...auditoria.sinRuta];
+      const lista = ausentes.slice(0, 6)
+        .map((c: any) => `  - ${c.name} [${c.origen}]`).join('\n');
+      const resto = ausentes.length > 6 ? `\n  ...y ${ausentes.length - 6} mas` : '';
+      const irrecuperable = auditoria.porOrigen['originales'] || auditoria.porOrigen['ia'] ||
+                            auditoria.porOrigen['pista-v2'];
+
+      const { response } = await dialog.showMessageBox(win, {
+        type: 'warning',
+        title: 'Faltan materiales',
+        message: `Faltan ${ausentes.length} de ${auditoria.total} clips. El video saldra incompleto.`,
+        detail: lista + resto +
+          '\n\nLos clips que faltan se descartan al exportar: el video durara menos de lo que ' +
+          'marca el timeline.' +
+          (irrecuperable ? '\n\nHay material de originales/ia/pista-v2, que no se regenera solo.' : ''),
+        buttons: ['Cancelar', 'Exportar de todas formas'],
+        defaultId: 0,
+        cancelId: 0
+      });
+
+      await writeDebugLog(`[EXPORT-AUDIT] faltan=${auditoria.faltan.length} ` +
+        `sinRuta=${auditoria.sinRuta.length} fuera=${auditoria.fuera.length} ` +
+        `categoriasRaras=${auditoria.categorias.length} ` +
+        `respuesta=${response === 1 ? 'continuar' : 'cancelar'}`);
+
+      if (response !== 1) {
+        return { success: false, error: 'Exportacion cancelada: faltan materiales.' };
+      }
+    } else if (auditoria.fuera.length) {
+      // FUERA pero existe NO bloquea: hoy exporta perfectamente. Solo queda dicho.
+      await writeDebugLog(`[EXPORT-AUDIT] ${auditoria.fuera.length} clip(s) fuera del ` +
+        `proyecto pero presentes: se exporta con normalidad.`);
+    }
 
     const ext = format === 'mov' ? 'mov' : 'mp4';
     const filterName = format === 'mov' ? 'QuickTime Movie' : 'MP4 Video';
