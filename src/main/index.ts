@@ -352,7 +352,17 @@ async function getProjectsDir(): Promise<string> {
 //   pista-v2/ era 'sync-perfecta', nombre de funcion. Guarda una MEZCLA de stock e IA
 //             cortada para la pista secundaria, asi que no puede colgar de ia/.
 const SUB_MATERIALES = ['audio', 'voices', 'originales', 'stock', 'ia', 'pista-v2'];
-const SUB_CACHE = ['thumbnails', 'graficos'];
+
+// 'graficos' SALIO de SUB_CACHE a proposito y no debe volver. Los MOV de los graficos son
+// regenerables, si — pero caros: 1.65 MB y ~1.6s de render cada uno, 31s para los 19 de un
+// proyecto tipico. Estando aqui, cleanupProjectTemp los borraba al cerrar el proyecto, y el
+// valor de esa cache es justo el RE-EXPORT: borrarla al cerrar la anulaba entera.
+// No sube a materiales/ porque no es irreemplazable, solo caro de regenerar.
+// La carpeta la crea quien la llena: renderGraphicClip, con su propio mkdir recursive, igual
+// que hace extraerAudioMaestro. initProjectDirs ya NO la crea.
+// Consecuencia asumida: desde aqui NADA borra cache/graficos salvo borrar el proyecto
+// entero. La caducidad es la PIEZA B; el barrido de huerfanos por hash, la pieza 5.
+const SUB_CACHE = ['thumbnails'];
 
 const dirMat = (proj: string, sub?: string) =>
   sub ? path.join(proj, 'materiales', sub) : path.join(proj, 'materiales');
