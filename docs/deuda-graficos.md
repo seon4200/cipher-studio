@@ -129,6 +129,49 @@ ser latente.
 
 ---
 
+## 🔌 La PIEZA 2 existe pero NO LA LLAMA NADIE
+
+**Anotado el 6 de agosto de 2026. Es la punta suelta grande del bloque de gráficos.**
+
+`renderGraphicClipsLote` está escrita, tiene su handler IPC (`render-graphics-batch`) y su
+hueco en el preload (`renderGraphicsBatch`). **Y nadie la invoca.**
+
+`handleRegenerateGraphics` ([main.tsx:2603](../src/renderer/src/main.tsx#L2603)) sigue
+exactamente igual que antes: pide los datos a DeepSeek, construye los clips de tipo `graphic`
+con su `graphicData`, y los mete en el timeline. **No renderiza ningún MOV.**
+
+Consecuencia directa, sin rodeos: **los gráficos siguen sin salir en el vídeo exportado.** Que
+es el problema que todo este bloque existe para resolver.
+
+Se dejó así a propósito: enchufarlo toca el frontend, que es donde vive el bug del proyecto
+A/B de la sección siguiente, y mezclar las dos cosas en un cambio habría hecho imposible
+verificar ninguna. Pero que quede escrito sin ambigüedad: **la PIEZA 2 no está completa hasta
+que alguien la llame.** Lo que hay es la mitad de backend, verificada por
+`npm run test:graficos`.
+
+---
+
+## 🧪 La cancelación por cambio de proyecto no tiene test en su rama real
+
+La comparación `activeProjectPath !== proyectoDelLote` **dentro del bucle** del lote no está
+cubierta por ningún test, y es deliberado.
+
+`activeProjectPath` es una variable de módulo que solo se mueve a través de handlers
+**asíncronos** — `close-project` la pone a `null` *después* de su `await cleanupProjectTemp`.
+No existe ningún camino síncrono. El único punto de enganche es el callback de progreso, que
+se llama dentro del bucle justo antes del `await`, pero disparar `close-project` desde ahí sin
+esperarlo deja una carrera: ~5 ms del handler contra los ~2700 ms del gráfico siguiente.
+
+Margen de 500x, sí, pero **un test que puede fallar al azar envenena la confianza en toda la
+suite**, así que se prefirió no tenerlo.
+
+**Lo que sí está cubierto:** la rama de cancelación por falta de proyecto activo, que recorre
+el mismo código —`cancelado`, `motivo`, `sinIntentar`, el array completo a `null`— entrando por
+la puerta de arriba en vez de por la de en medio. Lo único sin verificar es la comparación
+concreta de dentro del bucle.
+
+---
+
 ## ⚠️ Qué pasa con el resultado cuando el frontend desaparece a mitad
 
 **Anotado el 6 de agosto de 2026 al diseñar la PIEZA 2. Sin arreglar a propósito: los dos son
