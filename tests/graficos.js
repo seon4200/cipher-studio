@@ -81,6 +81,42 @@ async function main (bundle) {
   console.log('               y sus frames son DISTINTOS entre si')
   console.log('Corre sobre el bundle compilado: ejecuta `npm run build` antes si has tocado el codigo.\n')
 
+  // ── 0) LAS NUEVE DIMENSIONES ─────────────────────────────────────────────────────
+  // Esta tabla NO es una suposicion: esta transcrita literalmente del bloque en linea que
+  // vivia en index.ts:2102-2128 ANTES de extraerlo a dimensionesDeExport. El refactor no
+  // puede cambiar ni un pixel, y git conserva el original por si hay que re-comprobarlo.
+  // Importa mas de lo que parece: el WxH entra en el hash del MOV, asi que una discrepancia
+  // entre el export y el lote seria un fallo de cache permanente y sin sintoma.
+  console.log('=== 0) LAS NUEVE DIMENSIONES DE EXPORT ===')
+  const NUEVE = [
+    ['vertical',   '4K',    2160, 3840],
+    ['vertical',   '1080p', 1080, 1920],
+    ['vertical',   '720p',   720, 1280],
+    ['square',     '4K',    2160, 2160],
+    ['square',     '1080p', 1080, 1080],
+    ['square',     '720p',   720,  720],
+    ['horizontal', '4K',    3840, 2160],
+    ['horizontal', '1080p', 1920, 1080],
+    ['horizontal', '720p',  1280,  720]
+  ]
+  const malas = []
+  for (const [ar, res, w, h] of NUEVE) {
+    const d = bundle.dimensionesDeExport(ar, res)
+    if (d.ancho !== w || d.alto !== h) malas.push(`${ar}/${res}: ${d.ancho}x${d.alto} != ${w}x${h}`)
+  }
+  ok(malas.length === 0, 'las 9 combinaciones dan lo mismo que el bloque en linea',
+    malas.length ? malas.join('\n          ')
+                 : NUEVE.map(([a, r, w, h]) => `${a}/${r}=${w}x${h}`).join('  '))
+
+  // Los dos `else` del bloque original no comprobaban nada, asi que un valor desconocido caia
+  // en horizontal / 1080p. Se conserva a proposito: cambiarlo seria cambiar el export.
+  const raro = bundle.dimensionesDeExport('loquesea', 'tampoco')
+  ok(raro.ancho === 1920 && raro.alto === 1080,
+    'un formato o resolucion desconocidos caen en horizontal 1080p, como antes',
+    `${raro.ancho}x${raro.alto}`)
+  const sinNada = bundle.dimensionesDeExport(undefined, undefined)
+  ok(sinNada.ancho === 1920 && sinNada.alto === 1080, 'y sin argumentos, igual')
+
   limpiar()
   const p = await llamar('create-project', { name: MARCA })
   const cacheGraficos = path.join(p.projectPath, 'cache', 'graficos')
@@ -277,13 +313,20 @@ async function main (bundle) {
     const G1 = { type: 'decorativo_emoji', value: '1️⃣', label: 'Uno' }
     const G2 = { type: 'decorativo_emoji', value: '2️⃣', label: 'Dos' }
     const G3 = { type: 'decorativo_emoji', value: '3️⃣', label: 'Tres' }
-    // 540x960 y 0.5s: son cinco renders y a tamano completo serian ~15 s de test. El tamano
-    // real ya lo cubre la seccion A.
-    const OPC_LOTE = { ancho: 540, alto: 960, fps: FPS, modo: 'overlay' }
+    // El lote ya no recibe pixeles, recibe formato y resolucion. square/720p son 720x720 =
+    // 518400 pixeles, EXACTAMENTE los mismos que los 540x960 que habia antes aqui, asi que el
+    // lote sigue tardando lo mismo. El tamano real ya lo cubre la seccion A.
+    const OPC_LOTE = { aspectRatio: 'square', resolution: '720p', fps: FPS, modo: 'overlay' }
     const DUR_LOTE = 0.5
+    // renderGraphicClip sigue siendo la primitiva de bajo nivel y toma PIXELES; quien traduce
+    // es el lote. Los renders sueltos de esta seccion tienen que usar exactamente el mismo
+    // tamano que el lote o no habria aciertos de cache, asi que se derivan de la MISMA
+    // funcion en vez de escribirlos a mano.
+    const DIM = bundle.dimensionesDeExport(OPC_LOTE.aspectRatio, OPC_LOTE.resolution)
+    const OPC_SUELTO = { ancho: DIM.ancho, alto: DIM.alto, fps: FPS, modo: 'overlay' }
 
     // G2 se pre-renderiza suelto para que dentro del lote sea un ACIERTO y los otros dos no.
-    const previo = await renderGraphicClip(G2, { ...OPC_LOTE, duracion: DUR_LOTE })
+    const previo = await renderGraphicClip(G2, { ...OPC_SUELTO, duracion: DUR_LOTE })
     ok(previo && fs.existsSync(previo), 'se pre-renderiza uno para que el lote lo acierte')
 
     const llamadas = []
@@ -308,7 +351,7 @@ async function main (bundle) {
     // que si el array estuviera cruzado se veria aqui.
     const sueltas = []
     for (const g of [G1, G2, G3]) {
-      sueltas.push(await renderGraphicClip(g, { ...OPC_LOTE, duracion: DUR_LOTE }))
+      sueltas.push(await renderGraphicClip(g, { ...OPC_SUELTO, duracion: DUR_LOTE }))
     }
     ok(lote.rutas.length === 3 && lote.rutas.every((r, i) => r === sueltas[i]),
       'rutas[i] es el grafico de peticiones[i], en su sitio')

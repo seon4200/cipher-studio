@@ -684,6 +684,33 @@ ipcMain.handle('extract-master-audio', async (_event, { videoPath }) => {
   }
 });
 
+// Las NUEVE combinaciones de formato y resolucion, en UN SOLO SITIO. Estaban en linea dentro
+// de export-video y ahora las comparte con el lote de graficos.
+//
+// No es cosmetico: el WxH entra en el hash del MOV. Si el lote y el export calcularan el
+// tamano por separado y alguien tocara uno de los dos, la cache fallaria SIEMPRE y sin
+// sintoma — se re-renderizarian los 19 graficos en cada export y nada lo diria. Peor todavia
+// seria acertar con el tamano equivocado: un MOV de 1080 escalado a 4K.
+export function dimensionesDeExport(aspectRatio?: string, resolution?: string):
+    { ancho: number; alto: number } {
+  if (aspectRatio === 'vertical') {
+    if (resolution === '4K') return { ancho: 2160, alto: 3840 };
+    if (resolution === '720p') return { ancho: 720, alto: 1280 };
+    return { ancho: 1080, alto: 1920 };
+  }
+  if (aspectRatio === 'square') {
+    if (resolution === '4K') return { ancho: 2160, alto: 2160 };
+    if (resolution === '720p') return { ancho: 720, alto: 720 };
+    return { ancho: 1080, alto: 1080 };
+  }
+  // horizontal, y tambien CUALQUIER valor desconocido: es el comportamiento del bloque
+  // original, cuyo ultimo `else` no comprobaba nada. Igual con la resolucion: el ultimo
+  // `else` era 1080p, asi que un valor raro cae ahi y no revienta.
+  if (resolution === '4K') return { ancho: 3840, alto: 2160 };
+  if (resolution === '720p') return { ancho: 1280, alto: 720 };
+  return { ancho: 1920, alto: 1080 };
+}
+
 // ── Render de graficos (via G) ──────────────────────────────────────────────────────
 // La pagina (dist/grafico.html) ya expone __montar, __setT y __listo desde 993de27. Esto es
 // la mitad que faltaba: la ventana offscreen, el lazo cerrado y el pipe a ffmpeg.
@@ -960,11 +987,13 @@ export async function renderGraphicClip(
  */
 export async function renderGraphicClipsLote(
   peticiones: { graphicData: any; duracion?: number }[],
-  opciones: { ancho?: number; alto?: number; fps?: number; modo?: 'overlay' | 'pantalla' } = {},
+  opciones: { aspectRatio?: string; resolution?: string;
+              fps?: number; modo?: 'overlay' | 'pantalla' } = {},
   emitirProgreso?: (p: { index: number; total: number; paragraph: string; type: string }) => void
 ) {
-  const ancho = opciones.ancho ?? 1080;
-  const alto = opciones.alto ?? 1920;
+  // El lote no sabe de pixeles: recibe lo mismo que el export —formato y resolucion, que el
+  // frontend ya tiene como estado persistido— y el tamano lo decide la funcion compartida.
+  const { ancho, alto } = dimensionesDeExport(opciones.aspectRatio, opciones.resolution);
   const fps = opciones.fps ?? 30;
   const modo = opciones.modo ?? 'overlay';
   const total = peticiones.length;
@@ -1054,9 +1083,11 @@ export async function renderGraphicClipsLote(
   return { rutas, total, renderizados, aciertos, fallos, sinIntentar, cancelado, motivo };
 }
 
-ipcMain.handle('render-graphics-batch', async (event, { graficos, ancho, alto, fps, modo }) => {
+ipcMain.handle('render-graphics-batch', async (event,
+    { graficos, aspectRatio, resolution, fps, modo }) => {
   try {
-    const r = await renderGraphicClipsLote(graficos || [], { ancho, alto, fps, modo },
+    const r = await renderGraphicClipsLote(graficos || [],
+      { aspectRatio, resolution, fps, modo },
       (p) => event.sender.send('generation-progress', p));
     return { success: true, ...r };
   } catch (err: any) {
@@ -2099,33 +2130,7 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
     }
 
     // Determine target resolution width and height
-    let targetW = 1920
-    let targetH = 1080
-    if (aspectRatio === 'vertical') {
-      if (resolution === '4K') {
-        targetW = 2160; targetH = 3840;
-      } else if (resolution === '720p') {
-        targetW = 720; targetH = 1280;
-      } else { // 1080p
-        targetW = 1080; targetH = 1920;
-      }
-    } else if (aspectRatio === 'square') {
-      if (resolution === '4K') {
-        targetW = 2160; targetH = 2160;
-      } else if (resolution === '720p') {
-        targetW = 720; targetH = 720;
-      } else { // 1080p
-        targetW = 1080; targetH = 1080;
-      }
-    } else { // horizontal
-      if (resolution === '4K') {
-        targetW = 3840; targetH = 2160;
-      } else if (resolution === '720p') {
-        targetW = 1280; targetH = 720;
-      } else { // 1080p
-        targetW = 1920; targetH = 1080;
-      }
-    }
+    const { ancho: targetW, alto: targetH } = dimensionesDeExport(aspectRatio, resolution);
 
     // Determine crop & scale filter. Se guarda SIN el envoltorio -vf "..." para poder
     // componer sobre la cadena sin cirugia de strings.
