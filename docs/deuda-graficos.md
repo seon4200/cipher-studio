@@ -129,25 +129,67 @@ ser latente.
 
 ---
 
-## 🔌 La PIEZA 2 existe pero NO LA LLAMA NADIE
+## 📌 Lo que hereda la PIEZA 3 del enchufe del botón ⟳
 
-**Anotado el 6 de agosto de 2026. Es la punta suelta grande del bloque de gráficos.**
+**Anotado el 6 de agosto de 2026, al enchufar la PIEZA 2 al botón. Tres cosas sin arreglar.**
 
-`renderGraphicClipsLote` está escrita, tiene su handler IPC (`render-graphics-batch`) y su
-hueco en el preload (`renderGraphicsBatch`). **Y nadie la invoca.**
+### a) La ausencia de `graphicMovHash` agrupa tres causas distintas
 
-`handleRegenerateGraphics` ([main.tsx:2603](../src/renderer/src/main.tsx#L2603)) sigue
-exactamente igual que antes: pide los datos a DeepSeek, construye los clips de tipo `graphic`
-con su `graphicData`, y los mete en el timeline. **No renderiza ningún MOV.**
+Un clip de tipo `graphic` sin el campo puede serlo por tres motivos que el dato no distingue:
 
-Consecuencia directa, sin rodeos: **los gráficos siguen sin salir en el vídeo exportado.** Que
-es el problema que todo este bloque existe para resolver.
+1. **El render falló** — `renderGraphicClip` devolvió `null`.
+2. **El lote se canceló** y ese gráfico quedó en `sinIntentar`: nunca se llegó a pedir.
+3. **Vino del camino de FASE 2** ([main.tsx:2489](../src/renderer/src/main.tsx#L2489)), que construye
+   clips de gráfico y **no llama al lote**.
 
-Se dejó así a propósito: enchufarlo toca el frontend, que es donde vive el bug del proyecto
-A/B de la sección siguiente, y mezclar las dos cosas en un cambio habría hecho imposible
-verificar ninguna. Pero que quede escrito sin ambigüedad: **la PIEZA 2 no está completa hasta
-que alguien la llame.** Lo que hay es la mitad de backend, verificada por
-`npm run test:graficos`.
+Para el mensaje de la COBERTURA 2 da igual —lo accionable es que no hay MOV— y para recuperarse
+también: volver a pulsar ⟳ re-renderiza, y los que ya estaban son aciertos de caché a ~2 ms.
+Pero **si algún día hay que decir *por qué* falta, este diseño no lo sabe**. Se eligió así a
+propósito: un campo de estado extra sería una segunda fuente de verdad que habría que limpiar
+al re-renderizar y que se quedaría obsoleta en el `project-state.json`.
+
+### b) La PIEZA 3 tiene que comprobar que el fichero EXISTE
+
+**No basta con que `graphicMovHash` esté puesto.** Un hash apuntando a un MOV borrado contaría
+como compuesto y no lo estaría — y nada borra `cache/graficos` hoy, pero el usuario puede
+vaciarla a mano, y un proyecto copiado a medias también la dejaría incompleta.
+
+Es exactamente el error que `auditarClips` ya evita para los materiales: **clasifica por si el
+fichero está, no por si el campo está**. La PIEZA 3 debe hacer lo mismo antes de contar un
+gráfico como compuesto, o la COBERTURA 2 dirá "19 de 19" sobre un vídeo al que le faltan.
+
+### c) El descarte por cambio de proyecto no queda registrado en ningún sitio consultable
+
+Cuando el usuario cambia de proyecto durante los ~50 s de un lote, el enchufe **descarta el
+resultado y no escribe el timeline** — que es lo correcto. Pero esa decisión se toma **en el
+renderer**, y solo queda en un `console.warn`.
+
+**No hay canal para que el renderer escriba en `generation-debug.log`.** Se revisó el preload
+entero: sus veinticuatro métodos son handlers de trabajo, suscripciones a eventos y gestión de
+proyecto, y **ninguno escribe en el log del backend**. No se inventó uno.
+
+Resultado: el usuario esperó ~50 s, no hay gráficos, y **el caso no se puede consultar después**.
+El log del backend registra el trabajo hecho (`[GRAFICO] RENDER <hash>`, `[GRAFICOS-LOTE] …`)
+pero no la decisión de tirarlo, porque ocurre después y en el otro proceso.
+
+Si alguna vez se añade un canal genérico de log desde el renderer, este es su primer cliente.
+
+---
+
+## ~~🔌 La PIEZA 2 existe pero NO LA LLAMA NADIE~~ — ✅ RESUELTO el 6/08/2026
+
+*Se anotó el 6 de agosto y se cerró el mismo día al enchufar el botón ⟳.*
+`handleRegenerateGraphics` llama ahora a `renderGraphicsBatch` antes de escribir el timeline y
+guarda el hash de cada MOV en `graphicMovHash`.
+
+**Se conserva la entrada porque su razón de ser sigue siendo cierta:** durante un rato la
+PIEZA 2 estuvo escrita, probada y con handler, y aun así **los gráficos no salían en el vídeo**,
+porque nadie la invocaba. Infraestructura verificada no es funcionalidad entregada, y esa
+distinción es fácil de perder de vista cuando la suite está en verde.
+
+**Lo que sigue sin verificar:** el enchufe es frontend y necesita DeepSeek, así que ninguna
+suite lo recorre. La primera prueba real es pulsar ⟳ en un proyecto con guion y mirar
+`cache/graficos`.
 
 ---
 
