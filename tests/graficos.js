@@ -76,7 +76,7 @@ async function huellaDelFrame (mov, t, etiqueta) {
 }
 
 async function main (bundle) {
-  const { renderGraphicClip, cerrarVentanaGraficos } = bundle
+  const { renderGraphicClip, renderGraphicClipsLote, cerrarVentanaGraficos } = bundle
   console.log('RENDER DE GRAFICOS — el MOV existe, mide lo que toca, conserva el alpha')
   console.log('               y sus frames son DISTINTOS entre si')
   console.log('Corre sobre el bundle compilado: ejecuta `npm run build` antes si has tocado el codigo.\n')
@@ -267,6 +267,85 @@ async function main (bundle) {
     ok(movs(cacheGraficos).length === dejados,
       'y NO deja ningun .mov a medias en cache/graficos',
       `${dejados} antes, ${movs(cacheGraficos).length} despues`)
+
+    // ── I) EL LOTE (PIEZA 2) ───────────────────────────────────────────────────────
+    // VA LA ULTIMA a proposito: su prueba de cancelacion cierra el proyecto, y cualquier
+    // seccion posterior se quedaria sin activeProjectPath. renderGraphicClip devolveria null
+    // de inmediato y los asserts de la seccion G pasarian por el motivo equivocado — verdes
+    // sin haber probado nada.
+    console.log('\n=== I) EL LOTE ===')
+    const G1 = { type: 'decorativo_emoji', value: '1️⃣', label: 'Uno' }
+    const G2 = { type: 'decorativo_emoji', value: '2️⃣', label: 'Dos' }
+    const G3 = { type: 'decorativo_emoji', value: '3️⃣', label: 'Tres' }
+    // 540x960 y 0.5s: son cinco renders y a tamano completo serian ~15 s de test. El tamano
+    // real ya lo cubre la seccion A.
+    const OPC_LOTE = { ancho: 540, alto: 960, fps: FPS, modo: 'overlay' }
+    const DUR_LOTE = 0.5
+
+    // G2 se pre-renderiza suelto para que dentro del lote sea un ACIERTO y los otros dos no.
+    const previo = await renderGraphicClip(G2, { ...OPC_LOTE, duracion: DUR_LOTE })
+    ok(previo && fs.existsSync(previo), 'se pre-renderiza uno para que el lote lo acierte')
+
+    const llamadas = []
+    const lote = await renderGraphicClipsLote(
+      [{ graphicData: G1, duracion: DUR_LOTE },
+       { graphicData: G2, duracion: DUR_LOTE },
+       { graphicData: G3, duracion: DUR_LOTE }],
+      OPC_LOTE,
+      (p) => llamadas.push(p))
+
+    ok(lote.total === 3 && lote.aciertos === 1 && lote.renderizados === 2 && lote.fallos === 0,
+      'lote de 3 con uno cacheado: 2 renderizados, 1 de cache',
+      JSON.stringify({ t: lote.total, r: lote.renderizados, a: lote.aciertos, f: lote.fallos }))
+
+    // Los sumandos SIEMPRE cuadran con el total. Si alguien añade un estado nuevo y se olvida
+    // de contarlo, esto se pone rojo.
+    ok(lote.renderizados + lote.aciertos + lote.fallos + lote.sinIntentar === lote.total,
+      'renderizados + aciertos + fallos + sinIntentar === total',
+      `${lote.renderizados}+${lote.aciertos}+${lote.fallos}+${lote.sinIntentar} = ${lote.total}`)
+
+    // Correspondencia posicional: pedir cada uno suelto da un ACIERTO con la misma ruta, asi
+    // que si el array estuviera cruzado se veria aqui.
+    const sueltas = []
+    for (const g of [G1, G2, G3]) {
+      sueltas.push(await renderGraphicClip(g, { ...OPC_LOTE, duracion: DUR_LOTE }))
+    }
+    ok(lote.rutas.length === 3 && lote.rutas.every((r, i) => r === sueltas[i]),
+      'rutas[i] es el grafico de peticiones[i], en su sitio')
+
+    // El progreso manda index en BASE 0. Es el candado del off-by-one: el frontend hace
+    // data.index + 1, asi que mandar base 1 pintaria "4 de 3" al final.
+    ok(llamadas.length === 3 && llamadas[0].index === 0 && llamadas[2].index === 2,
+      'el progreso emite index en BASE 0',
+      'indices: ' + llamadas.map(l => l.index).join(', '))
+    ok(llamadas.every(l => l.total === 3 && l.type === 'Gráficos'),
+      'y total y type son consistentes en las tres')
+
+    // EL QUE MAS IMPORTA. Si alguien simplifica el mensaje a "Renderizando i de n", la barra
+    // sigue avanzando y el lote sigue funcionando: no lo detectaria NADA salvo esto.
+    ok(/cach/i.test(llamadas[1].paragraph),
+      'el texto del progreso DICE que fue acierto de cache', `"${llamadas[1].paragraph}"`)
+    ok(!/cach/i.test(llamadas[0].paragraph),
+      'y el del que si se renderiza NO lo dice', `"${llamadas[0].paragraph}"`)
+
+    // La punta suelta de la PIEZA 1: el lote cierra la ventana en su finally.
+    ok(offscreens().length === 0, 'el lote deja la ventana offscreen CERRADA')
+
+    // Cancelacion: sin proyecto activo. Recorre la MISMA rama que un cambio de proyecto a
+    // mitad, entrando por la puerta de arriba en vez de por la de en medio. La comparacion
+    // dentro del bucle no tiene test: no hay forma determinista de mover activeProjectPath a
+    // mitad, y un test con carrera envenena la suite. Anotado en docs/deuda-graficos.md.
+    await llamar('close-project', {})
+    const cancelado = await renderGraphicClipsLote(
+      [{ graphicData: G1 }, { graphicData: G2 }, { graphicData: G3 }], OPC_LOTE)
+    ok(cancelado.cancelado === true && /proyecto activo/.test(cancelado.motivo),
+      'sin proyecto activo el lote se cancela y dice por que', cancelado.motivo)
+    ok(cancelado.sinIntentar === 3 && cancelado.rutas.length === 3 &&
+       cancelado.rutas.every(r => r === null),
+      'un lote cancelado devuelve el array COMPLETO a null, no uno vacio',
+      'con push seria length 0; posicional conserva los huecos')
+    ok(cancelado.renderizados + cancelado.aciertos + cancelado.fallos +
+       cancelado.sinIntentar === cancelado.total, 'y los sumandos siguen cuadrando')
 
     // ── El log, para MIRAR, no para asertar ────────────────────────────────────────
     console.log('\n=== LO QUE DICE EL LOG (no se aserta, se mira) ===')
