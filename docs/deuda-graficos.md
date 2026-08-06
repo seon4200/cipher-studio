@@ -87,12 +87,57 @@ lo que garantiza el código.**
   — **ni siquiera tiene ese `Math.min`**. Antes se recorta `end` a `phraseDuration`
   ([index.ts:2759](../src/main/index.ts#L2759)) y después al audio restante
   ([index.ts:3609](../src/main/index.ts#L3609)): una frase corta da un gráfico corto.
-- Y el respaldo del frontend, en sus dos puertas
-  ([main.tsx:2646](../src/renderer/src/main.tsx#L2646) y
-  [main.tsx:2483](../src/renderer/src/main.tsx#L2483)), es
-  `c.graphicDuration ?? Math.min(2.0, matchingVideo?.durationSeconds || 2.0)`: toma la duración
-  del clip de vídeo si es **menor** que 2.
+### ⚠️ El respaldo del frontend es CÓDIGO MUERTO, y leerlo induce a error
+
+En las dos puertas del frontend ([main.tsx:2646](../src/renderer/src/main.tsx#L2646) y
+[main.tsx:2483](../src/renderer/src/main.tsx#L2483)) está esto:
+
+```js
+durationSeconds: c.graphicDuration ?? Math.min(2.0, matchingVideo?.durationSeconds || 2.0)
+```
+
+**Leído deprisa parece decir que un clip de vídeo corto produce un gráfico corto. No es
+cierto: ese respaldo no se alcanza nunca.** Es una trampa real — se cayó en ella durante la
+sesión que escribió este documento, y por eso queda anotada.
+
+El `??` solo cae al respaldo si `graphicDuration` llega **indefinido**, y el backend lo pone
+**siempre junto a `graphicData`**, en el mismo bloque
+([index.ts:3846-3851](../src/main/index.ts#L3846)):
+
+```js
+if (targetClip) {
+  targetClip.graphicData = p.graphic;
+  ...
+  targetClip.graphicDuration = durSec;
+}
+```
+
+Y el filtro de las dos puertas es `.filter(c => c.graphicData)`: si un clip lo pasa, tiene
+`graphicData`, luego tiene `graphicDuration`, luego el `??` no cae.
+
+Lo único que podría romper ese razonamiento —que la mutación no viajara al frontend— está
+comprobado que no lo rompe: [index.ts:3730-3731](../src/main/index.ts#L3730) hace
+`let generatedClips = clips.map(c => ({...c})); const clipsRef = generatedClips;`, **misma
+referencia**, así que lo que se muta en `targetClip` sale en `res.clips`.
+
+**Consecuencia:** la duración del clip de vídeo **no influye** en la del gráfico. El único
+mecanismo vivo es el tramo que devuelve el modelo.
 
 Es decir: hoy el bug está latente porque el modelo viene devolviendo 2.0, no porque el código
 lo impida. En cuanto se toque el prompt —que es el paso siguiente al de la integración— deja de
 ser latente.
+
+---
+
+## Lo que hay que medir para saber si ya está pasando
+
+**La medición correcta es sobre los gráficos, no sobre los clips de vídeo:** cuántos tienen
+`graphicEnd − graphicStart < 1.5` en un proyecto real. Ese es el número que decide si el
+`contador` ya se está grabando con datos falsos o si de momento es teórico.
+
+Contar clips cortos del timeline **no sirve**, y creerlo fue consecuencia de leer mal el
+respaldo de la sección anterior: la duración del clip de vídeo no entra en la del gráfico.
+
+Todavía no se puede medir: en `proyectos/` solo queda un proyecto, con un único clip de
+199.25 s sin cortar y ningún gráfico. Los 44 proyectos que midió el plan ya no están en disco.
+**Se mide en cuanto se vuelvan a generar gráficos en un proyecto de verdad.**
