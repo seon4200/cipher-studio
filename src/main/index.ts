@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import { spawn, exec } from 'child_process'
 import { once } from 'events'
+import { createHash } from 'crypto'
 import fs from 'fs'
 import { pathToFileURL } from 'url'
 import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, getVideoDimensions } from './services/ffmpeg'
@@ -702,7 +703,41 @@ const MAX_INTENTOS_FRAME = 5;  // medido: nunca hicieron falta mas de 2
 
 let ventanaGraficos: BrowserWindow | null = null;
 let loteGraficosActivo = false;
-let contadorGraficos = 0;
+
+// Canoniza un valor a una cadena estable: claves ordenadas alfabeticamente en TODOS los
+// niveles, y null/undefined colapsan a la misma cadena. Sin esto, `extra` —un objeto libre
+// que viene del modelo— cambiaria la clave segun el orden en que llegaran sus claves, y el
+// mismo grafico daria dos hashes.
+const canonizar = (v: any): string => {
+  if (v === null || v === undefined) return 'null';
+  if (Array.isArray(v)) return '[' + v.map(canonizar).join(',') + ']';
+  if (typeof v === 'object') {
+    return '{' + Object.keys(v).sort()
+      .map(k => JSON.stringify(k) + ':' + canonizar(v[k])).join(',') + '}';
+  }
+  return JSON.stringify(v);
+};
+
+// NUNCA JSON.stringify(graphicData). Ese objeto nace de TRES formas distintas —el objeto
+// crudo de DeepSeek con el orden que traiga (:3847), un literal de ocho claves (:2774) y uno
+// de seis (:3611)— asi que el mismo grafico daria hashes distintos segun por donde entrase.
+//
+// Se proyectan SOLO las seis claves que lee AnimatedGraphic (AnimatedGraphic.tsx:78), en un
+// orden fijo escrito AQUI. graphicStart y graphicEnd viven dentro de graphicData en dos de
+// las tres formas, pero el componente NO las lee: quedan fuera POR CONSTRUCCION, sin un
+// delete que se pueda olvidar. Es la decision cerrada de que el tiempo de inicio no entra en
+// la clave — si entrara, mover un clip 0.1s re-renderizaria un fichero byte a byte identico.
+function hashGrafico(graphicData: any, ancho: number, alto: number,
+                     duracion: number, fps: number): string {
+  const g = graphicData || {};
+  const partes = [
+    canonizar(g.type), canonizar(g.value), canonizar(g.label),
+    canonizar(g.unit), canonizar(g.emoji), canonizar(g.extra),
+    // La duracion SI entra: 2s y 3s son animaciones distintas, no la misma estirada.
+    String(ancho), String(alto), String(duracion), String(fps)
+  ];
+  return createHash('sha1').update(partes.join('|')).digest('hex').slice(0, 12);
+}
 
 async function obtenerVentanaGraficos(ancho: number, alto: number): Promise<BrowserWindow> {
   const altoTotal = alto + SONDA_ALTO;
@@ -790,7 +825,22 @@ export async function renderGraphicClip(
   // cleanupProjectTemp deje de borrarla—, asi que la crea quien la llena. Verificado.
   const destDir = dirCache(activeProjectPath, 'graficos');
   await fs.promises.mkdir(destDir, { recursive: true });
-  const destino = path.join(destDir, `grafico_${Date.now()}_${++contadorGraficos}.mov`);
+
+  // El nombre ES el hash: no hay indice que mantener ni que pueda desincronizarse del disco.
+  const hash = hashGrafico(graphicData, ancho, alto, duracion, fps);
+  const destino = path.join(destDir, `${hash}.mov`);
+
+  // ACIERTO. Se exige tamano > 0: un MOV de 0 bytes de un render interrumpido existe pero no
+  // es un acierto, seria un hueco en el video.
+  try {
+    const st = await fs.promises.stat(destino);
+    if (st.size > 0) {
+      await writeDebugLog(`[GRAFICO] ACIERTO ${hash} — ${graphicData?.type} — ` +
+        `${(st.size / 1048576).toFixed(2)} MB — sin renderizar`);
+      return destino;
+    }
+    await writeDebugLog(`[GRAFICO] ${hash} estaba a 0 bytes: no cuenta, se re-renderiza.`);
+  } catch (e) { /* no existe: se renderiza */ }
 
   const yaHabiaLote = loteGraficosActivo;
   loteGraficosActivo = true;
@@ -886,7 +936,7 @@ export async function renderGraphicClip(
     const { size } = await fs.promises.stat(destino);
     // framesEnElTope aparte de la media: un maximo de 5 suelto es ruido, pero veinte frames
     // rozando el tope es un tipo de grafico a punto de fallar entero.
-    await writeDebugLog(`[GRAFICO] ${path.basename(destino)} — ${graphicData?.type} — ` +
+    await writeDebugLog(`[GRAFICO] RENDER ${hash} — ${graphicData?.type} — ` +
       `${totalFrames}f ${ancho}x${alto} — ${(size / 1048576).toFixed(2)} MB — ` +
       `${Date.now() - t0} ms — ${(intentosTotales / totalFrames).toFixed(2)} intentos/frame — ` +
       `${framesEnElTope} frame(s) en el tope de ${MAX_INTENTOS_FRAME}`);
