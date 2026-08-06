@@ -362,11 +362,25 @@ lista_numerada · checklist · pasos_proceso
 
 ## 10. AVISOS PARA NO PERDER HORAS
 
-**⚠️ La deriva de 2.758s — probablemente resuelta por `83a92ff`, SIN verificar con export medido.** Los gráficos se componen a tiempos absolutos sobre el video concatenado, así que una deriva del video respecto al audio los pondría sobre el plano equivocado.
+**✅ La deriva de 2.758s está CERRADA y VERIFICADA CON EXPORT MEDIDO (6 agosto 2026).** Este aviso queda saldado: ya no hay que sospechar de la deriva.
 
-El commit `83a92ff` (*"cada clip normalizado dura exactamente su slot — elimina la deriva video/audio"*) puso el recorte en frames enteros arrastrando el error acumulado — `index.ts:1821-1843`, aplicado en `:1911-1912`. **No la cerró la Vía 4**, que solo tocó la ruta del clip de audio en `generate-perfect-sync`.
+El commit `83a92ff` (*"cada clip normalizado dura exactamente su slot — elimina la deriva video/audio"*) puso el recorte en frames enteros arrastrando el error acumulado. **No la cerró la Vía 4**, que solo tocó la ruta del clip de audio en `generate-perfect-sync`. Durante un tiempo eso fue **código leído, no export medido**, y así estuvo anotado.
 
-**Pero esto es código leído, no export medido.** El mecanismo que la causaba ya no está; nadie ha exportado un video largo y comprobado que la duración cuadra con el audio. Se verifica sola la primera vez que exportes largo con gráficos y mires si caen donde deben. **Hasta entonces: si aparecen desplazados al final de un video largo, sospechar de esto antes que de los gráficos.**
+**Ya está medido.** Export real del proyecto `lkjkl-1785986065726`, 111 clips de vídeo, 286 s:
+
+| | |
+|---|---|
+| Suma de `durationSeconds` del timeline | **286.023 s** |
+| Duración del vídeo exportado (`ffprobe`) | **285.916 s** (8578 frames) |
+| Audio maestro | 285.955 s |
+| Desvío máximo de un clip respecto a su `startSeconds` | **+0.068 s**, en el clip 83 |
+| Error de cuantización del propio P0 (del log) | **+0.010 s** sobre 8581 frames |
+
+**Lo decisivo es que el desvío NO CRECE:** +0.040 s en el clip 20 y +0.068 s a partir del 40, plano hasta el 110. La deriva de 2.758 s era progresiva y monótona; esto es un residuo constante de dos frames. `CONCAT == TIMELINE` se cumple.
+
+**Y se descartó por medición la hipótesis del redondeo por clip** (111 clips × 1 frame a 30 fps = 3.7 s): el `Math.round` sobre el acumulado impide que el error por clip se sume, y el log lo confirma con +0.010 s totales.
+
+> **Ojo con confundirlo con otra cosa.** Un export de este mismo proyecto mostró ~3 s en los que *"el vídeo termina y el audio sigue"*. **No era deriva:** el último clip tenía un hueco de 5.84 s con solo 2.73 s de metraje, y el `tpad` rellenó 3.11 s con un fotograma congelado. La causa está en la transcripción, no en el export — ver la sección de la cola sin transcribir.
 
 *Las secciones del plan maestro que marcan A2 como "SIGUIENTE" y el bloque "🛑 BLOQUEANTE DE A2 — DERIVA ACUMULADA" están obsoletas: `git log -S "frameTargets"` devuelve `83a92ff`, `6455626` (A2), `58e8d79` (B1) y `fea9eac` (A4), todos anteriores, y el propio plan marca A4 como hecha y verificada. El plan se contradice a sí mismo.*
 
