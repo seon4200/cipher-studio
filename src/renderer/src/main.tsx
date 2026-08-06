@@ -467,6 +467,14 @@ function App() {
     milestoneIndexRef.current = milestoneIndex
   }, [milestoneHistory, milestoneIndex])
 
+  // El valor de activeProjectPath queda CAPTURADO en la clausura de cada handler, asi que
+  // leerlo despues de un await da el de cuando arranco, no el de ahora. Compararlo consigo
+  // mismo seria un candado de atrezo: un if que nunca se cumple. Con un ref se puede preguntar
+  // por el ACTUAL, que es lo que hace falta para saber si el usuario cambio de proyecto
+  // durante los ~50 s que tarda un lote de graficos.
+  const activeProjectPathRef = React.useRef(activeProjectPath)
+  useEffect(() => { activeProjectPathRef.current = activeProjectPath }, [activeProjectPath])
+
   const pushMilestone = (label: string, customState?: Partial<MilestoneState>) => {
     setMilestoneHistory(prev => {
       const nextHistory = prev.slice(0, milestoneIndexRef.current + 1)
@@ -2649,7 +2657,58 @@ function App() {
               graphicData: c.graphicData
             };
           });
-        setTimelineVideoClips([...nonGraphicClips, ...newGraphicClips]);
+
+        // Se captura ANTES del lote. Los ~50 s que tarda son la ventana en la que el usuario
+        // puede abrir otro proyecto, y escribir el timeline entonces meteria los graficos del
+        // proyecto A en el B. Va por el REF, no por la clausura: ver el comentario del ref.
+        const proyectoAlEmpezar = activeProjectPathRef.current;
+
+        // El frontend NO sabe de pixeles: manda formato y resolucion, que ya tiene como estado
+        // persistido, y dimensionesDeExport traduce en el backend — el MISMO sitio que usa el
+        // export, porque el WxH entra en el hash del MOV.
+        const lote = await window.electronAPI.renderGraphicsBatch({
+          graficos: newGraphicClips.map(c => ({
+            graphicData: c.graphicData,
+            duracion: c.durationSeconds
+          })),
+          aspectRatio,
+          resolution: exportResolution
+        });
+
+        // El proyecto cambio mientras renderizabamos: NO se escribe el estado. Los MOV que se
+        // hayan hecho siguen en cache/graficos del proyecto correcto, asi que volver a pulsar
+        // ⟳ alli los recupera a ~2 ms cada uno por la cache. No se pierde trabajo.
+        if (activeProjectPathRef.current !== proyectoAlEmpezar) {
+          console.warn('[GRAFICOS] El proyecto cambio durante la generacion: no se toca el timeline.');
+          return;
+        }
+
+        // rutas es POSICIONAL: rutas[i] corresponde a newGraphicClips[i], y es null si ese
+        // grafico no se hizo —fallo, o lote cancelado y quedo sin intentar—. El clip entra
+        // igual, SIN el campo: ni se quita ni se marca. Quitarlo dejaria al export sin nada
+        // que echar de menos y romperia la COBERTURA 2 ("esperaba 19, compuse 17"); marcarlo
+        // seria una segunda fuente de verdad que habria que limpiar. La ausencia se corrige
+        // sola al re-renderizar.
+        // Se guarda el HASH y no la ruta: el proyecto es autocontenido por decision cerrada,
+        // y una ruta absoluta seria el hash con un prefijo que se queda obsoleto al moverlo.
+        // No se usa path.basename porque `path` es de Node y aqui no existe.
+        const rutas = (lote && lote.rutas) || [];
+        const conMov = newGraphicClips.map((c, i) => {
+          const ruta = rutas[i];
+          if (!ruta) return c;
+          const hash = ruta.replace(/\\/g, '/').split('/').pop()!.replace(/\.mov$/, '');
+          return { ...c, graphicMovHash: hash };
+        });
+
+        if (lote && lote.cancelado) {
+          console.warn('[GRAFICOS] Lote cancelado:', lote.motivo,
+            '— los clips entran igual; volver a pulsar ⟳ los completa desde la cache.');
+        }
+
+        // El timeline se escribe UNA vez, al final. Meter los clips antes y completarlos
+        // despues dispararia el autoguardado con clips sin MOV en disco, y la PIEZA 3 no
+        // podria distinguir "fallo" de "aun renderizando".
+        setTimelineVideoClips([...nonGraphicClips, ...conMov]);
         setIsDirty(true);
       }
     } catch (err) {
