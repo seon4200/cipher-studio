@@ -129,6 +129,49 @@ ser latente.
 
 ---
 
+## ⚠️ Qué pasa con el resultado cuando el frontend desaparece a mitad
+
+**Anotado el 6 de agosto de 2026 al diseñar la PIEZA 2. Sin arreglar a propósito: los dos son
+del frontend, no del lote.**
+
+Un lote de 19 gráficos son ~50 s de reloj, y durante ese rato la interfaz **no está
+bloqueada** — `isGeneratingAssets` solo deshabilita los botones que lanzan trabajo, no hay
+overlay modal. El usuario puede hacer cualquier cosa. Hay dos formas de que el trabajo se
+complete y el resultado se pierda o acabe en el sitio equivocado.
+
+### a) Los gráficos del proyecto A aterrizan en el B
+
+`handleRegenerateGraphics` hace
+`setTimelineVideoClips([...nonGraphicClips, ...newGraphicClips])`
+([main.tsx:2652](../src/renderer/src/main.tsx#L2652)) **cuando vuelve el `await`**, sobre el
+estado que haya **en ese momento**. Si el usuario abrió otro proyecto durante los ~50 s, los
+gráficos del A se inyectan en el timeline del B — y `timelineVideoClips` está en las dos listas
+de dependencias del autoguardado, así que **se persisten ahí**.
+
+**Ya pasa hoy, sin la PIEZA 2.** El lote del backend cancela por su lado al detectar que
+`activeProjectPath` cambió, pero eso no cubre esto: el bug está en el frontend, en el instante
+de escribir el estado.
+
+### b) La ventana muere a los 4 s y los MOV quedan invisibles
+
+El manejador de cierre ([index.ts:107-123](../src/main/index.ts#L107)) hace `preventDefault`,
+manda `save-before-close` y **destruye la ventana a los 4 segundos pase lo que pase**. Un lote
+de 50 s no cabe en esa ventana de tiempo.
+
+Cerrar la app a mitad deja: el renderer muerto, el `await` que iba a recibir los clips sin
+nadie que lo reciba, y **los MOV escritos en `cache/graficos` pero invisibles** — al reabrir el
+proyecto no hay gráficos aunque los ficheros estén ahí, porque los clips nunca llegaron al
+estado ni al `project-state.json`.
+
+El daño está acotado por la caché: los MOV siguen en disco y la siguiente generación los
+reutiliza en ~2 ms cada uno, así que **no se pierde el trabajo, se pierde la sesión**.
+
+*(Al diseñar esto se consideró una guarda en `before-quit` para rescatar la ventana offscreen.
+No hace falta: si la app se cierra, el proceso se lleva la ventana igual. No hay huérfana que
+rescatar — el `finally` del lote cubre el caso real.)*
+
+---
+
 ## ⚠️ Un MOV truncado cuenta como acierto de caché
 
 **Anotado el 6 de agosto de 2026 al escribir la caché por hash. Sin arreglar a propósito.**
