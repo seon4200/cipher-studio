@@ -729,7 +729,18 @@ const SONDA_FPS = 30;
 const MAX_INTENTOS_FRAME = 5;  // medido: nunca hicieron falta mas de 2
 
 let ventanaGraficos: BrowserWindow | null = null;
+
+// DOS banderas, y no una, porque responden a preguntas distintas:
+//   loteGraficosActivo — "¿hay trabajo de graficos vivo, para que window-all-closed no mate la
+//                         app?". Se ANIDA: renderGraphicClip la guarda y la restaura porque
+//                         corre dentro del lote, y esta en true tambien durante un render
+//                         suelto.
+//   loteEnCurso        — "¿hay ya un LOTE?". Es exclusion mutua plana: o hay lote o no lo hay,
+//                         nunca anidada.
+// Colapsarlas obligaria a que una de las dos mintiera: usar loteGraficosActivo como exclusion
+// haria que un renderGraphicClip individual bloqueara un lote entero.
 let loteGraficosActivo = false;
+let loteEnCurso = false;
 
 // Canoniza un valor a una cadena estable: claves ordenadas alfabeticamente en TODOS los
 // niveles, y null/undefined colapsan a la misma cadena. Sin esto, `extra` —un objeto libre
@@ -998,6 +1009,21 @@ export async function renderGraphicClipsLote(
   const modo = opciones.modo ?? 'overlay';
   const total = peticiones.length;
 
+  // Guarda de exclusion mutua. VA ANTES DEL try, y eso es lo que la hace correcta: si
+  // estuviera dentro, el `finally` del lote rechazado llamaria a cerrarVentanaGraficos() y
+  // DESTRUIRIA la ventana del lote que si esta trabajando — justo el destrozo que se quiere
+  // evitar. El que llega tarde no toca nada.
+  // Se rechaza en el acto, sin esperar ni encolar, y con la misma forma que la cancelacion por
+  // falta de proyecto: asi quien lo consuma no necesita distinguir casos.
+  if (loteEnCurso) {
+    await writeDebugLog(`[GRAFICOS-LOTE] RECHAZADO: ya hay un lote en curso (${total} pedidos).`);
+    return {
+      rutas: new Array(total).fill(null) as (string | null)[], total,
+      renderizados: 0, aciertos: 0, fallos: 0, sinIntentar: total,
+      cancelado: true, motivo: 'ya hay un lote en curso'
+    };
+  }
+
   // Se captura AL EMPEZAR y en local. renderGraphicClip lee activeProjectPath en CADA
   // llamada, asi que sin esto un cambio de proyecto a mitad de un lote de 19 mandaria los MOV
   // restantes a cache/graficos del proyecto NUEVO, mezclando dos proyectos en disco.
@@ -1011,6 +1037,7 @@ export async function renderGraphicClipsLote(
   let cancelado = false, motivo = '';
 
   loteGraficosActivo = true;
+  loteEnCurso = true;
   const t0 = Date.now();
 
   try {
@@ -1068,6 +1095,7 @@ export async function renderGraphicClipsLote(
     // resultara ser la ultima ventana viva.
     cerrarVentanaGraficos();
     loteGraficosActivo = false;
+    loteEnCurso = false;
   }
 
   // Los "sin intentar" se dicen SIEMPRE que los haya: sin ese numero, un lote cancelado deja

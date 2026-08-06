@@ -374,6 +374,44 @@ async function main (bundle) {
     // La punta suelta de la PIEZA 1: el lote cierra la ventana en su finally.
     ok(offscreens().length === 0, 'el lote deja la ventana offscreen CERRADA')
 
+    // ── Dos lotes solapados ────────────────────────────────────────────────────────
+    // NO hay carrera y no hacen falta temporizadores: renderGraphicClipsLote pone la bandera
+    // de forma SINCRONA —todo lo que hay antes es aritmetica— asi que llamar al segundo en el
+    // mismo tick garantiza que la ve. JS es de un solo hilo: el orden esta determinado.
+    const G4 = { type: 'decorativo_emoji', value: '4️⃣', label: 'Cuatro' }
+    const G5 = { type: 'decorativo_emoji', value: '5️⃣', label: 'Cinco' }
+
+    // Se calienta la ventana antes: asi el "no toca la ventana del primero" mira algo que ya
+    // existe. Sin esto la ventana aun no estaria creada cuando el segundo es rechazado —el
+    // primero no ha llegado todavia a renderGraphicClip— y el assert no probaria nada.
+    // OPC_SUELTO sale de dimensionesDeExport(OPC_LOTE...), asi que el tamano coincide por
+    // construccion y obtenerVentanaGraficos no redimensiona nada.
+    await renderGraphicClip(G4, { ...OPC_SUELTO, duracion: DUR_LOTE })
+    ok(offscreens().length === 1, 'la ventana esta viva antes de solapar')
+
+    const loteA = renderGraphicClipsLote(          // SIN await: se queda en vuelo
+      [{ graphicData: G5, duracion: DUR_LOTE }], OPC_LOTE)
+    const loteB = await renderGraphicClipsLote(    // mismo tick: ve la bandera
+      [{ graphicData: G4, duracion: DUR_LOTE }], OPC_LOTE)
+
+    ok(loteB.cancelado === true && /en curso/.test(loteB.motivo),
+      'el segundo lote se RECHAZA mientras el primero corre', loteB.motivo)
+    ok(loteB.sinIntentar === 1 && loteB.rutas.length === 1 && loteB.rutas[0] === null,
+      'el rechazado no intenta nada y devuelve el array completo a null')
+    ok(offscreens().length === 1,
+      'el rechazo NO toca la ventana del primero: sigue viva',
+      'si el rechazado hubiera entrado en el try, su finally la habria destruido')
+
+    const resA = await loteA
+    // ESTE es el que prueba el punto: si el rechazado hubiera ejecutado su finally, habria
+    // destruido la ventana, los capturePage del primero habrian fallado y este terminaria con
+    // rutas [null] y fallos 1. Que termine limpio es la prueba de que el rechazo no toco nada.
+    ok(resA.cancelado === false && resA.fallos === 0 && resA.rutas[0] !== null,
+      'el primero termina con normalidad, sin nulls',
+      JSON.stringify({ cancelado: resA.cancelado, r: resA.renderizados,
+                       a: resA.aciertos, f: resA.fallos }))
+    ok(offscreens().length === 0, 'y al terminar el primero, la ventana queda cerrada')
+
     // Cancelacion: sin proyecto activo. Recorre la MISMA rama que un cambio de proyecto a
     // mitad, entrando por la puerta de arriba en vez de por la de en medio. La comparacion
     // dentro del bucle no tiene test: no hay forma determinista de mover activeProjectPath a
