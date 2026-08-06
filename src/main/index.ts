@@ -953,6 +953,117 @@ export async function renderGraphicClip(
   }
 }
 
+/**
+ * Renderiza una lista de graficos con UNA sola ventana offscreen. Devuelve un array
+ * POSICIONAL: rutas[i] es null si ese grafico falto, y los huecos NO desplazan a los demas.
+ * La PIEZA 3 necesita saber CUAL falto para poder decir "esperaba 19, compuse 17".
+ */
+export async function renderGraphicClipsLote(
+  peticiones: { graphicData: any; duracion?: number }[],
+  opciones: { ancho?: number; alto?: number; fps?: number; modo?: 'overlay' | 'pantalla' } = {},
+  emitirProgreso?: (p: { index: number; total: number; paragraph: string; type: string }) => void
+) {
+  const ancho = opciones.ancho ?? 1080;
+  const alto = opciones.alto ?? 1920;
+  const fps = opciones.fps ?? 30;
+  const modo = opciones.modo ?? 'overlay';
+  const total = peticiones.length;
+
+  // Se captura AL EMPEZAR y en local. renderGraphicClip lee activeProjectPath en CADA
+  // llamada, asi que sin esto un cambio de proyecto a mitad de un lote de 19 mandaria los MOV
+  // restantes a cache/graficos del proyecto NUEVO, mezclando dos proyectos en disco.
+  // Se CANCELA y no se bloquea: bloquear el cambio de proyecto 50 s se siente como que la app
+  // se rompio, y cancelar no pierde trabajo — los MOV ya escritos siguen en cache/graficos y
+  // la siguiente generacion los reutiliza en ~2 ms por el hash.
+  const proyectoDelLote = activeProjectPath;
+
+  const rutas: (string | null)[] = new Array(total).fill(null);
+  let aciertos = 0, renderizados = 0, fallos = 0, intentados = 0;
+  let cancelado = false, motivo = '';
+
+  loteGraficosActivo = true;
+  const t0 = Date.now();
+
+  try {
+    if (!proyectoDelLote) {
+      cancelado = true;
+      motivo = 'no hay proyecto activo';
+    }
+
+    for (let i = 0; i < total && !cancelado; i++) {
+      if (activeProjectPath !== proyectoDelLote) {
+        cancelado = true;
+        motivo = `el proyecto cambio a mitad: ${path.basename(proyectoDelLote!)} -> ` +
+          `${activeProjectPath ? path.basename(activeProjectPath) : '(ninguno)'}`;
+        break;
+      }
+
+      const duracion = peticiones[i].duracion ?? 2;
+
+      // SOLO para el texto del progreso. Un acierto de cache tarda ~2 ms, asi que anunciar
+      // "renderizando" seria mentira y la barra saltaria sin explicacion. La AUTORIDAD sobre
+      // si hay acierto es renderGraphicClip: si esto se equivocara, lo unico erroneo seria
+      // una palabra en un mensaje.
+      const hash = hashGrafico(peticiones[i].graphicData, ancho, alto, duracion, fps);
+      let cacheado = false;
+      try {
+        const st = await fs.promises.stat(
+          path.join(dirCache(proyectoDelLote!, 'graficos'), `${hash}.mov`));
+        cacheado = st.size > 0;
+      } catch (e) { /* no esta: se renderiza */ }
+
+      // index en BASE 0: el frontend hace `data.index + 1` (main.tsx:1403). Es el patron de
+      // :3135 (`index: item.index - 1`), NO el de :4121, que manda base 1 y produce el
+      // off-by-one anotado como deuda BAJA. Copiado del que esta bien.
+      emitirProgreso?.({
+        index: i, total,
+        paragraph: cacheado
+          ? `Gráfico ${i + 1} de ${total}: reutilizado de la caché`
+          : `Renderizando gráfico ${i + 1} de ${total}...`,
+        type: 'Gráficos'
+      });
+
+      intentados++;
+      const ruta = await renderGraphicClip(peticiones[i].graphicData,
+        { ancho, alto, fps, duracion, modo });
+
+      rutas[i] = ruta;                      // POSICIONAL: el hueco se queda en su sitio
+      if (!ruta) fallos++;
+      else if (cacheado) aciertos++;
+      else renderizados++;
+    }
+  } finally {
+    // Cierra la punta suelta de la PIEZA 1: la ventana offscreen no la cerraba nadie y quedaba
+    // viva tras el render. Va ANTES de bajar la bandera a proposito: destruirla con
+    // loteGraficosActivo todavia en true es lo que evita que window-all-closed mate la app si
+    // resultara ser la ultima ventana viva.
+    cerrarVentanaGraficos();
+    loteGraficosActivo = false;
+  }
+
+  // Los "sin intentar" se dicen SIEMPRE que los haya: sin ese numero, un lote cancelado deja
+  // "19 pedidos — 3 renderizados, 2 de cache, 0 fallidos" y faltan 14 sin explicar. Con el,
+  // los sumandos cuadran con el total.
+  const sinIntentar = total - intentados;
+  await writeDebugLog(`[GRAFICOS-LOTE] ${total} pedidos — ${renderizados} renderizados, ` +
+    `${aciertos} de cache, ${fallos} fallidos` +
+    (sinIntentar > 0 ? `, ${sinIntentar} sin intentar` : '') +
+    ` — ${((Date.now() - t0) / 1000).toFixed(1)}s` +
+    (cancelado ? ` — CANCELADO: ${motivo}` : ''));
+
+  return { rutas, total, renderizados, aciertos, fallos, sinIntentar, cancelado, motivo };
+}
+
+ipcMain.handle('render-graphics-batch', async (event, { graficos, ancho, alto, fps, modo }) => {
+  try {
+    const r = await renderGraphicClipsLote(graficos || [], { ancho, alto, fps, modo },
+      (p) => event.sender.send('generation-progress', p));
+    return { success: true, ...r };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
 ipcMain.handle('delete-project', async (_event, { projectPath }) => {
   try {
     if (activeProjectPath === projectPath) {

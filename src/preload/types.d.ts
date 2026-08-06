@@ -9,6 +9,8 @@ export interface IElectronAPI {
   loadBankClips: (params: { category: string }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
   generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; graphicsPercent?: number; newAudioSegments?: any[]; hasVideoV2?: boolean }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
   generatePerfectSync: (params: { videoPath: string; transcriptSegments: any[]; syncWeights: number[]; aspectRatio?: string; audioPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; activeProjectPath?: string }) => Promise<{ success: boolean; v1Clip?: any; v2Clips?: any[]; audioClip?: any; error?: string }>;
+  /** rutas es POSICIONAL: rutas[i] es null si ese grafico falto. Los huecos no desplazan. */
+  renderGraphicsBatch: (params: { graficos: { graphicData: any; duracion?: number }[]; ancho?: number; alto?: number; fps?: number; modo?: 'overlay' | 'pantalla' }) => Promise<{ success: boolean; rutas?: (string | null)[]; total?: number; renderizados?: number; aciertos?: number; fallos?: number; sinIntentar?: number; cancelado?: boolean; motivo?: string; error?: string }>;
   onGenerationProgress: (callback: (event: any, data: any) => void) => () => void;
   onExportProgress: (callback: (event: any, data: { step: string; current: number; total: number; message: string }) => void) => () => void;
   cutVideoClips: (params: { videoPath: string; timestamps?: number[]; aspectRatio?: string }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
