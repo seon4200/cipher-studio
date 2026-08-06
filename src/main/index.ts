@@ -213,8 +213,17 @@ app.on('activate', () => {
 // nadie podria atribuir a esto. Es el mismo patron que ya mordio con los dos botones de "Usar
 // Audio Original" y con las dos vias de carga de proyecto.
 //
-// Modelos ya descargados en esta maquina: tiny (73 MB), base (139 MB), large-v3-turbo (1.6 GB).
-const MODELO_WHISPER = 'tiny';
+// 'base' esta elegido POR MEDICION sobre maestro.m4a (286s), no por intuicion. Con umbral
+// fijo de -10.8 dB de max_volume para los tres, derivado del segmento transcrito mas flojo:
+//
+//   tiny             45.6s   70 segmentos   33.02s de voz perdida (11.5%)   9 huecos >1s
+//   base             77.6s   46 segmentos    8.26s (2.9%)                   2 huecos >1s
+//   large-v3-turbo  272.1s   59 segmentos   12.52s (4.4%)                   3 huecos >1s
+//
+// large-v3-turbo esta DESCARTADO POR DATOS, no por coste: pierde MAS voz que base y tarda
+// 3.5x mas. No es un intercambio, es peor en las dos dimensiones. Que nadie lo reproponga
+// pensando que mas grande es mejor.
+const MODELO_WHISPER = 'base';
 
 // IPC listener for Whisper local transcription
 ipcMain.on('start-transcription', async (event, filePath) => {
