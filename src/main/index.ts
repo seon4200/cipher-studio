@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import { spawn, exec } from 'child_process'
+import { once } from 'events'
 import fs from 'fs'
 import { pathToFileURL } from 'url'
 import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, getVideoDimensions } from './services/ffmpeg'
@@ -181,6 +182,10 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   win = null
+  // Si hay un lote de graficos en curso, la ventana offscreen puede ser la ULTIMA viva y
+  // destruirla dispara esto en mitad del render. Medido en el experimento: la app se cerro
+  // sola y el proceso salio con codigo 0, como si todo hubiera ido bien.
+  if (loteGraficosActivo) return
   if (process.platform !== 'darwin') app.quit()
 })
 
@@ -677,6 +682,226 @@ ipcMain.handle('extract-master-audio', async (_event, { videoPath }) => {
     return { success: false, error: err.message };
   }
 });
+
+// ── Render de graficos (via G) ──────────────────────────────────────────────────────
+// La pagina (dist/grafico.html) ya expone __montar, __setT y __listo desde 993de27. Esto es
+// la mitad que faltaba: la ventana offscreen, el lazo cerrado y el pipe a ffmpeg.
+
+// ACOPLADO a grafico.tsx. Las dos constantes de aqui abajo son copias de valores que vive
+// en la pagina, y no hay nada que las mantenga sincronizadas: si cambia una, HAY QUE
+// CAMBIAR LA OTRA A MANO o el lazo cerrado deja de cuadrar y todos los frames agotan los
+// intentos.
+//   SONDA_ALTO  <->  const SONDA_ALTO de grafico.tsx
+//   SONDA_FPS   <->  el 30 FIJO de `Math.round((t * 30) % 255)` en __setT
+// SONDA_FPS NO es el fps del render: la pagina codifica la sonda con 30 fijo, asi que a
+// 60 fps la sonda sigue avanzando de 30 en 30 por segundo. Usar el fps real aqui era un
+// bug: coincidian solo cuando fps valia 30.
+const SONDA_ALTO = 8;
+const SONDA_FPS = 30;
+const MAX_INTENTOS_FRAME = 5;  // medido: nunca hicieron falta mas de 2
+
+let ventanaGraficos: BrowserWindow | null = null;
+let loteGraficosActivo = false;
+let contadorGraficos = 0;
+
+async function obtenerVentanaGraficos(ancho: number, alto: number): Promise<BrowserWindow> {
+  const altoTotal = alto + SONDA_ALTO;
+
+  if (ventanaGraficos && !ventanaGraficos.isDestroyed()) {
+    const [w, h] = ventanaGraficos.getContentSize();
+    if (w !== ancho || h !== altoTotal) ventanaGraficos.setContentSize(ancho, altoTotal);
+    return ventanaGraficos;
+  }
+
+  const v = new BrowserWindow({
+    show: false,
+    width: ancho, height: altoTotal,
+    useContentSize: true, frame: false,
+    // transparent + backgroundColor con alfa 0: sin esto la ventana compone sobre un fondo
+    // OPACO y el bitmap sale con alfa 255 en todas partes. El pix_fmt del MOV seguiria
+    // diciendo 'argb' —el contenedor lo declara igual— pero el alpha estaria PERDIDO, que es
+    // la unica razon de usar qtrle. Medido con el test: 100% de pixeles opacos sin esto.
+    // Que la pagina ponga `background: transparent` NO basta: eso es el contenido, no la
+    // ventana.
+    transparent: true,
+    backgroundColor: '#00000000',
+    // contextIsolation:false es la configuracion MEDIDA en el experimento: executeJavaScript
+    // ve las __montar/__setT que define la propia pagina. No hay preload ni node aqui.
+    webPreferences: { offscreen: true, nodeIntegration: false, contextIsolation: false }
+  });
+
+  const urlDev = process.env.VITE_DEV_SERVER_URL;
+  if (urlDev) await v.loadURL(new URL('grafico.html', urlDev).toString());
+  else await v.loadFile(path.join(process.env.DIST!, 'dist/grafico.html'));
+
+  // OBLIGATORIO y no cosmetico: al CREARLA, Windows recorta la ventana al area de trabajo.
+  // Medido: pedir 1080x1928 daba 1080x1032 y los MOV salian cortados por la mitad sin que
+  // nada lo dijera. setContentSize DESPUES de cargar si lo aplica. enableLargerThanScreen
+  // no sirve — es solo macOS, tambien medido.
+  v.setContentSize(ancho, altoTotal);
+
+  await v.webContents.executeJavaScript('window.__listo()');
+  ventanaGraficos = v;
+  return v;
+}
+
+// El lote lo cierra quien lo abrio. Una sola ventana para todos los graficos: medido sobre
+// 19 ciclos seguidos, no se degrada (reintentos 1.32 al principio y 1.32 al final), asi que
+// reciclarla periodicamente no compra nada.
+//
+// PUNTA SUELTA hasta que exista la PIEZA 2: hoy no la llama NADIE, asi que la ventana queda
+// viva despues del render. Si en ese estado el usuario cierra la ventana principal,
+// 'window-all-closed' NO se dispara —la offscreen sigue contando como ventana— y la app NO
+// se cierra: se queda como proceso huerfano sin interfaz. La pieza 2 tiene que llamar a
+// esto en su finally.
+// export: todavia no la llama nadie y sin el `export` tsc la rechaza con TS6133. Es ademas
+// la superficie que consumira la PIEZA 2.
+export function cerrarVentanaGraficos() {
+  if (ventanaGraficos && !ventanaGraficos.isDestroyed()) ventanaGraficos.destroy();
+  ventanaGraficos = null;
+}
+
+/**
+ * Renderiza un grafico a un .mov con alpha. Devuelve la ruta, o null si falla: se pierde ese
+ * grafico, nunca el export.
+ *
+ * TODAVIA SIN CACHE POR HASH — cada llamada renderiza. Es el paso siguiente.
+ */
+export async function renderGraphicClip(
+  graphicData: any,
+  opciones: {
+    ancho?: number; alto?: number; fps?: number; duracion?: number;
+    modo?: 'overlay' | 'pantalla';
+  } = {}
+): Promise<string | null> {
+  const ancho = opciones.ancho ?? 1080;
+  const alto = opciones.alto ?? 1920;
+  const fps = opciones.fps ?? 30;
+  const duracion = opciones.duracion ?? 2;
+  const modo = opciones.modo ?? 'overlay';
+  const totalFrames = Math.round(duracion * fps);
+
+  if (!activeProjectPath) {
+    await writeDebugLog('[GRAFICO] Sin proyecto activo: no se renderiza.');
+    return null;
+  }
+
+  // initProjectDirs ya NO crea cache/graficos —salio de SUB_CACHE en 7dd9b64 para que
+  // cleanupProjectTemp deje de borrarla—, asi que la crea quien la llena. Verificado.
+  const destDir = dirCache(activeProjectPath, 'graficos');
+  await fs.promises.mkdir(destDir, { recursive: true });
+  const destino = path.join(destDir, `grafico_${Date.now()}_${++contadorGraficos}.mov`);
+
+  const yaHabiaLote = loteGraficosActivo;
+  loteGraficosActivo = true;
+
+  let ff: ReturnType<typeof spawn> | null = null;
+  const t0 = Date.now();
+  let intentosTotales = 0;
+  let framesEnElTope = 0;
+
+  try {
+    const v = await obtenerVentanaGraficos(ancho, alto);
+    await v.webContents.executeJavaScript(
+      `window.__montar(${JSON.stringify(graphicData)}, ` +
+      `${JSON.stringify({ ancho, alto, modo })})`);
+
+    // Que el bitmap mida lo pedido NO se da por hecho: es exactamente el fallo silencioso
+    // que se midio. Si no cuadra se aborta antes de escribir un MOV cortado.
+    const sonda0 = await v.webContents.capturePage();
+    const tam = sonda0.getSize();
+    if (tam.width !== ancho || tam.height !== alto + SONDA_ALTO) {
+      throw new Error(`la ventana mide ${tam.width}x${tam.height} y se pidio ` +
+        `${ancho}x${alto + SONDA_ALTO}: el MOV saldria recortado`);
+    }
+
+    // Patron NUEVO en este codigo: todo lo demas invoca ffmpeg con exec y una cadena. Aqui
+    // hace falta spawn porque los frames entran por stdin y exec bufferea la salida entera.
+    // El bitmap es BGRA (no RGBA) y qtrle es el unico codec verificado que conserva alpha.
+    ff = spawn('ffmpeg', [
+      '-y',
+      '-f', 'rawvideo', '-pix_fmt', 'bgra',
+      '-s', `${ancho}x${alto}`, '-r', String(fps),
+      '-i', 'pipe:0',
+      '-an', '-c:v', 'qtrle', '-pix_fmt', 'argb',
+      destino
+    ]);
+
+    // stderr es donde ffmpeg dice POR QUE murio. Ninguna llamada del proyecto lo lee hoy;
+    // sin esto un fallo seria "codigo 1" y nada mas. Se acota para no crecer sin limite.
+    let stderr = '';
+    ff.stderr!.on('data', (d) => {
+      stderr += d.toString();
+      if (stderr.length > 64000) stderr = stderr.slice(-64000);
+    });
+
+    const salida = new Promise<void>((resolve, reject) => {
+      ff!.on('error', (e) => reject(new Error('no se pudo lanzar ffmpeg: ' + e.message)));
+      ff!.on('close', (code) => code === 0
+        ? resolve()
+        : reject(new Error(`ffmpeg salio con codigo ${code}. stderr:\n` + stderr.slice(-1500))));
+    });
+
+    const bytesSonda = SONDA_ALTO * ancho * 4;
+    const offSonda = (Math.floor(SONDA_ALTO / 2) * ancho + Math.floor(ancho / 2)) * 4;
+
+    for (let i = 0; i < totalFrames; i++) {
+      const t = i / fps;
+      // SONDA_FPS y no fps: la pagina codifica con 30 fijo. Ver el comentario del acoplado.
+      const esperado = Math.round((t * SONDA_FPS) % 255);
+      await v.webContents.executeJavaScript(`window.__setT(${t})`);
+
+      // LAZO CERRADO. Medido: solo ~68% de los frames llega correcto a la primera captura;
+      // sin esta comprobacion uno de cada tres MOV llevaria el frame equivocado.
+      let frame: Buffer | null = null;
+      for (let intento = 1; intento <= MAX_INTENTOS_FRAME; intento++) {
+        const img = await v.webContents.capturePage();
+        const raw = img.getBitmap();   // NO copia
+        intentosTotales++;
+        // Los TRES canales, no solo uno: la sonda es gris, asi que B, G y R tienen que
+        // valer lo mismo Y coincidir con lo esperado. Cuesta igual y descarta ruido.
+        const b = raw[offSonda], g = raw[offSonda + 1], r = raw[offSonda + 2];
+        if (b === esperado && g === esperado && r === esperado) {
+          // Buffer.from en el MISMO tick, antes de cualquier await. No se pudo demostrar que
+          // haga falta (0 corrupciones en 12 muestras), pero getBitmap() no copia segun la
+          // documentacion y eso es una carrera: 3 ms sobre 33 compran determinismo.
+          // El subarray descarta la franja de la sonda, que no viaja a ffmpeg.
+          frame = Buffer.from(raw.subarray(bytesSonda));
+          if (intento === MAX_INTENTOS_FRAME) framesEnElTope++;
+          break;
+        }
+      }
+      if (!frame) {
+        throw new Error(`el frame ${i} no llego tras ${MAX_INTENTOS_FRAME} intentos ` +
+          `(se esperaba sonda=${esperado})`);
+      }
+
+      // Backpressure: si el pipe se llena, write devuelve false y hay que esperar a 'drain'.
+      if (!ff.stdin!.write(frame)) await once(ff.stdin!, 'drain');
+    }
+
+    ff.stdin!.end();
+    await salida;
+
+    const { size } = await fs.promises.stat(destino);
+    // framesEnElTope aparte de la media: un maximo de 5 suelto es ruido, pero veinte frames
+    // rozando el tope es un tipo de grafico a punto de fallar entero.
+    await writeDebugLog(`[GRAFICO] ${path.basename(destino)} — ${graphicData?.type} — ` +
+      `${totalFrames}f ${ancho}x${alto} — ${(size / 1048576).toFixed(2)} MB — ` +
+      `${Date.now() - t0} ms — ${(intentosTotales / totalFrames).toFixed(2)} intentos/frame — ` +
+      `${framesEnElTope} frame(s) en el tope de ${MAX_INTENTOS_FRAME}`);
+    return destino;
+
+  } catch (e: any) {
+    // Se pierde ESTE grafico, no el export. Y se dice por que.
+    await writeDebugLog(`[GRAFICO] FALLO (${graphicData?.type}): ${e.message}`);
+    try { ff?.kill(); } catch {}
+    try { await fs.promises.unlink(destino); } catch {}
+    return null;
+  } finally {
+    loteGraficosActivo = yaHabiaLote;
+  }
+}
 
 ipcMain.handle('delete-project', async (_event, { projectPath }) => {
   try {
