@@ -1,0 +1,98 @@
+# Deuda de los gráficos
+
+Deuda específica del bloque de gráficos. La deuda del proyecto entero vive en la tabla
+"DEUDA ABIERTA, por gravedad" de `CIPHER_plan_maestro_transiciones_graficos_vibes.md`.
+
+---
+
+## 🐛 BUG DE CONTENIDO — las rampas son segundos absolutos, no fracción de la duración
+
+**Detectado el 6 de agosto de 2026, leyendo el código. Sin arreglar a propósito.**
+
+`AnimatedGraphic` anima sus valores numéricos con rampas escritas en **segundos fijos**. Si el
+gráfico dura menos que la rampa, el valor se congela a mitad de camino y **eso es lo que queda
+grabado en el vídeo**.
+
+### Lo medido
+
+Calculado con la implementación exacta de `cubicBezier` del fichero
+([AnimatedGraphic.tsx:52-68](../src/renderer/src/AnimatedGraphic.tsx#L52)):
+
+| t | `contador` | `donut` | `barra_*` |
+|---|---|---|---|
+| 0.50 s | 33.3% | 50.0% | 87.0% |
+| 0.75 s | 50.0% | 87.1% | 97.2% |
+| **1.00 s** | **66.7%** | **100%** | **99.6%** |
+| 1.35 s | 90.0% | 100% | 100% |
+| 1.50 s | 100% | 100% | 100% |
+
+### Por gravedad
+
+- **`contador` — el grave.** Rampa lineal `tt / 1.5`, completa a los 1.5 s. En un gráfico de
+  1 s se queda en **66.7%**: un valor de 87 se graba como **58**. No es una animación cortada,
+  es **un dato FALSO en el vídeo**. Y el número se pinta con `Math.round`, así que sale limpio
+  y creíble.
+- **`donut` — menor.** Completa en 1.0 s exacto, así que solo se corta por debajo de esa
+  duración.
+- **`barra_horizontal` / `barra_vertical` — no es problema.** Llega al 90% en t=0.546 y al 99%
+  en t=0.894; un gráfico de 1 s corta un 0.4%, invisible. La curva
+  `cubic-bezier(0.16, 1, 0.3, 1)` es agresiva al principio y eso la salva.
+
+Cada tipo tiene **su propia** rampa, en tres sitios distintos, sin nada que las relacione con
+la duración del clip ([AnimatedGraphic.tsx:90-100](../src/renderer/src/AnimatedGraphic.tsx#L90)):
+
+| tipo | rampa | completa en |
+|---|---|---|
+| `contador` | lineal `tt/1.5` | 1.5 s |
+| `barra_horizontal` / `barra_vertical` | `EASE_BARRA((tt−0.15)/1.2)` | 1.35 s |
+| `donut` | `EASE_DONUT(tt/1)` | 1.0 s |
+| los demás | ninguna: `return parsedNum` | instantáneo |
+
+### Ningún test lo detecta, y no es un descuido del test
+
+`npm run test:graficos` comprueba que el MOV existe, que dura lo que toca, que tiene los frames
+contados, que sus frames son **distintos entre sí** y que el alpha es real. **Un gráfico con el
+contador congelado en 58 pasa las cinco cosas.** Los frames siguen siendo distintos —el emoji y
+el glow se mueven— y el número equivocado es un número perfectamente válido.
+
+Solo se ve **sabiendo qué número esperabas**, que es información que el test no tiene y el
+renderizador tampoco.
+
+### Por qué no se arregla ahora
+
+El componente **no conoce la duración**: su firma es `{ graphic: GraphicData; t?: number }`
+([AnimatedGraphic.tsx:77](../src/renderer/src/AnimatedGraphic.tsx#L77)), solo recibe `t` en
+segundos absolutos. El arreglo pasa por **pasarle la duración y expresar las rampas como
+fracción** en vez de en segundos.
+
+Eso toca `AnimatedGraphic.tsx`, que está verificado y es el fichero del que dependen los 17
+tipos y el preview. **Va cuando se toquen los templates, no antes.** Y el orden ya decidido es
+*prompt → movimiento*, así que este arreglo entra con el movimiento.
+
+### El supuesto de los 2 segundos no lo garantiza nadie
+
+El plan dice "duración: 2.00 s exactos en los 579". **Eso describe lo que produjo DeepSeek, no
+lo que garantiza el código.**
+
+- Flujo activo, el del botón ⟳
+  ([index.ts:3837](../src/main/index.ts#L3837)):
+  `const durSec = Math.min(2.0, (p.graphic.graphicEnd || graphicStart + 2) - (p.graphic.graphicStart || 0))`
+  — el `Math.min` acota **por arriba** y **nada por abajo**. Quien decide es el modelo: el
+  prompt le pide `graphicEnd = graphicStart + 2.0`
+  ([index.ts:3766](../src/main/index.ts#L3766)) y si obedece salen 2.0; si devuelve un tramo
+  más corto, el gráfico dura menos y nadie lo corrige.
+- Flujo de FASE 2, hoy desconectado con `graphicsPercent: 0`
+  ([index.ts:3601](../src/main/index.ts#L3601)):
+  `const durSec = phrase.graphic.graphicEnd - phrase.graphic.graphicStart`
+  — **ni siquiera tiene ese `Math.min`**. Antes se recorta `end` a `phraseDuration`
+  ([index.ts:2759](../src/main/index.ts#L2759)) y después al audio restante
+  ([index.ts:3609](../src/main/index.ts#L3609)): una frase corta da un gráfico corto.
+- Y el respaldo del frontend, en sus dos puertas
+  ([main.tsx:2646](../src/renderer/src/main.tsx#L2646) y
+  [main.tsx:2483](../src/renderer/src/main.tsx#L2483)), es
+  `c.graphicDuration ?? Math.min(2.0, matchingVideo?.durationSeconds || 2.0)`: toma la duración
+  del clip de vídeo si es **menor** que 2.
+
+Es decir: hoy el bug está latente porque el modelo viene devolviendo 2.0, no porque el código
+lo impida. En cuanto se toque el prompt —que es el paso siguiente al de la integración— deja de
+ser latente.
