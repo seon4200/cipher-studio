@@ -206,6 +206,16 @@ app.on('activate', () => {
   }
 })
 
+// El modelo de Whisper, en UN solo sitio. Estaba escrito a mano en los TRES sitios que lo
+// invocan —start-transcription, generate-voice y regenerate-graphics— y cambiarlo eran tres
+// ediciones. Olvidar una no rompe nada visible: la app seguiria funcionando y transcribiendo
+// con dos modelos distintos segun el camino, y el sintoma seria una calidad inconsistente que
+// nadie podria atribuir a esto. Es el mismo patron que ya mordio con los dos botones de "Usar
+// Audio Original" y con las dos vias de carga de proyecto.
+//
+// Modelos ya descargados en esta maquina: tiny (73 MB), base (139 MB), large-v3-turbo (1.6 GB).
+const MODELO_WHISPER = 'tiny';
+
 // IPC listener for Whisper local transcription
 ipcMain.on('start-transcription', async (event, filePath) => {
   const transcriptsDir = path.join(app.getPath('userData'), 'transcripts')
@@ -242,7 +252,7 @@ ipcMain.on('start-transcription', async (event, filePath) => {
   const whisperProcess = spawn('whisper', [
     `"${filePath}"`,
     '--language', 'Spanish',
-    '--model', 'tiny',
+    '--model', MODELO_WHISPER,
     '--output_format', 'json',
     '--output_dir', `"${transcriptsDir}"`
   ], { shell: true, env: { ...process.env, PYTHONIOENCODING: 'utf-8' } })
@@ -1594,7 +1604,7 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
             const whisperProcess = spawn('whisper', [
               `"${filePath}"`,
               '--language', 'Spanish',
-              '--model', 'tiny',
+              '--model', MODELO_WHISPER,
               '--output_format', 'json',
               '--output_dir', `"${transcriptsDir}"`,
               '--word_timestamps', 'True'
@@ -3874,9 +3884,12 @@ ipcMain.handle('regenerate-graphics', async (_event, params: any) => {
         
         await new Promise<void>((resolve) => {
           const whisper = spawn('whisper', [
-            params.audioPath,
+            // Entrecomillado: con shell:true, una ruta con espacios —C:\Mis Videos\...— se
+            // partiria en varios argumentos y whisper no encontraria el fichero. Los otros
+            // dos sitios ya lo hacian; este era el unico que no.
+            `"${params.audioPath}"`,
             '--language', 'Spanish',
-            '--model', 'tiny',
+            '--model', MODELO_WHISPER,
             '--output_format', 'json',
             '--output_dir', transcriptsDir,
             '--word_timestamps', 'True'
