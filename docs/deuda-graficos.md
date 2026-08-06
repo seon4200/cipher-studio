@@ -129,6 +129,31 @@ ser latente.
 
 ---
 
+## ⚠️ Un MOV truncado cuenta como acierto de caché
+
+**Anotado el 6 de agosto de 2026 al escribir la caché por hash. Sin arreglar a propósito.**
+
+El acierto de caché comprueba que el fichero existe y que **pesa más de cero**
+([index.ts, `renderGraphicClip`](../src/main/index.ts)). Eso cubre el MOV de 0 bytes de un
+render interrumpido, y hay un test que lo fija.
+
+**Lo que no cubre: un MOV cortado a mitad con más de 0 bytes.** El camino de fallo de
+`renderGraphicClip` borra el fichero parcial, así que un error normal de ffmpeg no lo deja —
+pero un corte de luz, un cierre forzado o un `kill` del proceso a mitad del render sí. Ese
+fichero quedaría con unos cuantos frames, pesaría más de cero, y **la siguiente llamada lo
+daría por bueno**: el gráfico saldría cortado en el vídeo exportado sin que nada avise.
+
+Validar cada acierto con `ffprobe` —comprobando que el número de frames es el esperado—
+costaría **~40 ms por gráfico**, o sea ~0.8 s en un proyecto de 19. Es asumible, pero es
+pagar en todos los aciertos por un fallo que solo ocurre tras una interrupción anormal.
+
+Alternativa más barata si alguna vez molesta: escribir a un `.mov.parcial` y renombrarlo al
+nombre definitivo solo cuando ffmpeg cierra con código 0. Un rename es atómico, así que un
+fichero con el nombre del hash sería, por construcción, un fichero completo. No se ha hecho
+porque no ha ocurrido nunca.
+
+---
+
 ## Lo que hay que medir para saber si ya está pasando
 
 **La medición correcta es sobre los gráficos, no sobre los clips de vídeo:** cuántos tienen

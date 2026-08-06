@@ -173,8 +173,10 @@ async function main (bundle) {
       'offscreen vivas: ' + tras1.length)
     const id1 = tras1[0] && tras1[0].id
 
+    // Con cache, repetir el MISMO grafico no tocaria la ventana: seria un acierto y no
+    // probaria nada. Para que haya render de verdad hace falta otro graphicData.
     const t1 = Date.now()
-    const mov2 = await renderGraphicClip(GRAFICO,
+    const mov2 = await renderGraphicClip({ ...GRAFICO, value: '💡' },
       { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: DUR, modo: 'overlay' })
     const msSegundo = Date.now() - t1
     const tras2 = offscreens()
@@ -183,7 +185,7 @@ async function main (bundle) {
       'offscreen vivas: ' + tras2.length)
     ok(tras2[0] && tras2[0].id === id1, 'es LA MISMA ventana, no una nueva',
       `id ${id1} -> ${tras2[0] && tras2[0].id}`)
-    ok(mov2 && mov2 !== mov, 'el segundo render da otro fichero (todavia sin cache por hash)')
+    ok(mov2 && mov2 !== mov, 'un graphicData distinto da otro fichero')
 
     // ── F) el tiempo ───────────────────────────────────────────────────────────────
     console.log('\n=== F) TIEMPO POR GRAFICO ===')
@@ -191,6 +193,58 @@ async function main (bundle) {
       `${msPrimero} ms (incluye crear la ventana; el experimento dio ~2100 ms)`)
     ok(msSegundo < TOPE_MS, 'el segundo tambien',
       `${msSegundo} ms (ventana ya caliente)`)
+
+    // ── H) LA CACHE POR HASH ───────────────────────────────────────────────────────
+    console.log('\n=== H) LA CACHE POR HASH ===')
+    const hashDe = (p) => path.basename(p, '.mov')
+
+    // 1) mismo graphicData -> misma ruta, y sin renderizar
+    const tCache = Date.now()
+    const repetido = await renderGraphicClip(GRAFICO,
+      { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: DUR, modo: 'overlay' })
+    const msCache = Date.now() - tCache
+    ok(repetido === mov, 'el mismo graphicData devuelve LA MISMA ruta', hashDe(mov))
+    ok(msCache < 100, 'y no renderiza: tarda menos de 100 ms',
+      `${msCache} ms frente a los ~2700 de un render`)
+
+    // 2) cambiar `value` cambia el hash
+    const otroValor = await renderGraphicClip({ ...GRAFICO, value: '🎯' },
+      { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: DUR, modo: 'overlay' })
+    ok(hashDe(otroValor) !== hashDe(mov), 'cambiar value CAMBIA el hash',
+      `${hashDe(mov)} -> ${hashDe(otroValor)}`)
+
+    // 3) cambiar graphicStart NO lo cambia. Es la decision cerrada y este assert la fija:
+    //    si alguien mete el tiempo de inicio en la clave, esto se pone rojo.
+    const conOtroInicio = await renderGraphicClip(
+      { ...GRAFICO, graphicStart: 7.5, graphicEnd: 9.5 },
+      { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: DUR, modo: 'overlay' })
+    ok(conOtroInicio === mov, 'cambiar graphicStart NO cambia el hash',
+      'mover un clip no puede re-renderizar un fichero identico')
+
+    // 4) las mismas seis claves en distinto orden -> mismo hash. unit y emoji van como
+    //    undefined a proposito: GRAFICO no los trae, asi que solo coincide si canonizar()
+    //    colapsa undefined y ausente a la misma cadena.
+    const alReves = { extra: null, emoji: undefined, unit: undefined,
+      label: 'Concepto', value: '🔥', type: 'decorativo_emoji' }
+    const mismoDistintoOrden = await renderGraphicClip(alReves,
+      { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: DUR, modo: 'overlay' })
+    ok(mismoDistintoOrden === mov,
+      'las seis claves en distinto orden dan el MISMO hash',
+      'el objeto nace de tres formas distintas en el backend')
+
+    // 5) un .mov de 0 bytes NO es un acierto. Con graphicData PROPIO: si se vaciara el
+    //    fichero de los casos de arriba, esos asserts pasarian a mirar un fichero vacio.
+    const GRAFICO_CERO = { ...GRAFICO, value: '🧪' }
+    const paraVaciar = await renderGraphicClip(GRAFICO_CERO,
+      { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: DUR, modo: 'overlay' })
+    fs.writeFileSync(paraVaciar, '')
+    ok(fs.statSync(paraVaciar).size === 0, 'se deja un .mov propio a 0 bytes a proposito',
+      hashDe(paraVaciar))
+    const rehecho = await renderGraphicClip(GRAFICO_CERO,
+      { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: DUR, modo: 'overlay' })
+    ok(rehecho === paraVaciar && fs.statSync(paraVaciar).size > 0,
+      'un .mov de 0 bytes se re-renderiza en vez de contar como acierto',
+      `${(fs.statSync(paraVaciar).size / 1048576).toFixed(2)} MB tras rehacerlo`)
 
     // ── G) fallo limpio ────────────────────────────────────────────────────────────
     console.log('\n=== G) CUANDO ALGO VA MAL ===')
