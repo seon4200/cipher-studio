@@ -2079,6 +2079,163 @@ function construirAjustes(a: AjustesVideo | undefined, W: number, H: number): st
 }
 
 // IPC handle for exporting video (single clip or concatenating multiple clips) with aspect ratio crop
+/**
+ * PIEZA 3 — compone las TARJETAS sobre el video ya concatenado, SIN recodificarlo entero.
+ *
+ * ESTO COMPONE TARJETAS: overlays con alpha que van ENCIMA de un plano que se sigue viendo
+ * detras. Los graficos de PANTALLA COMPLETA, cuando existan, NO pasaran por aqui: esos
+ * SUSTITUYEN al plano, van sin alpha y entran por el pipeline de video normal como un clip
+ * mas. Por eso el filtro `c.type === 'graphic'` de videoOnly es CORRECTO y no hay que
+ * "arreglarlo" para incluirlos — los de pantalla completa llevaran otro type precisamente
+ * para no caer aqui.
+ *
+ * Trocea por keyframes con el muxer `segment` —que da recuentos de frame exactos, al
+ * contrario que cortar con -ss/-to— recodifica SOLO los tramos que llevan tarjeta, y
+ * reconcatena. En un video de 28 min con 148 tarjetas de 2 s eso deja ~95% del metraje sin
+ * tocar: el video se recodifica UNA vez y solo en ese 5%.
+ *
+ * Si el recuento de frames no cuadra en cualquiera de las tres comprobaciones, DESCARTA la
+ * pasada y deja el video sin tarjetas. Mejor un video correcto sin graficos que uno
+ * desincronizado.
+ */
+async function componerTarjetas(
+  videoBase: string, destino: string, tarjetas: { ini: number; dur: number; mov: string }[],
+  fps: number, crf: number, preset: string, dir: string,
+  log: (s: string) => Promise<void>
+): Promise<{ ok: boolean; compuestas: number; sinComponer: number; motivo?: string; segDir: string; aCaballo: number }> {
+  const framesDe = async (f: string) => {
+    const r = await new Promise<string>((res) => exec(
+      `ffprobe -v error -select_streams v:0 -count_frames -show_entries stream=nb_read_frames ` +
+      `-of csv=p=0 "${f.replace(/"/g, '\\"')}"`, (e, out) => res(e ? '' : String(out).trim())));
+    return parseInt(r, 10) || 0;
+  };
+
+  const framesOriginal = await framesDe(videoBase);
+  const segDir = path.join(dir, 'segmentos');
+  await fs.promises.mkdir(segDir, { recursive: true });
+
+  // Trocear. -c copy: aqui NO se recodifica nada, solo se parte por keyframes. El video base
+  // viene sin audio (-an en el concat), asi que -map 0:v:0 evita arrastrar cualquier stream
+  // de datos o portada que descuadraria el recuento.
+  await new Promise<void>((res, rej) => exec(
+    `ffmpeg -y -i "${videoBase.replace(/"/g, '\\"')}" -map 0:v:0 -c copy -f segment ` +
+    `-segment_time 10 -reset_timestamps 1 "${path.join(segDir, 'seg_%05d.mp4').replace(/"/g, '\\"')}"`,
+    { maxBuffer: 1024 * 1024 * 50 }, (e) => e ? rej(e) : res()));
+
+  const segs = (await fs.promises.readdir(segDir)).filter(f => /^seg_\d+\.mp4$/.test(f)).sort();
+  if (!segs.length) return { ok: false, compuestas: 0, sinComponer: tarjetas.length, segDir, aCaballo: 0, motivo: "el troceado no produjo segmentos" };
+
+  // Donde empieza cada segmento, contando FRAMES: no se fia de -segment_time, porque el corte
+  // real cae en el keyframe mas cercano y no donde se pidio.
+  const inicioSeg: number[] = [];
+  let acc = 0;
+  for (const s of segs) { inicioSeg.push(acc / fps); acc += await framesDe(path.join(segDir, s)); }
+  if (acc !== framesOriginal) {
+    return { ok: false, compuestas: 0, sinComponer: tarjetas.length, segDir, aCaballo: 0,
+      motivo: `el troceado dio ${acc} frames y el original tenia ${framesOriginal}` };
+  }
+
+  // Se cuenta ANTES del bucle, no dentro: asi el numero es completo aunque se falle a mitad,
+  // que es justo cuando hace falta saberlo.
+  const limites = (i: number) => ({
+    ini: inicioSeg[i], fin: i + 1 < segs.length ? inicioSeg[i + 1] : Number.POSITIVE_INFINITY
+  });
+  // Devuelve INDICES, no objetos: contar tarjetas distintas exige poder identificarlas, y una
+  // tarjeta a caballo aparece en dos segmentos.
+  const enSegmento = (i: number): number[] => {
+    const { ini, fin } = limites(i);
+    const r: number[] = [];
+    tarjetas.forEach((t, k) => { if (t.ini < fin && (t.ini + t.dur) > ini) r.push(k); });
+    return r;
+  };
+  const estaACaballo = (t: { ini: number; dur: number }, i: number) => {
+    const { ini, fin } = limites(i);
+    return t.ini < ini || (t.ini + t.dur) > fin;
+  };
+  // TARJETAS distintas, no apariciones: una que cruza un corte esta "a caballo" en los DOS
+  // segmentos, asi que sumar apariciones la contaria dos veces y diria 8 donde hay 4.
+  const aCaballoSet = new Set<number>();
+  for (let i = 0; i < segs.length; i++) {
+    for (const k of enSegmento(i)) if (estaACaballo(tarjetas[k], i)) aCaballoSet.add(k);
+  }
+  const aCaballo = aCaballoSet.size;
+
+  const finales: string[] = [];
+  // Un Set y no un contador: `compuestas += dentro.length` sumaba una vez por invocacion de
+  // overlay, asi que las tarjetas partidas contaban doble y el resultado era "43 de 39".
+  // La COBERTURA 2 no pregunta cuantas operaciones se hicieron sino cuantos graficos han
+  // salido, y un contador que puede pasarse del total no sirve para detectar que faltan.
+  const compuestasSet = new Set<number>();
+  for (let i = 0; i < segs.length; i++) {
+    const ruta = path.join(segDir, segs[i]);
+    const { ini } = limites(i);
+    // Una tarjeta de 2 s con cortes cada 10 s cruza el corte tarde o temprano: entonces entra
+    // en LOS DOS segmentos y se compone dos veces, cada uno con su mitad. El desfase relativo
+    // sale negativo en el segundo, y overlay descarta lo anterior a cero, asi que las dos
+    // mitades encajan sin solaparse ni dejar hueco.
+    const dentro = enSegmento(i);
+    if (!dentro.length) { finales.push(ruta); continue; }
+
+    // spawn con ARRAY, no exec: exec pasa por cmd.exe y topa entre 35 y 40 overlays (~8191
+    // caracteres). spawn llega a 148 (~32767). Medido. Aqui caben pocas por tramo, pero el 1%
+    // de margen que deja exec no es margen.
+    const args = ['-y', '-i', ruta];
+    for (const k of dentro) args.push('-i', tarjetas[k].mov);
+    const partes: string[] = [];
+    dentro.forEach((k, n) => {
+      partes.push(`[${n + 1}:v]format=rgba,setpts=PTS-STARTPTS+${(tarjetas[k].ini - ini).toFixed(3)}/TB[g${n}]`);
+    });
+    let prev = '0:v';
+    dentro.forEach((_, n) => {
+      partes.push(`[${prev}][g${n}]overlay=x=0:y=0:alpha=premultiplied:eof_action=pass[v${n}]`);
+      prev = `v${n}`;
+    });
+    const salida = path.join(segDir, `comp_${String(i).padStart(5, '0')}.mp4`);
+    // crf y preset se HEREDAN del export, no se fijan: el 26% de las tarjetas cae encima de
+    // una transicion, y recodificar ese tramo a otra calidad se veria justo ahi.
+    args.push('-filter_complex', partes.join(';'), '-map', `[${prev}]`,
+      '-c:v', 'libx264', '-preset', preset, '-crf', String(crf), '-pix_fmt', 'yuv420p',
+      '-video_track_timescale', String(fps * 1000), salida);
+
+    const okSeg = await new Promise<boolean>((res) => {
+      const p = spawn('ffmpeg', args);
+      let err = '';
+      p.stderr!.on('data', d => { err += d.toString(); if (err.length > 32000) err = err.slice(-32000); });
+      p.on('error', () => res(false));
+      p.on('close', (code) => {
+        if (code !== 0) log(`[EXPORT-G3] segmento ${i}: ffmpeg salio ${code} — ${err.slice(-300)}`);
+        res(code === 0);
+      });
+    });
+    if (!okSeg) return { ok: false, compuestas: compuestasSet.size, sinComponer: tarjetas.length - compuestasSet.size, segDir, aCaballo, motivo: `fallo el segmento ${i}` };
+
+    const fOrig = await framesDe(ruta), fComp = await framesDe(salida);
+    if (fOrig !== fComp) {
+      return { ok: false, compuestas: compuestasSet.size, sinComponer: tarjetas.length - compuestasSet.size,
+        segDir, aCaballo, motivo: `segmento ${i}: ${fComp} frames tras componer, eran ${fOrig}` };
+    }
+    finales.push(salida);
+    for (const k of dentro) compuestasSet.add(k);
+  }
+
+  const txt = path.join(segDir, 'lista.txt');
+  await fs.promises.writeFile(txt,
+    finales.map(f => `file '${f.replace(/\\/g, '/').replace(/'/g, "'\\''")}'\n`).join(''), 'utf8');
+  await new Promise<void>((res, rej) => exec(
+    `ffmpeg -y -f concat -safe 0 -i "${txt.replace(/"/g, '\\"')}" -c:v copy -an "${destino.replace(/"/g, '\\"')}"`,
+    { maxBuffer: 1024 * 1024 * 50 }, (e) => e ? rej(e) : res()));
+
+  const framesFinal = await framesDe(destino);
+  if (framesFinal !== framesOriginal) {
+    return { ok: false, compuestas: compuestasSet.size, sinComponer: tarjetas.length - compuestasSet.size,
+      segDir, aCaballo, motivo: `el resultado tiene ${framesFinal} frames y el original ${framesOriginal}` };
+  }
+  await log(`[EXPORT-G3] ${segs.length} segmentos, ${aCaballo} tarjeta(s) partida(s) entre dos ` +
+    `segmentos — frames ${framesFinal} = original OK`);
+  return { ok: true, compuestas: compuestasSet.size,
+    sinComponer: tarjetas.length - compuestasSet.size, segDir, aCaballo };
+}
+
 ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, format, quality, assignedTransitions, transitionDuration, ajustesVideo }) => {
   try {
     // Mapeo de nombres internos de transiciones a nombres de FFmpeg xfade.
@@ -2629,11 +2786,48 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
         message: 'Concatenando clips y mezclando audio...' 
       });
 
+      // PIEZA 3 — las TARJETAS se recogen APARTE. videoOnly las sigue excluyendo y la
+      // aritmetica de frames no se entera: nada de lo anterior cambia.
+      //
+      // Son overlays con alpha que van ENCIMA del plano. Los graficos de PANTALLA COMPLETA,
+      // cuando existan, no vienen por aqui: sustituyen al plano, van sin alpha y entraran por
+      // el pipeline de video como un clip mas.
+      //
+      // El inicio y la duracion se leen DEL CLIP, aqui y ahora, nunca de algo guardado junto
+      // al MOV: es lo que hace que mover un clip sea correcto sin invalidar la cache.
+      const tarjetas: { hash: string; ini: number; dur: number; mov: string }[] = [];
+      let tarjetasSinFichero = 0;
+      const clipsGrafico = (clips || []).filter((c: any) => c.type === 'graphic');
+      for (const c of clipsGrafico) {
+        if (!c.graphicMovHash || !activeProjectPath) { tarjetasSinFichero++; continue; }
+        const mov = path.join(dirCache(activeProjectPath, 'graficos'), `${c.graphicMovHash}.mov`);
+        // Tener el hash NO garantiza que el MOV siga en disco: se comprueba el fichero, igual
+        // que hace auditarClips con los materiales. Y VARIOS clips pueden compartir el mismo
+        // .mov —la cache deduplica graphicData identicos— asi que esto no asume uno por clip.
+        if (!(await exists(mov))) { tarjetasSinFichero++; continue; }
+        tarjetas.push({
+          hash: c.graphicMovHash,
+          ini: Number(c.startSeconds) || 0,
+          dur: Number(c.durationSeconds) || 2,
+          mov
+        });
+      }
+      tarjetas.sort((a, b) => a.ini - b.ini);
+      const hayTarjetas = tarjetas.length > 0;
+
       await writeDebugLog(`[EXPORT] Concatenando...`);
       const concatStart = Date.now();
 
+      // Con tarjetas el concat va a un TEMPORAL sin audio: la pasada de graficos necesita un
+      // video sobre el que componer, y `-c:v copy` es incompatible con filter_complex — meter
+      // el overlay en este mismo comando obligaria a recodificar los 28 minutos enteros.
+      // Sin tarjetas, el camino es exactamente el de siempre.
+      const videoBase = path.join(normDir, 'base_sin_graficos.mp4');
+
       let ffmpegCmd = '';
-      if (audioClip && audioClip.path && (await exists(audioClip.path))) {
+      if (hayTarjetas) {
+        ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" -c:v copy -an "${videoBase.replace(/"/g, '\\"')}"`;
+      } else if (audioClip && audioClip.path && (await exists(audioClip.path))) {
         const escapedAudio = audioClip.path.replace(/"/g, '\\"');
         ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" -i "${escapedAudio}" -map 0:v -map 1:a -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart "${escapedOut}"`;
       } else {
@@ -2650,12 +2844,65 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
           for (const tp of tempExtraPaths) {
             try { await fs.promises.unlink(tp); } catch (e) {}
           }
-          try { await fs.promises.rmdir(normDir); } catch (e) {}
+          // Con tarjetas, normDir todavia guarda el video base sobre el que hay que componer:
+          // se limpia al final de la pasada de graficos, no aqui.
+          if (!hayTarjetas) { try { await fs.promises.rmdir(normDir); } catch (e) {} }
           if (err) reject(err); else resolve();
         });
       });
 
       await writeDebugLog(`[EXPORT] Concat: ${((Date.now() - concatStart) / 1000).toFixed(1)}s`);
+
+      if (hayTarjetas) {
+        event.sender.send('export-progress', {
+          step: 'graphics', current: 0, total: tarjetas.length,
+          message: `Componiendo ${tarjetas.length} graficos...`
+        });
+        const g3Start = Date.now();
+        const conGraficos = path.join(normDir, 'con_graficos.mp4');
+        const r = await componerTarjetas(videoBase, conGraficos, tarjetas, FPS, crf, preset,
+          normDir, (s) => writeDebugLog(s));
+
+        // COBERTURA 2: se cuenta lo ESPERADO contra lo COMPUESTO y se dice. Nunca 17 de 19 en
+        // silencio. `esperadas` cuenta todos los clips de grafico del timeline, incluidos los
+        // que no tienen MOV en disco — que es justo lo que se perderia sin avisar.
+        const esperadas = clipsGrafico.length;
+        if (!r.ok) {
+          await writeDebugLog(`[EXPORT-G3] PASADA DESCARTADA: ${r.motivo}. El video sale SIN ` +
+            `las ${esperadas} tarjetas, pero correcto y sincronizado.`);
+        } else {
+          // TARJETAS distintas, no invocaciones de overlay. Y se dice explicitamente cuantas
+          // NO salen, para que el numero no cuadre por casualidad: si algun dia son 37 de 39,
+          // esta linea tiene que decirlo en vez de disimularlo.
+          const perdidas = esperadas - r.compuestas;
+          await writeDebugLog(`[EXPORT-G3] ${r.compuestas} de ${esperadas} tarjetas compuestas` +
+            (perdidas > 0 ? `, ${perdidas} NO salen en el video` : '') +
+            (tarjetasSinFichero ? ` (${tarjetasSinFichero} sin MOV en disco)` : '') +
+            (r.sinComponer > 0 ? `, ${r.sinComponer} con MOV pero fuera de todo segmento` : '') +
+            ` — ${r.aCaballo} partida(s) entre dos segmentos` +
+            ` — ${((Date.now() - g3Start) / 1000).toFixed(1)}s`);
+        }
+
+        // El audio se mezcla al final, sobre lo que haya salido. -c:v copy: no recodifica.
+        const fuente = r.ok ? conGraficos : videoBase;
+        let mux = '';
+        if (audioClip && audioClip.path && (await exists(audioClip.path))) {
+          mux = `ffmpeg -y -i "${fuente.replace(/"/g, '\\"')}" -i "${audioClip.path.replace(/"/g, '\\"')}" ` +
+            `-map 0:v -map 1:a -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart "${escapedOut}"`;
+        } else {
+          mux = `ffmpeg -y -i "${fuente.replace(/"/g, '\\"')}" -c:v copy -an -movflags +faststart "${escapedOut}"`;
+        }
+        await new Promise<void>((res, rej) => exec(mux, { maxBuffer: 1024 * 1024 * 50 },
+          (e) => e ? rej(e) : res()));
+
+        // Limpieza de lo que la pasada dejo: los segmentos, el base y el compuesto.
+        try {
+          if (await exists(r.segDir)) await fs.promises.rm(r.segDir, { recursive: true, force: true });
+        } catch (e) {}
+        try { await fs.promises.unlink(videoBase); } catch (e) {}
+        try { await fs.promises.unlink(conGraficos); } catch (e) {}
+        try { await fs.promises.rmdir(normDir); } catch (e) {}
+      }
     }
 
     event.sender.send('export-progress', { 
