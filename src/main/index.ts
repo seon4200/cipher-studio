@@ -2110,6 +2110,19 @@ async function componerTarjetas(
     return parseInt(r, 10) || 0;
   };
 
+  // Primeros y ultimos instantes de un fichero. Se usa SOLO al detectar un descuadre: en ese
+  // momento los dos ficheros estan delante, asi que volcarlos aqui ahorra tener que
+  // reproducir el fallo despues — y reproducirlo puede ser imposible, porque el video base es
+  // temporal y las condiciones exactas no vuelven.
+  const ptsDe = async (f: string) => {
+    const r = await new Promise<string>((res) => exec(
+      `ffprobe -v error -select_streams v:0 -show_entries frame=pts_time -of csv=p=0 ` +
+      `"${f.replace(/"/g, '\\"')}"`, { maxBuffer: 1024 * 1024 * 20 },
+      (e, out) => res(e ? '' : String(out).trim())));
+    const t = r.split('\n').map(x => x.trim()).filter(Boolean);
+    return { primeros: t.slice(0, 3).join('  '), ultimos: t.slice(-3).join('  ') };
+  };
+
   const framesOriginal = await framesDe(videoBase);
   const segDir = path.join(dir, 'segmentos');
   await fs.promises.mkdir(segDir, { recursive: true });
@@ -2168,7 +2181,7 @@ async function componerTarjetas(
   const compuestasSet = new Set<number>();
   for (let i = 0; i < segs.length; i++) {
     const ruta = path.join(segDir, segs[i]);
-    const { ini } = limites(i);
+    const { ini, fin } = limites(i);
     // Una tarjeta de 2 s con cortes cada 10 s cruza el corte tarde o temprano: entonces entra
     // en LOS DOS segmentos y se compone dos veces, cada uno con su mitad. El desfase relativo
     // sale negativo en el segundo, y overlay descarta lo anterior a cero, asi que las dos
@@ -2211,6 +2224,18 @@ async function componerTarjetas(
 
     const fOrig = await framesDe(ruta), fComp = await framesDe(salida);
     if (fOrig !== fComp) {
+      // Se vuelca AQUI, con los dos ficheros delante. Reproducir esto despues puede ser
+      // imposible: el video base es temporal y sus keyframes no vuelven a caer igual.
+      const po = await ptsDe(ruta), pc = await ptsDe(salida);
+      await log(`[EXPORT-G3] DESCUADRE en el segmento ${i} (${segs[i]}): ${fComp} frames tras ` +
+        `componer, eran ${fOrig}. Dura ${(fOrig / fps).toFixed(3)}s, tramo ` +
+        `${ini.toFixed(2)}-${(fin === Number.POSITIVE_INFINITY ? -1 : fin).toFixed(2)}s`);
+      await log(`[EXPORT-G3]   original  primeros: ${po.primeros}   ultimos: ${po.ultimos}`);
+      await log(`[EXPORT-G3]   compuesto primeros: ${pc.primeros}   ultimos: ${pc.ultimos}`);
+      await log(`[EXPORT-G3]   tarjetas dentro (${dentro.length}): ` + dentro.map(k =>
+        `${tarjetas[k].ini.toFixed(2)}-${(tarjetas[k].ini + tarjetas[k].dur).toFixed(2)}s ` +
+        `desfase ${(tarjetas[k].ini - ini).toFixed(3)}s` +
+        (estaACaballo(tarjetas[k], i) ? ' A CABALLO' : '')).join(' | '));
       return { ok: false, compuestas: compuestasSet.size, sinComponer: tarjetas.length - compuestasSet.size,
         segDir, aCaballo, motivo: `segmento ${i}: ${fComp} frames tras componer, eran ${fOrig}` };
     }
@@ -2870,6 +2895,16 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
         if (!r.ok) {
           await writeDebugLog(`[EXPORT-G3] PASADA DESCARTADA: ${r.motivo}. El video sale SIN ` +
             `las ${esperadas} tarjetas, pero correcto y sincronizado.`);
+          await writeDebugLog(`[EXPORT-G3] Contexto: ${tarjetas.length} tarjetas con MOV de ` +
+            `${esperadas} clips de grafico` +
+            (tarjetasSinFichero ? ` (${tarjetasSinFichero} sin fichero)` : '') +
+            `, ${r.aCaballo} a caballo entre dos segmentos, ${((Date.now() - g3Start) / 1000).toFixed(1)}s.`);
+          // NO se borra nada al descartar: el video base y los segmentos son lo unico con lo
+          // que se puede averiguar por que fallo, y son temporales que no se pueden
+          // reconstruir despues — el exportado ya paso por el mux con -shortest y tiene otros
+          // frames y otros keyframes.
+          await writeDebugLog(`[EXPORT-G3] CONSERVADO para diagnostico: ${videoBase}`);
+          await writeDebugLog(`[EXPORT-G3] CONSERVADO para diagnostico: ${r.segDir}`);
         } else {
           // TARJETAS distintas, no invocaciones de overlay. Y se dice explicitamente cuantas
           // NO salen, para que el numero no cuadre por casualidad: si algun dia son 37 de 39,
@@ -2895,13 +2930,16 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
         await new Promise<void>((res, rej) => exec(mux, { maxBuffer: 1024 * 1024 * 50 },
           (e) => e ? rej(e) : res()));
 
-        // Limpieza de lo que la pasada dejo: los segmentos, el base y el compuesto.
-        try {
-          if (await exists(r.segDir)) await fs.promises.rm(r.segDir, { recursive: true, force: true });
-        } catch (e) {}
-        try { await fs.promises.unlink(videoBase); } catch (e) {}
-        try { await fs.promises.unlink(conGraficos); } catch (e) {}
-        try { await fs.promises.rmdir(normDir); } catch (e) {}
+        // Limpieza SOLO si la pasada salio bien. Si se descarto, el base y los segmentos se
+        // quedan a proposito: son la unica evidencia del fallo.
+        if (r.ok) {
+          try {
+            if (await exists(r.segDir)) await fs.promises.rm(r.segDir, { recursive: true, force: true });
+          } catch (e) {}
+          try { await fs.promises.unlink(videoBase); } catch (e) {}
+          try { await fs.promises.unlink(conGraficos); } catch (e) {}
+          try { await fs.promises.rmdir(normDir); } catch (e) {}
+        }
       }
     }
 
