@@ -129,6 +129,54 @@ ser latente.
 
 ---
 
+## ⚠️ Lo que deja abierto el enchufe de los tres caminos
+
+**Anotado el 7 de agosto de 2026, al extraer `renderizarYSellar` y cablear A, B y C.**
+
+### a) El camino A aborta el build ENTERO si cambia el proyecto, y eso son minutos
+
+Si el usuario abre otro proyecto mientras corre `handleBuildIATimeline`, `renderizarYSellar`
+devuelve `null` y la función **retorna sin escribir nada**. Eso es correcto —meter esos clips
+en el timeline del proyecto equivocado sería peor— pero **el precio no es comparable al de C**:
+
+| | qué se pierde |
+|---|---|
+| **C** (`⟳ Generar`) | solo los gráficos. Los MOV quedan en `cache/graficos` del proyecto correcto y volver a pulsar allí los recupera a **~2 ms cada uno** por la caché del hash. |
+| **A** (`Construir Timeline IA`) | **el build entero**: cortar el vídeo, DeepSeek, descargar el stock, generar la IA. **Minutos.** Los clips de vídeo **no tienen caché por hash**, así que rehacerlo cuesta lo mismo que la primera vez. |
+
+**Queda como algo a mejorar, no como resuelto.** Lo que habría que buscar es una salida que
+conserve el trabajo sin escribirlo donde no toca — por ejemplo, guardar el resultado contra el
+proyecto de origen en vez de descartarlo, o avisar al usuario y dejarle decidir. Ninguna de las
+dos está diseñada.
+
+### b) Ninguna suite ejercita `handleBuildIATimeline`
+
+Las cuatro en verde dicen que **no se rompió nada de lo que ya estaba cubierto**, no que A y B
+funcionen. Ese camino es frontend y depende de DeepSeek, Pexels y fal.ai, así que ningún test
+lo recorre. Lo verificado es que compila, que la persistencia aguanta y que el lote al que
+llama está probado por `npm run test:graficos`.
+
+### c) Y A no se puede probar hoy ni a mano
+
+FASE 2 manda **`graphicsPercent: 0` fijo** ([main.tsx:2405](../src/renderer/src/main.tsx#L2405)),
+así que `generate-timeline-assets` nunca asigna gráficos y el camino A siempre recibe una lista
+vacía — lo confirma el log con `Gráficos asignados: 0`. **Queda cableado pero sin ejercitar**
+hasta que ese cero se reconecte. Cuando se haga, A es lo primero que hay que mirar.
+
+### d) El assert de los 5000 ms es el candidato número uno a fallo intermitente
+
+En `tests/graficos.js`, `el primero tarda menos de 5000 ms` **ya falló una vez** y pasó al
+repetir sin tocar nada. Los renders de 60 frames a 1080×1920 medidos en la misma sesión van de
+**2551 a 4284 ms** — un factor 1.7 con el mismo código, según lo cargada que esté la máquina.
+
+**No se sube el umbral.** Se eligió holgado a propósito como detector de degradación, y
+ensancharlo porque ha fallado una vez le quita el propósito. Pero que quede escrito: **si esta
+suite falla, mírese esto antes que el código**, y compruébese que los intentos por frame siguen
+en su banda de 1.3-1.8 — eso es lo que distingue "máquina ocupada" de "el lazo cerrado se ha
+degradado".
+
+---
+
 ## 📌 Lo que hereda la PIEZA 3 del enchufe del botón ⟳
 
 **Anotado el 6 de agosto de 2026, al enchufar la PIEZA 2 al botón. Tres cosas sin arreglar.**
