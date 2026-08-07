@@ -2327,8 +2327,81 @@ function App() {
     setSyncWeights(updated);
   };
 
+  /**
+   * Renderiza los MOV de una tanda de clips de grafico y les sella el graphicMovHash.
+   *
+   * Devuelve null SOLO si el proyecto cambio durante el render: entonces el llamador no debe
+   * escribir el estado. En cualquier otro caso devuelve los clips —con el campo puesto, o sin
+   * el los que no se hicieron—, incluido un lote cancelado.
+   *
+   * Vive en UNA funcion porque hay TRES sitios que construyen clips de tipo 'graphic' y los
+   * tres necesitan exactamente esto: handleBuildIATimeline los crea por DOS caminos (los que
+   * llegan ya hechos de FASE 2 y los de su llamada a regenerateGraphics) y
+   * handleRegenerateGraphics por un tercero. Copiarlo seria el patron que ya mordio con los
+   * dos botones de "Usar Audio Original" y con las dos vias de carga de proyecto, aqui con
+   * tres copias.
+   *
+   * Se declara ANTES de los tres handlers que la usan. Como es un `const`, colocarla despues
+   * funcionaria igual —las clausuras se ejecutan al pulsar, cuando el cuerpo del componente ya
+   * corrio entero— pero el compilador NO comprueba la zona muerta temporal a traves de una
+   * clausura, asi que un build en verde no diria nada al respecto. Ponerla arriba elimina la
+   * pregunta en vez de dejarla apoyada en un razonamiento.
+   */
+  const renderizarYSellar = async (
+    clipsDeGrafico: any[],
+    aspectRatioLote: string,
+    resolutionLote: string,
+    proyectoAlEmpezar: string | null
+  ): Promise<any[] | null> => {
+    if (!clipsDeGrafico.length) return clipsDeGrafico;
+
+    // El frontend NO sabe de pixeles: manda formato y resolucion, y dimensionesDeExport
+    // traduce en el backend — el MISMO sitio que usa el export, porque el WxH entra en el
+    // hash del MOV.
+    const lote = await window.electronAPI.renderGraphicsBatch({
+      graficos: clipsDeGrafico.map(c => ({
+        graphicData: c.graphicData,
+        duracion: c.durationSeconds
+      })),
+      aspectRatio: aspectRatioLote,
+      resolution: resolutionLote
+    });
+
+    // Por el REF, no por la clausura: leer activeProjectPath aqui devolveria el valor de
+    // cuando arranco el handler, y compararlo consigo mismo seria un if que nunca se cumple.
+    if (activeProjectPathRef.current !== proyectoAlEmpezar) {
+      console.warn('[GRAFICOS] El proyecto cambio durante la generacion: no se toca el timeline.');
+      return null;
+    }
+
+    if (lote && lote.cancelado) {
+      console.warn('[GRAFICOS] Lote cancelado:', lote.motivo,
+        '— los clips entran igual; volver a pulsar ⟳ los completa desde la cache.');
+    }
+
+    // rutas es POSICIONAL: rutas[i] corresponde a clipsDeGrafico[i], y es null si ese grafico
+    // no se hizo —fallo, o lote cancelado y quedo sin intentar—. El clip entra igual SIN el
+    // campo: ni se quita ni se marca. Quitarlo dejaria al export sin nada que echar de menos
+    // y romperia la COBERTURA 2; marcarlo seria una segunda fuente de verdad que habria que
+    // limpiar. Se guarda el HASH y no la ruta porque el proyecto es autocontenido y una ruta
+    // absoluta seria el hash con un prefijo que se queda obsoleto al mover la carpeta. No se
+    // usa path.basename: `path` es de Node y en el renderer no existe.
+    const rutas = (lote && lote.rutas) || [];
+    return clipsDeGrafico.map((c, i) => {
+      const ruta = rutas[i];
+      if (!ruta) return c;
+      return { ...c, graphicMovHash: ruta.replace(/\\/g, '/').split('/').pop()!.replace(/\.mov$/, '') };
+    });
+  };
+
   const handleBuildIATimeline = async () => {
     if (!aiScript.trim()) return;
+
+    // Se captura al EMPEZAR y por el REF: esta funcion tarda MINUTOS —cortar clips, DeepSeek,
+    // descargar stock, generar IA— y toda esa ventana es tiempo en el que el usuario puede
+    // abrir otro proyecto. Leerlo de la clausura daria el valor de cuando arranco y la
+    // comparacion nunca se cumpliria.
+    const proyectoAlEmpezar = activeProjectPathRef.current;
 
     const voiceClip = timelineVideoClips.find(c => c.type === 'audio');
     const isUsingOriginalAudio = voiceClip?.name === 'Voz - Audio Original';
@@ -2448,9 +2521,19 @@ function App() {
           }
         }
 
+        // CAMINO A: estos graficos llegan YA HECHOS de FASE 2 (index.ts:3603), no pasan por
+        // regenerateGraphics. Traen graphicData con las seis claves y durationSeconds, asi que
+        // sirven tal cual para el lote.
+        const graficosSellados = await renderizarYSellar(
+          newGraphicClips, aspectRatio, exportResolution, proyectoAlEmpezar);
+        // null = cambio el proyecto. Aqui se aborta el build ENTERO y eso cuesta minutos de
+        // clips de video que no tienen cache que los recupere — pero escribirlos en el
+        // proyecto equivocado seria peor. Anotado como deuda.
+        if (!graficosSellados) return;
+
         // Keep all existing audio clips completely intact and untouched!
         const existingAudioClips = timelineVideoClips.filter(c => c.type === 'audio');
-        const finalTimelineClips = [...newVideoClips, ...newGraphicClips, ...existingAudioClips];
+        const finalTimelineClips = [...newVideoClips, ...graficosSellados, ...existingAudioClips];
 
         const nextVersionNumber = timelineVersions.filter(v => v.id.startsWith('v-ai-')).length + 1;
         const newVersionId = `v-ai-${Date.now()}`;
@@ -2494,7 +2577,11 @@ function App() {
                     graphicData: c.graphicData
                   };
                 });
-              setTimelineVideoClips(prev => [...prev, ...newGClips]);
+              // CAMINO B. Si devuelve null NO se aborta: el timeline de video ya se escribio
+              // arriba y es valido, asi que solo se deja de añadir los graficos.
+              const sellados = await renderizarYSellar(
+                newGClips, aspectRatio, exportResolution, proyectoAlEmpezar);
+              if (sellados) setTimelineVideoClips(prev => [...prev, ...sellados]);
             }
           } catch (gErr) {
             console.error('Error generando gráficos:', gErr);
@@ -2625,6 +2712,9 @@ function App() {
       : v1Clips;
     if (videoClips.length === 0) return;
     setIsGeneratingAssets(true);
+    // Se captura al EMPEZAR, no justo antes del lote: asi la ventana de riesgo cubre tambien
+    // la llamada a DeepSeek, que son decenas de segundos.
+    const proyectoAlEmpezar = activeProjectPathRef.current;
     try {
       const res = await window.electronAPI.regenerateGraphics({
         scriptText: textToUse,
@@ -2658,57 +2748,17 @@ function App() {
             };
           });
 
-        // Se captura ANTES del lote. Los ~50 s que tarda son la ventana en la que el usuario
-        // puede abrir otro proyecto, y escribir el timeline entonces meteria los graficos del
-        // proyecto A en el B. Va por el REF, no por la clausura: ver el comentario del ref.
-        const proyectoAlEmpezar = activeProjectPathRef.current;
-
-        // El frontend NO sabe de pixeles: manda formato y resolucion, que ya tiene como estado
-        // persistido, y dimensionesDeExport traduce en el backend — el MISMO sitio que usa el
-        // export, porque el WxH entra en el hash del MOV.
-        const lote = await window.electronAPI.renderGraphicsBatch({
-          graficos: newGraphicClips.map(c => ({
-            graphicData: c.graphicData,
-            duracion: c.durationSeconds
-          })),
-          aspectRatio,
-          resolution: exportResolution
-        });
-
-        // El proyecto cambio mientras renderizabamos: NO se escribe el estado. Los MOV que se
-        // hayan hecho siguen en cache/graficos del proyecto correcto, asi que volver a pulsar
-        // ⟳ alli los recupera a ~2 ms cada uno por la cache. No se pierde trabajo.
-        if (activeProjectPathRef.current !== proyectoAlEmpezar) {
-          console.warn('[GRAFICOS] El proyecto cambio durante la generacion: no se toca el timeline.');
-          return;
-        }
-
-        // rutas es POSICIONAL: rutas[i] corresponde a newGraphicClips[i], y es null si ese
-        // grafico no se hizo —fallo, o lote cancelado y quedo sin intentar—. El clip entra
-        // igual, SIN el campo: ni se quita ni se marca. Quitarlo dejaria al export sin nada
-        // que echar de menos y romperia la COBERTURA 2 ("esperaba 19, compuse 17"); marcarlo
-        // seria una segunda fuente de verdad que habria que limpiar. La ausencia se corrige
-        // sola al re-renderizar.
-        // Se guarda el HASH y no la ruta: el proyecto es autocontenido por decision cerrada,
-        // y una ruta absoluta seria el hash con un prefijo que se queda obsoleto al moverlo.
-        // No se usa path.basename porque `path` es de Node y aqui no existe.
-        const rutas = (lote && lote.rutas) || [];
-        const conMov = newGraphicClips.map((c, i) => {
-          const ruta = rutas[i];
-          if (!ruta) return c;
-          const hash = ruta.replace(/\\/g, '/').split('/').pop()!.replace(/\.mov$/, '');
-          return { ...c, graphicMovHash: hash };
-        });
-
-        if (lote && lote.cancelado) {
-          console.warn('[GRAFICOS] Lote cancelado:', lote.motivo,
-            '— los clips entran igual; volver a pulsar ⟳ los completa desde la cache.');
-        }
+        const sellados = await renderizarYSellar(
+          newGraphicClips, aspectRatio, exportResolution, proyectoAlEmpezar);
+        // null = el proyecto cambio a mitad. No se escribe nada: los MOV hechos siguen en
+        // cache/graficos del proyecto correcto y volver a pulsar ⟳ alli los recupera a ~2 ms
+        // cada uno por la cache, asi que no se pierde trabajo.
+        if (!sellados) return;
 
         // El timeline se escribe UNA vez, al final. Meter los clips antes y completarlos
         // despues dispararia el autoguardado con clips sin MOV en disco, y la PIEZA 3 no
         // podria distinguir "fallo" de "aun renderizando".
-        setTimelineVideoClips([...nonGraphicClips, ...conMov]);
+        setTimelineVideoClips([...nonGraphicClips, ...sellados]);
         setIsDirty(true);
       }
     } catch (err) {
