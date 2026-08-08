@@ -2187,6 +2187,17 @@ async function componerTarjetas(
   // La COBERTURA 2 no pregunta cuantas operaciones se hicieron sino cuantos graficos han
   // salido, y un contador que puede pasarse del total no sirve para detectar que faltan.
   const compuestasSet = new Set<number>();
+
+  // Segmentos que necesitaron mas de un intento, anotados como "indice:intentos". Se vuelca
+  // ANTES de cada return y no solo al final: si la pasada acaba descartandose, saber cuantas
+  // veces peleo cada segmento es justo lo que hace falta para decidir si 3 intentos bastan.
+  const reintentos: string[] = [];
+  const logReintentos = async () => {
+    if (!reintentos.length) return;
+    await log(`[EXPORT-G3] MITIGACION: ${reintentos.length} de ${segs.length} segmento(s) ` +
+      `necesitaron reintento (segmento:intentos) — ${reintentos.join(', ')}`);
+  };
+
   for (let i = 0; i < segs.length; i++) {
     const ruta = path.join(segDir, segs[i]);
     const { ini, fin } = limites(i);
@@ -2218,25 +2229,66 @@ async function componerTarjetas(
       '-c:v', 'libx264', '-preset', preset, '-crf', String(crf), '-pix_fmt', 'yuv420p',
       '-video_track_timescale', String(fps * 1000), salida);
 
-    const okSeg = await new Promise<boolean>((res) => {
-      const p = spawn('ffmpeg', args);
-      let err = '';
-      p.stderr!.on('data', d => { err += d.toString(); if (err.length > 32000) err = err.slice(-32000); });
-      p.on('error', () => res(false));
-      p.on('close', (code) => {
-        if (code !== 0) log(`[EXPORT-G3] segmento ${i}: ffmpeg salio ${code} — ${err.slice(-300)}`);
-        res(code === 0);
+    // ─── REINTENTO: ESTO ES UNA MITIGACION, NO EL ARREGLO ────────────────────────────────
+    // La causa NO esta aqui. El video base mezcla espacios de color: los 78 clips de origen no
+    // vienen todos iguales y el concat deja tramos bt709 alternando con tramos bt2020nc. Cada
+    // cambio obliga a ffmpeg a reconstruir el grafo de filtros a mitad del stream —
+    //   [fc#0] Reconfiguring filter graph because video parameters changed to yuv420p(tv, bt2020nc)
+    // — y en esa reconfiguracion se pierden los frames que iban EN VUELO por la cadena. Medido
+    // sobre el segmento que fallo: el hueco es unico, los 3 frames perdidos son los 3 justo
+    // anteriores al cambio de color, y ese cambio cae en 2.800s exactos.
+    //
+    // POR QUE UN REINTENTO SIRVE: es una carrera, no un fallo determinista. 30 pasadas del
+    // mismo comando sobre los mismos ficheros dieron 5 fallos (16.7%) en las posiciones 2, 4,
+    // 8, 11 y 16 — REPARTIDOS, con racha maxima de UNO. Nunca dos seguidos. Si vinieran en
+    // racha esto no valdria de nada y habria que atacar la causa directamente.
+    //
+    // Lo que NO es, tambien medido, para que nadie lo vuelva a buscar ahi:
+    //   sin filtros           0 de 10 fallos  -> sin cadena no hay nada que reconfigurar
+    //   un overlay            2 de 10         -> es del overlay
+    //   dos overlays          3 de 10         -> no es del encadenado
+    //   dos overlays PEQUEÑOS 2 de 10         -> el tamaño de la tarjeta NO influye
+    //
+    // ARREGLO DE RAIZ, PENDIENTE: que la normalizacion de los clips fuerce UN solo espacio de
+    // color, para que no haya reconfiguracion ninguna. Esto de aqui baja la probabilidad de
+    // descartar la pasada; no la elimina.
+    const MAX_INTENTOS_SEG = 3;
+    let okSeg = false, fOrig = 0, fComp = 0, intentos = 0;
+    while (intentos < MAX_INTENTOS_SEG) {
+      intentos++;
+      okSeg = await new Promise<boolean>((res) => {
+        const p = spawn('ffmpeg', args);
+        let err = '';
+        p.stderr!.on('data', d => { err += d.toString(); if (err.length > 32000) err = err.slice(-32000); });
+        p.on('error', () => res(false));
+        p.on('close', (code) => {
+          if (code !== 0) log(`[EXPORT-G3] segmento ${i}: ffmpeg salio ${code} — ${err.slice(-300)}`);
+          res(code === 0);
+        });
       });
-    });
-    if (!okSeg) return { ok: false, compuestas: compuestasSet.size, sinComponer: tarjetas.length - compuestasSet.size, segDir, aCaballo, motivo: `fallo el segmento ${i}` };
+      // Un ffmpeg que sale con codigo != 0 NO se reintenta. Eso no es la carrera de la
+      // reconfiguracion sino un error de verdad —un .mov ilegible, disco lleno—, y repetirlo
+      // tres veces solo retrasaria el diagnostico y taparia el motivo.
+      if (!okSeg) break;
+      // El fichero de salida se sobrescribe en cada intento: args ya lleva -y.
+      fOrig = await framesDe(ruta); fComp = await framesDe(salida);
+      if (fOrig === fComp) break;
+    }
+    if (intentos > 1) reintentos.push(`${i}:${intentos}`);
 
-    const fOrig = await framesDe(ruta), fComp = await framesDe(salida);
+    if (!okSeg) {
+      await logReintentos();
+      return { ok: false, compuestas: compuestasSet.size, sinComponer: tarjetas.length - compuestasSet.size, segDir, aCaballo, motivo: `fallo el segmento ${i}` };
+    }
+
     if (fOrig !== fComp) {
+      await logReintentos();
       // Se vuelca AQUI, con los dos ficheros delante. Reproducir esto despues puede ser
       // imposible: el video base es temporal y sus keyframes no vuelven a caer igual.
       const po = await ptsDe(ruta), pc = await ptsDe(salida);
-      await log(`[EXPORT-G3] DESCUADRE en el segmento ${i} (${segs[i]}): ${fComp} frames tras ` +
-        `componer, eran ${fOrig}. Dura ${(fOrig / fps).toFixed(3)}s, tramo ` +
+      await log(`[EXPORT-G3] DESCUADRE en el segmento ${i} (${segs[i]}) tras ${intentos} ` +
+        `intento(s): ${fComp} frames tras componer, eran ${fOrig}. Dura ` +
+        `${(fOrig / fps).toFixed(3)}s, tramo ` +
         `${ini.toFixed(2)}-${(fin === Number.POSITIVE_INFINITY ? -1 : fin).toFixed(2)}s`);
       await log(`[EXPORT-G3]   original  primeros: ${po.primeros}   ultimos: ${po.ultimos}`);
       await log(`[EXPORT-G3]   compuesto primeros: ${pc.primeros}   ultimos: ${pc.ultimos}`);
@@ -2245,11 +2297,13 @@ async function componerTarjetas(
         `desfase ${(tarjetas[k].ini - ini).toFixed(3)}s` +
         (estaACaballo(tarjetas[k], i) ? ' A CABALLO' : '')).join(' | '));
       return { ok: false, compuestas: compuestasSet.size, sinComponer: tarjetas.length - compuestasSet.size,
-        segDir, aCaballo, motivo: `segmento ${i}: ${fComp} frames tras componer, eran ${fOrig}` };
+        segDir, aCaballo,
+        motivo: `segmento ${i}: ${fComp} frames tras componer, eran ${fOrig} (${intentos} intentos)` };
     }
     finales.push(salida);
     for (const k of dentro) compuestasSet.add(k);
   }
+  await logReintentos();
 
   const txt = path.join(segDir, 'lista.txt');
   await fs.promises.writeFile(txt,
