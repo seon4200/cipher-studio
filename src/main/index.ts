@@ -784,6 +784,13 @@ const canonizar = (v: any): string => {
 // las tres formas, pero el componente NO las lee: quedan fuera POR CONSTRUCCION, sin un
 // delete que se pueda olvidar. Es la decision cerrada de que el tiempo de inicio no entra en
 // la clave — si entrara, mover un clip 0.1s re-renderizaria un fichero byte a byte identico.
+// SUBIR AL TOCAR AnimatedGraphic.tsx, su CSS, o el layout de grafico.tsx —la escala o el
+// margen inferior—. El CSS no puede entrar en el hash, asi que sin esta constante un cambio de
+// diseño deja el hash IDENTICO: la cache devuelve el MOV viejo, el log dice ACIERTO y el export
+// dice "39 de 39". Todo verde con el diseño antiguo. Es el peor modo de fallo que hay, porque
+// el sistema afirma activamente que ha funcionado.
+const VERSION_PLANTILLAS = 1;
+
 function hashGrafico(graphicData: any, ancho: number, alto: number,
                      duracion: number, fps: number): string {
   const g = graphicData || {};
@@ -791,7 +798,8 @@ function hashGrafico(graphicData: any, ancho: number, alto: number,
     canonizar(g.type), canonizar(g.value), canonizar(g.label),
     canonizar(g.unit), canonizar(g.emoji), canonizar(g.extra),
     // La duracion SI entra: 2s y 3s son animaciones distintas, no la misma estirada.
-    String(ancho), String(alto), String(duracion), String(fps)
+    String(ancho), String(alto), String(duracion), String(fps),
+    'plantillas=' + VERSION_PLANTILLAS
   ];
   return createHash('sha1').update(partes.join('|')).digest('hex').slice(0, 12);
 }
