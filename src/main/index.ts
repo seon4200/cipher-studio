@@ -2623,7 +2623,33 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
               ? construirVF(`,tpad=stop_mode=clone:stop_duration=${MAX_CLONADO},setsar=1`, conAjustes)
               : construirVF(',setsar=1', conAjustes);
             const trim = frames > 0 ? `-frames:v ${frames} ` : '';
-            const cmd = `ffmpeg -y -i "${escapedIn}" ${vf} -r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an ${trim}"${escapedNorm}"`;
+            // -colorspace bt709: UNIFICA LA MATRIZ DE COLOR. No es cosmetico, arregla un bug
+            // que descartaba TODOS los graficos del export.
+            //
+            // ffmpeg copia las etiquetas de color de la fuente aunque recodifique —medido:
+            // clip_006 entra bt2020nc y salia bt2020nc—, asi que el concat con -c:v copy
+            // heredaba la mezcla y el video base alternaba bt709 con bt2020nc. Cada cambio de
+            // matriz obliga a reconstruir el grafo de filtros a mitad del stream:
+            //   [fc#0] Reconfiguring filter graph because video parameters changed to ...
+            // y en esa reconfiguracion se pierden los frames que van EN VUELO por la cadena de
+            // overlay de PIEZA 3. Como la guarda exige que el recuento cuadre al frame, la
+            // pasada se descartaba entera y el video salia sin ninguna tarjeta.
+            //
+            // MEDIDO sobre el seg_00003.mp4 de un export que fallo, 30 composiciones de cada:
+            //   segmento tal cual (1 cambio de matriz dentro):  30 de 30 FALLOS
+            //   el mismo con la matriz unificada:                0 de 30 fallos
+            // El caso determinista, no una carrera: por eso el reintento por segmento no lo
+            // salvaba nunca.
+            //
+            // Se aplica a TODOS los clips, no solo a los pocos que vienen en bt2020nc. Para uno
+            // que ya es bt709 no cambia nada, y asi no hace falta detectar cuales lo necesitan:
+            // una deteccion que fallara volveria a colar un clip suelto y el bug volveria.
+            // Coste medido sobre los dos clips HDR reales: 430 -> 419 ms y 425 -> 436 ms. Cero.
+            //
+            // OJO, NO ARREGLA LAS OTRAS DOS ETIQUETAS: color_primaries y color_transfer se
+            // siguen heredando de la fuente (medido: la salida se queda en bt2020/arib-std-b67).
+            // Ver la deuda del plan maestro.
+            const cmd = `ffmpeg -y -i "${escapedIn}" ${vf} -r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -colorspace bt709 -an ${trim}"${escapedNorm}"`;
             exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => {
               if (err) reject(err); else resolve();
             });
