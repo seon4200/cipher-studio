@@ -1139,16 +1139,34 @@ export async function renderGraphicClip(
       // misma imagen. veryfast porque es intermedio, no el entregable.
       // NO esta medido: es el mismo criterio que usa la normalizacion, no un numero probado.
       //
-      // COSTE — DATO PRELIMINAR, NO MEDICION. En una tirada de test:graficos salio:
-      //   Visual  de 3s: 90 frames en 4898 ms  ->  54 ms/frame
-      //   tarjeta de 2s: 60 frames en ~2200 ms ->  37 ms/frame
-      // Es UNA sola muestra, tomada DENTRO de la suite, con la ventana ya caliente de veinte
-      // renders previos y compitiendo con ellos. No sirve para decidir nada. Falta la medicion
-      // formal: repeticiones en frio y en caliente, una tarjeta de CONTROL en la misma tirada,
-      // y los dos sistemas —el fondo claro de clinico tiene mas pixeles que codificar que el
-      // casi negro de voltaje—.
-      // Importa porque si esos 54 ms/frame se confirman, 220 Visuales de 3s son ~18 minutos
-      // solo de render, y eso decide si el 100% de Visuales es viable (V3, el cuarto peso).
+      // COSTE, MEDIDO. 5 repeticiones por caso, cada una con un `value` distinto para que no
+      // haya acierto de cache, y una tarjeta de CONTROL en la MISMA tirada — que es lo unico
+      // que hace comparable el numero, porque la maquina cambia de estado entre tiradas:
+      //
+      //   caliente   Visual voltaje 3s   90f   4500 ms   50.3 ms/frame   0.08 MB
+      //   caliente   Visual clinico 3s   90f   4471 ms   49.2 ms/frame   0.13 MB
+      //   caliente   tarjeta 2s          60f   3036 ms   50.1 ms/frame   2.14 MB
+      //
+      // UN VISUAL CUESTA LO MISMO POR FRAME QUE UNA TARJETA: 50.3 contra 50.1, x1.00. El
+      // Visual de 3s tarda mas solo porque tiene un 50% mas de frames.
+      // EL SISTEMA DE COLOR NO INFLUYE: clinico, con fondo casi blanco, sale un 2.3% MAS
+      // RAPIDO que voltaje. Dentro del ruido.
+      // EL COSTE ESTA EN EL LAZO DE CAPTURA —capturePage mas los reintentos de la sonda—, NO
+      // en el encoder: el MP4 pesa 0.06-0.13 MB contra los 2.1 MB del MOV, asi que codificar
+      // es la parte barata. Por eso da igual el contenido y da igual el codec.
+      // Frio y caliente apenas se distinguen (~50 ms/frame en ambos): crear la ventana son
+      // ~150 ms que se diluyen en un render de 4.5 s.
+      //
+      // Para un video de 9 min (220 sub-clips, 17400 frames) al 25% con batching de 25 frases
+      // por llamada, el NETO son +1.6 min: un Visual SUSTITUYE a un sub-clip, asi que quita su
+      // descarga de stock o su corte de original en vez de sumarse. Al 100% son +6.5 min netos
+      // sobre los ~8 min que hoy tarda FASE 3.
+      //
+      // LO QUE NO ESTA MEDIDO: los 14 s/lote de DeepSeek salen de FASE 2 pidiendo KEYWORDS, no
+      // de pedir el contenido de un Visual — ese prompt todavia no existe. Si resulta mas largo
+      // o el modelo tarda mas en componer, ese numero sube y el reparto de arriba cambia.
+      // (Un dato anterior decia 54 contra 37 ms/frame y esta RETIRADO: los 37 venian de
+      // tarjetas medidas en otra tirada, con la maquina en otro estado.)
       ...(modo === 'pantalla' ? ['-preset', 'veryfast', '-crf', '18'] : []),
       destino
     ]);
