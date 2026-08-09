@@ -1,0 +1,348 @@
+<meta charset="utf-8">
+<title>CIPHER — motion en bucle II</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ── Mismo ciclo maestro. Toda duración divide 12 exacto:
+     12 / 6 / 4 / 3 / 2 / 1.5 / 1.2 / 1 / 0.75 / 0.6. El 5 y el 7 no. ── */
+  :root{
+    --ciclo:12s;
+    --ui-bg:#08090F; --ui-line:#1C1F2B; --ui-ink:#EAEDF7; --ui-dim:#727A94;
+    --fondo:#0A0A0A; --sup:#121212; --texto:#FAFAFA;
+    --acento:#F0A020; --apoyo:#8C8C8C;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ui-bg);color:var(--ui-ink);font:400 14px/1.6 Inter,system-ui,sans-serif}
+  header{padding:26px 32px 18px;border-bottom:1px solid var(--ui-line)}
+  h1{margin:0;font:800 21px/1.2 Archivo,sans-serif;letter-spacing:-.02em}
+  header p{margin:8px 0 0;color:var(--ui-dim);max-width:84ch}
+  header b{color:var(--acento);font-weight:500}
+  header code{font:400 12.5px Space Mono,monospace;color:var(--ui-ink)}
+
+  .bar{position:sticky;top:0;z-index:20;background:rgba(8,9,15,.96);backdrop-filter:blur(12px);
+       border-bottom:1px solid var(--ui-line);padding:13px 32px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .bar label{color:var(--ui-dim);font:400 12px Space Mono,monospace;letter-spacing:.1em;text-transform:uppercase}
+  input[type=range]{flex:1;min-width:240px;accent-color:var(--acento)}
+  .t{font:700 15px/1 Space Mono,monospace;min-width:96px;color:var(--acento)}
+  button{background:transparent;border:1px solid var(--ui-line);color:var(--ui-ink);border-radius:6px;
+         padding:7px 14px;font:400 12.5px Space Mono,monospace;cursor:pointer}
+  button:hover{border-color:var(--acento);color:var(--acento)}
+  button.on{background:var(--acento);border-color:var(--acento);color:#0A0A0A;font-weight:700}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:28px;padding:28px 32px 60px}
+  .cell h3{margin:0 0 3px;font:600 13.5px Inter,sans-serif;display:flex;align-items:center;gap:8px}
+  .tipo{font:400 9.5px Space Mono,monospace;letter-spacing:.12em;text-transform:uppercase;
+        border:1px solid var(--ui-line);border-radius:99px;padding:2px 7px;color:var(--ui-dim)}
+  .tipo.bucle{color:var(--acento);border-color:rgba(240,160,32,.4)}
+  .need{margin:0 0 9px;font-size:11px;line-height:1.5;color:var(--ui-dim)}
+
+  .frame{position:relative;width:100%;aspect-ratio:9/16;overflow:hidden;border-radius:12px;
+         container-type:inline-size;border:1px solid var(--ui-line);background:var(--fondo)}
+  .escena{position:absolute;inset:0;perspective:60cqw;perspective-origin:50% 46%;
+          display:flex;align-items:center;justify-content:center;z-index:1}
+  .mundo{position:absolute;inset:0;transform-style:preserve-3d}
+  .p{position:absolute;left:50%;top:46%;width:1.1cqw;height:1.1cqw;margin:-.55cqw 0 0 -.55cqw;
+     border-radius:50%;background:var(--apoyo)}
+  .p.ac{background:var(--acento)}
+  .capa{position:absolute;inset:0}
+
+  .pie{position:absolute;left:8.33%;right:8.33%;bottom:13.54%;z-index:5;text-align:center}
+  .pal{font:400 clamp(18px,13cqw,84px)/0.95 Anton,sans-serif;text-transform:uppercase;color:var(--texto)}
+  .sub{font:500 clamp(8px,3cqw,14px)/1.35 Inter,sans-serif;color:var(--apoyo);margin-top:2.5cqw}
+  .barra{height:.8cqw;width:15cqw;border-radius:99px;background:var(--acento);margin:4cqw auto 0}
+
+  /* ── BUCLES ─────────────────────────────────────────────────────────── */
+  @keyframes girZ    {to{transform:rotate(360deg)}}
+  @keyframes girZinv {to{transform:rotate(-360deg)}}
+  @keyframes respira {0%,100%{opacity:.18}50%{opacity:.85}}
+  @keyframes chispa  {0%,100%{opacity:.22;transform:scale(1)}50%{opacity:1;transform:scale(1.9)}}
+  @keyframes onda    {0%{transform:scale(.3);opacity:.7}100%{transform:scale(1.6);opacity:0}}
+  @keyframes deriva  {to{transform:translateY(-50%)}}
+  @keyframes derivaX {to{transform:translateX(-50%)}}
+  @keyframes flota   {0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-2.6cqw,0)}}
+  /* Nuevas de esta tanda */
+  @keyframes altoY   {0%,100%{transform:scaleY(.22)}50%{transform:scaleY(1)}}
+  @keyframes brilla  {0%,100%{opacity:.12}50%{opacity:.92}}
+  @keyframes vaiven  {0%,100%{transform:translateX(-2.4cqw)}50%{transform:translateX(2.4cqw)}}
+  @keyframes pendulo {0%,100%{transform:rotate(-11deg)}50%{transform:rotate(11deg)}}
+
+  /* ── NARRATIVA ──────────────────────────────────────────────────────── */
+  @keyframes entra{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
+  @keyframes rise {from{transform:translateY(22px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes pop  {0%{transform:scale(.6);opacity:0}62%{transform:scale(1.05);opacity:1}100%{transform:scale(1);opacity:1}}
+  @keyframes fade {from{opacity:0}to{opacity:1}}
+  @keyframes draw {to{stroke-dashoffset:0}}
+  @keyframes creceY{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+  @keyframes cae   {0%{transform:translateY(-26cqw);opacity:0}
+                    62%{transform:translateY(1.6cqw);opacity:1}100%{transform:translateY(0);opacity:1}}
+
+  .a{animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.88,.3,1)}
+  .b{animation-fill-mode:both;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+  .lin{animation-timing-function:linear}
+</style>
+
+<header>
+  <h1>Motion en bucle II — seis escenas nuevas con las mismas reglas</h1>
+  <p>Mismo ciclo de <code>12 s</code>, mismo determinismo con semilla, mismo desfase negativo.
+  Tres técnicas nuevas: <b>interferencia de moiré</b> con dos rejillas a velocidades distintas,
+  <b>flujo continuo</b> con un contenedor del doble de alto, y <b>ecualizador radial</b> con
+  duraciones desiguales del conjunto legal.</p>
+</header>
+
+<div class="bar">
+  <label for="t">t</label>
+  <input id="t" type="range" min="0" max="12" step="0.0333" value="4">
+  <span class="t" id="tv">4.000 s</span>
+  <button id="play">Reproducir</button>
+  <button id="loopcheck">Verificar bucle</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const R = (n,f) => [...Array(n)].map((_,i)=>f(i)).join('');
+
+/* Mismo congruencial. Determinismo obligatorio: sin él, cada recarga da una
+   composición distinta y el render frame a frame produce parpadeo. */
+let _s = 20260809;
+const rnd = () => (_s = _s*16807 % 2147483647) / 2147483647;
+const semilla = s => { _s = s; };
+
+/* Conjunto de duraciones legales: todas dividen 12. Ninguna es 5 ni 7. */
+const LEGAL = [1.5, 2, 3, 4, 6];
+
+const ESCENAS = [
+
+/* ─────────────────────────────────────────────────────────────────────
+   TIEMPO — bucle
+   Dos rejillas idénticas girando a velocidades distintas (12 s y 6 s).
+   Donde se cruzan nace un patrón de MOIRÉ que se desplaza solo: nadie
+   lo dibuja, emerge de la interferencia. Es la técnica más barata que
+   existe para generar movimiento complejo — dos capas y dos duraciones.
+   Como 6 divide 12, en t=12 las dos han dado vueltas enteras y cierra.
+   ───────────────────────────────────────────────────────────────────── */
+{n:'TIEMPO', sub:'dos rejillas, un patrón', tipo:'bucle',
+ need:'Interferencia de moiré: dos anillos de marcas girando a 12 s y 6 s. El patrón lo genera el cruce, no el dibujo.',
+ g:()=>{ const marcas = (n,rad,col) => R(n,i=>{
+    const a = i/n*360;
+    return `<div style="position:absolute;left:50%;top:46%;width:.5cqw;height:${rad*2}cqw;
+      margin:-${rad}cqw 0 0 -.25cqw;background:var(--${col});opacity:.5;
+      transform:rotate(${a.toFixed(2)}deg)"></div>`});
+  return `
+  <div class="capa b lin" style="animation-name:girZ;animation-duration:var(--ciclo)">
+    ${marcas(48,21,'apoyo')}
+  </div>
+  <div class="capa b lin" style="animation-name:girZinv;animation-duration:6s">
+    ${marcas(45,21,'acento')}
+  </div>
+  <div class="capa">
+    <div style="position:absolute;left:50%;top:46%;width:12cqw;height:12cqw;margin:-6cqw 0 0 -6cqw;
+      border:.8cqw solid var(--fondo);border-radius:50%;background:var(--fondo)"></div>
+    <div class="p ac b" style="animation-name:chispa;animation-duration:3s;transform:scale(2.6)"></div>
+  </div>`}},
+
+/* ─────────────────────────────────────────────────────────────────────
+   DINERO — bucle
+   Flujo continuo hacia arriba. El truco: el contenedor mide 200% de alto
+   y contiene la trama DOS VECES; deriva lo sube exactamente un 50%, así
+   que al terminar la copia de abajo está donde estaba la de arriba y el
+   corte es invisible. Es la misma técnica del frente de Guerra, girada.
+   ───────────────────────────────────────────────────────────────────── */
+{n:'DINERO', sub:'el flujo no se corta', tipo:'bucle',
+ need:'Columnas ascendentes con la trama duplicada y un desplazamiento del 50%: el bucle es perfecto por construcción.',
+ g:()=>{ semilla(606);
+  const columna = (x,n,dur,delay) => `
+    <div class="capa b lin" style="animation-name:deriva;animation-duration:${dur}s;
+      animation-delay:-${delay}s;top:0;height:200%">
+      ${R(n*2,i=>`<div class="p${i%5===0?' ac':''}" style="left:${x}%;margin-left:0;
+        top:${(i*(100/n)).toFixed(2)}%;opacity:${i%5===0?'.9':'.34'};
+        transform:scale(${i%5===0?1.5:1})"></div>`)}
+    </div>`;
+  return `
+  <div class="capa" style="overflow:hidden">
+    ${R(7,c=>columna(12+c*12.6, 9+Math.floor(rnd()*4), LEGAL[Math.floor(rnd()*5)], (rnd()*4).toFixed(2)))}
+  </div>
+  <div class="capa">
+    ${R(4,i=>`<div class="b" style="animation-name:altoY;animation-duration:${LEGAL[i+1]}s;
+      animation-delay:-${(i*1.3).toFixed(2)}s;transform-origin:50% 100%;
+      position:absolute;left:${(20+i*17).toFixed(0)}%;bottom:30%;width:7cqw;height:26cqw;
+      background:var(--acento);opacity:${(0.22+i*0.06).toFixed(2)};border-radius:.6cqw"></div>`)}
+  </div>`}},
+
+/* ─────────────────────────────────────────────────────────────────────
+   MÚSICA — bucle
+   Ecualizador radial: 56 barras saliendo del centro, cada una con una
+   duración distinta sacada del conjunto legal y un desfase negativo al
+   azar dentro de su propio periodo. Nunca se alinean en el medio —eso
+   sería una persiana— pero en t=12 todas han cerrado un número entero
+   de ciclos y el frame empata con el primero.
+   ───────────────────────────────────────────────────────────────────── */
+{n:'MÚSICA', sub:'56 relojes que no se alinean', tipo:'bucle',
+ need:'Ecualizador radial con duraciones desiguales del conjunto legal. La desincronía es lo que lo hace orgánico.',
+ g:()=>{ semilla(707);
+  return `
+  <div class="capa">
+    ${R(56,i=>{ const a=i/56*360, d=LEGAL[Math.floor(rnd()*5)], h=13+rnd()*13;
+      return `<div class="b" style="animation-name:altoY;animation-duration:${d}s;
+        animation-delay:-${(rnd()*d).toFixed(2)}s;transform-origin:50% 100%;
+        position:absolute;left:50%;top:46%;width:.9cqw;height:${h.toFixed(1)}cqw;
+        margin-left:-.45cqw;background:var(--${i%6===0?'acento':'apoyo'});
+        opacity:${i%6===0?'.9':'.42'};border-radius:99px;
+        transform:rotate(${a.toFixed(1)}deg) translateY(-${(9+h).toFixed(1)}cqw)"></div>`})}
+    <div style="position:absolute;left:50%;top:46%;width:15cqw;height:15cqw;margin:-7.5cqw 0 0 -7.5cqw;
+      border:.7cqw solid var(--acento);border-radius:50%;opacity:.85"></div>
+    ${R(3,i=>`<div class="b lin" style="animation-name:onda;animation-duration:3s;
+      animation-delay:-${i}s;position:absolute;left:50%;top:46%;width:30cqw;height:30cqw;
+      margin:-15cqw 0 0 -15cqw;border:.3cqw solid var(--acento);border-radius:50%"></div>`)}
+  </div>`}},
+
+/* ─────────────────────────────────────────────────────────────────────
+   CIUDAD — bucle
+   Perspectiva 3D real con preserve-3d. Los edificios no se mueven: lo
+   único vivo son las ventanas, cada una con su periodo y su desfase.
+   Basta con que una parte respire para que el conjunto parezca vivo —
+   y sale mucho más barato que animar la geometría.
+   ───────────────────────────────────────────────────────────────────── */
+{n:'CIUDAD', sub:'solo respiran las ventanas', tipo:'bucle',
+ need:'Bloques fijos en perspectiva y 90 ventanas parpadeando con periodos desiguales. La quietud del edificio es lo que da escala.',
+ g:()=>{ semilla(808);
+  return `
+  <div class="mundo" style="transform:rotateX(16deg)">
+    ${R(9,c=>{ const alt=22+rnd()*30, z=(c%3-1)*9;
+      return `<div style="position:absolute;left:${(6+c*10.2).toFixed(1)}%;bottom:22%;
+        width:8.4%;height:${alt.toFixed(0)}%;background:var(--sup);
+        border:.25cqw solid var(--apoyo);border-color:rgba(140,140,140,.28);
+        transform:translateZ(${z}cqw)">
+        ${R(10,w=>`<div class="b" style="animation-name:brilla;
+          animation-duration:${LEGAL[Math.floor(rnd()*5)]}s;
+          animation-delay:-${(rnd()*6).toFixed(2)}s;
+          position:absolute;left:${18+(w%2)*42}%;top:${(8+Math.floor(w/2)*17)}%;
+          width:26%;height:8%;background:var(--acento)"></div>`)}
+      </div>`})}
+    <div style="position:absolute;left:0;right:0;bottom:20%;height:.4cqw;background:var(--apoyo);opacity:.3"></div>
+  </div>
+  <div class="capa">
+    ${R(5,i=>`<div class="p ac b" style="animation-name:chispa;animation-duration:${LEGAL[i]}s;
+      animation-delay:-${(i*1.7).toFixed(2)}s;
+      transform:translate(${((i-2)*17).toFixed(0)}cqw,-32cqw) scale(.8)"></div>`)}
+  </div>`}},
+
+/* ─────────────────────────────────────────────────────────────────────
+   LLUVIA — bucle
+   Misma técnica del flujo, en vertical y con dos capas a distinta
+   velocidad: la de delante cae en 2 s y la de detrás en 4. Esa diferencia
+   es paralaje, y es lo único que da profundidad sin usar 3D.
+   ───────────────────────────────────────────────────────────────────── */
+{n:'LLUVIA', sub:'dos velocidades, una profundidad', tipo:'bucle',
+ need:'Dos capas de gotas a 2 s y 4 s. El paralaje entre ellas produce la sensación de profundidad, sin perspectiva.',
+ g:()=>{ semilla(909);
+  const capa = (n,dur,op,esc) => `
+    <div class="capa b lin" style="animation-name:deriva;animation-duration:${dur}s;
+      top:-100%;height:200%">
+      ${R(n*2,i=>`<div style="position:absolute;left:${(rnd()*98).toFixed(1)}%;
+        top:${(i*(100/n)).toFixed(2)}%;width:.35cqw;height:${(3*esc).toFixed(1)}cqw;
+        background:var(--${i%9===0?'acento':'apoyo'});opacity:${op};border-radius:99px"></div>`)}
+    </div>`;
+  return `
+  <div class="capa" style="overflow:hidden">
+    ${capa(26,4,'.28',.8)}
+    ${capa(20,2,'.6',1.2)}
+  </div>
+  <div class="capa">
+    ${R(9,i=>`<div class="b lin" style="animation-name:onda;animation-duration:${[2,3,4][i%3]}s;
+      animation-delay:-${(rnd()*4).toFixed(2)}s;position:absolute;
+      left:${(8+i*10).toFixed(0)}%;bottom:${(14+rnd()*8).toFixed(0)}%;
+      width:9cqw;height:3cqw;margin-left:-4.5cqw;
+      border:.25cqw solid var(--acento);border-radius:50%;opacity:.5"></div>`)}
+  </div>`}},
+
+/* ─────────────────────────────────────────────────────────────────────
+   VIAJE — narrativa
+   Esta NO es bucle: tiene arco. La malla aparece, la ruta se traza de un
+   punto al otro, y el destino cae al final. Se renderiza una vez.
+   El orden importa: primero el contexto, luego el recorrido, luego el
+   remate. Cinco segundos de historia sin una palabra.
+   ───────────────────────────────────────────────────────────────────── */
+{n:'VIAJE', sub:'la ruta se traza', tipo:'narrativa',
+ need:'Malla que aparece, ruta que se dibuja de origen a destino, y el pin que cae al llegar. Arco cerrado, sin repetición.',
+ g:()=>{ semilla(1010);
+  return `
+  <div class="capa" style="padding:16% 10%">
+    <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:6%;height:60%">
+      ${R(63,i=>`<div class="a" style="animation-name:entra;animation-duration:.5s;
+        animation-delay:${(0.1+i*0.012).toFixed(3)}s;
+        aspect-ratio:1;border-radius:50%;background:var(--apoyo);opacity:.22"></div>`)}
+    </div>
+  </div>
+  <svg class="capa" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <path class="a lin" style="animation-name:draw;animation-duration:2.4s;animation-delay:1.1s"
+      d="M20,68 C30,58 38,64 46,50 C54,36 62,44 74,26" fill="none"
+      stroke="var(--acento)" stroke-width="1.1" stroke-linecap="round"
+      stroke-dasharray="120" stroke-dashoffset="120"/>
+  </svg>
+  <div class="capa">
+    <div class="p a" style="animation-name:entra;animation-duration:.5s;animation-delay:.95s;
+      background:var(--texto);transform:translate(-30cqw,22cqw) scale(2.4)"></div>
+    <div class="a" style="animation-name:cae;animation-duration:.7s;animation-delay:3.4s;
+      position:absolute;left:50%;top:46%;margin:-32cqw 0 0 24cqw">
+      <div style="width:5cqw;height:5cqw;border-radius:50% 50% 50% 0;background:var(--acento);
+        transform:rotate(-45deg)"></div>
+    </div>
+  </div>`}}
+];
+
+/* ── Montaje ────────────────────────────────────────────────────────── */
+document.getElementById('grid').innerHTML = ESCENAS.map(c=>`
+  <div class="cell">
+    <h3>${c.n} <span class="tipo ${c.tipo}">${c.tipo}</span></h3>
+    <p class="need">${c.need}</p>
+    <div class="frame">
+      <div class="escena">${c.g()}</div>
+      <div class="pie">
+        <div class="pal a" style="animation-name:pop;animation-duration:.7s;animation-delay:.55s">${c.n}</div>
+        <div class="sub a" style="animation-name:rise;animation-duration:.7s;animation-delay:.9s">${c.sub}</div>
+        <div class="barra a" style="animation-name:fade;animation-duration:.7s;animation-delay:1.2s"></div>
+      </div>
+    </div>
+  </div>`).join('');
+
+/* ── Control de tiempo. irA(t) expuesto para captura externa. ───────── */
+const slider = document.getElementById('t'), out = document.getElementById('tv');
+let corriendo = false, raf = 0, t0 = 0;
+
+function irA(t){
+  out.textContent = t.toFixed(3)+' s';
+  for(const a of document.getAnimations()){ try{ a.pause(); a.currentTime = t*1000 }catch(e){} }
+}
+window.irA = irA;
+
+function parar(){
+  corriendo = false; cancelAnimationFrame(raf);
+  const b = document.getElementById('play'); b.classList.remove('on'); b.textContent = 'Reproducir';
+}
+slider.addEventListener('input', ()=>{ parar(); irA(+slider.value) });
+
+document.getElementById('play').addEventListener('click', ()=>{
+  if(corriendo){ parar(); return }
+  corriendo = true; t0 = performance.now() - (+slider.value)*1000;
+  const b = document.getElementById('play'); b.classList.add('on'); b.textContent = 'Pausar';
+  const tick = ()=>{
+    if(!corriendo) return;
+    let t = (performance.now()-t0)/1000;
+    if(t > 12){ t0 = performance.now(); t = 0 }
+    slider.value = t; irA(t); raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+});
+
+let cara = 0;
+document.getElementById('loopcheck').addEventListener('click', e=>{
+  parar(); cara ^= 1; irA(cara ? 11.999 : 0); slider.value = cara ? 11.999 : 0;
+  e.target.textContent = cara ? 'Viendo t=12' : 'Viendo t=0';
+  e.target.classList.toggle('on', !!cara);
+});
+
+document.fonts.ready.then(()=>irA(+slider.value));
+setTimeout(()=>irA(+slider.value), 90);
+</script>
