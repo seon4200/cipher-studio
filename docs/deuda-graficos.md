@@ -473,3 +473,61 @@ basta con llamar a `repartoObjetivos`:
 
 Mientras tanto, el riesgo real es **cero**: sin Visuales en esa vía, el reescalado de dos
 términos es correcto para los dos pesos que hay.
+
+---
+
+# EL VISUAL DE TEXTO SE VE SOSO — FALTA CONTENIDO VISUAL
+
+La estructura de V4a es correcta —tamaño de letra, altura fija, zona segura, sistema de
+color— pero el resultado es **texto sobre un fondo plano, y eso no es un Visual**. Le falta
+movimiento y elementos gráficos que le den vida. Un Visual sustituye a un plano de vídeo: si
+lo que aparece es menos interesante que el plano al que sustituye, no está haciendo su
+trabajo.
+
+**Lo que falta es contenido visual ENCIMA de la estructura**, no cambiar la estructura.
+
+**Y no toca el pipeline.** Son formas y animaciones en el fondo, **todo CSS**: gradientes,
+figuras geométricas, movimiento sutil detrás del texto. Se pinta en `AnimatedGraphic` en modo
+pantalla y se captura con el mismo lazo cerrado de siempre, así que ni el render, ni el hash,
+ni el export se enteran. El coste por frame ya está medido y es el del lazo de captura, no el
+del contenido: un fondo más elaborado no debería cambiarlo, aunque **eso no está medido**.
+
+**NO CONFUNDIR con ilustraciones o dibujos.** Eso necesitaría imágenes generadas —otra API,
+otro coste, otra caché, y ficheros que pueden faltar— y es una pieza distinta con sus propios
+problemas. Lo de aquí es CSS y nada más.
+
+---
+
+# EL VISUAL DE UNA FRASE PARTIDA PINTA LA FRASE ENTERA
+
+Una frase de narración de más de 4 s se trocea en `ceil(dur/3)` sub-clips, pero **el texto no
+se trocea**: los sub-clips comparten la frase entera y el texto ni siquiera viaja en el item de
+la cola de FASE 3.
+
+Así que un Visual que sustituye a **un** sub-clip de una frase partida pinta **toda** la frase,
+aunque solo cubra un tercio de su duración: se lee texto que aún no se ha dicho, o que ya pasó.
+
+**Cuánto pasa, medido:** 25 de 423 frases (**6%**) en el proyecto de 9 minutos, y 8 de 80
+(10%) en el otro. En el 94% restante la frase no se parte y no hay desajuste.
+
+**La mejora natural ya tiene los datos**: `newAudioSegments[i].words` **existe** con `start` y
+`end` por palabra, así que se puede pintar solo el fragmento que suena durante el Visual. No se
+hizo en V4a porque es más trabajo del que vale con un 6% de casos afectados.
+
+---
+
+# HAY UNA POBLACIÓN DE FRASES LARGAS QUE SALDRÍA TRUNCADA CASI SIEMPRE
+
+El recorte a 90 caracteres se eligió con la distribución de los dos proyectos representativos:
+mediana **45**, p90 **59**, máxima **75**. Ahí el recorte casi nunca se activa.
+
+Pero existe otra población. El proyecto `hgjh`: 23 frases, mediana **165** caracteres, p90
+**285**, y una de **602** —119 palabras, 28 segundos—, con el **100%** de sus frases partidas
+en varios sub-clips.
+
+Con esas frases, **todos** los Visuales de texto saldrían truncados, y además arrastrarían el
+problema de la sección anterior en todos los casos en vez de en el 6%.
+
+**No se diseña para ella**, pero queda dicho: si aparece un proyecto así, los Visuales de texto
+mostrarán trozos de frase. La causa de esas frases tan largas —otra tirada de Whisper, otro
+audio, otro modelo— no se ha investigado.

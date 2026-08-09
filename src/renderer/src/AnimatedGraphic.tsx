@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { SISTEMAS, ZONA_SEGURA, NombreSistema } from './sistemas'
+import { recortarTexto } from '../../shared/texto'
 
 /* --------------------------------------------------------------
    AnimatedGraphic – Fase 2
@@ -25,6 +26,9 @@ type GraphicType =
   | 'frase_clave'
   | 'decorativo_emoji'
   | 'decorativo_particulas'
+  // SOLO para modo pantalla. No aparece en el prompt de tarjetas, asi que el modelo no puede
+  // producirlo por accidente: lo construye la generacion de Visuales.
+  | 'visual_texto'
 
 interface GraphicData {
   type: GraphicType
@@ -229,6 +233,50 @@ export const AnimatedGraphic: React.FC<{
               </div>
               <span className="text-xs text-slate-300 font-bold">{extra?.rightLabel || 'B'}</span>
             </div>
+          </div>
+        )
+      }
+      case 'visual_texto': {
+        // La entrada va en el HIJO y no en el envoltorio de pantalla: animate-slide-up mueve
+        // `transform`, y sobre el div que ocupa el cuadro entero desplazaria el FONDO. Aqui
+        // solo mueve el texto, que es lo que se quiere.
+        // Se reutiliza una animacion que ya existe a proposito: el useLayoutEffect de arriba
+        // la posiciona en `t` como a todas las demas, asi que se comporta igual capturando
+        // frames que reproduciendo.
+        //
+        // 88 px sale de la cuenta y lo confirmaron los PNG: la superficie mide 900 menos el
+        // px-16 (64 por lado) = 772 px utiles; a 88 px el glifo medio ronda 0.5em, o sea ~17
+        // caracteres por linea, y los 90 del tope caben en ~5 lineas.
+        // ALTURA FIJA AL PEOR CASO, y el texto centrado dentro.
+        //
+        // Medido: 45 caracteres ocupan 3 lineas y la superficie sale de 530 px; 90 ocupan 6 y
+        // sale de 833. Con altura variable, y con la mediana real de la narracion en 45
+        // caracteres, la mayoria de los Visuales serian los pequeños y los ocasionales largos
+        // se verian un 57% MAS GRANDES. El espectador no sabe que la diferencia es la longitud
+        // de una frase: solo ve que el grafico salta de tamaño sin motivo.
+        //
+        // 673 = 607 del texto a 6 lineas + 56 del gap-14 + 10 de la barra. La superficie le
+        // suma su py-20 (80 arriba y 80 abajo) y da los 833 px del peor caso, siempre.
+        // Cabe de sobra: son el 60% de los 1400 de alto de la zona segura.
+        const ALTO_BLOQUE = 673
+        const texto = recortarTexto(value)
+        return (
+          <div className="w-full flex flex-col items-center justify-center gap-14 animate-slide-up"
+               style={{ height: ALTO_BLOQUE }}>
+            <p
+              style={{
+                color: 'var(--texto)',
+                fontSize: 88,
+                lineHeight: 1.15,
+                fontWeight: 800
+              }}
+              className="text-center w-full"
+            >
+              {texto}
+            </p>
+            {/* El remate. Corto y en acento: es el UNICO acento de la composicion. */}
+            <span style={{ backgroundColor: 'var(--acento)' }}
+                  className="block h-2.5 w-40 rounded-full" />
           </div>
         )
       }
