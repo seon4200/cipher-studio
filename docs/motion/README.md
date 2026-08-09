@@ -15,25 +15,55 @@ marcada *bucle* se ve un salto, alguna duración no divide 12.
 
 ---
 
-## 1. Ciclo maestro de 12 s
+## 1. Ciclo maestro — y **se ajusta al clip, no al revés**
 
-Toda duración de una animación **debe dividir 12 exacto**. Legales:
+La regla es una sola: **toda duración de una animación debe dividir el ciclo exacto.** Si no, el
+frame final no empata con el primero y el corte del bucle se ve.
 
-```
-12   6   4   3   2   1.5   1.2   1   0.75   0.6
-```
+**El ciclo es la duración del Visual.** Los 12 s de los ficheros de referencia son una elección
+de *ese laboratorio*, para que el movimiento respire al mirarlo en una rejilla de miniaturas.
+**No forman parte de la regla.**
 
-**El 5 y el 7 están prohibidos.** Con ellos el frame final no empata con el primero y el corte
-del bucle se ve.
+| duración del Visual | ciclo | duraciones legales |
+|---|---|---|
+| 3 s | 3 s | 3 · 1.5 · 1 · 0.75 · 0.6 |
+| 2 s | 2 s | 2 · 1 · 0.5 · 0.4 |
+| 12 s (los ficheros) | 12 s | 12 · 6 · 4 · 3 · 2 · 1.5 · 1.2 · 1 · 0.75 · 0.6 |
 
-En el CSS vive como variable, y el conjunto reducido que usan los generadores está en el JS:
+El principio es idéntico en los tres; solo cambia el número maestro. Lo prohibido no es «el 5 y
+el 7» en abstracto: es **cualquier duración que no divida el ciclo vigente**. Con ciclo de 12,
+el 5 y el 7 son ilegales; con ciclo de 2, también lo son el 1.5 y el 0.75, que sí valían antes.
+
+En los ficheros de referencia vive como variable CSS y como una lista fija en el JS:
 
 ```css
 :root{ --ciclo:12s }
 ```
 ```js
-const LEGAL = [1.5, 2, 3, 4, 6];   // ninguna es 5 ni 7
+const LEGAL = [1.5, 2, 3, 4, 6];   // divisores de 12
 ```
+
+### La consecuencia, y es la que importa
+
+**Si el ciclo se calcula, las duraciones legales también.** Un `animation-duration:1.5s`
+escrito a mano es **correcto** para un ciclo de 3 s y **falso** para uno de 2 s: 1.5 no divide
+2, y ese bucle daría un salto visible.
+
+Así que en las composiciones reales las duraciones **tendrán que derivarse del ciclo** —una
+variable CSS con `calc()`, o calculadas al montar— y **nunca escribirse a mano**:
+
+```css
+/* así NO: solo vale si el ciclo resulta ser 3, 6 o 12 */
+animation-duration: 1.5s;
+
+/* así SÍ: fracción del ciclo, sea cual sea */
+animation-duration: calc(var(--ciclo) / 2);
+```
+
+Es **el mismo patrón que ya nos mordió** con las constantes duplicadas: un número escrito a mano
+que solo vale para un caso, y que sigue compilando —y pareciendo correcto— cuando el caso
+cambia. Aquí el fallo además sería **silencioso**: el vídeo sale, el bucle salta, y nada lo
+dice.
 
 ## 2. Desfase negativo
 
@@ -51,7 +81,10 @@ y el primer segundo se ve artificial.
 ## 3. Duraciones desiguales del conjunto legal
 
 Si todas duran lo mismo, se ve como **una persiana**. Desiguales **nunca se sincronizan en
-medio**, pero como todas dividen 12, **cierran todas a la vez** en `t=12`.
+medio**, pero como todas dividen el ciclo, **cierran todas a la vez** al final.
+
+El «conjunto legal» no es una lista fija: son los divisores del ciclo vigente (regla 1). En los
+ficheros de referencia el ciclo es 12 y por eso la lista es `[1.5, 2, 3, 4, 6]`.
 
 ```js
 const DUR = [2,3,4,6];
@@ -189,7 +222,6 @@ no coinciden con ningún sistema de `sistemas.ts` (`voltaje` es `#FF3B1F` y `#1A
 parecidos a `voltaje` pero no iguales. **La autoridad sobre el color es `sistemas.ts`**; estos
 ficheros son la referencia de **movimiento**, no de color.
 
-**Cuidado con el ciclo de 12 s contra la duración real de un Visual.** Un Visual dura lo que su
-sub-clip, y la mediana medida es **2.6 s**. Un bucle de 12 s solo se vería un quinto. O las
-composiciones usan ciclos más cortos del conjunto legal, o se acepta ver un fragmento. **No
-está decidido.**
+**El ciclo de un Visual es su propia duración**, que es lo que dura su sub-clip: la mediana
+medida es **2.6 s**. Ver la regla 1 — el ciclo se ajusta al clip, y de él salen las duraciones
+legales. Los 12 s de estos ficheros no se heredan.
