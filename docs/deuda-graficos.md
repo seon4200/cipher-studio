@@ -342,3 +342,99 @@ respaldo de la sección anterior: la duración del clip de vídeo no entra en la
 Todavía no se puede medir: en `proyectos/` solo queda un proyecto, con un único clip de
 199.25 s sin cortar y ningún gráfico. Los 44 proyectos que midió el plan ya no están en disco.
 **Se mide en cuanto se vuelvan a generar gráficos en un proyecto de verdad.**
+
+---
+
+# EL TONO DE UN DATO: bueno, malo o neutro — DISEÑO PENDIENTE
+
+Hoy el acento es fijo por sistema de color, así que **una mejora y una caída se pintan igual**.
+Falta decir si el dato es positivo o negativo.
+
+## El tono es una MARCA, no un color
+
+Decidido: el signo lo dan la **flecha**, el **`+`/`-`** y, si hace falta, un **fondo teñido**
+detrás del dato. El dato conserva el acento de su sistema.
+
+**El motivo no es estético.** Rojo/verde es la peor pareja posible: el daltonismo rojo-verde
+afecta a cerca del **8% de los hombres**, que no distinguirían la mejora de la caída. Una
+marca de forma —la dirección de la flecha, el signo— la ve todo el mundo, y sobrevive además
+a que el vídeo se vea en blanco y negro.
+
+Hay una razón técnica que lo refuerza. La alternativa era que **cada sistema declarase tres
+tonos** (`positivo`, `negativo`, `neutro`) en vez de un solo acento, lo que resolvería de paso
+un choque real: en **voltaje** el acento ya es rojo (`#FF3B1F`) y en **cálido** naranja
+(`#E2571F`), así que un dato malo y uno neutro se verían **iguales** en esos dos. Pero eso toca
+`SISTEMAS`, y el nombre del sistema **ya entra en la clave del hash**: cambiarlo invalidaría
+todo lo renderizado. Se hará, si se hace, cuando el sistema visual esté cerrado.
+
+## El tono es DEDUCIBLE en dos tipos: gratis y determinista
+
+Antes de preguntarle nada al modelo, hay dos sitios donde el tono ya está en los datos:
+
+- **`flecha_crecimiento` / `flecha_caida`** — el tipo **es** el signo. No hace falta ningún
+  campo nuevo: la pareja de tipos ya lo codifica.
+- **`barras_comparativas`** — comparando `value` con `extra.rightValue`. Hoy **no se compara
+  nada**: pinta la izquierda en `#00d4ff` y la derecha en `#7F77DD` siempre, así que
+  **un 42→87 y un 87→42 salen idénticos**. Es el caso más claro de dato sin sentido.
+
+Empezar por aquí no cuesta ninguna llamada y no puede equivocarse.
+
+## Un campo `tono` del modelo: solo para el resto, y MIDIENDO antes
+
+Haría falta únicamente para los tipos donde el signo no se puede deducir del número:
+**`donut`, `contador`, `dato_grande`**. Un donut al 87% puede ser cuota ganada o cuota perdida.
+
+Añadirlo al prompt de gráficos (`main/index.ts`, el `sectionPrompt`) cuesta **dos líneas** —una
+de instrucción y el campo en el ejemplo del `FORMATO`, que es lo que el modelo copia— y **no
+exige ninguna llamada nueva**.
+
+**Pero antes hay que MEDIR cuántos vienen bien clasificados.** Este prompt ya colapsó una vez:
+pedirle cuotas de tipo dejó el reparto en **76 stock / 0 original** (ver el comentario de
+`main/index.ts:3186`, "el prompt es sensible y la correccion tiene que ser determinista, en
+codigo"). Un `tono` mal clasificado pinta una caída como una mejora, que es peor que no pintar
+nada.
+
+Y dos cosas que no son del prompt y hay que hacer a propósito:
+
+- **El sanitizado.** El bucle que valida `type`, `graphicStart` y `graphicEnd` no conoce
+  `tono`: sin añadirlo allí, un `"positivo!"` o un valor inventado llega hasta el render.
+  Por defecto, `neutro`.
+- **La clave del hash.** `tono` cambia los píxeles sin cambiar nada más, así que entra igual
+  que `modo`, `codec` y `sistema`. **No entra solo:** `canonizar` proyecta únicamente las seis
+  claves que lee el componente (`type, value, label, unit, emoji, extra`), así que hay que
+  añadirlo a la lista de `partes` explícitamente. Eso es deliberado —lo que no se añade a mano
+  queda fuera por construcción— pero significa que olvidarlo no da error: da una caché que
+  devuelve el tono equivocado diciendo ACIERTO.
+
+---
+
+# BUG: `flecha_caida` escribe el signo a mano
+
+`AnimatedGraphic.tsx:319`, en la rama de `flecha_caida`:
+
+```tsx
+<span className="text-5xl font-black text-rose-500 animate-number-glow">-{value}{unit}</span>
+```
+
+El `-` está **cableado en la plantilla** y `value` se pinta tal cual. La plantilla da por hecho
+que el modelo manda el valor en positivo (`12` para "cayó un 12%"). **Si mandara `-12`, saldría
+`--12`.**
+
+`flecha_crecimiento` tiene el mismo patrón con `+{value}`.
+
+Nada lo normaliza: el sanitizado de `generate-timeline-assets` valida `type`, `graphicStart` y
+`graphicEnd`, pero **`value` pasa en crudo**. Es un fallo latente, no observado todavía: depende
+de que el modelo decida mandar el signo, y hoy no lo hace.
+
+No se arregla ahora. Cuando se toque, la decisión es dónde vive el signo —en el dato o en la
+plantilla— y **no puede estar en los dos**.
+
+## Lo que NO es un bug, para que nadie lo vuelva a mirar
+
+`flecha_crecimiento` aparece **dos veces** en `AnimatedGraphic.tsx`: en la línea 159 y en la
+309. **No es un duplicado.** Son dos `switch (type)` distintos, en dos funciones distintas:
+`getAnimationClass()` (línea 156), que elige la clase de animación, y `renderContent()` (línea
+181), que pinta el contenido. Cada tipo aparece una vez en cada uno, que es lo esperado.
+
+Queda escrito porque se dio por un bug al leer los dos bloques seguidos en un `grep`, y el
+error es fácil de repetir.
