@@ -3874,9 +3874,10 @@ function App() {
               </div>
 
               {/* Slider 4: Visuales — graficos a pantalla completa que SUSTITUYEN al plano, no
-                  se superponen. Fucsia porque los otros tres ya ocupan esmeralda, azul y ambar. */}
+                  se superponen. Gris a proposito: los otros tres son ORIGENES de metraje y llevan color; un Visual es
+                  algo que se genera, y competir con ellos en saturacion despistaria. */}
               <div className="flex items-center space-x-2.5">
-                <span className="w-2 h-2 rounded-full bg-fuchsia-500 flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-zinc-400 flex-shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Visuales</span>
                 <input
                   type="range"
@@ -3884,12 +3885,12 @@ function App() {
                   max="100"
                   value={timelineWeights[3]}
                   onChange={(e) => handleWeightChange(3, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-[#2c2c2e] rounded-lg appearance-none cursor-pointer accent-fuchsia-500 transition-all outline-none"
+                  className="flex-1 h-1 bg-[#2c2c2e] rounded-lg appearance-none cursor-pointer accent-zinc-400 transition-all outline-none"
                   style={{
-                    background: `linear-gradient(to right, rgb(217, 70, 239) ${timelineWeights[3]}%, rgb(30, 41, 59) 0%)`
+                    background: `linear-gradient(to right, rgb(161, 161, 170) ${timelineWeights[3]}%, rgb(30, 41, 59) 0%)`
                   }}
                 />
-                <span className="font-mono text-[10px] text-fuchsia-400 font-bold w-8 text-right select-none">{timelineWeights[3]}%</span>
+                <span className="font-mono text-[10px] text-zinc-400 font-bold w-8 text-right select-none">{timelineWeights[3]}%</span>
               </div>
             </div>
 
