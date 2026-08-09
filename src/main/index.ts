@@ -928,12 +928,19 @@ const FORMATO_POR_MODO = {
   pantalla: { codec: 'h264',  pixFmt: 'yuv420p', ext: '.mp4' }
 } as const;
 
+// Los NOMBRES de los sistemas de color. Los valores viven en renderer/src/sistemas.ts; aqui
+// solo hacen falta los nombres, que son lo que entra en la clave del hash. Estan repetidos
+// porque main y renderer se compilan por separado y hoy no comparten ningun modulo.
+const SISTEMAS_VALIDOS = ['editorial', 'clinico', 'voltaje', 'calido'] as const;
+type NombreSistema = typeof SISTEMAS_VALIDOS[number];
+
 // Se EXPORTA para que la prueba pueda comprobar la clave directamente, sin renderizar. Las
 // propiedades que importan de un hash —que dos entradas distintas den claves distintas, que
 // sea estable— se verifican mejor sobre la funcion que a traves del nombre de un fichero.
 export function hashGrafico(graphicData: any, ancho: number, alto: number,
                             duracion: number, fps: number,
-                            modo: 'overlay' | 'pantalla'): string {
+                            modo: 'overlay' | 'pantalla',
+                            sistema: NombreSistema = 'voltaje'): string {
   const g = graphicData || {};
   const partes = [
     canonizar(g.type), canonizar(g.value), canonizar(g.label),
@@ -948,7 +955,11 @@ export function hashGrafico(graphicData: any, ancho: number, alto: number,
     // El codec entra ademas porque un MOV con alfa y un MP4 opaco del MISMO contenido son
     // ficheros distintos que no pueden compartir clave.
     'modo=' + modo,
-    'codec=' + FORMATO_POR_MODO[modo].codec
+    'codec=' + FORMATO_POR_MODO[modo].codec,
+    // El sistema de color cambia TODOS los pixeles sin cambiar un solo dato. Mismo argumento
+    // que modo y codec: el CSS no puede entrar en el hash, asi que lo que lo altere necesita
+    // su propio campo. Un donut al 87% en editorial y el mismo en voltaje son dos ficheros.
+    'sistema=' + sistema
   ];
   return createHash('sha1').update(partes.join('|')).digest('hex').slice(0, 12);
 }
@@ -1021,6 +1032,7 @@ export async function renderGraphicClip(
   opciones: {
     ancho?: number; alto?: number; fps?: number; duracion?: number;
     modo?: 'overlay' | 'pantalla';
+    sistema?: string;
   } = {}
 ): Promise<string | null> {
   const ancho = opciones.ancho ?? 1080;
@@ -1055,7 +1067,18 @@ export async function renderGraphicClip(
   // El nombre ES el hash: no hay indice que mantener ni que pueda desincronizarse del disco.
   // La extension sale de FORMATO_POR_MODO y no se escribe a mano: es el mismo sitio que decide
   // el codec, asi que no pueden discrepar.
-  const hash = hashGrafico(graphicData, ancho, alto, duracion, fps, modo);
+  // El sistema se RESUELVE antes de hashear. Si se hasheara el nombre pedido y se pintara
+  // otro, la clave describiria un fichero que no es el que hay en disco: la cache devolveria
+  // colores distintos de los que su nombre promete.
+  const sistemaPedido = opciones.sistema ?? 'voltaje';
+  const sistema: NombreSistema = (SISTEMAS_VALIDOS as readonly string[]).includes(sistemaPedido)
+    ? sistemaPedido as NombreSistema
+    : 'voltaje';
+  if (sistema !== sistemaPedido) {
+    await writeDebugLog(`[GRAFICO] sistema desconocido "${sistemaPedido}": se usa voltaje.`);
+  }
+
+  const hash = hashGrafico(graphicData, ancho, alto, duracion, fps, modo, sistema);
   const destino = path.join(destDir, hash + FORMATO_POR_MODO[modo].ext);
 
   // ACIERTO. Se exige tamano > 0: un MOV de 0 bytes de un render interrumpido existe pero no

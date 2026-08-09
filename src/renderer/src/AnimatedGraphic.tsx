@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { SISTEMAS, ZONA_SEGURA, NombreSistema } from './sistemas'
 
 /* --------------------------------------------------------------
    AnimatedGraphic – Fase 2
@@ -74,7 +75,15 @@ const EASE_DONUT = cubicBezier(0.42, 0, 0.58, 1)  // ease-in-out del donut (1s)
  * de modo que sirve igual para capturar frames, previsualizar uno suelto o avanzar
  * con el cursor del timeline, incluso hacia atras.
  */
-export const AnimatedGraphic: React.FC<{ graphic: GraphicData; t?: number }> = ({ graphic, t }) => {
+export const AnimatedGraphic: React.FC<{
+  graphic: GraphicData
+  t?: number
+  // 'overlay' es la tarjeta de siempre, que va ENCIMA del video. 'pantalla' es el Visual, que
+  // lo SUSTITUYE y ocupa el cuadro entero. Por defecto overlay: los llamadores existentes no
+  // pasan nada y tienen que seguir viendo exactamente lo mismo.
+  modo?: 'overlay' | 'pantalla'
+  sistema?: NombreSistema
+}> = ({ graphic, t, modo = 'overlay', sistema = 'voltaje' }) => {
   const { type, value, label, unit, emoji, extra } = graphic
   const [internalAuto, setInternalAuto] = useState<number>(0)
   const raizRef = React.useRef<HTMLDivElement>(null)
@@ -224,27 +233,51 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData; t?: number }> = (
         )
       }
       case 'donut': {
-        const radius = 35
+        // En pantalla el tamaño lo fija un NUMERO, no una escala. El donut es el unico de los
+        // 17 tipos cuyo tamaño es un radius, asi que crece sin tocar ninguno de los 53 tamaños
+        // fijos que hay repartidos por el resto del fichero.
+        // 300 + 40/2 = 320 de medio lado: el SVG de 700 deja 30 px de aire y cabe de sobra en
+        // los 900 de ancho de la zona segura.
+        const pantalla = modo === 'pantalla'
+        const radius = pantalla ? 300 : 35
+        const grosor = pantalla ? 40 : 8
+        const lado = pantalla ? 700 : 90
+        const centro = lado / 2
         const circumference = 2 * Math.PI * radius
         const offset = circumference - (circumference * internal) / 100
         return (
           <div className="flex justify-center w-full">
-            <svg width={90} height={90} className="transform -rotate-90">
-              <circle cx={45} cy={45} r={radius} fill="none" stroke="#1e293b" strokeWidth={8} />
+            <svg width={lado} height={lado} className="transform -rotate-90">
+              {/* El arco vacio va en `apoyo`, NO en acento: un solo acento por composicion. */}
+              <circle cx={centro} cy={centro} r={radius} fill="none"
+                      stroke={pantalla ? 'var(--apoyo)' : '#1e293b'} strokeWidth={grosor} />
               <circle
-                cx={45}
-                cy={45}
+                cx={centro}
+                cy={centro}
                 r={radius}
                 fill="none"
-                stroke={COLORS.primary}
-                strokeWidth={8}
+                stroke={pantalla ? 'var(--acento)' : COLORS.primary}
+                strokeWidth={grosor}
                 strokeDasharray={circumference}
                 strokeDashoffset={offset}
                 style={{ transition: dirigido ? 'none' : 'stroke-dashoffset 1s ease-in-out' }}
               />
-              <text x={45} y={50} textAnchor="middle" className="text-sm font-black fill-[#00d4ff] transform rotate-90 origin-center">
-                {dirigido ? Math.round(internal) : internal}%
-              </text>
+              {pantalla ? (
+                <text x={centro} y={centro} textAnchor="middle" dominantBaseline="central"
+                      className="transform rotate-90 origin-center"
+                      style={{
+                        fill: 'var(--acento)', fontSize: 150, fontWeight: 900,
+                        // tabular-nums o los digitos BAILAN al animar: cada uno con su ancho
+                        // mueve el numero entero en cada frame.
+                        fontVariantNumeric: 'tabular-nums'
+                      }}>
+                  {dirigido ? Math.round(internal) : internal}{unit || '%'}
+                </text>
+              ) : (
+                <text x={45} y={50} textAnchor="middle" className="text-sm font-black fill-[#00d4ff] transform rotate-90 origin-center">
+                  {dirigido ? Math.round(internal) : internal}%
+                </text>
+              )}
             </svg>
           </div>
         )
@@ -395,6 +428,52 @@ export const AnimatedGraphic: React.FC<{ graphic: GraphicData; t?: number }> = (
       default:
         return <div className="text-sm text-slate-300">Tipo no soportado</div>
     }
+  }
+
+  const s = SISTEMAS[sistema] ?? SISTEMAS.voltaje
+  // Las variables CSS son lo unico que permite cambiar el color sin tocar los 37 hex escritos
+  // a mano por el fichero. En V1 solo las usa el donut; el resto de tipos se migra cuando le
+  // toque a cada uno, y mientras tanto siguen funcionando con su hex.
+  const vars = {
+    '--fondo': s.fondo, '--sup': s.sup, '--texto': s.texto,
+    '--acento': s.acento, '--apoyo': s.apoyo
+  } as React.CSSProperties
+
+  if (modo === 'pantalla') {
+    return (
+      <div
+        ref={raizRef}
+        style={{ ...vars, backgroundColor: 'var(--fondo)' }}
+        className="w-full h-full flex items-center justify-center"
+      >
+        {/* EL FONDO LO PINTA EL COMPONENTE y cubre el cuadro ENTERO, no solo la zona segura.
+            La ventana offscreen se crea con transparent:true porque las tarjetas necesitan
+            alfa; si aqui no se pintara, yuv420p descartaria el alfa y saldria NEGRO — con
+            clinico y calido, que llevan texto oscuro, seria ilegible. Es el fallo del alpha
+            otra vez, del reves.
+            Y NO lleva getAnimationClass(): animate-pop anima transform con fill-mode forwards
+            y sobre un div que ocupa el cuadro entero escalaria el fondo. La animacion del
+            donut la lleva su propio arco por stroke-dashoffset. */}
+        <div
+          style={{ width: ZONA_SEGURA.ancho, height: ZONA_SEGURA.alto }}
+          className="flex flex-col items-center justify-center"
+        >
+          {/* CAMPO + TARJETA: el texto va sobre la superficie, nunca sobre el fondo desnudo. */}
+          <div
+            style={{ backgroundColor: 'var(--sup)' }}
+            className="w-full rounded-[48px] px-16 py-20 flex flex-col items-center justify-center gap-10"
+          >
+            {label && (
+              <span style={{ color: 'var(--apoyo)' }}
+                    className="text-5xl font-semibold tracking-wide text-center">
+                {label}
+              </span>
+            )}
+            {renderContent()}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

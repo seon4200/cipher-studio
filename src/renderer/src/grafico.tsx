@@ -6,6 +6,7 @@ import React from 'react'
 import { createRoot, Root } from 'react-dom/client'
 import { flushSync } from 'react-dom'
 import { AnimatedGraphic } from './AnimatedGraphic'
+import { NombreSistema } from './sistemas'
 import './styles/globals.css'
 
 // Franja de la SONDA, encima del lienzo. El proceso principal codifica ahi el indice de
@@ -51,8 +52,12 @@ const SONDA_ALTO = 8
 const FACTOR_ESCALA = 1.6
 const MARGEN_INFERIOR_PCT = 14
 
-type Opciones = { ancho: number; alto: number; modo: 'overlay' | 'pantalla' }
-let opciones: Opciones = { ancho: 1080, alto: 1920, modo: 'overlay' }
+type Opciones = {
+  ancho: number; alto: number
+  modo: 'overlay' | 'pantalla'
+  sistema: NombreSistema
+}
+let opciones: Opciones = { ancho: 1080, alto: 1920, modo: 'overlay', sistema: 'voltaje' }
 
 const sonda = document.getElementById('sonda') as HTMLDivElement
 const lienzo = document.getElementById('lienzo') as HTMLDivElement
@@ -84,9 +89,15 @@ function pintar(t?: number) {
   // El envoltorio solo lleva la escala. AnimatedGraphic sigue siendo su hijo directo, asi que
   // el getAnimations({subtree:true}) que usa desde su propia raiz para posicionar el reloj
   // alcanza lo mismo que antes: el envoltorio esta POR ENCIMA de esa raiz, no en medio.
+  const hijo = React.createElement(AnimatedGraphic,
+    { graphic: datos, t, modo: opciones.modo, sistema: opciones.sistema })
   flushSync(() => raiz!.render(
-    React.createElement('div', { style: ESTILO_ENVOLTORIO },
-      React.createElement(AnimatedGraphic, { graphic: datos, t }))
+    // EN PANTALLA NO HAY ENVOLTORIO DE ESCALA. El scale(1.6) existe para agrandar una TARJETA
+    // dentro de un cuadro mas grande; aplicado a un Visual que ya ocupa el cuadro entero lo
+    // sacaria fuera por los cuatro lados, fondo incluido.
+    opciones.modo === 'pantalla'
+      ? hijo
+      : React.createElement('div', { style: ESTILO_ENVOLTORIO }, hijo)
   ))
 }
 
@@ -99,10 +110,11 @@ function pintar(t?: number) {
   const margenPx = Math.round(opciones.alto * MARGEN_INFERIOR_PCT / 100)
   lienzo.style.cssText = `width:${opciones.ancho}px;height:${opciones.alto}px` +
     (opciones.modo === 'pantalla' ? '' : `;padding-bottom:${margenPx}px;box-sizing:border-box`)
-  // 'overlay': abajo al centro, al MARGEN_INFERIOR_PCT del alto.
-  // 'pantalla': centrado, para los graficos de pantalla completa del Proyecto B.
+  // 'overlay': la tarjeta abajo al centro, al MARGEN_INFERIOR_PCT del alto.
+  // 'pantalla': el Visual ocupa el lienzo entero, asi que el hijo lleva w-full h-full y aqui
+  // NO se centra nada: centrarlo dejaria el fondo sin cubrir los bordes.
   lienzo.className = opciones.modo === 'pantalla'
-    ? 'flex items-center justify-center'
+    ? 'flex'
     : 'flex items-end justify-center'
   datos = graphicData
   if (!raiz) raiz = createRoot(lienzo)
