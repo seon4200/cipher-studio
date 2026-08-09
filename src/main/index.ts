@@ -672,14 +672,29 @@ async function extraerAudioMaestro(videoPath: string, projPath: string) {
   if (!(await exists(destDir))) await fs.promises.mkdir(destDir, { recursive: true });
   const destino = path.join(destDir, 'maestro.m4a');
 
+  // Se escribe a un temporal y se RENOMBRA. El rename es atomico dentro del mismo volumen,
+  // asi que si ffmpeg muere a mitad —o se cierra la app— el maestro.m4a ANTERIOR sigue
+  // entero. Escribiendo directo sobre el destino quedaba un fichero truncado que PARECE
+  // bueno: existe, pesa, y el fallo solo aparece al reproducirlo.
+  // Importa desde que esto se re-ejecuta sobre un maestro que ya existe (el recorte previo a
+  // transcribir), no solo la primera vez.
+  // La extension del temporal acaba en .m4a a proposito: ffmpeg elige el muxer por ella.
+  const temporal = destino + '.tmp.m4a';
+
   // -vn quita el video. Se recodifica a AAC en vez de -c:a copy porque la pista de origen
   // puede venir en un formato que el <audio> del renderer no reproduzca.
   const cmd = `ffmpeg -y -i "${videoPath.replace(/"/g, '\\"')}" -vn -c:a aac -b:a 128k ` +
-    `-movflags +faststart "${destino.replace(/"/g, '\\"')}"`;
-  await new Promise<void>((res, rej) => {
-    exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => err ? rej(err) : res());
-  });
-  if (!(await exists(destino))) throw new Error('ffmpeg no genero el audio.');
+    `-movflags +faststart "${temporal.replace(/"/g, '\\"')}"`;
+  try {
+    await new Promise<void>((res, rej) => {
+      exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => err ? rej(err) : res());
+    });
+    if (!(await exists(temporal))) throw new Error('ffmpeg no genero el audio.');
+    await fs.promises.rename(temporal, destino);
+  } catch (e) {
+    try { await fs.promises.unlink(temporal); } catch (_e) {}
+    throw e;
+  }
 
   const durationSeconds = await getVideoDuration(destino);
   const { size } = await fs.promises.stat(destino);
@@ -698,6 +713,113 @@ ipcMain.handle('extract-master-audio', async (_event, { videoPath }) => {
     // url file:/// en vez del blob: del renderer, que muere con la pagina que lo creo.
     const r = await extraerAudioMaestro(videoPath, activeProjectPath);
     return { success: true, path: r.path, durationSeconds: r.durationSeconds, url: r.url };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+// Un frame a 30 fps = 33 ms. Por debajo de eso NO hay recorte que materializar: el numero
+// llega de un arrastre de raton —pixeles convertidos a segundos en main.tsx:739— y no cae
+// nunca en un valor exacto. Sin este margen se copiarian 26 MB para no recortar nada.
+const TOLERANCIA_RECORTE_S = 1 / 30;
+
+// Materializa el recorte del usuario ANTES de transcribir. Sin esto el recorte solo vivia en
+// dos numeros del clip de la linea de tiempo y los SEIS procesos que leen el video seguian
+// usando el fichero entero: Whisper transcribia 1048s de un video recortado a 580s, y FASE 5
+// acababa generando 388 sub-clips para borrar 168 con sus ficheros. Medido en un proyecto
+// real: el video final salio a la mitad de lo que duraba el guion.
+ipcMain.handle('recortar-fuente', async (_event, { videoPath, duracion }) => {
+  try {
+    if (!activeProjectPath) return { success: false, error: 'No hay proyecto activo.' };
+    if (!videoPath || !(await exists(videoPath))) {
+      return { success: false, error: `El video no existe: ${videoPath}` };
+    }
+
+    const durOriginal = await getVideoDuration(videoPath);
+    const dur = Number(duracion);
+
+    // Ante un numero que no se entiende NO se inventa un recorte: se sigue con el fichero tal
+    // cual. Degradar a "no recortar" es seguro; degradar a "recortar por un valor raro"
+    // destruiria material del usuario.
+    if (!Number.isFinite(dur) || dur <= 0 || !Number.isFinite(durOriginal) || durOriginal <= 0) {
+      await writeDebugLog(`[RECORTE] Duracion no utilizable (pedida=${duracion}, ` +
+        `fichero=${durOriginal}). Se transcribe el original.`);
+      return { success: true, recortado: false, path: videoPath, durationSeconds: durOriginal || 0 };
+    }
+
+    let fuenteFinal = videoPath;
+    let durFinal = durOriginal;
+    let recortado = false;
+
+    if (durOriginal - dur <= TOLERANCIA_RECORTE_S) {
+      // Se pide la duracion completa: no hay nada que cortar, pero SI hay que rehacer el
+      // audio. Es el caso de deshacer un recorte anterior: el video vuelve a durar lo que
+      // duraba y el maestro se habria quedado con la duracion del recorte viejo.
+      await writeDebugLog(`[RECORTE] Sin corte (pedido ${dur.toFixed(3)}s de ` +
+        `${durOriginal.toFixed(3)}s, diferencia < 1 frame): se rehace el audio desde el original.`);
+    } else {
+    const destino = path.join(dirMat(activeProjectPath, 'originales'), 'fuente_recortada.mp4');
+    await fs.promises.mkdir(path.dirname(destino), { recursive: true });
+    const temporal = destino + '.tmp.mp4';
+
+    // SOLO -t. Ni crop, ni zoom, ni pan, ni espejo: esos viven en ajustesVideo y se aplican en
+    // la normalizacion del export (construirVF). Aplicarlos AQUI los aplicaria DOS VECES —un
+    // zoom de 1.5 saldria 2.25— porque los clips que salgan de este fichero son de categoria
+    // 'original', que es justo la que los recibe alli.
+    //
+    // Tampoco hay -ss: hoy NO existe punto de entrada. trim-left mueve startSeconds, que es la
+    // POSICION en la linea de tiempo y no el segundo del fichero por el que empezar. Un -ss
+    // aqui se inventaria un dato que nadie ha fijado.
+    //
+    // -c copy: 146 ms medidos sobre un video de 17 min, sin recodificar y sin segunda
+    // generacion de compresion. El corte es EXACTO aunque los keyframes vayan cada ~5s:
+    // comprobado por CONTENIDO —el hash del primer frame del recorte coincide con el del
+    // original en ese segundo— y no por los metadatos.
+    const cmd = `ffmpeg -y -i "${videoPath.replace(/"/g, '\\"')}" -t ${dur} -c copy ` +
+      `-movflags +faststart "${temporal.replace(/"/g, '\\"')}"`;
+    try {
+      await new Promise<void>((res, rej) => {
+        exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => err ? rej(err) : res());
+      });
+      if (!(await exists(temporal))) throw new Error('ffmpeg no genero el recorte.');
+      await fs.promises.rename(temporal, destino);
+    } catch (e) {
+      try { await fs.promises.unlink(temporal); } catch (_e) {}
+      throw e;
+    }
+
+    fuenteFinal = destino;
+    durFinal = await getVideoDuration(destino);
+    recortado = true;
+    const { size } = await fs.promises.stat(destino);
+    await writeDebugLog(`[RECORTE] ${durOriginal.toFixed(2)}s -> ${durFinal.toFixed(2)}s ` +
+      `(${(size / 1048576).toFixed(1)} MB) desde ${videoPath}`);
+    }
+
+    // EL AUDIO SIGUE AL VIDEO, siempre y desde el MISMO fichero, se haya cortado o no. Nunca
+    // uno de una duracion y otro de otra: ese desajuste —579.77s en el registro contra
+    // 1048.31s en el fichero— es el que hizo que la generacion produjera 388 sub-clips para
+    // borrar 168 con sus ficheros, y que el video final saliera a la mitad del guion.
+    try {
+      const audio = await extraerAudioMaestro(fuenteFinal, activeProjectPath);
+      return {
+        success: true, recortado,
+        path: fuenteFinal, url: urlDeRuta(fuenteFinal), durationSeconds: durFinal,
+        audioPath: audio.path, audioUrl: audio.url, audioDurationSeconds: audio.durationSeconds
+      };
+    } catch (audioErr: any) {
+      // El video quedo preparado y el maestro NO. Se dice con todas las letras que puede haber
+      // quedado un fichero suelto y con que maestro se queda el proyecto: nada apunta todavia
+      // al recorte —el frontend solo mueve la biblioteca si esto sale bien— asi que el estado
+      // es coherente, pero quien lea el log tiene que poder entender el fichero huerfano sin
+      // reconstruir la historia.
+      await writeDebugLog(`[RECORTE] El video quedo preparado (${fuenteFinal}) pero la ` +
+        `re-extraccion del audio maestro FALLO: ${audioErr.message}. El proyecto sigue con el ` +
+        `maestro anterior, intacto, y con la biblioteca apuntando a lo de antes. Si se creo un ` +
+        `fuente_recortada.mp4 queda en disco sin que nadie lo use: se puede borrar a mano o se ` +
+        `sobrescribira al reintentar.`);
+      return { success: false, error: `El vídeo se preparó pero no se pudo rehacer el audio: ${audioErr.message}` };
+    }
   } catch (err: any) {
     return { success: false, error: err.message };
   }

@@ -28,6 +28,14 @@ export interface IElectronAPI {
   loadProject: (params: { projectPath: string }) => Promise<{ success: boolean; data?: any; projectPath?: string; error?: string }>;
   closeProject: () => Promise<{ success: boolean; error?: string }>;
   extractMasterAudio: (params: { videoPath: string }) => Promise<{ success: boolean; path?: string; url?: string; durationSeconds?: number; error?: string }>;
+  // `recortado: false` no es un fallo: significa que no habia recorte real que materializar
+  // (diferencia menor que un frame) y que `path` sigue siendo el fichero de entrada.
+  recortarFuente: (params: { videoPath: string; duracion: number }) => Promise<{
+    success: boolean; recortado?: boolean;
+    path?: string; url?: string; durationSeconds?: number;
+    audioPath?: string; audioUrl?: string; audioDurationSeconds?: number;
+    error?: string
+  }>;
   deleteProject: (params: { projectPath: string }) => Promise<{ success: boolean; error?: string }>;
   deleteAllProjects: () => Promise<{ success: boolean; error?: string }>;
   clearGlobalStockCache: () => Promise<{ success: boolean; error?: string }>;

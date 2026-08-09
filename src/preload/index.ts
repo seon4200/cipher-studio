@@ -58,6 +58,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadProject: (params: { projectPath: string }) => ipcRenderer.invoke('load-project', params),
   closeProject: () => ipcRenderer.invoke('close-project'),
   extractMasterAudio: (params: { videoPath: string }) => ipcRenderer.invoke('extract-master-audio', params),
+  recortarFuente: (params: { videoPath: string; duracion: number }) =>
+    ipcRenderer.invoke('recortar-fuente', params),
   deleteProject: (params: { projectPath: string }) => ipcRenderer.invoke('delete-project', params),
   deleteAllProjects: () => ipcRenderer.invoke('delete-all-projects'),
   clearGlobalStockCache: () => ipcRenderer.invoke('clear-global-stock-cache'),

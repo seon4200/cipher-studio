@@ -24,6 +24,10 @@ import { AnimatedGraphic } from './AnimatedGraphic'
 // Esta version escapa por segmentos dejando la unidad ("C:") intacta. Sobre-escapa & + = [ ]
 // respecto a pathToFileURL, y eso es INOCUO: medido cargando ficheros reales con esos
 // caracteres, las dos formas cargan igual.
+// Un frame a 30 fps. Mismo umbral que TOLERANCIA_RECORTE_S en main/index.ts: el valor sale de
+// convertir pixeles a segundos en un arrastre de raton y no cae nunca en un numero exacto.
+const TOLERANCIA_RECORTE_S = 1 / 30
+
 const rutaAUrl = (p: string) =>
   'file:///' + p.replace(/\\/g, '/').split('/')
     .map((seg, i) => (i === 0 ? seg : encodeURIComponent(seg))).join('/')
@@ -149,6 +153,9 @@ function App() {
   const [panFraccionPendiente, setPanFraccionPendiente] = useState<{ x: number; y: number } | null>(null)
   const [isPanning, setIsPanning] = useState(false)
   const [extrayendoAudio, setExtrayendoAudio] = useState(false)
+  // UN solo flag para los DOS botones de transcribir: si cada panel tuviera el suyo, el
+  // disabled solo apagaria el que se pulso y el otro seguiria vivo.
+  const [recortandoFuente, setRecortandoFuente] = useState(false)
   const [panStart, setPanStart] = useState({ x: 0, y: 0 })
   const [isCropping, setIsCropping] = useState(false)
   const [cropRect, setCropRect] = useState({ left: 10, top: 10, right: 10, bottom: 10 })
@@ -2993,6 +3000,124 @@ function App() {
     return `${pad(hrs)}:${pad(mins)}:${pad(secs)}:${pad(frames)}`;
   };
 
+  // UNA funcion con DOS llamadores. El boton de transcribir esta en dos paneles (:5683 y
+  // :6122) y cada uno llamaba a startTranscription por su cuenta. Es el mismo patron que ya
+  // mordio con los dos botones de "Usar Audio Original", resuelto en usarAudioOriginal.
+  //
+  // Materializa el recorte ANTES de transcribir. Hasta ahora el recorte vivia solo en dos
+  // numeros del clip de la linea de tiempo y los seis procesos que leen el video usaban el
+  // fichero entero.
+  const recortarYTranscribir = async () => {
+    const fuente = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
+    if (!fuente?.path || recortandoFuente) return;
+
+    // El recorte vive en el clip de VIDEO de la linea de tiempo: processFiles lo mete ahi al
+    // importar, asi que existe desde antes de transcribir. Se localiza por RUTA y no por
+    // posicion, porque una vez generado el timeline hay cientos de clips de categoria
+    // 'original' que no son este.
+    //
+    // LIMITE CONOCIDO Y ACEPTADO: si el timeline ya se genero, el clip de origen ya NO esta
+    // —lo sustituyen los clips generados— asi que clipFuente sale undefined y se transcribe
+    // sin recortar. No se resuelve aqui a proposito: a esas alturas recortar significa tirar
+    // todo el trabajo hecho sobre esa transcripcion, no solo la transcripcion. La salida
+    // prevista para ese caso es DUPLICAR EL PROYECTO con otro recorte, que no destruye nada.
+    const clipFuente = timelineVideoClips.find(c => c.type === 'video' && c.path === fuente.path);
+    const durPedida = clipFuente?.durationSeconds;
+    const durActual = fuente.durationSeconds;
+
+    // SIN RECORTE: no se llama al backend siquiera. Ni ffmpeg, ni re-extraccion del maestro,
+    // ni un solo cambio de estado. El camino queda EXACTAMENTE como estaba.
+    const hayCambio = typeof durPedida === 'number' && typeof durActual === 'number'
+      && Math.abs(durActual - durPedida) > TOLERANCIA_RECORTE_S;
+    if (!hayCambio) {
+      window.electronAPI.startTranscription(fuente.path);
+      return;
+    }
+
+    setRecortandoFuente(true);
+    setTranscriptionStatus('Preparando el vídeo…');
+    try {
+      // SE CORTA SIEMPRE DESDE EL ORIGINAL, NUNCA SOBRE LO YA RECORTADO. Que nadie lo
+      // "optimice" cortando sobre el recorte anterior: como el unico corte es -t (por el
+      // final), recortar el original a 300s y recortar a 300s un recorte de 580s dan el MISMO
+      // fichero, asi que cortar del recorte no ahorra nada y en cambio encadena generaciones,
+      // hace que el resultado dependa del ORDEN de los recortes, e impide agrandar un recorte
+      // despues de haberlo hecho —el material ya no estaria en el fichero—.
+      const origen = (fuente as any).pathOriginal || fuente.path;
+      const res = await window.electronAPI.recortarFuente({ videoPath: origen, duracion: durPedida });
+
+      if (!res?.success) {
+        setTranscriptionStatus('');
+        alert('No se pudo preparar el vídeo: ' + (res?.error || 'error desconocido'));
+        // NO se cae a transcribir: saldria una transcripcion de una duracion distinta de la
+        // del video, que es exactamente el fallo que esto viene a cerrar.
+        return;
+      }
+
+      // El backend promete estos campos cuando prepara el video, pero se COMPRUEBAN en vez de
+      // afirmarlos con `!`: apuntar la biblioteca a undefined dejaria el proyecto sin fuente y
+      // el fallo saldria mucho despues, en la generacion, sin nada que lo relacionase.
+      if (!res.path || !res.durationSeconds || !res.audioPath || !res.audioDurationSeconds) {
+        setTranscriptionStatus('');
+        alert('El recorte no devolvió el vídeo preparado. No se ha cambiado nada.');
+        return;
+      }
+      const rutaFinal = res.path, durFinal = res.durationSeconds;
+      const rutaAudio = res.audioPath, durAudio = res.audioDurationSeconds;
+
+      // La biblioteca pasa a apuntar al fichero preparado y los SEIS consumidores lo siguen
+      // sin tocar ninguno: todos leen clips[...], no la linea de tiempo. pathOriginal conserva
+      // el fichero del usuario, que es de donde se corta siempre.
+      setClips(prev => prev.map(c => c.id === fuente.id
+        ? { ...c,
+            path: rutaFinal,
+            url: res.url || rutaAUrl(rutaFinal),
+            durationSeconds: durFinal,
+            duration: formatDuration(durFinal),
+            pathOriginal: (c as any).pathOriginal || fuente.path }
+        : c));
+
+      setTimelineVideoClips(prev => prev.map(c => {
+        // El clip de origen pasa a apuntar al fichero preparado y a durar lo que ese fichero
+        // mide DE VERDAD. Sin esto, la siguiente comparacion volveria a ver diferencia y se
+        // recortaria otra vez sobre lo mismo en cada pulsacion.
+        if (c.type === 'video' && c.path === fuente.path) {
+          return { ...c, path: rutaFinal, url: res.url || rutaAUrl(rutaFinal),
+                   durationSeconds: durFinal };
+        }
+        // EL AUDIO SIGUE AL VIDEO: mismo fichero de origen y misma duracion, siempre. Nunca
+        // uno de una duracion y otro de otra.
+        if (c.type === 'audio') {
+          return { ...c, path: rutaAudio, url: res.audioUrl || rutaAUrl(rutaAudio),
+                   startSeconds: 0, durationSeconds: durAudio };
+        }
+        return c;
+      }));
+
+      // Se transcribe la ruta devuelta y no el estado recien puesto: setClips es asincrono y
+      // leer `clips` aqui daria todavia la ruta vieja.
+      window.electronAPI.startTranscription(rutaFinal);
+    } catch (e: any) {
+      setTranscriptionStatus('');
+      alert('No se pudo preparar el vídeo: ' + (e?.message || e));
+    } finally {
+      setRecortandoFuente(false);
+    }
+  };
+
+  // Texto del recorte para el boton de transcribir. Solo sale si hay recorte REAL: anunciar
+  // "se transcribiran 17:28 de 17:28" seria ruido. Compara lo que el usuario ha marcado en la
+  // linea de tiempo contra lo que el fichero mide hoy, que es justo lo que va a cambiar.
+  const avisoRecorte = (() => {
+    const f = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
+    if (!f?.path || typeof f.durationSeconds !== 'number') return null;
+    const cf = timelineVideoClips.find(c => c.type === 'video' && c.path === f.path);
+    const pedida = cf?.durationSeconds;
+    if (typeof pedida !== 'number') return null;
+    if (Math.abs(f.durationSeconds - pedida) <= TOLERANCIA_RECORTE_S) return null;
+    return `Se transcribirán ${formatTimeMinutesSeconds(pedida)} de ${formatTimeMinutesSeconds(f.durationSeconds)}`;
+  })();
+
   const formatSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -5677,15 +5802,15 @@ function App() {
                              </p>
                            )}
 
-                           <button 
-                             onClick={() => {
-                               if (firstVideoInLibrary) {
-                                 window.electronAPI.startTranscription(firstVideoInLibrary.path);
-                               }
-                             }}
-                             className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 py-2 rounded-lg font-semibold active:scale-95 transition-all shadow-md shadow-indigo-600/25 cursor-pointer"
+                           {avisoRecorte && (
+                             <p className="text-[10px] text-amber-400 font-mono mb-1.5">{avisoRecorte}</p>
+                           )}
+                           <button
+                             onClick={recortarYTranscribir}
+                             disabled={recortandoFuente}
+                             className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-wait text-white text-xs px-4 py-2 rounded-lg font-semibold active:scale-95 transition-all shadow-md shadow-indigo-600/25 cursor-pointer"
                            >
-                             Iniciar Transcripción
+                             {recortandoFuente ? 'Preparando el vídeo…' : 'Iniciar Transcripción'}
                            </button>
                          </div>
                        )}
@@ -6116,16 +6241,18 @@ function App() {
                           </button>
                         </div>
                       ) : (
+                        <>
+                        {avisoRecorte && (
+                          <p className="text-[10px] text-amber-400 font-mono mb-1.5">{avisoRecorte}</p>
+                        )}
                         <button
-                          onClick={() => {
-                            if (firstVideoInLibrary) {
-                              window.electronAPI.startTranscription(firstVideoInLibrary.path);
-                            }
-                          }}
-                          className='w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg'
+                          onClick={recortarYTranscribir}
+                          disabled={recortandoFuente}
+                          className='w-full py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-wait text-white text-xs font-bold rounded-lg'
                         >
-                          Iniciar Transcripción
+                          {recortandoFuente ? 'Preparando el vídeo…' : 'Iniciar Transcripción'}
                         </button>
+                        </>
                       )}
                     </div>
                   );
@@ -6512,15 +6639,29 @@ function App() {
                           }}
                           onContextMenu={(e) => handleClipContextMenu(e, tClip.id)}
                           className={`absolute h-full border rounded-lg flex items-center px-2 justify-between group/tclip ${perfectSyncMode && !showVideoV2Track ? 'cursor-default' : 'cursor-move'} transition-shadow ${
-                            selectedTimelineClipIds.includes(tClip.id) 
-                              ? 'ring-2 ring-indigo-500 border-indigo-400 z-20 shadow-[0_0_12px_rgba(99,102,241,0.25)]' 
+                            selectedTimelineClipIds.includes(tClip.id)
+                              ? 'ring-2 ring-indigo-500 border-indigo-400 z-20 shadow-[0_0_12px_rgba(99,102,241,0.25)]'
                               : 'border-[#3a3a3c]'
                           } ${bgClass}`}
                         >
                           {/* Left Trim Handle */}
-                          <div 
+                          <div
                             onMouseDown={(e) => handleClipMouseDown(e, tClip.id, 'trim-left')}
-                            className="absolute left-0 top-0 bottom-0 w-2.5 bg-indigo-500/85 cursor-ew-resize opacity-0 group-hover/tclip:opacity-100 transition-opacity rounded-l-lg flex items-center justify-center hover:bg-indigo-400 z-10"
+                            title={firstVideoInLibrary?.path === tClip.path
+                              ? 'Arrastra para recortar. Se aplicará al transcribir.' : undefined}
+                            className={`absolute left-0 top-0 bottom-0 w-2.5 bg-indigo-500/85 cursor-ew-resize transition-opacity rounded-l-lg flex items-center justify-center hover:bg-indigo-400 z-10 ${
+                              // El clip IMPORTADO lleva los tiradores SIEMPRE visibles. Con
+                              // opacity-0 hasta el hover no habia forma de saber que el video se
+                              // podia recortar antes de transcribir. Los generados se quedan igual.
+                              //
+                              // OJO con trim-left: NO recorta el origen. Mueve startSeconds, que
+                              // es la posicion en la linea de tiempo y no el segundo del fichero
+                              // por el que empezar — no hay punto de entrada en el modelo de
+                              // datos. Su efecto sobre el recorte acaba siendo el mismo que
+                              // arrastrar el derecho: cambiar durationSeconds.
+                              firstVideoInLibrary?.path === tClip.path
+                                ? 'opacity-100' : 'opacity-0 group-hover/tclip:opacity-100'
+                            }`}
                           >
                             <div className="w-[1.5px] h-3 bg-white/60" />
                           </div>
@@ -6543,9 +6684,14 @@ function App() {
                           </span>
 
                           {/* Right Trim Handle */}
-                          <div 
+                          <div
                             onMouseDown={(e) => handleClipMouseDown(e, tClip.id, 'trim-right')}
-                            className="absolute right-0 top-0 bottom-0 w-2.5 bg-indigo-500/85 cursor-ew-resize opacity-0 group-hover/tclip:opacity-100 transition-opacity rounded-r-lg flex items-center justify-center hover:bg-indigo-400 z-10"
+                            title={firstVideoInLibrary?.path === tClip.path
+                              ? 'Arrastra para recortar. Se aplicará al transcribir.' : undefined}
+                            className={`absolute right-0 top-0 bottom-0 w-2.5 bg-indigo-500/85 cursor-ew-resize transition-opacity rounded-r-lg flex items-center justify-center hover:bg-indigo-400 z-10 ${
+                              firstVideoInLibrary?.path === tClip.path
+                                ? 'opacity-100' : 'opacity-0 group-hover/tclip:opacity-100'
+                            }`}
                           >
                             <div className="w-[1.5px] h-3 bg-white/60" />
                           </div>
