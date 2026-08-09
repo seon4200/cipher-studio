@@ -412,6 +412,59 @@ async function main (bundle) {
                        a: resA.aciertos, f: resA.fallos }))
     ok(offscreens().length === 0, 'y al terminar el primero, la ventana queda cerrada')
 
+    // ── J) LA CLAVE DISTINGUE EL MODO Y EL CODEC (V0) ──────────────────────────────
+    // Se prueba la funcion DIRECTAMENTE y no a traves del nombre del fichero: lo que importa
+    // de un hash es que entradas distintas den claves distintas, y eso se afirma mejor sobre
+    // la funcion. Ademas 'pantalla' todavia no renderiza, asi que por fichero no habria forma.
+    console.log('\n=== J) LA CLAVE DISTINGUE EL MODO Y EL CODEC ===')
+    const { hashGrafico } = bundle
+    ok(typeof hashGrafico === 'function', 'hashGrafico se exporta del bundle')
+
+    const gClave = { type: 'decorativo_emoji', value: '🔥', label: 'Concepto', emoji: '🔥' }
+    const hOverlay  = hashGrafico(gClave, 1080, 1920, 2, 30, 'overlay')
+    const hPantalla = hashGrafico(gClave, 1080, 1920, 2, 30, 'pantalla')
+
+    ok(hOverlay !== hPantalla,
+      'el MISMO grafico da claves distintas en overlay y en pantalla',
+      `${hOverlay} != ${hPantalla}`)
+    ok(hashGrafico(gClave, 1080, 1920, 2, 30, 'overlay') === hOverlay,
+      'la clave es estable entre llamadas', hOverlay)
+
+    // La clave VIEJA se reconstruye aqui para demostrar que la forma cambio DE VERDAD. Sin
+    // esto, "las dos nuevas son distintas entre si" no dice nada sobre si los MOV anteriores
+    // quedan invalidados, que es la consecuencia que importa.
+    const canon = (v) => v === null || v === undefined ? 'null'
+      : Array.isArray(v) ? '[' + v.map(canon).join(',') + ']'
+      : typeof v === 'object'
+        ? '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}'
+        : JSON.stringify(v)
+    const claveVieja = crypto.createHash('sha1').update([
+      canon(gClave.type), canon(gClave.value), canon(gClave.label),
+      canon(gClave.unit), canon(gClave.emoji), canon(gClave.extra),
+      '1080', '1920', '2', '30', 'plantillas=1'
+    ].join('|')).digest('hex').slice(0, 12)
+    ok(hOverlay !== claveVieja,
+      'la clave cambio de FORMA: los MOV anteriores quedan invalidados',
+      `vieja ${claveVieja} -> nueva ${hOverlay}`)
+
+    // ── K) modo=pantalla SE RECHAZA HASTA V2 ───────────────────────────────────────
+    // El encoder sigue produciendo qtrle en un .mov. Dejarlo pasar escribiria un fichero cuya
+    // CLAVE dice h264/.mp4 y cuyo contenido no lo es — y ese fichero se CACHEARIA, con el log
+    // diciendo ACIERTO.
+    // VA AQUI, ANTES del close-project de abajo, a proposito: sin proyecto activo
+    // renderGraphicClip devuelve null por OTRA razon y el test pasaria por el motivo
+    // equivocado, que es peor que fallar.
+    console.log('\n=== K) modo=pantalla SE RECHAZA HASTA V2 ===')
+    const antesPantalla = fs.readdirSync(cacheGraficos).length
+    const rPantalla = await renderGraphicClip(gClave,
+      { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: 1, modo: 'pantalla' })
+    ok(rPantalla === null, 'modo=pantalla devuelve null', 'el encoder h264 llega en V2')
+    ok(fs.readdirSync(cacheGraficos).length === antesPantalla,
+      'y NO escribe ningun fichero',
+      `${antesPantalla} ficheros antes y despues`)
+    ok(offscreens().length === 0,
+      'ni abre la ventana: el rechazo va ANTES de tocar nada')
+
     // Cancelacion: sin proyecto activo. Recorre la MISMA rama que un cambio de proyecto a
     // mitad, entrando por la puerta de arriba en vez de por la de en medio. La comparacion
     // dentro del bucle no tiene test: no hay forma determinista de mover activeProjectPath a

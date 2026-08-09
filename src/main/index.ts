@@ -913,15 +913,42 @@ const canonizar = (v: any): string => {
 // el sistema afirma activamente que ha funcionado.
 const VERSION_PLANTILLAS = 1;
 
-function hashGrafico(graphicData: any, ancho: number, alto: number,
-                     duracion: number, fps: number): string {
+// EL FORMATO LO DECIDE EL MODO, y se dice AQUI una sola vez. Las tres cosas —codec, pix_fmt y
+// extension— tienen que ir juntas o el fichero sale mintiendo sobre si mismo: un .mp4 con
+// qtrle dentro, o un yuv420p con el alfa ya descartado en un contenedor que promete
+// transparencia. Vive en un solo sitio para que en V2 no haya dos lugares decidiendo la
+// extension y uno se quede atras.
+//
+// overlay:  la tarjeta va ENCIMA del video, asi que necesita alfa. qtrle es el unico codec
+//           verificado que lo conserva sobre este bitmap BGRA (medido: sin el, 100% opaco).
+// pantalla: el Visual SUSTITUYE al plano y ocupa el cuadro entero, asi que no hay nada debajo
+//           y el alfa sobra. h264/yuv420p, que es lo que el resto del pipeline ya normaliza.
+const FORMATO_POR_MODO = {
+  overlay:  { codec: 'qtrle', pixFmt: 'argb',    ext: '.mov' },
+  pantalla: { codec: 'h264',  pixFmt: 'yuv420p', ext: '.mp4' }
+} as const;
+
+// Se EXPORTA para que la prueba pueda comprobar la clave directamente, sin renderizar. Las
+// propiedades que importan de un hash —que dos entradas distintas den claves distintas, que
+// sea estable— se verifican mejor sobre la funcion que a traves del nombre de un fichero.
+export function hashGrafico(graphicData: any, ancho: number, alto: number,
+                            duracion: number, fps: number,
+                            modo: 'overlay' | 'pantalla'): string {
   const g = graphicData || {};
   const partes = [
     canonizar(g.type), canonizar(g.value), canonizar(g.label),
     canonizar(g.unit), canonizar(g.emoji), canonizar(g.extra),
     // La duracion SI entra: 2s y 3s son animaciones distintas, no la misma estirada.
     String(ancho), String(alto), String(duracion), String(fps),
-    'plantillas=' + VERSION_PLANTILLAS
+    'plantillas=' + VERSION_PLANTILLAS,
+    // EL MODO Y EL CODEC ENTRAN, y esto arregla un fallo que YA EXISTE hoy: el modo cambia el
+    // layout —'pantalla' centra y quita el margen inferior, 'overlay' lo pega abajo— y sin el
+    // en la clave la misma tarjeta en los dos modos devolveria el fichero del OTRO, con el log
+    // diciendo ACIERTO. Nadie lo ha disparado solo porque nadie pasa 'pantalla' todavia.
+    // El codec entra ademas porque un MOV con alfa y un MP4 opaco del MISMO contenido son
+    // ficheros distintos que no pueden compartir clave.
+    'modo=' + modo,
+    'codec=' + FORMATO_POR_MODO[modo].codec
   ];
   return createHash('sha1').update(partes.join('|')).digest('hex').slice(0, 12);
 }
@@ -1008,14 +1035,28 @@ export async function renderGraphicClip(
     return null;
   }
 
+  // El modo 'pantalla' YA entra en la clave del hash, pero el encoder de aqui abajo sigue
+  // produciendo qtrle en un .mov: eso es V2. Hasta entonces se RECHAZA, en vez de dejar que
+  // escriba un fichero cuya clave dice h264/.mp4 y cuyo contenido es qtrle. Un fichero que
+  // miente sobre si mismo es peor que uno que no existe: el que no existe se nota al primer
+  // intento, el que miente se CACHEA y el log dice ACIERTO.
+  // Nada se rompe por rechazarlo: hoy NO hay un solo llamador que pase 'pantalla'.
+  if (modo === 'pantalla') {
+    await writeDebugLog('[GRAFICO] modo=pantalla pedido, pero el render a h264 llega en V2. ' +
+      'No se renderiza nada.');
+    return null;
+  }
+
   // initProjectDirs ya NO crea cache/graficos —salio de SUB_CACHE en 7dd9b64 para que
   // cleanupProjectTemp deje de borrarla—, asi que la crea quien la llena. Verificado.
   const destDir = dirCache(activeProjectPath, 'graficos');
   await fs.promises.mkdir(destDir, { recursive: true });
 
   // El nombre ES el hash: no hay indice que mantener ni que pueda desincronizarse del disco.
-  const hash = hashGrafico(graphicData, ancho, alto, duracion, fps);
-  const destino = path.join(destDir, `${hash}.mov`);
+  // La extension sale de FORMATO_POR_MODO y no se escribe a mano: es el mismo sitio que decide
+  // el codec, asi que no pueden discrepar.
+  const hash = hashGrafico(graphicData, ancho, alto, duracion, fps, modo);
+  const destino = path.join(destDir, hash + FORMATO_POR_MODO[modo].ext);
 
   // ACIERTO. Se exige tamano > 0: un MOV de 0 bytes de un render interrumpido existe pero no
   // es un acierto, seria un hueco en el video.
@@ -1209,11 +1250,11 @@ export async function renderGraphicClipsLote(
       // "renderizando" seria mentira y la barra saltaria sin explicacion. La AUTORIDAD sobre
       // si hay acierto es renderGraphicClip: si esto se equivocara, lo unico erroneo seria
       // una palabra en un mensaje.
-      const hash = hashGrafico(peticiones[i].graphicData, ancho, alto, duracion, fps);
+      const hash = hashGrafico(peticiones[i].graphicData, ancho, alto, duracion, fps, modo);
       let cacheado = false;
       try {
         const st = await fs.promises.stat(
-          path.join(dirCache(proyectoDelLote!, 'graficos'), `${hash}.mov`));
+          path.join(dirCache(proyectoDelLote!, 'graficos'), hash + FORMATO_POR_MODO[modo].ext));
         cacheado = st.size > 0;
       } catch (e) { /* no esta: se renderiza */ }
 
