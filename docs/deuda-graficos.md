@@ -438,3 +438,38 @@ plantilla— y **no puede estar en los dos**.
 
 Queda escrito porque se dio por un bug al leer los dos bloques seguidos en un `grep`, y el
 error es fácil de repetir.
+
+---
+
+# EL REPARTO DE `generate-perfect-sync` NO TIENE VISUALES
+
+Al añadir el cuarto peso (V3) la aritmética se sacó a **una** función,
+`repartoObjetivos` en `src/shared/reparto.ts`, y los dos sitios que la duplicaban en
+`generate-timeline-assets` pasaron a llamarla. **Queda un tercero sin tocar**, en
+`generate-perfect-sync`:
+
+```ts
+const stockWeight = syncWeights[1] ?? 35;
+let targetStockClips = Math.round((stockWeight / 100) * totalVisualClipsCount);
+let targetIaClips    = Math.round((iaWeight    / 100) * totalVisualClipsCount);
+if (targetStockClips + targetIaClips > totalVisualClipsCount) { …reescalado de DOS términos… }
+const targetVacioSlots = totalVisualClipsCount - targetStockClips - targetIaClips;
+```
+
+**No es una copia del mismo dato.** Usa `syncWeights`, que es **otro estado**
+(`useState([40, 35, 25])`) con sus propios sliders y su propio `handleSyncWeightChange`. Por
+eso no se tocó: cambiarlo sería añadir Visuales a la sincronía perfecta, que es una
+funcionalidad, no un refactor.
+
+**El día que Visuales entre en la sincronía perfecta hay que repetir todo esto allí**, y no
+basta con llamar a `repartoObjetivos`:
+
+- `syncWeights` tendría que pasar a cuatro posiciones, y su `handleSyncWeightChange` tiene el
+  mismo `[0,1,2]` escrito a mano que tenía `handleWeightChange` — el mismo error esperando.
+- El residuo allí **no es `original`**, es `targetVacioSlots`: huecos que se rellenan con el
+  vídeo del usuario por otra vía. La semántica del cuarto término no es la misma.
+- El reescalado es de dos términos, así que con un tercero `targetVacioSlots` podría salir
+  **negativo**, exactamente el fallo que V3 corrigió en el otro sitio.
+
+Mientras tanto, el riesgo real es **cero**: sin Visuales en esa vía, el reescalado de dos
+términos es correcto para los dos pesos que hay.

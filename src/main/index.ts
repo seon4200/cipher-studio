@@ -7,6 +7,10 @@ import fs from 'fs'
 import { pathToFileURL } from 'url'
 import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, getVideoDimensions } from './services/ffmpeg'
 import { fal } from '@fal-ai/client'
+// Re-exportado ademas de importado para que tests/reparto.js alcance la implementacion REAL
+// desde el bundle: una prueba que reimplementara el reparto probaria su copia, no el reparto.
+import { repartoObjetivos, repartirPesos } from '../shared/reparto'
+export { repartoObjetivos, repartirPesos }
 
 // Construir "file:///" concatenando la ruta FALLA con espacios, acentos y '#'. Medido en un
 // Chromium real con webSecurity:false, cargando un video desde
@@ -3370,20 +3374,23 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       });
     }
 
+    // pesoIa se conserva porque TRES sitios preguntan `pesoIa > 0` para decidir si se respeta
+    // un 'ia' que venga del modelo y si se le piden cuotas de IA en el prompt: eso es una
+    // condicion sobre el PESO, no sobre el conteo. stockWeight desaparece: solo servia para la
+    // aritmetica que ahora vive en repartoObjetivos.
     const pesoIa = weights ? (weights[2] ?? 0) : 0;
-    const stockWeight = weights ? (weights[1] ?? 0) : 0;
 
-    let targetIaClips = Math.round((pesoIa / 100) * totalVisualClipsCount);
-    let targetStockClips = Math.round((stockWeight / 100) * totalVisualClipsCount);
+    // La aritmetica vive en shared/reparto.ts, en UNA funcion. Estaba duplicada aqui y en la
+    // cuota de mas abajo, y añadir un origen en uno solo era el error facil de cometer y
+    // dificil de ver: el reparto salia distinto segun el sitio y nada lo decia.
+    const obj1 = repartoObjetivos(weights, totalVisualClipsCount);
+    const targetIaClips = obj1.ia;
+    const targetStockClips = obj1.stock;
+    const targetVisualClips = obj1.visual;
+    const targetOriginalClips = obj1.original;
 
-    if (targetIaClips + targetStockClips > totalVisualClipsCount) {
-      const sum = targetIaClips + targetStockClips;
-      targetIaClips = Math.floor((targetIaClips / sum) * totalVisualClipsCount);
-      targetStockClips = totalVisualClipsCount - targetIaClips;
-    }
-    const targetOriginalClips = totalVisualClipsCount - targetIaClips - targetStockClips;
-
-    await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}/${totalVisualClipsCount}`);
+    await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ` +
+      `ia=${targetIaClips}, visual=${targetVisualClips}/${totalVisualClipsCount}`);
 
     let flattenedClips: any[] = [];
 
@@ -3696,14 +3703,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // Objetivos directos desde los pesos contra el total REAL de sub-clips. No se
       // reescalan los target* previos: si totalVisualClipsCount fuese 0 daria NaN.
       // Misma normalizacion que L1767-1772, que garantiza objOriginal >= 0.
-      let objIa = Math.round((pesoIa / 100) * totalReal);
-      let objStock = Math.round((stockWeight / 100) * totalReal);
-      if (objIa + objStock > totalReal) {
-        const sum = objIa + objStock;
-        objIa = Math.floor((objIa / sum) * totalReal);
-        objStock = totalReal - objIa;
-      }
-      const objOriginal = totalReal - objIa - objStock;
+      const obj2 = repartoObjetivos(weights, totalReal);
+      const objIa = obj2.ia;
+      const objStock = obj2.stock;
+      const objVisual = obj2.visual;
+      const objOriginal = obj2.original;
 
       const antesStock = cuotaLista.filter(x => x.clip.type === 'stock').length;
       const antesOriginal = cuotaLista.filter(x => x.clip.type === 'original').length;
@@ -3797,7 +3801,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
       const finStock = cuotaLista.filter(x => x.clip.type === 'stock').length;
       const finOriginal = cuotaLista.filter(x => x.clip.type === 'original').length;
-      await logMessage(`[FASE 2] Cuota: objetivo original=${objOriginal} stock=${objStock} ia=${objIa} | ` +
+      await logMessage(`[FASE 2] Cuota: objetivo original=${objOriginal} stock=${objStock} ` +
+        `ia=${objIa} visual=${objVisual} | ` +
         `antes original=${antesOriginal} stock=${antesStock} | ahora original=${finOriginal} stock=${finStock} | ` +
         `con keyword propio=${conKeyword.length}/${reasignables.length} | ` +
         `racha stock: alcanzada=${rachaAlcanzada} ideal=${rachaIdeal} ` +

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { repartirPesos } from '../../shared/reparto'
 import ReactDOM from 'react-dom/client'
 import { 
   Play, Pause, FastForward, Rewind, Video, Volume2, VolumeX, Sparkles, 
@@ -1522,7 +1523,9 @@ function App() {
   const [exportProgress, setExportProgress] = useState<{ step: string; current: number; total: number; message: string } | null>(null);
 
   // Timeline IA weights: [Original, Stock, IA]
-  const [timelineWeights, setTimelineWeights] = useState<number[]>([40, 30, 30])
+  // Cuatro posiciones: [0] original, [1] stock, [2] IA, [3] Visuales. Visuales arranca en 0:
+  // un proyecto nuevo reparte exactamente como antes hasta que el usuario mueva el slider.
+  const [timelineWeights, setTimelineWeights] = useState<number[]>([40, 30, 30, 0])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
 
   // Hub de IA — estados
@@ -2265,48 +2268,11 @@ function App() {
     }
   };
 
+  // Solo envuelve a repartirPesos con setState. El calculo vive en shared/reparto.ts y es
+  // PURO: es lo que permite probar "la suma sigue siendo 100" barriendo los cuatro indices y
+  // los 101 valores de cada uno, sin montar React.
   const handleWeightChange = (index: number, newValue: number) => {
-    const updatedWeights = [...timelineWeights];
-    const oldValue = updatedWeights[index];
-    const diff = newValue - oldValue;
-    
-    // Set the new value
-    updatedWeights[index] = newValue;
-    
-    // Distribute the difference among other sliders
-    const otherIndices = [0, 1, 2].filter(i => i !== index);
-    const sumOthers = otherIndices.reduce((sum, i) => sum + updatedWeights[i], 0);
-    
-    if (sumOthers > 0) {
-      // Distribute proportionally
-      let remainingDiff = diff;
-      otherIndices.forEach((i, idx) => {
-        const share = Math.round((updatedWeights[i] / sumOthers) * diff);
-        const toSubtract = idx === otherIndices.length - 1 ? remainingDiff : share;
-        updatedWeights[i] = Math.max(0, updatedWeights[i] - toSubtract);
-        remainingDiff -= toSubtract;
-      });
-    } else {
-      // If others are all 0, distribute evenly
-      let remainingDiff = diff;
-      const count = otherIndices.length;
-      otherIndices.forEach((i, idx) => {
-        const share = Math.round(diff / count);
-        const toSubtract = idx === otherIndices.length - 1 ? remainingDiff : share;
-        updatedWeights[i] = Math.max(0, updatedWeights[i] - toSubtract);
-        remainingDiff -= toSubtract;
-      });
-    }
-    
-    // Ensure the sum is exactly 100
-    const finalSum = updatedWeights.reduce((a, b) => a + b, 0);
-    if (finalSum !== 100) {
-      const adjustment = 100 - finalSum;
-      const adjIndex = otherIndices.find(i => updatedWeights[i] + adjustment >= 0) ?? otherIndices[0];
-      updatedWeights[adjIndex] = Math.max(0, updatedWeights[adjIndex] + adjustment);
-    }
-    
-    setTimelineWeights(updatedWeights);
+    setTimelineWeights(repartirPesos(timelineWeights, index, newValue));
   };
 
   const handleSyncWeightChange = (index: number, newValue: number) => {
@@ -3905,6 +3871,25 @@ function App() {
                   }}
                 />
                 <span className="font-mono text-[10px] text-amber-400 font-bold w-8 text-right select-none">{timelineWeights[2]}%</span>
+              </div>
+
+              {/* Slider 4: Visuales — graficos a pantalla completa que SUSTITUYEN al plano, no
+                  se superponen. Fucsia porque los otros tres ya ocupan esmeralda, azul y ambar. */}
+              <div className="flex items-center space-x-2.5">
+                <span className="w-2 h-2 rounded-full bg-fuchsia-500 flex-shrink-0" />
+                <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Visuales</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={timelineWeights[3]}
+                  onChange={(e) => handleWeightChange(3, parseInt(e.target.value))}
+                  className="flex-1 h-1 bg-[#2c2c2e] rounded-lg appearance-none cursor-pointer accent-fuchsia-500 transition-all outline-none"
+                  style={{
+                    background: `linear-gradient(to right, rgb(217, 70, 239) ${timelineWeights[3]}%, rgb(30, 41, 59) 0%)`
+                  }}
+                />
+                <span className="font-mono text-[10px] text-fuchsia-400 font-bold w-8 text-right select-none">{timelineWeights[3]}%</span>
               </div>
             </div>
 
