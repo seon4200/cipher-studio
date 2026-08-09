@@ -29,6 +29,10 @@ const MARCA = 'zz-prueba-graficos'
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-graf-'))
 
 const ANCHO = 1080, ALTO = 1920, FPS = 30, DUR = 2
+// Alto de la franja de la sonda. Copiado de SONDA_ALTO en main/index.ts y grafico.tsx: la
+// prueba lee el pixel en el mismo sitio que el lazo cerrado, asi que si alli cambiara y aqui
+// no, esta comprobacion pasaria a mirar el sitio equivocado.
+const SONDA_ALTO_TEST = 8
 const FRAMES = FPS * DUR
 const TOPE_MS = 5000   // el experimento dio ~2100 ms; holgado a proposito, es un detector
 
@@ -447,23 +451,106 @@ async function main (bundle) {
       'la clave cambio de FORMA: los MOV anteriores quedan invalidados',
       `vieja ${claveVieja} -> nueva ${hOverlay}`)
 
-    // ── K) modo=pantalla SE RECHAZA HASTA V2 ───────────────────────────────────────
-    // El encoder sigue produciendo qtrle en un .mov. Dejarlo pasar escribiria un fichero cuya
-    // CLAVE dice h264/.mp4 y cuyo contenido no lo es — y ese fichero se CACHEARIA, con el log
-    // diciendo ACIERTO.
+    // ── K) EL VISUAL A PANTALLA COMPLETA (V2) ──────────────────────────────────────
     // VA AQUI, ANTES del close-project de abajo, a proposito: sin proyecto activo
     // renderGraphicClip devuelve null por OTRA razon y el test pasaria por el motivo
     // equivocado, que es peor que fallar.
-    console.log('\n=== K) modo=pantalla SE RECHAZA HASTA V2 ===')
-    const antesPantalla = fs.readdirSync(cacheGraficos).length
-    const rPantalla = await renderGraphicClip(gClave,
-      { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: 1, modo: 'pantalla' })
-    ok(rPantalla === null, 'modo=pantalla devuelve null', 'el encoder h264 llega en V2')
-    ok(fs.readdirSync(cacheGraficos).length === antesPantalla,
-      'y NO escribe ningun fichero',
-      `${antesPantalla} ficheros antes y despues`)
-    ok(offscreens().length === 0,
-      'ni abre la ventana: el rechazo va ANTES de tocar nada')
+    console.log('\n=== K) EL VISUAL A PANTALLA COMPLETA ===')
+    const G_VIS = { type: 'donut', value: 87, label: 'Cuota', unit: '%' }
+    const DUR_VIS = 3
+    const FRAMES_VIS = DUR_VIS * FPS
+
+    const mp4 = await renderGraphicClip(G_VIS,
+      { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: DUR_VIS, modo: 'pantalla', sistema: 'voltaje' })
+    ok(mp4 !== null, 'modo=pantalla YA renderiza', String(mp4))
+    ok(!!mp4 && mp4.endsWith('.mp4'), 'el fichero es .mp4, no .mov',
+      mp4 ? path.basename(mp4) : '(null)')
+
+    // Donde vive, y la asimetria importa: un Visual que falta rompe la aritmetica del export
+    // y el -shortest se come el audio; una tarjeta que falta no rompe nada.
+    const dirVisual = path.join(p.projectPath, 'materiales', 'visual')
+    ok(!!mp4 && path.dirname(mp4) === dirVisual,
+      'cae en materiales/visual, NO en cache', mp4 ? path.dirname(mp4) : '(null)')
+
+    const crudoVis = await ejecutar(`ffprobe -v error -select_streams v:0 -count_frames ` +
+      `-show_entries stream=nb_read_frames,width,height,pix_fmt,codec_name ` +
+      `-show_entries format=duration -of json "${String(mp4).replace(/"/g, '\\"')}"`)
+    const iv = JSON.parse(crudoVis)
+    const sv = (iv.streams && iv.streams[0]) || {}
+    ok(sv.codec_name === 'h264', 'el codec es h264', String(sv.codec_name))
+    ok(sv.pix_fmt === 'yuv420p', 'el pix_fmt es yuv420p', String(sv.pix_fmt))
+    ok(Number(sv.nb_read_frames) === FRAMES_VIS, `tiene ${FRAMES_VIS} frames exactos`,
+      'nb_read_frames = ' + sv.nb_read_frames)
+    ok(sv.width === ANCHO && sv.height === ALTO, `mide ${ANCHO}x${ALTO}`,
+      `${sv.width}x${sv.height}  (la franja de la sonda NO viaja al MP4)`)
+
+    // Los tres frames distintos: el reloj sigue vivo. Si el Visual se congelara, los tres
+    // saldrian identicos y el video mostraria una imagen fija durante 3 segundos.
+    // Se reutiliza huellaDelFrame, que ya existe y se usa en la seccion D).
+    const v1 = await huellaDelFrame(mp4, 0.1, 'vis1')
+    const v2 = await huellaDelFrame(mp4, 0.5, 'vis2')
+    const v3 = await huellaDelFrame(mp4, 1.0, 'vis3')
+    ok(new Set([v1.hash, v2.hash, v3.hash]).size === 3,
+      'los frames de t=0.1, 0.5 y 1.0 son los TRES distintos',
+      `${v1.hash} · ${v2.hash} · ${v3.hash}`)
+
+    // 0 frames completamente negros. Es el sintoma del fallo del alpha AL REVES: si el
+    // componente no pintara su fondo, yuv420p descartaria el alfa y saldria todo negro.
+    // blackdetect con pix_th=0.10 marca los tramos cuyos frames son casi todos oscuros; se
+    // cuenta cuanta DURACION cae ahi, que es mas robusto que mirar un frame suelto.
+    const bd = await ejecutar(`ffmpeg -hide_banner -nostats -i "${String(mp4).replace(/"/g, '\\"')}" ` +
+      `-vf blackdetect=d=0.05:pix_th=0.10 -an -f null - 2>&1 || true`)
+    const tramosNegros = (String(bd).match(/black_duration:(\d+(\.\d+)?)/g) || [])
+      .map(m => parseFloat(m.split(':')[1]))
+    const segNegros = tramosNegros.reduce((a, b) => a + b, 0)
+    ok(segNegros === 0, 'ningun tramo completamente negro',
+      tramosNegros.length ? `${segNegros.toFixed(2)}s en ${tramosNegros.length} tramo(s)` : '0.00s')
+
+    // ── L) LA SONDA SIGUE LEGIBLE BAJO EL FONDO OPACO ──────────────────────────────
+    // Si el fondo del Visual cubriera los 1928 en vez de los 1920 del lienzo, el lazo cerrado
+    // no podria leer la franja y TODOS los frames agotarian los 5 intentos.
+    // Se comprueba el PIXEL y no la media de intentos: con voltaje el fondo es #0A0A0A, casi
+    // negro, asi que un fallo podria colarse por parecido; con clinico —fondo #F7F6F3— seria
+    // imposible confundirlos. Por eso van los dos.
+    console.log('\n=== L) LA SONDA SIGUE LEGIBLE BAJO EL FONDO ===')
+    const leerPixelSonda = async (sistema, tSonda) => {
+      const v = offscreens()[0]
+      if (!v) return null
+      await v.webContents.executeJavaScript(
+        `window.__montar(${JSON.stringify(G_VIS)}, ${JSON.stringify(
+          { ancho: ANCHO, alto: ALTO, modo: 'pantalla', sistema })})`)
+      await v.webContents.executeJavaScript(`window.__setT(${tSonda})`)
+      // Mismo offset que usa renderGraphicClip: centro horizontal, mitad de la franja.
+      const off = (Math.floor(SONDA_ALTO_TEST / 2) * ANCHO + Math.floor(ANCHO / 2)) * 4
+      for (let k = 0; k < 20; k++) {
+        const raw = (await v.webContents.capturePage()).getBitmap()
+        if (raw[off] === Math.round((tSonda * 30) % 255)) {
+          // El pixel de DEBAJO de la franja: tiene que ser el fondo del sistema, no la sonda.
+          const offFondo = ((SONDA_ALTO_TEST + 4) * ANCHO + 4) * 4
+          return { intentos: k + 1, sonda: raw[off],
+                   fondo: [raw[offFondo + 2], raw[offFondo + 1], raw[offFondo]] }
+        }
+      }
+      return { intentos: 21, sonda: -1, fondo: null }
+    }
+
+    // La ventana sigue viva del render anterior; si no, se abre montando.
+    await renderGraphicClip({ ...G_VIS, value: 1 },
+      { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: 1, modo: 'pantalla', sistema: 'voltaje' })
+
+    for (const [sis, fondoEsperado] of [['voltaje', [10, 10, 10]], ['clinico', [247, 246, 243]]]) {
+      const t = sis === 'voltaje' ? 1.0 : 1.1
+      const r = await leerPixelSonda(sis, t)
+      const esperado = Math.round((t * 30) % 255)
+      ok(!!r && r.sonda === esperado,
+        `sistema ${sis}: el pixel de la sonda vale lo que se fijo`,
+        r ? `esperado ${esperado}, leido ${r.sonda}` : '(sin ventana)')
+      ok(!!r && !!r.fondo && r.fondo.every((c, i) => Math.abs(c - fondoEsperado[i]) <= 6),
+        `sistema ${sis}: y justo debajo esta el fondo del sistema, no la sonda`,
+        r && r.fondo ? `rgb(${r.fondo.join(',')}) contra rgb(${fondoEsperado.join(',')})` : '(sin dato)')
+      ok(!!r && r.intentos <= 5,
+        `sistema ${sis}: no hace falta agotar intentos`, r ? `${r.intentos} intentos` : '-')
+    }
 
     // Cancelacion: sin proyecto activo. Recorre la MISMA rama que un cambio de proyecto a
     // mitad, entrando por la puerta de arriba en vez de por la de en medio. La comparacion

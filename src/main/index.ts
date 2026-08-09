@@ -376,7 +376,7 @@ async function getProjectsDir(): Promise<string> {
 //   ia/       era 'minimax', nombre de proveedor, y el proveedor ya cambio una vez.
 //   pista-v2/ era 'sync-perfecta', nombre de funcion. Guarda una MEZCLA de stock e IA
 //             cortada para la pista secundaria, asi que no puede colgar de ia/.
-const SUB_MATERIALES = ['audio', 'voices', 'originales', 'stock', 'ia', 'pista-v2'];
+const SUB_MATERIALES = ['audio', 'voices', 'originales', 'stock', 'ia', 'pista-v2', 'visual'];
 
 // 'graficos' SALIO de SUB_CACHE a proposito y no debe volver. Los MOV de los graficos son
 // regenerables, si — pero caros: 1.65 MB y ~1.6s de render cada uno, 31s para los 19 de un
@@ -923,10 +923,24 @@ const VERSION_PLANTILLAS = 1;
 //           verificado que lo conserva sobre este bitmap BGRA (medido: sin el, 100% opaco).
 // pantalla: el Visual SUSTITUYE al plano y ocupa el cuadro entero, asi que no hay nada debajo
 //           y el alfa sobra. h264/yuv420p, que es lo que el resto del pipeline ya normaliza.
+// `codec` es la IDENTIDAD y es lo que entra en la clave del hash. `encoder` es lo que recibe
+// ffmpeg, que no siempre se llama igual: el codec h264 lo produce libx264. Separarlos evita
+// tener que elegir entre una clave que miente y un comando ambiguo.
 const FORMATO_POR_MODO = {
-  overlay:  { codec: 'qtrle', pixFmt: 'argb',    ext: '.mov' },
-  pantalla: { codec: 'h264',  pixFmt: 'yuv420p', ext: '.mp4' }
+  overlay:  { codec: 'qtrle', encoder: 'qtrle',   pixFmt: 'argb',    ext: '.mov' },
+  pantalla: { codec: 'h264',  encoder: 'libx264', pixFmt: 'yuv420p', ext: '.mp4' }
 } as const;
+
+// DONDE VIVE CADA COSA, y no es simetrico:
+//   overlay  -> cache/graficos. Una tarjeta que falta NO rompe nada: el export compone las que
+//               hay y el video sale igual de largo.
+//   pantalla -> materiales/visual. Un Visual que falta SI rompe: es un clip normal del
+//               timeline, su hueco ya esta contado en framesAcum, y el -shortest del mux
+//               recorta el AUDIO. Medido por esa via: 3.24s de narracion perdidos.
+// Un fichero regenerable cuya ausencia CORROMPE el resultado no es cache, es material. Por eso
+// visual no entra en SUB_CACHE, que es lo que cleanupProjectTemp borra al cerrar el proyecto.
+const dirDeModo = (proj: string, modo: 'overlay' | 'pantalla') =>
+  modo === 'pantalla' ? dirMat(proj, 'visual') : dirCache(proj, 'graficos');
 
 // Los NOMBRES de los sistemas de color. Los valores viven en renderer/src/sistemas.ts; aqui
 // solo hacen falta los nombres, que son lo que entra en la clave del hash. Estan repetidos
@@ -1047,21 +1061,11 @@ export async function renderGraphicClip(
     return null;
   }
 
-  // El modo 'pantalla' YA entra en la clave del hash, pero el encoder de aqui abajo sigue
-  // produciendo qtrle en un .mov: eso es V2. Hasta entonces se RECHAZA, en vez de dejar que
-  // escriba un fichero cuya clave dice h264/.mp4 y cuyo contenido es qtrle. Un fichero que
-  // miente sobre si mismo es peor que uno que no existe: el que no existe se nota al primer
-  // intento, el que miente se CACHEA y el log dice ACIERTO.
-  // Nada se rompe por rechazarlo: hoy NO hay un solo llamador que pase 'pantalla'.
-  if (modo === 'pantalla') {
-    await writeDebugLog('[GRAFICO] modo=pantalla pedido, pero el render a h264 llega en V2. ' +
-      'No se renderiza nada.');
-    return null;
-  }
-
-  // initProjectDirs ya NO crea cache/graficos —salio de SUB_CACHE en 7dd9b64 para que
-  // cleanupProjectTemp deje de borrarla—, asi que la crea quien la llena. Verificado.
-  const destDir = dirCache(activeProjectPath, 'graficos');
+  // La carpeta la crea quien la llena, con su propio mkdir recursive. Hacen falta las dos
+  // razones: cache/graficos salio de SUB_CACHE en 7dd9b64 para que cleanupProjectTemp dejara
+  // de borrarla, asi que initProjectDirs no la crea; y materiales/visual SI esta en
+  // SUB_MATERIALES, pero un proyecto anterior a este cambio no la tiene hasta que se abra.
+  const destDir = dirDeModo(activeProjectPath, modo);
   await fs.promises.mkdir(destDir, { recursive: true });
 
   // El nombre ES el hash: no hay indice que mantener ni que pueda desincronizarse del disco.
@@ -1118,13 +1122,34 @@ export async function renderGraphicClip(
 
     // Patron NUEVO en este codigo: todo lo demas invoca ffmpeg con exec y una cadena. Aqui
     // hace falta spawn porque los frames entran por stdin y exec bufferea la salida entera.
-    // El bitmap es BGRA (no RGBA) y qtrle es el unico codec verificado que conserva alpha.
+    // El bitmap es BGRA (no RGBA). El codec y el pix_fmt salen de FORMATO_POR_MODO, el mismo
+    // sitio que decide la extension y lo que entra en la clave: no pueden discrepar.
+    //   overlay:  qtrle/argb, el unico codec verificado que conserva alpha sobre este bitmap.
+    //   pantalla: libx264/yuv420p, que es lo que el resto del pipeline ya normaliza.
+    const fmt = FORMATO_POR_MODO[modo];
     ff = spawn('ffmpeg', [
       '-y',
       '-f', 'rawvideo', '-pix_fmt', 'bgra',
       '-s', `${ancho}x${alto}`, '-r', String(fps),
       '-i', 'pipe:0',
-      '-an', '-c:v', 'qtrle', '-pix_fmt', 'argb',
+      '-an', '-c:v', fmt.encoder, '-pix_fmt', fmt.pixFmt,
+      // Calidad alta a proposito y SOLO para h264: este MP4 es un INTERMEDIO. El Visual entra
+      // en el timeline como un clip mas, asi que la normalizacion del export lo vuelve a
+      // codificar a crf 23; guardarlo ya a 23 apilaria dos generaciones de perdida sobre la
+      // misma imagen. veryfast porque es intermedio, no el entregable.
+      // NO esta medido: es el mismo criterio que usa la normalizacion, no un numero probado.
+      //
+      // COSTE — DATO PRELIMINAR, NO MEDICION. En una tirada de test:graficos salio:
+      //   Visual  de 3s: 90 frames en 4898 ms  ->  54 ms/frame
+      //   tarjeta de 2s: 60 frames en ~2200 ms ->  37 ms/frame
+      // Es UNA sola muestra, tomada DENTRO de la suite, con la ventana ya caliente de veinte
+      // renders previos y compitiendo con ellos. No sirve para decidir nada. Falta la medicion
+      // formal: repeticiones en frio y en caliente, una tarjeta de CONTROL en la misma tirada,
+      // y los dos sistemas —el fondo claro de clinico tiene mas pixeles que codificar que el
+      // casi negro de voltaje—.
+      // Importa porque si esos 54 ms/frame se confirman, 220 Visuales de 3s son ~18 minutos
+      // solo de render, y eso decide si el 100% de Visuales es viable (V3, el cuarto peso).
+      ...(modo === 'pantalla' ? ['-preset', 'veryfast', '-crf', '18'] : []),
       destino
     ]);
 
@@ -1276,8 +1301,14 @@ export async function renderGraphicClipsLote(
       const hash = hashGrafico(peticiones[i].graphicData, ancho, alto, duracion, fps, modo);
       let cacheado = false;
       try {
+        // dirDeModo y no dirCache: un lote en modo pantalla buscaria los .mp4 en cache y
+        // diria "renderizando" en TODOS aunque fueran aciertos. Solo es el texto del progreso
+        // —la autoridad es renderGraphicClip— pero seria un mensaje que miente.
+        // PENDIENTE V4: el lote no recibe `sistema`, asi que la vista previa del hash usa el
+        // defecto. Hoy es consistente porque renderGraphicClip tambien cae al defecto cuando
+        // nadie lo pasa; deja de serlo el dia que el lote sirva Visuales con sistema propio.
         const st = await fs.promises.stat(
-          path.join(dirCache(proyectoDelLote!, 'graficos'), hash + FORMATO_POR_MODO[modo].ext));
+          path.join(dirDeModo(proyectoDelLote!, modo), hash + FORMATO_POR_MODO[modo].ext));
         cacheado = st.size > 0;
       } catch (e) { /* no esta: se renderiza */ }
 
