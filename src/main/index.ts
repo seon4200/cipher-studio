@@ -2508,6 +2508,29 @@ async function componerTarjetas(
 
   const framesOriginal = await framesDe(videoBase);
   const segDir = path.join(dir, 'segmentos');
+
+  // SE VACIA ANTES DE TROCEAR, no solo se crea. `mkdir` con `recursive` sobre un directorio que
+  // ya existe no hace NADA, y el recuento de mas abajo es un `readdir`: lo que quede de una
+  // pasada anterior CUENTA COMO SI FUERA DE ESTA.
+  //
+  // Paso de verdad, y descarto una pasada que estaba bien. Un export fallido dejo 29 segmentos
+  // conservados "para diagnostico". El siguiente troceo un video mas corto en 20 segmentos, que
+  // sobrescribieron seg_00000..seg_00019 —correctos, 5979 frames, justo los del original— pero
+  // seg_00020..seg_00028 sobrevivieron con 2528 frames mas. La guarda leyo 8507 contra 5979 y
+  // tiro la pasada. Sin esto, UN export fallido envenena TODOS los siguientes hasta que alguien
+  // borre la carpeta a mano, y el sintoma —"el troceado dio N frames"— apunta al troceado, que
+  // es justo la parte que funcionaba.
+  //
+  // Se dice cuantos se borran en vez de hacerlo en silencio: los ficheros conservados son
+  // evidencia de un fallo anterior, y si desaparecen tiene que quedar escrito quien se los
+  // llevo. El contrato de "conservado para diagnostico" sigue en pie, acotado: sobreviven
+  // hasta el export siguiente.
+  const restos = await fs.promises.readdir(segDir).catch(() => [] as string[]);
+  if (restos.length) {
+    await fs.promises.rm(segDir, { recursive: true, force: true });
+    await log(`[EXPORT-G3] ${restos.length} fichero(s) de una pasada anterior borrados de ` +
+      `${segDir} antes de trocear`);
+  }
   await fs.promises.mkdir(segDir, { recursive: true });
 
   // Trocear. -c copy: aqui NO se recodifica nada, solo se parte por keyframes. El video base
