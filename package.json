@@ -13,7 +13,8 @@
     "test:via4": "electron tests/via4.js",
     "test:materiales": "electron tests/materiales.js",
     "test:graficos": "electron tests/graficos.js",
-    "test:reparto": "electron tests/reparto.js"
+    "test:reparto": "electron tests/reparto.js",
+    "test:exclusion": "electron tests/exclusion.js"
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.1",

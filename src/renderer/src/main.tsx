@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { excluirSobreVisuales } from '../../shared/exclusion'
 import { hayTiemposPorPalabra } from '../../shared/palabra'
 import { repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../../shared/reparto'
 import ReactDOM from 'react-dom/client'
@@ -158,6 +159,9 @@ function App() {
   // UN solo flag para los DOS botones de transcribir: si cada panel tuviera el suyo, el
   // disabled solo apagaria el que se pulso y el otro seguiria vivo.
   const [recortandoFuente, setRecortandoFuente] = useState(false)
+  // Recuento de tarjetas descartadas por caer sobre un Visual. No basta con la consola: el
+  // usuario pidio N graficos y va a recibir menos, y tiene que saber por que.
+  const [avisoGraficos, setAvisoGraficos] = useState('')
   const [panStart, setPanStart] = useState({ x: 0, y: 0 })
   const [isCropping, setIsCropping] = useState(false)
   const [cropRect, setCropRect] = useState({ left: 10, top: 10, right: 10, bottom: 10 })
@@ -2526,9 +2530,28 @@ function App() {
         // proyecto equivocado seria peor. Anotado como deuda.
         if (!graficosSellados) return;
 
+        // EXCLUSION MUTUA. Este es el UNICO punto de este camino donde las dos listas estan
+        // delante a la vez, antes de escribirse en la version del timeline.
+        //
+        // Las descartadas YA se han renderizado —renderizarYSellar corre antes— asi que se
+        // pierde ese trabajo. Se deja a proposito: filtrar antes de sellar lo ahorraria, pero
+        // pondria la regla en DOS sitios del MISMO camino, y ese es el patron que ya ha mordido
+        // varias veces. Un .mov de mas en cache es barato y queda reutilizable: la clave es el
+        // contenido, asi que si esa tarjeta vuelve a salir, se acierta.
+        const visualesDelTimeline = newVideoClips.filter((c: any) => c.category === 'visual');
+        const { quedan: graficosQueQuedan, descartadas } =
+          excluirSobreVisuales(graficosSellados as any[], visualesDelTimeline);
+        if (descartadas.length) {
+          setAvisoGraficos(
+            `${descartadas.length} de ${graficosSellados.length} gráficos se descartaron porque ` +
+            `caían sobre un Visual, que ya ocupa la pantalla entera.`);
+          console.warn('[EXCLUSION]', descartadas.map((d: any) =>
+            `tarjeta ${d.tarjeta.startSeconds.toFixed(1)}s sobre Visual ${d.visual.startSeconds.toFixed(1)}s`));
+        } else setAvisoGraficos('');
+
         // Keep all existing audio clips completely intact and untouched!
         const existingAudioClips = timelineVideoClips.filter(c => c.type === 'audio');
-        const finalTimelineClips = [...newVideoClips, ...graficosSellados, ...existingAudioClips];
+        const finalTimelineClips = [...newVideoClips, ...graficosQueQuedan, ...existingAudioClips];
 
         const nextVersionNumber = timelineVersions.filter(v => v.id.startsWith('v-ai-')).length + 1;
         const newVersionId = `v-ai-${Date.now()}`;
@@ -2727,10 +2750,16 @@ function App() {
       });
       if (res && res.success && res.clips) {
         const nonGraphicClips = timelineVideoClips.filter(c => c.type !== 'graphic');
+        // Los Visuales se excluyen del EMPAREJAMIENTO, no solo del resultado. `matchingVideo`
+        // es de donde sale el startSeconds de la tarjeta cuando el backend no manda uno
+        // absoluto: si emparejara con un Visual, la colocaria EXACTAMENTE encima. A este camino
+        // no es que le faltara la exclusion, es que la rompia activamente.
+        const candidatos = nonGraphicClips.filter((c: any) => c.category !== 'visual');
+        const visualesDelTimeline = nonGraphicClips.filter((c: any) => c.category === 'visual');
         const newGraphicClips = res.clips
           .filter((c: any) => c.graphicData)
           .map((c: any) => {
-            const matchingVideo = nonGraphicClips.find((tc: any) => tc.id === c.id || tc.name === c.name);
+            const matchingVideo = candidatos.find((tc: any) => tc.id === c.id || tc.name === c.name);
             console.log('[DIAG-GRAFICO]', { phraseIdx: c.phraseIdx, absoluteStart: c.graphicAbsoluteStart, fallbackStart: matchingVideo?.startSeconds, usaFallback: c.graphicAbsoluteStart === undefined || c.graphicAbsoluteStart === null });
             return {
               id: `timeline-graphic-${Math.random()}`,
@@ -2743,8 +2772,21 @@ function App() {
             };
           });
 
+        // Aqui el descarte va ANTES de sellar, al reves que en el camino de generar: alli las
+        // tarjetas llegan ya renderizadas y aqui la lista esta completa antes de renderizar, asi
+        // que no cuesta nada ahorrarse el trabajo.
+        const { quedan: graficosQueQuedan, descartadas } =
+          excluirSobreVisuales(newGraphicClips as any[], visualesDelTimeline);
+        if (descartadas.length) {
+          setAvisoGraficos(
+            `${descartadas.length} de ${newGraphicClips.length} gráficos se descartaron porque ` +
+            `caían sobre un Visual, que ya ocupa la pantalla entera.`);
+          console.warn('[EXCLUSION]', descartadas.map((d: any) =>
+            `tarjeta ${d.tarjeta.startSeconds.toFixed(1)}s sobre Visual ${d.visual.startSeconds.toFixed(1)}s`));
+        } else setAvisoGraficos('');
+
         const sellados = await renderizarYSellar(
-          newGraphicClips, aspectRatio, exportResolution, proyectoAlEmpezar);
+          graficosQueQuedan, aspectRatio, exportResolution, proyectoAlEmpezar);
         // null = el proyecto cambio a mitad. No se escribe nada: los MOV hechos siguen en
         // cache/graficos del proyecto correcto y volver a pulsar ⟳ alli los recupera a ~2 ms
         // cada uno por la cache, asi que no se pierde trabajo.
@@ -4057,6 +4099,11 @@ function App() {
                   </div>
                 </div>
               </>
+            )}
+            {avisoGraficos && (
+              <div className="w-full mt-2 p-2 bg-amber-950/20 border border-amber-900/50 rounded-xl text-[9px] text-amber-400 font-medium text-center select-text leading-relaxed">
+                {avisoGraficos}
+              </div>
             )}
             {generationError && (
               <div className="w-full mt-2 p-2 bg-red-950/20 border border-red-900/50 rounded-xl text-[9px] text-red-400 font-medium text-center select-text leading-relaxed">
@@ -6188,6 +6235,12 @@ function App() {
                       {!aiScript.trim() && (
                         <div className="text-center py-2 text-[10px] text-slate-500 italic leading-relaxed">
                           * Genera o reescribe un guión en el panel de transcripción antes de construir el Timeline IA.
+                        </div>
+                      )}
+
+                      {avisoGraficos && (
+                        <div className="text-center py-2 px-3 text-[10px] text-amber-400 font-medium leading-relaxed bg-amber-950/20 border border-amber-900/50 rounded-xl mt-2 select-text">
+                          {avisoGraficos}
                         </div>
                       )}
 

@@ -11,6 +11,9 @@ import { fal } from '@fal-ai/client'
 // desde el bundle: una prueba que reimplementara el reparto probaria su copia, no el reparto.
 import { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../shared/reparto'
 import { palabraDelTramo, tieneSignificado } from '../shared/palabra'
+// Re-exportado para que tests/exclusion.js alcance la implementacion REAL desde el bundle.
+import { excluirSobreVisuales, solapa, SOLAPE_MINIMO_S } from '../shared/exclusion'
+export { excluirSobreVisuales, solapa, SOLAPE_MINIMO_S }
 import { recortarTexto } from '../shared/texto'
 export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
 
