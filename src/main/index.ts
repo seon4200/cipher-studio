@@ -10,6 +10,8 @@ import { fal } from '@fal-ai/client'
 // Re-exportado ademas de importado para que tests/reparto.js alcance la implementacion REAL
 // desde el bundle: una prueba que reimplementara el reparto probaria su copia, no el reparto.
 import { repartoObjetivos, repartirPesos } from '../shared/reparto'
+import { palabraDelTramo, tieneSignificado } from '../shared/palabra'
+import { recortarTexto } from '../shared/texto'
 export { repartoObjetivos, repartirPesos }
 
 // Construir "file:///" concatenando la ruta FALLA con espacios, acentos y '#'. Medido en un
@@ -1294,7 +1296,10 @@ export async function renderGraphicClip(
 export async function renderGraphicClipsLote(
   peticiones: { graphicData: any; duracion?: number }[],
   opciones: { aspectRatio?: string; resolution?: string;
-              fps?: number; modo?: 'overlay' | 'pantalla' } = {},
+              fps?: number; modo?: 'overlay' | 'pantalla';
+              // Sin esto, un lote de Visuales los renderizaria TODOS con el sistema por
+              // defecto y el usuario no podria elegir el color. Estaba anotado como pendiente.
+              sistema?: string } = {},
   emitirProgreso?: (p: { index: number; total: number; paragraph: string; type: string }) => void
 ) {
   // El lote no sabe de pixeles: recibe lo mismo que el export —formato y resolucion, que el
@@ -1355,7 +1360,9 @@ export async function renderGraphicClipsLote(
       // "renderizando" seria mentira y la barra saltaria sin explicacion. La AUTORIDAD sobre
       // si hay acierto es renderGraphicClip: si esto se equivocara, lo unico erroneo seria
       // una palabra en un mensaje.
-      const hash = hashGrafico(peticiones[i].graphicData, ancho, alto, duracion, fps, modo);
+      const hash = hashGrafico(peticiones[i].graphicData, ancho, alto, duracion, fps, modo,
+        (SISTEMAS_VALIDOS as readonly string[]).includes(opciones.sistema ?? '')
+          ? opciones.sistema as NombreSistema : 'voltaje');
       let cacheado = false;
       try {
         // dirDeModo y no dirCache: un lote en modo pantalla buscaria los .mp4 en cache y
@@ -1382,7 +1389,7 @@ export async function renderGraphicClipsLote(
 
       intentados++;
       const ruta = await renderGraphicClip(peticiones[i].graphicData,
-        { ancho, alto, fps, duracion, modo });
+        { ancho, alto, fps, duracion, modo, sistema: opciones.sistema });
 
       rutas[i] = ruta;                      // POSICIONAL: el hueco se queda en su sitio
       if (!ruta) fallos++;
@@ -3834,6 +3841,27 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         cuotaLista[j].clip.type = elegidos.has(j) ? 'stock' : 'original';
       }
 
+      // LOS VISUALES SE SACAN DE LOS 'original', no de los 'stock', y a proposito: el reparto
+      // de rachas de arriba coloco el stock donde minimiza la racha maxima, y robarle de ahi
+      // desharia ese trabajo. Los 'original' no tienen esa restriccion —solo necesitan un
+      // timestamp— asi que ceder algunos no rompe nada.
+      // Se eligen REPARTIDOS de punta a punta con la misma formula que las transiciones
+      // ((k+0.5)*total/cantidad), no los primeros: amontonarlos al principio dejaria la
+      // segunda mitad del video sin un solo Visual.
+      if (objVisual > 0) {
+        const originales = reasignables.filter(j => cuotaLista[j].clip.type === 'original');
+        const cuantos = Math.min(objVisual, originales.length);
+        for (let k = 0; k < cuantos; k++) {
+          const pos = Math.min(originales.length - 1,
+            Math.floor(((k + 0.5) * originales.length) / cuantos));
+          cuotaLista[originales[pos]].clip.type = 'visual';
+        }
+        if (cuantos < objVisual) {
+          await logMessage(`[FASE 2] Visuales: se pidieron ${objVisual} pero solo habia ` +
+            `${originales.length} slots de 'original' que ceder. Se hacen ${cuantos}.`);
+        }
+      }
+
       const finStock = cuotaLista.filter(x => x.clip.type === 'stock').length;
       const finOriginal = cuotaLista.filter(x => x.clip.type === 'original').length;
       await logMessage(`[FASE 2] Cuota: objetivo original=${objOriginal} stock=${objStock} ` +
@@ -3929,8 +3957,83 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     };
     const escapedVideo = videoPath.replace(/"/g, '\\"');
 
-    // Cola de procesamiento
-    const queue = [...clipsDecision];
+    // ─── LOS VISUALES, EN LOTE APARTE Y SECUENCIAL ───────────────────────────────────
+    // NO entran en el pool de 3 workers de abajo: el render usa UNA ventana offscreen y
+    // renderGraphicClipsLote se protege con `loteEnCurso`, asi que tres workers pidiendo
+    // Visuales a la vez chocarian con esa guarda y dos de cada tres fallarian.
+    // Va ANTES del pool para que un fallo se vea antes de descargar stock y gastar IA.
+    //
+    // TEMPORAL: el sistema de color va fijo a 'voltaje'. Vendra del frontend cuando exista su
+    // selector, por el mismo camino que iaStyle: estado en main.tsx -> parametro de
+    // generateTimelineAssets -> aqui. Esto es fontaneria; el selector va con la interfaz.
+    const SISTEMA_VISUAL = 'voltaje';
+    const visuales = clipsDecision.filter((c: any) => c.type === 'visual');
+    if (visuales.length) {
+      // La palabra se elige AQUI y no en el componente: entra en graphicData y por tanto en la
+      // CLAVE DEL HASH, asi que dos Visuales con la misma palabra comparten fichero.
+      const conPalabra = visuales.map((item: any) => {
+        const seg = newAudioSegments[item.phraseIndex];
+        const dur = seg ? (seg.end - seg.start) : 0;
+        const n = dur > 4.0 ? Math.ceil(dur / 3.0) : 1;
+        const ini = seg ? seg.start + dur * item.clipIndexInPhrase / n : 0;
+        const fin = seg ? seg.start + dur * (item.clipIndexInPhrase + 1) / n : 0;
+        return { item, palabra: seg ? palabraDelTramo(seg.words, ini, fin) : null };
+      });
+
+      // Sin palabra con significado en su tramo —menos del 1%, medido— el Visual se DESCARTA y
+      // su hueco cae a 'original'. No se inventa una palabra ni se amplia la ventana: ampliarla
+      // pintaria algo que no suena en ese momento.
+      const sinPalabra = conPalabra.filter(x => !x.palabra);
+      for (const x of sinPalabra) x.item.type = 'original';
+      if (sinPalabra.length) {
+        await logMessage(`[FASE 3] ${sinPalabra.length} de ${visuales.length} Visuales sin ` +
+          `palabra con significado en su tramo: pasan a original.`);
+      }
+
+      const aRenderizar = conPalabra.filter(x => !!x.palabra);
+      if (aRenderizar.length) {
+        const resVis = await renderGraphicClipsLote(
+          aRenderizar.map(x => ({
+            graphicData: { type: 'visual_texto', value: recortarTexto(x.palabra) },
+            duracion: x.item.duration
+          })),
+          { aspectRatio, fps: 30, modo: 'pantalla', sistema: SISTEMA_VISUAL },
+          (p) => event.sender.send('generation-progress',
+            { index: p.index, total: p.total, paragraph: p.paragraph, type: 'Visual' })
+        );
+
+        // EL CONTRATO DEL RELLENO, igual que las otras tres ramas: se escribe en
+        // results[index-1] SOLO si el fichero existe. Si no, el hueco se queda y FASE 4 lo
+        // rellena duplicando el vecino — un plano repetido, no un clip sin fichero que rompa
+        // la aritmetica de frames y se coma el audio por el -shortest del mux.
+        for (let i = 0; i < aRenderizar.length; i++) {
+          const ruta = resVis.rutas?.[i];
+          const item = aRenderizar[i].item;
+          if (!ruta || !(await exists(ruta))) { item.type = 'original'; continue; }
+          const durReal = await getVideoDuration(ruta);
+          results[item.index - 1] = {
+            id: `visual-${item.index}`,
+            name: path.basename(ruta),
+            path: ruta,
+            url: urlDeRuta(ruta),
+            duration: formatTimeMinutesSeconds(durReal),
+            durationSeconds: durReal,
+            // 'video' + category 'visual': entra en videoOnly y en la aritmetica de frames sin
+            // tocar una sola linea del export. Y category lo hace contable en la auditoria.
+            type: 'video',
+            category: 'visual',
+            thumbnailUrl: ''
+          };
+        }
+        await logMessage(`[FASE 3] Visuales: ${aRenderizar.length} pedidos, ` +
+          `${resVis.renderizados} renderizados, ${resVis.aciertos} de cache, ` +
+          `${resVis.fallos} fallidos` + (resVis.cancelado ? ` — CANCELADO: ${resVis.motivo}` : ''));
+      }
+    }
+
+    // Cola de procesamiento. Los 'visual' que salieron bien ya tienen su results[] puesto y los
+    // que no, volvieron a 'original': ninguno llega al pool con type 'visual'.
+    const queue = [...clipsDecision].filter((c: any) => c.type !== 'visual');
 
     // Procesamiento paralelo con límite de 3 workers simultáneos
     const workers = Array(3).fill(null).map(async () => {
@@ -4439,16 +4542,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
         if (seg && seg.words && seg.words.length > 0) {
           const segStart = seg.start || 0;
-          const stopWords = ['el','la','los','las','un','una',
-            'de','del','al','en','y','a','que','se','es','por',
-            'con','su','sus','lo','le','les','me','te','nos',
-            'para','como','pero','mas','más','si','no','ya'];
-          
-          const keyWord = seg.words.find((w: any) => {
-            const clean = w.word.trim().toLowerCase()
-              .replace(/[^a-záéíóúñ]/g, '');
-            return clean.length > 2 && !stopWords.includes(clean);
-          });
+          // La lista vivia AQUI y copiada otra vez mas abajo. Ahora es una sola, en
+          // shared/palabra.ts, y de paso el filtro deja de descartar cifras: "48.6%" se
+          // convertia en cadena vacia y era justo el dato que mas merece un grafico.
+          const keyWord = seg.words.find((w: any) => tieneSignificado(w.word));
           
           if (keyWord) {
             const relative = Math.max(0,
@@ -4599,7 +4696,7 @@ ipcMain.handle('regenerate-graphics', async (_event, params: any) => {
     }
 
     // Usar audioSegments para contexto de frases
-    const stopWords = ['el','la','los','las','un','una','de','del','al','en','y','a','que','se','es','por','con','su','sus','lo','le','les','me','te','nos','para','como','pero','mas','más','si','no','ya'];
+    // La lista de palabras vacias vive en shared/palabra.ts, no aqui.
     
     // Procesar en secciones para distribucion uniforme
     const allPhrases: any[] = [];
@@ -4686,10 +4783,7 @@ ipcMain.handle('regenerate-graphics', async (_event, params: any) => {
           let graphicStart = p.graphic.graphicStart || 0.3;
           if (seg && seg.words && seg.words.length > 0) {
             const segStart = seg.start || 0;
-            const keyWord = seg.words.find((w: any) => {
-                const clean = w.word.trim().toLowerCase().replace(/[^a-záéíóúñ]/g, '');
-                return clean.length > 2 && !stopWords.includes(clean);
-              });
+            const keyWord = seg.words.find((w: any) => tieneSignificado(w.word));
             if (keyWord) {
               const relative = Math.max(0, parseFloat((keyWord.start - segStart).toFixed(2)));
               const phraseDuration = seg.end - seg.start;

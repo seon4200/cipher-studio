@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { hayTiemposPorPalabra } from '../../shared/palabra'
 import { repartirPesos } from '../../shared/reparto'
 import ReactDOM from 'react-dom/client'
 import { 
@@ -2411,6 +2412,19 @@ function App() {
           ? 'No hay transcripción del audio. Transcribe primero y después construye el timeline.'
           : `La transcripción no cubre todo el audio: termina en ${mmss(finSegmentos)} y el audio dura ${mmss(duracionAudio)}. ` +
             `Vuelve a transcribir antes de construir el timeline, o la parte final del vídeo se quedará congelada.`
+      );
+      return;
+    }
+
+    // LOS VISUALES NECESITAN TIEMPOS POR PALABRA, y solo los hay si el proyecto se transcribio
+    // con --word_timestamps. Uno transcrito ANTES de ese cambio no los tiene, asi que TODOS sus
+    // Visuales caerian a 'original' y el usuario veria el slider moverse sin que pasara nada:
+    // parece roto. Se le dice POR QUE y como arreglarlo, en vez de dejarlo solo en el log.
+    if ((timelineWeights[3] ?? 0) > 0 && !hayTiemposPorPalabra(effectiveAudioSegments)) {
+      setGenerationError(
+        'Este proyecto se transcribió sin tiempos por palabra, y los Visuales los necesitan ' +
+        'para elegir la palabra que suena en cada momento. Vuelve a transcribir el vídeo para ' +
+        'usar Visuales, o pon su porcentaje a 0 para construir el timeline sin ellos.'
       );
       return;
     }
