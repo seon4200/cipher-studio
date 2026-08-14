@@ -3331,6 +3331,53 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
       tarjetas.sort((a, b) => a.ini - b.ini);
       const hayTarjetas = tarjetas.length > 0;
 
+      // ─────────────────────────────────────────────────────────────────────────────────
+      // TEMPORAL — DIAGNOSTICO DE LOS FRAMES QUE FALTAN AL FINAL. QUITAR AL CERRARLO.
+      //
+      // Un export salio con el ultimo pts en 285.887s contra los 286.000s pedidos: 0.113s,
+      // 3.4 frames a 30 fps. No es un numero entero de frames, asi que no es "se perdio un
+      // frame". Hay dos causas posibles y hasta ahora no se sabia separarlas:
+      //
+      //   a) el -shortest del mux, que corta por la pista MAS CORTA de las dos
+      //   b) el redondeo del concat al empalmar segmentos
+      //
+      // Se separan con tres duraciones medidas en el unico momento en que las tres existen
+      // a la vez —antes de que la limpieza se lleve los temporales—, sin conservar nada:
+      //
+      //   audio < objetivo  y  video = objetivo  ->  (a): corta el -shortest, por el audio
+      //   video < objetivo                       ->  (b): el video ya llego corto al mux
+      //   los dos = objetivo y el final corto    ->  ni (a) ni (b): es el propio mux
+      //
+      // NO hace falta preservar intermedios, y preservarlos seria peor: el unico numero que
+      // aportarian —la duracion del base— es el que esta linea ya mide, y lo mide en el
+      // instante correcto en vez de despues. Ademas dejaria gigas en disco en cada export de
+      // un producto que se vende.
+      //
+      // Ya hay medio dato: el audio del export de kl-1786725625006 dura 285.955s contra los
+      // 286.000s que se le pedian al video. El -shortest tiene que cortar ahi por fuerza, y
+      // eso explica ~1.35 de los 3.4 frames. Lo que decide de donde salen los ~2 restantes es
+      // la duracion del video ANTES del mux, que es justo lo que no se habia medido nunca.
+      const durDe = async (f: string) => {
+        const r = await new Promise<string>((res) => exec(
+          `ffprobe -v error -show_entries format=duration -of csv=p=0 "${f.replace(/"/g, '\\"')}"`,
+          (e, out) => res(e ? '' : String(out).trim())));
+        const d = parseFloat(r);
+        return Number.isFinite(d) ? d : NaN;
+      };
+      const fmt = (x: number) => Number.isFinite(x) ? `${x.toFixed(3)}s` : '(no medido)';
+      const hayAudio = !!(audioClip && audioClip.path && (await exists(audioClip.path)));
+      const durAudio = hayAudio ? await durDe(audioClip.path) : NaN;
+      // framesObjetivo frames ocupan framesObjetivo/FPS segundos de duracion. Ojo: no es el
+      // mismo numero que el `esperado` de verificarTiempos, que es el pts del ULTIMO frame,
+      // o sea (framesObjetivo-1)/FPS. Un frame de diferencia, y confundirlos aqui haria que
+      // todo pareciera descuadrar en 1 frame.
+      const objetivoS = framesObjetivo > 0 ? framesObjetivo / FPS : NaN;
+      await writeDebugLog(`[EXPORT-MUX] TEMPORAL diagnostico de frames — audio que entra: ` +
+        `${fmt(durAudio)}   objetivo del video: ${fmt(objetivoS)} (${framesObjetivo} frames ` +
+        `a ${FPS} fps)` + (hayTarjetas ? '' : ' — sin tarjetas: concat y mux van en el mismo ' +
+        'comando, asi que no hay video intermedio que medir'));
+      // ─────────────────────────────────────────────────────────────────────────────────
+
       await writeDebugLog(`[EXPORT] Concatenando...`);
       const concatStart = Date.now();
 
@@ -3411,6 +3458,30 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
 
         // El audio se mezcla al final, sobre lo que haya salido. -c:v copy: no recodifica.
         const fuente = r.ok ? conGraficos : videoBase;
+
+        // TEMPORAL — la otra mitad del diagnostico. QUITAR CON EL BLOQUE DE ARRIBA.
+        // Esta es la medicion que no se habia hecho nunca: cuanto dura el video JUSTO ANTES
+        // de entrar al mux. Despues del mux ya no se puede saber, porque -shortest habra
+        // recortado y el fichero final no distingue lo que llego corto de lo que se corto.
+        const durVideo = await durDe(fuente);
+        await writeDebugLog(`[EXPORT-MUX] TEMPORAL video que entra al mux: ${fmt(durVideo)} ` +
+          `(${r.ok ? 'con' : 'SIN'} tarjetas)   audio: ${fmt(durAudio)}   ` +
+          `objetivo: ${fmt(objetivoS)}`);
+        if (Number.isFinite(durVideo) && Number.isFinite(durAudio)) {
+          const dif = durVideo - durAudio;
+          await writeDebugLog(`[EXPORT-MUX] TEMPORAL -shortest cortara por ` +
+            `${dif > 0 ? 'el AUDIO, que es mas corto' : dif < 0 ? 'el VIDEO, que es mas corto' :
+              'ninguno: duran igual'} — diferencia ${Math.abs(dif).toFixed(3)}s = ` +
+            `${(Math.abs(dif) * FPS).toFixed(2)} frames`);
+        }
+        if (Number.isFinite(durVideo) && Number.isFinite(objetivoS)) {
+          const falta = objetivoS - durVideo;
+          await writeDebugLog(`[EXPORT-MUX] TEMPORAL al video le ` +
+            `${falta > 0 ? 'FALTAN' : 'SOBRAN'} ${Math.abs(falta * FPS).toFixed(2)} frames ` +
+            `respecto al objetivo ANTES del mux — si esto es ~0, el recorte del final es ` +
+            `del -shortest; si no, viene del concat`);
+        }
+
         let mux = '';
         if (audioClip && audioClip.path && (await exists(audioClip.path))) {
           mux = `ffmpeg -y -i "${fuente.replace(/"/g, '\\"')}" -i "${audioClip.path.replace(/"/g, '\\"')}" ` +
