@@ -58,8 +58,41 @@ export function repartoObjetivos(pesos: number[] | null | undefined, total: numb
  * Pura y exportada para poder probar "suma 100 siempre" sin montar React: el manejador del
  * slider solo la envuelve con setState.
  */
+export const PESOS_POR_DEFECTO: number[] = [40, 30, 30, 0];
+
+/**
+ * Deja SIEMPRE cuatro numeros finitos. Es la defensa que faltaba, y no es teorica: un proyecto
+ * guardado antes de que existiera el cuarto peso trae TRES posiciones, y mover el slider de
+ * Visuales hacia el indice 3 hacia `nuevo - undefined` = NaN, que contaminaba los cuatro pesos
+ * y se guardaba como [null,null,null,null]. Tres proyectos reales acabaron asi.
+ *
+ * `null` cuenta como NO numerico a proposito: es lo que JSON.stringify escribe para un NaN, o
+ * sea lo que hay en los proyectos ya corrompidos. Sin eso no se recuperarian solos y habria que
+ * borrarlos.
+ *
+ * Si no queda ni un valor utilizable se cae al reparto por defecto; si quedan algunos, los que
+ * falten van a 0 —que es lo correcto para un proyecto de tres pesos: Visuales no estaba y su
+ * peso era cero—.
+ */
+export function normalizarPesos(pesos: unknown): number[] {
+  const entrada = Array.isArray(pesos) ? pesos : [];
+  const util = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+  if (!entrada.some(util)) return [...PESOS_POR_DEFECTO];
+  const r = [0, 1, 2, 3].map(i => (util(entrada[i]) ? entrada[i] as number : 0));
+  return r;
+}
+
 export function repartirPesos(pesos: number[], index: number, nuevo: number): number[] {
-  const r = [...pesos];
+  // Se normaliza a la ENTRADA, no en los llamadores: asi ninguno puede olvidarse. Es el mismo
+  // criterio del `?? 0` de repartoObjetivos, que es la razon de que el backend nunca diera NaN
+  // mientras el frontend si.
+  const r = normalizarPesos(pesos);
+  // Un indice fuera de rango o un valor no numerico —parseInt("") da NaN— no cambian nada, en
+  // vez de propagar basura. Devolver los pesos normalizados sigue siendo una mejora: repara el
+  // array aunque el movimiento se ignore.
+  if (!Number.isInteger(index) || index < 0 || index >= r.length) return r;
+  if (!Number.isFinite(nuevo)) return r;
+
   const diff = nuevo - r[index];
   r[index] = nuevo;
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { hayTiemposPorPalabra } from '../../shared/palabra'
-import { repartirPesos } from '../../shared/reparto'
+import { repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../../shared/reparto'
 import ReactDOM from 'react-dom/client'
 import { 
   Play, Pause, FastForward, Rewind, Video, Volume2, VolumeX, Sparkles, 
@@ -1833,7 +1833,10 @@ function App() {
         if (loadedData.voiceSpeed !== undefined) setVoiceSpeed(loadedData.voiceSpeed);
         if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
         setGeneratedVoices(loadedData.generatedVoices || []);
-        if (loadedData.timelineWeights !== undefined) setTimelineWeights(loadedData.timelineWeights);
+        // normalizarPesos y no el valor crudo: un proyecto guardado antes del cuarto peso trae
+        // TRES posiciones, y uno ya corrompido trae [null,null,null,null]. Los dos entran sanos
+        // por aqui, asi que se recuperan solos sin tener que borrarlos.
+        if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
 
         // ─── Lo que decide COMO sale el video exportado ───
         // Solo se restaura lo que VENGA: un proyecto guardado antes de esto no trae estos
@@ -1915,7 +1918,9 @@ function App() {
         setAiScript('');
         setOriginalTranscriptText('');
         setGeneratedVoices([]);
-        setTimelineWeights([40, 30, 30]);
+        // CUATRO posiciones. Este reset se quedo con tres al aplicar V3 —se cambio el useState
+        // inicial y no este— y era la segunda via por la que un proyecto acababa con NaN.
+        setTimelineWeights([...PESOS_POR_DEFECTO]);
         setGraphicsPercent(50);
 
         setActiveProjectPath(res.projectPath || null);
@@ -2110,7 +2115,10 @@ function App() {
         if (loadedData.voiceSpeed !== undefined) setVoiceSpeed(loadedData.voiceSpeed);
         if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
         setGeneratedVoices(loadedData.generatedVoices || []);
-        if (loadedData.timelineWeights !== undefined) setTimelineWeights(loadedData.timelineWeights);
+        // normalizarPesos y no el valor crudo: un proyecto guardado antes del cuarto peso trae
+        // TRES posiciones, y uno ya corrompido trae [null,null,null,null]. Los dos entran sanos
+        // por aqui, asi que se recuperan solos sin tener que borrarlos.
+        if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
 
         // ─── Lo que decide COMO sale el video exportado ───
         // Solo se restaura lo que VENGA: un proyecto guardado antes de esto no trae estos

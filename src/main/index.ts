@@ -9,10 +9,10 @@ import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, get
 import { fal } from '@fal-ai/client'
 // Re-exportado ademas de importado para que tests/reparto.js alcance la implementacion REAL
 // desde el bundle: una prueba que reimplementara el reparto probaria su copia, no el reparto.
-import { repartoObjetivos, repartirPesos } from '../shared/reparto'
+import { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../shared/reparto'
 import { palabraDelTramo, tieneSignificado } from '../shared/palabra'
 import { recortarTexto } from '../shared/texto'
-export { repartoObjetivos, repartirPesos }
+export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
 
 // Construir "file:///" concatenando la ruta FALLA con espacios, acentos y '#'. Medido en un
 // Chromium real con webSecurity:false, cargando un video desde
