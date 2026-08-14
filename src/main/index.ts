@@ -262,11 +262,31 @@ ipcMain.on('start-transcription', async (event, filePath) => {
   })
 
   // Spawn whisper command using shell: true for Windows compatibility
+  // --word_timestamps: es lo que hace que cada segmento traiga sus palabras con `start` y
+  // `end`. Sin el, elegir "la palabra que suena en este instante" es imposible — y es
+  // exactamente lo que necesitan los Visuales.
+  //
+  // COSTE MEDIDO sobre 199 s de audio real, tres pasadas de cada: 57.7 s de mediana sin el y
+  // 65.2 s con el. +9%. No es el problema.
+  //
+  // OJO, LA SEGMENTACION CAMBIA, y esto no es ruido: activa el alineamiento por atencion y
+  // Whisper reancla las palabras. Medido, con las tres pasadas de cada grupo IDENTICAS al
+  // milisegundo entre si —o sea que la diferencia la causa el flag, no la varianza—:
+  //   sin: 80 segmentos, ultimo end 200.32   con: 79 segmentos, ultimo end 199.22
+  //   77 de 79 `start` distintos (hasta 3.86 s), 79 `end` distintos, 48 textos distintos.
+  // Cambia A MEJOR: "el data se enterce a cabo el agua" pasa a "el data center se acaba el
+  // agua". Y el ultimo `end` deja de pasarse del audio (199.25 s reales).
+  //
+  // LOS PROYECTOS YA TRANSCRITOS NO SE TOCAN. Su transcripcion sigue en project-state.json tal
+  // como se guardo. Solo los que se transcriban a partir de ahora saldran con otro reparto de
+  // frases —mejor, pero distinto—, y con el reparto cambia el guion, los cortes, los graficos
+  // y la sincronia de ESE proyecto.
   const whisperProcess = spawn('whisper', [
     `"${filePath}"`,
     '--language', 'Spanish',
     '--model', MODELO_WHISPER,
     '--output_format', 'json',
+    '--word_timestamps', 'True',
     '--output_dir', `"${transcriptsDir}"`
   ], { shell: true, env: { ...process.env, PYTHONIOENCODING: 'utf-8' } })
 
@@ -309,7 +329,22 @@ ipcMain.on('start-transcription', async (event, filePath) => {
           const rawData = await fs.promises.readFile(expectedJsonPath, 'utf8')
           const parsed = JSON.parse(rawData)
 
-          // Send the full results (segments) back to the renderer
+          // La `probability` de cada palabra viene con 16 decimales
+          // (0.2687504291534424) y era LA MITAD del peso que añaden los words: +54.9 KB sobre
+          // 31.5 en un audio de 199 s, medido. Se redondea a dos aqui, en el UNICO punto por
+          // el que pasa la transcripcion antes de llegar al renderer, que la guarda entera en
+          // project-state.json.
+          // Se redondea y NO se borra: si algun dia hace falta mas precision se sube el numero;
+          // quitar el campo del todo seria mas dificil de deshacer.
+          for (const seg of (parsed?.segments || [])) {
+            for (const w of (seg?.words || [])) {
+              if (typeof w.probability === 'number') w.probability = Math.round(w.probability * 100) / 100;
+            }
+          }
+
+          // Send the full results (segments) back to the renderer. Van ENTEROS, con sus
+          // `words`: el renderer hace setTranscriptSegments(data.result.segments) sin filtrar
+          // campos, asi que lo que llegue aqui es lo que acaba en project-state.json.
           event.reply('transcription-update', { 
             status: 'success', 
             result: parsed 
