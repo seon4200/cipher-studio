@@ -6693,6 +6693,13 @@ ${res.filePath}`);
                         bgClass = 'bg-sky-500/25 border-sky-400/50 text-sky-300 hover:bg-sky-500/35';
                       } else if (cat === 'ia') {
                         bgClass = 'bg-amber-600/25 border-amber-500/50 text-amber-300 hover:bg-amber-600/35';
+                      } else if (cat === 'visual') {
+                        // GRIS, el mismo del slider de Visuales. Y no es cosmetico: sin esta rama
+                        // los Visuales caian en el `else` de abajo, que alterna SKY —el color
+                        // EXACTO de stock— y violeta segun la paridad del indice. La mitad de los
+                        // Visuales se disfrazaba de stock y la otra mitad de un color que no
+                        // significa nada, asi que la linea de tiempo mentia sobre el reparto.
+                        bgClass = 'bg-zinc-400/25 border-zinc-400/50 text-zinc-300 hover:bg-zinc-400/35';
                       } else {
                         bgClass = index % 2 === 0 
                           ? 'bg-sky-500/20 border-sky-400/50 text-sky-300 hover:bg-sky-500/30' 

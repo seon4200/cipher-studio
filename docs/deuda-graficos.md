@@ -641,3 +641,51 @@ porque el hueco no entra en la métrica.
 
 Arreglar el reparto de sobrantes quita el síntoma medido. Medir también el hueco es la decisión
 de fondo, y es más grande: cambia qué se considera un buen reparto.
+
+---
+
+# EN `perfectSyncMode`, `original` SE PINTA DEL MISMO COLOR QUE `stock`
+
+**Anotado el 14 de agosto de 2026, al dar color propio a los Visuales. Sin arreglar a propósito:
+no se pidió y no es el caso que estábamos mirando.**
+
+La cadena que decide el color de cada barra de la línea de tiempo
+([main.tsx:6687](../src/renderer/src/main.tsx#L6687)) tiene una rama condicional:
+
+```tsx
+if (cat === 'original' || cat === 'originales') {
+  bgClass = perfectSyncMode
+    ? 'bg-sky-500/25 …'      // ← el MISMO sky que stock
+    : 'bg-emerald-500/25 …';
+} else if (cat === 'stock') {
+  bgClass = 'bg-sky-500/25 …';
+}
+```
+
+Con la sincronía perfecta activada, **`original` y `stock` son indistinguibles**: los dos sky.
+Fuera de ese modo no pasa, porque `original` es verde.
+
+**Es exactamente el mismo fallo que acabamos de arreglar en `visual`**, y por eso queda escrito:
+la línea de tiempo es lo único que dice de dónde sale cada plano, y dos orígenes del mismo color
+la convierten en una fuente de conclusiones falsas. En el caso de `visual` costó creer que
+faltaba stock donde no faltaba.
+
+**Por qué no se arregla ahora:** no está medido si en `perfectSyncMode` llegan a convivir clips
+`original` y `stock` en el mismo timeline. Si no conviven, la colisión es teórica y el coste de
+tocarlo no se justifica; si conviven, es el mismo bug con otro nombre. **Esa es la medición que
+decide**, y es barata: contar categorías en un proyecto generado por la vía de sincronía
+perfecta.
+
+## El mapa completo, para no volver a deducirlo
+
+| category | color |
+|---|---|
+| `original` / `originales` | **emerald** — o **sky** si `perfectSyncMode` ⚠️ |
+| `stock` | **sky** |
+| `ia` | **amber** |
+| `visual` | **zinc** (gris, el del slider) |
+| cualquier otra | sky / violeta **alternando por `index % 2`** |
+
+El comodín de la última fila es la trampa: no falla, **acierta a medias**, y un origen sin rama
+propia sale con el color de otro la mitad de las veces. Cualquier categoría nueva necesita su
+rama el mismo día que se crea.
