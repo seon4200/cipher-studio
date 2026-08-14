@@ -575,3 +575,69 @@ Antes de hacerlo hay que **medir cuántas viene bien elegidas**, como con todo l
 este prompt: ya colapsó una vez al pedirle cuotas de tipo (76 stock / 0 original). Y el criterio
 de la longitud se queda como respaldo para cuando el modelo no conteste o devuelva una palabra
 que no está en el tramo.
+
+---
+
+# EL REPARTO DE CORTES DEL STOCK DEJA HUECOS AL PRINCIPIO
+
+Con el stock al 39% y Visuales al 24%, un proyecto real salió con **los primeros 23 clips —56
+segundos— sin un solo plano de stock**, y el resto concentrado después:
+
+```
+tercio 1:  8 stock      tercio 2: 18      tercio 3: 18
+secuencia: OVOVOOVOOVOVOOVOVOOVOOO SOSVSOSOSVSOSVSOS...
+                                  ↑ el primer stock, en el clip 23
+```
+
+Los conteos globales lo escondían: 44 clips de stock sobre 114, un 38.6% frente al 39% pedido.
+El reparto **total** es correcto; lo que falla es **dónde** cae.
+
+## El mecanismo, reproducido en simulación
+
+Los cortes que sobran cuando la racha objetivo **ya está alcanzada** se amontonan en los
+primeros tramos, por el criterio con el que se elige a quién dárselos:
+
+```ts
+const val = Math.ceil((tramos[i].len - alloc[i]) / (alloc[i] + 1));
+if (val > peorVal) { peorVal = val; peor = i; }
+```
+
+Con la racha ya conseguida en todos los tramos ese criterio deja de discriminar, y los
+sobrantes caen sobre los dos primeros:
+
+```
+tramos: len10/cortes10(+5)  len14/cortes12(+5)  len14/cortes7  len14/cortes7 …
+```
+
+Al primer tramo de 10 le meten **10 cortes de 10**: lo vacía entero de stock.
+
+**Medido en simulación** —reimplementando el algoritmo, que vive en línea dentro del handler y
+no se puede llamar—: con 114 sub-clips, 7 sin keyword repartidos y stock 44, salen tercios
+**8 / 18 / 18**, exactamente lo del proyecto real.
+
+## Las tres condiciones, y ninguna basta sola
+
+- **El 39% no falla solo.** Con los 114 candidatos con keyword, el 39% da tercios 15/14/15 y el
+  primer stock en el índice 0. Sin huecos.
+- **Los huecos sin keyword no fallan solos.** Son los que parten la lista en tramos, pero con
+  stock al 60% y los mismos 7 huecos el sesgo casi desaparece: 18/25/25.
+- **Falla la combinación**: bajar el peso del stock hace que la racha alcanzable pase de 2 a 1,
+  y con racha 1 **sobran muchos más cortes** — 63 disponibles frente a 51 necesarios. Ahí es
+  cuando el reparto de sobrantes se comporta mal.
+
+## Esto estaba antes de los Visuales
+
+No lo causan: lo **destapan**. Los Visuales bajan el peso del stock del 60% al 39%, y ese es el
+régimen en el que el fallo aparece. Cualquiera que hubiera puesto stock al 39% sin Visuales lo
+habría visto igual. Los tres proyectos anteriores tenían stock al 59-61%, **racha alcanzada 2**,
+y su primer clip de stock en el índice 0.
+
+## Y detrás hay algo más grande que el reparto de sobrantes
+
+**El algoritmo minimiza la RACHA y no mide el HUECO.** En el proyecto real la racha máxima de
+stock es 1 —nunca hay dos seguidos— y el log dice `racha stock: alcanzada=1 ideal=1 (optimo)`.
+Es cierto según su propio criterio. Pero **23 clips seguidos sin stock le parecen óptimos**,
+porque el hueco no entra en la métrica.
+
+Arreglar el reparto de sobrantes quita el síntoma medido. Medir también el hueco es la decisión
+de fondo, y es más grande: cambia qué se considera un buen reparto.
