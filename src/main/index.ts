@@ -3353,10 +3353,14 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
       // instante correcto en vez de despues. Ademas dejaria gigas en disco en cada export de
       // un producto que se vende.
       //
-      // Ya hay medio dato: el audio del export de kl-1786725625006 dura 285.955s contra los
-      // 286.000s que se le pedian al video. El -shortest tiene que cortar ahi por fuerza, y
-      // eso explica ~1.35 de los 3.4 frames. Lo que decide de donde salen los ~2 restantes es
-      // la duracion del video ANTES del mux, que es justo lo que no se habia medido nunca.
+      // Ya hay medio dato, medido sin exportar nada: el audio de kl-1786725625006 dura
+      // 285.955s, y al video se le pedian 8581 frames, que a 30 fps son 286.033s de DURACION
+      // (su ultimo frame arranca en 286.000s, que es contra lo que compara verificarTiempos —
+      // son dos numeros distintos separados por un frame, y confundirlos descuadra todo).
+      // El audio es 0.078s = 2.35 frames MAS CORTO que el video, asi que -shortest tiene que
+      // cortar por fuerza: del orden de 2 frames de los 3.4 observados. Quedan ~1.4 sin
+      // explicar. El "del orden de" es a proposito: donde corta exactamente -shortest depende
+      // de su semantica, y deducirlo en vez de medirlo es justo lo que estamos evitando.
       const durDe = async (f: string) => {
         const r = await new Promise<string>((res) => exec(
           `ffprobe -v error -show_entries format=duration -of csv=p=0 "${f.replace(/"/g, '\\"')}"`,
