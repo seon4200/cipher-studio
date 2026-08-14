@@ -2268,7 +2268,16 @@ function App() {
       });
       
       if (res && res.success && res.filePath) {
-        alert(`¡Video exportado con éxito en:\n${res.filePath}`);
+        // El aviso va CON el exito, no en lugar de el: el fichero existe y es utilizable, pero
+        // si sus tiempos no cuadran hay que decirlo antes de que se publique. Es justo lo que
+        // no paso cuando un export perdio 84 segundos de narracion y se dio por bueno.
+        alert((res as any).avisoTiempos
+          ? `Vídeo exportado en:
+${res.filePath}
+
+⚠ ${(res as any).avisoTiempos}`
+          : `¡Video exportado con éxito en:
+${res.filePath}`);
       } else {
         const errorMsg = res?.error || 'Error al exportar el video.';
         alert(`Error al exportar: ${errorMsg}`);

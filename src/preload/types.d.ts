@@ -21,7 +21,7 @@ export interface IElectronAPI {
   onSaveBeforeClose: (callback: () => void) => () => void;
   readyToClose: () => void;
   deleteBankClip: (params: { category: string; file: string }) => Promise<{ success: boolean; error?: string }>;
-  exportVideo: (params: { clips: any[]; aspectRatio: string; resolution?: string; format?: string; quality?: string; assignedTransitions?: Record<string, string>; transitionDuration?: number; ajustesVideo?: { crop?: { left: number; top: number; right: number; bottom: number } | null; zoom?: number; panXFrac?: number; panYFrac?: number; isMirrored?: boolean; background?: 'blur' | 'black' } }) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+  exportVideo: (params: { clips: any[]; aspectRatio: string; resolution?: string; format?: string; quality?: string; assignedTransitions?: Record<string, string>; transitionDuration?: number; ajustesVideo?: { crop?: { left: number; top: number; right: number; bottom: number } | null; zoom?: number; panXFrac?: number; panYFrac?: number; isMirrored?: boolean; background?: 'blur' | 'black' } }) => Promise<{ success: boolean; filePath?: string; error?: string; avisoTiempos?: string }>;
   getElevenLabsVoices: () => Promise<{ success: boolean; voices?: any[]; error?: string }>;
   listProjects: () => Promise<{ success: boolean; projects?: any[]; error?: string }>;
   createProject: (params: { name: string }) => Promise<{ success: boolean; data?: any; projectPath?: string; error?: string }>;

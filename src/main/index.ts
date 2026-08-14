@@ -989,6 +989,37 @@ const dirDeModo = (proj: string, modo: 'overlay' | 'pantalla') =>
 // Los NOMBRES de los sistemas de color. Los valores viven en renderer/src/sistemas.ts; aqui
 // solo hacen falta los nombres, que son lo que entra en la clave del hash. Estan repetidos
 // porque main y renderer se compilan por separado y hoy no comparten ningun modulo.
+// LA ESCALA DE TIEMPO DEL PIPELINE, en un solo sitio.
+//
+// 30000 = fps * 1000: exactamente 1000 tics por frame a 30 fps, sin redondeos.
+//
+// TIENE que ser la MISMA en la normalizacion y en la composicion de tarjetas, y no es una
+// preferencia: el concat final va con -c:v copy y NO puede mezclar escalas. Medido, cuatro
+// trozos de 3 s con 360 frames en total:
+//   30000+30000             -> 6.000s   correcto
+//   15360+15360             -> 6.000s   correcto
+//   30000+30000+15360+15360 -> 6.127s de 12.000 esperados: los frames se COMPRIMEN
+//   15360+15360+30000+30000 -> 23.44s de 12.000: se ESTIRAN, y aparece un pts no monotono
+// Los frames estan TODOS en los cuatro casos. Lo que se rompe son los TIEMPOS.
+//
+// Y se fija en la NORMALIZACION, no en el troceado, porque `-f segment` con `-c copy` IGNORA
+// -video_track_timescale: medido, los segmentos salen con la escala del fichero de entrada
+// pidiera lo que pidiera. El troceado no puede fijarla, la HEREDA. Asi que la fija quien
+// recodifica y por donde pasan todos los clips.
+// SE APLICA EN TODO comando que produzca un fichero destinado a un concat con -c:v copy, no
+// solo en la normalizacion: los ficheros normalizados NO son los que se concatenan. Entre medias
+// esta A4, que recorta los bodies y renderiza las transiciones, y esos tres comandos la
+// necesitan igual. Medido tras arreglar solo la normalizacion: el video base seguia saliendo a
+// 1/15360 y el derrumbe se repitio en el mismo frame.
+//   :normalizacion   norm_*.mp4        -> alimenta a A4
+//   :transiciones    transition_*.mp4  -> entra en el concat del base
+//   :xfade           transition_*.mp4  -> entra en el concat del base
+//   :bodies          body_*.mp4        -> entra en el concat del base
+//   :composicion     comp_*.mp4        -> entra en el concat final
+// Los concat y el mux van con -c:v copy y NO fijan escala: heredan la de sus entradas, asi que
+// basta con que todas las entradas coincidan.
+const TIMESCALE = 30000;
+
 const SISTEMAS_VALIDOS = ['editorial', 'clinico', 'voltaje', 'calido'] as const;
 type NombreSistema = typeof SISTEMAS_VALIDOS[number];
 
@@ -2390,6 +2421,66 @@ function construirAjustes(a: AjustesVideo | undefined, W: number, H: number): st
  * pasada y deja el video sin tarjetas. Mejor un video correcto sin graficos que uno
  * desincronizado.
  */
+/**
+ * Que los TIEMPOS del fichero sean coherentes, no solo los frames.
+ *
+ * La guarda que ya existe cuenta FRAMES, y por eso dio verde con un video roto: los 8581
+ * frames estaban todos. Lo que se habia derrumbado era CUANDO se muestra cada uno —el ultimo
+ * pts marcaba 201.748s sobre 286.018s esperados— y el -shortest del mux recorto el audio ahi.
+ * Se perdieron 84 segundos de narracion y nada lo dijo.
+ *
+ * Devuelve tambien el tiempo que tardo: se ejecuta dos veces por export y conviene saber si
+ * leer todos los pts sale caro antes de plantearse acotarlo.
+ */
+async function verificarTiempos(fichero: string, framesEsperados: number, fps: number) {
+  const t0 = Date.now();
+  const crudo = await new Promise<string>((res) => exec(
+    `ffprobe -v error -select_streams v:0 -show_entries frame=pts_time -of csv=p=0 ` +
+    `"${fichero.replace(/"/g, '\\"')}"`, { maxBuffer: 1024 * 1024 * 40 },
+    (e, out) => res(e ? '' : String(out))));
+  const pts = crudo.trim().split(/\s+/).map(x => parseFloat(x)).filter(x => Number.isFinite(x));
+
+  const durCrudo = await new Promise<string>((res) => exec(
+    `ffprobe -v error -show_entries format=duration -of csv=p=0 "${fichero.replace(/"/g, '\\"')}"`,
+    (e, out) => res(e ? '' : String(out).trim())));
+  const duracion = parseFloat(durCrudo);
+  const fallos: string[] = [];
+
+  if (!pts.length) {
+    fallos.push('no se pudo leer ni un solo pts del fichero');
+    return { ok: false, fallos, frames: 0, ultimo: NaN, duracion, ms: Date.now() - t0 };
+  }
+
+  // 1) MONOTONOS. Lo mas barato que hay, y ya aparecio una vez al mezclar escalas de tiempo.
+  let noMonotonos = 0, primero = -1;
+  for (let i = 1; i < pts.length; i++) {
+    if (pts[i] <= pts[i - 1]) { noMonotonos++; if (primero < 0) primero = i; }
+  }
+  if (noMonotonos > 0) {
+    fallos.push(`${noMonotonos} pts no monotonos, el primero en el frame ${primero} ` +
+      `(${pts[primero - 1].toFixed(3)} -> ${pts[primero].toFixed(3)})`);
+  }
+
+  // 2) EL ULTIMO PTS CUADRA CON LO QUE SE PIDIO. Es la que habria cazado el fallo: 201.748
+  //    contra 286.018. Tolerancia de UN frame.
+  const esperado = (framesEsperados - 1) / fps;
+  const ultimo = pts[pts.length - 1];
+  if (Math.abs(ultimo - esperado) > (1 / fps)) {
+    fallos.push(`el ultimo pts es ${ultimo.toFixed(3)}s y se esperaba ${esperado.toFixed(3)}s ` +
+      `(${framesEsperados} frames a ${fps} fps)`);
+  }
+
+  // 3) EL FICHERO ES COHERENTE CONSIGO MISMO, sin mirar el objetivo. Sigue valiendo el dia que
+  //    el objetivo se calcule mal: 8581 frames son 286.03s y el contenedor decia 201.765s.
+  const segunFrames = pts.length / fps;
+  if (Number.isFinite(duracion) && Math.abs(duracion - segunFrames) > (2 / fps)) {
+    fallos.push(`el contenedor dice ${duracion.toFixed(3)}s pero tiene ${pts.length} frames, ` +
+      `que a ${fps} fps son ${segunFrames.toFixed(3)}s`);
+  }
+
+  return { ok: fallos.length === 0, fallos, frames: pts.length, ultimo, duracion, ms: Date.now() - t0 };
+}
+
 async function componerTarjetas(
   videoBase: string, destino: string, tarjetas: { ini: number; dur: number; mov: string }[],
   fps: number, crf: number, preset: string, dir: string,
@@ -2511,7 +2602,8 @@ async function componerTarjetas(
     // una transicion, y recodificar ese tramo a otra calidad se veria justo ahi.
     args.push('-filter_complex', partes.join(';'), '-map', `[${prev}]`,
       '-c:v', 'libx264', '-preset', preset, '-crf', String(crf), '-pix_fmt', 'yuv420p',
-      '-video_track_timescale', String(fps * 1000), salida);
+      // La MISMA escala que la normalizacion. Mezclarlas derrumba los pts en el concat final.
+      '-video_track_timescale', String(TIMESCALE), salida);
 
     // ─── REINTENTO: ESTO ES UNA MITIGACION, NO EL ARREGLO ────────────────────────────────
     // La causa NO esta aqui. El video base mezcla espacios de color: los 78 clips de origen no
@@ -2601,13 +2693,36 @@ async function componerTarjetas(
     return { ok: false, compuestas: compuestasSet.size, sinComponer: tarjetas.length - compuestasSet.size,
       segDir, aCaballo, motivo: `el resultado tiene ${framesFinal} frames y el original ${framesOriginal}` };
   }
+  // LOS TIEMPOS, ademas de los frames. La guarda de arriba cuenta frames y por eso dio verde
+  // con un video cuyos pts se habian derrumbado: los 8581 estaban todos.
+  // Aqui SI se descarta la pasada, igual que con el descuadre de frames y por la misma razon:
+  // en este punto todavia se puede caer al video sin tarjetas, y el derrumbe nace justo de la
+  // composicion. Descartar aqui SALVA el video; en el fichero final ya no habria salida.
+  const tiempos = await verificarTiempos(destino, framesOriginal, fps);
+  // El coste se registra SIEMPRE, antes de decidir. La primera vez que esto fallo no supimos
+  // cuanto habia tardado porque el ms solo se escribia en la rama de exito.
+  await log(`[EXPORT-G3] Comprobacion de tiempos: ${tiempos.frames} frames leidos en ${tiempos.ms} ms`);
+  if (!tiempos.ok) {
+    for (const f of tiempos.fallos) await log(`[EXPORT-G3] TIEMPOS: ${f}`);
+    return { ok: false, compuestas: compuestasSet.size,
+      sinComponer: tarjetas.length - compuestasSet.size, segDir, aCaballo,
+      motivo: `los tiempos del compuesto no cuadran: ${tiempos.fallos[0]}` };
+  }
+
   await log(`[EXPORT-G3] ${segs.length} segmentos, ${aCaballo} tarjeta(s) partida(s) entre dos ` +
-    `segmentos — frames ${framesFinal} = original OK`);
+    `segmentos — frames ${framesFinal} = original OK — tiempos OK ` +
+    `(ultimo pts ${tiempos.ultimo.toFixed(3)}s)`);
   return { ok: true, compuestas: compuestasSet.size,
     sinComponer: tarjetas.length - compuestasSet.size, segDir, aCaballo };
 }
 
 ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, format, quality, assignedTransitions, transitionDuration, ajustesVideo }) => {
+  // Viaja al frontend para que el aviso llegue al usuario y no solo al log.
+  let avisoTiempos = '';
+  // El objetivo de frames se calcula DENTRO de la rama del export normal (P0) y la
+  // comprobacion del fichero final vive fuera de ella. Se expone aqui en vez de mover P0:
+  // 0 significa "no hay objetivo", y entonces la comprobacion 2 no se puede hacer.
+  let framesObjetivo = 0;
   try {
     // Mapeo de nombres internos de transiciones a nombres de FFmpeg xfade.
     // Los 38 nombres internos apuntan a 38 destinos DISTINTOS. Antes colapsaban en 21
@@ -2837,6 +2952,7 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
         frameTargets.push(frames > 0 ? frames : 1);
         framesAcum += frameTargets[i];
       }
+      framesObjetivo = framesAcum;
       const sinSlot = frameTargets.filter(f => f === 0).length;
       await writeDebugLog(`[EXPORT] P0 recorte por slot: ${framesAcum} frames = ${(framesAcum / FPS).toFixed(3)}s (suma de slots: ${idealAcum.toFixed(3)}s, clips sin slot valido: ${sinSlot})`);
 
@@ -2933,7 +3049,7 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
             // OJO, NO ARREGLA LAS OTRAS DOS ETIQUETAS: color_primaries y color_transfer se
             // siguen heredando de la fuente (medido: la salida se queda en bt2020/arib-std-b67).
             // Ver la deuda del plan maestro.
-            const cmd = `ffmpeg -y -i "${escapedIn}" ${vf} -r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -colorspace bt709 -an ${trim}"${escapedNorm}"`;
+            const cmd = `ffmpeg -y -i "${escapedIn}" ${vf} -r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -colorspace bt709 -video_track_timescale ${TIMESCALE} -an ${trim}"${escapedNorm}"`;
             exec(cmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => {
               if (err) reject(err); else resolve();
             });
@@ -3002,6 +3118,7 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
             : `trim=end_frame=${FRAMES_HEAD},setpts=PTS-STARTPTS,tpad=start=${FRAMES_TAIL}:start_mode=clone,setsar=1`;
           const cmd = `ffmpeg -y -i "${src.replace(/"/g, '\\"')}" -vf "${chain}" -r 30 ` +
             `-c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an -frames:v ${FRAMES_TR} ` +
+            `-video_track_timescale ${TIMESCALE} ` +
             `"${out.replace(/"/g, '\\"')}"`;
           try {
             await new Promise<void>((resolve, reject) => {
@@ -3059,6 +3176,7 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
           const cmd = `ffmpeg -y -i "${tail.replace(/"/g, '\\"')}" -i "${head.replace(/"/g, '\\"')}" ` +
             `-filter_complex "[0][1]xfade=transition=${nombre}:duration=${(FRAMES_TR / 30).toFixed(3)}:offset=0" ` +
             `-r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an ` +
+            `-video_track_timescale ${TIMESCALE} ` +
             `-frames:v ${FRAMES_TR} "${out.replace(/"/g, '\\"')}"`;
           try {
             await new Promise<void>((resolve, reject) => {
@@ -3102,6 +3220,7 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
           const cmd = `ffmpeg -y -i "${src.replace(/"/g, '\\"')}" ` +
             `-vf "trim=start_frame=${quitaIni}:end_frame=${F - quitaFin},setpts=PTS-STARTPTS,setsar=1" ` +
             `-r 30 -c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -an -frames:v ${bodyFrames} ` +
+            `-video_track_timescale ${TIMESCALE} ` +
             `"${out.replace(/"/g, '\\"')}"`;
           try {
             await new Promise<void>((resolve, reject) => {
@@ -3322,13 +3441,38 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
       message: 'Exportacion completada' 
     });
 
+    // LOS TIEMPOS DEL FICHERO QUE RECIBE EL USUARIO. La comprobacion del intermedio no basta:
+    // el -shortest del mux es una decision POSTERIOR, y es justo lo que recorto el audio a
+    // 201.7s cuando el video decia durar 286.
+    // Aqui se AVISA y NO se descarta: el fichero ya esta escrito, y borrarlo dejaria al
+    // usuario sin nada a cambio de nada. Lo que hace falta es que sepa que paso.
+    // Sin objetivo —la rama de sincronia perfecta no pasa por P0— la comprobacion 2 no aplica,
+    // pero la 1 y la 3 si: los pts monotonos y la coherencia interna del fichero no necesitan
+    // saber cuanto se pedia.
+    const tiemposFinal = framesObjetivo > 0
+      ? await verificarTiempos(filePath, framesObjetivo, 30)
+      : null;
+    if (tiemposFinal) {
+      await writeDebugLog(`[EXPORT] Comprobacion de tiempos del final: ${tiemposFinal.frames} ` +
+        `frames leidos en ${tiemposFinal.ms} ms`);
+    }
+    if (tiemposFinal && !tiemposFinal.ok) {
+      for (const f of tiemposFinal.fallos) await writeDebugLog(`[EXPORT] TIEMPOS DEL FINAL: ${f}`);
+      avisoTiempos = `El vídeo se ha exportado, pero sus tiempos no cuadran: ` +
+        `${tiemposFinal.fallos.join('; ')}. Revísalo antes de publicarlo.`;
+    } else if (tiemposFinal) {
+      await writeDebugLog(`[EXPORT] Tiempos del final OK: ${tiemposFinal.frames} frames, ` +
+        `ultimo pts ${tiemposFinal.ultimo.toFixed(3)}s, duracion ` +
+        `${tiemposFinal.duracion.toFixed(3)}s`);
+    }
+
     const exportEnd = Date.now();
     const exportSeconds = ((exportEnd - exportStart) / 1000).toFixed(1);
     const fileStats = await fs.promises.stat(filePath);
     const fileSizeMB = (fileStats.size / (1024 * 1024)).toFixed(1);
     await writeDebugLog(`[EXPORT] Completado en ${exportSeconds}s — archivo: ${fileSizeMB}MB — calidad: ${quality}`);
 
-    return { success: true, filePath }
+    return { success: true, filePath, avisoTiempos }
   } catch (err: any) {
     console.error(`[export-video] Error: ${err.message}`)
     return { success: false, error: err.message }
