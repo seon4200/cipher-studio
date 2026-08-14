@@ -152,6 +152,48 @@ function main (bundle) {
   }
   ok(noRespetados.length === 0, 'el slider movido se queda en el valor pedido',
     noRespetados.length ? noRespetados.join('\n          ') : `${respetados} movimientos`)
+
+  // ── E) ENTRADAS ROTAS: lo que el barrido NO cubria ────────────────────────────────
+  // Los 74.088 casos de arriba usaban TODOS arrays de cuatro numeros validos, asi que la
+  // suite estaba verde con el bug dentro: un proyecto guardado antes del cuarto peso trae TRES
+  // posiciones, y mover el slider de Visuales hacia `nuevo - undefined` = NaN, que contaminaba
+  // los cuatro y se guardaba como [null,null,null,null]. Le paso a tres proyectos reales.
+  console.log('\n=== E) ENTRADAS ROTAS: array corto, nulls, indice fuera de rango ===')
+  const { normalizarPesos, PESOS_POR_DEFECTO } = bundle
+  ok(typeof normalizarPesos === 'function', 'normalizarPesos se exporta del bundle')
+
+  const sano = (r, etiqueta) => {
+    const cuatro = Array.isArray(r) && r.length === 4
+    const finitos = cuatro && r.every(v => typeof v === 'number' && Number.isFinite(v))
+    const suma = finitos ? r.reduce((a, b) => a + b, 0) : NaN
+    ok(cuatro && finitos && suma === 100,
+      etiqueta, `-> [${r}]  suma ${suma}` + (finitos ? '' : '   HAY NaN/undefined'))
+  }
+
+  // EL CASO QUE FALTABA, el que ocurrio de verdad.
+  sano(repartirPesos([40, 30, 30], 3, 20), 'array de TRES, moviendo el indice 3')
+  sano(repartirPesos([40, 30, 30], 3, 100), 'array de TRES, indice 3 al 100')
+  sano(repartirPesos([40, 60, 0], 3, 25), 'array de TRES de otro proyecto real')
+
+  // Los ya corrompidos: `null` es lo que JSON.stringify escribe para un NaN.
+  sano(repartirPesos([null, null, null, null], 3, 20), 'array con NULLS (proyecto corrompido)')
+  sano(repartirPesos([null, null, null, null], 0, 50), 'array con nulls, moviendo el indice 0')
+  sano(repartirPesos([40, null, 30, 0], 1, 25), 'array con UN null en medio')
+
+  // Fuera de rango y valores no numericos: no deben propagar basura.
+  sano(repartirPesos([40, 30, 30, 0], 9, 20), 'indice fuera de rango (9)')
+  sano(repartirPesos([40, 30, 30, 0], -1, 20), 'indice negativo')
+  sano(repartirPesos([40, 30, 30, 0], 3, NaN), 'valor NaN (parseInt de vacio)')
+  sano(repartirPesos([], 3, 20), 'array VACIO')
+  sano(repartirPesos(null, 3, 20), 'null en vez de array')
+
+  // normalizarPesos por si misma: lo que decide si los proyectos se recuperan al abrirlos.
+  const n3 = normalizarPesos([40, 30, 30])
+  ok(n3.length === 4 && n3[3] === 0 && n3.reduce((a, b) => a + b, 0) === 100,
+    'normalizarPesos rellena un array de tres con visual=0', `[${n3}]`)
+  const nn = normalizarPesos([null, null, null, null])
+  ok(nn.length === 4 && nn.every(v => Number.isFinite(v)) && nn.join() === PESOS_POR_DEFECTO.join(),
+    'y un array de nulls cae al reparto por defecto', `[${nn}]`)
 }
 
 app.whenReady().then(() => {
