@@ -531,3 +531,47 @@ problema de la sección anterior en todos los casos en vez de en el 6%.
 **No se diseña para ella**, pero queda dicho: si aparece un proyecto así, los Visuales de texto
 mostrarán trozos de frase. La causa de esas frases tan largas —otra tirada de Whisper, otro
 audio, otro modelo— no se ha investigado.
+
+---
+
+# EL CRITERIO "LA PALABRA MÁS LARGA" TIENE DOS RESERVAS
+
+Un Visual pinta la palabra **más larga con significado** del tramo que cubre. El criterio
+funciona —en la primera generación real ganó en 4 de 5: `inaccesibles` sobre `construir`,
+`obligando` sobre `pasaron`, `supuestamente` sobre `naciones`— pero tiene dos límites que
+conviene tener escritos antes de darlo por definitivo.
+
+## 1. Atrae los errores de transcripción
+
+Los fallos de Whisper tienden a producir **palabras largas y raras**, y el criterio de la
+longitud las **prefiere** precisamente por eso.
+
+Ejemplo real, de la primera generación con Visuales: se eligió **`imaginante`**, que no es una
+palabra. Es *"su imagen ante el mundo"* mal transcrito. Al ser un pegote largo, ganó a todas
+las candidatas legítimas de su tramo.
+
+No es un caso raro: es **sistemático**. Cuanto peor transcribe Whisper un fragmento, más
+probable es que produzca el pegote que este criterio va a elegir y poner a pantalla completa.
+
+## 2. La longitud es un proxy de relevancia, no una medida
+
+En el tramo de `"...Estados Unidos está en guerra con naciones que supuestamente invita a
+jugar en su casa..."` el criterio eligió **`supuestamente`**: gana en letras, pero es un
+adverbio. El término del tema era `naciones`, o `guerra`.
+
+La longitud correlaciona con la relevancia lo bastante para ser un buen primer criterio, pero
+no la mide. Un adverbio largo siempre le va a ganar a un sustantivo corto que sí es el tema.
+
+## La vía de mejora: que la palabra la elija DeepSeek
+
+**Dos líneas de prompt y ninguna llamada nueva.** El prompt de FASE 2 ya recorre cada sub-clip
+y ya devuelve un `keyword` por cada uno; pedirle además cuál de las palabras que suenan en ese
+tramo es la que merece pantalla completa cabe en la misma petición.
+
+Un modelo resuelve las dos reservas de golpe: descarta `imaginante` porque no significa nada, y
+prefiere `naciones` sobre `supuestamente` porque entiende de qué va la frase.
+
+Antes de hacerlo hay que **medir cuántas viene bien elegidas**, como con todo lo que sale de
+este prompt: ya colapsó una vez al pedirle cuotas de tipo (76 stock / 0 original). Y el criterio
+de la longitud se queda como respaldo para cuando el modelo no conteste o devuelva una palabra
+que no está en el tramo.
