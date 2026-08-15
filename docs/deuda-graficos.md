@@ -689,3 +689,51 @@ perfecta.
 El comodín de la última fila es la trampa: no falla, **acierta a medias**, y un origen sin rama
 propia sale con el color de otro la mitad de las veces. Cualquier categoría nueva necesita su
 rama el mismo día que se crea.
+
+---
+
+# 💀 CÓDIGO MUERTO: el camino A de gráficos no se ejecuta nunca
+
+**Anotado el 14 de agosto de 2026. No se borra a propósito.**
+
+`handleBuildIATimeline` llama a `generateTimelineAssets` con **`graphicsPercent: 0` cableado**
+([main.tsx:2486](../src/renderer/src/main.tsx#L2486)). Ese cero **es intencional**: el commit
+`e145119 feat: Construir en 3 fases secuenciales` (9/07/2026) sacó los gráficos de esa llamada y
+los movió a su propia fase, el bloque `if (graphicsPercent > 0)` de
+[main.tsx:2579](../src/renderer/src/main.tsx#L2579). El cero significa *"en esta llamada no, los
+pido luego"*.
+
+**Lo que quedó muerto es lo que había antes de ese troceado:**
+
+- la rama `if (clipInfo.type === 'graphic')` del bucle que reparte `res.clips`
+  ([main.tsx:2504](../src/renderer/src/main.tsx#L2504)),
+- el array `newGraphicClips` que llena,
+- la llamada a `renderizarYSellar` sobre él,
+- y su `excluirSobreVisuales`.
+
+Con `graphicsPercent: 0`, FASE 2 del backend no asigna ni un gráfico, así que **ese camino recibe
+siempre una lista vacía**.
+
+## Por qué importa, y no es una curiosidad
+
+**Esto es lo que hizo invisible el bug de las 13 tarjetas sobre Visuales.** La exclusión mutua
+estaba puesta ahí —en la rama muerta— y por eso al leer el fichero parecía que el camino de
+construir el timeline ya estaba cubierto. El camino vivo, la fase de gráficos de
+[2579](../src/renderer/src/main.tsx#L2579), **no tenía ninguna de las dos protecciones**, y nadie
+lo miró porque el `grep` de `excluirSobreVisuales` daba un resultado tranquilizador en el mismo
+fichero, a cuarenta líneas de distancia.
+
+**Una protección en código muerto es peor que ninguna:** no protege, y además convence de que no
+hace falta buscar más.
+
+## Por qué no se borra
+
+Es el único camino que quedaría si ese cero se reconecta alguna vez —la fase de tres pasos podría
+volver a fusionarse—, y borrarlo obligaría a reescribirlo. **Lo que se hace en su lugar es
+decirlo**: hay un comentario en el propio `graphicsPercent: 0` y otro sobre su
+`excluirSobreVisuales`, los dos apuntando aquí.
+
+**Si algún día se reconecta**, lo primero que hay que comprobar es que camino A use
+`colocarYFiltrarTarjetas` como los otros dos, y no su `excluirSobreVisuales` a pelo: hoy no lo
+necesita porque sus tarjetas llegan ya colocadas de FASE 2 y sin paso de emparejamiento, pero eso
+es cierto **solo mientras el camino esté muerto**.

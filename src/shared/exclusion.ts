@@ -39,6 +39,103 @@ export type Descartada<T> = { tarjeta: T; visual: Tramo };
  * Devuelve tambien las descartadas CON el Visual que las tapaba: sin eso el recuento podria
  * decir cuantas, pero no por que, y el usuario no tendria forma de comprobarlo.
  */
+/**
+ * EL TEXTO DEL AVISO, EN UN SOLO SITIO.
+ *
+ * Los tres caminos que construyen tarjetas dicen lo mismo con las mismas palabras. Redactarlo
+ * en cada uno es como se llega a que dos digan una cosa y el tercero no diga nada, que es
+ * exactamente lo que paso.
+ */
+export function avisoDeExclusion(descartadas: number, total: number): string {
+  if (!(descartadas > 0)) return '';
+  return `${descartadas} de ${total} gráficos se descartaron porque caían sobre un Visual, ` +
+    `que ya ocupa la pantalla entera.`;
+}
+
+export type TarjetaCruda = {
+  id?: string;
+  name?: string;
+  graphicData?: any;
+  graphicAbsoluteStart?: number | null;
+  graphicDuration?: number | null;
+  phraseIdx?: number;
+};
+
+export type ClipDelTimeline = Tramo & { id?: string; name?: string; category?: string };
+
+/** La tarjeta ya COLOCADA: se sabe donde va y si llego ahi por respaldo. */
+export type Colocada = {
+  cruda: TarjetaCruda;
+  startSeconds: number;
+  durationSeconds: number;
+  usaRespaldo: boolean;
+};
+
+const esVisual = (c: { category?: string }): boolean =>
+  String(c?.category || '').toLowerCase() === 'visual';
+
+/**
+ * LAS DOS PROTECCIONES, EN LA MISMA LLAMADA QUE COLOCA.
+ *
+ * Van juntas a proposito: no se puede colocar bien y filtrar mal, porque es el mismo sitio.
+ * Estaban separadas y un camino se quedo sin ninguna de las dos —13 de 40 tarjetas de un export
+ * real cayeron sobre un Visual, dos de ellas clavadas encima.
+ *
+ *  1) LOS VISUALES FUERA DEL EMPAREJAMIENTO. Cuando el backend no manda un `graphicAbsoluteStart`
+ *     se usa el clip emparejado como respaldo. Si ese clip puede ser un Visual, el respaldo
+ *     coloca la tarjeta EXACTAMENTE encima: no es que faltara la exclusion, es que la rompia
+ *     activamente y luego la exclusion tenia que deshacerlo.
+ *  2) LAS QUE CAEN SOBRE UN VISUAL SE DESCARTAN, y se cuentan para el aviso.
+ *
+ * Lo que NO entra aqui: de donde sale la lista de clips, si el timeline se reemplaza o se
+ * amplia, y que pasa si el proyecto cambia a mitad. Eso es distinto en cada camino —uno lee del
+ * estado de React y otro de un array local que aun no esta en el estado— y forzar una funcion
+ * comun sobre ello devolveria el bug: el que lee del estado lo leeria SIN los Visuales.
+ *
+ * Devuelve las crudas supervivientes, no clips de timeline: construir el objeto (con su id
+ * aleatorio y su nombre) es cosa del renderer, y dejarlo fuera mantiene esto puro y probable.
+ */
+export function colocarYFiltrarTarjetas(
+  crudas: TarjetaCruda[], clipsDelTimeline: ClipDelTimeline[]
+): {
+  quedan: Colocada[]; descartadas: Descartada<Colocada>[];
+  aviso: string; total: number; conRespaldo: number;
+} {
+  const lista = Array.isArray(crudas) ? crudas.filter(c => c && c.graphicData) : [];
+  const clips = Array.isArray(clipsDelTimeline) ? clipsDelTimeline : [];
+
+  // PROTECCION 1: los Visuales no son candidatos a emparejar, solo a tapar.
+  const candidatos = clips.filter(c => c && !esVisual(c));
+  const visuales = clips.filter(c => c && esVisual(c));
+
+  let conRespaldo = 0;
+  const colocadas: Colocada[] = lista.map(c => {
+    const par = candidatos.find(tc => (c.id && tc.id === c.id) || (c.name && tc.name === c.name));
+    // Se exige NUMERO FINITO, no solo "no nulo". Un NaN pasaria el `??` y se colaria hasta
+    // startSeconds, y `solapa` conserva la tarjeta ante un dato no numerico: entraria al video
+    // colocada en ninguna parte.
+    const abs = typeof c.graphicAbsoluteStart === 'number' && Number.isFinite(c.graphicAbsoluteStart)
+      ? c.graphicAbsoluteStart : null;
+    if (abs === null) conRespaldo++;
+    const dur = typeof c.graphicDuration === 'number' && Number.isFinite(c.graphicDuration)
+      ? c.graphicDuration
+      : Math.min(2.0, Number(par?.durationSeconds) > 0 ? Number(par?.durationSeconds) : 2.0);
+    return {
+      cruda: c,
+      startSeconds: abs !== null ? abs : (Number(par?.startSeconds) || 0),
+      durationSeconds: dur,
+      usaRespaldo: abs === null
+    };
+  });
+
+  // PROTECCION 2.
+  const { quedan, descartadas } = excluirSobreVisuales(colocadas, visuales);
+  return {
+    quedan, descartadas, total: colocadas.length, conRespaldo,
+    aviso: avisoDeExclusion(descartadas.length, colocadas.length)
+  };
+}
+
 export function excluirSobreVisuales<T extends Tramo>(
   tarjetas: T[], visuales: Tramo[]
 ): { quedan: T[]; descartadas: Descartada<T>[] } {

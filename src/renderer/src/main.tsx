@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { excluirSobreVisuales } from '../../shared/exclusion'
+import { excluirSobreVisuales, colocarYFiltrarTarjetas, avisoDeExclusion } from '../../shared/exclusion'
 import { hayTiemposPorPalabra } from '../../shared/palabra'
 import { repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../../shared/reparto'
 import ReactDOM from 'react-dom/client'
@@ -162,6 +162,19 @@ function App() {
   // Recuento de tarjetas descartadas por caer sobre un Visual. No basta con la consola: el
   // usuario pidio N graficos y va a recibir menos, y tiene que saber por que.
   const [avisoGraficos, setAvisoGraficos] = useState('')
+  // CONTAR EL DESCARTE, en un solo sitio. Los tres caminos que construyen tarjetas lo llaman y
+  // ninguno redacta su propio mensaje: el texto lo pone `avisoDeExclusion`. Se llama SIEMPRE,
+  // tambien con cero descartadas —el aviso vacio limpia el anterior—, porque un aviso viejo
+  // colgado de una generacion previa miente igual que no avisar.
+  const anunciarExclusion = (
+    aviso: string, descartadas: { tarjeta: { startSeconds: number }; visual: { startSeconds: number } }[]
+  ) => {
+    setAvisoGraficos(aviso)
+    if (descartadas.length) {
+      console.warn('[EXCLUSION]', descartadas.map(d =>
+        `tarjeta ${d.tarjeta.startSeconds.toFixed(1)}s sobre Visual ${d.visual.startSeconds.toFixed(1)}s`))
+    }
+  }
   const [panStart, setPanStart] = useState({ x: 0, y: 0 })
   const [isCropping, setIsCropping] = useState(false)
   const [cropRect, setCropRect] = useState({ left: 10, top: 10, right: 10, bottom: 10 })
@@ -2483,6 +2496,15 @@ ${res.filePath}`);
         transcriptSegments,
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
+        // CERO A PROPOSITO, NO ES UN OLVIDO. El commit e145119 partio la construccion en tres
+        // fases y saco los graficos de esta llamada: se piden despues, en su propia fase (el
+        // bloque `if (graphicsPercent > 0)` de mas abajo). Este cero dice "aqui no, luego".
+        //
+        // CONSECUENCIA — CODIGO MUERTO QUE NO SE BORRA: con esto en cero, FASE 2 del backend no
+        // asigna ni un grafico, asi que la rama `clipInfo.type === 'graphic'` de mas abajo y todo
+        // el camino A que cuelga de ella reciben SIEMPRE una lista vacia. Se conserva porque es
+        // el unico camino que quedaria si este cero se reconecta, pero no se ejecuta hoy.
+        // Anotado en docs/deuda-graficos.md.
         graphicsPercent: 0,
         newAudioSegments: effectiveAudioSegments
       });
@@ -2547,16 +2569,20 @@ ${res.filePath}`);
         // pondria la regla en DOS sitios del MISMO camino, y ese es el patron que ya ha mordido
         // varias veces. Un .mov de mas en cache es barato y queda reutilizable: la clave es el
         // contenido, asi que si esa tarjeta vuelve a salir, se acierta.
+        // Camino A sigue con `excluirSobreVisuales` a pelo, no con `colocarYFiltrarTarjetas`: aqui las
+        // tarjetas ya vienen colocadas de FASE 2 y selladas, sin paso de emparejamiento, asi que
+        // la PROTECCION 1 no le aplica. Lo que si comparte es el redactor del aviso y el
+        // anunciador, para que los tres caminos digan lo mismo.
+        //
+        // OJO al leer esto: hoy esta rama recibe SIEMPRE una lista vacia, porque la llamada de
+        // arriba manda `graphicsPercent: 0` cableado y FASE 2 no asigna graficos. El filtro aqui
+        // es correcto pero no filtra nada, y eso fue justo lo que hizo invisible que camino B no
+        // lo tuviera: parecia cubierto.
         const visualesDelTimeline = newVideoClips.filter((c: any) => c.category === 'visual');
         const { quedan: graficosQueQuedan, descartadas } =
           excluirSobreVisuales(graficosSellados as any[], visualesDelTimeline);
-        if (descartadas.length) {
-          setAvisoGraficos(
-            `${descartadas.length} de ${graficosSellados.length} gráficos se descartaron porque ` +
-            `caían sobre un Visual, que ya ocupa la pantalla entera.`);
-          console.warn('[EXCLUSION]', descartadas.map((d: any) =>
-            `tarjeta ${d.tarjeta.startSeconds.toFixed(1)}s sobre Visual ${d.visual.startSeconds.toFixed(1)}s`));
-        } else setAvisoGraficos('');
+        anunciarExclusion(avisoDeExclusion(descartadas.length, graficosSellados.length),
+          descartadas as any[]);
 
         // Keep all existing audio clips completely intact and untouched!
         const existingAudioClips = timelineVideoClips.filter(c => c.type === 'audio');
@@ -2590,22 +2616,26 @@ ${res.filePath}`);
               audioSegments: effectiveAudioSegments.length > 0 ? effectiveAudioSegments : transcriptSegments
             });
             if (gRes && gRes.success && gRes.clips) {
-              const newGClips = gRes.clips
-                .filter((c: any) => c.graphicData)
-                .map((c: any) => {
-                  const matchV = finalTimelineClips.find((tc: any) => tc.id === c.id || tc.name === c.name);
-                  return {
-                    id: `timeline-graphic-${Math.random()}`,
-                    name: `Gráfico: ${c.graphicData.label || c.graphicData.type}`,
-                    startSeconds: c.graphicAbsoluteStart ?? (matchV?.startSeconds || 0),
-                    durationSeconds: c.graphicDuration ?? Math.min(2.0, matchV?.durationSeconds || 2.0),
-                    phraseIdx: c.phraseIdx ?? -1,
-                    type: 'graphic' as const,
-                    graphicData: c.graphicData
-                  };
-                });
-              // CAMINO B. Si devuelve null NO se aborta: el timeline de video ya se escribio
-              // arriba y es valido, asi que solo se deja de añadir los graficos.
+              // CAMINO B — el que fabrica las tarjetas de verdad, y el que estaba SIN NINGUNA de
+              // las dos protecciones. Se le pasa `videoClips`, que es la MISMA lista que se
+              // mando al backend, asi que los ids casan; y sale de `finalTimelineClips`, que ya
+              // tiene los Visuales dentro. No se puede leer `timelineVideoClips` aqui: el
+              // setState de arriba no ha corrido todavia y devolveria el timeline sin Visuales.
+              const { quedan, descartadas, aviso, total, conRespaldo } =
+                colocarYFiltrarTarjetas(gRes.clips as any[], videoClips as any[]);
+              anunciarExclusion(aviso, descartadas as any[]);
+              console.log('[DIAG-GRAFICO]', { camino: 'B', total, conRespaldo, descartadas: descartadas.length });
+              const newGClips = quedan.map((t) => ({
+                id: `timeline-graphic-${Math.random()}`,
+                name: `Gráfico: ${t.cruda.graphicData.label || t.cruda.graphicData.type}`,
+                startSeconds: t.startSeconds,
+                durationSeconds: t.durationSeconds,
+                phraseIdx: t.cruda.phraseIdx ?? -1,
+                type: 'graphic' as const,
+                graphicData: t.cruda.graphicData
+              }));
+              // Si devuelve null NO se aborta: el timeline de video ya se escribio arriba y es
+              // valido, asi que solo se deja de añadir los graficos.
               const sellados = await renderizarYSellar(
                 newGClips, aspectRatio, exportResolution, proyectoAlEmpezar);
               if (sellados) setTimelineVideoClips(prev => [...prev, ...sellados]);
@@ -2759,40 +2789,27 @@ ${res.filePath}`);
       });
       if (res && res.success && res.clips) {
         const nonGraphicClips = timelineVideoClips.filter(c => c.type !== 'graphic');
-        // Los Visuales se excluyen del EMPAREJAMIENTO, no solo del resultado. `matchingVideo`
-        // es de donde sale el startSeconds de la tarjeta cuando el backend no manda uno
-        // absoluto: si emparejara con un Visual, la colocaria EXACTAMENTE encima. A este camino
-        // no es que le faltara la exclusion, es que la rompia activamente.
-        const candidatos = nonGraphicClips.filter((c: any) => c.category !== 'visual');
-        const visualesDelTimeline = nonGraphicClips.filter((c: any) => c.category === 'visual');
-        const newGraphicClips = res.clips
-          .filter((c: any) => c.graphicData)
-          .map((c: any) => {
-            const matchingVideo = candidatos.find((tc: any) => tc.id === c.id || tc.name === c.name);
-            console.log('[DIAG-GRAFICO]', { phraseIdx: c.phraseIdx, absoluteStart: c.graphicAbsoluteStart, fallbackStart: matchingVideo?.startSeconds, usaFallback: c.graphicAbsoluteStart === undefined || c.graphicAbsoluteStart === null });
-            return {
-              id: `timeline-graphic-${Math.random()}`,
-              name: `Gráfico: ${c.graphicData.label || c.graphicData.type}`,
-              startSeconds: c.graphicAbsoluteStart ?? (matchingVideo?.startSeconds || 0),
-              durationSeconds: c.graphicDuration ?? Math.min(2.0, matchingVideo?.durationSeconds || 2.0),
-              phraseIdx: c.phraseIdx ?? -1,
-              type: 'graphic' as const,
-              graphicData: c.graphicData
-            };
-          });
-
+        // Las dos protecciones viven en `colocarYFiltrarTarjetas`, no aqui: los Visuales fuera del
+        // emparejamiento y el descarte de las que caen encima. `videoClips` es la MISMA lista
+        // que se mando al backend, asi que los ids casan, y lleva los Visuales dentro para que
+        // la funcion pueda separarlos.
+        //
         // Aqui el descarte va ANTES de sellar, al reves que en el camino de generar: alli las
         // tarjetas llegan ya renderizadas y aqui la lista esta completa antes de renderizar, asi
         // que no cuesta nada ahorrarse el trabajo.
-        const { quedan: graficosQueQuedan, descartadas } =
-          excluirSobreVisuales(newGraphicClips as any[], visualesDelTimeline);
-        if (descartadas.length) {
-          setAvisoGraficos(
-            `${descartadas.length} de ${newGraphicClips.length} gráficos se descartaron porque ` +
-            `caían sobre un Visual, que ya ocupa la pantalla entera.`);
-          console.warn('[EXCLUSION]', descartadas.map((d: any) =>
-            `tarjeta ${d.tarjeta.startSeconds.toFixed(1)}s sobre Visual ${d.visual.startSeconds.toFixed(1)}s`));
-        } else setAvisoGraficos('');
+        const { quedan, descartadas, aviso, total, conRespaldo } =
+          colocarYFiltrarTarjetas(res.clips as any[], videoClips as any[]);
+        anunciarExclusion(aviso, descartadas as any[]);
+        console.log('[DIAG-GRAFICO]', { camino: 'regenerar', total, conRespaldo, descartadas: descartadas.length });
+        const graficosQueQuedan = quedan.map((t) => ({
+          id: `timeline-graphic-${Math.random()}`,
+          name: `Gráfico: ${t.cruda.graphicData.label || t.cruda.graphicData.type}`,
+          startSeconds: t.startSeconds,
+          durationSeconds: t.durationSeconds,
+          phraseIdx: t.cruda.phraseIdx ?? -1,
+          type: 'graphic' as const,
+          graphicData: t.cruda.graphicData
+        }));
 
         const sellados = await renderizarYSellar(
           graficosQueQuedan, aspectRatio, exportResolution, proyectoAlEmpezar);

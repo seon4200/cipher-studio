@@ -12,8 +12,9 @@ import { fal } from '@fal-ai/client'
 import { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../shared/reparto'
 import { palabraDelTramo, tieneSignificado } from '../shared/palabra'
 // Re-exportado para que tests/exclusion.js alcance la implementacion REAL desde el bundle.
-import { excluirSobreVisuales, solapa, SOLAPE_MINIMO_S } from '../shared/exclusion'
-export { excluirSobreVisuales, solapa, SOLAPE_MINIMO_S }
+import { excluirSobreVisuales, solapa, SOLAPE_MINIMO_S,
+  colocarYFiltrarTarjetas, avisoDeExclusion } from '../shared/exclusion'
+export { excluirSobreVisuales, solapa, SOLAPE_MINIMO_S, colocarYFiltrarTarjetas, avisoDeExclusion }
 import { recortarTexto } from '../shared/texto'
 export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
 

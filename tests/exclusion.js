@@ -99,6 +99,139 @@ function main (bundle) {
   // Duracion 0 y negativa: no pueden solapar con nada.
   ok(!solapa(T(10, 0), T(10, 3)), 'una tarjeta de duracion 0 no solapa')
   ok(!solapa(T(10, -5), T(10, 3)), 'una duracion negativa tampoco')
+
+  // ── E) colocarYFiltrarTarjetas: LAS DOS PROTECCIONES JUNTAS ──────────────────────────────
+  //
+  // Estos casos existen porque la suite estuvo VERDE con el bug dentro. `excluirSobreVisuales`
+  // hacia bien su trabajo y todos sus casos pasaban; lo que fallaba era que un camino no la
+  // llamaba, y ademas emparejaba contra una lista que incluia los Visuales, de modo que el
+  // respaldo colocaba tarjetas EXACTAMENTE encima. Probar la pieza no probaba la proteccion.
+  const { colocarYFiltrarTarjetas, avisoDeExclusion } = bundle
+  ok(typeof colocarYFiltrarTarjetas === 'function', 'colocarYFiltrarTarjetas se exporta del bundle')
+  ok(typeof avisoDeExclusion === 'function', 'avisoDeExclusion se exporta del bundle')
+
+  if (typeof colocarYFiltrarTarjetas === 'function') {
+    const V = (ini, dur, id) => ({ startSeconds: ini, durationSeconds: dur, id, category: 'visual' })
+    const O = (ini, dur, id) => ({ startSeconds: ini, durationSeconds: dur, id, category: 'original' })
+
+    // E1. EL BUG EXACTO: sin graphicAbsoluteStart, y el unico clip con ese id es un Visual.
+    // Antes el respaldo la clavaba en 48.16 y la exclusion tenia que deshacerlo. Ahora el
+    // Visual no es candidato, asi que no hay a donde emparejar y no acaba encima.
+    const soloVisual = colocarYFiltrarTarjetas(
+      [{ id: 'c1', graphicData: { type: 'donut' } }],
+      [V(48.16, 3.82, 'c1'), O(0, 5, 'otro')])
+    ok(soloVisual.quedan.length === 1 && soloVisual.quedan[0].startSeconds !== 48.16,
+      'el respaldo NO empareja con un Visual aunque el id coincida',
+      `startSeconds ${soloVisual.quedan[0] && soloVisual.quedan[0].startSeconds}`)
+    ok(soloVisual.conRespaldo === 1, 'y queda contado como colocada por respaldo')
+
+    // E2. Con graphicAbsoluteStart encima de un Visual: se coloca donde dice y SE DESCARTA.
+    const encima = colocarYFiltrarTarjetas(
+      [{ id: 'x', graphicData: { type: 'contador' }, graphicAbsoluteStart: 10.0, graphicDuration: 2 }],
+      [V(9.5, 3, 'v1'), O(0, 5, 'x')])
+    ok(encima.quedan.length === 0 && encima.descartadas.length === 1,
+      'una tarjeta con inicio absoluto sobre un Visual se descarta')
+    ok(encima.aviso.includes('1 de 1'), 'y el aviso lleva el recuento', encima.aviso)
+
+    // E3. El emparejamiento normal sigue funcionando: sin absoluto, con un clip original.
+    const normal = colocarYFiltrarTarjetas(
+      [{ id: 'k', graphicData: { type: 'donut' } }],
+      [O(31.5, 4, 'k'), V(80, 3, 'v')])
+    ok(normal.quedan.length === 1 && normal.quedan[0].startSeconds === 31.5,
+      'sin inicio absoluto se usa el clip emparejado, si no es Visual',
+      `startSeconds ${normal.quedan[0] && normal.quedan[0].startSeconds}`)
+
+    // E4. Sin descartadas el aviso es CADENA VACIA, no un texto de cero. El renderer pinta con
+    // `{avisoGraficos && …}`, asi que un "0 de 3" saldria en pantalla como si algo fallara.
+    ok(normal.aviso === '', 'sin descartadas el aviso es cadena vacia', JSON.stringify(normal.aviso))
+    ok(avisoDeExclusion(0, 5) === '' && avisoDeExclusion(-1, 5) === '',
+      'avisoDeExclusion no redacta nada con cero o negativo')
+
+    // E5. Las que no traen graphicData no cuentan: ni se colocan ni entran en el total.
+    const conBasura = colocarYFiltrarTarjetas(
+      [{ id: 'a', graphicData: { type: 'donut' } }, { id: 'b' }, null],
+      [O(1, 2, 'a')])
+    ok(conBasura.total === 1 && conBasura.quedan.length === 1,
+      'las entradas sin graphicData se ignoran y no inflan el total',
+      `total ${conBasura.total}`)
+
+    // E6. DEGENERADOS desde el principio, como el resto de la suite.
+    ok(colocarYFiltrarTarjetas(null, null).quedan.length === 0, 'null en las dos listas no lanza')
+    ok(colocarYFiltrarTarjetas([{ id: 'z', graphicData: {} }], []).quedan.length === 1,
+      'sin ningun clip en el timeline la tarjeta sobrevive, colocada en 0')
+    const nanAbs = colocarYFiltrarTarjetas(
+      [{ id: 'n', graphicData: {}, graphicAbsoluteStart: NaN, graphicDuration: NaN }],
+      [O(7, 3, 'n')])
+    ok(Number.isFinite(nanAbs.quedan[0].startSeconds) && Number.isFinite(nanAbs.quedan[0].durationSeconds),
+      'un graphicAbsoluteStart NaN no se cuela: cae al respaldo',
+      `start ${nanAbs.quedan[0].startSeconds} dur ${nanAbs.quedan[0].durationSeconds}`)
+
+    // E7. La categoria se compara sin distinguir mayusculas, como en el resto del codigo.
+    const mayus = colocarYFiltrarTarjetas(
+      [{ id: 'm', graphicData: {} }],
+      [{ startSeconds: 5, durationSeconds: 3, id: 'm', category: 'Visual' }])
+    ok(mayus.quedan[0].startSeconds !== 5, "category 'Visual' con mayuscula tambien excluye")
+
+    // ── E8) LAS TRES COSAS, EN UNA SOLA LLAMADA ────────────────────────────────────
+    //
+    // Los casos de arriba miran una pieza cada uno, y esa es exactamente la forma de test que
+    // dejo pasar el bug: `excluirSobreVisuales` tenia sus casos en verde mientras un camino la
+    // colocaba encima por el respaldo y otro ni la llamaba. Aqui se hace UNA llamada, como la
+    // hace el renderer, y se comprueban las TRES salidas a la vez:
+    //
+    //   1) los Visuales fuera del emparejamiento
+    //   2) las que solapan, descartadas
+    //   3) el recuento que alimenta el aviso
+    //
+    // Si alguna de las tres se cae, este caso lo dice aunque las otras sigan bien.
+    //
+    // El escenario reproduce el export real: tarjetas de 2 s, Visuales de 2.5-3.8 s
+    // intercalados, y una mezcla de tarjetas con inicio absoluto y sin el.
+    const timeline = [
+      O(0.0, 2.5, 'a'), V(2.48, 3.30, 'b'), O(5.8, 4.0, 'c'),
+      O(9.8, 3.0, 'd'), V(48.16, 3.82, 'e'), O(52.0, 3.0, 'f')
+    ]
+    const crudas = [
+      // (i) absoluta, en terreno despejado -> sobrevive donde dice
+      { id: 'a', graphicData: { type: 'donut' }, graphicAbsoluteStart: 0.12, graphicDuration: 2 },
+      // (ii) absoluta, encima del Visual 'b' -> descartada
+      { id: 'c', graphicData: { type: 'contador' }, graphicAbsoluteStart: 2.46, graphicDuration: 2 },
+      // (iii) SIN absoluta y con el id de un VISUAL -> el respaldo no puede emparejar con el,
+      //       asi que no acaba clavada en 48.16 (que es como salieron dos en el export real)
+      { id: 'e', graphicData: { type: 'frase_clave' } },
+      // (iv) SIN absoluta, con el id de un clip normal -> se coloca donde ese clip
+      { id: 'f', graphicData: { type: 'dato_grande' } }
+    ]
+    const r8 = colocarYFiltrarTarjetas(crudas, timeline)
+
+    // 1) EL EMPAREJAMIENTO no ve los Visuales.
+    const laDelVisual = r8.quedan.find(t => t.cruda.id === 'e')
+    ok(laDelVisual && laDelVisual.startSeconds !== 48.16,
+      '1/3 emparejamiento: la que lleva el id de un Visual NO se coloca sobre el',
+      `startSeconds ${laDelVisual && laDelVisual.startSeconds}`)
+    const laNormal = r8.quedan.find(t => t.cruda.id === 'f')
+    ok(laNormal && laNormal.startSeconds === 52.0,
+      '     y el emparejamiento con un clip normal SIGUE funcionando',
+      `startSeconds ${laNormal && laNormal.startSeconds}`)
+
+    // 2) EL DESCARTE de la que solapa, y solo de esa.
+    ok(r8.descartadas.length === 1 && r8.descartadas[0].tarjeta.cruda.id === 'c',
+      '2/3 descarte: solo se descarta la que cae sobre un Visual',
+      `descartadas ${r8.descartadas.map(d => d.tarjeta.cruda.id).join(',') || 'ninguna'}`)
+    ok(r8.descartadas[0] && r8.descartadas[0].visual.startSeconds === 2.48,
+      '     y viene con el Visual que la tapaba, no solo el numero')
+    ok(r8.quedan.length === 3, '     las otras tres sobreviven', `quedan ${r8.quedan.length}`)
+    const sobrevive = r8.quedan.find(t => t.cruda.id === 'a')
+    ok(sobrevive && sobrevive.startSeconds === 0.12,
+      '     y la que estaba despejada conserva su inicio absoluto')
+
+    // 3) EL RECUENTO que alimenta el aviso.
+    ok(r8.total === 4 && r8.conRespaldo === 2,
+      '3/3 recuento: total y cuantas se colocaron por respaldo',
+      `total ${r8.total} conRespaldo ${r8.conRespaldo}`)
+    ok(r8.aviso === avisoDeExclusion(1, 4) && r8.aviso.includes('1 de 4'),
+      '     y el aviso sale del mismo redactor que usan los tres caminos', r8.aviso)
+  }
 }
 
 app.whenReady().then(() => {
