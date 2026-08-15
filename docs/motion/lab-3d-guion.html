@@ -1,0 +1,488 @@
+<meta charset="utf-8">
+<title>CIPHER — 3D del guion</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  /* CICLO 3 s — la duracion real de un Visual. Divisores legales:
+     3 / 1.5 / 1 / 0.75 / 0.6 / 0.5 / 0.375. El 2 y el 4 NO valen. */
+  :root{
+    --ciclo:3s;
+    --ui-bg:#08090F; --ui-line:#1C1F2B; --ui-ink:#EAEDF7; --ui-dim:#727A94;
+    --fondo:#0A0A0A; --sup:#1A1A1A; --texto:#FAFAFA;
+    --acento:#FF3B1F; --apoyo:#8C8C8C;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ui-bg);color:var(--ui-ink);font:400 14px/1.6 Inter,system-ui,sans-serif}
+  header{padding:26px 32px 18px;border-bottom:1px solid var(--ui-line)}
+  h1{margin:0;font:800 21px/1.2 Archivo,sans-serif;letter-spacing:-.02em}
+  header p{margin:8px 0 0;color:var(--ui-dim);max-width:94ch}
+  header b{color:var(--acento);font-weight:500}
+  header code{font:400 12.5px Space Mono,monospace;color:var(--ui-ink)}
+
+  .bar{position:sticky;top:0;z-index:20;background:rgba(8,9,15,.96);backdrop-filter:blur(12px);
+       border-bottom:1px solid var(--ui-line);padding:13px 32px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .bar label{color:var(--ui-dim);font:400 12px Space Mono,monospace;letter-spacing:.1em;text-transform:uppercase}
+  input[type=range]{flex:1;min-width:220px;accent-color:var(--acento)}
+  .t{font:700 15px/1 Space Mono,monospace;min-width:88px;color:var(--acento)}
+  button{background:transparent;border:1px solid var(--ui-line);color:var(--ui-ink);border-radius:6px;
+         padding:7px 14px;font:400 12.5px Space Mono,monospace;cursor:pointer}
+  button:hover{border-color:var(--acento);color:var(--acento)}
+  button.on{background:var(--acento);border-color:var(--acento);color:#0A0A0A;font-weight:700}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:28px;padding:28px 32px 60px}
+  .cell h3{margin:0 0 2px;font:600 13.5px Inter,sans-serif;display:flex;align-items:center;gap:8px}
+  .tipo{font:400 9.5px Space Mono,monospace;letter-spacing:.12em;text-transform:uppercase;
+        border:1px solid var(--ui-line);border-radius:99px;padding:2px 7px;color:var(--ui-dim)}
+  .tipo.css{color:var(--acento);border-color:rgba(255,59,31,.4)}
+  .tipo.pintor{color:#6EA8FF;border-color:rgba(110,168,255,.4)}
+  .frase{margin:0 0 4px;font-size:10.5px;line-height:1.5;color:#5C6377;font-style:italic}
+  .fis{margin:0 0 9px;font-size:11px;line-height:1.55;color:var(--ui-dim)}
+  .fis b{color:var(--acento);font-weight:500}
+  .fis code{font:400 10.5px Space Mono,monospace;color:#9FB0D0}
+
+  .frame{position:relative;width:100%;aspect-ratio:9/16;overflow:hidden;border-radius:12px;
+         container-type:inline-size;border:1px solid var(--ui-line);background:var(--fondo)}
+  .escena{position:absolute;inset:0;z-index:1}
+  .capa{position:absolute;inset:0}
+  /* La sombra propia es lo que separa una cara de la de al lado. Sin esto,
+     dos caras del mismo tono se funden y el solido se ve plano. */
+  .cara{position:absolute;inset:0;filter:drop-shadow(0 0 .45cqw rgba(0,0,0,.92))}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated}
+
+  .guia{position:absolute;inset:13.54% 8.33%;border:1px dashed rgba(255,59,31,.3);
+        z-index:9;pointer-events:none;display:none}
+  body.guias .guia{display:block}
+  .pie{position:absolute;left:8.33%;right:8.33%;bottom:13.54%;z-index:5;text-align:center}
+  .pal{font:400 clamp(16px,12cqw,78px)/0.95 Anton,sans-serif;text-transform:uppercase;color:var(--texto)}
+  .barra{height:.8cqw;width:15cqw;border-radius:99px;background:var(--acento);margin:3.5cqw auto 0}
+
+  @keyframes brilla{0%,100%{opacity:.2}50%{opacity:1}}
+  @keyframes pop{0%{transform:scale(.62);opacity:0}62%{transform:scale(1.04);opacity:1}100%{transform:scale(1);opacity:1}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .a{animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.88,.3,1)}
+  .b{animation-fill-mode:both;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+  .lin{animation-timing-function:linear}
+</style>
+
+<header>
+  <h1>3D del guion — caras sólidas, oclusión y cámara</h1>
+  <p>La lección de la tanda anterior: <b>el 3D solo se lee si hay oclusión</b>. Un objeto en
+  perspectiva sin caras que tapen a otras parece un dibujo. Las cinco usan el renderizador por
+  software: proyección <code>F/(z+DZ)</code>, Lambert, <code>backface culling</code>,
+  <code>z-index</code> por profundidad y niebla. Ciclo de <code>3 s</code>, sistema voltaje.</p>
+</header>
+
+<div class="bar">
+  <label for="t">t</label>
+  <input id="t" type="range" min="0" max="3" step="0.0333" value="1.0">
+  <span class="t" id="tv">1.000 s</span>
+  <button id="play">Reproducir</button>
+  <button id="loopcheck">Verificar bucle</button>
+  <button id="gz">Zona segura</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const CICLO = 3;
+const R = (n,f)=>[...Array(n)].map((_,i)=>f(i)).join('');
+let _s = 20260814;
+const rnd = ()=>(_s=_s*16807%2147483647)/2147483647;
+const semilla = s=>{_s=s};
+
+let _k = 0;
+const reglas = [];
+function kf(fn, muestras){
+  const M = muestras || 31, nom = 'd'+(_k++);
+  let c = '';
+  for(let i=0;i<M;i++){ const u = i/(M-1); c += (u*100).toFixed(3)+'%{'+fn(u)+'}'; }
+  reglas.push('@keyframes '+nom+'{'+c+'}');
+  return nom;
+}
+const usa = (n,dur)=>'animation:'+n+' '+(dur||'var(--ciclo)')+' linear infinite both;';
+const PINTORES = [];
+const pintor = f => PINTORES.push(f);
+
+/* ── El renderizador. Mundo 90x160, camara en -DZ mirando a +Z ──────── */
+const AW = 90, AH = 160, F = 190, DZ = 145;
+const pr = p => { const zc = p[2]+DZ, s = F/Math.max(zc,6);
+                  return [AW/2+p[0]*s, AH/2+p[1]*s, zc, s]; };
+const rotY = (p,a)=>{const c=Math.cos(a),s=Math.sin(a);return[p[0]*c+p[2]*s,p[1],-p[0]*s+p[2]*c]};
+const rotX = (p,a)=>{const c=Math.cos(a),s=Math.sin(a);return[p[0],p[1]*c-p[2]*s,p[1]*s+p[2]*c]};
+const dot = (a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const nrm = v=>{const m=Math.hypot(v[0],v[1],v[2])||1;return[v[0]/m,v[1]/m,v[2]/m]};
+const cl = (v,a,b)=>v<a?a:(v>b?b:v);
+const LUZ = nrm([-0.56,-0.74,-0.36]);
+const poly = ps => 'polygon('+ps.map(p=>(p[0]/AW*100).toFixed(2)+'% '+(p[1]/AH*100).toFixed(2)+'%').join(',')+')';
+
+/* Caja: vertices normalizados y caras con su normal local */
+const CV = [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+const CF = [[[0,1,2,3],[0,0,-1]],[[5,4,7,6],[0,0,1]],[[4,0,3,7],[-1,0,0]],
+            [[1,5,6,2],[1,0,0]],[[4,5,1,0],[0,-1,0]],[[3,2,6,7],[0,1,0]]];
+
+/* Emite una caja solida: 6 caras animadas + un z-index de grupo.
+   pos(u) devuelve [x,y,z] del centro; T(p,u) aplica la camara.
+   El z-index va en el CONTENEDOR, no en cada cara: si fuera por cara, dos
+   cajas se entrelazarian mal cuando una pasa por delante de otra. */
+function caja(T, pos, tam, color, M){
+  const zi = kf(u=>{ const c = T(pos(u), u);
+                     return 'z-index:'+Math.round(700-(c[2]+DZ)); }, M);
+  let h = '<div class="capa" style="'+usa(zi)+'">';
+  CF.forEach(([idx,nl])=>{
+    const nom = kf(u=>{
+      const o = pos(u), s = typeof tam === 'function' ? tam(u) : tam;
+      const P = idx.map(i=>T([o[0]+CV[i][0]*s[0], o[1]+CV[i][1]*s[1], o[2]+CV[i][2]*s[2]], u));
+      const N = T(nl, u, true);                       // normal: solo rotacion
+      const cen = [(P[0][0]+P[2][0])/2,(P[0][1]+P[2][1])/2,(P[0][2]+P[2][2])/2];
+      const haciaCam = nrm([-cen[0],-cen[1],-DZ-cen[2]]);
+      const vis = cl(dot(N,haciaCam)*7, 0, 1);        // culling suave
+      const lam = Math.max(0, dot(N,LUZ));
+      const sh  = 0.18 + 0.82*Math.pow(lam,0.62);
+      const fog = cl(1-(cen[2]+DZ-90)/160, 0.20, 1);
+      const base = typeof color === 'function' ? color(u) : color;
+      const col = base.map(v=>Math.round(9+(v*sh-9)*(0.30+0.70*fog)));
+      return 'clip-path:'+poly(P.map(pr))+';background:rgb('+col+');opacity:'+vis.toFixed(3);
+    }, M);
+    h += '<div class="cara" style="'+usa(nom)+'"></div>';
+  });
+  return h + '</div>';
+}
+
+const ESCENAS = [
+
+/* ══════════════════════════════════════════════════════════════════════
+   PIRAMIDE — ahora sólida de verdad
+   La anterior era un apilado plano. Esta son 7 bloques con seis caras cada
+   uno, cámara orbitando y oclusión real: los de delante tapan a los de
+   detrás. Y el concepto: los tres de la base se van hundiendo y separando
+   mientras la cúspide sigue en su sitio.
+   ══════════════════════════════════════════════════════════════════════ */
+{n:'PIRÁMIDE', tipo:'css',
+ frase:'“Es una pirámide que se sostiene sobre una base que ya no existe.”',
+ fis:'<b>Siete cajas sólidas con oclusión.</b> La versión plana anterior no se leía como volumen: sin caras que tapen a otras, la perspectiva parece dibujo. La cámara orbita 90° y vuelve; los tres bloques de la base se hunden y se apartan mientras la cúspide aguanta.',
+ g:()=>{ semilla(101);
+  const N = 7, M = 25;
+  // camara: medio giro y vuelta. sin() de u es periodico -> el bucle cierra
+  const T = (p,u,soloRot) => {
+    const a = Math.sin(u*6.28318)*0.62, tl = -0.30;
+    const q = rotX(rotY(p, a), tl);
+    return soloRot ? q : q;
+  };
+  let h = '<div class="capa" style="isolation:isolate">';
+  for(let i=0;i<N;i++){
+    const f = i/(N-1);
+    const anch = 26 - f*21, alt = 3.4;
+    const y0 = 20 - i*7;
+    const base = i<3;                              // la base que se disuelve
+    const pos = u => {
+      if(!base) return [0, y0, 0];
+      const k = Math.sin(u*6.28318)*0.5+0.5;
+      const lado = i%2 ? 1 : -1;
+      return [lado*k*9, y0 + k*7, k*5];
+    };
+    const col = u => {
+      if(i===N-1) return [255,79,47];
+      if(!base) return [138,134,128];
+      const k = Math.sin(u*6.28318)*0.5+0.5;
+      const v = 138 - k*96;                        // se apaga al caer
+      return [v, v*0.97, v*0.93];
+    };
+    h += caja(T, pos, [anch, alt, anch], col, M);
+  }
+  h += '</div>';
+  return h; }},
+
+/* ══════════════════════════════════════════════════════════════════════
+   ACUIFERO — pintor: corte de terreno con el nivel bajando
+   El guion habla de acuiferos que tardan siglos en llenarse. La imagen: un
+   corte del suelo con capas geologicas y el agua bajando dentro. Se pinta
+   por pixel porque el nivel deforma la geometria entera cada frame.
+   ══════════════════════════════════════════════════════════════════════ */
+{n:'ACUÍFERO', tipo:'pintor',
+ frase:'“Acuíferos que tardaron siglos en llenarse.”',
+ fis:'<b>Corte geológico por píxel.</b> Estratos con ruido fractal —cada capa con su grano— y el nivel freático descendiendo dentro de la roca porosa. El agua no es una línea: satura los poros y se ve por transparencia. La caída es lenta y el rellenado casi imperceptible: así es de verdad.',
+ g:(id)=>{
+  const AN = 90, AL = 160;
+  const h2 = (x,y)=>{ const s=Math.sin(x*127.1+y*311.7)*43758.5453; return s-Math.floor(s); };
+  const sm = t=>t*t*(3-2*t);
+  const rui = (x,y)=>{
+    const xi=Math.floor(x), yi=Math.floor(y), xf=x-xi, yf=y-yi;
+    const u=sm(xf), v=sm(yf);
+    return h2(xi,yi)*(1-u)*(1-v)+h2(xi+1,yi)*u*(1-v)+h2(xi,yi+1)*(1-u)*v+h2(xi+1,yi+1)*u*v;
+  };
+  const fbm=(x,y)=>{let f=0,a=.5,fr=1;for(let o=0;o<4;o++){f+=a*rui(x*fr,y*fr);fr*=2.2;a*=.5}return f};
+  // estratos: profundidad de cada frontera y su color
+  const CAPAS = [[0.20,[62,58,52]],[0.34,[48,44,40]],[0.52,[38,36,34]],[1.00,[28,27,26]]];
+  pintor(t=>{
+    const cv = document.getElementById(id); if(!cv) return;
+    const ctx = cv.getContext('2d'), img = ctx.createImageData(AN,AL), D = img.data;
+    const u = (t/CICLO)%1;
+    // el nivel: baja rapido, sube despacio. Asimetria = el concepto.
+    const caida = u<0.7 ? u/0.7 : 1-(u-0.7)/0.3;
+    const niv = 0.34 + caida*0.42;
+    for(let j=0;j<AL;j++){
+      const py = j/AL;
+      for(let i=0;i<AN;i++){
+        const o=(j*AN+i)*4, px=i/AN;
+        // la superficie del terreno ondula un poco
+        const sup = 0.14 + fbm(px*3.4, 1.7)*0.05;
+        let r,g,b;
+        if(py < sup){ r=11; g=11; b=13; }             // cielo
+        else{
+          // que capa
+          let cap = CAPAS[CAPAS.length-1][1];
+          for(const [d,c] of CAPAS){ if(py < sup+d*(1-sup)){ cap=c; break } }
+          const grano = fbm(px*22, py*30)*0.34 + 0.83;
+          r = cap[0]*grano; g = cap[1]*grano; b = cap[2]*grano;
+          // el agua satura los poros por debajo del nivel
+          if(py > niv){
+            const prof = cl((py-niv)/0.18, 0, 1);
+            const poro = fbm(px*16, py*22);
+            const sat = prof * (0.45 + poro*0.55);
+            r = r*(1-sat*0.55) + 255*sat*0.30;
+            g = g*(1-sat*0.55) + 79*sat*0.30;
+            b = b*(1-sat*0.55) + 47*sat*0.30;
+          }
+          // la linea del nivel, marcada
+          if(Math.abs(py-niv) < 0.004){ r=255; g=79; b=47; }
+        }
+        D[o]=r|0; D[o+1]=g|0; D[o+2]=b|0; D[o+3]=255;
+      }
+    }
+    ctx.putImageData(img,0,0);
+  });
+  return '<canvas id="'+id+'" width="'+AN+'" height="'+AL+'"></canvas>'; }},
+
+/* ══════════════════════════════════════════════════════════════════════
+   TORRES — el centro de datos
+   El guion habla de centros de datos que consumen agua. Racks en
+   perspectiva, cámara orbitando, y el calor saliendo por arriba: columnas
+   de partículas que suben y se disipan. Las luces parpadean en periodos
+   distintos, todos divisores del ciclo.
+   ══════════════════════════════════════════════════════════════════════ */
+{n:'TORRES', tipo:'css',
+ frase:'“Un centro de datos consume millones de litros.”',
+ fis:'<b>Racks sólidos + disipación.</b> Ocho torres con seis caras cada una y <code>z-index</code> por profundidad: las de delante tapan de verdad. El calor sube por columnas que se disipan al ascender, y las luces parpadean en <code>1 / 1.5 / 3 s</code> — todos divisores del ciclo.',
+ g:()=>{ semilla(303);
+  const M = 23;
+  const T = (p,u) => rotX(rotY(p, u*6.28318), -0.26);
+  const TO = [];
+  for(let i=0;i<8;i++){
+    const a = i/8*6.283, r = 17;
+    TO.push([Math.cos(a)*r, Math.sin(a)*r, 9+ (i%3)*5, i===2]);
+  }
+  let h = '<div class="capa" style="isolation:isolate">';
+  TO.forEach(([x,z,alt,ac])=>{
+    h += caja(T, ()=>[x, 14-alt, z], [4.4, alt, 4.4],
+              ac ? [255,79,47] : [104,102,100], M);
+  });
+  h += '</div>';
+  // el calor: columnas que suben desde cada torre y se disipan
+  h += '<div class="capa">';
+  TO.forEach(([x,z,alt],ti)=>{
+    for(let k=0;k<4;k++){
+      const nom = kf(u=>{
+        const ph = (u + k*0.25 + ti*0.07)%1;
+        const p = pr(T([x + Math.sin(ph*9+ti)*2.2, 14-alt*2 - ph*17, z], u));
+        return 'transform:translate('+((p[0]-AW/2)/AW*100).toFixed(2)+'cqw,'
+             + ((p[1]-AH/2)/AH*160).toFixed(2)+'cqw) scale('+(p[3]*(1+ph*1.4)).toFixed(3)+');'
+             + 'opacity:'+((1-ph)*0.30).toFixed(3);
+      }, M);
+      h += '<div style="'+usa(nom)+'position:absolute;left:50%;top:50%;'
+         + 'width:2.4cqw;height:2.4cqw;margin:-1.2cqw 0 0 -1.2cqw;border-radius:50%;'
+         + 'background:var(--acento)"></div>';
+    }
+  });
+  h += '</div>';
+  // las luces de los racks, parpadeando en periodos distintos
+  h += '<div class="capa">';
+  TO.slice(0,6).forEach(([x,z,alt],ti)=>{
+    for(let w=0;w<3;w++){
+      const nom = kf(u=>{
+        const p = pr(T([x+4.6, 14-alt*0.5-w*alt*0.5, z], u));
+        // detras de la torre no se ve
+        const vis = Math.cos(u*6.28318 + Math.atan2(x,z)) > -0.25 ? 1 : 0;
+        return 'transform:translate('+((p[0]-AW/2)/AW*100).toFixed(2)+'cqw,'
+             + ((p[1]-AH/2)/AH*160).toFixed(2)+'cqw) scale('+p[3].toFixed(3)+');'
+             + 'opacity:'+vis;
+      }, M);
+      h += '<div class="b" style="'+usa(nom)+'animation-name:'+nom+',brilla;'
+         + 'animation-duration:var(--ciclo),'+[1,1.5,3][w]+'s;'
+         + 'animation-delay:0s,-'+(rnd()*3).toFixed(2)+'s;'
+         + 'position:absolute;left:50%;top:50%;width:.9cqw;height:.9cqw;'
+         + 'margin:-.45cqw 0 0 -.45cqw;background:var(--acento)"></div>';
+    }
+  });
+  h += '</div>';
+  return h; }},
+
+/* ══════════════════════════════════════════════════════════════════════
+   GOTA — raymarching de una esfera con refraccion falsa
+   Seis lineas de matematica dan lo que no se puede dibujar: una gota que
+   refracta el fondo. Se marcha una SDF de esfera deformada, y en el impacto
+   se desvia el rayo para muestrear una rejilla de fondo. 64 px de ancho,
+   escalado pixelated: es rapido Y es un estilo.
+   ══════════════════════════════════════════════════════════════════════ */
+{n:'GOTA', tipo:'pintor',
+ frase:'“Cada gota que sale tarda siglos en volver.”',
+ fis:'<b>Raymarching con refracción.</b> Una SDF de esfera deformada por dos senos; al impactar, el rayo se desvía según la normal y muestrea la rejilla del fondo — eso es la refracción. Fresnel en el borde y especular arriba. 64 px escalados <code>pixelated</code>.',
+ g:(id)=>{
+  const AN = 64, AL = 114, PASOS = 40, RAD = 1.15;
+  pintor(t=>{
+    const cv = document.getElementById(id); if(!cv) return;
+    const ctx = cv.getContext('2d'), img = ctx.createImageData(AN,AL), D = img.data;
+    const u = (t/CICLO)%1, w = u*6.28318;
+    // la gota cae y vuelve: parabola periodica
+    const cy = -0.5 + Math.sin(w)*0.85;
+    const ox=0, oy=0, oz=-3.6;
+    // SDF: esfera deformada, con la deformacion girando
+    const sdf=(x,y,z)=>{
+      const dx=x, dy=y-cy, dz=z;
+      const d=Math.sqrt(dx*dx+dy*dy+dz*dz);
+      const def = 0.055*Math.sin(dx*5+w*2)+0.045*Math.sin(dy*6-w*3);
+      return d - RAD - def;
+    };
+    for(let j=0;j<AL;j++){
+      const sy=(j/AL-0.44)*2.5;
+      for(let i=0;i<AN;i++){
+        const sx=(i/AN-0.5)*2.5*(AN/AL)*(AL/AN)*0.62;
+        const o=(j*AN+i)*4;
+        // rejilla de fondo: lo que se vera refractado
+        const bg=(fx,fy)=>{
+          const a=((fx*7)%1+1)%1, b=((fy*7)%1+1)%1;
+          const lin = (a<0.08||b<0.08) ? 1 : 0;
+          return lin ? [46,44,42] : [15,15,16];
+        };
+        let dx=sx, dy=sy, dz=1;
+        const m=1/Math.sqrt(dx*dx+dy*dy+1); dx*=m; dy*=m; dz*=m;
+        let d=0, hit=0, px=0,py=0,pz=0;
+        for(let k=0;k<PASOS;k++){
+          px=ox+dx*d; py=oy+dy*d; pz=oz+dz*d;
+          const q=sdf(px,py,pz);
+          if(q<0.012){ hit=1; break }
+          if(d>7) break;
+          d+=q*0.8;
+        }
+        let r,g,b;
+        if(hit){
+          const e=0.015;
+          let nx=sdf(px+e,py,pz)-sdf(px-e,py,pz);
+          let ny=sdf(px,py+e,pz)-sdf(px,py-e,pz);
+          let nz=sdf(px,py,pz+e)-sdf(px,py,pz-e);
+          const nm=1/Math.sqrt(nx*nx+ny*ny+nz*nz); nx*=nm; ny*=nm; nz*=nm;
+          // refraccion barata: desviar el muestreo del fondo con la normal
+          const c0 = bg(px + nx*0.55, py + ny*0.55);
+          const lam = Math.max(0, nx*(-0.5)+ny*(-0.62)+nz*(-0.6));
+          const fres = Math.pow(1-Math.max(0,-nz), 2.6);
+          const esp = Math.pow(Math.max(0, nx*(-0.34)+ny*(-0.52)+nz*(-0.78)), 26);
+          r = c0[0]*0.7 + lam*40 + fres*190 + esp*250;
+          g = c0[1]*0.7 + lam*20 + fres*62  + esp*250;
+          b = c0[2]*0.7 + lam*14 + fres*38  + esp*250;
+        } else {
+          const c0 = bg(sx*1.5, sy*1.5);
+          r=c0[0]; g=c0[1]; b=c0[2];
+        }
+        D[o]=Math.min(255,r)|0; D[o+1]=Math.min(255,g)|0; D[o+2]=Math.min(255,b)|0; D[o+3]=255;
+      }
+    }
+    ctx.putImageData(img,0,0);
+  });
+  return '<canvas id="'+id+'" width="'+AN+'" height="'+AL+'"></canvas>'; }},
+
+/* ══════════════════════════════════════════════════════════════════════
+   AJEDREZ — con piezas sólidas, no cilindros planos
+   La version anterior tenia el tablero bien pero las piezas eran barras.
+   Aqui cada pieza es una caja de seis caras con su z-index, asi que al
+   moverse pasa POR DELANTE de unas casillas y POR DETRAS de otras.
+   ══════════════════════════════════════════════════════════════════════ */
+{n:'AJEDREZ', tipo:'css',
+ frase:'“La partida por el agua ya empezó.”',
+ fis:'<b>Piezas sólidas sobre tablero proyectado.</b> Antes eran barras planas; ahora cada pieza es una caja de seis caras con su propio <code>z-index</code>, así que al avanzar pasa por delante de unas casillas y por detrás de otras. Eso es lo que da la profundidad.',
+ g:()=>{ semilla(505);
+  const NC = 8, TAM = 10, M = 21;
+  const T = (p,u) => rotX(rotY(p, Math.sin(u*6.28318)*0.34), 0.0);
+  let h = '<div class="capa" style="isolation:isolate">';
+  // el tablero
+  for(let f=0;f<NC;f++) for(let c=0;c<NC;c++){
+    const nom = kf(u=>{
+      const x0=(c-4)*TAM, x1=(c-3)*TAM, z0=(f-4)*TAM+16, z1=(f-3)*TAM+16;
+      const P=[T([x0,26,z0],u),T([x1,26,z0],u),T([x1,26,z1],u),T([x0,26,z1],u)];
+      const cen=(P[0][2]+P[2][2])/2;
+      const fog=cl(1-(cen+DZ-100)/130,0.24,1);
+      const l=Math.round(((f+c)%2===0?54:22)*fog+7);
+      return 'clip-path:'+poly(P.map(pr))+';background:rgb('+l+','+l+','+Math.round(l*0.96)+')';
+    }, M);
+    h += '<div style="'+usa(nom)+'position:absolute;inset:0;z-index:'+(60-f)+'"></div>';
+  }
+  // las piezas, ahora solidas
+  const PZ = [[2,5,5],[5,6,7],[3,2,6],[6,3,5],[4,4,9]];
+  PZ.forEach(([c,f,alt],i)=>{
+    const ac = i===4;
+    const pos = u => {
+      const s = u<0.5 ? 0 : (u-0.5)*2;
+      const e = s*s*(3-2*s);
+      const salto = Math.sin(e*3.1416)*3.4;
+      return [(c-3.5)*TAM, 26-alt/2-salto, (f-3.5)*TAM+16 - e*TAM];
+    };
+    h += caja(T, pos, [3.0, alt/2, 3.0], ac?[255,79,47]:[132,130,126], M);
+  });
+  h += '</div>';
+  return h; }}
+];
+
+const html = ESCENAS.map((c,i)=>`
+  <div class="cell">
+    <h3>${c.n} <span class="tipo ${c.tipo}">${c.tipo}</span></h3>
+    <p class="frase">${c.frase}</p>
+    <p class="fis">${c.fis}</p>
+    <div class="frame">
+      <div class="escena">${c.g('cv'+i)}</div>
+      <div class="pie">
+        <div class="pal a" style="animation-name:pop;animation-duration:.6s;animation-delay:.25s">${c.n}</div>
+        <div class="barra a" style="animation-name:fade;animation-duration:.6s;animation-delay:.55s"></div>
+      </div>
+      <div class="guia"></div>
+    </div>
+  </div>`).join('');
+
+const st = document.createElement('style');
+st.textContent = reglas.join('\n');
+document.head.appendChild(st);
+document.getElementById('grid').innerHTML = html;
+
+const slider = document.getElementById('t'), out = document.getElementById('tv');
+let corriendo = false, raf = 0, t0 = 0;
+function irA(t){
+  out.textContent = t.toFixed(3)+' s';
+  for(const a of document.getAnimations()){ try{ a.pause(); a.currentTime = t*1000 }catch(e){} }
+  for(const p of PINTORES) p(t);
+}
+window.irA = irA;
+function parar(){ corriendo=false; cancelAnimationFrame(raf);
+  const b=document.getElementById('play'); b.classList.remove('on'); b.textContent='Reproducir' }
+slider.addEventListener('input', ()=>{ parar(); irA(+slider.value) });
+document.getElementById('play').addEventListener('click', ()=>{
+  if(corriendo){ parar(); return }
+  corriendo = true; t0 = performance.now() - (+slider.value)*1000;
+  const b = document.getElementById('play'); b.classList.add('on'); b.textContent='Pausar';
+  const tick = ()=>{ if(!corriendo) return;
+    let t = (performance.now()-t0)/1000;
+    if(t > CICLO){ t0 = performance.now(); t = 0 }
+    slider.value = t; irA(t); raf = requestAnimationFrame(tick); };
+  raf = requestAnimationFrame(tick);
+});
+let cara = 0;
+document.getElementById('loopcheck').addEventListener('click', e=>{
+  parar(); cara ^= 1; const v = cara ? CICLO-0.001 : 0;
+  irA(v); slider.value = v;
+  e.target.textContent = cara ? 'Viendo t='+CICLO : 'Viendo t=0';
+  e.target.classList.toggle('on', !!cara);
+});
+document.getElementById('gz').addEventListener('click', e=>{
+  document.body.classList.toggle('guias');
+  e.target.classList.toggle('on', document.body.classList.contains('guias'));
+});
+document.fonts.ready.then(()=>irA(+slider.value));
+setTimeout(()=>irA(+slider.value), 90);
+</script>

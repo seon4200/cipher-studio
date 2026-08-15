@@ -1,0 +1,396 @@
+<meta charset="utf-8">
+<title>CIPHER — materia</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ciclo:6s;
+    --ui-bg:#08090F; --ui-line:#1C1F2B; --ui-ink:#EAEDF7; --ui-dim:#727A94;
+    --fondo:#0A0A0A; --sup:#131313; --texto:#FAFAFA;
+    --acento:#F0A020; --apoyo:#8C8C8C;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ui-bg);color:var(--ui-ink);font:400 14px/1.6 Inter,system-ui,sans-serif}
+  header{padding:26px 32px 18px;border-bottom:1px solid var(--ui-line)}
+  h1{margin:0;font:800 21px/1.2 Archivo,sans-serif;letter-spacing:-.02em}
+  header p{margin:8px 0 0;color:var(--ui-dim);max-width:92ch}
+  header b{color:var(--acento);font-weight:500}
+  header code{font:400 12.5px Space Mono,monospace;color:var(--ui-ink)}
+
+  .bar{position:sticky;top:0;z-index:20;background:rgba(8,9,15,.96);backdrop-filter:blur(12px);
+       border-bottom:1px solid var(--ui-line);padding:13px 32px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .bar label{color:var(--ui-dim);font:400 12px Space Mono,monospace;letter-spacing:.1em;text-transform:uppercase}
+  input[type=range]{flex:1;min-width:220px;accent-color:var(--acento)}
+  .t{font:700 15px/1 Space Mono,monospace;min-width:88px;color:var(--acento)}
+  button{background:transparent;border:1px solid var(--ui-line);color:var(--ui-ink);border-radius:6px;
+         padding:7px 14px;font:400 12.5px Space Mono,monospace;cursor:pointer}
+  button:hover{border-color:var(--acento);color:var(--acento)}
+  button.on{background:var(--acento);border-color:var(--acento);color:#0A0A0A;font-weight:700}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:28px;padding:28px 32px 60px}
+  .cell h3{margin:0 0 3px;font:600 13.5px Inter,sans-serif;display:flex;align-items:center;gap:8px}
+  .tipo{font:400 9.5px Space Mono,monospace;letter-spacing:.12em;text-transform:uppercase;
+        border:1px solid var(--ui-line);border-radius:99px;padding:2px 7px;color:var(--ui-dim)}
+  .tipo.css{color:var(--acento);border-color:rgba(240,160,32,.4)}
+  .fis{margin:0 0 9px;font-size:11px;line-height:1.55;color:var(--ui-dim)}
+  .fis b{color:var(--acento);font-weight:500}
+  .fis code{font:400 10.5px Space Mono,monospace;color:#9FB0D0}
+
+  .frame{position:relative;width:100%;aspect-ratio:9/16;overflow:hidden;border-radius:12px;
+         container-type:inline-size;border:1px solid var(--ui-line);background:var(--fondo)}
+  .escena{position:absolute;inset:0;perspective:90cqw;perspective-origin:50% 46%;z-index:1}
+  .mundo{position:absolute;inset:0;transform-style:preserve-3d}
+  .capa{position:absolute;inset:0}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated}
+
+  .pie{position:absolute;left:8.33%;right:8.33%;bottom:12%;z-index:5;text-align:center}
+  .pal{font:400 clamp(18px,13cqw,84px)/0.95 Anton,sans-serif;text-transform:uppercase;color:var(--texto)}
+  .barra{height:.8cqw;width:15cqw;border-radius:99px;background:var(--acento);margin:3.5cqw auto 0}
+
+  @keyframes brilla{0%,100%{opacity:.22}50%{opacity:1}}
+  @keyframes pop  {0%{transform:scale(.6);opacity:0}62%{transform:scale(1.05);opacity:1}100%{transform:scale(1);opacity:1}}
+  @keyframes fade {from{opacity:0}to{opacity:1}}
+  .a{animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.88,.3,1)}
+  .b{animation-fill-mode:both;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+  .lin{animation-timing-function:linear}
+</style>
+
+<header>
+  <h1>Materia — tipografía sólida, cuerda horneada, líquido y enjambre</h1>
+  <p>Cuatro técnicas que faltaban. Dos son <b>forma cerrada</b> (posición directa desde <code>t</code>),
+  una es <b>simulación horneada</b> —se simula una vez al construir la página y se vuelca a keyframes,
+  que es exactamente lo que hay que hacer cuando la física no tiene fórmula— y otra es un
+  <b>pintor</b> por píxel. Todo cierra en <code>6 s</code> y todo es función pura de <code>t</code>.</p>
+</header>
+
+<div class="bar">
+  <label for="t">t</label>
+  <input id="t" type="range" min="0" max="6" step="0.02083" value="1.5">
+  <span class="t" id="tv">1.500 s</span>
+  <button id="play">Reproducir</button>
+  <button id="loopcheck">Verificar bucle</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const CICLO = 6;
+const R = (n,f)=>[...Array(n)].map((_,i)=>f(i)).join('');
+let _s = 20260814;
+const rnd = ()=>(_s=_s*16807%2147483647)/2147483647;
+const semilla = s=>{_s=s};
+const cl = (v,a,b)=>v<a?a:(v>b?b:v);
+
+/* ── MOTOR 1: keyframes generados desde una funcion de u ─────────────── */
+let _k = 0;
+const reglas = [];
+function kf(fn, muestras){
+  const M = muestras || 33, nom = 'm'+(_k++);
+  let c = '';
+  for(let i=0;i<M;i++){ const u = i/(M-1); c += (u*100).toFixed(3)+'%{'+fn(u)+'}'; }
+  reglas.push('@keyframes '+nom+'{'+c+'}');
+  return nom;
+}
+/* Variante para datos YA horneados. Repite la muestra 0 al 100%: asi el
+   bucle cierra por construccion aunque la simulacion no haya convergido
+   del todo. El residuo se ve como un microsalto, no como un corte. */
+function kfLista(arr){
+  const nom = 'm'+(_k++);
+  let c = '';
+  for(let i=0;i<arr.length;i++) c += (i/arr.length*100).toFixed(3)+'%{'+arr[i]+'}';
+  c += '100%{'+arr[0]+'}';
+  reglas.push('@keyframes '+nom+'{'+c+'}');
+  return nom;
+}
+const usa = n => 'animation:'+n+' var(--ciclo) linear infinite both;';
+
+/* ── MOTOR 2: pintores, para lo que no cabe en keyframes ─────────────── */
+const PINTORES = [];
+const pintor = f => PINTORES.push(f);
+
+const ESCENAS = [
+
+/* ══════════════════════════════════════════════════════════════════════
+   TIPO — tipografia extruida
+   El titulo es lo mas plano de cualquier clip: texto en un plano, encima de
+   todo. Aqui cada letra es una PILA de 26 copias separadas en Z, con la
+   cara frontal blanca y el lateral degradando a negro. Eso ya es tipografia
+   3D de verdad, sin WebGL y sin un solo poligono.
+   Y cada letra gira con su propia fase: la ola recorre la palabra.
+   ══════════════════════════════════════════════════════════════════════ */
+{n:'TIPO', tipo:'css', sinPie:1,
+ fis:'<b>Tipografía extruida.</b> Cada letra es una pila de 26 copias en <code>translateZ</code>: cara frontal blanca, lateral degradando a negro. Cada letra gira con su propia fase, así que la ola recorre la palabra. Esto sustituye al título plano de cualquier clip.',
+ g:()=>{
+  const L = 'CIPHER'.split(''), CAP = 24, PASO = 0.6;
+  let h = '<div class="mundo" style="transform:rotateX(-8deg)">';
+  // resplandor detras: separa la palabra del fondo sin tocarla
+  h += '<div class="b" style="animation-name:brilla;animation-duration:3s;'
+     + 'position:absolute;left:50%;top:44%;width:80cqw;height:44cqw;margin:-22cqw 0 0 -40cqw;'
+     + 'transform:translateZ(-16cqw);'
+     + 'background:radial-gradient(ellipse 50% 50% at 50% 50%,rgba(240,160,32,.15),transparent 72%)"></div>';
+  L.forEach((c,i)=>{
+    const x = -30.5 + i*12.2;
+    // fase propia por letra. sin() de u sigue siendo periodico en u: cierra.
+    const nom = kf(u=>'transform:rotateY('
+      + (Math.sin((u + i*0.07)*6.28318)*33).toFixed(2)+'deg)', 33);
+    h += '<div style="position:absolute;left:50%;top:44%;transform:translateX('+x+'cqw);'
+       + 'transform-style:preserve-3d">'
+       + '<div style="'+usa(nom)+'position:absolute;left:0;top:0;width:0;height:0;'
+       + 'transform-style:preserve-3d">';
+    for(let j=0;j<CAP;j++){
+      // j=0 es la cara frontal. El bisel ambar en las primeras capas es lo
+      // que hace que se lea como metal y no como texto duplicado.
+      let col;
+      if(j===0) col = '#FAFAFA';
+      else if(j===CAP-1) col = '#8a5a12';             // apenas un canto al fondo
+      else { const b = Math.pow(1-(j-1)/(CAP-2), 1.6);
+             col = 'rgb('+Math.round(14+b*92)+','+Math.round(14+b*88)+','
+                  +Math.round(14+b*80)+')'; }
+      h += '<div style="position:absolute;left:0;top:0;white-space:nowrap;'
+         + 'font:400 17cqw/1 Anton,sans-serif;color:'+col+';'
+         + 'transform:translate(-50%,-50%) translateZ('+(5.5-j*PASO).toFixed(2)+'cqw)">'+c+'</div>';
+    }
+    h += '</div></div>';
+  });
+  h += '<div style="position:absolute;left:50%;top:60%;width:18cqw;height:.9cqw;'
+     + 'margin-left:-9cqw;background:var(--acento)"></div>';
+  h += '</div>';
+  return h; }},
+
+/* ══════════════════════════════════════════════════════════════════════
+   CUERDA — Verlet HORNEADO
+   Una cuerda no tiene formula cerrada: hay que simularla. Y una simulacion
+   no se puede correr durante el render, porque el render pide t=4.2 antes
+   que t=0.3. Solucion: simular UNA VEZ al construir la pagina, con paso
+   fijo, guardar las posiciones de cada muestra y volcarlas a @keyframes.
+   A partir de ahi es una tabla: coste cero por frame y determinismo total.
+   Para que el bucle cierre se dan 6 ciclos de calentamiento y se graba el
+   septimo, cuando el transitorio ya se ha amortiguado.
+   ══════════════════════════════════════════════════════════════════════ */
+{n:'CUERDA', tipo:'horneado',
+ fis:'<b>Verlet horneado.</b> Una cuerda no tiene fórmula cerrada. Se simula <b>una vez</b> al construir la página con paso fijo y se vuelca a keyframes: a partir de ahí es una tabla, coste cero por frame. 6 ciclos de calentamiento para que el bucle cierre.',
+ g:()=>{
+  const CUER = 3, N = 16, SEG = 2.9, MU = 48;
+  const PASOS = MU*22, DT = CICLO/PASOS, G = 210, AMORT = 0.9985, ITER = 10;
+  const RES = [];                                   // [cuerda][muestra][punto]
+  let residuo = 0;
+  for(let c=0;c<CUER;c++){
+    const fase = c/CUER, RAD = 6.0 + c*2.8;
+    // el ancla orbita: una vuelta por ciclo -> el motor es periodico
+    const ancla = paso => { const a = (paso/PASOS*2 + fase)*6.28318;
+      return [Math.cos(a)*RAD, -34, Math.sin(a)*RAD]; };
+    const x=[], y=[], z=[], px=[], py=[], pz=[];
+    for(let i=0;i<N;i++){ x[i]=0; y[i]=-34+i*SEG; z[i]=0; px[i]=x[i]; py[i]=y[i]; pz[i]=z[i]; }
+    const muestras = [];
+    const GDT = G*DT*DT;
+    for(let s=0;s<=PASOS*7;s++){
+      const paso = s%PASOS;
+      // integracion de Verlet: la velocidad esta implicita en la posicion previa
+      for(let i=1;i<N;i++){
+        const vx=(x[i]-px[i])*AMORT, vy=(y[i]-py[i])*AMORT, vz=(z[i]-pz[i])*AMORT;
+        px[i]=x[i]; py[i]=y[i]; pz[i]=z[i];
+        x[i]+=vx; y[i]+=vy+GDT; z[i]+=vz;
+      }
+      // restricciones de distancia, relajadas por iteracion
+      for(let k=0;k<ITER;k++){
+        const A = ancla(paso); x[0]=A[0]; y[0]=A[1]; z[0]=A[2];
+        for(let i=0;i<N-1;i++){
+          const dx=x[i+1]-x[i], dy=y[i+1]-y[i], dz=z[i+1]-z[i];
+          const d=Math.sqrt(dx*dx+dy*dy+dz*dz)||1e-6;
+          const f=(d-SEG)/d*0.5;
+          const ax=dx*f, ay=dy*f, az=dz*f;
+          if(i>0){ x[i]+=ax; y[i]+=ay; z[i]+=az; }
+          else   { x[i+1]-=ax*2; y[i+1]-=ay*2; z[i+1]-=az*2; continue; }
+          x[i+1]-=ax; y[i+1]-=ay; z[i+1]-=az;
+        }
+      }
+      // grabar solo el ultimo ciclo, ya sin transitorio
+      // se graba el 7o ciclo, mas UNA muestra de cierre en el mismo instante
+      // de fase que la primera: esa es la que mide la deriva de verdad.
+      if(s>=PASOS*6 && (s-PASOS*6)%22===0) muestras.push(x.map((_,i)=>[x[i],y[i],z[i]]));
+    }
+    // cuanto se ha movido el estado entre el principio y el final del ciclo
+    const a0=muestras[0], cierre=muestras.pop();      // la de cierre no se dibuja
+    for(let i=0;i<N;i++) residuo = Math.max(residuo,
+      Math.hypot(cierre[i][0]-a0[i][0], cierre[i][1]-a0[i][1], cierre[i][2]-a0[i][2]));
+    RES.push(muestras);
+  }
+  window.__residuo = residuo;
+  let h = '<div class="mundo" style="transform:rotateX(-6deg)">';
+  for(let c=0;c<CUER;c++){
+    for(let i=0;i<N;i++){
+      const arr = RES[c].map(m=>{
+        const p = m[i];
+        // la escala y la opacidad hacen de niebla: lo que se va al fondo se apaga
+        const prof = cl((p[2]+22)/44, 0, 1);
+        return 'transform:translate3d('+p[0].toFixed(2)+'cqw,'+p[1].toFixed(2)+'cqw,'
+             + p[2].toFixed(2)+'cqw) scale('+(0.72+0.5*prof).toFixed(3)+');'
+             + 'opacity:'+(0.46+0.5*prof).toFixed(3);
+      });
+      const nom = kfLista(arr);
+      const fin = i===N-1, tam = fin ? 5.2 : (1.5+i*0.16);
+      h += '<div style="'+usa(nom)+'position:absolute;left:50%;top:46%;'
+         + 'width:'+tam.toFixed(1)+'cqw;height:'+tam.toFixed(1)+'cqw;'
+         + 'margin:-'+(tam/2).toFixed(2)+'cqw 0 0 -'+(tam/2).toFixed(2)+'cqw;border-radius:50%;'
+         + 'background:var(--'+(fin?'acento':(c===1?'texto':'apoyo'))+')"></div>';
+    }
+  }
+  h += '</div>';
+  return h; }},
+
+/* ══════════════════════════════════════════════════════════════════════
+   LIQUIDO — metaballs con normal falsa
+   El campo escalar sum(r²/d²) es un truco viejisimo: donde dos fuentes se
+   acercan, sus campos se suman y la isolinea 1 las funde en una sola gota.
+   Lo que lo convierte en 3D es tratar el campo como un MAPA DE ALTURA:
+   la normal sale del gradiente del campo, y con esa normal se hace Lambert
+   y un especular. De ahi el aspecto de mercurio. Nunca hubo geometria.
+   ══════════════════════════════════════════════════════════════════════ */
+{n:'LIQUIDO', tipo:'pintor',
+ fis:'<b>Metaballs + normal desde el gradiente.</b> Donde dos fuentes se acercan sus campos se suman y la isolínea las funde. El volumen sale de tratar el campo como mapa de altura: la <b>normal es el gradiente</b>, y con eso hay Lambert y especular. Nunca hubo geometría.',
+ g:(id)=>{
+  const AN = 120, AL = 213, NB = 7;
+  semilla(707);
+  // cada fuente recorre una elipse con un numero ENTERO de vueltas por
+  // ciclo: por eso el bucle cierra sin ajustar nada
+  const B = [...Array(NB)].map((_,i)=>({
+    ax: 11+rnd()*19, ay: 18+rnd()*30, vx: 1+Math.floor(rnd()*3), vy: 1+Math.floor(rnd()*3),
+    fx: rnd(), fy: rnd(), r: 9+rnd()*7, cy: 84+rnd()*24
+  }));
+  const LX=-0.46, LY=-0.58, LZ=0.67;                 // luz arriba-izquierda
+  const HX=-0.30, HY=-0.38, HZ=0.87;                 // vector medio, para el especular
+  pintor(t=>{
+    const cv = document.getElementById(id); if(!cv) return;
+    const ctx = cv.getContext('2d'), img = ctx.createImageData(AN,AL), D = img.data;
+    const u=(t/CICLO)%1, w=6.28318*u;
+    const bx=[],by=[],br=[];
+    for(let k=0;k<NB;k++){ const b=B[k];
+      bx[k]=60+Math.cos((b.vx*u+b.fx)*6.28318)*b.ax;
+      by[k]=b.cy+Math.sin((b.vy*u+b.fy)*6.28318)*b.ay;
+      br[k]=b.r*b.r*(1+0.22*Math.sin(w*2+k));        // laten un poco
+    }
+    const campo=(x,y)=>{ let f=0;
+      for(let k=0;k<NB;k++){ const dx=x-bx[k], dy=y-by[k];
+        f+=br[k]/(dx*dx+dy*dy+2); }
+      return f; };
+    for(let j=0;j<AL;j++) for(let i=0;i<AN;i++){
+      const F=campo(i,j), o=(j*AN+i)*4;
+      let r,g,b2;
+      if(F<0.94){ r=10; g=10; b2=10; }                // fuera
+      else if(F<1.04){ r=240; g=160; b2=32; }         // la isolinea, en ambar
+      else{
+        const e=1.3;
+        // el gradiente del campo hace de normal: eso es todo el volumen
+        let nx=-(campo(i+e,j)-campo(i-e,j))*3.4;
+        let ny=-(campo(i,j+e)-campo(i,j-e))*3.4;
+        let nz=1; const m=1/Math.sqrt(nx*nx+ny*ny+1); nx*=m; ny*=m; nz=m;
+        let lam=nx*LX+ny*LY+nz*LZ; if(lam<0) lam=0;
+        // luz de relleno desde el lado opuesto: sin ella los valles entre
+        // bolas quedan planos y parecen agujeros, no pliegues
+        let rel=nx*0.50+ny*0.55+nz*0.67; if(rel<0) rel=0;
+        let esp=nx*HX+ny*HY+nz*HZ; if(esp<0) esp=0;
+        esp=Math.pow(esp,34);
+        const sh=cl(0.13+0.62*lam+0.24*rel+0.95*esp, 0, 1);
+        r=Math.round(16+sh*234); g=Math.round(16+sh*228); b2=Math.round(16+sh*214);
+      }
+      D[o]=r; D[o+1]=g; D[o+2]=b2; D[o+3]=255;
+    }
+    ctx.putImageData(img,0,0);
+  });
+  return '<canvas id="'+id+'" width="'+AN+'" height="'+AL+'"></canvas>'; }},
+
+/* ══════════════════════════════════════════════════════════════════════
+   ENJAMBRE — el caos que se convierte en forma
+   Truco: NO es una simulacion de atraccion. Cada particula tiene dos
+   posiciones, ambas cerradas en t: una de caos (tres senos con frecuencias
+   enteras) y una de destino (un punto del nudo toroidal). La escena es
+   simplemente la interpolacion entre ambas, con la mezcla subiendo y
+   bajando una vez por ciclo. Coste O(1) y bucle exacto por construccion.
+   ══════════════════════════════════════════════════════════════════════ */
+{n:'ENJAMBRE', tipo:'css',
+ fis:'<b>Interpolación, no simulación.</b> Cada partícula tiene una posición de caos (tres senos de frecuencia entera) y un destino en un nudo toroidal, ambas cerradas en <code>t</code>. La escena es el <code>lerp</code> entre las dos. Coste O(1) y bucle exacto.',
+ g:()=>{ semilla(808);
+  const NP = 108;
+  // nudo toroidal p=2 q=3: una linea que se anuda consigo misma
+  const nudo = s => { const a=s*6.28318, r=(2+Math.cos(3*a))*9.6;
+    return [r*Math.cos(2*a), Math.sin(3*a)*14, r*Math.sin(2*a)]; };
+  let h = '<div class="mundo" style="transform:rotateX(-14deg)">';
+  for(let i=0;i<NP;i++){
+    const d = nudo(i/NP);
+    const A = [22+rnd()*20, 26+rnd()*20, 22+rnd()*20];
+    const V = [1+Math.floor(rnd()*3), 1+Math.floor(rnd()*3), 1+Math.floor(rnd()*3)];
+    const P = [rnd(), rnd(), rnd()];
+    const ac = i%6===0;
+    const nom = kf(u=>{
+      // mezcla: 0 en los extremos del ciclo, meseta en el centro
+      let m = 0.5-0.5*Math.cos(6.28318*u); m = m*m*(3-2*m); m = m<1 ? m*1.4 : 1;
+      if(m>1) m=1;
+      const g = u*6.28318;                              // el nudo gira una vuelta
+      const cx=Math.sin((V[0]*u+P[0])*6.28318)*A[0];
+      const cy=Math.sin((V[1]*u+P[1])*6.28318)*A[1];
+      const cz=Math.sin((V[2]*u+P[2])*6.28318)*A[2];
+      const dx=d[0]*Math.cos(g)+d[2]*Math.sin(g);       // rotacion en Y del destino
+      const dz=-d[0]*Math.sin(g)+d[2]*Math.cos(g);
+      const x=cx+(dx-cx)*m, y=cy+(d[1]-cy)*m, z=cz+(dz-cz)*m;
+      const prof=cl((z+26)/52,0,1);
+      return 'transform:translate3d('+x.toFixed(2)+'cqw,'+y.toFixed(2)+'cqw,'+z.toFixed(2)+'cqw) '
+           + 'scale('+(0.6+0.9*prof).toFixed(3)+');'
+           + 'opacity:'+(0.22+0.74*prof).toFixed(3);
+    }, 41);
+    h += '<div style="'+usa(nom)+'position:absolute;left:50%;top:44%;'
+       + 'width:'+(ac?2.6:1.7)+'cqw;height:'+(ac?2.6:1.7)+'cqw;margin:-1.1cqw 0 0 -1.1cqw;'
+       + 'border-radius:50%;background:var(--'+(ac?'acento':'apoyo')+')"></div>';
+  }
+  h += '</div>';
+  return h; }}
+];
+
+/* ── Montaje ────────────────────────────────────────────────────────── */
+document.getElementById('grid').innerHTML = ESCENAS.map((c,i)=>`
+  <div class="cell">
+    <h3>${c.n} <span class="tipo ${c.tipo}">${c.tipo}</span></h3>
+    <p class="fis">${c.fis}</p>
+    <div class="frame">
+      <div class="escena">${c.g('lz'+i)}</div>
+      ${c.sinPie?'':`<div class="pie">
+        <div class="pal a" style="animation-name:pop;animation-duration:.7s;animation-delay:.3s">${c.n}</div>
+        <div class="barra a" style="animation-name:fade;animation-duration:.7s;animation-delay:.7s"></div>
+      </div>`}
+    </div>
+  </div>`).join('');
+
+const st = document.createElement('style');
+st.textContent = reglas.join('\n');
+document.head.appendChild(st);
+
+const slider = document.getElementById('t'), out = document.getElementById('tv');
+let corriendo = false, raf = 0, t0 = 0;
+function irA(t){
+  out.textContent = t.toFixed(3)+' s';
+  for(const a of document.getAnimations()){ try{ a.pause(); a.currentTime = t*1000 }catch(e){} }
+  for(const p of PINTORES){ try{ p(t) }catch(e){ console.warn(e) } }
+}
+window.irA = irA;
+function parar(){ corriendo=false; cancelAnimationFrame(raf);
+  const b=document.getElementById('play'); b.classList.remove('on'); b.textContent='Reproducir'; }
+slider.addEventListener('input', ()=>{ parar(); irA(+slider.value) });
+document.getElementById('play').addEventListener('click', ()=>{
+  if(corriendo){ parar(); return }
+  corriendo=true; t0=performance.now()-(+slider.value)*1000;
+  const b=document.getElementById('play'); b.classList.add('on'); b.textContent='Pausar';
+  const tick=()=>{ if(!corriendo) return;
+    let t=(performance.now()-t0)/1000;
+    if(t>CICLO){ t0=performance.now(); t=0 }
+    slider.value=t; irA(t); raf=requestAnimationFrame(tick); };
+  raf=requestAnimationFrame(tick);
+});
+let cara=0;
+document.getElementById('loopcheck').addEventListener('click', e=>{
+  parar(); cara^=1; const t=cara?CICLO-0.001:0; irA(t); slider.value=t;
+  e.target.textContent = cara?'Viendo t=6':'Viendo t=0';
+  e.target.classList.toggle('on', !!cara);
+});
+document.fonts.ready.then(()=>irA(+slider.value));
+setTimeout(()=>irA(+slider.value), 90);
+</script>
