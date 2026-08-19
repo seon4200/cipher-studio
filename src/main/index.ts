@@ -10,11 +10,23 @@ import { fal } from '@fal-ai/client'
 // Re-exportado ademas de importado para que tests/reparto.js alcance la implementacion REAL
 // desde el bundle: una prueba que reimplementara el reparto probaria su copia, no el reparto.
 import { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../shared/reparto'
-import { palabraDelTramo, tieneSignificado } from '../shared/palabra'
+import { palabraDelTramo, tieneSignificado, recortarPuntuacion,
+  PALABRAS_VACIAS, hayTiemposPorPalabra } from '../shared/palabra'
+// Se re-exportan para que la suite pueda ejercitarlas sobre el BUNDLE COMPILADO en vez de
+// reimplementarlas: una prueba que copiara la regla probaria su copia.
+export { palabraDelTramo, tieneSignificado, recortarPuntuacion, PALABRAS_VACIAS,
+  hayTiemposPorPalabra }
 // Re-exportado para que tests/exclusion.js alcance la implementacion REAL desde el bundle.
 import { excluirSobreVisuales, solapa, SOLAPE_MINIMO_S,
   colocarYFiltrarTarjetas, avisoDeExclusion } from '../shared/exclusion'
 export { excluirSobreVisuales, solapa, SOLAPE_MINIMO_S, colocarYFiltrarTarjetas, avisoDeExclusion }
+import { fraccion, esLegal, divisoresDe, comprobarCiclo, ajustar, cicloValido,
+  TOLERANCIA_S } from '../shared/ciclo'
+export { fraccion, esLegal, divisoresDe, comprobarCiclo, ajustar, cicloValido, TOLERANCIA_S }
+import { semillaDe, generador, entre, entero } from '../shared/semilla'
+export { semillaDe, generador, entre, entero }
+import { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA } from '../shared/conceptos'
+export { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA }
 import { recortarTexto } from '../shared/texto'
 export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
 
@@ -956,7 +968,24 @@ const canonizar = (v: any): string => {
 // diseño deja el hash IDENTICO: la cache devuelve el MOV viejo, el log dice ACIERTO y el export
 // dice "39 de 39". Todo verde con el diseño antiguo. Es el peor modo de fallo que hay, porque
 // el sistema afirma activamente que ha funcionado.
-const VERSION_PLANTILLAS = 1;
+// 4 — la palabra del Visual sale SIN la puntuacion de los bordes. Antes se pintaba
+// "fallecidos." con el punto y "maneras," con la coma: 9 de 37 (24%) medido. Cambia lo que se
+// ve en el 24% de los Visuales, asi que los .mp4 de la version 3 ya no valen.
+//
+// 3 — la semilla sale de la PALABRA, asi que cada Visual tiene su propia disposicion: cambian
+// las capas, el ancho, la amplitud del vaiven y el cabeceo. Ademas la escena se ajusta hacia
+// mas autoridad: fuera el anillo de chispas, y el vaiven baja de +-52 grados a la banda 22-30.
+// Todo lo ya renderizado cambia de pixeles, asi que sin subir esto la cache devolveria los
+// .mov de la version anterior diciendo ACIERTO.
+//
+// 2 — entra el registro de composiciones. AnimatedGraphic tiene ahora una rama nueva en modo
+// pantalla: si el `type` nombra una composicion registrada, se pinta esa en vez del Visual de
+// texto. Los .mov de `visual_texto` ya renderizados siguen siendo correctos byte a byte, pero
+// sin subir esto el hash de un Visual seria identico al de antes y la cache devolveria el
+// fichero viejo diciendo ACIERTO: se veria exactamente lo mismo y pareceria que la composicion
+// no funciona. Es el modo de fallo que esta constante existe para evitar, y cuesta re-renderizar
+// lo que haya en cache (~2.7 s por grafico).
+const VERSION_PLANTILLAS = 4;
 
 // EL FORMATO LO DECIDE EL MODO, y se dice AQUI una sola vez. Las tres cosas —codec, pix_fmt y
 // extension— tienen que ir juntas o el fichero sale mintiendo sobre si mismo: un .mp4 con
@@ -1183,9 +1212,26 @@ export async function renderGraphicClip(
 
   try {
     const v = await obtenerVentanaGraficos(ancho, alto);
+    // `duracion` viaja a la pagina: es el CICLO, y de el derivan todas las duraciones de
+    // animacion de una composicion. Ya estaba en la clave del hash desde el principio, asi que
+    // dos Visuales con el mismo texto y distinta duracion ya eran ficheros distintos: pasarla
+    // no cambia la cache ni invalida nada de lo renderizado.
     await v.webContents.executeJavaScript(
       `window.__montar(${JSON.stringify(graphicData)}, ` +
-      `${JSON.stringify({ ancho, alto, modo })})`);
+      `${JSON.stringify({ ancho, alto, modo, duracion })})`);
+
+    // EL CANDADO DEL CICLO, recogido AQUI y no en la consola de la pagina. Esta ventana es
+    // offscreen y su consola no la abre nadie: un console.warn ahi seria un aviso que nadie
+    // puede leer. Medido en este mismo repo — un console.log puesto en el renderer para
+    // diagnosticar la colocacion de las tarjetas nunca llego a generation-debug.log.
+    // Cuesta un executeJavaScript (~1 ms) contra los ~2700 ms que cuesta el render.
+    try {
+      const avisos: string[] = await v.webContents.executeJavaScript(
+        `(window.__avisosCiclo || [])`);
+      for (const a of avisos) {
+        await writeDebugLog(`[GRAFICO] CICLO: ${a}`);
+      }
+    } catch (e) { /* si no se pueden leer, no se bloquea el render por ello */ }
 
     // Que el bitmap mida lo pedido NO se da por hecho: es exactamente el fallo silencioso
     // que se midio. Si no cuadra se aborta antes de escribir un MOV cortado.
@@ -3688,7 +3734,16 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
 
 
-      const BATCH_SIZE = 25;
+      // 12 y no 25, por el TRUNCADO. Con `max_tokens: 8000` y solo keyword+timestamp la salida
+      // de un proyecto de 107 sub-clips son ~1804 tokens: margen de 4.4x. Añadir tres conceptos
+      // por sub-clip la sube a ~5503 y el margen cae a 1.45x — con un video del doble de frases
+      // se toca el techo.
+      //
+      // Y un lote truncado NO se degrada: se pierde ENTERO. El propio codigo lo dice mas abajo:
+      // "AVISO: respuesta truncada (finish_reason=length). El lote se perdera y esas frases
+      // caeran a original". Con 25 se perderian 25 frases de golpe; con 12, doce.
+      // El precio es el doble de llamadas, que a este tamaño es ruido frente a perder un lote.
+      const BATCH_SIZE = 12;
       let phrasesDecision: any[] = [];
       let graphicsDecision: any[] = [];
 
@@ -3728,16 +3783,42 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             ' con "type":"ia" y dales ademas un prompt descriptivo en ingles. El resto NO lleva campo type.\n'
           : 'NO asignes tipos de clip. Eso se decide despues; tu unica tarea es describir cada sub-clip.\n';
 
+        // LOS CONCEPTOS son para los Visuales, y se piden AQUI y no en una segunda llamada por
+        // dos razones. La barata: ahorrar la segunda llamada son ~2400 tokens, menos de una
+        // milesima de dolar, a cambio de otro punto de fallo y ~14 s de espera por lote. La que
+        // de verdad decide: aqui DeepSeek tiene delante el keyword que acaba de escribir para
+        // ese mismo trozo, asi que los conceptos salen coherentes con el. Pedidos aparte serian
+        // a ciegas.
+        //
+        // Se piden para TODOS los sub-clips aunque solo los Visuales los usen —hoy el 32%—
+        // porque cuando esta llamada ocurre la cuota TODAVIA no ha decidido quien es Visual:
+        // los tipos se asignan despues, en codigo. Se tira el 68% a proposito.
+        const lineaConceptos =
+          '- conceptos: EXACTAMENTE 3, en el orden en que aparecen en el trozo. Cada uno con:\n' +
+          '    emoji: UNO solo, concreto, que se pueda dibujar. Nunca banderas ni caras.\n' +
+          '    etiqueta: 1 o 2 palabras en español. Nunca 3.\n' +
+          '  Los conceptos son las cosas CONCRETAS de las que habla ese trozo, no ideas\n' +
+          '  abstractas: "represa", "sequia", "cultivo", "puente" SI; "impacto", "sistema",\n' +
+          '  "consecuencias", "decision" NO. Si no se pueden dibujar, no valen.\n';
+
         const batchPrompt = 'Eres un editor de video experto.\n' +
           'Para cada frase decide como ilustrarla visualmente. Si dura mas de 4.0s divide en 2-3 sub-clips (maximo 3.0s cada uno).\n' +
-          'Para CADA sub-clip da SIEMPRE estos dos campos:\n' +
+          'Para CADA sub-clip da SIEMPRE estos tres campos:\n' +
           '- keyword: en ingles, corta y concreta, algo filmable que ilustre ESE trozo. Nunca abstracta: evita palabras como "consequences", "awareness" o "meaning".\n' +
           '- timestamp: el segundo del video original (0-' + Number(maxTsVal).toFixed(1) + ') que mejor acompana ese trozo.\n' +
+          lineaConceptos +
           lineaTipos +
           'FRASES:\n' + batchFragmentos + '\n' +
           'Responde SOLO JSON:\n' +
-          '{"phrases":[{"phraseIndex":' + (batchStart+1) + ',"visualClips":[{"keyword":"protest march","timestamp":12.3,"duration":2.5}]},' +
-          '{"phraseIndex":' + (batchStart+2) + ',"visualClips":[{"keyword":"empty stadium","timestamp":45.0,"duration":2.5}]}]}';
+          // EL FORMATO VA SIN EMOJIS CONCRETOS, y no es un descuido de redaccion. El unico
+          // ejemplo del FORMATO del prompt de graficos es `decorativo_emoji`, y es la causa
+          // MEDIDA de que ese tipo salga el 78.8% de las veces sobre 250 graficos reales: el
+          // modelo copia el ejemplo. Poner aqui tres emojis concretos los anclaria igual.
+          // Se describe la forma con marcadores y se deja que el modelo elija el contenido.
+          '{"phrases":[{"phraseIndex":' + (batchStart+1) + ',"visualClips":[{"keyword":"protest march","timestamp":12.3,"duration":2.5,' +
+          '"conceptos":[{"emoji":"<emoji1>","etiqueta":"<Palabra1>"},{"emoji":"<emoji2>","etiqueta":"<Palabra2>"},{"emoji":"<emoji3>","etiqueta":"<Palabra3>"}]}]},' +
+          '{"phraseIndex":' + (batchStart+2) + ',"visualClips":[{"keyword":"empty stadium","timestamp":45.0,"duration":2.5,' +
+          '"conceptos":[{"emoji":"<emoji1>","etiqueta":"<Palabra1>"},{"emoji":"<emoji2>","etiqueta":"<Palabra2>"},{"emoji":"<emoji3>","etiqueta":"<Palabra3>"}]}]}]}';
 
         try {
           await logMessage('[FASE 2] Lote ' + Math.ceil((batchStart+1)/BATCH_SIZE) + 
@@ -3833,7 +3914,12 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             timestamp: effectiveTimestamp,
             keyword: c.keyword || 'broll',
             prompt: c.prompt || 'cinematic video clip',
-            duration: parseFloat((c.duration || (phraseDuration / numClipsExpected)).toFixed(2))
+            duration: parseFloat((c.duration || (phraseDuration / numClipsExpected)).toFixed(2)),
+            // AÑADIDO A MANO, y tiene que estarlo: este `map` PROYECTA, no copia. Lo que no se
+            // nombre aqui, DeepSeek lo devuelve y el codigo lo tira sin error y sin log — el
+            // mismo "lo que no se añade a mano queda fuera por construccion" del hash, que alli
+            // protege y aqui jugaria en contra.
+            conceptos: sanearConceptos(c.conceptos)
           };
         });
 
@@ -4213,6 +4299,17 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     // selector, por el mismo camino que iaStyle: estado en main.tsx -> parametro de
     // generateTimelineAssets -> aqui. Esto es fontaneria; el selector va con la interfaz.
     const SISTEMA_VISUAL = 'voltaje';
+    // TEMPORAL, igual que el de arriba: la composicion va fija. El tipo decide QUE se pinta
+    // —AnimatedGraphic busca en el registro quitandole el prefijo `visual_`— y hasta ahora
+    // estaba cableado a 'visual_texto', asi que por muchas composiciones que se registraran
+    // NUNCA se habria pintado ninguna: se habria generado, se habria visto texto plano, y
+    // pareceria que el registro no funciona.
+    //
+    // Quien deberia elegirla es el guion, no esta constante: una frase sobre una represa pide
+    // otra cosa que una sobre un desierto (regla 12 del manual — solo palabras con imagen). Eso
+    // es una decision de producto que no esta tomada, y meterla en el prompt de DeepSeek es lo
+    // que ya colapso el reparto una vez. Mientras tanto, fija y en un solo sitio.
+    const COMPOSICION_VISUAL = 'visual_extrusion';
     const visuales = clipsDecision.filter((c: any) => c.type === 'visual');
     if (visuales.length) {
       // La palabra se elige AQUI y no en el componente: entra en graphicData y por tanto en la
@@ -4240,7 +4337,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       if (aRenderizar.length) {
         const resVis = await renderGraphicClipsLote(
           aRenderizar.map(x => ({
-            graphicData: { type: 'visual_texto', value: recortarTexto(x.palabra) },
+            graphicData: { type: COMPOSICION_VISUAL, value: recortarTexto(x.palabra) },
             duracion: x.item.duration
           })),
           { aspectRatio, fps: 30, modo: 'pantalla', sistema: SISTEMA_VISUAL },

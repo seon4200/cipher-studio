@@ -737,3 +737,261 @@ decirlo**: hay un comentario en el propio `graphicsPercent: 0` y otro sobre su
 `colocarYFiltrarTarjetas` como los otros dos, y no su `excluirSobreVisuales` a pelo: hoy no lo
 necesita porque sus tarjetas llegan ya colocadas de FASE 2 y sin paso de emparejamiento, pero eso
 es cierto **solo mientras el camino esté muerto**.
+
+---
+
+# 🖌️ LOS PINTORES NO FUNCIONAN, Y EL RENDER LO DARÍA POR BUENO
+
+**Anotado el 15 de agosto de 2026, al preparar la entrada de las composiciones de
+`docs/motion`. Sin arreglar: queda fuera del alcance de ese cambio.**
+
+De los cuatro motores del sistema de motion, el **motor 2 — pintores** no tiene por dónde
+entrar. Un pintor es una función `(t) => void` que dibuja en un `<canvas>`, y hoy `__setT` solo
+renderiza React:
+
+```js
+;(window as any).__setT = (t: number) => {
+  const v = Math.round((t * 30) % 255)
+  sonda.style.background = `rgb(${v},${v},${v})`
+  pintar(t)                      // ← solo React. Ningun canvas se entera.
+}
+```
+
+`AnimatedGraphic` posiciona animaciones con `getAnimations({subtree:true})`, que sirve para
+animaciones **CSS**. Un canvas no tiene animaciones que posicionar: hay que **volver a
+dibujarlo**, y nadie lo pide.
+
+## Lo grave no es que no funcione: es cómo falla
+
+**El canvas se quedaría en blanco y el render lo daría por bueno.** El lazo cerrado de la sonda
+comprueba que el frame capturado corresponde al `t` que se fijó — y un canvas vacío en el frame
+correcto **pasa esa comprobación**. `verificarTiempos` cuenta pts. El test de gráficos comprueba
+que los frames son **distintos entre sí**, y lo serían: el pie y el fondo del sistema sí se
+animan.
+
+Así que saldría un MOV válido, con su hash, contando como ACIERTO de caché para siempre, con un
+agujero negro donde debía estar la escena. Es el mismo patrón que ya mordió con el contador
+congelado en 58: **un fallo que pasa todas las comprobaciones porque ninguna sabe qué esperaba
+ver**.
+
+## Cuánto descarta
+
+**12 de las 29 escenas de `docs/motion` son pintores — el 41%.** Entre ellas están las que
+justifican el motor: `RELIEVE`, `GIROIDE`, `LIQUIDO`, `ACUÍFERO` y `GOTA`. Todo el raymarching y
+todos los terrenos quedan fuera hasta que esto se arregle.
+
+## Qué haría falta
+
+Poco de fontanería y una decisión de coste:
+
+1. **Un registro de pintores** y que `pintar(t)` los invoque, igual que hace `irA` en los
+   laboratorios: `for (const p of PINTORES) p(t)`.
+2. **Después del `flushSync`, no dentro.** Un pintor dibuja fuera de React; si se ejecuta dentro
+   del commit, el canvas puede no existir todavía en el DOM.
+3. **La resolución, que es la decisión de verdad.** Los laboratorios pintan a 64×114 y escalan
+   con `image-rendering: pixelated` — es rápido **y** es un estilo. Nuestro lienzo es
+   1080×1920: el raymarching del giroide marcha 7.296 píxeles y a resolución completa serían
+   2.073.600, **unas 284 veces más**. Esa decisión hay que heredarla del laboratorio, no
+   descubrirla midiendo con el render ya escrito.
+4. **Y una guarda que cierre el agujero del apartado anterior**: comprobar que el canvas no está
+   en blanco antes de dar el frame por bueno. Sin eso, arreglar los pintores solo cambia el modo
+   de fallar en silencio.
+
+---
+
+# 🎬 LO QUE LE FALTA A LOS VISUALES — tres piezas, en orden
+
+**Anotado el 15 de agosto de 2026, con EXTRUSION ya funcionando y su semilla derivada de la
+palabra. Ninguna está implementada.** Van en este orden porque cada una necesita la anterior.
+
+## 1. VARIEDAD — una sola composición no sostiene un vídeo
+
+La semilla da a cada Visual su propia disposición —capas, ancho, amplitud, cabeceo—, y eso
+resuelve que dos seguidos no salgan calcados. **No resuelve la monotonía.**
+
+**El caso que lo rompe está a un slider de distancia:** con Visuales al 100 % el vídeo entero
+serían Visuales. Un vídeo de 9 minutos son del orden de **200 escenas**, todas el mismo hexágono
+extruido girando. Variar el ancho un 40 % no salva eso — sigue siendo la misma idea doscientas
+veces.
+
+Hacen falta **varias composiciones y una regla de rotación**. Y la regla no es trivial: alternar
+en ciclo fijo se nota como patrón, y al azar puede repetir la misma dos veces seguidas, que es
+justo lo que se intenta evitar. Es el mismo problema que el reparto de cortes del stock ya tiene
+resuelto a medias —minimiza la racha pero no mide el hueco—, y conviene mirarlo antes de
+inventar otro algoritmo.
+
+## 2. SENTIDO — un sólido girando no dice de qué se habla
+
+Hoy la escena es la misma sea cual sea la palabra. **Un sólido girando no significa
+«universidades» ni «guerra»**: es un fondo bonito con una palabra encima. Para que el Visual
+haga su trabajo, la escena tiene que decir algo de la palabra.
+
+Eso exige **elegir cuál va con cuál**, y hay dos vías:
+
+- **DeepSeek**, que ya recorre cada frase y podría devolver qué composición pide. Es una línea
+  de prompt más.
+- **Deducción** en código, por familias de palabra.
+
+Antes de cualquiera de las dos hay que **medir cuántas viene bien elegidas**, como con todo lo
+que sale de ese prompt: ya colapsó una vez al pedirle cuotas de tipo (76 stock / 0 original).
+Y la regla 12 del manual acota el problema: **solo palabras con imagen**. «Pirámide», «grieta»,
+«represa» tienen escena posible; «impacto», «sistema», «decisión» no la tienen, y para esas el
+Visual de texto es la respuesta correcta, no un fallo.
+
+## 3. MEMORIA — que el sistema aprenda a ELEGIR, nunca a dibujar
+
+Un banco donde el usuario marca qué Visuales funcionaron, para que el sistema elija mejor.
+
+**Y aquí hay una línea que no se puede cruzar, por una razón de arquitectura y no de gusto:
+puede aprender a ELEGIR, jamás a DIBUJAR.**
+
+La clave del MOV se construye con `graphicData` —las seis claves que lee el componente— más
+`ancho`, `alto`, `duracion`, `fps`, `modo`, `sistema` y `VERSION_PLANTILLAS`. **Nada de lo
+aprendido está en esa clave.** Si el aprendizaje cambiara cómo se dibuja, el mismo
+`graphicData` produciría MOVs distintos según lo que el sistema hubiera aprendido, y la caché
+devolvería el primero diciendo **ACIERTO**. El fichero dejaría de ser el que su nombre promete.
+
+Es exactamente el mismo razonamiento por el que la semilla sale de la palabra y no del índice
+del clip: **lo que decide los píxeles tiene que estar en la clave**.
+
+La elección, en cambio, ocurre **antes** de construir `graphicData`: decide qué `type` se pide.
+Eso queda fuera de la clave por construcción, y por eso sí puede aprender. Si algún día hiciera
+falta que aprenda a dibujar, la salida no es romper la caché: es **meter lo aprendido en la
+clave** —como entraron `modo` y `sistema`— y aceptar que cambiarlo invalida lo renderizado.
+
+---
+
+# 😀 LOS EMOJIS DEPENDEN DE LA FUENTE DEL SISTEMA
+
+**Medido el 17 de agosto de 2026, antes de construir el motor de Visuales que los usa como
+icono de cada concepto. Hoy FUNCIONAN. La deuda es que funcionan por casualidad.**
+
+## Lo medido
+
+Cinco emojis renderizados de verdad en la ventana offscreen, 1080×1920, modo pantalla:
+
+| emoji | px pintados | px saturados | resultado |
+|---|---|---|---|
+| ☀️ | 7 129 | 7 089 | sol naranja y amarillo |
+| ☁️ | 6 202 | 1 596 | nube blanca, correcta |
+| 🌧️ | 7 018 | 2 432 | nube blanca + gotas azules |
+| 🏞️ | 9 274 | 8 580 | montañas, cielo, agua |
+| 🌊 | 6 858 | 6 703 | ola azul |
+| *control: texto «AGUA»* | 10 906 | 1 596 | — |
+
+**Ni un tofu.** Windows 11 trae *Segoe UI Emoji* y Chromium la encuentra sin ayuda.
+
+## Por qué es deuda aunque funcione
+
+**La fuente no es nuestra, es del sistema.** No se empaqueta nada. En otra máquina —otro
+Windows, un Linux, la máquina de un cliente cuando esto se venda— la fuente puede no estar, y
+entonces:
+
+- salen **cuadrados**,
+- **no hay error**,
+- la sonda valida el `t`, no el contenido, así que el frame se da por bueno,
+- el MOV se escribe, se cachea por su hash, y cuenta como ACIERTO para siempre.
+
+Es **exactamente** el modo de fallo del canvas en blanco de los pintores, y el del contador
+congelado en 58: pasa todas las comprobaciones porque ninguna sabe qué esperaba ver.
+
+**Y el aspecto cambia con la plataforma.** El mismo `🏞️` se dibuja distinto en Windows, Mac y
+Android. Para un producto con identidad visual eso es una fuga de estilo que no controla nadie.
+
+## Las dos salidas, con su precio
+
+- **Empaquetar *Noto Color Emoji*: ~10 MB.** Elimina la dependencia y fija el aspecto. Es la
+  diferencia entre «funciona en tu máquina» y «funciona».
+- **Sustituir por iconos SVG.** Cierra además la fuga de estilo, pero cuesta **un fichero por
+  concepto** y deja de ser gratis: hay que dibujarlos y mantenerlos.
+
+Y en cualquiera de los dos casos falta **una guarda que compruebe que el glifo se pintó**. Sin
+ella, cambiar de fuente solo cambia el modo de fallar en silencio.
+
+## Aviso sobre cómo se mide esto, porque casi me engaña
+
+El criterio «contar píxeles saturados» **clasifica mal los emojis que son intrínsecamente
+monocromos**. ☁️ marcó 1 596 saturados: exactamente el mismo número que el control de texto
+plano. Parecía tofu.
+
+No lo era. **1 596 son los píxeles de la barra de acento** que pinta el Visual de texto, no del
+emoji — y ☁️ es blanca por diseño. El veredicto correcto solo salió al **mirar los PNG**.
+
+Queda escrito porque quien repita esta medición va a caer en lo mismo: **la saturación detecta
+que un emoji de color se pintó, pero no puede descartar el tofu en los que no llevan color.**
+Para eso hay que mirar, o comparar contra un render de referencia.
+
+---
+
+# 📊 LA APP NO SABE LO QUE GASTA EN DEEPSEEK
+
+**Anotado el 19 de agosto de 2026, al medir el gasto para decidir sobre los conceptos.**
+
+Hay **cuatro** llamadas a DeepSeek, todas con `deepseek-v4-pro` y `max_tokens: 8000`:
+
+| línea | qué hace | `temperature` |
+|---|---|---|
+| `index.ts:1782` | reescribir el guion | 0.7 |
+| `index.ts:3793` | FASE 2 — keyword y timestamp | 0.2 |
+| `index.ts:5037` | gráficos — 1 tarjeta por sección | 0.3 |
+| `index.ts:5243` | sincronía perfecta — su propia FASE 2 | 0.2 |
+
+**Las cuatro descartan `usage`.** La respuesta de la API trae `prompt_tokens`, `completion_tokens`
+y `total_tokens` **exactos**, y el código solo lee `data.choices[0].message.content`. Medido:
+**cero apariciones de `usage` en todo `index.ts`**.
+
+Consecuencia: **todo lo que sabemos del gasto son estimaciones a 3.5 caracteres/token.** Y ya se
+demostró que se quedan cortas — estimé la salida del guion en ~1 294 tokens usando la
+transcripción como referencia, y el guion real salió de 5 789 caracteres, **~1 654: un 28% más**.
+
+Cuesta **dos líneas por llamada**:
+
+```ts
+const u = data?.usage
+if (u) await writeDebugLog(`[DEEPSEEK] guion: ${u.prompt_tokens} ent / ${u.completion_tokens} sal`)
+```
+
+DeepSeek desglosa además los **aciertos de caché de contexto**, que deberían ser altos porque
+`prompt-maestro.txt` viaja idéntico en cada llamada. Sin leer `usage` eso tampoco se ve.
+
+---
+
+# 🔇 `rewrite-transcript` NO ESCRIBE NADA EN EL LOG
+
+**Anotado el 19 de agosto de 2026.**
+
+`index.ts:1744-1813` son 70 líneas **sin una sola** llamada a `logMessage` ni `writeDebugLog`.
+Ni al empezar, ni al terminar, ni en ninguno de sus **cinco caminos de error**:
+
+```ts
+if (!(await exists(promptPath)))  return { success: false, error: 'No se encontró…' }
+if (!apiKey)                      return { success: false, error: 'No se configuró…' }
+if (!response.ok)                 return { success: false, error: `Error de API DeepSeek (${status})…` }
+if (!content)                     return { success: false, error: 'La respuesta no contiene…' }
+catch (err)                       return { success: false, error: err.message }
+```
+
+Los cinco viajan al frontend y **ninguno al log**. Al comprobar una reescritura real hubo que
+deducir que la llamada había ocurrido **por el resultado** —un texto de 5 789 caracteres que
+ningún camino local puede fabricar—, porque en `generation-debug.log` no había nada.
+
+Es el mismo agujero que `[DIAG-GRAFICO]`: **el error existe, pero en un sitio que nadie consulta
+después.** Y aquí es peor, porque este handler habla con una API de pago.
+
+## Y de paso: la reescritura del guion SÍ FUNCIONA
+
+**Verificado el 19 de agosto de 2026** sobre un vídeo de 4 minutos:
+
+| | |
+|---|---|
+| `originalTranscriptText` | 4 530 caracteres |
+| `aiScript` | **5 789 caracteres** |
+| difieren desde | **el carácter 0** |
+
+No es una limpieza: **reordena la narración** —la transcripción empieza por la segunda ley de la
+termodinámica y el guion arranca por el Millenium Bridge, con gancho—, corta en frases cortas y
+**corrige errores de Whisper** (`es desperarse` → redactado bien).
+
+Queda escrito porque una medición anterior encontró `aiScript` **idéntico** a la transcripción en
+**seis** proyectos, y eso se presentó como si dijera algo del código. No lo decía: **en esos seis
+nadie pulsó el botón**. El dato era correcto; la conclusión que sugería, no.
