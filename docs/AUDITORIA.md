@@ -791,6 +791,245 @@ dato fiable de todo el diagnóstico salió de `tsc`, que es la autoridad.
 
 ---
 
+# 10 quinquies. 🔴 DEFECTO CONOCIDO — TOFU: LOS EMOJI DE BANDERA NO EXISTEN EN WINDOWS
+
+## El síntoma
+
+En el Visual de mapa conceptual de la palabra `imaginante`, el concepto `🇷🇺 rusia` **no dibuja
+la bandera**: pinta las dos letras `RU` en gris oscuro, casi ilegibles sobre la caja negra.
+
+Prueba, en un frame renderizado por el camino real:
+`C:\Proyectos\paso4-visual-mapa\malla_imaginante_ciclo382_u400.png`
+
+## Por qué pasa
+
+Una bandera no es un glifo: son dos **indicadores regionales** (`U+1F1F7 U+1F1FA`) que la fuente
+compone en uno solo. Windows no trae esos glifos compuestos, así que Chromium cae al respaldo y
+dibuja las dos letras sueltas. No es un fallo de CIPHER ni de la composición: es qué fuentes hay
+instaladas en la máquina que renderiza.
+
+Los otros once emoji medidos en la misma tanda salen perfectos: 💵 🤝 🏆 🏟️ 🎆 🏗️ 🌳 📢 🪧 👥.
+El problema es **específico de las banderas**.
+
+## Lo que lo hace peligroso
+
+**Ninguna guarda lo detecta.** El frame existe, tiene el tamaño correcto, la sonda valida, los
+frames son distintos entre sí y el MOV dura lo que debe. Las nueve guardas dan verde. La única
+forma de verlo es **mirar el PNG** — que es exactamente la lección del §30, donde la medición de
+emojis casi descartó uno que funcionaba y hubo que abrir las imágenes.
+
+## Dónde NO se arregla
+
+**No se arregla en el render.** Sustituir el glifo —por un respaldo, por un SVG, por otro emoji—
+cambiaría los píxeles bajo **el mismo hash**: `extra.conceptos` seguiría diciendo `🇷🇺` y la caché
+devolvería como ACIERTO ficheros que ya no corresponden a su clave.
+
+Se arregla **en el origen**, en el prompt de FASE 2, que es quien elige el emoji y quien ya
+prohíbe las banderas — y aun así devolvió 7 de 243. Va en el paso 6 del port.
+
+---
+
+# 10 sexies. 🟠 LA PALABRA DEL VISUAL ENTRA DEMASIADO TARDE — NO COINCIDE CON EL DISEÑO
+
+## Lo medido
+
+En `src/shared/mapa.ts`, `T.palabra = 0.770`, y la entrada dura `0.1833` del ciclo. La palabra no
+alcanza opacidad plena hasta **u = 0.953**.
+
+Traducido a los ciclos reales medidos en este repo:
+
+| ciclo | la palabra llega opaca en | se lee durante |
+|-------|---------------------------|----------------|
+| 2.10 s (el hueco más corto) | 2.00 s | **0.10 s** |
+| 3.82 s (el más largo)       | 3.64 s | **0.18 s** |
+
+Comprobado en los PNG: en `cascada_persecución_ciclo382_u800.png` la palabra está al ~26% de
+opacidad y apenas se distingue; en `radial_siguiente_ciclo210_u950.png` ya está completa, con su
+barra. Entra, pero al final del todo.
+
+## Por qué es un problema de diseño y no un ajuste
+
+El §16.3 fija lo contrario: la palabra **está desde t=0 hasta el final y crece con el avance —
+"una barra de avance tipográfica"**. Lo que hay hoy hace lo opuesto: aparece en el último cuarto
+y se lee durante una décima de segundo.
+
+Viene de la referencia (`docs/motion/generador-clips.html`), que se portó tal cual: allí el pie
+entra con `animation-delay:2.31s` sobre un ciclo de 3 s, es decir el mismo 0.770. La referencia
+es un laboratorio de un solo clip; en el producto, un Visual existe **para poner una palabra a
+pantalla completa**, y una palabra que no da tiempo a leer no cumple ese trabajo.
+
+## Lo que NO se ha decidido
+
+Adelantar `T.palabra` toca el reparto de fases entero: la palabra competiría con el mapa durante
+la construcción y con el emoji durante el remate. Es una decisión de diseño, no un número que se
+baja. Y cualquier cambio en `T` **cambia todos los píxeles**: exige subir `VERSION_PLANTILLAS`.
+
+---
+
+# 10 septies. 🔴 CAUSA RAÍZ — UN VISUAL SE PINTABA CON LA CURVA DEL CLIP ANTERIOR
+
+**Severidad alta.** Afecta a **las dos composiciones** y a **todos los Visuales renderizados hasta
+hoy**. Arreglado en el mismo commit que esta sección; `VERSION_PLANTILLAS` sube a **6** por lo que
+se explica en "lo que invalida".
+
+## El síntoma
+
+Un Visual salía desfasado en el tiempo: elementos que debían estar completos aparecían a medias o
+no aparecían, y no correspondían a **ningún** instante del clip. Se descubrió con un invariante
+del mapa conceptual —en `conFin` (u=0.400) las cuatro cajas están en `opacity:1`— sobre una tanda
+de ocho clips:
+
+| # | clip | ciclo | cajas en conFin |
+|---|------|-------|-----------------|
+| 1 | radial   | 2.10 | `[255 255 255 255]` |
+| 2 | radial   | 3.82 | `[255 255 255 255]` |
+| 3 | malla    | 2.10 | `[255 171 24 255]` **mal** |
+| 4 | malla    | 3.82 | `[255 255 255 255]` |
+| 5 | capas    | 2.10 | `[25 177 255 255]` **mal** |
+| 6 | capas    | 3.82 | `[255 255 255 255]` |
+| 7 | cascada  | 2.10 | `[255 51 176 255]` **mal** |
+| 8 | cascada  | 3.82 | `[255 255 255 255]` |
+
+Falla el clip que va **detrás de otro con distinto `value` y distinto ciclo**. El primero de la
+tanda se salva porque no tiene predecesor.
+
+## La causa
+
+`renderGraphicClipsLote` **reutiliza la ventana** para los ~15 Visuales de un vídeo — es lo que
+amortiza sus ~150 ms de arranque. Y `__montar` reutilizaba también la raíz de React:
+
+```ts
+if (!raiz) raiz = createRoot(lienzo)      // ANTES
+```
+
+Con la misma raíz, React **reconcilia** el clip nuevo contra el anterior en vez de construirlo.
+Los elementos del DOM sobreviven de un Visual al siguiente, y con ellos sobrevive el objeto
+`CSSAnimation` que `__setT` ya había pausado y al que le había fijado `currentTime` a mano.
+
+Cuando el clip nuevo trae **nombre de keyframes distinto Y duración distinta en la misma
+reconciliación**, la animación **reporta lo nuevo y aplica lo viejo**. Medido en la ventana:
+
+```
+animationName      cmijcu8z-n1   correcto
+effect.duration    2100 ms       correcto
+currentTime        833 ms        correcto  (progreso 0.397)
+opacity computada  0.643         de OTRA curva
+```
+
+Ese conjunto de datos parecía contradictorio hasta que se aisló qué lo dispara.
+
+## Hacen falta LAS DOS cosas a la vez
+
+Seis casos, mismo invariante:
+
+| caso | resultado |
+|------|-----------|
+| 1. B solo, página limpia | OK |
+| 2. A@3.82 → B@2.10 — cambian **value y ciclo** | **FALLA** |
+| 3. A@2.10 → B@2.10 — solo cambia el **value** | OK |
+| 4. B@3.82 → B@2.10 — solo cambia el **ciclo** | OK |
+| 5. A@3.82 → `visual_texto` → B@2.10 — desmonta el subárbol | OK |
+| 6. A@3.82 → recarga de página → B@2.10 — raíz nueva | OK |
+
+Los casos 3 y 4 pasan porque solo cambia una de las dos cosas: con el nombre nuevo y la misma
+duración se crea una animación limpia; con el mismo nombre y duración nueva, la duración se
+actualiza bien. Hace falta el cruce.
+
+Los casos 5 y 6 son los que decidieron el arreglo: **cualquier desmontaje basta**, y el 5
+demuestra que no hace falta recargar la página ni tirar la ventana.
+
+## No era del mapa: `visual_extrusion` también
+
+Mismo clip renderizado solo y detrás de otro, comparados frame a frame:
+
+| composición | sha1 B solo | sha1 B tras A | frames distintos |
+|---|---|---|---|
+| `visual_extrusion` | `22fcf57af2c4` | `6090d9d00451` | **47 / 63**, desde el 11 |
+| `visual_mapa` | `5157984871ba` | `284ce25f4928` | 53 / 63, desde el 10 |
+
+## Por qué nadie lo vio en un año — el §37 en su forma más pura
+
+**La sonda del lazo cerrado se pinta por DOM directo, fuera de React** (`sonda.style.background`
+en `grafico.tsx`). Valida el índice del frame sin saber nada de lo que hay debajo: **da por bueno
+un frame cuyo contenido es de otro instante**. El fichero existe, mide 1080x1920, dura lo que
+debe, tiene los frames que debe y son distintos entre sí. Las nueve guardas dan verde.
+
+Y encima el sistema es *casi* correcto: un sólido girando desfasado sigue pareciendo un sólido
+girando. La diferencia media de píxel en `extrusion` es 1.5 sobre 255 — invisible mirando el
+vídeo, y el 100% equivocado.
+
+**El §41 tampoco lo cubría.** El determinismo se verificó con cinco huellas, pero eran cinco
+**instantes del mismo clip**. Una **secuencia de clips distintos** en la misma ventana no la había
+probado nadie, y es justo lo que hace el export.
+
+## Cuánto afectaba
+
+Sobre los 19 Visuales del último vídeo generado: **15 de los 18 pares consecutivos (83%) cambian
+de ciclo** respecto al anterior, y el `value` cambia casi siempre. La mayoría de los Visuales de
+cada vídeo salían mal.
+
+## El arreglo, y por qué en `__montar`
+
+```ts
+if (raiz) raiz.unmount()                  // AHORA
+raiz = createRoot(lienzo)
+```
+
+Se descartó la alternativa que también funciona —meter el `value` en la `key` de cada elemento
+animado— por el argumento de las dos puertas: es una regla que **cada composición futura tiene que
+acordarse de cumplir**, y si alguien la olvida el fallo es **mudo**. `__montar` es el punto único
+por donde pasa todo clip de toda composición.
+
+**Coste medido**, mediana de 21 montajes: **3.1 ms** (`visual_mapa`) y **1.1 ms**
+(`visual_extrusion`) para el `__montar` entero —desmontar, crear la raíz, primer render y
+`__setT(0)`—, sobre 2.700-3.300 ms de render por clip. Un **0.1%**.
+
+## Lo que invalida — por qué sube `VERSION_PLANTILLAS`
+
+Los `.mp4` que hay en `materiales/visual/` tienen el **hash correcto para su entrada**, pero
+dentro llevan píxeles del clip que se renderizó antes. Con las **mismas entradas**, el arreglo
+produce **píxeles distintos**.
+
+Sin subir la versión, la caché devolvería **para siempre** los ficheros malos diciendo ACIERTO —
+que es exactamente el modo de fallo que esa constante existe para evitar, y la misma regla que se
+escribió para `puedeDibujar`. Se sube **en el mismo commit que el arreglo**, no más tarde: dejar
+una ventana en la que un render de prueba lee basura de la caché es cómo se llega a otro
+diagnóstico equivocado. Cuesta re-renderizar ~15 Visuales por proyecto, ~1 minuto.
+
+## La comprobación que lo habría cazado
+
+`tests/ventana.js` (`npm run test:ventana`). Renderiza B en ventana fresca, después A y B en la
+misma, y exige que los dos B sean idénticos. Es una prueba de **integración** —necesita ventana,
+ffmpeg y proyecto, ~30 s— y por eso no es una novena suite aritmética como las ocho.
+
+Las composiciones se leen del fuente de `composiciones/index.ts`, no de una lista escrita a mano,
+para que la tercera quede cubierta sin que nadie se acuerde.
+
+## ⚠ Residuo abierto en `visual_mapa` — por eso `test:ventana` NO es una puerta todavía
+
+Con el arreglo puesto, `visual_extrusion` sale **idéntico byte a byte**. `visual_mapa` no:
+
+```
+B detrás de B (nada cambia)    0 subpixeles distintos de 391.910.400 — determinista
+B detrás de A                  primer frame que difiere: el 22, con 13 subpixeles y delta
+                               máxima 5/255, dentro de la caja de un concepto.
+                               El h264 lo amplifica por predicción entre frames hasta
+                               21.303 subpixeles y delta 51 en el frame 58.
+```
+
+El desfase **estructural** está arreglado —ya no hay cajas pintadas con la curva del clip
+anterior— y lo que queda es una diferencia de rasterizado imperceptible que el códec agranda.
+**No es el `backdrop-filter`** de `.cm-caja`: se probó quitándolo y empeora (49 frames en vez de
+41). **La causa no está identificada.**
+
+No se ha aflojado el criterio para que salga verde. Una tolerancia inventada —"hasta N subpixeles
+vale"— sería la clase de puerta que deja pasar el defecto siguiente. El criterio se queda estricto,
+`test:ventana` sale en **rojo por `visual_mapa`**, y queda como **diagnóstico documentado** —no en
+la lista de suites que hay que ver verdes— hasta que el residuo se entienda.
+
+---
+
+
 # 11. EL ESTADO DE GIT
 
 ## Dónde está

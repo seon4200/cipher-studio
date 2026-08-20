@@ -979,6 +979,19 @@ const canonizar = (v: any): string => {
 // diseño deja el hash IDENTICO: la cache devuelve el MOV viejo, el log dice ACIERTO y el export
 // dice "39 de 39". Todo verde con el diseño antiguo. Es el peor modo de fallo que hay, porque
 // el sistema afirma activamente que ha funcionado.
+//
+// 6 — se arregla el desfase por reutilizacion de la raiz de React entre clips (10 septies de
+// docs/AUDITORIA.md). `__montar` desmonta y vuelve a montar, asi que una animacion ya no puede
+// aplicar la curva del clip anterior. NO cambia ningun diseño: cambia que lo renderizado SEA lo
+// que la composicion dice.
+//
+// Y por eso justamente hay que subir esto. Los .mp4 que hay en disco tienen el hash CORRECTO
+// para su entrada, pero dentro llevan pixeles del clip que se renderizo antes. Con las MISMAS
+// entradas el arreglo produce pixeles distintos, asi que sin esta subida la cache devolveria
+// para siempre los ficheros malos diciendo ACIERTO — que es exactamente el modo de fallo que
+// esta constante existe para evitar. Afecta a las DOS composiciones y a todos los Visuales ya
+// renderizados. Cuesta re-renderizar ~15 Visuales por proyecto, ~1 minuto.
+//
 // 5 — los tres conceptos y la posicion entran en `extra`, o sea en la CLAVE. Dos Visuales de
 // la misma palabra en posiciones distintas dejan de compartir .mov: antes colisionaban —medido,
 // 37 clips y 36 ficheros— y con la posicion dentro cada uno es unico. Se acepta perder el
@@ -1001,7 +1014,7 @@ const canonizar = (v: any): string => {
 // fichero viejo diciendo ACIERTO: se veria exactamente lo mismo y pareceria que la composicion
 // no funciona. Es el modo de fallo que esta constante existe para evitar, y cuesta re-renderizar
 // lo que haya en cache (~2.7 s por grafico).
-const VERSION_PLANTILLAS = 5;
+const VERSION_PLANTILLAS = 6;
 
 // EL FORMATO LO DECIDE EL MODO, y se dice AQUI una sola vez. Las tres cosas —codec, pix_fmt y
 // extension— tienen que ir juntas o el fichero sale mintiendo sobre si mismo: un .mp4 con

@@ -130,7 +130,38 @@ function pintar(t?: number) {
     ? 'flex'
     : 'flex items-end justify-center'
   datos = graphicData
-  if (!raiz) raiz = createRoot(lienzo)
+
+  // ── SE DESMONTA Y SE VUELVE A MONTAR EN CADA CLIP ────────────────────────────────────
+  //
+  // Antes era `if (!raiz) raiz = createRoot(lienzo)`: la raiz se creaba UNA vez y se reutilizaba
+  // para todos los clips. Asi React reconciliaba el clip nuevo contra el anterior en vez de
+  // construirlo, y los elementos del DOM sobrevivian de un Visual al siguiente.
+  //
+  // Y con ellos sobrevivia el objeto CSSAnimation que `__setT` ya habia pausado y al que le
+  // habia fijado `currentTime` a mano. MEDIDO: cuando el clip nuevo trae NOMBRE de keyframes
+  // distinto Y duracion distinta en la misma reconciliacion, la animacion reporta lo nuevo
+  // —`animationName` correcto, `effect.duration` correcto, `currentTime` correcto— y APLICA lo
+  // viejo: los valores interpolados salen de la curva del clip anterior.
+  //
+  // Hacen falta LAS DOS cosas a la vez. Solo cambiar el value (nombre nuevo, misma duracion) va
+  // bien; solo cambiar el ciclo (mismo nombre, duracion nueva) va bien. Por eso no se veia.
+  //
+  // NO ERA UN FALLO DE NINGUNA COMPOSICION. Medido en las dos: `visual_extrusion` sale con 47
+  // de 63 frames distintos segun cual sea el clip que lo precede, y `visual_mapa` con 53 de 63.
+  // Todos los Visuales que hay hoy en disco estan renderizados asi. Ver el 10 septies de
+  // docs/AUDITORIA.md.
+  //
+  // POR QUE AQUI Y NO EN LAS COMPOSICIONES. Tambien se arregla poniendo el `value` en la `key`
+  // de cada elemento animado, y funciona. Pero es una regla que CADA composicion futura tiene
+  // que acordarse de cumplir, y si alguien la olvida el fallo es MUDO: el Visual sale desfasado
+  // y las nueve guardas dan verde. `__montar` es el punto UNICO por donde pasa todo clip de
+  // toda composicion. Una puerta, no una por composicion.
+  //
+  // Y basta con esto: esta medido que desmontar el subarbol arregla el frame. No hace falta
+  // recargar la pagina ni tirar la ventana, que es lo caro —~150 ms de arranque— y es
+  // justamente lo que la ventana reutilizada existe para evitar.
+  if (raiz) raiz.unmount()
+  raiz = createRoot(lienzo)
   ;(window as any).__setT(0)
 }
 
