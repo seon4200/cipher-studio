@@ -13,8 +13,27 @@ export const PALABRAS_VACIAS = [
 // VACIA — justo el dato que mas merece un Visual. Medido: los 4 tramos "sin palabra con
 // significado" de un proyecto real eran TODOS cifras ("un 48.6%.", "de 88 al 92%.").
 // Aqui solo se quita la puntuacion de los bordes y los digitos se conservan.
-const limpiar = (w: unknown): string =>
-  String(w ?? '').trim().toLowerCase().replace(/^[^\wáéíóúñ]+|[^\wáéíóúñ]+$/g, '');
+
+/**
+ * Quita la puntuacion de los EXTREMOS conservando mayusculas y tildes.
+ *
+ * Es lo que se PINTA, asi que no puede pasar a minusculas: "Millenium." tiene que salir
+ * "Millenium", no "millenium". Antes se devolvia `word.trim()` tal cual y la puntuacion entraba
+ * en el Visual — medido: 9 de 37 palabras (24%) llevaban coma o punto pegados: "fallecidos.",
+ * "maneras,", "sincronizada.".
+ *
+ * `\p{L}\p{N}` con la bandera `u` en vez de una lista de letras acentuadas: cubre mayusculas,
+ * minusculas, tildes, diereses y cualquier alfabeto, sin que haya que acordarse de añadir la
+ * "Ü" el dia que aparezca. La lista a mano es el patron de la constante duplicada, en pequeño.
+ *
+ * Solo toca los BORDES: "48.6%" conserva su punto interior, y un guion de "post-guerra" tambien.
+ */
+export function recortarPuntuacion(w: unknown): string {
+  return String(w ?? '').trim().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+}
+
+/** La forma COMPARABLE: sin puntuacion y en minusculas. Nunca se pinta. */
+const limpiar = (w: unknown): string => recortarPuntuacion(w).toLowerCase();
 
 export function tieneSignificado(w: unknown): boolean {
   const c = limpiar(w);
@@ -45,7 +64,9 @@ export function palabraDelTramo(
   if (!dentro.length) return null;
   const elegida = dentro.reduce((m, w) =>
     limpiar(w.word).length > limpiar(m.word).length ? w : m);
-  return String(elegida.word).trim();
+  // Se devuelve SIN la puntuacion de los bordes. Antes era `.trim()` a secas y la coma se
+  // pintaba. No puede caer a cadena vacia: `tieneSignificado` ya exigio 3 caracteres limpios.
+  return recortarPuntuacion(elegida.word);
 }
 
 /**
