@@ -1,0 +1,373 @@
+// LA MATEMATICA DEL VISUAL DE MAPA CONCEPTUAL.
+//
+// Portado de docs/motion/generador-clips.html. AQUI SOLO HAY ARITMETICA: ni JSX, ni document,
+// ni <style>, ni requestAnimationFrame. Eso permite probarlo entero sin montar React ni abrir
+// una ventana, que es lo que ha hecho utiles a reparto.ts, exclusion.ts y ciclo.ts.
+//
+// NO se portan en este paso —son del paso 3, y necesitan el motor de keyframes—:
+//   nodo()  flecha()  pulso()  kf()  fuente()
+//
+// CINCO DIFERENCIAS DELIBERADAS CON LA REFERENCIA. Ninguna es un descuido:
+//
+//   1. NO hay PRNG propio. La referencia lleva `let _s = 1` a nivel de modulo, y con estado
+//      compartido añadir un elemento a una escena CAMBIA TODAS LAS SIGUIENTES. Aqui cada
+//      funcion recibe un `rnd` creado con `generador(semilla)`, que lleva su propio estado.
+//   2. La semilla sale SOLO de `value`. La referencia usa palabra + variante, y la variante es
+//      un control del laboratorio que no existe en la app. Y no puede existir: `value` esta en
+//      la clave del hash y nada mas lo esta, asi que sembrar con otra cosa daria dos dibujos
+//      distintos bajo el mismo nombre de fichero.
+//   3. CERO segundos literales. La referencia tiene `const CICLO = 3`, que es del laboratorio.
+//      En la app el ciclo llega como parametro y toda duracion sale de `fraccion(ciclo, n)`.
+//      La tabla T ya viene en fracciones en la referencia: se porta tal cual.
+//   4. La zona segura se CORRIGE, no se hereda. Ver ZONA.
+//   5. `layoutSeguro` conserva sus 50 intentos y su repliegue.
+
+import { generador, semillaDe } from './semilla';
+
+// ── TIPOS ──────────────────────────────────────────────────────────────────────────
+
+export type Punto = { x: number; y: number };
+/** [desde, hasta] en indices de `pts`. -1 = el ancla. */
+export type Arista = [number, number];
+export type Layout = { ancla: Punto; pts: Punto[]; aristas: Arista[]; curva: number };
+export type Paleta = { a: string; b: string; ac: string; f1: string; f2: string };
+export type Familia = 'radial' | 'malla' | 'capas' | 'cascada';
+export type Orden = 'secuencial' | 'alterno' | 'inverso';
+export type Transicion = 'implosion' | 'espiral' | 'barrido';
+
+// ── CONSTANTES DE ENCUADRE ─────────────────────────────────────────────────────────
+
+/** 1% de alto son 1.7778 cqw en un marco 9:16. Convierte desplazamientos verticales. */
+export const SY = 16 / 9;
+
+/** Donde colapsa el mapa y nace el icono. TODO converge aqui, no al ancla: si convergiera al
+ *  ancla, el colapso apuntaria a un sitio y el icono apareceria en otro. */
+export const FOCO: Punto = { x: 50, y: 38 };
+
+/**
+ * LA ZONA SEGURA, y aqui la referencia estaba MAL.
+ *
+ * Su `separados` exige `y > 9`, y el margen superior de CIPHER empieza en 13.54%: un nodo a
+ * y=10 cae en zona prohibida y en un movil se lo come la interfaz.
+ *
+ * Los numeros salen de la aritmetica, no de una preferencia: la zona segura son 900x1400
+ * centrados en 1080x1920, asi que (1080-900)/2/1080 = 8.33% a los lados y
+ * (1920-1400)/2/1920 = 13.54% arriba y abajo.
+ *
+ * xMin/xMax se quedan en 13/87, MAS estrictos que el 8.33/91.67 de la zona: son de la
+ * referencia y aprietan mas, asi que relajarlos seria empeorar.
+ *
+ * yMax se queda en 68 y NO se sube a 86.46 por la misma razon: abajo va la palabra del Visual
+ * y ese limite es mas estricto. Subirlo meteria nodos debajo del texto.
+ */
+export const ZONA = { xMin: 13, xMax: 87, yMin: 13.54, yMax: 68 };
+
+/**
+ * LA LINEA DE TIEMPO, EN FRACCIONES DEL CICLO. Nunca en segundos.
+ *
+ * Estos seis numeros NO se aleatorizan: son lo que hace que dos clips cualesquiera se lean
+ * como el mismo lenguaje. La referencia los anota con su equivalente a 3 s —conFin 0.400 son
+ * 1.20 s— y ese comentario es justo lo que NO se porta: en la app el ciclo es la duracion del
+ * sub-clip, entre 2.10 y 3.82 s medidos, y un literal en segundos seria un bucle que salta
+ * sin que nada lo diga.
+ *
+ * Para un INSTANTE: ciclo * T.conFin. Para una DURACION: fraccion(ciclo, n) de ./ciclo.
+ */
+export const T = {
+  conFin: 0.400,   // el mapa termino de construirse
+  traFin: 0.583,   // la transicion termino
+  flash: 0.545,    // el destello que tapa el corte
+  icoIni: 0.560,   // el icono empieza a dibujarse
+  icoFin: 0.730,   // el icono esta completo
+  palabra: 0.770   // entra la palabra
+} as const;
+
+// ── AYUDANTES. Todos reciben `rnd`: no hay estado de modulo. ───────────────────────
+
+export const cl = (v: number, a: number, b: number): number => (v < a ? a : (v > b ? b : v));
+
+/** Entero en [a,b], los dos incluidos. */
+export const ent = (rnd: () => number, a: number, b: number): number =>
+  a + Math.floor(rnd() * (b - a + 1));
+
+/** Un elemento de la lista. Devuelve el primero si el sorteo se sale, nunca undefined. */
+export function elige<X>(rnd: () => number, a: readonly X[]): X {
+  return a[Math.floor(rnd() * a.length)] ?? a[0];
+}
+
+/** Ruido simetrico en [-m, m]. */
+export const jit = (rnd: () => number, m: number): number => (rnd() * 2 - 1) * m;
+
+/** Ninguna familia produce un dibujo legible con mas nodos que esto. */
+export const N_MAX = 12;
+
+/**
+ * Acota `n` a un entero usable. NO es ceremonia defensiva: sin esto, `LAYOUTS.radial(rnd,
+ * Infinity)` entra en un `for (let i = 0; i < n; i++)` que no termina nunca y se come la
+ * memoria del proceso. Lo cazo la suite con `n = Infinity` entre los degenerados, y el sintoma
+ * fue un "JavaScript heap out of memory" que tumbo el runner entero — no una excepcion que se
+ * pudiera atrapar.
+ *
+ * Un NaN o un negativo dan 0, que produce un layout vacio: feo, pero devuelve.
+ */
+export function nSeguro (n: unknown): number {
+  const v = Math.floor(Number(n));
+  if (!Number.isFinite(v) || v < 0) return 0;
+  return Math.min(v, N_MAX);
+}
+
+// ── PALETAS ────────────────────────────────────────────────────────────────────────
+//
+// Duo base + acento. Nunca mas de tres colores en pantalla: `a` y `b` para nodos y aristas,
+// `ac` para el pulso, `f1` y `f2` para los dos degradados del fondo.
+//
+// LAS CINCO, no un subconjunto. Con Visuales al 100% un video de 9 minutos son ~200 escenas,
+// y cada paleta que falte multiplica la sensacion de repeticion.
+export const PALETAS: readonly Paleta[] = [
+  { a: '#00E5FF', b: '#FF2E7E', ac: '#E8FF3C', f1: '#06283c', f2: '#3a0620' },
+  { a: '#7B3DFF', b: '#00E5FF', ac: '#E8FF3C', f1: '#1a0a3c', f2: '#052a3a' },
+  { a: '#FF2E7E', b: '#E8FF3C', ac: '#00E5FF', f1: '#2a0632', f2: '#2e2a06' },
+  { a: '#00E5FF', b: '#E8FF3C', ac: '#FF2E7E', f1: '#052a3a', f2: '#1e2a06' },
+  { a: '#7B3DFF', b: '#FF2E7E', ac: '#00E5FF', f1: '#20063a', f2: '#3a0620' }
+];
+
+// ── FAMILIAS DE LAYOUT ─────────────────────────────────────────────────────────────
+//
+// Cada una devuelve {ancla, pts, aristas, curva}. Coordenadas en % del marco.
+// LAS CUATRO de la referencia, sin omitir ninguna: son el motor de variedad.
+
+export const LAYOUTS: Record<Familia, (rnd: () => number, n: number) => Layout> = {
+  /** Los conceptos en elipse alrededor del ancla. La direccion del giro tambien se sortea. */
+  radial (rnd, n) {
+    const cx = 50, cy = 38;
+    n = nSeguro(n);
+    const rx = 27 + jit(rnd, 3), ry = 17 + jit(rnd, 2);
+    const a0 = rnd() * 360;
+    const dir = rnd() < 0.5 ? 1 : -1;
+    const pts: Punto[] = [];
+    for (let i = 0; i < n; i++) {
+      const a = (a0 + dir * i * 360 / n + jit(rnd, 10)) * Math.PI / 180;
+      pts.push({ x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry });
+    }
+    return {
+      ancla: { x: cx, y: cy }, pts,
+      aristas: pts.map((_, i) => [-1, i] as Arista), curva: 0.05
+    };
+  },
+
+  /** Posiciones fijas con ruido, y aristas ENTRE conceptos ademas de las del ancla: es la
+   *  unica familia donde los conceptos se relacionan entre si. */
+  malla (rnd, n) {
+    const cx = 50, cy = 38;
+    n = nSeguro(n);
+    const base: Punto[] = [
+      { x: 25, y: 19 }, { x: 75, y: 23 }, { x: 20, y: 54 }, { x: 78, y: 56 }, { x: 50, y: 66 }
+    ];
+    const pts = base.slice(0, n).map(p => ({ x: p.x + jit(rnd, 5), y: p.y + jit(rnd, 4) }));
+    const ar: Arista[] = pts.map((_, i) => [-1, i] as Arista);
+    for (let i = 0; i < n - 1; i++) if (rnd() < 0.75) ar.push([i, i + 1]);
+    if (n > 2 && rnd() < 0.6) ar.push([0, n - 1]);
+    return { ancla: { x: cx, y: cy }, pts, aristas: ar, curva: 0.10 };
+  },
+
+  /** Entradas arriba, salidas abajo, el ancla en medio. La unica con aristas en las DOS
+   *  direcciones: arriba entra al ancla, el ancla sale abajo. */
+  capas (rnd, n) {
+    const cx = 50, cy = 38;
+    n = nSeguro(n);
+    const arriba = Math.ceil(n / 2);
+    const pts: Punto[] = [];
+    for (let i = 0; i < arriba; i++) {
+      pts.push({
+        x: 50 + (arriba === 1 ? 0 : (i / (arriba - 1) - 0.5) * 52) + jit(rnd, 3),
+        y: 16 + jit(rnd, 2)
+      });
+    }
+    const abajo = n - arriba;
+    for (let i = 0; i < abajo; i++) {
+      pts.push({
+        x: 50 + (abajo === 1 ? 0 : (i / (abajo - 1) - 0.5) * 52) + jit(rnd, 3),
+        y: 62 + jit(rnd, 2)
+      });
+    }
+    const ar: Arista[] = [];
+    for (let i = 0; i < arriba; i++) ar.push([i, -1]);      // entradas -> ancla
+    for (let i = arriba; i < n; i++) ar.push([-1, i]);      // ancla -> salidas
+    return { ancla: { x: cx, y: cy }, pts, aristas: ar, curva: 0.04 };
+  },
+
+  /** En zigzag hacia abajo, encadenados. El ancla queda ARRIBA, no en el centro.
+   *
+   *  cy = 15 Y NO 12, QUE ES LO QUE DICE LA REFERENCIA. Es consecuencia de haber subido yMin
+   *  de 9 a 13.54: con el ancla en 12, `separados` la rechaza SIEMPRE —12 > 13.54 es falso—,
+   *  los 50 intentos fallan los 50 y cascada replegaba a `capas` en el 100% de los casos.
+   *  Medido antes de arreglarlo: 0 de 500 cascadas crudas pasaban la comprobacion.
+   *
+   *  De cuatro disposiciones quedaban tres, y `capas` salia el doble que las demas. El motor
+   *  de variedad perdia un cuarto de su repertorio sin dar un solo error.
+   *
+   *  Subir el ancla 3 puntos no toca nada mas: los nodos empiezan en y=29 y con n=3 el ultimo
+   *  cae en 49.6-54.4, muy por debajo de yMax=68. */
+  cascada (rnd, n) {
+    const cx = 50, cy = 15;
+    n = nSeguro(n);
+    const pts: Punto[] = [];
+    const lado = rnd() < 0.5 ? 1 : -1;
+    for (let i = 0; i < n; i++) {
+      pts.push({
+        x: 50 + lado * (i % 2 ? -1 : 1) * (19 + jit(rnd, 4)),
+        y: 29 + i * (11.5 + jit(rnd, 1.2))
+      });
+    }
+    const ar: Arista[] = [[-1, 0]];
+    for (let i = 0; i < n - 1; i++) ar.push([i, i + 1]);
+    return { ancla: { x: cx, y: cy }, pts, aristas: ar, curva: 0.09 };
+  }
+};
+
+export const FAMILIAS: readonly Familia[] = ['radial', 'malla', 'capas', 'cascada'];
+
+// ── LEGIBILIDAD ────────────────────────────────────────────────────────────────────
+
+/**
+ * Estan los puntos separados entre si Y dentro de la zona.
+ *
+ * Dos criterios distintos en una sola respuesta: que ninguna pareja de cajas se pise —33% de
+ * ancho y 9.5% de alto es el tamaño de una caja de concepto— y que todos caigan en la zona.
+ */
+export function separados (pts: Punto[], ancla: Punto): boolean {
+  const todos = pts.concat([ancla]);
+  for (let i = 0; i < todos.length; i++) {
+    for (let j = i + 1; j < todos.length; j++) {
+      const dx = Math.abs(todos[i].x - todos[j].x);
+      const dy = Math.abs(todos[i].y - todos[j].y);
+      if (dx < 33 && dy < 9.5) return false;
+    }
+  }
+  return todos.every(p =>
+    p.x > ZONA.xMin && p.x < ZONA.xMax && p.y > ZONA.yMin && p.y < ZONA.yMax);
+}
+
+/**
+ * Mete un layout dentro de la zona segura, a la fuerza.
+ *
+ * GARANTIZA, no comprueba. `separados` puede decir que no y `layoutSeguro` agotar sus 50
+ * intentos; el repliegue tampoco esta obligado a caer dentro con cualquier `n`. Sin esto la
+ * unica salvaguarda seria una comprobacion que ya fallo — y un nodo fuera de la zona NO da
+ * error: sale en el video, medio tapado, y nadie se entera hasta verlo.
+ *
+ * El margen interior de 0.01 existe porque `separados` compara con desigualdades ESTRICTAS:
+ * acotar exactamente a 13.54 dejaria `p.y > 13.54` en falso y el resultado no pasaria su
+ * propia comprobacion.
+ */
+export function acotar (L: Layout): Layout {
+  const dentro = (p: Punto): Punto => ({
+    x: cl(p.x, ZONA.xMin + 0.01, ZONA.xMax - 0.01),
+    y: cl(p.y, ZONA.yMin + 0.01, ZONA.yMax - 0.01)
+  });
+  return { ancla: dentro(L.ancla), pts: L.pts.map(dentro), aristas: L.aristas, curva: L.curva };
+}
+
+/**
+ * Un layout legible, siempre.
+ *
+ * 50 intentos con la familia pedida y, si ninguno vale, REPLIEGUE a `capas`, que por
+ * construccion reparte en dos filas y no puede solaparse consigo misma. El repliegue es lo que
+ * convierte "casi siempre" en "siempre", y por eso no se simplifica.
+ *
+ * El `acotar` final es el cinturon: pase lo que pase, lo devuelto cae en la zona.
+ */
+export function layoutSeguro (rnd: () => number, familia: Familia, n: number): Layout {
+  n = nSeguro(n);
+  for (let i = 0; i < 50; i++) {
+    const L = LAYOUTS[familia](rnd, n);
+    if (separados(L.pts, L.ancla)) return acotar(L);
+  }
+  // El `Math.min(n, 4)` viene de la referencia. Con sanearConceptos devolviendo exactamente 3
+  // conceptos o null, `n` es SIEMPRE 3 y este min nunca recorta: RAMA MUERTA. Se porta para no
+  // perderla si algun dia el numero de conceptos deja de ser fijo.
+  return acotar(LAYOUTS.capas(rnd, Math.min(n, 4)));
+}
+
+// ── REPARTO DE RETARDOS ────────────────────────────────────────────────────────────
+
+/**
+ * Cuando entra cada concepto, en fraccion del ciclo.
+ *
+ * El orden de lectura cambia CUANDO entra cada nodo, no DONDE esta. Es variedad gratis: la
+ * misma disposicion contada en tres ritmos distintos.
+ *
+ * Devuelve un array indexado por concepto —`retardos(...)[i]` es el retardo del concepto i—,
+ * no un objeto: el orden posicional es lo que consume el paso 3.
+ */
+export function retardos (n: number, orden: Orden): number[] {
+  let idx = [...Array(nSeguro(n))].map((_, i) => i);
+  if (orden === 'inverso') idx = idx.reverse();
+  else if (orden === 'alterno') {
+    idx = idx.filter((_, i) => i % 2 === 0).concat(idx.filter((_, i) => i % 2 === 1));
+  }
+  const out = new Array<number>(idx.length);
+  idx.forEach((k, pos) => { out[k] = 0.09 + pos * 0.055; });
+  return out;
+}
+
+/** El retardo del ancla. Entra antes que ningun concepto: es de donde salen las aristas. */
+export const RETARDO_ANCLA = 0.04;
+
+/** El retardo de la arista i. Se escalonan para que el mapa se DIBUJE, no aparezca. */
+export const retardoArista = (i: number): number => 0.12 + i * 0.04;
+
+// ── LA RECETA COMPLETA ─────────────────────────────────────────────────────────────
+
+export const TRANSICIONES: readonly Transicion[] = ['implosion', 'espiral', 'barrido'];
+export const ORDENES: readonly Orden[] = ['secuencial', 'alterno', 'inverso'];
+
+export type Receta = {
+  familia: Familia;
+  transicion: Transicion;
+  paleta: Paleta;
+  orden: Orden;
+  n: number;
+  layout: Layout;
+  retardos: number[];
+  angFondo: number;
+  estrellas: number;
+  escMalla: number;
+  /** Describe el dibujo en una linea, para el log y la depuracion. */
+  etiqueta: string;
+};
+
+/**
+ * Todo lo que la semilla decide, en un solo sitio y sin pintar nada.
+ *
+ * LA SEMILLA SALE SOLO DE `value`. La referencia siembra con palabra + variante, pero la
+ * variante es un control del laboratorio para ver alternativas de la misma palabra. En la app
+ * no puede existir: `value` es lo unico que entra en la clave del hash, asi que sembrar con
+ * algo mas daria dos dibujos distintos bajo el MISMO nombre de fichero y la cache devolveria
+ * el primero diciendo ACIERTO.
+ *
+ * `n` se pasa y no se sortea. La referencia hace `Math.min(spec.nodos.length, ent(3,4))`; aqui
+ * llega de `sanearConceptos`, que devuelve exactamente 3 o null.
+ *
+ * EL ORDEN DE LOS SORTEOS IMPORTA y no se puede reordenar sin cambiar todos los dibujos: cada
+ * llamada a `rnd` avanza el generador, asi que mover una linea desplaza todo lo que viene
+ * detras. Es el mismo motivo por el que la semilla no puede ser de modulo.
+ */
+export function receta (value: string, n: number): Receta {
+  n = nSeguro(n);
+  const rnd = generador(semillaDe(value));
+  const familia = elige(rnd, FAMILIAS);
+  const transicion = elige(rnd, TRANSICIONES);
+  const paleta = elige(rnd, PALETAS);
+  const orden = elige(rnd, ORDENES);
+  const angFondo = ent(rnd, 150, 200);
+  const estrellas = ent(rnd, 14, 30);
+  const escMalla = 5 + rnd() * 2.6;
+  const layout = layoutSeguro(rnd, familia, n);
+  return {
+    familia, transicion, paleta, orden, n, layout,
+    retardos: retardos(n, orden),
+    angFondo, estrellas, escMalla,
+    etiqueta: familia + ' · ' + transicion + ' · ' + n + ' nodos · ' + orden + ' · ' + paleta.a
+  };
+}

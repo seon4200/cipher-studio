@@ -15,7 +15,8 @@
     "test:graficos": "electron tests/graficos.js",
     "test:reparto": "electron tests/reparto.js",
     "test:exclusion": "electron tests/exclusion.js",
-    "test:ciclo": "electron tests/ciclo.js"
+    "test:ciclo": "electron tests/ciclo.js",
+    "test:mapa": "electron tests/mapa.js"
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.1",

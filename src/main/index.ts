@@ -27,6 +27,17 @@ import { semillaDe, generador, entre, entero } from '../shared/semilla'
 export { semillaDe, generador, entre, entero }
 import { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA } from '../shared/conceptos'
 export { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA }
+// SOLO RE-EXPORTACION, para que tests/mapa.js pueda ejercitar el modulo sobre el BUNDLE
+// COMPILADO en vez de reimplementarlo. NADIE lo llama todavia: `mapa.ts` es matematica pura y
+// el paso 3 sera quien la use. Sin estas dos lineas la octava suite no tendria como alcanzarlo
+// —el bundler no incluye lo que nadie importa— y la unica alternativa seria copiar la logica
+// dentro de la prueba, que es exactamente lo que las otras siete evitan.
+import * as mapa from '../shared/mapa'
+export const {
+  SY, FOCO, ZONA, T, cl, ent, elige, jit, PALETAS, LAYOUTS, FAMILIAS,
+  separados, acotar, layoutSeguro, retardos, RETARDO_ANCLA, retardoArista,
+  TRANSICIONES, ORDENES, receta, nSeguro, N_MAX
+} = mapa
 import { recortarTexto } from '../shared/texto'
 export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
 
