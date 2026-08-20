@@ -723,6 +723,74 @@ una explicación que solo cubra la mitad.
 
 ---
 
+# 10 quater. 🔴 CAUSA RAÍZ — TRES MÓDULOS COMMITEADOS A MEDIAS
+
+**Detectado el 20 de agosto de 2026, al ir a crear un punto de retorno. SEVERIDAD ALTA:
+durante varios commits, el repositorio no construía y nadie lo sabía.**
+
+`f239c32` tiene `src/main/index.ts` importando tres cosas que no estaban en el repositorio:
+
+| import | qué faltaba |
+|---|---|
+| `../shared/ciclo` | el módulo entero, sin trackear |
+| `../shared/semilla` | el módulo entero, sin trackear |
+| `../shared/palabra` | el módulo estaba, pero **sin `recortarPuntuacion`** |
+
+Un clon limpio de ese commit **no compila**. Y no fue un commit: fueron varios seguidos, todos
+publicados en GitHub.
+
+## Por qué no se vio — y no fue descuido
+
+**Fue `git add` con rutas explícitas más no leer los `??` del status.**
+
+Cada commit añadía exactamente los ficheros del cambio en curso —`git add src/main/index.ts
+tests/ciclo.js …`— y el `git status` posterior se leía buscando confirmación de que *eso* había
+entrado. Los `??` de `src/shared/ciclo.ts` y `src/shared/semilla.ts` estuvieron en pantalla
+**varias veces** y se leyeron como ruido de trabajo en curso.
+
+**Es el patrón del §7.3, protecciones en código muerto, aplicado al propio control de versiones:
+el `git status` daba un resultado tranquilizador porque miraba lo que se acababa de tocar, no lo
+que faltaba.**
+
+Y lo que lo hizo invisible es la segunda mitad: **el build pasaba**. En el disco de quien
+escribía el código, los ficheros existían. `npm run build` en verde, siete suites en verde. Todo
+decía que funcionaba, y todo se refería a un árbol que no era el del repositorio.
+
+## La regla que lo previene
+
+> **No se declara nada «commiteado» sin `git status --porcelain` vacío Y build verificado desde
+> un worktree limpio. Ni una cosa ni la otra por separado.**
+
+Las dos mitades son necesarias y ninguna basta:
+
+- **Solo el status vacío** no prueba que compile: puede faltar un símbolo dentro de un fichero
+  que sí está trackeado, que es exactamente lo que pasó con `recortarPuntuacion`.
+- **Solo el build** no prueba nada en absoluto si se ejecuta sobre el disco: el disco tiene los
+  ficheros que faltan en el repo. Es la comprobación que estuvo en verde todo el tiempo mientras
+  el repositorio estaba roto.
+
+Comprobar desde un worktree limpio cuesta un `git worktree add --detach`, un enlace a
+`node_modules` y tres comandos. Es lo que separa «compila» de «compila para cualquiera».
+
+## Lo que sí estaba sano
+
+Los tres puntos de retorno anteriores **construyen**, verificado resolviendo todos los imports
+relativos de sus 20 ficheros fuente contra su propio árbol: `v-graficos-render-ok`,
+`v-graficos-en-el-video` y `v-graficos-export-ok` dan **cero** imports sin resolver. Son
+anteriores a la extracción de `src/shared/` y no importan nada de ahí.
+
+## Y una herramienta de verificación que se borró por estar rota
+
+Durante este diagnóstico se escribió un comprobador que cruzaba los símbolos importados contra
+los exportados. **Reportó 29 «SÍMBOLO AUSENTE» falsos**, incluidos `recortarTexto` y `fraccion`,
+que existen y se usan a diario. Su regex de detección de `export` estaba mal.
+
+**Se borró en vez de arreglarse**, y el motivo es el §7.3 otra vez: una herramienta de
+verificación rota es peor que ninguna, porque el siguiente que la ejecute se la creerá. El único
+dato fiable de todo el diagnóstico salió de `tsc`, que es la autoridad.
+
+---
+
 # 11. EL ESTADO DE GIT
 
 ## Dónde está
