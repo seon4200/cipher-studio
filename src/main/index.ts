@@ -968,6 +968,11 @@ const canonizar = (v: any): string => {
 // diseño deja el hash IDENTICO: la cache devuelve el MOV viejo, el log dice ACIERTO y el export
 // dice "39 de 39". Todo verde con el diseño antiguo. Es el peor modo de fallo que hay, porque
 // el sistema afirma activamente que ha funcionado.
+// 5 — los tres conceptos y la posicion entran en `extra`, o sea en la CLAVE. Dos Visuales de
+// la misma palabra en posiciones distintas dejan de compartir .mov: antes colisionaban —medido,
+// 37 clips y 36 ficheros— y con la posicion dentro cada uno es unico. Se acepta perder el
+// reaprovechamiento a cambio de que la clave describa el dibujo.
+//
 // 4 — la palabra del Visual sale SIN la puntuacion de los bordes. Antes se pintaba
 // "fallecidos." con el punto y "maneras," con la coma: 9 de 37 (24%) medido. Cambia lo que se
 // ve en el 24% de los Visuales, asi que los .mp4 de la version 3 ya no valen.
@@ -985,7 +990,7 @@ const canonizar = (v: any): string => {
 // fichero viejo diciendo ACIERTO: se veria exactamente lo mismo y pareceria que la composicion
 // no funciona. Es el modo de fallo que esta constante existe para evitar, y cuesta re-renderizar
 // lo que haya en cache (~2.7 s por grafico).
-const VERSION_PLANTILLAS = 4;
+const VERSION_PLANTILLAS = 5;
 
 // EL FORMATO LO DECIDE EL MODO, y se dice AQUI una sola vez. Las tres cosas —codec, pix_fmt y
 // extension— tienen que ir juntas o el fichero sale mintiendo sobre si mismo: un .mp4 con
@@ -4248,6 +4253,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           keyword: subClip.keyword,
           prompt: subClip.prompt,
           duration: subClip.duration,
+          // NOMBRADO A MANO, como todo lo demas de este push. Es la PRIMERA reproyeccion
+          // despues del mapeo que los añade, y sin esta linea `conceptos` moria aqui: veinte
+          // lineas mas arriba se sanean y aqui se tiraban, sin error y sin log. El mismo patron
+          // que obligo a nombrarlos alli.
+          conceptos: subClip.conceptos,
           graphic: null
         });
         globalIdx++;
@@ -4337,7 +4347,31 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       if (aRenderizar.length) {
         const resVis = await renderGraphicClipsLote(
           aRenderizar.map(x => ({
-            graphicData: { type: COMPOSICION_VISUAL, value: recortarTexto(x.palabra) },
+            graphicData: {
+              type: COMPOSICION_VISUAL,
+              value: recortarTexto(x.palabra),
+              // LOS CONCEPTOS Y LA POSICION VIAJAN AQUI, DENTRO DE graphicData, y no por fuera.
+              // El motivo es la cache, no la comodidad: `canonizar` proyecta seis claves de
+              // graphicData —type, value, label, unit, emoji, extra— y `extra` es una de ellas.
+              // Lo que va por fuera NO entra en la clave, asi que dos Visuales con dibujos
+              // distintos compartirian .mov y la cache diria ACIERTO sobre un fichero que no es.
+              // Regla: lo que decide los pixeles tiene que estar en la clave.
+              extra: {
+                // LA POSICION, como PAR y no como suma. `phraseIndex + clipIndexInPhrase`
+                // colisiona —frase 3 clip 1 y frase 4 clip 0 dan los dos 4— y dos posiciones
+                // distintas acabarian con el mismo hash, que es justo lo que se quiere evitar.
+                // Y son phraseIndex/clipIndexInPhrase y no el indice global del timeline:
+                // insertar un clip al principio desplazaria el global y re-renderizaria el
+                // video entero.
+                pos: `${x.item.phraseIndex}:${x.item.clipIndexInPhrase}`,
+                // Ya vienen proyectados a {emoji, etiqueta} por `sanearConceptos`, que es el
+                // UNICO sitio donde vive esa regla. Volver a mapearlos aqui la pondria en dos
+                // lugares — el patron de las dos puertas, que ya ha mordido cuatro veces.
+                // `null` cuando DeepSeek no dio tres validos: la clave se mantiene siempre
+                // presente para que la forma del objeto no cambie segun el caso.
+                conceptos: x.item.conceptos ?? null
+              }
+            },
             duracion: x.item.duration
           })),
           { aspectRatio, fps: 30, modo: 'pantalla', sistema: SISTEMA_VISUAL },

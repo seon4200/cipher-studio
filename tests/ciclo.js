@@ -429,6 +429,59 @@ function conceptos (bundle) {
   let estables = 0
   for (let i = 0; i < 100; i++) if (JSON.stringify(sanearConceptos(conRuido)) === a) estables++
   ok(estables === 100, '100 llamadas con los mismos datos dan el mismo resultado')
+
+  // ── I10) `extra` EN LA CLAVE DEL HASH ─────────────────────────────────────────────
+  //
+  // Los conceptos y la posicion viajan DENTRO de graphicData.extra justamente para esto: si
+  // fueran por fuera, dos Visuales con dibujos distintos compartirian .mov y la cache diria
+  // ACIERTO sobre un fichero que no es el suyo. Aqui se comprueba que la clave los distingue.
+  const { hashGrafico } = bundle
+  if (typeof hashGrafico !== 'function') { ok(false, 'hashGrafico se exporta del bundle'); return }
+  const H = (extra) => hashGrafico({ type: 'visual_extrusion', value: 'agua', extra },
+    1080, 1920, 2.6, 30, 'pantalla', 'voltaje')
+
+  const CON = { pos: '3:1', conceptos: TRES }
+  const SIN = { pos: '3:1', conceptos: null }
+
+  ok(H(CON) !== H(SIN), 'con conceptos y sin conceptos dan hashes DISTINTOS',
+    H(CON) + ' vs ' + H(SIN))
+  ok(H(CON) === H({ pos: '3:1', conceptos: TRES }), 'dos identicos dan el MISMO hash')
+  ok(H(CON) === H({ conceptos: TRES, pos: '3:1' }),
+    'y el ORDEN DE CLAVES no cambia el hash: canonizar las ordena')
+
+  // LA POSICION distingue. Es lo que arregla que 37 clips compartieran 36 ficheros.
+  ok(H({ pos: '3:1', conceptos: TRES }) !== H({ pos: '4:0', conceptos: TRES }),
+    'la misma palabra en POSICIONES distintas da hashes distintos')
+  // Y el par no colisiona donde la suma si lo haria: 3+1 = 4+0 = 4.
+  ok(H({ pos: '3:1', conceptos: null }) !== H({ pos: '4:0', conceptos: null }),
+    'el par "3:1" y "4:0" no colisionan, cosa que la SUMA si haria')
+
+  // EL ORDEN DE LOS CONCEPTOS cuenta: se pintan en sitios distintos, asi que son otro dibujo.
+  const barajado = [TRES[2], TRES[0], TRES[1]]
+  ok(H({ pos: '3:1', conceptos: TRES }) !== H({ pos: '3:1', conceptos: barajado }),
+    'barajar los tres conceptos da otro hash: el orden es semantico')
+
+  // UNA CLAVE DE MAS cambiaria el hash sin cambiar un pixel. Por eso `sanearConceptos`
+  // proyecta a dos claves: aqui se comprueba que su salida ya viene limpia.
+  ok(H({ pos: '3:1', conceptos: sanearConceptos(conRuido) }) === H(CON),
+    'el ruido saneado da el mismo hash que los datos limpios: la proyeccion protege la clave')
+
+  // DEGENERADOS: ninguno puede lanzar ni producir un hash vacio.
+  let hashesMalos = 0
+  for (const e of [null, undefined, {}, { pos: null, conceptos: null }, { pos: '', conceptos: [] },
+    { conceptos: undefined }, [], 'texto', 0]) {
+    try {
+      const h = H(e)
+      if (typeof h !== 'string' || h.length !== 12) hashesMalos++
+    } catch (err) { hashesMalos++ }
+  }
+  ok(hashesMalos === 0, 'todo `extra` degenerado produce un hash valido de 12 caracteres',
+    'null, undefined, {}, claves nulas, vacios, [], "texto", 0')
+
+  // Y el caso que mas duele: null y undefined COLAPSAN a la misma clave por diseño de
+  // canonizar. Se fija para que nadie lo cambie sin darse cuenta.
+  ok(H({ pos: '3:1', conceptos: null }) === H({ pos: '3:1', conceptos: undefined }),
+    'conceptos null y undefined dan el MISMO hash (canonizar los colapsa)')
 }
 
 app.whenReady().then(() => {
