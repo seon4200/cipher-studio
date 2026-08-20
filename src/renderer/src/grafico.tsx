@@ -56,8 +56,20 @@ type Opciones = {
   ancho: number; alto: number
   modo: 'overlay' | 'pantalla'
   sistema: NombreSistema
+  // EL CICLO. Es la duracion del Visual, y de el salen TODAS las duraciones de animacion de una
+  // composicion. Sin esto la pagina no lo sabia: renderGraphicClip conoce `duracion` —la usa
+  // para totalFrames y para el hash— pero no se la decia a nadie aqui dentro.
+  duracion: number
 }
-let opciones: Opciones = { ancho: 1080, alto: 1920, modo: 'overlay', sistema: 'voltaje' }
+let opciones: Opciones = { ancho: 1080, alto: 1920, modo: 'overlay', sistema: 'voltaje', duracion: 2 }
+
+// Los avisos del candado del ciclo, para que se los lleve el proceso principal.
+//
+// NO se usa console.warn: esta ventana es OFFSCREEN y su consola no la abre nadie. Ya paso —un
+// console.log puesto aqui para diagnosticar la colocacion de las tarjetas nunca aparecio en
+// generation-debug.log y hubo que deducir el dato de otra parte. Un aviso que nadie puede leer
+// no es un aviso.
+;(window as any).__avisosCiclo = [] as string[]
 
 const sonda = document.getElementById('sonda') as HTMLDivElement
 const lienzo = document.getElementById('lienzo') as HTMLDivElement
@@ -90,7 +102,8 @@ function pintar(t?: number) {
   // el getAnimations({subtree:true}) que usa desde su propia raiz para posicionar el reloj
   // alcanza lo mismo que antes: el envoltorio esta POR ENCIMA de esa raiz, no en medio.
   const hijo = React.createElement(AnimatedGraphic,
-    { graphic: datos, t, modo: opciones.modo, sistema: opciones.sistema })
+    { graphic: datos, t, modo: opciones.modo, sistema: opciones.sistema,
+      ciclo: opciones.duracion })
   flushSync(() => raiz!.render(
     // EN PANTALLA NO HAY ENVOLTORIO DE ESCALA. El scale(1.6) existe para agrandar una TARJETA
     // dentro de un cuadro mas grande; aplicado a un Visual que ya ocupa el cuadro entero lo
@@ -126,6 +139,29 @@ function pintar(t?: number) {
   const v = Math.round((t * 30) % 255)
   sonda.style.background = `rgb(${v},${v},${v})`
   pintar(t)
+
+  // BLINDAJE: se posiciona TODO el documento, no solo el subarbol de AnimatedGraphic.
+  //
+  // El muestreo de siempre vive en el useLayoutEffect de AnimatedGraphic y alcanza
+  // `raizRef.current.getAnimations({subtree:true})`. Eso cubre lo que cuelga del componente y
+  // hoy basta — esta comprobado que el render es determinista—, pero deja fuera un portal de
+  // React, una animacion sobre `body` o sobre el `<html>`, y cualquier elemento que una
+  // composicion futura monte fuera de esa raiz. Lo que quede fuera corre con el RELOJ DE PARED
+  // y pasa todas las guardas: los frames salen distintos entre si, la sonda valida el `t` y no
+  // el contenido, y el MOV dura lo correcto. Es el mismo patron del canvas en blanco.
+  //
+  // VA DESPUES DE `pintar`, NO ANTES, y no es un detalle de estilo: antes de pintar el DOM es
+  // todavia el del frame ANTERIOR, asi que un elemento creado en ESTE render —justo el caso que
+  // se quiere cubrir— no existiria aun y se quedaria sin posicionar. `pintar` usa flushSync, de
+  // modo que al volver el arbol esta comprometido y los layout effects ya han corrido: aqui
+  // getAnimations() lo ve todo.
+  //
+  // Es redundante con el useLayoutEffect y se deja a proposito: cuesta un recorrido de una
+  // lista corta y quita la obligacion de que cada composicion se acuerde de colgarse del sitio
+  // correcto. Antes de escribir veintitantos mecanismos, esa obligacion es una trampa.
+  for (const a of document.getAnimations()) {
+    try { a.pause(); a.currentTime = t * 1000 } catch (e) { /* una animacion sin tiempo activo */ }
+  }
 }
 
 ;(window as any).__listo = async () => {

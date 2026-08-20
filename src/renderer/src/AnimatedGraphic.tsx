@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { SISTEMAS, ZONA_SEGURA, NombreSistema } from './sistemas'
 import { recortarTexto } from '../../shared/texto'
+import { cicloValido } from '../../shared/ciclo'
+import { semillaDe } from '../../shared/semilla'
+import { composicion } from './composiciones'
 
 /* --------------------------------------------------------------
    AnimatedGraphic – Fase 2
@@ -87,7 +90,20 @@ export const AnimatedGraphic: React.FC<{
   // pasan nada y tienen que seguir viendo exactamente lo mismo.
   modo?: 'overlay' | 'pantalla'
   sistema?: NombreSistema
-}> = ({ graphic, t, modo = 'overlay', sistema = 'voltaje' }) => {
+  /**
+   * EL CICLO, en segundos: lo que dura el Visual, que es lo que dura su sub-clip.
+   *
+   * Solo lo usan las composiciones, y de el tienen que DERIVARSE todas sus duraciones de
+   * animacion —con `fraccion(ciclo, n)`, nunca con un literal—. Un `1.5s` escrito a mano es
+   * correcto para un ciclo de 3 s y falso para uno de 2.6 s, y el fallo es silencioso: el video
+   * sale, el bucle salta, y nada lo dice.
+   *
+   * Opcional y con respaldo porque los llamadores que ya existen no lo pasan y no lo necesitan:
+   * los 17 tipos de tarjeta tienen sus rampas en segundos absolutos (deuda ya anotada) y no
+   * miran esto.
+   */
+  ciclo?: number
+}> = ({ graphic, t, modo = 'overlay', sistema = 'voltaje', ciclo = 2 }) => {
   const { type, value, label, unit, emoji, extra } = graphic
   const [internalAuto, setInternalAuto] = useState<number>(0)
   const raizRef = React.useRef<HTMLDivElement>(null)
@@ -482,12 +498,69 @@ export const AnimatedGraphic: React.FC<{
   // Las variables CSS son lo unico que permite cambiar el color sin tocar los 37 hex escritos
   // a mano por el fichero. En V1 solo las usa el donut; el resto de tipos se migra cuando le
   // toque a cada uno, y mientras tanto siguen funcionando con su hex.
+  // `--ciclo` se publica igual que los colores, y es la misma idea que el `:root{--ciclo:6s}`
+  // de los laboratorios: una composicion escribe `calc(var(--ciclo) / 2)` y esa duracion es
+  // legal para CUALQUIER ciclo, por construccion. Es lo contrario de escribir `1.5s`, que solo
+  // vale si el ciclo resulta ser 3, 6 o 12 — y falla en silencio cuando no lo es.
+  //
+  // Se publica aunque hoy no lo lea ninguna plantilla: es el canal, y tenerlo puesto es lo que
+  // permite comprobar que la duracion llega hasta aqui antes de escribir la primera composicion.
+  const cicloUsado = cicloValido(ciclo) ? ciclo : 2
   const vars = {
     '--fondo': s.fondo, '--sup': s.sup, '--texto': s.texto,
-    '--acento': s.acento, '--apoyo': s.apoyo
+    '--acento': s.acento, '--apoyo': s.apoyo,
+    '--ciclo': `${cicloUsado}s`
   } as React.CSSProperties
 
   if (modo === 'pantalla') {
+    // LA COMPOSICION, si el tipo nombra una. `composicion()` devuelve null cuando no existe y
+    // entonces se cae al Visual de texto de siempre: un tipo desconocido no puede dejar el
+    // cuadro en blanco.
+    const comp = composicion(String(type || '').replace(/^visual_/, ''))
+    if (comp) {
+      // Los avisos del candado se DEPOSITAN para que se los lleve el proceso principal. No van
+      // por console.warn: esta ventana es offscreen y su consola no la abre nadie — medido en
+      // este repo, un console.log puesto aqui para diagnosticar nunca llego al log.
+      const avisos = comp.avisos(cicloUsado)
+      if (avisos.length && typeof window !== 'undefined') {
+        const w = window as any
+        if (!Array.isArray(w.__avisosCiclo)) w.__avisosCiclo = []
+        for (const a of avisos) w.__avisosCiclo.push(`[${comp.nombre}] ${a}`)
+      }
+      const palabra = recortarTexto(value)
+      return (
+        <div
+          ref={raizRef}
+          style={{ ...vars, backgroundColor: 'var(--fondo)' }}
+          className="w-full h-full relative overflow-hidden"
+        >
+          {comp.render({ u: cicloUsado > 0 ? ((t ?? 0) / cicloUsado) % 1 : 0,
+                         ciclo: cicloUsado, sistema, texto: palabra,
+                         // De la PALABRA, no del indice ni del instante: la palabra esta en la
+                         // clave del hash, asi que la clave describe el dibujo.
+                         semilla: semillaDe(palabra) })}
+          {/* LA PALABRA NO SE PIERDE. La composicion ocupa el cuadro, pero un Visual existe
+              para poner una palabra a pantalla completa: si la composicion la sustituyera, el
+              Visual dejaria de hacer su trabajo y seria decoracion.
+              Va en el PIE, que es exactamente lo que hacen los ficheros de referencia — su
+              `.pie{left:8.33%;right:8.33%;bottom:13.54%}` es la zona segura que ya usamos, y
+              esta escrito en docs/motion/README.md. */}
+          {palabra && (
+            <div style={{
+              position: 'absolute', left: '8.33%', right: '8.33%', bottom: '13.54%',
+              zIndex: 5, textAlign: 'center'
+            }}>
+              <div style={{ color: 'var(--texto)', fontSize: 132, lineHeight: 0.95,
+                            fontWeight: 800, letterSpacing: '-0.01em' }}>
+                {palabra}
+              </div>
+              <div style={{ height: 10, width: 168, margin: '34px auto 0',
+                            borderRadius: 99, background: 'var(--acento)' }} />
+            </div>
+          )}
+        </div>
+      )
+    }
     return (
       <div
         ref={raizRef}
