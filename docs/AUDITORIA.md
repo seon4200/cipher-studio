@@ -579,6 +579,150 @@ de saturación **no puede descartar tofu en emojis monocromos**.
 
 ---
 
+# 10 bis. DEFECTO CONOCIDO — 3 FRAMES PERDIDOS EN EL MUX
+
+**Medido el 20 de agosto de 2026 sobre el export de `jhklj-1787238284463`. NO bloqueante para
+publicar.** Se pierden **0.108 s** de cola de palabra al final del vídeo.
+
+## El aviso que lo destapa
+
+```
+El video se ha exportado, pero sus tiempos no cuadran: el ultimo pts es 199.159s
+y se esperaba 199.267s (5979 frames a 30 fps).
+```
+
+Déficit **0.108 s = 3230 ticks** a `time_base 1/30000`. Y **no es un número entero de frames**,
+que es lo que hizo pensar en un residuo sub-rejilla.
+
+## La descomposición: son TRES causas, y suman exacto
+
+| ticks | causa |
+|---:|---|
+| **+3000** | `framesAcum = 5979` contra `nb_frames = 5976` del contenedor final — **3 frames que faltan** |
+| **−1000** | el stream arranca en **pts 1000**, y la guarda asume pts 0 |
+| **+1230** | deriva sub-rejilla heredada del base |
+| **= 3230** | |
+
+**La causa dominante son los 3 frames, no la deriva.** La deriva sub-rejilla aporta el 38% del
+déficit y es la parte que menos importa.
+
+## Dónde se pierden — medido, no deducido
+
+| fichero | `nb_frames` | `duration` |
+|---|---|---|
+| `base_sin_graficos.mp4` | **5979** ✔ | 199.292 s |
+| suma de los 20 `seg_*.mp4` | **5979** ✔ | — |
+| `con_graficos.mp4` (salida del overlay) | **NO EXISTE** | — |
+| **el export final** | **5976** ✘ | 199.251 s |
+
+**El overlay de tarjetas queda exonerado: en este export no llegó a correr.** La pasada se
+descartó (`segmento 9: 313 frames tras componer, eran 314`), así que `con_graficos.mp4` nunca se
+produjo y el mux tomó el `base` directamente. La cadena real fue **base → mux → final**.
+
+**Los 3 frames se pierden en el MUX.**
+
+Los últimos pts, lado a lado:
+
+```
+base_sin_graficos.mp4          el export final
+ 5975770 = 199.192333s          5972770 = 199.092333s
+ 5976770 = 199.225667s          5973770 = 199.125667s
+ 5977770 = 199.259000s          5974770 = 199.159000s
+```
+
+El comando es
+`ffmpeg -i base -i audio -map 0:v -map 1:a -c:v copy -c:a aac -b:a 128k -shortest`.
+
+**Y `-shortest` no explica los tres.** El audio acaba en **199.250998 s = 5977530 ticks**:
+
+| frame del base | instante | ¿dentro del audio? |
+|---|---|---|
+| 5975770 | 199.192333 s | **DENTRO** |
+| 5976770 | 199.225667 s | **DENTRO** |
+| 5977770 | 199.259000 s | fuera |
+
+**Dos de los tres frames descartados caen DENTRO de la duración del audio.** Un `-shortest` que
+cortara en el final del audio habría quitado uno, no tres. El mecanismo exacto —probablemente la
+interacción de `-shortest` con `-c:v copy` y los bloques de 1024 muestras del AAC— **no está
+medido**, y no se afirma.
+
+## El segundo defecto: la guarda asume `primer pts = 0`
+
+`verificarTiempos` calcula `esperado = (framesEsperados - 1) / fps`, lo que da el pts del último
+frame **suponiendo que el primero está en 0**. Medido: **el stream arranca en pts 1000**, o sea
+en 0.033333 s.
+
+**Eso mete un frame entero de error en el propio aviso**, siempre y en la misma dirección: el
+mensaje exagera el déficit en exactamente 1000 ticks. Los 0.108 s que reporta son en realidad
+**0.075 s** de pérdida real más un frame de error de la propia medición.
+
+No se toca aquí. Queda escrito para que quien lo arregle sepa que **hay dos cosas distintas**: los
+frames que se pierden de verdad, y la vara con la que se miden.
+
+## Por qué no bloquea
+
+Los 0.108 s que faltan caen en la cola de una palabra que ya está decayendo. Medido con
+`volumedetect` sobre el fichero final:
+
+| tramo | `mean_volume` | `max_volume` |
+|---|---|---|
+| **últimos 0.20 s** | −28.9 dB | **−11.7 dB** |
+| −0.50 a −0.20 s | −20.1 dB | −5.1 dB |
+| −3.00 a −2.50 s (referencia) | −22.3 dB | −5.0 dB |
+
+**No es silencio** —−11.7 dB de pico es señal clara— pero está 6.7 dB por debajo del tramo
+anterior. Se pierde el final de una palabra, no una palabra.
+
+---
+
+# 10 ter. 🔴 DEFECTO CONOCIDO — UN FRAME DESCARTA LAS 28 TARJETAS
+
+**Medido el 20 de agosto de 2026, mismo export. SEVERIDAD ALTA.** No es una décima de segundo:
+es **funcionalidad completa ausente**.
+
+```
+[EXPORT-G3] DESCUADRE en el segmento 9 (seg_00009.mp4) tras 3 intento(s):
+            313 frames tras componer, eran 314. Dura 10.467s, tramo 91.70-102.17s
+[EXPORT-G3] PASADA DESCARTADA: segmento 9: 313 frames tras componer, eran 314 (3 intentos).
+            El video sale SIN las 28 tarjetas, pero correcto y sincronizado.
+```
+
+**Un frame de diferencia en 1 de 20 segmentos descarta la pasada ENTERA.** Los otros 19 segmentos
+se compusieron bien y su trabajo se tira. El vídeo se publica sin ninguna tarjeta.
+
+La regla de "todo o nada" es deliberada y su razón sigue siendo buena: un segmento con un frame
+de menos desplaza todo lo que viene detrás y descuadra la sincronía con el audio. Lo que está mal
+calibrado no es la decisión, es **el precio**: se pagan 28 tarjetas por un frame.
+
+## Lo que lo agrava: el aviso solo vive en el log
+
+**La ventana de export no lo menciona.** Termina con normalidad y el usuario publica un vídeo sin
+tarjetas sin enterarse. Para saberlo hay que abrir `generation-debug.log` y buscar
+`PASADA DESCARTADA`.
+
+Es el mismo patrón que la sección 7.4: el sistema **afirma que ha funcionado**. Aquí lo afirma
+más fuerte que de costumbre, porque el propio mensaje del log dice *"pero correcto y
+sincronizado"* — que es cierto y a la vez oculta que faltan 28 gráficos.
+
+## Relación con el defecto de los 3 frames — sin investigar
+
+Los dos defectos son pérdidas de frames en etapas distintas del mismo export:
+
+| etapa | frames perdidos |
+|---|---|
+| overlay al componer el segmento 9 | **1** |
+| mux | **3** |
+
+**Dos sitios perdiendo frames por separado, posible misma raíz.** Lo que hace la coincidencia
+sospechosa es que el overlay reintentó **3 veces** el segmento 9 y perdió el mismo frame las tres
+—no es una carrera, es determinista— mientras que el mux descarta dos frames que caen **dentro**
+de la duración del audio.
+
+**No investigado.** Queda anotado para que quien ataque uno mire el otro antes de dar por buena
+una explicación que solo cubra la mitad.
+
+---
+
 # 11. EL ESTADO DE GIT
 
 ## Dónde está

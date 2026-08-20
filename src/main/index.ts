@@ -3867,6 +3867,34 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
       // Gráficos se generan por separado con Regenerar Gráficos
 
+      // ── OBSERVABILIDAD DE LOS CONCEPTOS ────────────────────────────────────────────
+      //
+      // SOLO MIRA Y ESCRIBE. No toca `extra`, ni la clave del hash, ni sanearConceptos, ni
+      // VERSION_PLANTILLAS: si tocara cualquiera de esas cosas la cache se invalidaria y los
+      // Visuales se re-renderizarian para nada.
+      //
+      // Existe porque una auditoria real no pudo medir los conceptos: llegan bien —15 de 15
+      // Visuales los llevaban, verificado por fuerza bruta contra el hash— pero NO son
+      // observables. Viajan de DeepSeek a graphicData.extra y de ahi a los pixeles, sin pasar
+      // por el project-state.json ni por el log. Y el hash no es reversible, asi que no hay
+      // forma de saber CUALES son ni por que alguno salio null.
+      //
+      // SE REGISTRAN LOS DOS LADOS DEL SANEO. Un log solo del resultado no distingue "el campo
+      // no vino" de "vinieron dos y la regla los anulo", y las dos se arreglan distinto: la
+      // primera es que el prompt no se entendio, la segunda que se entendio y no cumplio.
+      const cLineas: string[] = [];
+      let cTotal = 0, cOK = 0, cSinCampo = 0, cInsuficiente = 0;
+
+      // Pinta un concepto sin fiarse de el. El objeto viene del modelo y puede traer getters
+      // hostiles — ya paso con sanearConceptos, que lanzaba hasta que se envolvio la LECTURA.
+      const pintaConcepto = (x: any): string => {
+        try {
+          const e = String(x?.emoji ?? '?').slice(0, 8);
+          const t = String(x?.etiqueta ?? '?').slice(0, 24);
+          return e + ' ' + t;
+        } catch (err) { return '(ilegible)'; }
+      };
+
       // Procesar y sanitizar con phrasesDecision y graphicsDecision
       for (let idx = 0; idx < newAudioSegments.length; idx++) {
         const seg = newAudioSegments[idx];
@@ -3909,11 +3937,47 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           }
         }
 
-        visualClips = visualClips.map((c: any) => {
+        visualClips = visualClips.map((c: any, ci: number) => {
           const type = ['original', 'stock', 'ia'].includes(c.type) ? c.type : 'original';
           const effectiveTimestamp = (isOriginalAudio && type === 'original' && newAudioSegments[idx]?.start !== undefined)
             ? newAudioSegments[idx].start
             : (c.timestamp ?? parseFloat(((idx / newAudioSegments.length) * maxTsVal).toFixed(1)));
+
+          // EL LOG DE LOS CONCEPTOS. Va ANTES del return y no altera nada de lo que se devuelve.
+          // El try envuelve TODO —incluida la lectura de `c.conceptos`, que puede ejecutar un
+          // getter— porque una excepcion aqui mataria FASE 2 entera: 78 sub-clips perdidos por
+          // una linea de log seria un intercambio absurdo.
+          const saneados = sanearConceptos(c.conceptos);
+          try {
+            cTotal++;
+            let crudo: any;
+            try { crudo = c.conceptos; } catch (err) { crudo = undefined; }
+            const esArray = Array.isArray(crudo);
+            const nCrudo = esArray ? crudo.length : -1;    // -1 = el campo no vino como array
+            if (saneados) cOK++;
+            else if (!esArray) cSinCampo++;                // causa (a): no vino el campo
+            else cInsuficiente++;                          // causa (b): vino con <3 validos
+            // Con NULL se imprime lo CRUDO igualmente, aunque sean dos o esten malformados: es
+            // el unico modo de ver POR QUE se anulo. Omitir la linea dejaria el mismo agujero
+            // que se esta cerrando.
+            const lista = saneados || (esArray ? crudo : []);
+            const pintados = lista.length
+              ? lista.map(pintaConcepto).join(' | ')
+              : '(sin conceptos)';
+            const frase = String(seg?.text ?? '').trim().replace(/\s+/g, ' ').slice(0, 80);
+            // EL LOTE, derivado del indice de frase con el MISMO BATCH_SIZE que uso el bucle de
+            // las llamadas. Va aqui porque en la auditoria no se pudo sacar el keyword propio
+            // POR LOTE: el log solo emitia el agregado `73/78`, y un lote perdido entero se
+            // disuelve en ese promedio y parece degradacion suave. Con `lote=` y `kw=` en la
+            // misma linea, ese desglose queda derivable del log sin tocar nada mas.
+            const lote = Math.floor(idx / BATCH_SIZE) + 1;
+            cLineas.push(
+              `[FASE 2] CONCEPTOS lote=${lote} pos=${idx}:${ci} ` +
+              `kw=${String(c.keyword ?? 'broll').slice(0, 28)} ` +
+              `crudo=${nCrudo < 0 ? 'SIN-CAMPO' : nCrudo} saneado=${saneados ? 'OK' : 'NULL'}  ` +
+              `${pintados}  frase="${frase}"`);
+          } catch (err) { /* el log jamas puede tumbar FASE 2 */ }
+
           return {
             type,
             timestamp: effectiveTimestamp,
@@ -3924,7 +3988,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             // nombre aqui, DeepSeek lo devuelve y el codigo lo tira sin error y sin log — el
             // mismo "lo que no se añade a mano queda fuera por construccion" del hash, que alli
             // protege y aqui jugaria en contra.
-            conceptos: sanearConceptos(c.conceptos)
+            //
+            // Se reutiliza `saneados`, calculado arriba para el log. Es la MISMA llamada, no una
+            // segunda: sanearConceptos es puro, pero llamarlo dos veces pondria la duda de si el
+            // log describe lo que de verdad se guarda.
+            conceptos: saneados
           };
         });
 
@@ -3998,6 +4066,26 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           graphic
         });
       }
+
+      // VOLCADO. Se acumula en el bucle y se escribe aqui porque `map` no es async: hacerlo
+      // async por una linea de log obligaria a convertir el bucle entero en secuencial.
+      try {
+        for (const l of cLineas) await logMessage(l);
+        await logMessage(
+          `[FASE 2] CONCEPTOS: ${cTotal} sub-clips | ${cOK} con 3 validos | ` +
+          `${cSinCampo} NULL causa (a): el campo "conceptos" no venia | ` +
+          `${cInsuficiente} NULL causa (b): venia con <3 validos tras saneo`);
+        // LAS CASILLAS TIENEN QUE CUADRAR. Hoy cuadran por construccion —el if/else de arriba
+        // incrementa exactamente un contador en cada camino— pero eso es una propiedad del
+        // codigo actual, no una garantia. El dia que alguien añada una cuarta categoria y
+        // olvide contarla, ese caso desapareceria sin ruido: ni en OK, ni en (a), ni en (b),
+        // y el resumen seguiria pareciendo correcto porque nadie suma las casillas.
+        // Es el mismo modo de fallo que persigue toda la seccion 7.4 de la auditoria.
+        const suma = cOK + cSinCampo + cInsuficiente;
+        if (suma !== cTotal) {
+          await logMessage(`[FASE 2] CONCEPTOS DESCUADRE: ${cTotal} vs ${suma}`);
+        }
+      } catch (err) { /* ni el volcado puede tumbar FASE 2 */ }
     } catch (e: any) {
       await logMessage(`[FASE 2] DeepSeek error: ${e.message}. Usando fallback.`);
     }
