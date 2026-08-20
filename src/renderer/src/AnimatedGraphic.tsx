@@ -517,17 +517,45 @@ export const AnimatedGraphic: React.FC<{
     // entonces se cae al Visual de texto de siempre: un tipo desconocido no puede dejar el
     // cuadro en blanco.
     const comp = composicion(String(type || '').replace(/^visual_/, ''))
-    if (comp) {
-      // Los avisos del candado se DEPOSITAN para que se los lleve el proceso principal. No van
-      // por console.warn: esta ventana es offscreen y su consola no la abre nadie — medido en
-      // este repo, un console.log puesto aqui para diagnosticar nunca llego al log.
+    const palabra = recortarTexto(value)
+    // Los conceptos viajan en `extra`, que es donde los mete el backend y por tanto donde entran
+    // en la clave del hash. Se pasan TAL CUAL: ya vienen de `sanearConceptos`, y volver a
+    // sanearlos aqui podria cambiar el dibujo sin cambiar la clave.
+    const conceptos = extra?.conceptos ?? null
+
+    // LA PUERTA. Que el tipo nombre una composicion no significa que pueda dibujarse: el
+    // despacho es por `type` y `type` no sabe nada de los datos. Un Visual con `visual_mapa` y
+    // `conceptos: null` encontraba su composicion igual y se pintaba a medias — sin aristas,
+    // sin conceptos y sin emoji final. Con la puerta cerrada cae al Visual de texto de abajo,
+    // que es el respaldo que ya existia y no hay que fabricar.
+    const puede = comp ? comp.puedeDibujar({ texto: palabra, conceptos }) : false
+
+    // EL RESPALDO NO ES MUDO. Si el 30% de los Visuales cae a texto hay que verlo en el log, no
+    // descubrirlo mirando videos. Va por el mismo canal que los avisos del candado y por la
+    // misma razon: esta ventana es offscreen y su consola no la abre nadie — medido en este
+    // repo, un console.log puesto aqui para diagnosticar nunca llego a generation-debug.log.
+    if (comp && !puede && typeof window !== 'undefined') {
+      const w = window as any
+      if (!Array.isArray(w.__avisosCiclo)) w.__avisosCiclo = []
+      const aviso =
+        `[${comp.nombre}] RESPALDO: "${palabra}" cae a visual_texto — ` +
+        `la composicion no puede dibujar con estos datos ` +
+        `(conceptos=${Array.isArray(conceptos) ? conceptos.length : 'null'})`
+      // UNA VEZ POR CLIP, no una por frame. `render` corre en cada `__setT`, que son 90 veces
+      // en un clip de 3 s: sin esto el log se lleva noventa lineas identicas por cada Visual
+      // que cae al respaldo, y un aviso repetido noventa veces deja de leerse como un aviso.
+      // Medido: con `__montar` + un solo `__setT` ya salian dos.
+      if (!w.__avisosCiclo.includes(aviso)) w.__avisosCiclo.push(aviso)
+    }
+
+    if (comp && puede) {
+      // Los avisos del candado se DEPOSITAN para que se los lleve el proceso principal.
       const avisos = comp.avisos(cicloUsado)
       if (avisos.length && typeof window !== 'undefined') {
         const w = window as any
         if (!Array.isArray(w.__avisosCiclo)) w.__avisosCiclo = []
         for (const a of avisos) w.__avisosCiclo.push(`[${comp.nombre}] ${a}`)
       }
-      const palabra = recortarTexto(value)
       return (
         <div
           ref={raizRef}
@@ -535,7 +563,7 @@ export const AnimatedGraphic: React.FC<{
           className="w-full h-full relative overflow-hidden"
         >
           {comp.render({ u: cicloUsado > 0 ? ((t ?? 0) / cicloUsado) % 1 : 0,
-                         ciclo: cicloUsado, sistema, texto: palabra,
+                         ciclo: cicloUsado, sistema, texto: palabra, conceptos,
                          // De la PALABRA, no del indice ni del instante: la palabra esta en la
                          // clave del hash, asi que la clave describe el dibujo.
                          semilla: semillaDe(palabra) })}
@@ -544,8 +572,13 @@ export const AnimatedGraphic: React.FC<{
               Visual dejaria de hacer su trabajo y seria decoracion.
               Va en el PIE, que es exactamente lo que hacen los ficheros de referencia — su
               `.pie{left:8.33%;right:8.33%;bottom:13.54%}` es la zona segura que ya usamos, y
-              esta escrito en docs/motion/README.md. */}
-          {palabra && (
+              esta escrito en docs/motion/README.md.
+
+              PERO SOLO SI LA COMPOSICION NO PINTA EL SUYO. `pintaPie` es UNA puerta: la
+              composicion declara y aqui se obedece. Sin eso, una composicion con pie propio
+              produciria DOS palabras superpuestas, y ese descubrimiento se dejaria para el dia
+              que alguien mirara un video. */}
+          {!comp.pintaPie && palabra && (
             <div style={{
               position: 'absolute', left: '8.33%', right: '8.33%', bottom: '13.54%',
               zIndex: 5, textAlign: 'center'

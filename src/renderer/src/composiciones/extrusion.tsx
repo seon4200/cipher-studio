@@ -151,5 +151,12 @@ export const extrusion: Composicion = {
   nombre: 'extrusion',
   duraciones: (ciclo) => DIVISORES.map(x => ({ que: x.que, d: ciclo / x.n })),
   avisos: (ciclo) => duracionesDe(ciclo).avisos,
+  // SIEMPRE, y no es dejadez: esta composicion no lee `texto` ni `conceptos`. Todo lo que
+  // dibuja sale de `semilla`, que siempre existe. No hay dato del guion que pueda faltarle, asi
+  // que no hay caso en que caer al Visual de texto sea mejor que pintarla.
+  puedeDibujar: () => true,
+  // NO pinta pie: sigue usando el de AnimatedGraphic, que es exactamente lo que hace hoy.
+  // Ponerlo en true sin escribir un pie dejaria el Visual sin su palabra.
+  pintaPie: false,
   render
 }

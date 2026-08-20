@@ -4,27 +4,68 @@
 // `AnimatedGraphic` ya tiene 17 ramas por tipo de tarjeta y es exactamente el sitio donde nadie
 // quiere entrar a añadir la decimoctava.
 //
-// De momento esta VACIO. La primera entrada —EXTRUSION— va en el paso siguiente. Se deja el
-// contrato escrito y probado antes porque es lo que decide como se escriben todas las demas.
+// Hay DOS entradas: EXTRUSION y MAPA. Quien decide cual se pinta no es este fichero sino el
+// `type` del guion, que AnimatedGraphic resuelve quitandole el prefijo `visual_`.
 //
 // Y que quede dicho, porque en este repo ya paso una vez (la PIEZA 2 estuvo escrita, probada y
 // con handler mientras los graficos NO salian en el video, porque nadie la invocaba):
-// ESTO ES INFRAESTRUCTURA, NO FUNCIONALIDAD. Con el registro vacio no se ve nada nuevo en
-// ningun video.
+// REGISTRAR UNA COMPOSICION NO LA PINTA. Con COMPOSICION_VISUAL fijo en 'visual_extrusion',
+// `mapa` esta registrada y no aparece en ningun video.
+//
+// ═══ LA REGLA QUE TIENE QUE LEER QUIEN ESCRIBA LA TERCERA ══════════════════════════════════
+//
+//   TODO LO QUE EMITA @keyframes SE EJECUTA ANTES DEL `return`.
+//
+// JSX evalua sus hijos EN ORDEN, y el <style> es el primero. Si una pieza que emite keyframes
+// se escribe EN LINEA dentro del return —`{nodo(...)}`, `{barra(...)}`— sus reglas se emiten
+// DESPUES de que el <style> haya serializado la lista, y no entran en la hoja.
+//
+// El sintoma no es un error: es un elemento que sale SIN ANIMAR, quieto, y como el transform
+// suele vivir dentro del propio keyframe, ademas descolocado. Paso de verdad al portar `mapa`:
+// cuatro nodos con su @keyframes ausente. No lo cazo leer el codigo —el fallo esta en CUANDO se
+// evalua, no en lo que dice— sino CONTAR las reglas de la hoja: salian 16 donde la aritmetica
+// decia 20.
+//
+// Construye las piezas en variables antes del return, y en el JSX pon solo la variable.
 
 import type { ReactNode } from 'react';
 import { comprobarCiclo, type DuracionUsada } from '../../../shared/ciclo';
+import type { Concepto } from '../../../shared/conceptos';
 import type { NombreSistema } from '../sistemas';
 import { extrusion } from './extrusion';
+import { mapa } from './mapa';
 
-export type PropsComposicion = {
+/**
+ * LOS DATOS DEL VISUAL: lo que trae el guion, sin nada del reloj ni del render.
+ *
+ * Va aparte de `PropsComposicion` porque es exactamente lo que necesita `puedeDibujar` para
+ * decidir, y decide ANTES de que exista un frame. Pedirle los props enteros la obligaria a
+ * recibir un `u` y un `ciclo` que no mira.
+ */
+export type DatosVisual = {
+  /** El texto del Visual, si la composicion lo pinta. */
+  texto?: string;
+  /**
+   * LOS TRES CONCEPTOS, ya saneados, o null.
+   *
+   * Es OPCIONAL a proposito: `extrusion` no los mira y no tiene por que. Null significa "el
+   * guion no trajo conceptos", que es un caso normal —1 de 82 sub-clips en la ultima
+   * generacion— y no un error.
+   *
+   * Vienen de `sanearConceptos`, no crudos de DeepSeek: son exactamente 3 {emoji, etiqueta} o
+   * null, y son los MISMOS que viajan en `extra.conceptos` dentro de la clave del hash. Si lo
+   * que se pinta deja de ser lo que se hashea, la cache devolvera un fichero que no
+   * corresponde al dibujo diciendo ACIERTO.
+   */
+  conceptos?: Concepto[] | null;
+};
+
+export type PropsComposicion = DatosVisual & {
   /** Avance dentro del ciclo, 0..1. Es `t / ciclo` ya normalizado. */
   u: number;
   /** Duracion del Visual en segundos. TODA duracion de animacion sale de aqui. */
   ciclo: number;
   sistema: NombreSistema;
-  /** El texto del Visual, si la composicion lo pinta. */
-  texto?: string;
   /**
    * La semilla de la disposicion, derivada de la PALABRA (`semillaDe`).
    *
@@ -51,10 +92,50 @@ export type Composicion = {
   duraciones: (ciclo: number) => DuracionUsada[];
   /** Lo que el candado tuvo que CORREGIR al montarla con este ciclo. Vacio = nada. */
   avisos: (ciclo: number) => string[];
+  /**
+   * ¿PUEDE esta composicion dibujar con estos datos? OBLIGATORIO.
+   *
+   * Existe porque el despacho es por `type`, y `type` no sabe nada de los datos: un Visual con
+   * `visual_mapa` y `conceptos: null` encontraba su composicion igual y se pintaba a medias —
+   * fondo, estrellas, malla y el ancla sola, sin aristas ni emoji final. No fallaba: salia mal
+   * y parecia intencionado. Devolviendo false aqui, AnimatedGraphic cae al Visual de texto de
+   * siempre, que es el respaldo que ya existia.
+   *
+   * NO ES OPCIONAL, y no por ceremonia: con `?` una composicion futura puede no declararlo y
+   * el fallo seria mudo. Obligatorio, tsc obliga a decidir.
+   *
+   * ═══ SI CAMBIAS ESTA CONDICION, SUBE VERSION_PLANTILLAS EN src/main/index.ts ═══
+   *
+   * La condicion NO ESTA EN LA CLAVE DEL HASH. El `type` sigue diciendo `visual_mapa` tanto si
+   * se dibuja el mapa como si se cae a texto, asi que relajar o endurecer `puedeDibujar` —el
+   * dia que el mapa acepte 2 conceptos, por ejemplo— haria que LA MISMA CLAVE diera pixeles
+   * distintos, y la cache devolveria los MOV viejos diciendo ACIERTO. Verde y equivocado.
+   *
+   * Es el precio de tener la regla aqui en vez de en el backend: si el backend eligiera el
+   * `type` segun los datos, la regla se auto-invalidaria sola porque el type esta en la clave.
+   * Se prefiere tenerla aqui —el requisito vive con quien lo tiene, y una composicion nueva no
+   * obliga al backend a conocer los requisitos de todas— y pagar este recordatorio.
+   */
+  puedeDibujar: (d: DatosVisual) => boolean;
+  /**
+   * ¿Pinta la composicion su propio pie (la palabra + la barra)? OBLIGATORIO.
+   *
+   * AnimatedGraphic pinta un pie para cualquier composicion, porque un Visual existe para poner
+   * una palabra a pantalla completa. Una composicion que ademas pinte el suyo produce DOS
+   * palabras. Con este campo hay UNA puerta: la composicion declara, AnimatedGraphic obedece.
+   *
+   * Obligatorio por lo mismo que el anterior. Se descarto extraer un `<PieVisual>` compartido
+   * que pintaran todas: quien lo olvidara perderia la palabra sin un solo error. El booleano
+   * obligatorio falla ruidoso —tsc—, el componente compartido falla mudo.
+   */
+  pintaPie: boolean;
   render: (p: PropsComposicion) => ReactNode;
 };
 
-export const COMPOSICIONES: Record<string, Composicion> = { extrusion };
+// La CLAVE es el nombre SIN el prefijo `visual_`: AnimatedGraphic hace
+// `composicion(type.replace(/^visual_/, ''))`, asi que el tipo `visual_mapa` del guion resuelve
+// a la entrada `mapa`, igual que `visual_extrusion` resuelve a `extrusion`.
+export const COMPOSICIONES: Record<string, Composicion> = { extrusion, mapa };
 
 /**
  * Devuelve la composicion o NULL. Nunca lanza y nunca inventa una por defecto.
