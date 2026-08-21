@@ -996,6 +996,58 @@ escribió para `puedeDibujar`. Se sube **en el mismo commit que el arreglo**, no
 una ventana en la que un render de prueba lee basura de la caché es cómo se llega a otro
 diagnóstico equivocado. Cuesta re-renderizar ~15 Visuales por proyecto, ~1 minuto.
 
+## 🟠 SEGUNDO DEFECTO, DEL MISMO SITIO Y SIN ARREGLAR: el rasterizado bajo escala animada
+
+El `unmount` arregla el desfase estructural, pero **no deja a `visual_mapa` independiente de su
+predecesor**. Medido con el diseño correcto —el mismo clip detrás de **dos predecesores
+distintos**, las dos ramas en caliente—:
+
+| | residuo | delta máx | frames |
+|---|---|---|---|
+| `visual_extrusion` | **0** | 0 | 0/63 |
+| `visual_mapa` | 6.602.267 subpíxeles (16.846 ppm) | 51/255 | 36/63, desde el 27 |
+
+**La causa está identificada:** los elementos bajo **escala animada**. Neutralizando todos los
+`scale()` de los keyframes de `mapa` —sonda temporal, revertida— el residuo baja a **0**.
+
+La diferencia son **sólo bordes**: amplificada ×6 se ve el contorno del emoji grande, el de la
+palabra del pie y los anillos del halo; las zonas planas son idénticas. `extrusion` también anima
+transforms, pero sus capas son divs de color plano con `clip-path`: no tiene glifos ni degradados
+donde un borde se note. Por eso da cero.
+
+### Lo que costó llegar, y por qué se anota
+
+Una tanda entera de conclusiones intermedias fue **falsa**, y todas por el mismo motivo:
+
+```
+la comparación vieja, como lo PRIMERO de un proceso   7.113.608 subpíxeles, delta 51
+la misma comparación repetida en ese mismo proceso            0
+etiquetas cortas, también como lo primero             7.084.438 subpíxeles, delta 76
+etiquetas cortas, ya no lo primero                            0
+```
+
+**El primer render de un proceso no es comparable con los siguientes.** Los ceros que parecían
+decir "este contenido no falla" eran ceros por **venir después**. Se llegó a descartar el glifo de
+color y a "acotar" el residuo con tablas que sólo medían la posición en la secuencia.
+
+Pero **no es sólo arranque en frío**: `visual_extrusion` como primer render de un proceso da 0. Y
+calentar no lo arregla — con 1, 3 o 5 renders descartados sale el mismo 7.113.608 exacto.
+
+### Consecuencia para la caché
+
+**Un mismo clip cacheado en frío no es idéntico al mismo clip re-renderizado en caliente.** Nada
+del pipeline puede asumir esa identidad. En concreto: **no se puede verificar la caché
+re-renderizando y comparando ficheros.** La caché sigue siendo correcta —la clave describe el
+dibujo— pero su verificación tiene que ser por clave, no por bytes.
+
+Es invisible en el vídeo (delta ≤51 en bordes), pero queda escrito.
+
+### Caduca en el paso 5
+
+Todo esto está medido contra **la sans del sistema**: `grafico.html` no carga ninguna fuente.
+Cargar Archivo y Anton cambia el rasterizado del texto, que es parte del mecanismo. **El paso 5
+incluye re-medir esto**, no sólo meter los woff2.
+
 ## La comprobación que lo habría cazado
 
 `tests/ventana.js` (`npm run test:ventana`). Renderiza B en ventana fresca, después A y B en la

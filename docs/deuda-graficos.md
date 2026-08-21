@@ -995,3 +995,32 @@ termodinámica y el guion arranca por el Millenium Bridge, con gancho—, corta 
 Queda escrito porque una medición anterior encontró `aiScript` **idéntico** a la transcripción en
 **seis** proyectos, y eso se presentó como si dijera algo del código. No lo decía: **en esos seis
 nadie pulsó el botón**. El dato era correcto; la conclusión que sugería, no.
+
+---
+
+## 📌 EL PASO 5 NO ES SOLO CARGAR LOS woff2: INCLUYE RE-MEDIR
+
+Queda anotado porque es fácil dar el paso por cerrado en cuanto las fuentes se vean en pantalla,
+y entonces el paso siguiente empieza pidiendo otra ronda de mediciones.
+
+**Tres cosas dependen del rasterizado del texto y hay que volver a medirlas con Archivo y Anton
+ya cargadas:**
+
+1. **El residuo de `test:ventana`.** Hoy `visual_mapa` da 6.602.267 subpíxeles con delta 51 entre
+   dos predecesores distintos. La causa está identificada —elementos bajo escala animada— y lo
+   que se rasteriza dentro de esas capas **es texto**. Cambiar la fuente cambia el mecanismo. El
+   umbral o el arreglo (`will-change`, promoción de capa) **se deciden después de re-medir**, no
+   antes: probarlos ahora es trabajo que habría que repetir. Ver `10 septies` de `AUDITORIA.md`.
+
+2. **El modelo de ancho de caja**, `12.7 + 1.44 × caracteres`, medido contra **la sans del
+   sistema** porque `grafico.html` no declara ninguna fuente. Hace falta el modelo nuevo con
+   ancho **y alto** para etiquetas de 3, 5, 7, 9, 12 y 15 caracteres con emoji, más el ancla sin
+   emoji, en minúsculas y en MAYÚSCULAS.
+
+3. **Las cuatro constantes que salen de ese modelo** y que hoy están heredadas del laboratorio:
+   `dx < 33` y `dy < 9.5` en `separados()`, y los recortes `k1 = 10` y `k2 = 17` de `flecha()`.
+   Se calibran **juntas y después** de las fuentes. Calibrarlas antes obliga a repetirlas.
+
+**El orden es no negociable:** fuentes → re-medir → constantes → `VERSION_PLANTILLAS` a 7 **una
+sola vez** para los tres cambios que mueven píxeles (fuentes, constantes, y el tiempo de entrada
+de la palabra del `10 sexies`).
