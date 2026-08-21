@@ -23,6 +23,7 @@
 //   5. `layoutSeguro` conserva sus 50 intentos y su repliegue.
 
 import { generador, semillaDe } from './semilla';
+import type { Concepto } from './conceptos';
 
 // ── TIPOS ──────────────────────────────────────────────────────────────────────────
 
@@ -229,23 +230,170 @@ export const FAMILIAS: readonly Familia[] = ['radial', 'malla', 'capas', 'cascad
 
 // ── LEGIBILIDAD ────────────────────────────────────────────────────────────────────
 
+// -- EL TAMANO DE UNA CAJA ----------------------------------------------------------
+//
+// MEDIDO EN EL DOM REAL, a 1080 px y con Archivo YA CARGADA (paso 5). No es una estimacion:
+// se midio `.cm-caja` con etiquetas de 3, 5, 7, 9, 12 y 15 caracteres y se ajusto una recta.
+//
+//   concepto (minusculas + emoji)   1.257 * c + 12.18    alto 4.47 % del ALTO
+//   ancla    (minusculas sin emoji) 1.257 * c +  6.48    alto 3.77 % del ALTO
+//
+// LA PENDIENTE ES LA MISMA en los dos: el emoji y su gap son 5.70 puntos de intercepto y nada
+// mas, que es lo que dice el CSS -- `.cm-mini` 5cqw mas `gap` 1.3cqw.
+//
+// MINUSCULAS, y esta medido por que: de 3.670 palabras candidatas del ultimo guion, el 92.3%
+// vienen en minusculas, el 6.4% con inicial mayuscula -- que mide igual, 1.245 * c + 6.88 -- y
+// el 1.2% en mayusculas, que son siglas de tres letras. La fila de MAYUSCULAS enteras, que
+// seria 1.817 * c, es teorica y no se usa.
+//
+// SI CAMBIA LA FUENTE HAY QUE VOLVER A MEDIR ESTO. El modelo anterior -- 1.44 * c + 12.7 --
+// estaba medido contra la sans del sistema, y calibrar con el habria dado cajas un 15% mas
+// anchas de lo que son. Ver el paso 5 en docs/deuda-graficos.md.
+const CAJA = {
+  porCaracter: 1.257,
+  baseConEmoji: 12.18,
+  baseSinEmoji: 6.48,
+  altoConEmoji: 4.47,
+  altoSinEmoji: 3.77
+} as const;
+
+/** El ancho de la caja, en % del ANCHO del marco. */
+export function anchoCaja (etiqueta: unknown, conEmoji: boolean): number {
+  const c = String(etiqueta === null || etiqueta === undefined ? '' : etiqueta).length;
+  return (conEmoji ? CAJA.baseConEmoji : CAJA.baseSinEmoji) + CAJA.porCaracter * c;
+}
+
+/** El alto de la caja, en % del ALTO del marco. No depende del texto: es una sola linea. */
+export function altoCaja (conEmoji: boolean): number {
+  return conEmoji ? CAJA.altoConEmoji : CAJA.altoSinEmoji;
+}
+
+/** Lo que `separados` necesita de cada nodo. Ancho en % de ANCHO, alto en % de ALTO. */
+export type Caja = { ancho: number; alto: number };
+
+/** Las cajas de un layout, en el MISMO orden que `pts.concat([ancla])`. */
+export function cajasDe (etiquetas: readonly unknown[], valueAncla: unknown): Caja[] {
+  const cs: Caja[] = (Array.isArray(etiquetas) ? etiquetas : [])
+    .map(e => ({ ancho: anchoCaja(e, true), alto: altoCaja(true) }));
+  cs.push({ ancho: anchoCaja(valueAncla, false), alto: altoCaja(false) });
+  return cs;
+}
+
+// -- EL MARGEN, y de donde sale el numero -------------------------------------------
+//
+// Si el umbral fuera el contacto EXACTO, dos cajas que se ROZAN pasarian como separadas: el
+// dibujo saldria apelotonado y todas las pruebas en verde.
+//
+// MARGEN_H = 2.4 es EL PADDING HORIZONTAL DE LA PROPIA CAJA (`padding: 1.5cqw 2.4cqw`). Asi el
+// aire ENTRE dos cajas es el mismo que el aire DENTRO de cada una, y el ritmo del dibujo es uno
+// solo. Un numero inventado no tendria de donde re-derivarse el dia que cambie el padding.
+//
+// MARGEN_V = 2.24 es LA MITAD DE UN ALTO DE CAJA. En vertical el ojo tolera mucho menos: a
+// media caja ya se leen como dos renglones, y a menos se leen como un bloque. El padding
+// vertical (1.5cqw = 0.84% del alto) es demasiado pequeno para eso.
+//
+// LAS UNIDADES NO SON LAS MISMAS: MARGEN_H va en % del ANCHO y MARGEN_V en % del ALTO, igual
+// que `ancho` y `alto` de la caja. Mezclarlas daria un margen vertical 1.78 veces el que se
+// pretende.
+//
+// MEDIDO: con 2.4/2.24 las cuatro familias aciertan al PRIMER intento -- 1.000 de media sobre
+// 828 valores -- asi que el margen no consume sorteos y produce exactamente los mismos dibujos
+// que un margen cero. Hoy es una garantia que no cuesta nada; el dia que los layouts se
+// aprieten, actua. Con 4.0/3.4 radial sube a 1.029 intentos, o sea que ya cambiaria el dibujo.
+export const MARGEN_H = 2.4;
+export const MARGEN_V = 2.24;
+
 /**
- * Estan los puntos separados entre si Y dentro de la zona.
+ * Estan las cajas separadas entre si Y dentro de la zona.
  *
- * Dos criterios distintos en una sola respuesta: que ninguna pareja de cajas se pise —33% de
- * ancho y 9.5% de alto es el tamaño de una caja de concepto— y que todos caigan en la zona.
+ * DOS RECTANGULOS NO SE PISAN si la distancia entre sus CENTROS supera la SEMISUMA de sus
+ * tamanos -- la condicion geometrica exacta -- mas el margen.
+ *
+ * Antes era `dx < 33 && dy < 9.5`: dos constantes del laboratorio que no sabian cuanto mide
+ * ninguna caja. Medido, una caja de concepto de 12 caracteres son 27.9% y el ancla 22.2%, asi
+ * que 33 rechazaba parejas que no se tocaban -- radial replegaba en el 45% de los casos -- y
+ * 9.5 era mas del doble del alto real, que es 4.47 y 3.77.
+ *
+ * OJO, Y ESTA SIN RESOLVER: la comprobacion de zona mira EL CENTRO del nodo, no la caja. Una
+ * caja de 30% centrada en x=86 llega a x=101, fuera del cuadro. Ver la medicion en
+ * docs/deuda-graficos.md antes de tocarlo: exigir que la caja entera quepa en la zona segura
+ * dejaria a `radial` sin sitio.
  */
-export function separados (pts: Punto[], ancla: Punto): boolean {
+export function separados (pts: Punto[], ancla: Punto, cajas: Caja[]): boolean {
   const todos = pts.concat([ancla]);
+  // Sin cajas no se puede decidir, y decir que SI dejaria pasar cualquier solape. La respuesta
+  // segura es que no: `layoutSeguro` cae a su repliegue, que es legible por construccion.
+  if (!Array.isArray(cajas) || cajas.length !== todos.length) return false;
+  // Y cada entrada tiene que ser una caja de verdad. Con la longitud correcta pero un null
+  // dentro, la comparacion lanzaba —lo cazo la suite— y una excepcion aqui mata el render del
+  // Visual entero, que en este pipeline significa que desaparece del video sin decir nada.
+  for (const c of cajas) {
+    if (!c || !Number.isFinite(c.ancho) || !Number.isFinite(c.alto)) return false;
+  }
   for (let i = 0; i < todos.length; i++) {
     for (let j = i + 1; j < todos.length; j++) {
       const dx = Math.abs(todos[i].x - todos[j].x);
       const dy = Math.abs(todos[i].y - todos[j].y);
-      if (dx < 33 && dy < 9.5) return false;
+      if (dx < (cajas[i].ancho + cajas[j].ancho) / 2 + MARGEN_H &&
+          dy < (cajas[i].alto + cajas[j].alto) / 2 + MARGEN_V) return false;
     }
   }
   return todos.every(p =>
     p.x > ZONA.xMin && p.x < ZONA.xMax && p.y > ZONA.yMin && p.y < ZONA.yMax);
+}
+
+// -- EL RECORTE DE LA FLECHA --------------------------------------------------------
+
+/**
+ * Cuanto hay que recortar una flecha para que salga del BORDE de su caja y no del centro.
+ *
+ * `dirX`/`dirY` van EN UNIDADES DEL viewBox, donde X es % de ancho e Y ya viene multiplicada
+ * por SY. Por eso `altoViewBox` tiene que llegar tambien en esas unidades: una caja de 4.47%
+ * de alto son 4.47 * SY = 7.95 aqui. Pasar el 4.47 recortaria casi la mitad de lo que toca.
+ *
+ * LA FORMULA es la interseccion de un rayo desde el centro con el rectangulo:
+ *     t = min( a / |cos T| , b / |sin T| )      a = ancho/2,  b = altoViewBox/2
+ * Para una flecha horizontal manda `a`; para una vertical, `b`. Eso es lo que un recorte
+ * isotropo no puede hacer: con el `k2 = 17` fijo de la referencia y una caja de 30 x 8, una
+ * flecha casi vertical se recortaba mas de tres veces de mas y arrancaba en el aire. Medido
+ * sobre una caja de 27.9 x 7.95: horizontal 14.55, diagonal 6.22, vertical 4.58.
+ *
+ * La guarda de los ceros no es ceremonia: una flecha exactamente vertical tiene cos = 0, y
+ * `a / 0` es Infinity, que es la respuesta CORRECTA -- ese lado no limita -- mientras el otro
+ * termino sea finito. `Math.min` se queda con el bueno.
+ */
+export function recorteCaja (
+  dirX: number, dirY: number, ancho: number, altoViewBox: number, margen = 0.6
+): number {
+  const lg = Math.hypot(dirX, dirY);
+  if (!Number.isFinite(lg) || lg === 0) return 0;
+  const cos = Math.abs(dirX) / lg, sin = Math.abs(dirY) / lg;
+  const tx = cos > 1e-6 ? (ancho / 2) / cos : Infinity;
+  const ty = sin > 1e-6 ? (altoViewBox / 2) / sin : Infinity;
+  const t = Math.min(tx, ty);
+  return Number.isFinite(t) && t >= 0 ? t + margen : 0;
+}
+
+/** Como maximo se recorta esta fraccion de la cuerda. El resto es la flecha que se ve. */
+export const FRACCION_MAXIMA_RECORTE = 0.85;
+
+/**
+ * Los dos recortes, GARANTIZANDO que quede flecha.
+ *
+ * La suite cubre 828 casos; esto cubre el 829. Dos cajas grandes y cercanas pueden sumar mas
+ * recorte que cuerda, y entonces la arista sale de longitud cero o negativa: una flecha que no
+ * existe, sin error y sin log. Cuando pasa se escalan LOS DOS proporcionalmente, que conserva
+ * la asimetria -- la caja grande sigue recortando mas -- en vez de sacrificar un extremo.
+ */
+export function recortesArista (
+  tA: number, tB: number, cuerda: number
+): { tA: number; tB: number } {
+  const a = Number.isFinite(tA) && tA > 0 ? tA : 0;
+  const b = Number.isFinite(tB) && tB > 0 ? tB : 0;
+  const tope = (Number.isFinite(cuerda) && cuerda > 0 ? cuerda : 0) * FRACCION_MAXIMA_RECORTE;
+  if (a + b <= tope || a + b === 0) return { tA: a, tB: b };
+  const k = tope / (a + b);
+  return { tA: a * k, tB: b * k };
 }
 
 /**
@@ -277,11 +425,13 @@ export function acotar (L: Layout): Layout {
  *
  * El `acotar` final es el cinturon: pase lo que pase, lo devuelto cae en la zona.
  */
-export function layoutSeguro (rnd: () => number, familia: Familia, n: number): Layout {
+export function layoutSeguro (
+  rnd: () => number, familia: Familia, n: number, cajas: Caja[]
+): Layout {
   n = nSeguro(n);
   for (let i = 0; i < 50; i++) {
     const L = LAYOUTS[familia](rnd, n);
-    if (separados(L.pts, L.ancla)) return acotar(L);
+    if (separados(L.pts, L.ancla, cajas)) return acotar(L);
   }
   // El `Math.min(n, 4)` viene de la referencia. Con sanearConceptos devolviendo exactamente 3
   // conceptos o null, `n` es SIEMPRE 3 y este min nunca recorta: RAMA MUERTA. Se porta para no
@@ -353,8 +503,8 @@ export type Receta = {
  * llamada a `rnd` avanza el generador, asi que mover una linea desplaza todo lo que viene
  * detras. Es el mismo motivo por el que la semilla no puede ser de modulo.
  */
-export function receta (value: string, n: number): Receta {
-  n = nSeguro(n);
+export function receta (value: string, conceptos: readonly Concepto[]): Receta {
+  const n = nSeguro(Array.isArray(conceptos) ? conceptos.length : 0);
   const rnd = generador(semillaDe(value));
   const familia = elige(rnd, FAMILIAS);
   const transicion = elige(rnd, TRANSICIONES);
@@ -363,7 +513,14 @@ export function receta (value: string, n: number): Receta {
   const angFondo = ent(rnd, 150, 200);
   const estrellas = ent(rnd, 14, 30);
   const escMalla = 5 + rnd() * 2.6;
-  const layout = layoutSeguro(rnd, familia, n);
+  // EL ORDEN DE LAS LLAMADAS A `rnd` NO CAMBIA por recibir los conceptos: este parametro no
+  // consume sorteos, solo le dice a `layoutSeguro` cuanto miden las cajas. Lo que SI cambia es
+  // CUANTOS intentos hace ese bucle, porque el umbral es otro -- y por eso los dibujos cambian
+  // y hubo que subir VERSION_PLANTILLAS a 7. Verificado midiendo, no suponiendo: con los
+  // umbrales viejos puestos a mano, esta `receta` da byte a byte lo mismo que la anterior.
+  const cajas = cajasDe(
+    (Array.isArray(conceptos) ? conceptos : []).map(c => (c && c.etiqueta) || ''), value);
+  const layout = layoutSeguro(rnd, familia, n, cajas);
   return {
     familia, transicion, paleta, orden, n, layout,
     retardos: retardos(n, orden),

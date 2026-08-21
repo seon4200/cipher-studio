@@ -68,7 +68,8 @@ import { generador, semillaDe } from '../../../shared/semilla'
 import { CUANTOS_CONCEPTOS, type Concepto } from '../../../shared/conceptos'
 import {
   SY, FOCO, T, cl, ent, receta, RETARDO_ANCLA, retardoArista,
-  type Punto, type Receta
+  anchoCaja, altoCaja, recorteCaja, recortesArista,
+  type Punto, type Receta, type Caja
 } from '../../../shared/mapa'
 import type { Composicion, PropsComposicion } from './index'
 
@@ -270,7 +271,8 @@ function nodo (
   )
 }
 
-type ArgsArista = { A: Punto; B: Punto; col: string; ret: number; curva: number }
+type ArgsArista = { A: Punto; B: Punto; col: string; ret: number; curva: number
+  cajaA: Caja; cajaB: Caja }
 
 /**
  * La curva del pulso, SIN recortar las puntas.
@@ -291,14 +293,35 @@ function geometria (a: ArgsArista) {
 function flecha (
   kf: ReturnType<typeof emisor>['kf'], clave: string, a: ArgsArista
 ): React.ReactNode {
-  let X1 = a.A.x, Y1 = a.A.y * SY, X2 = a.B.x, Y2 = a.B.y * SY
-  // Recorta las puntas para que no queden tapadas por las cajas.
-  const lg = Math.hypot(X2 - X1, Y2 - Y1) || 1
-  const k1 = Math.min(10, lg * 0.26) / lg, k2 = Math.min(17, lg * 0.34) / lg
-  const ux = X2 - X1, uy = Y2 - Y1
-  X1 += ux * k1; Y1 += uy * k1; X2 -= ux * k2; Y2 -= uy * k2
-  const cx = (X1 + X2) / 2 - (Y2 - Y1) * a.curva
-  const cy = (Y1 + Y2) / 2 + (X2 - X1) * a.curva
+  // EL PUNTO DE CONTROL SE CALCULA DESDE LOS CENTROS SIN RECORTAR. Si se calculara con los
+  // extremos ya recortados, la curva cambiaria de forma al cambiar el recorte y el recorte
+  // dependeria de la curva: un lazo.
+  const X1c = a.A.x, Y1c = a.A.y * SY, X2c = a.B.x, Y2c = a.B.y * SY
+  const cx = (X1c + X2c) / 2 - (Y2c - Y1c) * a.curva
+  const cy = (Y1c + Y2c) / 2 + (X2c - X1c) * a.curva
+
+  // LA CURVA NO SALE HACIA EL OTRO EXTREMO, SALE HACIA EL PUNTO DE CONTROL. La tangente de una
+  // Bezier cuadratica es 2(C - P0) en el origen y 2(P2 - C) en el destino. Recortar por la
+  // direccion de la CUERDA dejaria la punta con un hueco o un solape de varios pixeles, tanto
+  // mayor cuanto mas curvada este la arista.
+  //
+  // El alto va multiplicado por SY porque `recorteCaja` trabaja en unidades del viewBox, donde
+  // la Y ya viene escalada: una caja de 4.47% de alto son 7.95 aqui.
+  const dAx = cx - X1c, dAy = cy - Y1c
+  const dBx = X2c - cx, dBy = Y2c - cy
+  const bruto = {
+    tA: recorteCaja(dAx, dAy, a.cajaA.ancho, a.cajaA.alto * SY),
+    tB: recorteCaja(dBx, dBy, a.cajaB.ancho, a.cajaB.alto * SY)
+  }
+  // LA GUARDA: dos cajas grandes y cercanas pueden sumar mas recorte que cuerda y dejar la
+  // flecha en nada. `recortesArista` escala los dos proporcionalmente si hace falta.
+  const cuerda = Math.hypot(X2c - X1c, Y2c - Y1c)
+  const { tA, tB } = recortesArista(bruto.tA, bruto.tB, cuerda)
+
+  const uA = Math.hypot(dAx, dAy) || 1
+  const uB = Math.hypot(dBx, dBy) || 1
+  const X1 = X1c + dAx / uA * tA, Y1 = Y1c + dAy / uA * tA
+  const X2 = X2c - dBx / uB * tB, Y2 = Y2c - dBy / uB * tB
   const d = `M ${X1.toFixed(1)},${Y1.toFixed(1)} Q ${cx.toFixed(1)},${cy.toFixed(1)} ${X2.toFixed(1)},${Y2.toFixed(1)}`
 
   const nomL = kf(clave + 'l', REJILLAS.arista, u => {
@@ -307,7 +330,8 @@ function flecha (
       : 1 - suave(cl((u - T.conFin) / 0.11, 0, 1))
     return 'stroke-dashoffset:' + (1 - k).toFixed(4)
   })
-  const ang = Math.atan2(Y2 - cy, X2 - cx) * 180 / PI
+  // La punta apunta segun la TANGENTE en el destino, no segun la cuerda.
+  const ang = Math.atan2(dBy, dBx) * 180 / PI
   const nomP = kf(clave + 'p', REJILLAS.arista, u => {
     const k = u < T.conFin
       ? cl((u - a.ret - 0.15) / 0.06, 0, 1)
@@ -370,7 +394,7 @@ function pulso (
  * por montaje. Llamarlo aqui seria ademas inutil, porque esta funcion no corre por frame.
  */
 function construir (value: string, cs: Concepto[]): React.ReactNode {
-  const R = receta(value, cs.length)
+  const R = receta(value, cs)
   const P = R.paleta
   const { ancla, pts, aristas, curva } = R.layout
 
@@ -411,8 +435,16 @@ function construir (value: string, cs: Concepto[]): React.ReactNode {
 
   // Aristas y pulsos.
   const trazos: React.ReactNode[] = []
+  // LA CAJA DE CADA EXTREMO. El ancla no lleva emoji y los conceptos si, y eso son 5.70 puntos
+  // de ancho y 0.70 de alto de diferencia: tratarlas igual era lo que hacia que la flecha
+  // saliera del aire en un extremo y se solapara en el otro.
+  const cajaDe = (i: number): Caja => i < 0
+    ? { ancho: anchoCaja(value, false), alto: altoCaja(false) }
+    : { ancho: anchoCaja(cs[i] ? cs[i].etiqueta : '', true), alto: altoCaja(true) }
+
   aristas.forEach(([a, b], i) => {
-    const args = { A: pt(a), B: pt(b), col: i % 2 ? P.b : P.a, ret: retardoArista(i), curva: curva * (i % 2 ? 1 : -1) }
+    const args = { A: pt(a), B: pt(b), col: i % 2 ? P.b : P.a, ret: retardoArista(i),
+      curva: curva * (i % 2 ? 1 : -1), cajaA: cajaDe(a), cajaB: cajaDe(b) }
     // La velocidad del pulso la sortea la referencia con `1.5+rnd()*0.9`. Aqui NO hay rnd
     // disponible sin gastar el stream de la decoracion (y gastarlo movería las estrellas), asi
     // que se deriva de la semilla y del indice: mismo efecto —velocidades distintas por

@@ -36,7 +36,9 @@ import * as mapa from '../shared/mapa'
 export const {
   SY, FOCO, ZONA, T, cl, ent, elige, jit, PALETAS, LAYOUTS, FAMILIAS,
   separados, acotar, layoutSeguro, retardos, RETARDO_ANCLA, retardoArista,
-  TRANSICIONES, ORDENES, receta, nSeguro, N_MAX
+  TRANSICIONES, ORDENES, receta, nSeguro, N_MAX,
+  anchoCaja, altoCaja, cajasDe, recorteCaja, recortesArista, MARGEN_H, MARGEN_V,
+  FRACCION_MAXIMA_RECORTE
 } = mapa
 import { recortarTexto } from '../shared/texto'
 export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
@@ -980,7 +982,19 @@ const canonizar = (v: any): string => {
 // dice "39 de 39". Todo verde con el diseño antiguo. Es el peor modo de fallo que hay, porque
 // el sistema afirma activamente que ha funcionado.
 //
-// 6 — se arregla el desfase por reutilizacion de la raiz de React entre clips (10 septies de
+// 7 -- las cuatro constantes de `mapa` salen del TAMANO REAL de la caja, no del laboratorio.
+// `separados` compara la semisuma de los dos anchos mas un margen en vez del `dx < 33` fijo, y
+// el `dy < 9.5` pasa a la semisuma de los altos, que son 4.47 y 3.77 y no 9.5. `flecha` recorta
+// por interseccion rayo-rectangulo con la tangente de la Bezier en vez del `k1 = 10 / k2 = 17`
+// isotropo, que en una flecha vertical recortaba mas de tres veces de mas y la dejaba
+// arrancando en el aire.
+//
+// LAS CONSTANTES NO ESTAN EN LA CLAVE, y ese es el motivo de subir esto AHORA y no agruparlo
+// con nada: cambiarlas sin subir la version haria que cualquier render de prueba devolviera el
+// .mp4 VIEJO desde la cache, y se estarian mirando frames que no corresponden al codigo. El
+// dibujo cambia en todos los Visuales de mapa; cuesta ~1 minuto re-renderizar un video.
+//
+// 6 -- se arregla el desfase por reutilizacion de la raiz de React entre clips (10 septies de
 // docs/AUDITORIA.md). `__montar` desmonta y vuelve a montar, asi que una animacion ya no puede
 // aplicar la curva del clip anterior. NO cambia ningun diseño: cambia que lo renderizado SEA lo
 // que la composicion dice.
@@ -1014,7 +1028,7 @@ const canonizar = (v: any): string => {
 // fichero viejo diciendo ACIERTO: se veria exactamente lo mismo y pareceria que la composicion
 // no funciona. Es el modo de fallo que esta constante existe para evitar, y cuesta re-renderizar
 // lo que haya en cache (~2.7 s por grafico).
-const VERSION_PLANTILLAS = 6;
+const VERSION_PLANTILLAS = 7;
 
 // EL FORMATO LO DECIDE EL MODO, y se dice AQUI una sola vez. Las tres cosas —codec, pix_fmt y
 // extension— tienen que ir juntas o el fichero sale mintiendo sobre si mismo: un .mp4 con

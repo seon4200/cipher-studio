@@ -29,9 +29,17 @@ const ok = (cond, titulo, detalle) => {
 
 function main (bundle) {
   const M = bundle
+
+  // Las cajas de un layout de 3 conceptos con etiquetas tipicas. `separados` y `layoutSeguro`
+  // las necesitan desde que el umbral sale del TAMANO REAL de la caja y no de un 33 fijo.
+  const ETQ3 = ['estadio', 'construccion', 'selva']
+  const cajas3 = (value) => M.cajasDe(ETQ3, value || 'construir')
+  const conceptos3 = ETQ3.map(e => ({ emoji: '\u{1F332}', etiqueta: e }))
   const nec = ['LAYOUTS', 'FAMILIAS', 'PALETAS', 'ZONA', 'T', 'FOCO', 'SY',
     'separados', 'acotar', 'layoutSeguro', 'retardos', 'receta',
-    'RETARDO_ANCLA', 'retardoArista', 'TRANSICIONES', 'ORDENES']
+    'RETARDO_ANCLA', 'retardoArista', 'TRANSICIONES', 'ORDENES',
+    'anchoCaja', 'altoCaja', 'cajasDe', 'recorteCaja', 'recortesArista',
+    'MARGEN_H', 'MARGEN_V']
   for (const n of nec) ok(M[n] !== undefined, n + ' se exporta del bundle')
   if (typeof M.receta !== 'function') return
 
@@ -65,7 +73,7 @@ function main (bundle) {
     let replego = 0
     for (let k = 0; k < N; k++) {
       const r1 = M.generador(M.semillaDe('sem' + k))
-      const L = M.layoutSeguro(r1, f, 3)
+      const L = M.layoutSeguro(r1, f, 3, cajas3())
       // Se rehace `capas` con una semilla fresca equivalente para compararlo por FORMA, no por
       // valor exacto: basta con detectar el patron de dos filas que capas produce siempre.
       const filas = new Set(L.pts.map(p => Math.round(p.y / 10)))
@@ -98,7 +106,7 @@ function main (bundle) {
   console.log('')
   let fuera = 0, casos = 0
   for (const f of M.FAMILIAS) for (let k = 0; k < 200; k++) {
-    const L = M.layoutSeguro(M.generador(M.semillaDe('z' + f + k)), f, 3)
+    const L = M.layoutSeguro(M.generador(M.semillaDe('z' + f + k)), f, 3, cajas3())
     for (const p of puntos(L)) { casos++; if (!enZona(p)) fuera++ }
   }
   ok(fuera === 0, `los ${casos} puntos de 800 layouts caen en ZONA, ancla incluida`,
@@ -114,9 +122,9 @@ function main (bundle) {
 
   // ── D) DETERMINISMO ───────────────────────────────────────────────────────────────
   console.log('')
-  const uno = JSON.stringify(M.receta('termodinamica', 3))
+  const uno = JSON.stringify(M.receta('termodinamica', conceptos3))
   let iguales = 0
-  for (let k = 0; k < 100; k++) if (JSON.stringify(M.receta('termodinamica', 3)) === uno) iguales++
+  for (let k = 0; k < 100; k++) if (JSON.stringify(M.receta('termodinamica', conceptos3)) === uno) iguales++
   ok(iguales === 100, '100 recetas de la misma palabra son IDENTICAS')
   ok(JSON.stringify(M.receta('agua', 3)) !== JSON.stringify(M.receta('fuego', 3)),
     'palabras distintas dan recetas distintas')
@@ -167,27 +175,124 @@ function main (bundle) {
   let lanzo = null
   const intentar = (et, fn) => { try { fn() } catch (e) { lanzo = et + ': ' + e.message } }
 
+  // LOS DEGENERADOS SE REESCRIBIERON AL CAMBIAR LA FIRMA, y no basta con actualizar la
+  // llamada. `receta` recibia un NUMERO y ahora recibe un ARRAY de conceptos: pasarle NaN o
+  // Infinity dejo de tener sentido, y si solo se hubiera cambiado `M.receta('agua', n)` por
+  // `M.receta('agua', [])` la suite habria quedado VERDE probando un unico caso sano. La
+  // cobertura se pierde en silencio si nadie mira. Es el bug del NaN de reparto.js otra vez.
+  const CONCEPTOS_ROTOS = [
+    ['vacio', []],
+    ['uno', [{ emoji: 'a', etiqueta: 'sol' }]],
+    ['cinco', [1, 2, 3, 4, 5].map(i => ({ emoji: 'a', etiqueta: 'e' + i }))],
+    ['null', null],
+    ['undefined', undefined],
+    ['no es array', { etiqueta: 'sol' }],
+    ['numero', 3],
+    ['cadena', 'sol'],
+    ['con elementos null', [null, { emoji: 'a', etiqueta: 'sol' }, undefined]],
+    ['sin etiqueta', [{ emoji: 'a' }, { emoji: 'b', etiqueta: undefined }, { emoji: 'c', etiqueta: null }]],
+    ['etiqueta no textual', [{ emoji: 'a', etiqueta: 42 }, { emoji: 'b', etiqueta: {} }, { emoji: 'c', etiqueta: [] }]],
+    ['etiqueta larguisima', [{ emoji: 'a', etiqueta: 'x'.repeat(400) }]]
+  ]
+  for (const [et, cs] of CONCEPTOS_ROTOS) intentar('receta conceptos=' + et, () => M.receta('agua', cs))
+  ok(!lanzo, 'ningun `conceptos` roto lanza: ' + CONCEPTOS_ROTOS.map(x => x[0]).join(', '), lanzo || '')
+
+  lanzo = null
   for (const n of [0, 1, 2, 3, 5, -1, -99, NaN, Infinity, 2.7]) {
-    intentar('receta n=' + n, () => M.receta('agua', n))
     for (const f of M.FAMILIAS) {
-      intentar(`layoutSeguro ${f} n=${n}`, () => M.layoutSeguro(M.generador(7), f, n))
+      intentar(`layoutSeguro ${f} n=${n}`, () => M.layoutSeguro(M.generador(7), f, n, cajas3()))
       intentar(`LAYOUTS.${f} n=${n}`, () => M.LAYOUTS[f](M.generador(7), n))
     }
     intentar('retardos n=' + n, () => M.retardos(n, 'secuencial'))
   }
-  ok(!lanzo, 'ningun n lanza: 0, 1, 2, 3, 5, -1, -99, NaN, Infinity, 2.7', lanzo || '')
+  ok(!lanzo, 'ningun n lanza en layoutSeguro/LAYOUTS/retardos: 0,1,2,3,5,-1,-99,NaN,Infinity,2.7', lanzo || '')
+
+  // Y `cajas` roto tambien: `separados` recibe un array que tiene que casar con los puntos.
+  lanzo = null
+  const Lx = M.LAYOUTS.radial(M.generador(7), 3)
+  for (const [et, c] of [['null', null], ['undefined', undefined], ['vacio', []],
+    ['de menos', [{ ancho: 20, alto: 4 }]], ['de mas', new Array(9).fill({ ancho: 20, alto: 4 })],
+    ['no array', 3], ['con null dentro', [null, null, null, null]]]) {
+    intentar('separados cajas=' + et, () => M.separados(Lx.pts, Lx.ancla, c))
+  }
+  ok(!lanzo, 'ningun `cajas` roto lanza en separados', lanzo || '')
+  ok(M.separados(Lx.pts, Lx.ancla, null) === false &&
+     M.separados(Lx.pts, Lx.ancla, []) === false,
+    'sin cajas usables `separados` dice NO, que es lo unico seguro',
+    'decir SI dejaria pasar cualquier solape')
 
   lanzo = null
   for (const v of ['', null, undefined, 0, 42, {}, [], 'á é í ó ú ñ Ü', '\u{1F4A7}\u{1F3ED}',
     'palabra muy larga con muchos espacios y acentos ñÑ', '\n\t', '   ']) {
-    intentar('receta value=' + JSON.stringify(v), () => M.receta(v, 3))
+    intentar('receta value=' + JSON.stringify(v), () => M.receta(v, conceptos3))
   }
   ok(!lanzo, 'ningun value lanza: vacio, null, undefined, numeros, objetos, acentos, emoji',
     lanzo || '')
 
+  // ── H) EL MODELO DE CAJA Y EL RECORTE ─────────────────────────────────────────────
+  console.log('')
+  ok(M.anchoCaja('', false) > 0 && M.anchoCaja('', true) > M.anchoCaja('', false),
+    'anchoCaja es positivo y el emoji lo ensancha',
+    `sin texto: ${M.anchoCaja('', false).toFixed(2)} sin emoji, ${M.anchoCaja('', true).toFixed(2)} con`)
+  let crece = true
+  for (let c = 1; c < 40; c++) if (M.anchoCaja('x'.repeat(c), true) <= M.anchoCaja('x'.repeat(c - 1), true)) crece = false
+  ok(crece, 'anchoCaja crece con la longitud, siempre')
+  ok(M.altoCaja(true) > M.altoCaja(false), 'la caja con emoji es mas alta que el ancla',
+    `${M.altoCaja(true)} vs ${M.altoCaja(false)}`)
+
+  // EL RECORTE ES ANISOTROPO, que es toda la razon de este cambio. Una caja de 27.9 x 7.95
+  // recorta ~14.6 en horizontal y ~4.6 en vertical: 3.2 veces. Con el `k2 = 17` de la
+  // referencia los dos valian 17, y por eso las flechas verticales arrancaban en el aire.
+  const rH = M.recorteCaja(1, 0, 27.9, 7.95)
+  const rV = M.recorteCaja(0, 1, 27.9, 7.95)
+  ok(rH > rV * 2.5, 'el recorte horizontal es mucho mayor que el vertical',
+    `horizontal ${rH.toFixed(2)}   vertical ${rV.toFixed(2)}   razon ${(rH / rV).toFixed(2)}x`)
+  ok(M.recorteCaja(0, 0, 27.9, 7.95) === 0, 'una direccion nula no recorta nada')
+  let raro = null
+  for (const [dx, dy] of [[NaN, 1], [1, NaN], [Infinity, 1], [0, 0], [-1, 0], [0, -1]]) {
+    const r = M.recorteCaja(dx, dy, 27.9, 7.95)
+    if (!Number.isFinite(r) || r < 0) raro = `recorteCaja(${dx},${dy}) = ${r}`
+  }
+  ok(!raro, 'recorteCaja devuelve siempre un numero finito y no negativo', raro || '')
+
+  // LA GUARDA DE LA CUERDA: nunca puede quedarse la flecha en nada.
+  let malGuarda = null
+  for (const [a, b, cu] of [[50, 50, 10], [100, 1, 5], [0, 0, 10], [5, 5, 0], [5, 5, NaN], [1, 1, 100]]) {
+    const r = M.recortesArista(a, b, cu)
+    const queda = cu - r.tA - r.tB
+    if (!Number.isFinite(r.tA) || !Number.isFinite(r.tB) || r.tA < 0 || r.tB < 0) {
+      malGuarda = `recortesArista(${a},${b},${cu}) da ${JSON.stringify(r)}`
+    } else if (Number.isFinite(cu) && cu > 0 && queda < cu * 0.14) {
+      malGuarda = `recortesArista(${a},${b},${cu}) deja ${queda.toFixed(2)} de ${cu}`
+    }
+  }
+  ok(!malGuarda, 'la guarda deja siempre al menos el 15% de la cuerda', malGuarda || '')
+
+  // CON LAS ETIQUETAS MAS LARGAS POSIBLES SIGUE HABIENDO LAYOUTS. Si con 15 caracteres todas
+  // las familias replegaran, el motor de variedad se habria quedado en una sola disposicion.
+  const largas = ['infraestructura', 'contradiccion', 'reconstruccion']
+  const cajasL = M.cajasDe(largas, 'reconstruccion')
+  const replieg = {}
+  for (const f of M.FAMILIAS) {
+    let n = 0
+    for (let k = 0; k < 200; k++) {
+      const rnd = M.generador(M.semillaDe('lg' + f + k))
+      let ok2 = false
+      for (let i = 0; i < 50; i++) {
+        const L = M.LAYOUTS[f](rnd, 3)
+        if (M.separados(L.pts, L.ancla, cajasL)) { ok2 = true; break }
+      }
+      if (!ok2) n++
+    }
+    replieg[f] = n
+  }
+  const peor = Math.max(...Object.values(replieg))
+  ok(peor < 200, 'con las etiquetas mas largas ninguna familia repliega SIEMPRE',
+    M.FAMILIAS.map(f => `${f} ${replieg[f]}/200`).join('   '))
+
   // Y lo que devuelve con basura sigue siendo utilizable
   for (const n of [0, 1, 2, 5, -1, NaN]) {
-    const r = M.receta('agua', n)
+    const r = M.receta('agua', conceptos3)
     if (!r || !r.layout || !Array.isArray(r.layout.pts) || !Array.isArray(r.retardos)) {
       ok(false, `receta('agua', ${n}) devuelve una forma utilizable`, JSON.stringify(r && r.layout))
     }
@@ -204,7 +309,7 @@ function main (bundle) {
 
   // ── H) LA RECETA ESTA COMPLETA ────────────────────────────────────────────────────
   console.log('')
-  const r = M.receta('osciladores', 3)
+  const r = M.receta('osciladores', conceptos3)
   ok(M.FAMILIAS.includes(r.familia), 'familia valida', r.familia)
   ok(M.TRANSICIONES.includes(r.transicion), 'transicion valida', r.transicion)
   ok(M.ORDENES.includes(r.orden), 'orden valido', r.orden)
