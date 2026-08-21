@@ -42,8 +42,17 @@ export type Transicion = 'implosion' | 'espiral' | 'barrido';
 export const SY = 16 / 9;
 
 /** Donde colapsa el mapa y nace el icono. TODO converge aqui, no al ancla: si convergiera al
- *  ancla, el colapso apuntaria a un sitio y el icono apareceria en otro. */
-export const FOCO: Punto = { x: 50, y: 38 };
+ *  ancla, el colapso apuntaria a un sitio y el icono apareceria en otro.
+ *
+ *  y = 45 Y NO 38 desde el paso 9. Va ENCADENADO con ZONA.yMax: si el mapa se reparte hasta el
+ *  77% y el foco se quedara en el 38%, el colapso tiraria de todo hacia arriba y el remate
+ *  apareceria descentrado, con medio cuadro vacio debajo. El 45 es el centro de la banda que
+ *  ocupan de verdad los nodos —13.54 a 77— redondeado a la posicion del ancla de las familias.
+ *
+ *  Y hay tres sitios mas clavados a este numero, en el CSS de mapa.tsx: `.cm-destello`,
+ *  `.cm-halo` y `.cm-icono` llevan `top`. Los cuatro se mueven juntos o el icono nace donde el
+ *  mapa no colapso. */
+export const FOCO: Punto = { x: 50, y: 45 };
 
 /**
  * LA ZONA SEGURA, y aqui la referencia estaba MAL.
@@ -58,10 +67,22 @@ export const FOCO: Punto = { x: 50, y: 38 };
  * xMin/xMax se quedan en 13/87, MAS estrictos que el 8.33/91.67 de la zona: son de la
  * referencia y aprietan mas, asi que relajarlos seria empeorar.
  *
- * yMax se queda en 68 y NO se sube a 86.46 por la misma razon: abajo va la palabra del Visual
- * y ese limite es mas estricto. Subirlo meteria nodos debajo del texto.
+ * yMax SUBE DE 68 A 77 en el paso 9, y el numero sale de la aritmetica, no de una preferencia.
+ *
+ * El 68 existia porque abajo iba la palabra del Visual. Esa palabra ya no esta —se quito el pie
+ * de la composicion— asi que ese limite dejo de tener dueno. Pero NO se sube a 86.46, que es el
+ * borde de la zona segura, por dos razones:
+ *
+ *   1. ESTO ACOTA EL CENTRO DEL NODO, NO LA CAJA. Una caja de concepto mide 4.47% de alto, asi
+ *      que su borde inferior cae en `centro + 2.235`. Con yMax = 77 el borde llega a 79.2, que
+ *      deja 7.2 puntos de holgura hasta el 86.46 de la zona segura.
+ *   2. ABAJO VA LA INTERFAZ DE LAS PLATAFORMAS —el texto del pie de TikTok, los botones de
+ *      Reels— y esa interfaz no respeta ninguna zona segura nuestra. Mejor quedarse corto.
+ *
+ * El espacio que se libera es MENOS de lo que parece: el pie estaba en `bottom: 11%`, o sea POR
+ * DEBAJO del 13.54% de la zona segura. Ese trozo nunca fue del mapa.
  */
-export const ZONA = { xMin: 13, xMax: 87, yMin: 13.54, yMax: 68 };
+export const ZONA = { xMin: 13, xMax: 87, yMin: 13.54, yMax: 77 };
 
 /**
  * LA LINEA DE TIEMPO, EN FRACCIONES DEL CICLO. Nunca en segundos.
@@ -140,9 +161,11 @@ export const PALETAS: readonly Paleta[] = [
 export const LAYOUTS: Record<Familia, (rnd: () => number, n: number) => Layout> = {
   /** Los conceptos en elipse alrededor del ancla. La direccion del giro tambien se sortea. */
   radial (rnd, n) {
-    const cx = 50, cy = 38;
+    // cy 38 -> 45 y ry 17 -> 21: el centro baja al centro visual de la zona nueva y la elipse
+    // se estira, porque con yMax en 77 hay 9 puntos mas de alto que repartir.
+    const cx = 50, cy = 45;
     n = nSeguro(n);
-    const rx = 27 + jit(rnd, 3), ry = 17 + jit(rnd, 2);
+    const rx = 27 + jit(rnd, 3), ry = 21 + jit(rnd, 2);
     const a0 = rnd() * 360;
     const dir = rnd() < 0.5 ? 1 : -1;
     const pts: Punto[] = [];
@@ -159,10 +182,11 @@ export const LAYOUTS: Record<Familia, (rnd: () => number, n: number) => Layout> 
   /** Posiciones fijas con ruido, y aristas ENTRE conceptos ademas de las del ancla: es la
    *  unica familia donde los conceptos se relacionan entre si. */
   malla (rnd, n) {
-    const cx = 50, cy = 38;
+    // Las posiciones base se estiran de la banda 19-66 a la 20-74, y el ancla baja de 38 a 45.
+    const cx = 50, cy = 45;
     n = nSeguro(n);
     const base: Punto[] = [
-      { x: 25, y: 19 }, { x: 75, y: 23 }, { x: 20, y: 54 }, { x: 78, y: 56 }, { x: 50, y: 66 }
+      { x: 25, y: 20 }, { x: 75, y: 25 }, { x: 20, y: 62 }, { x: 78, y: 65 }, { x: 50, y: 74 }
     ];
     const pts = base.slice(0, n).map(p => ({ x: p.x + jit(rnd, 5), y: p.y + jit(rnd, 4) }));
     const ar: Arista[] = pts.map((_, i) => [-1, i] as Arista);
@@ -181,14 +205,14 @@ export const LAYOUTS: Record<Familia, (rnd: () => number, n: number) => Layout> 
     for (let i = 0; i < arriba; i++) {
       pts.push({
         x: 50 + (arriba === 1 ? 0 : (i / (arriba - 1) - 0.5) * 52) + jit(rnd, 3),
-        y: 16 + jit(rnd, 2)
+        y: 17 + jit(rnd, 2)
       });
     }
     const abajo = n - arriba;
     for (let i = 0; i < abajo; i++) {
       pts.push({
         x: 50 + (abajo === 1 ? 0 : (i / (abajo - 1) - 0.5) * 52) + jit(rnd, 3),
-        y: 62 + jit(rnd, 2)
+        y: 72 + jit(rnd, 2)
       });
     }
     const ar: Arista[] = [];
@@ -210,6 +234,8 @@ export const LAYOUTS: Record<Familia, (rnd: () => number, n: number) => Layout> 
    *  Subir el ancla 3 puntos no toca nada mas: los nodos empiezan en y=29 y con n=3 el ultimo
    *  cae en 49.6-54.4, muy por debajo de yMax=68. */
   cascada (rnd, n) {
+    // El paso vertical sube de 11.5 a 14.5: con tres nodos, el ultimo pasa de ~52 a ~62 y la
+    // cascada llega mas abajo en vez de amontonarse en el tercio superior.
     const cx = 50, cy = 15;
     n = nSeguro(n);
     const pts: Punto[] = [];
@@ -217,7 +243,7 @@ export const LAYOUTS: Record<Familia, (rnd: () => number, n: number) => Layout> 
     for (let i = 0; i < n; i++) {
       pts.push({
         x: 50 + lado * (i % 2 ? -1 : 1) * (19 + jit(rnd, 4)),
-        y: 29 + i * (11.5 + jit(rnd, 1.2))
+        y: 31 + i * (14.5 + jit(rnd, 1.2))
       });
     }
     const ar: Arista[] = [[-1, 0]];

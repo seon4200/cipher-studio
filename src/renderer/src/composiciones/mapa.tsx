@@ -47,15 +47,18 @@
 // SISTEMA_VISUAL. Cambiar el sistema de 'voltaje' a otro no cambia ni un nodo, ni una arista,
 // ni el fondo, ni el halo.
 //
-// La UNICA excepcion es `.cm-pal`, la palabra del pie, que usa `color:var(--texto)` — y esa
-// variable SI la publica AnimatedGraphic desde el sistema. Asi que al cambiar de sistema la
-// palabra cambia de color y el mapa entero no. Es incoherente y esta anotado a proposito: el
-// dia que alguien toque SISTEMA_VISUAL y no vea cambiar nada, que sepa por que antes de
-// ponerse a buscar el bug en la fontaneria.
+// Hasta el paso 9 habia UNA excepcion: `.cm-pal`, la palabra del pie, usaba `color:var(--texto)`,
+// y esa variable SI la publica AnimatedGraphic desde el sistema. Al quitarse el pie desaparecio:
+// hoy NO queda ni un `var(--texto)` ejecutable en este fichero y el sistema no toca un pixel.
 //
-// No se arregla en este paso. Arreglarlo es elegir entre dos cosas que no estan decididas: o
-// las paletas se derivan del sistema —y se pierden las cinco, que son el motor de variedad— o
-// la palabra deja de usar var(--texto) y coge el color de la paleta.
+// LO QUE SI SIGUE VIVO SON LAS PALETAS: `P.a`, `P.b`, `P.ac`, `P.f1` y `P.f2` colorean los
+// nodos, las aristas, los pulsos, el ancla, los dos degradados del fondo, la malla, el destello
+// y el halo. No son codigo muerto; lo que quedo sin efecto es SISTEMA_VISUAL, que es otra cosa.
+//
+// Sigue sin decidirse si eso esta bien: o las paletas se derivan del sistema —y se pierden las
+// cinco, que son el motor de variedad— o se acepta que el mapa tenga identidad propia de color.
+// El dia que alguien toque SISTEMA_VISUAL y no vea cambiar nada, que sepa por que antes de
+// ponerse a buscar el bug en la fontaneria.
 //
 // ── LO QUE ESTE PASO **NO** ARREGLA (se ve, se dice, y se sigue) ─────────────────────────────
 //
@@ -153,9 +156,7 @@ const REJILLAS = {
   // muestras (M=81 uniforme); aqui son 34, y fuera del pico la funcion vale cero plano.
   flash: rejilla([{ hasta: 0.50, paso: 0.06 }, { hasta: 0.60, paso: 0.003 }, { hasta: 1, paso: 0.06 }]),
   // Icono: nace en icoIni con rebote y respira a partir de icoFin.
-  icono: rejilla([{ hasta: 0.55, paso: 0.06 }, { hasta: 0.77, paso: PASO_FRAME }, { hasta: 1, paso: 0.03 }]),
-  // Pie: entra en palabra (.770) y la barra un poco despues.
-  pie: rejilla([{ hasta: 0.75, paso: 0.06 }, { hasta: 0.93, paso: PASO_FRAME }, { hasta: 1, paso: 0.03 }])
+  icono: rejilla([{ hasta: 0.55, paso: 0.06 }, { hasta: 0.77, paso: PASO_FRAME }, { hasta: 1, paso: 0.03 }])
 } as const
 
 /**
@@ -201,18 +202,14 @@ const CSS_FIJO = `
   background:rgba(9,12,24,.9);border:.3cqw solid;backdrop-filter:blur(.19cqw)}
 .cm-mini{font-size:4.4cqw;line-height:1;flex:none}
 .cm-etq{font:700 2.9cqw Archivo,system-ui,sans-serif;letter-spacing:.01em}
-.cm-destello{position:absolute;left:50%;top:38%;width:86cqw;height:86cqw;border-radius:50%;
+.cm-destello{position:absolute;left:50%;top:45%;width:86cqw;height:86cqw;border-radius:50%;
   pointer-events:none;z-index:8;mix-blend-mode:screen}
-.cm-halo{position:absolute;left:50%;top:38%;width:64cqw;height:64cqw;border-radius:50%;z-index:5}
-.cm-icono{position:absolute;left:50%;top:38%;width:40cqw;height:40cqw;z-index:6;
+.cm-halo{position:absolute;left:50%;top:45%;width:72cqw;height:72cqw;border-radius:50%;z-index:5}
+.cm-icono{position:absolute;left:50%;top:45%;width:50cqw;height:50cqw;z-index:6;
   display:flex;align-items:center;justify-content:center}
-.cm-glifo{font-size:30cqw;line-height:1}
+.cm-glifo{font-size:38cqw;line-height:1}
 .cm-brillo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-size:30cqw;line-height:1;filter:blur(2.4cqw)}
-.cm-pie{position:absolute;left:8.33%;right:8.33%;bottom:11%;z-index:9;text-align:center}
-.cm-pal{font:400 var(--cm-fs)/0.95 Anton,Archivo,system-ui,sans-serif;text-transform:uppercase;
-  color:var(--texto);white-space:nowrap}
-.cm-barra{height:.8cqw;width:15cqw;border-radius:99cqw;margin:2.6cqw auto 0}
+  font-size:38cqw;line-height:1;filter:blur(3cqw)}
 `
 
 // ── PIEZAS ──────────────────────────────────────────────────────────────────────────────────
@@ -262,7 +259,12 @@ function nodo (
       style={{ ...usa(nom), left: a.x.toFixed(2) + '%', top: a.y.toFixed(2) + '%' }}>
       <div className="cm-caja" style={{
         borderColor: a.col,
-        boxShadow: `0 0 2.2cqw ${a.col}55, inset 0 0 1.6cqw ${a.col}22`
+        // GLOW EN DOS CAPAS. Una sola sombra da un borde duro; dos dan luz que se derrama:
+        // una CERCANA e intensa que define el canto, y otra AMPLIA y tenue que tine el aire
+        // alrededor. Y el `inset` mete algo de luz DENTRO para que la caja no se lea como un
+        // agujero negro con marco. La malla del fondo esta al 7% de alpha y la animacion la
+        // baja a 0.5: 3.5% efectivo, o sea invisible, asi que toda la luz sale de aqui.
+        boxShadow: `0 0 2.2cqw ${a.col}aa, 0 0 9cqw ${a.col}3a, inset 0 0 1.6cqw ${a.col}2e`
       }}>
         {a.emoji ? <span className="cm-mini">{a.emoji}</span> : null}
         <span className="cm-etq" style={{ color: a.ancla ? '#fff' : a.col }}>{a.etq}</span>
@@ -507,29 +509,6 @@ function construir (value: string, cs: Concepto[]): React.ReactNode {
       + ';transform:translate(-50%,-50%) scale(' + (0.7 + k * 0.35).toFixed(3) + ')'
   })
 
-  // EL PIE, dentro del motor de keyframes (adaptacion 4).
-  //
-  // La referencia usa `animation-name:pop; animation-duration:.55s; animation-delay:2.31s`.
-  // Los dos numeros son fracciones del ciclo de 3 s del laboratorio —.55/3 = 0.1833 y
-  // 2.31/3 = T.palabra— pero traducirlos a `calc(var(--ciclo)*0.1833)` NO valdria: `ajustar()`
-  // exige que la duracion divida el ciclo un numero entero de veces, y 0.1833 lo divide 5.45.
-  // Cada Visual escupiria un aviso CORREGIDO en el log. Asi que el retardo y la duracion viven
-  // DENTRO de la funcion, la animacion dura el ciclo entero, y no hay aviso posible.
-  const nomPal = kf('pa', REJILLAS.pie, u => {
-    const ph = cl((u - T.palabra) / 0.1833, 0, 1)
-    // El `pop` de la referencia: 0% scale .6 opacity 0 / 64% scale 1.04 / 100% scale 1.
-    const s = ph < 0.64 ? 0.6 + (ph / 0.64) * 0.44 : 1.04 - ((ph - 0.64) / 0.36) * 0.04
-    return 'opacity:' + cl(ph / 0.64, 0, 1).toFixed(3) + ';transform:scale(' + s.toFixed(4) + ')'
-  })
-  const nomBarra = kf('ba', REJILLAS.pie, u => {
-    const ph = cl((u - 0.84) / 0.14, 0, 1), e = suave(ph)
-    return 'opacity:' + e.toFixed(3) + ';transform:scaleX(' + (0.2 + e * 0.8).toFixed(4) + ')'
-  })
-
-  // El tamaño de la palabra se calcula por LONGITUD, no con un clamp: una palabra larga nunca
-  // desborda y una corta no se queda pequeña. Es cqw puro, sin tope en px (adaptacion 5).
-  const fs = Math.min(10.5, 130 / Math.max(1, value.length))
-
   const raiz: React.CSSProperties = { position: 'absolute', inset: 0, containerType: 'inline-size' }
 
   return (
@@ -576,20 +555,6 @@ function construir (value: string, cs: Concepto[]): React.ReactNode {
         <div className="cm-glifo">{cs[0]?.emoji ?? ''}</div>
       </div>
 
-      {/* EL PIE. Ojo: AnimatedGraphic ya pinta su propio pie para cualquier composicion, asi
-          que con visual_mapa activo se verian DOS palabras. Es del paso siguiente. */}
-      <div className="cm-pie">
-        <div className="cm-pal" style={{
-          ...usa(nomPal),
-          ['--cm-fs' as any]: fs.toFixed(2) + 'cqw',
-          textShadow: `0 0 3cqw ${P.a}66, 0 .3cqw 2cqw rgba(0,0,0,.95)`
-        }}>{value}</div>
-        <div className="cm-barra" style={{
-          ...usa(nomBarra),
-          background: `linear-gradient(90deg,${P.a},${P.b})`,
-          boxShadow: `0 0 1.8cqw ${P.a}bb`
-        }} />
-      </div>
     </div>
   )
 }
@@ -665,9 +630,16 @@ export const mapa: Composicion = {
     if (!Array.isArray(cs) || cs.length !== CUANTOS_CONCEPTOS) return false
     return cs.every(c => !!c && !!c.emoji && !!c.etiqueta)
   },
-  // SI pinta pie, y gana el suyo: conoce la paleta —la barra es un degradado de P.a a P.b— y
-  // entra en su sitio del reparto de fases, en T.palabra. El de AnimatedGraphic es estatico y
-  // no sabe nada de ninguna de las dos cosas.
+  // TRUE, Y AHORA SIGNIFICA "YO ME ENCARGO DEL PIE" -- Y ME ENCARGO NO PINTANDO NINGUNO.
+  //
+  // El campo pregunta si AnimatedGraphic tiene que pintar el suyo, no si la composicion pinta
+  // uno. Con `true` se lo salta, que es exactamente lo que hace falta: en el paso 9 se quito la
+  // palabra grande del pie de los Visuales, y ponerlo en `false` traeria de vuelta la de
+  // AnimatedGraphic, que es justo la que se queria quitar.
+  //
+  // `value` NO desaparece: sigue siendo la semilla del dibujo y sigue siendo el NODO ANCLA del
+  // centro del mapa. Lo que se quita es el texto grande de abajo, y SOLO en los Visuales: las
+  // 17 tarjetas conservan el suyo porque `extrusion` sigue declarando `pintaPie: false`.
   pintaPie: true,
   render
 }

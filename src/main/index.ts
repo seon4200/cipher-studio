@@ -982,6 +982,22 @@ const canonizar = (v: any): string => {
 // dice "39 de 39". Todo verde con el diseño antiguo. Es el peor modo de fallo que hay, porque
 // el sistema afirma activamente que ha funcionado.
 //
+// 8 -- la pasada de pulido del mapa. Se quita el PIE de la composicion (la palabra grande y su
+// barra): un Visual de mapa ya dice su palabra en el NODO ANCLA del centro, y repetirla abajo a
+// pantalla completa era decirla dos veces. `value` no desaparece de ningun sitio -- sigue
+// sembrando el dibujo y sigue siendo el ancla -- y las 17 tarjetas conservan SU pie, porque
+// `extrusion` declara pintaPie:false.
+//
+// Con el pie fuera, el mapa se reparte en mas alto: ZONA.yMax 68 -> 77, y las cuatro familias
+// estiran sus posiciones base. Y eso arrastra el remate: FOCO 38 -> 45 y los tres `top` de
+// .cm-destello, .cm-halo y .cm-icono con el, porque el foco es donde COLAPSA el mapa y donde
+// NACE el icono; dejarlo en 38 con el mapa hasta el 77 habria tirado el colapso hacia arriba y
+// el icono habria aparecido descentrado. El glifo pasa de 30cqw a 38cqw, que es lo que permite
+// el cuadro entero disponible.
+//
+// Y sube la luz: glow en DOS capas en las cajas -- una cercana e intensa que define el canto y
+// otra amplia y tenue que tine el aire-- porque una sola sombra da borde duro y no luz.
+//
 // 7 -- las cuatro constantes de `mapa` salen del TAMANO REAL de la caja, no del laboratorio.
 // `separados` compara la semisuma de los dos anchos mas un margen en vez del `dx < 33` fijo, y
 // el `dy < 9.5` pasa a la semisuma de los altos, que son 4.47 y 3.77 y no 9.5. `flecha` recorta
@@ -1028,7 +1044,7 @@ const canonizar = (v: any): string => {
 // fichero viejo diciendo ACIERTO: se veria exactamente lo mismo y pareceria que la composicion
 // no funciona. Es el modo de fallo que esta constante existe para evitar, y cuesta re-renderizar
 // lo que haya en cache (~2.7 s por grafico).
-const VERSION_PLANTILLAS = 7;
+const VERSION_PLANTILLAS = 8;
 
 // EL FORMATO LO DECIDE EL MODO, y se dice AQUI una sola vez. Las tres cosas —codec, pix_fmt y
 // extension— tienen que ir juntas o el fichero sale mintiendo sobre si mismo: un .mp4 con

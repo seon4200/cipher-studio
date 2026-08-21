@@ -127,6 +127,21 @@ export type Composicion = {
    * Obligatorio por lo mismo que el anterior. Se descarto extraer un `<PieVisual>` compartido
    * que pintaran todas: quien lo olvidara perderia la palabra sin un solo error. El booleano
    * obligatorio falla ruidoso —tsc—, el componente compartido falla mudo.
+   *
+   * ═══ SI CAMBIAS ESTE VALOR, SUBE VERSION_PLANTILLAS EN src/main/index.ts ═══
+   *
+   * Exactamente por lo mismo que `puedeDibujar`, y COMPROBADO: `hashGrafico` proyecta seis
+   * campos de `graphicData` —type, value, label, unit, emoji, extra— mas ancho, alto, duracion,
+   * fps, VERSION_PLANTILLAS, modo, codec y sistema. `pintaPie` NO es un campo de `graphicData`:
+   * vive en el objeto `Composicion`, en el renderer. Grep sobre main/index.ts: cero usos fuera
+   * de un comentario. Asi que cambiarlo mueve PIXELES SIN MOVER LA CLAVE, y la cache devolveria
+   * para siempre los MOV con el pie que ya no toca.
+   *
+   * ⚠️ Y EL NOMBRE MIENTE — deuda anotada en docs/deuda-graficos.md. Desde el paso 9, `mapa` lo
+   * declara `true` y NO PINTA NINGUN PIE: lo que el campo pregunta de verdad es "¿se salta
+   * AnimatedGraphic el suyo?". Quien lea `pintaPie: true` y busque el pie del mapa no lo va a
+   * encontrar. El nombre honesto seria `omitePieDeAnimatedGraphic`; renombrarlo no mueve un
+   * pixel, pero toca este contrato y las dos composiciones.
    */
   pintaPie: boolean;
   render: (p: PropsComposicion) => ReactNode;

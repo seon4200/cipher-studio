@@ -1,0 +1,425 @@
+<meta charset="utf-8">
+<title>CIPHER — acabado</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ciclo:3s;
+    --ui-bg:#08090F; --ui-line:#1C1F2B; --ui-ink:#EAEDF7; --ui-dim:#727A94;
+    --fondo:#05060B; --texto:#FAFAFA;
+    --acento:#FF3B1F; --apoyo:#8C8C8C;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ui-bg);color:var(--ui-ink);font:400 14px/1.6 Inter,system-ui,sans-serif}
+  header{padding:26px 32px 18px;border-bottom:1px solid var(--ui-line)}
+  h1{margin:0;font:800 21px/1.2 Archivo,sans-serif;letter-spacing:-.02em}
+  header p{margin:8px 0 0;color:var(--ui-dim);max-width:94ch}
+  header b{color:var(--acento);font-weight:500}
+  header code{font:400 12.5px Space Mono,monospace;color:var(--ui-ink)}
+
+  .bar{position:sticky;top:0;z-index:20;background:rgba(8,9,15,.96);backdrop-filter:blur(12px);
+       border-bottom:1px solid var(--ui-line);padding:13px 32px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .bar label{color:var(--ui-dim);font:400 12px Space Mono,monospace;letter-spacing:.1em;text-transform:uppercase}
+  input[type=range]{flex:1;min-width:220px;accent-color:var(--acento)}
+  .t{font:700 15px/1 Space Mono,monospace;min-width:88px;color:var(--acento)}
+  button{background:transparent;border:1px solid var(--ui-line);color:var(--ui-ink);border-radius:6px;
+         padding:7px 14px;font:400 12.5px Space Mono,monospace;cursor:pointer}
+  button:hover{border-color:var(--acento);color:var(--acento)}
+  button.on{background:var(--acento);border-color:var(--acento);color:#0A0A0A;font-weight:700}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:30px;padding:28px 32px 60px}
+  .cell h3{margin:0 0 2px;font:600 13.5px Inter,sans-serif;display:flex;align-items:center;gap:8px}
+  .cost{font:400 9.5px Space Mono,monospace;letter-spacing:.1em;text-transform:uppercase;
+        border-radius:99px;padding:2px 7px}
+  .cost.bajo{color:#6EE7A8;border:1px solid rgba(110,231,168,.4)}
+  .cost.medio{color:#F0A020;border:1px solid rgba(240,160,32,.4)}
+  .fis{margin:0 0 9px;font-size:11px;line-height:1.55;color:var(--ui-dim)}
+  .fis b{color:var(--acento);font-weight:500}
+
+  .frame{position:relative;width:100%;aspect-ratio:9/16;overflow:hidden;border-radius:12px;
+         container-type:inline-size;border:1px solid var(--ui-line);background:var(--fondo)}
+  .escena{position:absolute;inset:0;z-index:1}
+  .capa{position:absolute;inset:0}
+
+  .pie{position:absolute;left:8.33%;right:8.33%;bottom:13.54%;z-index:8;text-align:center}
+  .pal{font:400 clamp(16px,12cqw,78px)/0.95 Anton,sans-serif;text-transform:uppercase;color:var(--texto);
+       text-shadow:0 .3cqw 2.4cqw rgba(0,0,0,.9)}
+  .barra{height:.8cqw;width:15cqw;border-radius:99px;background:var(--acento);margin:3.5cqw auto 0;
+         box-shadow:0 0 1.6cqw rgba(255,59,31,.8)}
+
+  @keyframes pop{0%{transform:scale(.62);opacity:0}62%{transform:scale(1.04);opacity:1}100%{transform:scale(1);opacity:1}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .a{animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.88,.3,1)}
+</style>
+
+<header>
+  <h1>Acabado — glow, profundidad de campo y color</h1>
+  <p>Lo que faltaba para que no se vieran básicos. Tres cosas: <b>glow real</b> con
+  <code>box-shadow</code> en capas, <b>profundidad de campo</b> —lo lejano desenfocado, lo cercano
+  nítido— y <b>degradado de fondo con color</b> en vez de negro plano. La etiqueta de coste dice
+  cuánto encarece cada una: el blur no es gratis.</p>
+</header>
+
+<div class="bar">
+  <label for="t">t</label>
+  <input id="t" type="range" min="0" max="3" step="0.0333" value="1.3">
+  <span class="t" id="tv">1.300 s</span>
+  <button id="play">Reproducir</button>
+  <button id="loopcheck">Verificar bucle</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const CICLO = 3;
+const R = (n,f)=>[...Array(n)].map((_,i)=>f(i)).join('');
+let _s = 20260815;
+const rnd = ()=>(_s=_s*16807%2147483647)/2147483647;
+const semilla = s=>{_s=s};
+
+let _k = 0;
+const reglas = [];
+function kf(fn, M){
+  M = M || 31; const nom = 'x'+(_k++);
+  let c = '';
+  for(let i=0;i<M;i++){ const u = i/(M-1); c += (u*100).toFixed(3)+'%{'+fn(u)+'}'; }
+  reglas.push('@keyframes '+nom+'{'+c+'}');
+  return nom;
+}
+const usa = (n,d)=>'animation:'+n+' '+(d||'var(--ciclo)')+' linear infinite both;';
+
+const AW=90, AH=160, F=190, DZ=145;
+const pr=p=>{const zc=p[2]+DZ,s=F/Math.max(zc,6);return[AW/2+p[0]*s,AH/2+p[1]*s,zc,s]};
+const rotY=(p,a)=>{const c=Math.cos(a),s=Math.sin(a);return[p[0]*c+p[2]*s,p[1],-p[0]*s+p[2]*c]};
+const rotX=(p,a)=>{const c=Math.cos(a),s=Math.sin(a);return[p[0],p[1]*c-p[2]*s,p[1]*s+p[2]*c]};
+const cl=(v,a,b)=>v<a?a:(v>b?b:v);
+
+const ESCENAS = [
+
+/* ══════════════════════════════════════════════════════════════════════
+   RED — la referencia de los nodos con profundidad
+   Lo que la separa de la version basica son tres cosas concretas:
+   1) GLOW en dos capas: un halo cercano intenso y otro amplio y tenue.
+      Un solo box-shadow da un borde duro; dos dan luz que se derrama.
+   2) PROFUNDIDAD DE CAMPO: el blur depende de la Z del nodo. Los del
+      fondo salen desenfocados de verdad, no solo mas pequeños.
+   3) COLOR: los nodos van de magenta a cian segun profundidad, sobre un
+      degradado de fondo. Un negro plano no tiene atmosfera.
+   ══════════════════════════════════════════════════════════════════════ */
+{n:'RED', cost:'medio',
+ fis:'<b>Glow en dos capas + profundidad de campo.</b> Un solo <code>box-shadow</code> da borde duro; dos —uno cercano intenso y otro amplio y tenue— dan luz que se derrama. Y el blur depende de la Z: los nodos del fondo salen <b>desenfocados de verdad</b>, no solo más pequeños. Ahí está la diferencia con lo básico.',
+ g:()=>{ semilla(11);
+  const N = 26, RAD = 30;
+  // nodos repartidos en una esfera achatada
+  const P = [...Array(N)].map((_,i)=>{
+    const y=1-(i/(N-1))*2, r=Math.sqrt(1-y*y), th=i*2.399963;
+    return [Math.cos(th)*r*RAD, y*RAD*0.62, Math.sin(th)*r*RAD];
+  });
+  // aristas: cada nodo con los dos mas cercanos
+  const AR = [];
+  P.forEach((a,i)=>{
+    const d = P.map((b,j)=>[j, Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2])])
+               .filter(([j])=>j!==i).sort((x,y)=>x[1]-y[1]);
+    AR.push([i,d[0][0]], [i,d[1][0]]);
+  });
+
+  let h = '';
+  // 1) el fondo con color: magenta a cian, no negro plano
+  h += '<div class="capa" style="background:'
+     + 'radial-gradient(ellipse 80% 60% at 22% 26%, #4a1040 0%, transparent 58%),'
+     + 'radial-gradient(ellipse 70% 55% at 78% 74%, #06333f 0%, transparent 60%),'
+     + 'linear-gradient(160deg,#0b0716,#05060B 70%)"></div>';
+
+  // 2) las aristas, en SVG para poder animar los extremos
+  h += '<svg class="capa" viewBox="0 0 90 160" preserveAspectRatio="none" style="opacity:.55">';
+  AR.forEach(([i,j])=>{
+    const nom = kf(u=>{
+      const a = rotY(P[i], u*6.28318), b = rotY(P[j], u*6.28318);
+      const pa = pr(a), pb = pr(b);
+      // la arista se apaga si alguno de sus nodos esta al fondo
+      const zf = ((a[2]+RAD)/(2*RAD) + (b[2]+RAD)/(2*RAD))/2;
+      return 'x1:'+pa[0].toFixed(2)+';y1:'+pa[1].toFixed(2)
+           + ';x2:'+pb[0].toFixed(2)+';y2:'+pb[1].toFixed(2)
+           + ';opacity:'+(0.12+zf*0.68).toFixed(3);
+    }, 31);
+    h += '<line style="'+usa(nom)+'" stroke="#6BC4FF" stroke-width=".22"/>';
+  });
+  h += '</svg>';
+
+  // 3) los nodos: glow doble, color por profundidad, blur por Z
+  h += '<div class="capa">';
+  P.forEach((p,i)=>{
+    const ac = i===7 || i===18;
+    const nom = kf(u=>{
+      const q = rotY(p, u*6.28318);
+      const pp = pr(q);
+      const zf = (q[2]+RAD)/(2*RAD);          // 0 = fondo, 1 = frente
+      // PROFUNDIDAD DE CAMPO: el blur sale de la distancia
+      const desenf = (1-zf)*1.5;
+      // el color viaja de magenta (fondo) a cian (frente)
+      const cr = Math.round(232 - zf*140), cg = Math.round(60 + zf*140), cb = Math.round(150 + zf*90);
+      const col = ac ? '255,59,31' : cr+','+cg+','+cb;
+      const esc = (0.5 + zf*0.85) * (ac?1.5:1);
+      const bri = 0.30 + zf*0.70;
+      return 'transform:translate('+((pp[0]-AW/2)/AW*100).toFixed(2)+'cqw,'
+           + ((pp[1]-AH/2)/AH*160).toFixed(2)+'cqw) scale('+esc.toFixed(3)+');'
+           + 'filter:blur('+desenf.toFixed(2)+'px);'
+           + 'background:rgb('+col+');'
+           // GLOW EN DOS CAPAS: cercano intenso + amplio tenue
+           + 'box-shadow:0 0 .9cqw rgba('+col+','+(bri*0.95).toFixed(2)+'),'
+           + '0 0 3.4cqw rgba('+col+','+(bri*0.42).toFixed(2)+');'
+           + 'opacity:'+(0.34+zf*0.66).toFixed(3);
+    }, 31);
+    h += '<div style="'+usa(nom)+'position:absolute;left:50%;top:40%;'
+       + 'width:2.1cqw;height:2.1cqw;margin:-1.05cqw 0 0 -1.05cqw;border-radius:50%"></div>';
+  });
+  h += '</div>';
+
+  // 4) particulas sueltas de fondo, muy desenfocadas: dan volumen de aire
+  h += '<div class="capa" style="filter:blur(1.6px);opacity:.5">';
+  h += R(16,i=>{
+    const nom = kf(u=>{
+      const a = (i/16 + u)*6.28318;
+      return 'transform:translate('+(Math.cos(a)*(18+i*1.6)).toFixed(1)+'cqw,'
+           + (Math.sin(a*1.3)*(10+i)).toFixed(1)+'cqw)';
+    }, 25);
+    return '<div style="'+usa(nom)+'position:absolute;left:50%;top:40%;'
+      + 'width:'+(0.7+rnd()*0.9).toFixed(2)+'cqw;height:'+(0.7+rnd()*0.9).toFixed(2)+'cqw;'
+      + 'border-radius:50%;background:#6BC4FF;opacity:'+(0.2+rnd()*0.4).toFixed(2)+'"></div>';
+  });
+  h += '</div>';
+  return h; }},
+
+/* ══════════════════════════════════════════════════════════════════════
+   CAPAS — la referencia del mapa isometrico
+   Y lo que la hace comunicar no es el 3D: son las ETIQUETAS. Un diagrama
+   con capas nombradas dice algo; el mismo diagrama sin nombres es
+   decoracion. Cada plano se proyecta con clip-path y lleva su linea
+   guia hasta el texto.
+   ══════════════════════════════════════════════════════════════════════ */
+{n:'CAPAS', cost:'bajo',
+ fis:'<b>Lo que comunica son las etiquetas.</b> El 3D es fácil; lo que convierte un diagrama en información es que cada capa esté nombrada y tenga su línea guía. Sin nombres es decoración. Cada plano se proyecta con <code>clip-path</code>, con su sombra propia debajo para que se lea el apilado.',
+ g:()=>{
+  const CAP = [
+    ['Superficie', 26, [96,220,190], -22],
+    ['Datos',      26, [70,180,210], -2],
+    ['Terreno',    26, [190,150,110], 18]
+  ];
+  let h = '';
+  h += '<div class="capa" style="background:'
+     + 'radial-gradient(ellipse 90% 60% at 30% 20%, #0d3a32 0%, transparent 62%),'
+     + 'linear-gradient(165deg,#0a1614,#05060B 74%)"></div>';
+  CAP.forEach(([nombre, tam, col, y0], i)=>{
+    const nom = kf(u=>{
+      // flotan con desfase: la separacion respira
+      const sep = Math.sin(u*6.28318 + i*0.9)*2.2;
+      const a = -0.5 + Math.sin(u*6.28318)*0.12;
+      const P = [[-tam,y0+sep,-tam],[tam,y0+sep,-tam],[tam,y0+sep,tam],[-tam,y0+sep,tam]]
+        .map(p=>pr(rotX(rotY(p,a), 0.55)));
+      return 'clip-path:polygon('
+        + P.map(p=>(p[0]/AW*100).toFixed(2)+'% '+(p[1]/AH*100).toFixed(2)+'%').join(',')+')';
+    }, 31);
+    // el plano, con degradado propio para que no sea un color plano
+    h += '<div style="'+usa(nom)+'position:absolute;inset:0;'
+       + 'background:linear-gradient(135deg,rgba('+col+',.92),rgba('
+       + col.map(v=>Math.round(v*0.45))+',.85));'
+       + 'filter:drop-shadow(0 1.4cqw 1.8cqw rgba(0,0,0,.75));z-index:'+(30-i*10)+'"></div>';
+    // la etiqueta con su linea guia
+    const et = kf(u=>{
+      const sep = Math.sin(u*6.28318 + i*0.9)*2.2;
+      return 'transform:translateY('+(sep*0.7).toFixed(2)+'cqw)';
+    }, 31);
+    h += '<div style="'+usa(et)+'position:absolute;right:6%;top:'+(30+i*17)+'%;'
+       + 'display:flex;align-items:center;gap:1cqw;z-index:60">'
+       + '<div style="width:9cqw;height:.25cqw;background:rgb('+col+');opacity:.8"></div>'
+       + '<div style="width:1.4cqw;height:1.4cqw;border-radius:50%;background:rgb('+col+');'
+       + 'box-shadow:0 0 1.6cqw rgba('+col+',.8)"></div>'
+       + '<span style="font:700 clamp(7px,3.1cqw,15px) Archivo,sans-serif;color:#fff;'
+       + 'white-space:nowrap">'+nombre+'</span></div>';
+  });
+  return h; }},
+
+/* ══════════════════════════════════════════════════════════════════════
+   EXPANSION — la referencia del embudo del Big Bang
+   Anillos que crecen alejandose del origen, con el color pasando de
+   caliente a frio: eso es el gradiente de temperatura de la referencia.
+   El destello del origen se hace con dos capas de box-shadow, no con un
+   blur caro.
+   ══════════════════════════════════════════════════════════════════════ */
+{n:'EXPANSIÓN', cost:'bajo',
+ fis:'<b>Gradiente de temperatura.</b> Los anillos crecen alejándose del origen y el color pasa de <b>caliente a frío</b> según la distancia — igual que en los diagramas del Big Bang. El destello del origen son dos capas de <code>box-shadow</code>, no un blur: mismo efecto, coste mucho menor.',
+ g:()=>{ semilla(33);
+  const N = 16;
+  let h = '';
+  h += '<div class="capa" style="background:'
+     + 'radial-gradient(ellipse 60% 45% at 50% 22%, #3d1030 0%, transparent 55%),'
+     + 'radial-gradient(ellipse 90% 70% at 50% 80%, #071e33 0%, transparent 62%),'
+     + 'linear-gradient(180deg,#0a0512,#05060B)"></div>';
+  // los anillos: nacen arriba y se abren hacia abajo
+  for(let i=0;i<N;i++){
+    const f = i/N;
+    const nom = kf(u=>{
+      const ph = (f + u)%1;
+      const y = 18 + ph*54;
+      const esc = 0.1 + ph*1.55;
+      // caliente cerca del origen, frio lejos
+      const cr = Math.round(255 - ph*180), cg = Math.round(120 - ph*20), cb = Math.round(40 + ph*195);
+      return 'transform:translateY('+(y-40).toFixed(2)+'cqw) scale('+esc.toFixed(3)+');'
+           + 'border-color:rgb('+cr+','+cg+','+cb+');'
+           + 'box-shadow:0 0 2.2cqw rgba('+cr+','+cg+','+cb+',.4),'
+           + 'inset 0 0 1.6cqw rgba('+cr+','+cg+','+cb+',.28);'
+           + 'opacity:'+(ph<0.08 ? (ph/0.08) : (1-ph)*0.9).toFixed(3);
+    }, 41);
+    h += '<div style="'+usa(nom)+'position:absolute;left:50%;top:40%;'
+       + 'width:56cqw;height:20cqw;margin:-10cqw 0 0 -28cqw;'
+       + 'border:.35cqw solid;border-radius:50%"></div>';
+  }
+  // el origen: destello con dos capas, sin blur
+  h += '<div class="capa" style="pointer-events:none">'
+     + '<div style="position:absolute;left:50%;top:22%;width:5cqw;height:5cqw;'
+     + 'margin:-2.5cqw 0 0 -2.5cqw;border-radius:50%;background:#fff8e0;'
+     + 'box-shadow:0 0 3cqw 1cqw rgba(255,200,90,.9),0 0 9cqw 3cqw rgba(255,120,40,.45)"></div>'
+     // los rayos del destello
+     + R(8,i=>'<div style="position:absolute;left:50%;top:22%;width:.4cqw;height:'+(10+i%3*6)+'cqw;'
+       + 'margin-left:-.2cqw;transform-origin:50% 0;transform:rotate('+(i*45)+'deg);'
+       + 'background:linear-gradient(180deg,rgba(255,200,90,.75),transparent);'
+       + 'opacity:.7"></div>')
+     + '</div>';
+  // particulas que viajan hacia fuera
+  h += R(22,i=>{
+    const nom = kf(u=>{
+      const ph = ((i/22)*0.7 + u)%1;
+      const a = (i/22)*6.28318;
+      const r = ph*40;
+      return 'transform:translate('+(Math.cos(a)*r*1.3).toFixed(1)+'cqw,'
+           + (14+ph*46).toFixed(1)+'cqw) scale('+(0.4+ph).toFixed(2)+');'
+           + 'opacity:'+((1-ph)*0.8).toFixed(3);
+    }, 33);
+    return '<div style="'+usa(nom)+'position:absolute;left:50%;top:22%;'
+      + 'width:.9cqw;height:.9cqw;margin:-.45cqw 0 0 -.45cqw;border-radius:50%;'
+      + 'background:#9fd8ff;box-shadow:0 0 1.4cqw rgba(159,216,255,.8)"></div>';
+  });
+  return h; }},
+
+/* ══════════════════════════════════════════════════════════════════════
+   MALLA — la rejilla curvada del espacio-tiempo
+   Una malla en perspectiva que se hunde donde hay masa. Lo que la hace
+   leerse es que las lineas se JUNTAN al acercarse al pozo: la deformacion
+   se ve en el espaciado, no solo en la altura.
+   ══════════════════════════════════════════════════════════════════════ */
+{n:'MALLA', cost:'bajo',
+ fis:'<b>La deformación se ve en el espaciado.</b> Una malla que se hunde donde hay masa: las líneas se <b>juntan</b> al acercarse al pozo, no solo bajan. Ese detalle es lo que lo hace leerse como gravedad y no como una tela. La masa orbita, así que el pozo viaja con ella.',
+ g:()=>{
+  const FIL = 16, COL = 14;
+  let h = '';
+  h += '<div class="capa" style="background:'
+     + 'radial-gradient(ellipse 70% 50% at 50% 34%, #1a0b30 0%, transparent 60%),'
+     + 'linear-gradient(180deg,#080614,#05060B)"></div>';
+  h += '<svg class="capa" viewBox="0 0 90 160" preserveAspectRatio="none">';
+  // el pozo gravitatorio: la masa orbita y el pozo la sigue
+  const pozo = u => {
+    const a = u*6.28318;
+    return [Math.cos(a)*14, Math.sin(a)*7];
+  };
+  const deform = (x,z,u) => {
+    const [px,pz] = pozo(u);
+    const d = Math.hypot(x-px, z-pz);
+    return -16/(1 + d*d*0.055);          // la caida del pozo
+  };
+  // lineas en Z
+  for(let c=0;c<COL;c++){
+    const nom = kf(u=>{
+      const x = -32 + c*(64/(COL-1));
+      let d = '';
+      for(let f=0;f<FIL;f++){
+        const z = -20 + f*(70/(FIL-1));
+        const y = 22 + deform(x,z,u);
+        const p = pr(rotX([x,y,z], 0.42));
+        d += (f?' L':'M') + p[0].toFixed(2) + ',' + p[1].toFixed(2);
+      }
+      return 'd:path("'+d+'")';
+    }, 25);
+    h += '<path style="'+usa(nom)+'" fill="none" stroke="#7B9CFF" '
+       + 'stroke-width=".22" opacity=".55"/>';
+  }
+  // lineas en X
+  for(let f=0;f<FIL;f++){
+    const nom = kf(u=>{
+      const z = -20 + f*(70/(FIL-1));
+      let d = '';
+      for(let c=0;c<COL;c++){
+        const x = -32 + c*(64/(COL-1));
+        const y = 22 + deform(x,z,u);
+        const p = pr(rotX([x,y,z], 0.42));
+        d += (c?' L':'M') + p[0].toFixed(2) + ',' + p[1].toFixed(2);
+      }
+      return 'd:path("'+d+'")';
+    }, 25);
+    const cerca = f/FIL;
+    h += '<path style="'+usa(nom)+'" fill="none" stroke="#7B9CFF" '
+       + 'stroke-width="'+(0.18+cerca*0.2).toFixed(2)+'" opacity="'+(0.25+cerca*0.5).toFixed(2)+'"/>';
+  }
+  h += '</svg>';
+  // la masa que crea el pozo
+  const masa = kf(u=>{
+    const [px,pz] = pozo(u);
+    const p = pr(rotX([px, 22+deform(px,pz,u)+3, pz], 0.42));
+    return 'transform:translate('+((p[0]-AW/2)/AW*100).toFixed(2)+'cqw,'
+         + ((p[1]-AH/2)/AH*160).toFixed(2)+'cqw) scale('+p[3].toFixed(3)+')';
+  }, 33);
+  h += '<div style="'+usa(masa)+'position:absolute;left:50%;top:50%;'
+     + 'width:6cqw;height:6cqw;margin:-3cqw 0 0 -3cqw;border-radius:50%;'
+     + 'background:radial-gradient(circle at 34% 30%,#ffb060,#FF3B1F 60%,#8a1a08);'
+     + 'box-shadow:0 0 3cqw rgba(255,59,31,.7),0 0 8cqw rgba(255,59,31,.3)"></div>';
+  return h; }}
+];
+
+const html = ESCENAS.map(c=>`
+  <div class="cell">
+    <h3>${c.n} <span class="cost ${c.cost}">${c.cost==='bajo'?'coste bajo':'coste medio'}</span></h3>
+    <p class="fis">${c.fis}</p>
+    <div class="frame">
+      <div class="escena">${c.g()}</div>
+      <div class="pie">
+        <div class="pal a" style="animation-name:pop;animation-duration:.6s;animation-delay:.25s">${c.n}</div>
+        <div class="barra a" style="animation-name:fade;animation-duration:.6s;animation-delay:.55s"></div>
+      </div>
+    </div>
+  </div>`).join('');
+
+const st = document.createElement('style');
+st.textContent = reglas.join('\n');
+document.head.appendChild(st);
+document.getElementById('grid').innerHTML = html;
+
+const slider = document.getElementById('t'), out = document.getElementById('tv');
+let corriendo = false, raf = 0, t0 = 0;
+function irA(t){
+  out.textContent = t.toFixed(3)+' s';
+  for(const a of document.getAnimations()){ try{ a.pause(); a.currentTime = t*1000 }catch(e){} }
+}
+window.irA = irA;
+function parar(){ corriendo=false; cancelAnimationFrame(raf);
+  const b=document.getElementById('play'); b.classList.remove('on'); b.textContent='Reproducir' }
+slider.addEventListener('input', ()=>{ parar(); irA(+slider.value) });
+document.getElementById('play').addEventListener('click', ()=>{
+  if(corriendo){ parar(); return }
+  corriendo = true; t0 = performance.now() - (+slider.value)*1000;
+  const b = document.getElementById('play'); b.classList.add('on'); b.textContent='Pausar';
+  const tick = ()=>{ if(!corriendo) return;
+    let t = (performance.now()-t0)/1000;
+    if(t > CICLO){ t0 = performance.now(); t = 0 }
+    slider.value = t; irA(t); raf = requestAnimationFrame(tick); };
+  raf = requestAnimationFrame(tick);
+});
+let cara = 0;
+document.getElementById('loopcheck').addEventListener('click', e=>{
+  parar(); cara ^= 1; const v = cara ? CICLO-0.001 : 0;
+  irA(v); slider.value = v;
+  e.target.textContent = cara ? 'Viendo t='+CICLO : 'Viendo t=0';
+  e.target.classList.toggle('on', !!cara);
+});
+document.fonts.ready.then(()=>irA(+slider.value));
+setTimeout(()=>irA(+slider.value), 90);
+</script>

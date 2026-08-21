@@ -1072,3 +1072,271 @@ emoji de hoy sería frágil porque el guion siguiente pedirá otros, y el ahorro
 que se manifiesta como tofu silencioso. El «~10 MB» que se venía citando era el `.ttf`.
 
 Pero antes de vender, esto no es opcional.
+
+---
+
+## 🐛 `sanearConceptos` NO COMPRUEBA DUPLICADOS — el mapa pinta dos cajas iguales
+
+Medido sobre los 107 sub-clips con 3 conceptos de la generación del 2026-08-21:
+
+| | |
+|---|---|
+| con **emoji repetido** | **5 — 4.7 %** |
+| con **etiqueta repetida** | **5 — 4.7 %** |
+
+Son los mismos cinco, y todos del mismo tramo del guion —el de los relojes de Huygens—:
+
+```
+27:1   🕰️ reloj | 🕰️ reloj | 🔋 batería
+29:1   🪑 silla | 🪑 silla | 🕰️ reloj
+31:0   🕰️ reloj | 🕰️ reloj | 🔗 cadena
+33:0   🕰️ reloj | 🕰️ reloj | 🔀 mezclador
+34:0   🕰️ reloj | 🕰️ reloj | 🔗 cadena
+```
+
+**No es un fallo del modelo, es una omisión del saneado.** `sanearConceptos` comprueba que hay
+tres, que cada uno tiene emoji y etiqueta, y que la etiqueta no pasa de dos palabras. No compara
+los tres entre sí. Y con la decisión de v1 —cada nodo del mapa **es** su emoji— dos cajas
+idénticas no son un detalle: el mapa afirma dos veces la misma cosa y pierde un tercio de su
+contenido.
+
+Y es defendible que el modelo lo devuelva: la frase habla de **dos relojes** sincronizándose. El
+saneado es el sitio donde se decide si eso se pinta o no.
+
+**No se arregla aquí porque no está decidido qué hacer**: rechazar el trío entero —y caer a
+`visual_texto`— es tirar dos conceptos buenos por uno repetido; deduplicar y quedarse con dos
+rompe el contrato de que son exactamente tres. Cualquiera de las dos cambia píxeles y exige subir
+`VERSION_PLANTILLAS`.
+
+---
+
+## 🐛 EL LOTE 4 BAJÓ AL 84.6 % DE KEYWORD PROPIO — y es el MISMO evento que los NULL
+
+| lote | sub-clips | sin kw propio | conceptos NULL | largo medio de frase |
+|---|---|---|---|---|
+| 1 | 31 | 1 | 1 | 80 |
+| 2 | 29 | 1 | 1 | 80 |
+| 3 | 28 | 1 | 1 | 80 |
+| **4** | **26** | **4** | **4** | 76 |
+
+**`sin kw propio` y `NULL` coinciden sub-clip a sub-clip en los cuatro lotes.** No son dos
+problemas: cuando DeepSeek omite los campos de un sub-clip, se pierde el `keyword` **y** los
+`conceptos` a la vez. El lote 4 concentra 4 de los 7 NULL del vídeo.
+
+Lo que tiene de distinto ese lote:
+
+- **es el último**, y el más corto (26 sub-clips contra 31/29/28)
+- contiene **el final de la transcripción**, donde Whisper degrada. Dos de los cuatro fallos son
+  el mismo sub-clip partido en dos: `45:1` y `45:2` comparten la frase
+  `"tan valiante que comienzan de sincronizadamente."` — 46 caracteres, y mal transcrita.
+
+O sea: la señal apunta a **calidad de la entrada al final del audio**, no a un límite del lote ni
+a truncado de la respuesta (`finish_reason=length`: **0 ocurrencias**).
+
+**No se arregla porque el 93.9 % global está en banda** (93.6-98.8 %) y porque la causa está
+aguas arriba, en la transcripción. Queda anotado para que, si el porcentaje baja, se mire aquí
+primero y no en el prompt.
+
+---
+
+## 📌 A) EL FONDO TIENE QUE RESPONDER A LO QUE SE DICE — sin implementar
+
+Hoy el fondo del mapa lo decide **la semilla**: `angFondo`, `estrellas`, `escMalla` y los dos
+degradados salen de `receta(value)`. Varía por palabra pero **no por significado**, y por eso los
+31 Visuales del último vídeo se parecen entre sí: cambia el tono, no la escena.
+
+**La vía**: un campo `ambiente` en FASE 2 con **vocabulario cerrado** de diez o doce opciones
+—`lluvia, noche, agua, fuego, ciudad, campo, mecanico, espacio, multitud, frio, calor, neutro`—
+viajando en `extra` junto a los conceptos. Es descriptivo y local, el mismo tipo de tarea en la
+que ya está medido que acierta, y cuesta ~5 tokens por sub-clip.
+
+Al ir en `extra` entra en la clave del hash, así que dos Visuales con ambiente distinto dejan de
+compartir fichero por construcción.
+
+**Y lo que pinta cada ambiente no hay que inventarlo.** Segun el usuario, en su laboratorio
+`labacabado.html` las escenas **RED**, **EXPANSION** y **MALLA** no son escenas: son **fondos**. La malla
+que se hunde donde hay masa, los anillos con gradiente de temperatura, la esfera de nodos con
+profundidad. Detrás del mapa son exactamente «el fondo tiene vida».
+
+> ⚠️ **`labacabado.html` NO ESTA EN EL REPO NI EN Descargas.** Lo de arriba viene de lo que el
+> usuario conto, no de haberlo leido. Antes de implementar esto hay que pedirle el fichero y
+> guardarlo en `docs/motion/`, como se hizo con `generador-clips.html`. Sin el, esta nota es una
+> intencion, no una especificacion.
+
+Lo que SI esta en `docs/motion/`: `generador-clips.html`, `lab-volumen.html`,
+`lab-materia.html`, `lab-3d-guion.html`, `cipher-motion-loop.html`, `cipher-motion-loop-2.html`.
+
+---
+
+## 📌 B) UN CATÁLOGO DE VISUALES QUE ROTA, no sólo el mapa — sin implementar
+
+Al usuario le sirven las composiciones de `labgraficos.html`: el anillo que se dibuja con el
+74 %, el dato grande con revelado, las barras en carrera, las capas isométricas — **sin palabra
+principal y centradas**, como el mapa queda tras el paso 9.
+
+> ⚠️ **`labgraficos.html` TAMPOCO ESTA**, ni en el repo ni en Descargas. Mismo aviso: hay que
+> pedirlo antes de trabajar sobre el.
+
+**La infraestructura ya lo soporta**, y esto es lo que hace la nota barata:
+
+- `COMPOSICIONES` es un registro por nombre, no un switch.
+- `type` está en la clave del hash, así que dos composiciones distintas no pueden compartir MOV.
+- `puedeDibujar` es lo que lo hace seguro: **una composición de número sólo se elige cuando hay
+  número**, y si no, cae a `visual_texto` y lo dice en el log.
+
+El único cambio estructural es que `COMPOSICION_VISUAL` deje de ser una constante y pase a ser
+una **elección por clip**.
+
+**Y los datos ya existen**: el último vídeo generó `decorativo_emoji` 11, `frase_clave` 4 y
+`contador` 1 por el camino de las tarjetas. Esos son exactamente los tipos que alimentarían un
+catálogo rotativo.
+
+**NO se implementa todavía, y la razón es la de siempre**: primero se deja UNO impecable. Con
+cinco composiciones a medias se replican los mismos defectos cinco veces, y entonces cada arreglo
+cuesta cinco veces más.
+
+---
+
+## 🐛 `pintaPie` MIENTE — `true` significa «no pinto ninguno»
+
+Desde el paso 9, `mapa` declara `pintaPie: true` y **no pinta ningún pie**. Lo que el campo
+pregunta de verdad es *«¿se salta `AnimatedGraphic` el suyo?»*, no *«¿pintas tú uno?»*.
+
+Quien lea `pintaPie: true` y busque el pie del mapa no lo va a encontrar. Y el error natural
+—«pues lo pongo en `false`»— trae de vuelta la palabra grande de `AnimatedGraphic`, que es
+exactamente la que el paso 9 quitó.
+
+Nombre honesto: `omitePieDeAnimatedGraphic`, o darle la vuelta al booleano. **Renombrar no mueve
+un píxel**, pero toca el contrato de `Composicion` y las dos composiciones, así que va cuando se
+toque ese fichero por otra razón.
+
+### Y está FUERA de la clave del hash, igual que `puedeDibujar`
+
+Comprobado, no supuesto: `hashGrafico` proyecta seis campos de `graphicData` —`type`, `value`,
+`label`, `unit`, `emoji`, `extra`— más ancho, alto, duración, fps, `VERSION_PLANTILLAS`, modo,
+códec y sistema. `pintaPie` **no es un campo de `graphicData`**: vive en el objeto `Composicion`,
+en el renderer. Grep sobre `src/main/index.ts`: **cero usos fuera de un comentario**.
+
+Así que **cambiarlo mueve píxeles sin mover la clave**, y la caché devolvería para siempre los
+MOV con el pie que ya no toca. El aviso está escrito en la definición del campo, junto al de
+`puedeDibujar`.
+
+---
+
+## 🧹 `SISTEMA_VISUAL` NO AFECTA A NINGÚN PÍXEL DEL MAPA — eso es lo muerto, no las paletas
+
+Conviene no confundir las dos cosas, porque en su momento se dijo mal:
+
+**Las PALETAS están vivas.** `P.a`, `P.b`, `P.ac`, `P.f1` y `P.f2` tienen 10 usos en `mapa.tsx` y
+colorean los nodos, las aristas, los pulsos, el ancla, los dos degradados del fondo, la malla, el
+destello y el halo. No son código muerto ni de lejos.
+
+**Lo que quedó sin efecto es el SISTEMA DE COLOR.** `SISTEMA_VISUAL` va fijo a `'voltaje'` en
+`src/main/index.ts`, viaja hasta `AnimatedGraphic`, que publica `--fondo`, `--sup`, `--texto`,
+`--acento` y `--apoyo` como variables CSS… y `mapa.tsx` **no lee ninguna**. La última que quedaba
+era `color: var(--texto)` en `.cm-pal`, la palabra del pie, y el paso 9 se llevó el pie por
+delante. Hoy no queda ni un `var(--texto)` ejecutable en el fichero.
+
+Consecuencias, las dos anotadas para que nadie las descubra depurando:
+
+1. **El prop `sistema` llega a `mapa.render` y no se desestructura.** No es código muerto —forma
+   parte del contrato compartido con `extrusion`, que sí lo usa— pero en esta composición no
+   hace nada.
+2. **`sistema` SÍ está en la clave del hash.** O sea que hoy dos Visuales idénticos con sistemas
+   distintos ocupan **dos ficheros** y pintan **lo mismo**. Es desperdicio de caché, no
+   incorrección: la clave describe de más, nunca de menos.
+
+**No se arregla porque es una decisión de diseño sin tomar**: o las paletas se derivan del
+sistema —y se pierden las cinco, que son el motor de variedad— o se acepta que el mapa tenga
+identidad de color propia y entonces habría que sacar `sistema` de la clave para los Visuales de
+mapa. La segunda es la que ahorra ficheros, y la que exige subir `VERSION_PLANTILLAS`.
+
+---
+
+## 🧨 `v-antes-visual-mapa` NO ERA UNA RED DE SEGURIDAD, y ahora hay medida que lo prueba
+
+El repositorio no compilaba desde un clon limpio, y no se veia porque la comprobacion miraba el
+sitio equivocado: el worktree. En `node_modules` del worktree habia un `playwright` **fantasma**
+—instalado en algun momento, nunca declarado en `package.json`— asi que `tsc` resolvia el import
+y daba 0. Cualquiera que clonara el repositorio se encontraba otra cosa.
+
+### La medida, no la suposicion
+
+`src/main/providers/vibes-bot.ts` hacia `import { Page } from 'playwright'`, y `playwright` no
+estaba en `package.json` ni en `package-lock.json`. En un clon real, `npx tsc -p tsconfig.json`
+daba estos tres errores, literales:
+
+```
+src/main/providers/vibes-bot.ts(1,22): error TS2307: Cannot find module 'playwright' or its corresponding type declarations.
+src/main/providers/vibes-bot.ts(290,26): error TS7006: Parameter 'text' implicitly has an 'any' type.
+src/main/providers/vibes-bot.ts(302,30): error TS7006: Parameter 'text' implicitly has an 'any' type.
+```
+
+**Los tres eran el mismo problema, comprobado y no supuesto.** Sin el tipo `Page`, la variable
+`page` cae a `any`, y entonces los callbacks de `page.evaluate((text) => …)` de las lineas 290 y
+302 pierden el tipo contextual de su parametro. Al declarar la dependencia, `tsc` pasa a **0**
+errores sin tocar esas dos lineas: ni un `any` a mano, ni un `@ts-ignore`.
+
+### Hasta donde llega hacia atras: la etiqueta misma, medida directamente
+
+El plan de este paso decia comprobarlo en `HEAD~5` y deducir de ahi que el defecto era anterior a
+la etiqueta. **Esa deduccion no se sostiene, y por eso no se hizo asi.** `v-antes-visual-mapa`
+(`8804e0a`) es *ancestro* de `HEAD~5` (`93e519d`): un fallo en el descendiente no dice nada del
+antepasado. La flecha del tiempo apunta al reves.
+
+Asi que se midio **en la etiqueta**, que es lo que de verdad prueba la afirmacion. Los tres
+clones son el mismo `package-lock.json` —identico en las tres revisiones, comprobado con
+`git diff`— asi que un solo `npm ci` vale para las tres:
+
+| revision | que es | `tsc` |
+|---|---|---|
+| `8804e0a` | `v-antes-visual-mapa` | los 3 errores, exit 2 |
+| `93e519d` | `HEAD~5` | los 3 errores, exit 2 |
+| `626d3e4` | `master` antes del arreglo | los 3 errores, exit 2 |
+
+Y el origen exacto: `vibes-bot.ts` entro en `bfd0d8d` (2026-07-22), **antes** de la etiqueta.
+`git show v-antes-visual-mapa:package.json | grep playwright` no devuelve nada.
+
+**Conclusion: `v-antes-visual-mapa` no compila desde un clon limpio.** No era el punto de retorno
+que creiamos. Un punto de retorno que no compila no es una red: es la creencia de tener una.
+
+---
+
+## 📏 LA REGLA DEL CLON LIMPIO, escrita como regla
+
+> Un clon limpio es **`git clone` + `npm ci` en un directorio SIN `node_modules` en ningun
+> directorio padre**. Nada mas cuenta.
+
+**Un `git worktree` NO sirve.** Comparte el `node_modules` de la copia de trabajo, que es
+exactamente donde viven los paquetes fantasma. Esa confusion es la que oculto que el repositorio
+llevaba mas de cien commits sin compilar desde cero.
+
+Tampoco sirve el worktree para "comprobar si un test falla de verdad". Si una suite pasa en el
+worktree y falla en el clon, **el clon tiene razon**: la diferencia es el hallazgo, no el ruido.
+Un binario que falta, una ruta absoluta o un fichero que nunca se anadio a git son el mismo tipo
+de defecto que este, y se reportan igual.
+
+---
+
+## 🤖 `vibes-bot.ts`: por que se conserva un fichero que probablemente nunca se ejecute
+
+**Que pretendia.** Automatizar vibes.ai (Meta) para generar imagenes gratis.
+
+**Por que esta por el camino equivocado.** La herramienta real de ese metodo es una **extension de
+Chrome (WXT)**: corre **DENTRO** del navegador, sobre la sesion que el usuario ya tiene iniciada.
+Playwright hace lo contrario: lanza un navegador **DESDE FUERA**, limpio y sin sesion. No son dos
+formas de hacer lo mismo, son **arquitecturas incompatibles para este fin**. El fichero es un
+intento por la via que no era.
+
+**Consecuencia practica: la promocion de `playwright-core` a `playwright` probablemente NUNCA
+haga falta.** Por eso se declara `playwright-core`, que no descarga navegadores, y no
+`playwright`, que se lleva 18 MB en el `npm ci` de cualquiera que clone —por un fichero que no
+importa nadie y que no se ejecuta. La dependencia esta ahi **solo para que el typecheck
+resuelva**.
+
+**El fichero no se borra: es trabajo que se quiere conservar.**
+
+**La decision de diseno es un CONTRATO DE CARPETA.** La extension corre **por fuera** de CIPHER y
+produce una carpeta con `images/` y `videos/`. CIPHER **lee esa carpeta y no sabe que Vibes
+existe**. Ningun codigo de CIPHER conduce un navegador, y ese es justamente el punto: el limite
+entre los dos mundos es un directorio en disco, no una API.

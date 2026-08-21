@@ -1,0 +1,638 @@
+<meta charset="utf-8">
+<title>CIPHER — diez palabras en color</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ciclo:6s;
+    --ui-bg:#07070E; --ui-line:#1B1B2E; --ui-ink:#EAEDF7; --ui-dim:#6F7594;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ui-bg);color:var(--ui-ink);font:400 14px/1.6 Inter,system-ui,sans-serif}
+  header{padding:26px 32px 18px;border-bottom:1px solid var(--ui-line)}
+  h1{margin:0;font:800 21px/1.2 Archivo,sans-serif;letter-spacing:-.02em}
+  header p{margin:8px 0 0;color:var(--ui-dim);max-width:94ch}
+  header b{color:#FF2D95;font-weight:500}
+  header code{font:400 12.5px Space Mono,monospace;color:var(--ui-ink)}
+  .bar{position:sticky;top:0;z-index:20;background:rgba(7,7,14,.96);backdrop-filter:blur(12px);
+       border-bottom:1px solid var(--ui-line);padding:13px 32px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .bar label{color:var(--ui-dim);font:400 12px Space Mono,monospace;letter-spacing:.1em;text-transform:uppercase}
+  input[type=range]{flex:1;min-width:220px;accent-color:#FF2D95}
+  .t{font:700 15px/1 Space Mono,monospace;min-width:88px;color:#FF2D95}
+  button{background:transparent;border:1px solid var(--ui-line);color:var(--ui-ink);border-radius:6px;
+         padding:7px 14px;font:400 12.5px Space Mono,monospace;cursor:pointer}
+  button:hover{border-color:#FF2D95;color:#FF2D95}
+  button.on{background:#FF2D95;border-color:#FF2D95;color:#0A0A0A;font-weight:700}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:26px;padding:26px 32px 60px}
+  .cell h3{margin:0 0 3px;font:600 13.5px Inter,sans-serif}
+  .fis{margin:0 0 9px;font-size:11px;line-height:1.55;color:var(--ui-dim);min-height:5.2em}
+  .fis b{font-weight:500}
+
+  .frame{position:relative;width:100%;aspect-ratio:9/16;overflow:hidden;border-radius:12px;
+         container-type:inline-size;border:1px solid var(--ui-line);background:#04040A}
+  .fondo{position:absolute;inset:0;z-index:0}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1}
+
+  /* OJO AL NOMBRE. El interruptor va en <body class="acabado">, NO en
+     "post". Si el toggle usa la misma clase que la capa, el selector .post
+     tambien casa con el propio <body> y la pagina ENTERA hereda el
+     display:none / opacity:0. Se ve como pantalla negra sin ningun error
+     en consola: en captura headless, videos negros silenciosos. ── */
+  /* ── ACABADO. Encima de todo: viñeta, scanlines y una franja de color en
+     los bordes que imita la aberracion cromatica. Coste cero, y es la mitad
+     de lo que hace que se lea "cyberpunk" y no "grafico vectorial". ── */
+  .post{position:absolute;inset:0;z-index:6;pointer-events:none;display:none}
+  body.acabado .post{display:block}
+  .post .scan{position:absolute;inset:0;opacity:.30;
+    background:repeating-linear-gradient(to bottom,rgba(0,0,0,.55) 0 1px,transparent 1px 3px)}
+  .post .vin{position:absolute;inset:0;
+    background:radial-gradient(ellipse 68% 54% at 50% 46%,transparent 42%,rgba(0,0,0,.78) 100%)}
+  .post .abr{position:absolute;inset:0;mix-blend-mode:screen;opacity:.30;
+    background:linear-gradient(90deg,rgba(255,0,110,.5) 0%,transparent 9%,transparent 91%,rgba(0,220,255,.5) 100%)}
+
+  .pie{position:absolute;left:7%;right:7%;bottom:11%;z-index:8;text-align:center}
+  .pal{font:400 clamp(15px,12.5cqw,80px)/0.92 Anton,sans-serif;text-transform:uppercase;color:#fff}
+  .barra{height:.7cqw;width:16cqw;border-radius:99px;margin:3.2cqw auto 0}
+
+  @keyframes pop{0%{transform:scale(.62);opacity:0}62%{transform:scale(1.04);opacity:1}100%{transform:scale(1);opacity:1}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .a{animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.88,.3,1)}
+</style>
+
+<header>
+  <h1>Diez palabras, diez paletas</h1>
+  <p>El salto no es más geometría: es <b>luz</b>. Todo se pinta con <b>composición aditiva</b>
+  (<code>globalCompositeOperation = 'lighter'</code>), que es como se hace el bloom de verdad —
+  donde dos cosas se cruzan, la luz se <b>suma</b> y sube de tono sola. Encima, el acabado del
+  otro lab: fondo con degradado de color, glow en dos radios, profundidad de campo y viñeta.
+  Cada palabra trae su propia paleta; el ciclo es de <code>6 s</code> y todas cierran.</p>
+</header>
+
+<div class="bar">
+  <label for="t">t</label>
+  <input id="t" type="range" min="0" max="6" step="0.02083" value="2.2">
+  <span class="t" id="tv">2.200 s</span>
+  <button id="play">Reproducir</button>
+  <button id="loopcheck">Verificar bucle</button>
+  <button id="postbtn" class="on">Acabado</button>
+</div>
+<div class="grid" id="grid"></div>
+
+<script>
+const CICLO=6, TAU=6.283185307;
+const cl=(v,a,b)=>v<a?a:(v>b?b:v);
+const lerp=(a,b,t)=>a+(b-a)*t;
+function prng(s){let x=(s>>>0)||1;return()=>{x^=x<<13;x>>>=0;x^=x>>17;x^=x<<5;x>>>=0;return x/4294967296}}
+
+/* ══════════════════════════════════════════════════════════════════════
+   LA CAJA DE LUZ
+   Un sprite radial pre-renderizado por color. Crear un gradiente por
+   particula y por frame es carisimo; asi se dibuja una vez y se escala.
+   Todo lo que brilla pasa por aqui, en modo 'lighter': donde se solapan
+   dos luces el resultado sube de tono solo. Eso es el bloom.
+   ══════════════════════════════════════════════════════════════════════ */
+const _spr={};
+function spr(rgb){
+  if(_spr[rgb]) return _spr[rgb];
+  const c=document.createElement('canvas'); c.width=c.height=64;
+  const x=c.getContext('2d'), g=x.createRadialGradient(32,32,0,32,32,32);
+  g.addColorStop(0,   'rgba('+rgb+',1)');
+  g.addColorStop(0.22,'rgba('+rgb+',.58)');
+  g.addColorStop(0.55,'rgba('+rgb+',.15)');
+  g.addColorStop(1,   'rgba('+rgb+',0)');
+  x.fillStyle=g; x.fillRect(0,0,64,64); _spr[rgb]=c; return c;
+}
+function luz(c,x,y,r,rgb,a){ c.globalAlpha=a; c.drawImage(spr(rgb),x-r,y-r,r*2,r*2); }
+/* Linea de neon: dos pasadas. Una ancha y tenue (el halo) y una fina y
+   brillante (el filamento). Una sola pasada da un trazo plano. */
+function neon(c,pts,rgb,w,a){
+  c.lineJoin='round'; c.lineCap='round';
+  c.strokeStyle='rgba('+rgb+',1)';
+  c.globalAlpha=a*0.20; c.lineWidth=w*4.5;
+  c.beginPath(); pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1])); c.stroke();
+  c.globalAlpha=a; c.lineWidth=w;
+  c.stroke();
+}
+function barra(c,x,y,w,h,rgb,a){ c.globalAlpha=a; c.fillStyle='rgba('+rgb+',1)'; c.fillRect(x,y,w,h); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   LAS DIEZ. Cada una declara su paleta (fondo CSS + acento) y un pintor
+   dib(ctx,W,H,u). Todo periodico en u, asi que todas cierran en t=6.
+   ══════════════════════════════════════════════════════════════════════ */
+const ESC = [
+
+/* ── COHETE ───────────────────────────────────────────────────────────
+   El truco de composicion: el cohete NO se mueve. La camara sube con el,
+   asi que lo que baja es el mundo. Si moviera el cohete se saldria de
+   cuadro en medio segundo; asi puede subir eternamente. ────────────── */
+{n:'COHETE', ac:'255,138,40',
+ bg:'radial-gradient(ellipse 90% 40% at 50% 100%, #4a1505 0%, transparent 62%),'
+   +'radial-gradient(ellipse 70% 50% at 26% 16%, #0f1b46 0%, transparent 60%),'
+   +'linear-gradient(180deg,#05060f 0%,#0b0714 58%,#1a0a08 100%)',
+ fis:'<b>La cámara sube con el cohete.</b> El cohete está clavado en el centro y lo que se mueve es el mundo: por eso puede ascender sin salirse de cuadro. La pluma son 150 partículas aditivas de blanco a rojo, y el humo, manchas grandes de alfa muy baja.',
+ dib:(c,W,H,u)=>{
+  const R=prng(11);
+  // suelo en fuga, desplazandose hacia abajo -> sensacion de ascenso
+  c.globalCompositeOperation='lighter';
+  for(let i=0;i<14;i++){
+    const ph=((i/14)+u*2)%1, y=H*(0.62+ph*0.42), an=W*(0.05+ph*1.3);
+    neon(c,[[W/2-an,y],[W/2+an,y]],'40,120,220',1.1,(1-ph)*0.30);
+  }
+  // torre de lanzamiento, tambien bajando
+  for(let s=0;s<2;s++){ const ph=((s/2)+u*2)%1, y=H*(0.34+ph*0.8);
+    barra(c,W*0.13,y,W*0.035,H*0.20,'90,140,255',(1-ph)*0.35);
+    barra(c,W*0.83,y,W*0.035,H*0.20,'90,140,255',(1-ph)*0.35); }
+  // humo: manchas grandes, muy tenues, que crecen al caer
+  for(let i=0;i<26;i++){
+    const ph=((i/26)+u*1)%1;
+    const x=W*0.5+(R()-0.5)*W*0.5*ph, y=H*(0.60+ph*0.5), r=W*(0.06+ph*0.30);
+    luz(c,x,y,r,'120,90,110',(1-ph)*0.16);
+  }
+  // la pluma: blanco en la garganta -> ambar -> rojo al final
+  for(let i=0;i<150;i++){
+    const ph=((i*0.0173)+u*4)%1;
+    const sp=(R()-0.5)*W*0.10*ph;
+    const x=W*0.5+sp, y=H*0.545+ph*H*0.30, r=W*(0.016+ph*0.062);
+    const col = ph<0.18?'255,250,225' : ph<0.5?'255,180,60' : '235,70,30';
+    luz(c,x,y,r,col,(1-ph)*0.55);
+  }
+  luz(c,W*0.5,H*0.55,W*0.30,'255,170,70',0.55);
+  c.globalCompositeOperation='source-over';
+  // el cuerpo del cohete, en silueta oscura para que recorte contra la luz
+  c.globalAlpha=1; c.fillStyle='#0d0f18';
+  c.beginPath(); c.moveTo(W*0.5,H*0.24); c.lineTo(W*0.565,H*0.36);
+  c.lineTo(W*0.565,H*0.545); c.lineTo(W*0.435,H*0.545); c.lineTo(W*0.435,H*0.36); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(W*0.435,H*0.50); c.lineTo(W*0.36,H*0.565); c.lineTo(W*0.435,H*0.565); c.fill();
+  c.beginPath(); c.moveTo(W*0.565,H*0.50); c.lineTo(W*0.64,H*0.565); c.lineTo(W*0.565,H*0.565); c.fill();
+  c.globalCompositeOperation='lighter';
+  neon(c,[[W*0.5,H*0.24],[W*0.565,H*0.36],[W*0.565,H*0.545]],'120,210,255',1.2,0.85);
+  neon(c,[[W*0.5,H*0.24],[W*0.435,H*0.36],[W*0.435,H*0.545]],'120,210,255',1.2,0.85);
+  luz(c,W*0.5,H*0.40,W*0.05,'255,255,255',0.35+0.25*Math.sin(u*TAU*3));
+  c.globalCompositeOperation='source-over'; c.globalAlpha=1;
+ }},
+
+/* ── UNIVERSO ─────────────────────────────────────────────────────────
+   Rotacion diferencial: el nucleo gira mas rapido que los brazos, como
+   las galaxias de verdad. Para que cierre, cada anillo da un numero
+   ENTERO de vueltas (4,3,2,1). Si fueran continuas no habria bucle. ── */
+{n:'UNIVERSO', ac:'190,120,255',
+ bg:'radial-gradient(ellipse 60% 40% at 50% 42%, #2d0a4a 0%, transparent 58%),'
+   +'radial-gradient(ellipse 100% 70% at 78% 84%, #06203f 0%, transparent 62%),'
+   +'linear-gradient(180deg,#05030f,#03030a)',
+ fis:'<b>Rotación diferencial.</b> El núcleo gira más rápido que los brazos, como las galaxias reales. Para que el bucle cierre, cada anillo da un número <b>entero</b> de vueltas (4, 3, 2, 1): con velocidades continuas no habría bucle posible.',
+ dib:(c,W,H,u)=>{
+  const R=prng(22);
+  c.globalCompositeOperation='lighter';
+  for(let i=0;i<80;i++){                          // estrellas de fondo
+    const x=R()*W, y=R()*H, tw=0.3+0.7*Math.abs(Math.sin(u*TAU*(1+(i%3))+i));
+    luz(c,x,y,W*0.012,'190,215,255',0.24*tw);
+  }
+  const cx=W*0.5, cy=H*0.42;
+  for(let b=0;b<3;b++){                            // tres brazos espirales
+    for(let i=0;i<230;i++){
+      const f=i/230, rad=Math.pow(f,0.55)*W*0.52;
+      const banda=Math.min(3,Math.floor(f*4));
+      const vuelt=[4,3,2,1][banda];
+      const th=b*TAU/3 + f*4.6 + u*TAU*vuelt;
+      const disp=(R()-0.5)*rad*0.13;
+      const x=cx+Math.cos(th)*rad+disp, y=cy+Math.sin(th)*rad*0.52+disp*0.35;
+      // temperatura: nucleo blanco-rosa, medio violeta, borde cian
+      const col = f<0.2?'255,225,240' : f<0.5?'210,120,255' : f<0.78?'140,110,255' : '70,200,255';
+      luz(c,x,y,W*(0.020+f*0.030),col,0.34-f*0.14);
+    }
+  }
+  luz(c,cx,cy,W*0.30,'255,160,230',0.55);          // nucleo
+  luz(c,cx,cy,W*0.11,'255,255,255',0.75);
+  c.globalCompositeOperation='source-over';
+ }},
+
+/* ── NAVE ─────────────────────────────────────────────────────────────
+   Las estrellas se proyectan a mano con escala = F/z y se reciclan al
+   pasar la camara. Como las fases estan equiespaciadas, el reciclado es
+   invisible y el bucle sale gratis. ────────────────────────────────── */
+{n:'NAVE', ac:'0,230,255',
+ bg:'radial-gradient(ellipse 70% 46% at 50% 34%, #07304a 0%, transparent 60%),'
+   +'radial-gradient(ellipse 80% 40% at 50% 96%, #2a0a3c 0%, transparent 58%),'
+   +'linear-gradient(180deg,#03060f,#05030c)',
+ fis:'<b>División por Z a mano.</b> Las estrellas se proyectan con <code>escala = F/z</code> y se reciclan al pasar la cámara; como las fases están equiespaciadas el reciclado es invisible. La estela no es blur: es el mismo punto estirado según su velocidad aparente.',
+ dib:(c,W,H,u)=>{
+  const R=prng(33); const cx=W*0.5, cy=H*0.40;
+  c.globalCompositeOperation='lighter';
+  for(let i=0;i<170;i++){
+    const a=R()*TAU, rr=0.06+R()*1.0;
+    const ph=((i/170)+u*2)%1;
+    const z=1-ph, k=0.16/Math.max(0.06,z);
+    const x=cx+Math.cos(a)*rr*W*k, y=cy+Math.sin(a)*rr*W*k;
+    const k2=0.16/Math.max(0.06,z+0.09);
+    const x2=cx+Math.cos(a)*rr*W*k2, y2=cy+Math.sin(a)*rr*W*k2;
+    const col = i%7===0?'255,80,180':'150,225,255';
+    neon(c,[[x2,y2],[x,y]],col,W*0.006*(1+k*0.3),cl(ph*1.6,0,1)*0.55);
+  }
+  luz(c,cx,cy,W*0.22,'80,190,255',0.30);           // el punto de fuga
+  c.globalCompositeOperation='source-over';
+  // silueta de la nave, oscura, recortando contra el tunel
+  c.globalAlpha=1; c.fillStyle='#070912';
+  const nx=W*0.5, ny=H*0.63;
+  c.beginPath(); c.moveTo(nx,ny-H*0.09); c.lineTo(nx+W*0.30,ny+H*0.05);
+  c.lineTo(nx+W*0.12,ny+H*0.035); c.lineTo(nx+W*0.10,ny+H*0.085);
+  c.lineTo(nx-W*0.10,ny+H*0.085); c.lineTo(nx-W*0.12,ny+H*0.035);
+  c.lineTo(nx-W*0.30,ny+H*0.05); c.closePath(); c.fill();
+  c.globalCompositeOperation='lighter';
+  neon(c,[[nx,ny-H*0.09],[nx+W*0.30,ny+H*0.05],[nx+W*0.12,ny+H*0.035],
+          [nx-W*0.12,ny+H*0.035],[nx-W*0.30,ny+H*0.05],[nx,ny-H*0.09]],'0,230,255',1.3,0.9);
+  const pulso=0.6+0.4*Math.sin(u*TAU*4);
+  luz(c,nx-W*0.06,ny+H*0.085,W*0.13,'0,220,255',0.55*pulso);
+  luz(c,nx+W*0.06,ny+H*0.085,W*0.13,'0,220,255',0.55*pulso);
+  luz(c,nx,ny-H*0.02,W*0.05,'255,255,255',0.5);
+  c.globalCompositeOperation='source-over'; c.globalAlpha=1;
+ }},
+
+/* ── TIERRA ───────────────────────────────────────────────────────────
+   Lo que la hace leerse como planeta y no como bola de puntos son dos
+   cosas: el TERMINADOR (la linea dia/noche) y que en la cara nocturna
+   aparezcan luces de ciudad ambar. Sin eso es una esfera cualquiera. ─ */
+{n:'TIERRA', ac:'60,220,190',
+ bg:'radial-gradient(ellipse 80% 60% at 50% 44%, #04283a 0%, transparent 60%),'
+   +'linear-gradient(180deg,#03060e,#02040a)',
+ fis:'<b>El terminador es lo que la hace un planeta.</b> Una esfera de puntos es una bola; con línea día/noche y <b>luces de ciudad ámbar</b> en la cara oscura, es la Tierra. La atmósfera es un anillo aditivo por fuera del borde, no un contorno.',
+ dib:(c,W,H,u)=>{
+  const N=620, RAD=W*0.38, cx=W*0.5, cy=H*0.40, R=prng(44);
+  const gir=u*TAU;
+  c.globalCompositeOperation='lighter';
+  for(let i=0;i<70;i++) luz(c,R()*W,R()*H,W*0.010,'170,200,255',0.18);
+  luz(c,cx,cy,RAD*1.5,'30,140,220',0.30);          // atmosfera
+  const P=[];
+  for(let i=0;i<N;i++){
+    const yy=1-(i/(N-1))*2, rr=Math.sqrt(1-yy*yy), th=i*2.399963+gir;
+    const x=Math.cos(th)*rr, z=Math.sin(th)*rr;
+    // "continentes": un ruido barato pero estable, hecho de tres senos
+    const m=Math.sin(x*3.1+yy*2.2)+Math.sin(z*2.6-yy*3.4)+Math.sin((x+z)*4.3);
+    P.push([cx+x*RAD, cy+yy*RAD, z, m>0.55, x]);
+  }
+  P.sort((a,b)=>a[2]-b[2]);
+  for(const p of P){
+    if(p[2]<-0.15) continue;                       // cara oculta
+    const dia=cl((p[4]*0.8+0.55),0,1);             // el terminador
+    if(p[3]) luz(c,p[0],p[1],W*0.019,'60,230,180',0.16+dia*0.55);
+    else     luz(c,p[0],p[1],W*0.015,'40,110,200',0.08+dia*0.30);
+    if(p[3] && dia<0.22) luz(c,p[0],p[1],W*0.016,'255,180,70',0.55);  // luces de ciudad
+  }
+  luz(c,cx-RAD*0.45,cy-RAD*0.4,RAD*0.9,'255,255,255',0.10);
+  c.globalCompositeOperation='source-over';
+ }},
+
+/* ── TERREMOTO ────────────────────────────────────────────────────────
+   El retardo por distancia es lo que lo convierte en sismo. Si todos los
+   edificios temblaran a la vez seria un temblor de camara; llegando la
+   onda mas tarde cuanto mas lejos, se lee como algo que se PROPAGA. ── */
+{n:'TERREMOTO', ac:'255,60,70',
+ bg:'radial-gradient(ellipse 80% 40% at 50% 78%, #4a0a14 0%, transparent 60%),'
+   +'radial-gradient(ellipse 70% 50% at 30% 20%, #2a1040 0%, transparent 62%),'
+   +'linear-gradient(180deg,#080510,#150609)',
+ fis:'<b>El retardo por distancia es lo que lo hace sismo.</b> Si todos los edificios temblaran a la vez sería una sacudida de cámara. Llegando la onda más tarde cuanto más lejos del foco, se lee como algo que <b>se propaga</b>. Los altos oscilan más lento que los bajos.',
+ dib:(c,W,H,u)=>{
+  const R=prng(55), foco=W*0.42, suelo=H*0.72;
+  const ED=[]; for(let i=0;i<9;i++) ED.push([W*(0.04+i*0.108), H*(0.13+R()*0.30), W*0.075]);
+  c.globalCompositeOperation='lighter';
+  for(let i=0;i<4;i++){                             // frentes de onda
+    const ph=((i/4)+u*2)%1;
+    const r=ph*W*1.5;
+    c.globalAlpha=(1-ph)*0.35; c.strokeStyle='rgba(255,70,60,1)'; c.lineWidth=W*0.012;
+    c.beginPath(); c.ellipse(foco,suelo,r,r*0.26,0,0,TAU); c.stroke();
+  }
+  luz(c,foco,suelo,W*0.42,'255,70,50',0.42);
+  c.globalCompositeOperation='source-over';
+  ED.forEach(([x,alt,an],i)=>{
+    const d=Math.abs(x-foco)/W;
+    const fase=u*TAU*2 - d*4.2;                     // retardo por distancia
+    const amort=Math.exp(-Math.max(0,(u*2%1)*3-d*2));
+    const w=9-alt/H*10;                             // los altos, mas lentos
+    const dx=Math.sin(fase*w*0.35)*W*0.030*amort/(1+d*2);
+    c.save(); c.translate(dx,0);
+    c.globalAlpha=1; c.fillStyle='#0b0d16';
+    c.fillRect(x-an/2, suelo-alt, an, alt);
+    c.globalCompositeOperation='lighter';
+    neon(c,[[x-an/2,suelo],[x-an/2,suelo-alt],[x+an/2,suelo-alt],[x+an/2,suelo]],
+         i===4?'255,90,70':'120,150,255',1.0,0.75);
+    for(let f=0;f<Math.floor(alt/(H*0.035));f++)      // ventanas
+      for(let g=0;g<2;g++){
+        const on=((i*7+f*3+g)%5)!==0;
+        if(on) luz(c,x-an*0.22+g*an*0.44, suelo-alt+H*0.022+f*H*0.035, W*0.014,
+                   i===4?'255,120,80':'255,200,120',0.30+0.3*Math.abs(Math.sin(u*TAU+f+i)));
+      }
+    c.globalCompositeOperation='source-over'; c.restore();
+  });
+  c.globalCompositeOperation='lighter';
+  neon(c,[[0,suelo],[W,suelo]],'255,80,60',1.4,0.55);
+  for(let i=0;i<40;i++){                             // polvo levantado
+    const ph=((i/40)+u*2)%1;
+    luz(c,foco+(R()-0.5)*W*1.1, suelo-ph*H*0.16, W*0.03,'180,120,110',(1-ph)*0.20);
+  }
+  c.globalCompositeOperation='source-over';
+ }},
+
+/* ── GRANIZO ──────────────────────────────────────────────────────────
+   Dos capas a velocidades distintas: la de delante cae en medio ciclo y
+   la de detras en uno entero. Esa diferencia es paralaje, y es lo unico
+   que da profundidad sin usar 3D. El relampago es un solo frame. ───── */
+{n:'GRANIZO', ac:'140,220,255',
+ bg:'radial-gradient(ellipse 90% 50% at 50% 8%, #16304f 0%, transparent 58%),'
+   +'radial-gradient(ellipse 70% 40% at 50% 92%, #0a2038 0%, transparent 60%),'
+   +'linear-gradient(180deg,#060c18,#03060e)',
+ fis:'<b>Paralaje en dos capas.</b> El granizo de delante cae en medio ciclo y el de detrás en uno entero: esa diferencia de velocidad es toda la profundidad, sin 3D. Los destellos de impacto se disparan en el suelo, y el relámpago dura un solo frame.',
+ dib:(c,W,H,u)=>{
+  const R=prng(66), suelo=H*0.78;
+  // relampago: pico corto y estrecho en un instante fijo del ciclo
+  const rel=Math.pow(Math.max(0,1-Math.abs(((u*2)%1)-0.12)*22),2);
+  c.globalCompositeOperation='lighter';
+  if(rel>0.01) luz(c,W*0.5,H*0.14,W*1.4,'170,210,255',rel*0.5);
+  // nubes bajas: llenan el tercio superior, que estaba vacio
+  c.globalCompositeOperation='lighter';
+  for(let i=0;i<20;i++){
+    const x=W*((i*0.163+u*0.15)%1.2)-W*0.1, y=H*(0.04+((i*0.271)%1)*0.16);
+    luz(c,x,y,W*(0.16+((i*0.37)%1)*0.14),'70,110,180',0.14+rel*0.30);
+  }
+  c.globalCompositeOperation='source-over';
+  // la ciudad en silueta, con neon frio
+  const B=[]; for(let i=0;i<11;i++) B.push([W*(i*0.094), H*(0.24+R()*0.34), W*0.082]);
+  B.forEach(([x,alt,an],i)=>{
+    c.globalAlpha=1; c.fillStyle='#070c16'; c.fillRect(x,suelo-alt,an,alt);
+    c.globalCompositeOperation='lighter';
+    neon(c,[[x,suelo],[x,suelo-alt],[x+an,suelo-alt],[x+an,suelo]],
+         i%4===0?'0,235,255':'80,130,220',0.9,0.55+rel*0.4);
+    c.globalCompositeOperation='source-over';
+  });
+  c.globalCompositeOperation='lighter';
+  // dos capas de granizo con velocidad distinta = paralaje
+  for(const cap of [[110,4,0.55,0.36],[70,2,1.0,0.75]]){
+    const [n,vel,esc,alfa]=cap;
+    for(let i=0;i<n;i++){
+      const x=R()*W, ph=((i/n)+u*vel)%1, y=ph*(suelo+H*0.05);
+      const L=H*0.045*esc;
+      neon(c,[[x,y-L],[x+W*0.012,y]],'190,235,255',W*0.007*esc,alfa*0.7);
+    }
+  }
+  // destellos de impacto: uno por cada trozo que toca el suelo
+  for(let i=0;i<26;i++){
+    const ph=((i*0.0385)+u*4)%1;
+    if(ph<0.30) luz(c,W*((i*0.137)%1),suelo,W*(0.02+ph*0.10),'220,245,255',(0.30-ph)*1.7);
+  }
+  neon(c,[[0,suelo],[W,suelo]],'0,200,255',1.2,0.45+rel*0.4);
+  c.globalCompositeOperation='source-over';
+ }},
+
+/* ── RIOS ─────────────────────────────────────────────────────────────
+   El agua es un campo aditivo: manchas grandes que se solapan y se
+   funden en una sola masa. No hay geometria de liquido; hay suma de luz.
+   Y el color venenoso viene de mezclar verde acido con amarillo. ───── */
+{n:'RÍOS', ac:'150,255,70',
+ bg:'radial-gradient(ellipse 80% 50% at 50% 70%, #14330a 0%, transparent 60%),'
+   +'radial-gradient(ellipse 70% 40% at 30% 12%, #3a2a08 0%, transparent 62%),'
+   +'linear-gradient(180deg,#0d0f06,#060a04)',
+ fis:'<b>El líquido es suma de luz, no geometría.</b> Manchas grandes aditivas que se solapan y se funden en una sola masa: donde se juntan, el tono sube solo. El color tóxico sale de mezclar verde ácido con amarillo, y el vertido cae desde las tuberías.',
+ dib:(c,W,H,u)=>{
+  const R=prng(77);
+  // fabricas en silueta arriba
+  c.globalAlpha=1; c.fillStyle='#080b06';
+  for(let i=0;i<5;i++){ const x=W*(0.02+i*0.20), a=H*(0.10+R()*0.13);
+    c.fillRect(x,H*0.30-a,W*0.14,a); c.fillRect(x+W*0.05,H*0.30-a-H*0.07,W*0.03,H*0.07); }
+  c.fillRect(0,H*0.30,W,H*0.02);
+  c.globalCompositeOperation='lighter';
+  for(let i=0;i<5;i++){                              // humo de las chimeneas
+    const x=W*(0.07+i*0.20);
+    for(let k=0;k<6;k++){ const ph=((k/6)+u+i*0.13)%1;
+      luz(c,x+Math.sin(ph*4+i)*W*0.05, H*(0.23-ph*0.20), W*(0.05+ph*0.10),'160,150,90',(1-ph)*0.14); }
+  }
+  // el cauce, definido: una serpentina con orillas de tierra oscura
+  const cauce=t=>W*(0.5+Math.sin(t*3.0+0.6)*0.24);
+  c.globalCompositeOperation='source-over';
+  c.globalAlpha=1; c.fillStyle='#070a05';
+  for(let k=0;k<40;k++){
+    const t=k/40, y=H*(0.32+t*0.68), x=cauce(t), an=W*(0.15+t*0.09);
+    c.fillRect(0,y,x-an,H*0.02); c.fillRect(x+an,y,W,H*0.02);
+  }
+  c.globalCompositeOperation='lighter';
+  // la corriente: manchas pequeñas + estelas en la direccion del flujo
+  for(let carr=0;carr<4;carr++){
+    for(let i=0;i<30;i++){
+      const ph=((i/30)+u*1+carr*0.14)%1;
+      const t=ph, y=H*(0.32+t*0.68);
+      const x=cauce(t)+(carr-1.5)*W*0.055;
+      const t2=Math.max(0,t-0.05), y2=H*(0.32+t2*0.68), x2=cauce(t2)+(carr-1.5)*W*0.055;
+      const col = carr===2?'200,255,90':'120,205,55';
+      neon(c,[[x2,y2],[x,y]],col,W*0.010,0.30);
+      luz(c,x,y,W*0.055,col,0.13);
+    }
+  }
+  // el vertido saliendo de las tuberias
+  for(let i=0;i<3;i++){
+    const x=W*(0.22+i*0.28);
+    for(let k=0;k<14;k++){ const ph=((k/14)+u*3)%1;
+      luz(c,x+(R()-0.5)*W*0.02, H*(0.31+ph*0.12), W*(0.02+ph*0.03),'220,255,120',(1-ph)*0.5); }
+    luz(c,x,H*0.31,W*0.09,'220,255,140',0.45);
+  }
+  for(let i=0;i<34;i++){                             // burbujas
+    const ph=((i/34)+u*2)%1;
+    luz(c,W*((i*0.211)%1), H*(0.98-ph*0.42), W*0.012,'230,255,170',(1-ph)*0.35);
+  }
+  c.globalCompositeOperation='source-over';
+ }},
+
+/* ── MARCHA ───────────────────────────────────────────────────────────
+   Una multitud se lee por el RITMO, no por el detalle. Siluetas simples
+   repetidas con alturas y fases distintas, en tres profundidades. Las
+   de atras mas pequeñas y desenfocadas por opacidad. ───────────────── */
+{n:'MARCHA', ac:'255,170,40',
+ bg:'radial-gradient(ellipse 70% 40% at 50% 22%, #5a2a05 0%, transparent 60%),'
+   +'radial-gradient(ellipse 90% 50% at 50% 96%, #2a0f30 0%, transparent 58%),'
+   +'linear-gradient(180deg,#120a06,#07050c)',
+ fis:'<b>La multitud se lee por el ritmo, no por el detalle.</b> Siluetas simples repetidas con altura y fase distintas en tres profundidades; las de atrás, más pequeñas y tenues. Los haces de luz de fondo son lo que separa las tres capas.',
+ dib:(c,W,H,u)=>{
+  const R=prng(88), suelo=H*0.86;
+  c.globalCompositeOperation='lighter';
+  for(let i=0;i<9;i++){                              // haces de luz de fondo
+    const x=W*(0.06+i*0.11);
+    c.globalAlpha=0.05+0.03*Math.sin(u*TAU+i);
+    const g=c.createLinearGradient(x,H*0.10,x,suelo);
+    g.addColorStop(0,'rgba(255,180,60,.55)'); g.addColorStop(1,'rgba(255,180,60,0)');
+    c.fillStyle=g; c.beginPath(); c.moveTo(x,H*0.10);
+    c.lineTo(x-W*0.06,suelo); c.lineTo(x+W*0.06,suelo); c.closePath(); c.fill();
+  }
+  luz(c,W*0.5,H*0.20,W*0.6,'255,150,40',0.16);
+  // contraluz al ras del suelo: sin esto la multitud no existe
+  for(let i=0;i<16;i++) luz(c,W*(i/15),suelo-H*0.03,W*0.16,'255,140,45',0.30);
+  for(let i=0;i<10;i++) luz(c,W*(i/9),suelo-H*0.09,W*0.22,'255,90,30',0.13);
+  c.globalCompositeOperation='source-over';
+  // tres filas de gente, de lejos a cerca
+  const CAP=[[24,0.55,0.45,H*0.10],[17,0.75,0.70,H*0.15],[11,1.0,1.0,H*0.23]];
+  CAP.forEach(([n,esc,alfa,alt],k)=>{
+    for(let i=0;i<n;i++){
+      const base=((i/n)+u*0.25*(k+1))%1;
+      const x=base*W*1.15-W*0.07;
+      const paso=Math.sin(u*TAU*3+i*1.7)*alt*0.05;
+      const y=suelo-H*0.045*(2-k)+paso;
+      c.globalAlpha=alfa; c.fillStyle='#05040a';
+      c.beginPath(); c.ellipse(x,y-alt*0.86,alt*0.16,alt*0.16,0,0,TAU); c.fill();
+      c.fillRect(x-alt*0.15,y-alt*0.70,alt*0.30,alt*0.70);
+      if(i%4===0){                                   // pancartas en alto
+        c.fillRect(x-alt*0.015,y-alt*1.42,alt*0.035,alt*0.52);
+        c.globalCompositeOperation='lighter';
+        c.globalAlpha=alfa*0.9; c.fillStyle=i%8===0?'rgba(255,60,120,1)':'rgba(255,180,50,1)';
+        c.fillRect(x-alt*0.17,y-alt*1.62,alt*0.34,alt*0.20);
+        luz(c,x,y-alt*1.52,alt*0.34,i%8===0?'255,60,120':'255,180,50',alfa*0.45);
+        c.globalCompositeOperation='source-over';
+      }
+    }
+  });
+  c.globalCompositeOperation='lighter';
+  neon(c,[[0,suelo],[W,suelo]],'255,150,40',1.2,0.40);
+  c.globalCompositeOperation='source-over'; c.globalAlpha=1;
+ }},
+
+/* ── GUERRA ───────────────────────────────────────────────────────────
+   Composicion abstracta: dos frentes de color y una linea de contacto
+   que se desplaza. Lo que comunica no es el detalle sino la SIMETRIA
+   ROTA: el mismo lenguaje a los dos lados, en dos colores. ────────── */
+{n:'GUERRA', ac:'255,50,80',
+ bg:'radial-gradient(ellipse 60% 70% at 12% 50%, #4a0a18 0%, transparent 58%),'
+   +'radial-gradient(ellipse 60% 70% at 88% 50%, #0a1a4a 0%, transparent 58%),'
+   +'linear-gradient(180deg,#0a0710,#05040a)',
+ fis:'<b>Simetría rota.</b> El mismo lenguaje visual a los dos lados en dos colores, y una línea de contacto que se desplaza: eso comunica un frente sin necesidad de ningún detalle. Los trazadores cruzan en ambos sentidos y el humo se acumula donde más se cruzan.',
+ dib:(c,W,H,u)=>{
+  const R=prng(99);
+  const linea=y=>W*0.5+Math.sin(y/H*5.2+u*TAU)*W*0.09;
+  c.globalCompositeOperation='lighter';
+  for(let i=0;i<24;i++){                             // humo sobre el frente
+    const ph=((i/24)+u)%1, y=H*(0.05+((i*0.137)%1)*0.9);
+    luz(c,linea(y)+(R()-0.5)*W*0.3, y-ph*H*0.12, W*(0.08+ph*0.14),'150,90,110',(1-ph)*0.16);
+  }
+  // trazadores: rojos hacia la derecha, azules hacia la izquierda
+  for(let lado=0;lado<2;lado++){
+    for(let i=0;i<46;i++){
+      const ph=((i/46)+u*3)%1;
+      const y=H*(((i*0.211+lado*0.37)%1)*0.86+0.06);
+      const x0=lado? W*1.02 : -W*0.02, x1=linea(y);
+      const x=lerp(x0,x1,ph);
+      const col=lado?'80,160,255':'255,60,70';
+      neon(c,[[lerp(x0,x1,Math.max(0,ph-0.10)),y],[x,y]],col,W*0.010,cl(1-ph,0,1)*0.85);
+    }
+  }
+  // los impactos en la linea de contacto
+  for(let i=0;i<16;i++){
+    const ph=((i*0.0625)+u*3)%1;
+    if(ph<0.22){ const y=H*(((i*0.181)%1)*0.86+0.06);
+      luz(c,linea(y),y,W*(0.04+ph*0.22),i%2?'120,190,255':'255,90,70',(0.22-ph)*2.4); }
+  }
+  c.globalCompositeOperation='source-over';
+  // ruinas en silueta abajo, a los dos lados
+  c.globalAlpha=1; c.fillStyle='#06050c';
+  for(let i=0;i<16;i++){ const x=W*(i*0.063), a=H*(0.08+R()*0.22);
+    c.fillRect(x,H*0.84-a,W*0.050,a+H*0.16); }
+  c.globalCompositeOperation='lighter';
+  // el frente: una costura encendida de arriba abajo. Sin ella la escena
+  // se lee como dos grupos de rayas sueltas, no como una linea de contacto.
+  const cost=[]; for(let y=0;y<=H;y+=H*0.03) cost.push([linea(y),y]);
+  neon(c,cost,'255,210,150',W*0.008,0.55);
+  for(const q of cost) luz(c,q[0],q[1],W*0.075,'255,150,90',0.16);
+  c.globalCompositeOperation='source-over';
+ }},
+
+/* ── IA ───────────────────────────────────────────────────────────────
+   Lo que la hace leerse como inteligencia y no como diagrama es que los
+   PULSOS VIAJAN: paquetes que recorren las aristas y encienden el nodo
+   al llegar. Una red quieta es un esquema; una red con trafico, un
+   cerebro. ────────────────────────────────────────────────────────── */
+{n:'IA', ac:'120,90,255',
+ bg:'radial-gradient(ellipse 70% 50% at 50% 30%, #1a0d4a 0%, transparent 60%),'
+   +'radial-gradient(ellipse 80% 50% at 50% 88%, #062a45 0%, transparent 58%),'
+   +'linear-gradient(180deg,#06051a,#03030c)',
+ fis:'<b>Lo que la hace un cerebro es el tráfico.</b> Una red quieta es un esquema; con <b>pulsos que recorren las aristas</b> y encienden el nodo al llegar, es inteligencia. Cuatro capas con color propio y una rejilla de fondo que da el suelo técnico.',
+ dib:(c,W,H,u)=>{
+  const CAPAS=[4,7,7,3], COL=['0,220,255','120,140,255','180,100,255','255,80,190'];
+  const N=[]; let y0=H*0.14;
+  CAPAS.forEach((n,k)=>{ const fila=[];
+    for(let i=0;i<n;i++) fila.push([W*(0.5+((i-(n-1)/2)*(0.86/Math.max(1,n-1)))), y0+k*H*0.19]);
+    N.push(fila); });
+  c.globalCompositeOperation='lighter';
+  for(let i=0;i<=12;i++){                             // rejilla tecnica de fondo
+    neon(c,[[0,H*i/12],[W,H*i/12]],'60,80,160',0.5,0.10);
+    neon(c,[[W*i/12,0],[W*i/12,H]],'60,80,160',0.5,0.10);
+  }
+  for(let k=0;k<N.length-1;k++){
+    for(let a=0;a<N[k].length;a++) for(let b=0;b<N[k+1].length;b++){
+      const A=N[k][a], B=N[k+1][b];
+      neon(c,[A,B],COL[k],0.6,0.16);
+      // el pulso: un paquete recorriendo la arista, con desfase propio
+      const ph=((a*0.17+b*0.29+k*0.31)+u*2)%1;
+      const x=lerp(A[0],B[0],ph), y=lerp(A[1],B[1],ph);
+      luz(c,x,y,W*0.030,COL[k],0.55);
+      neon(c,[[lerp(A[0],B[0],Math.max(0,ph-0.12)),lerp(A[1],B[1],Math.max(0,ph-0.12))],[x,y]],
+           COL[k],W*0.006,0.5);
+    }
+  }
+  N.forEach((fila,k)=>fila.forEach(([x,y],i)=>{
+    // el nodo se enciende cuando le acaba de llegar un pulso
+    const enc=Math.pow(Math.max(0,Math.sin((u*2-(i*0.17+k*0.31))*TAU)),8);
+    luz(c,x,y,W*0.075,COL[k],0.22+enc*0.55);
+    luz(c,x,y,W*0.026,'255,255,255',0.35+enc*0.6);
+  }));
+  c.globalCompositeOperation='source-over';
+ }}
+];
+
+/* ── Montaje ────────────────────────────────────────────────────────── */
+document.getElementById('grid').innerHTML = ESC.map((e,i)=>`
+  <div class="cell">
+    <h3>${e.n}</h3><p class="fis">${e.fis}</p>
+    <div class="frame">
+      <div class="fondo" style="background:${e.bg}"></div>
+      <canvas id="cv${i}" width="270" height="480"></canvas>
+      <div class="post"><div class="scan"></div><div class="abr"></div><div class="vin"></div></div>
+      <div class="pie">
+        <div class="pal a" style="animation-name:pop;animation-duration:.7s;animation-delay:.25s;
+          text-shadow:0 0 2cqw rgba(${e.ac},.95),0 0 6cqw rgba(${e.ac},.55),0 .3cqw 2cqw rgba(0,0,0,.9)">${e.n}</div>
+        <div class="barra a" style="animation-name:fade;animation-duration:.7s;animation-delay:.6s;
+          background:rgb(${e.ac});box-shadow:0 0 1.8cqw rgba(${e.ac},.9)"></div>
+      </div>
+    </div>
+  </div>`).join('');
+
+function irA(t){
+  document.getElementById('tv').textContent=t.toFixed(3)+' s';
+  const u=(t/CICLO)%1;
+  for(const a of document.getAnimations()){ try{a.pause();a.currentTime=t*1000}catch(e){} }
+  ESC.forEach((e,i)=>{ const cv=document.getElementById('cv'+i); if(!cv) return;
+    const c=cv.getContext('2d'); c.setTransform(1,0,0,1,0,0);
+    c.clearRect(0,0,cv.width,cv.height);
+    try{ e.dib(c,cv.width,cv.height,u) }catch(err){ console.warn(e.n,err) }
+    c.globalAlpha=1; c.globalCompositeOperation='source-over'; });
+}
+window.irA=irA;
+const sl=document.getElementById('t');
+let corr=false, raf=0, t0=0;
+function parar(){corr=false;cancelAnimationFrame(raf);
+  const b=document.getElementById('play');b.classList.remove('on');b.textContent='Reproducir'}
+sl.addEventListener('input',()=>{parar();irA(+sl.value)});
+document.getElementById('play').addEventListener('click',()=>{
+  if(corr){parar();return}
+  corr=true;t0=performance.now()-(+sl.value)*1000;
+  const b=document.getElementById('play');b.classList.add('on');b.textContent='Pausar';
+  const tick=()=>{if(!corr)return;let t=(performance.now()-t0)/1000;
+    if(t>CICLO){t0=performance.now();t=0} sl.value=t;irA(t);raf=requestAnimationFrame(tick)};
+  raf=requestAnimationFrame(tick);
+});
+let cara=0;
+document.getElementById('loopcheck').addEventListener('click',e=>{
+  parar();cara^=1;const t=cara?CICLO-0.001:0;irA(t);sl.value=t;
+  e.target.textContent=cara?'Viendo t=6':'Viendo t=0';e.target.classList.toggle('on',!!cara);
+});
+document.body.classList.add('acabado');
+document.getElementById('postbtn').addEventListener('click',e=>{
+  document.body.classList.toggle('acabado');
+  e.target.classList.toggle('on',document.body.classList.contains('acabado'));
+});
+document.fonts.ready.then(()=>irA(+sl.value));
+setTimeout(()=>irA(+sl.value),90);
+</script>
