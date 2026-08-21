@@ -1,4 +1,4 @@
-import { Page } from 'playwright';
+import { Page } from 'playwright-core';
 import fs from 'fs';
 import { getVideoDuration } from '../services/ffmpeg';
 
