@@ -3849,13 +3849,48 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         // Se piden para TODOS los sub-clips aunque solo los Visuales los usen —hoy el 32%—
         // porque cuando esta llamada ocurre la cuota TODAVIA no ha decidido quien es Visual:
         // los tipos se asignan despues, en codigo. Se tira el 68% a proposito.
+        // ── LA LINEA DE LOS CONCEPTOS, reescrita con dos medidas delante ──────────────
+        //
+        // (a) "Nunca banderas ni caras" NO FUNCIONABA: 18 de 243 conceptos (7.4%) las traian
+        //     igual. Era una prohibicion en negativo, corta y enterrada al final de una linea
+        //     que ya decia otras tres cosas. Se sustituye por una regla EN POSITIVO -- que sea
+        //     un objeto fotografiable -- con la lista de lo excluido aparte y con la salida
+        //     por defecto dicha ("si dudas, un objeto"), que es lo que evita que el modelo
+        //     resuelva la duda inventando.
+        //
+        //     Y no es cosmetico: las banderas salen TOFU. Medido, la 🇷🇺 se pinta como las
+        //     letras "RU" en gris, porque Windows no trae glifos de bandera. No se puede
+        //     arreglar en el render -- cambiar el glifo moveria los pixeles bajo el MISMO
+        //     hash-- asi que el unico sitio donde se arregla es aqui. Ver 10 quinquies y
+        //     10 octies de docs/AUDITORIA.md.
+        //
+        // (b) CON FRASES DE IDEA devolvia ideas: "crisis", "union", "problema", "confusion".
+        //     El patron esta medido: con frases de escena acierta -- estadio, protesta,
+        //     bufanda -- y con frases abstractas no tiene de donde agarrar. La instruccion
+        //     nueva no le pide que evite lo abstracto otra vez; le da un METODO: mirar la
+        //     escena de la que habla la frase y sacar de ahi lo que se veria en pantalla.
+        //
+        // EL EJEMPLO ANCLA, y se acepta a sabiendas. En el prompt de graficos, el unico
+        // ejemplo del FORMATO hizo que `decorativo_emoji` saliera el 78.8% de las veces. Aqui
+        // el ejemplo es de METODO y no de FORMATO, y va con tres objetos distintos para no
+        // sugerir uno; aun asi, si la proxima generacion trae calendarios y maletas de mas,
+        // la causa es esta linea.
         const lineaConceptos =
           '- conceptos: EXACTAMENTE 3, en el orden en que aparecen en el trozo. Cada uno con:\n' +
-          '    emoji: UNO solo, concreto, que se pueda dibujar. Nunca banderas ni caras.\n' +
+          '    emoji: UNO solo, y tiene que ser algo FOTOGRAFIABLE: un objeto, una herramienta,\n' +
+          '      un animal, una planta, un vehiculo, un edificio o un lugar.\n' +
+          '      NO valen: banderas, caras, personas, partes del cuerpo, gestos, corazones,\n' +
+          '      simbolos, signos, flechas, relojes de arena ni formas geometricas.\n' +
+          '      Si dudas, elige un objeto.\n' +
           '    etiqueta: 1 o 2 palabras en español. Nunca 3.\n' +
-          '  Los conceptos son las cosas CONCRETAS de las que habla ese trozo, no ideas\n' +
-          '  abstractas: "represa", "sequia", "cultivo", "puente" SI; "impacto", "sistema",\n' +
-          '  "consecuencias", "decision" NO. Si no se pueden dibujar, no valen.\n';
+          '  Los conceptos son cosas CONCRETAS del trozo, no ideas: "represa", "sequia",\n' +
+          '  "cultivo", "puente" SI; "impacto", "sistema", "consecuencias", "decision",\n' +
+          '  "crisis", "union", "problema", "confusion" NO.\n' +
+          '  SI LA FRASE HABLA DE UNA IDEA O DE UN SENTIMIENTO, no devuelvas la idea: piensa\n' +
+          '  en la ESCENA de la que habla y devuelve lo que se veria en pantalla al filmarla.\n' +
+          '  Ejemplo: "van a ser semanas de emociones contradictorias" no da "confusion";\n' +
+          '  da lo que hay en esa escena -- el calendario, la maleta, el vestuario.\n' +
+          '  Siempre hay algo fisico en la escena: sacalo de ahi.\n';
 
         const batchPrompt = 'Eres un editor de video experto.\n' +
           'Para cada frase decide como ilustrarla visualmente. Si dura mas de 4.0s divide en 2-3 sub-clips (maximo 3.0s cada uno).\n' +
@@ -4458,7 +4493,17 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     // otra cosa que una sobre un desierto (regla 12 del manual — solo palabras con imagen). Eso
     // es una decision de producto que no esta tomada, y meterla en el prompt de DeepSeek es lo
     // que ya colapso el reparto una vez. Mientras tanto, fija y en un solo sitio.
-    const COMPOSICION_VISUAL = 'visual_extrusion';
+    // ENCENDIDO. Hasta aqui el mapa estaba registrado y no se pintaba: el despacho es por
+    // `type`, asi que con esta constante en 'visual_extrusion' ninguna otra composicion podia
+    // salir por muchas que hubiera en el registro. Este es el interruptor.
+    //
+    // VERSION_PLANTILLAS ya esta en 7 por las cuatro constantes, asi que la cache no puede
+    // devolver un .mp4 de extrusion para un Visual de mapa: la clave lleva el `type` ademas
+    // de la version.
+    //
+    // `puedeDibujar` protege el caso que falta: un Visual sin los tres conceptos -- 1 de 82 en
+    // la ultima generacion -- cae al Visual de texto de siempre y lo dice en el log.
+    const COMPOSICION_VISUAL = 'visual_mapa';
     const visuales = clipsDecision.filter((c: any) => c.type === 'visual');
     if (visuales.length) {
       // La palabra se elige AQUI y no en el componente: entra en graphicData y por tanto en la
