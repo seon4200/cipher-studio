@@ -1067,4 +1067,8 @@ Es un paquete aparte del paso 5 (que carga Outfit, Archivo y Anton, 83.8 KB en t
 1.96 MB más y una fuente de color con su propio formato es otro cambio, y **mueve píxeles**: iría
 con su subida de `VERSION_PLANTILLAS`.
 
+**DECIDIDO: se empaqueta ENTERA, sin subsetear.** 1.96 MB en woff2. Un subconjunto de los 118
+emoji de hoy sería frágil porque el guion siguiente pedirá otros, y el ahorro no compensa un fallo
+que se manifiesta como tofu silencioso. El «~10 MB» que se venía citando era el `.ttf`.
+
 Pero antes de vender, esto no es opcional.

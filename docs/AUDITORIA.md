@@ -1033,6 +1033,31 @@ color y a "acotar" el residuo con tablas que sólo medían la posición en la se
 Pero **no es sólo arranque en frío**: `visual_extrusion` como primer render de un proceso da 0. Y
 calentar no lo arregla — con 1, 3 o 5 renders descartados sale el mismo 7.113.608 exacto.
 
+### `will-change` probado y DESCARTADO — con los números delante
+
+Se probó la variante más barata: `will-change: transform` **sólo** en `.cm-icono` y `.cm-halo`
+—el emoji grande y su halo, que son los que más superficie aportan—, sin tocar `.cm-nodo` ni el
+pie, para no arriesgar el texto de las cajas.
+
+| | sin | con | |
+|---|---|---|---|
+| residuo | 10.399.293 subpíxeles, delta 62 | **3.164.004, delta 47** | −70%, **pero no 0** |
+| nitidez del emoji grande (varianza del laplaciano, frame 38, pico del rebote) | 175.0 | **153.7** | **−12.2%** |
+| nitidez de la caja de concepto | 6.4 | 6.2 | −3%, ruido |
+
+**No se aplica.** El criterio era: residuo 0 sin perder nitidez → se aplica; residuo 0 pero el
+dibujo se ablanda → no. Aquí **no se cumple ninguna de las dos**: el residuo baja mucho pero no
+desaparece, **y** el emoji se ablanda de forma medible. Con `will-change`, Chromium rasteriza el
+contenido una vez en una textura y luego transforma la textura; durante el rebote el icono llega
+a `scale` 1.13 por el sobreimpulso, y ahí es donde se nota.
+
+La variante completa —`will-change` también en `.cm-nodo` y el pie— no se probó: por el mismo
+mecanismo ablandaría **el texto de las cajas**, que es lo que más se nota, para acercarse a un
+cero que la variante barata ya demostró que no es fácil.
+
+**Queda un umbral como salida**, y ahora sí es legítimo: la causa está entendida (elementos bajo
+escala animada), medida con las fuentes reales, y con el coste de la alternativa cuantificado.
+
 ### Consecuencia para la caché
 
 **Un mismo clip cacheado en frío no es idéntico al mismo clip re-renderizado en caliente.** Nada
