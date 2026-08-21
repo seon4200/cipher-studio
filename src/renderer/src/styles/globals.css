@@ -1,5 +1,71 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
+
+/* ─── LAS FUENTES, LOCALES ────────────────────────────────────────────────────────────────
+   Antes esto era un @import a fonts.googleapis.com. Se sustituye por ficheros propios en
+   public/fonts/ por tres razones, y ninguna es el rendimiento:
+
+   1. UN EDITOR DE VIDEO QUE SE VENDE NO PUEDE DEPENDER DE UNA CDN. Sin red —o con Google
+      bloqueado— el @import falla EN SILENCIO y todo cae a la sans del sistema. No hay error,
+      no hay log: sale un video entero con otra tipografia y nadie se entera hasta verlo.
+   2. Y en la ventana OFFSCREEN el fallo seria ademas INTERMITENTE, porque depende de si la
+      descarga gano la carrera contra la captura del primer frame.
+   3. Archivo y Anton no estaban en ningun sitio. `mapa.tsx` las pide desde el paso 3 y hasta
+      hoy caian al respaldo, tambien en silencio.
+
+   SON TRES FICHEROS, NO NUEVE. Google sirve Outfit y Archivo como FUENTES VARIABLES: los
+   siete bloques @font-face de Outfit apuntaban al MISMO woff2. Medido:
+       anton-400.woff2     18.2 KB   estatico, solo el 400
+       archivo-var.woff2   34.1 KB   variable
+       outfit-var.woff2    31.5 KB   variable
+                           83.8 KB   total, subconjunto latino
+
+   OUTFIT LLEGA A 900, Y ANTES NO. El @import declaraba 300-800, pero `font-black` (peso 900)
+   se usa 15 veces en la interfaz: el navegador lo venia aproximando desde el 800. Al ser
+   variable, el rango completo no cuesta ni un byte mas. ESO CAMBIA PIXELES en esas 15.
+
+   `font-display: swap` Y NO `block`, aunque para la ventana de render `block` seria lo
+   correcto —ahi no se quiere "enseña el respaldo mientras carga", se quiere "espera"—.
+
+   El motivo es que ESTA HOJA LA USAN LAS DOS: la interfaz y la ventana offscreen. Y `block`
+   en la interfaz significa TEXTO INVISIBLE hasta 3 segundos si algo va mal. `font-display`
+   es un descriptor de @font-face, asi que no se puede dar un valor distinto por contexto sin
+   declarar las caras DOS VECES — y eso seria una segunda puerta.
+
+   No hace falta: la ventana de render NO depende de este descriptor. `__listo` hace
+   `document.fonts.load()` de las tres y espera ANTES de que se monte ningun grafico, asi que
+   cuando se pinta el primer frame las fuentes ya estan. `block` alli no compraria nada y
+   `swap` en la interfaz evita el texto invisible. Una sola declaracion, sin segunda puerta.
+
+   El `unicode-range` se copia TAL CUAL del CSS que servia Google. No es decorativo: es lo que
+   permite que el navegador ni descargue el fichero si el texto no lo necesita, y es lo que
+   hace que `document.fonts.load()` cargue solo el rango que hace falta. */
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url('/fonts/outfit-var.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 600 800;
+  font-display: swap;
+  src: url('/fonts/archivo-var.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Anton';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/anton-400.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
 @theme {
   --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;

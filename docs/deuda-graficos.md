@@ -1024,3 +1024,47 @@ ya cargadas:**
 **El orden es no negociable:** fuentes → re-medir → constantes → `VERSION_PLANTILLAS` a 7 **una
 sola vez** para los tres cambios que mueven píxeles (fuentes, constantes, y el tiempo de entrada
 de la palabra del `10 sexies`).
+
+---
+
+## 🔴 BLOQUEANTE DE LANZAMIENTO — la fuente de emoji no es nuestra, y ahora el emoji ES el contenido
+
+**No bloquea el port. Bloquea vender la app.**
+
+### Qué cambió el perfil de riesgo
+
+Antes, un emoji salía suelto en alguna tarjeta: si fallaba, se veía un cuadrado feo al lado de un
+texto que seguía comunicando. Con la decisión de v1 del port de `visual_mapa`, **cada nodo del
+mapa y el remate grande final SON emojis** — se descartaron los iconos Solar porque DeepSeek no
+devuelve nombres de icono.
+
+Así que si la fuente de emoji falta, **el Visual no comunica nada**: el dibujo *es* el emoji.
+
+### Y la fuente es la del sistema
+
+El §30 lo deja dicho: el render usa la fuente de emoji **del sistema operativo**. En un Windows
+recortado, en Linux, o en la máquina de quien compre la app, el fallo es **tofu sin error**.
+
+Ya hay prueba, y está en `10 quinquies`: la bandera de Rusia sale como las letras `RU` en gris.
+Ninguna de las nueve guardas lo detecta.
+
+### Lo medido
+
+| | |
+|---|---|
+| emoji **distintos** en el último guion | **118** |
+| puntos de código que suman | 138 |
+| de ellos, banderas (tofu seguro en Windows) | **3** — 🇷🇺 🇺🇸 🇲🇽 |
+| **Noto Color Emoji**, los 10 subconjuntos woff2 de Google | **1.96 MB** |
+
+El «~10 MB» que se venía citando es el `.ttf` completo. **El woff2 pesa 1.96 MB**, y eso cambia la
+decisión: empaquetar la fuente entera es asumible sin subsetear. Subsetear a los 118 usados sería
+además frágil — el guion siguiente pedirá otros.
+
+### Por qué no se hace ahora
+
+Es un paquete aparte del paso 5 (que carga Outfit, Archivo y Anton, 83.8 KB en total). Meter
+1.96 MB más y una fuente de color con su propio formato es otro cambio, y **mueve píxeles**: iría
+con su subida de `VERSION_PLANTILLAS`.
+
+Pero antes de vender, esto no es opcional.

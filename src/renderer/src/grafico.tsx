@@ -195,12 +195,100 @@ function pintar(t?: number) {
   }
 }
 
+// ── LAS FUENTES QUE EL RENDER NECESITA ────────────────────────────────────────────────
+//
+// Outfit la usan las 17 tarjetas por `--font-sans`; Archivo y Anton las pide `mapa.tsx`.
+//
+// EL TEXTO DE MUESTRA NO ES DECORATIVO. Con `unicode-range`, el navegador solo descarga los
+// rangos que el texto necesita, asi que `load()` con la cadena por defecto podria dejar fuera
+// las mayusculas acentuadas. Lleva las cinco vocales acentuadas, la enye en las dos cajas y
+// digitos: es lo que de verdad aparece en un guion en español.
+const MUESTRA = 'AÁÉÍÓÚÜÑ aáéíóúüñ 0123456789'
+const FUENTES = [
+  { familia: 'Outfit', peso: 700 },
+  { familia: 'Archivo', peso: 700 },
+  { familia: 'Anton', peso: 400 }
+]
+
+/**
+ * ¿Esta esa familia REALMENTE disponible? Dos comprobaciones, y hacen falta las dos.
+ *
+ * `document.fonts.check()` NO BASTA, y esta medido que responde justo al reves de lo que hace
+ * falta en los dos casos que importan:
+ *   · con Outfit 400 y 600 YA CARGADAS, `check('700 16px Outfit')` devolvia FALSE, porque el
+ *     peso 700 aun no se habia usado;
+ *   · y `check('700 16px Archivo')` devolvia TRUE con Archivo SIN EXISTIR — no hay ninguna
+ *     cara declarada que cargar, asi que la respuesta es vacuamente cierta.
+ * Solo sirve DESPUES de declarar el @font-face y de forzar la carga, y aun asi solo detecta
+ * "declarada pero no cargada".
+ *
+ * Por eso el cinturon es el ANCHO: se mide la misma cadena con la familia pedida y con una
+ * familia que no existe. Si coinciden al pixel, lo que se esta pintando es el respaldo. Eso SI
+ * detecta el caso que de verdad duele —el fichero no llego— y no depende de la semantica de
+ * check().
+ */
+function faltaLaFuente (familia: string, peso: number): string | null {
+  const mide = (fam: string): number => {
+    const s = document.createElement('span')
+    s.style.cssText = `position:absolute;left:-9999px;top:0;white-space:nowrap;` +
+      `font:${peso} 100px "${fam}", serif`
+    s.textContent = MUESTRA
+    document.body.appendChild(s)
+    const w = s.getBoundingClientRect().width
+    s.remove()
+    return w
+  }
+  // El nombre no puede existir ni por casualidad: si existiera, el cinturon compararia dos
+  // fuentes reales y diria que todo va bien.
+  const respaldo = mide('__cipher_no_existe_zz__')
+  const propia = mide(familia)
+  if (Math.abs(propia - respaldo) < 0.5) {
+    return `${familia}: el ancho es identico al respaldo (${propia.toFixed(1)}px), no esta cargada`
+  }
+  if (!document.fonts.check(`${peso} 16px "${familia}"`)) {
+    return `${familia}: declarada pero fonts.check dice que el peso ${peso} no esta cargado`
+  }
+  return null
+}
+
 ;(window as any).__listo = async () => {
+  // FORZAR LA CARGA, no esperarla. `document.fonts.ready` sola NO sirve aqui y esta medido:
+  // se resuelve en 0 ms sobre la pagina vacia —que es cuando el proceso principal llama a
+  // __listo, ANTES de __montar— porque una webfont solo se carga cuando algo la usa. Con
+  // contenido montado tarda 22.8 ms, y esa es exactamente la ventana en la que el primer frame
+  // podria capturarse con la sans de respaldo: un fallo silencioso E INTERMITENTE.
+  //
+  // `fonts.load()` es la unica API que la carga sin que nadie la use todavia. Por eso __montar
+  // se queda SINCRONO: el problema se resuelve aqui, antes, y no hay que cambiar el momento en
+  // que se monta ningun grafico.
+  const avisos: string[] = []
+  try {
+    await Promise.all(FUENTES.map(f =>
+      (document as any).fonts.load(`${f.peso} 1em "${f.familia}"`, MUESTRA)))
+  } catch (e) {
+    avisos.push(`fonts.load lanzo: ${String(e)}`)
+  }
   await document.fonts.ready
+
+  for (const f of FUENTES) {
+    const fallo = faltaLaFuente(f.familia, f.peso)
+    if (fallo) avisos.push(`FUENTE AUSENTE: ${fallo}`)
+  }
+  // Se DEPOSITAN en el mismo canal que los avisos del candado del ciclo, por la misma razon:
+  // esta ventana es offscreen y su consola no la abre nadie. Un console.warn aqui no llegaria
+  // a generation-debug.log — esta medido.
+  if (avisos.length) {
+    const w = window as any
+    if (!Array.isArray(w.__avisosCiclo)) w.__avisosCiclo = []
+    for (const a of avisos) if (!w.__avisosCiclo.includes(a)) w.__avisosCiclo.push(a)
+  }
+
   return {
     w: window.innerWidth,
     h: window.innerHeight,
     fuentes: document.fonts.status,
+    // Las que el proceso principal tiene que poder registrar. Vacio = las tres cargadas.
+    avisosFuentes: avisos,
     sondaAlto: SONDA_ALTO
   }
 }

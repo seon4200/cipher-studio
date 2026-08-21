@@ -1148,7 +1148,20 @@ async function obtenerVentanaGraficos(ancho: number, alto: number): Promise<Brow
   // no sirve — es solo macOS, tambien medido.
   v.setContentSize(ancho, altoTotal);
 
-  await v.webContents.executeJavaScript('window.__listo()');
+  // __listo NO solo espera: FUERZA la carga de Outfit, Archivo y Anton con fonts.load() y
+  // comprueba que estan de verdad. Espera aqui, UNA vez por ventana, y no en cada __montar:
+  // asi el montaje de los graficos sigue siendo sincrono.
+  const listo: any = await v.webContents.executeJavaScript('window.__listo()');
+
+  // LAS FUENTES QUE FALTAN SE GRITAN. Sin esto, un woff2 que no llegue deja la ventana
+  // pintando con la sans del sistema y no lo dice nadie: el MOV existe, dura lo que debe, sus
+  // frames son distintos entre si y las nueve guardas dan verde. Es el mismo modo de fallo del
+  // 10 septies —el sistema afirma que ha funcionado— y por eso se registra al crear la ventana
+  // y no al primer sintoma raro.
+  for (const a of (listo?.avisosFuentes ?? [])) {
+    await writeDebugLog(`[GRAFICO] ${a}`);
+  }
+
   ventanaGraficos = v;
   return v;
 }
