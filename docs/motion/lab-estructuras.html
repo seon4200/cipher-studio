@@ -1,0 +1,407 @@
+<meta charset="utf-8">
+<title>CIPHER — lab estructuras</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ciclo:3s;
+    --ui-bg:#08090F; --ui-line:#1C1F2B; --ui-ink:#EAEDF7; --ui-dim:#727A94;
+    --acento:#FF3B1F;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ui-bg);color:var(--ui-ink);font:400 14px/1.6 Inter,system-ui,sans-serif}
+  header{padding:26px 32px 18px;border-bottom:1px solid var(--ui-line)}
+  h1{margin:0;font:800 21px/1.2 Archivo,sans-serif;letter-spacing:-.02em}
+  header p{margin:8px 0 0;color:var(--ui-dim);max-width:100ch}
+  header b{color:var(--acento);font-weight:500}
+  header code{font:400 12.5px Space Mono,monospace;color:var(--ui-ink)}
+
+  .bar{position:sticky;top:0;z-index:20;background:rgba(8,9,15,.96);backdrop-filter:blur(12px);
+       border-bottom:1px solid var(--ui-line);padding:13px 32px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .bar label{color:var(--ui-dim);font:400 11px Space Mono,monospace;letter-spacing:.1em;text-transform:uppercase}
+  input[type=range]{flex:1;min-width:170px;accent-color:var(--acento)}
+  .t{font:700 14px/1 Space Mono,monospace;min-width:80px;color:var(--acento)}
+  button{background:transparent;border:1px solid var(--ui-line);color:var(--ui-ink);border-radius:6px;
+         padding:6px 12px;font:400 12px Space Mono,monospace;cursor:pointer}
+  button:hover{border-color:var(--acento);color:var(--acento)}
+  button.on{background:var(--acento);border-color:var(--acento);color:#0A0A0A;font-weight:700}
+  .set{display:flex;gap:5px;flex-wrap:wrap}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(236px,1fr));gap:24px;padding:26px 32px 60px}
+  .cell h3{margin:0 0 3px;font:600 12.5px Inter,sans-serif;display:flex;align-items:center;gap:7px}
+  .num{font:700 9px Space Mono,monospace;color:var(--ui-dim);border:1px solid var(--ui-line);
+       border-radius:99px;padding:1px 6px}
+  .fis{margin:0 0 8px;font-size:10.5px;line-height:1.5;color:var(--ui-dim);min-height:31px}
+
+  .frame{position:relative;width:100%;aspect-ratio:9/16;overflow:hidden;border-radius:11px;
+         container-type:inline-size;border:1px solid var(--ui-line);background:#05060B}
+  .capa{position:absolute;inset:0}
+  .zs{position:absolute;left:8.33%;right:8.33%;top:13.54%;bottom:13.54%;
+      border:1px dashed rgba(255,255,255,.13);border-radius:4px;z-index:99;pointer-events:none;display:none}
+  .frame.ver .zs{display:block}
+
+  .caja{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;
+        font:700 4.4cqw/1 Archivo,sans-serif;color:#F2F4FA;
+        background:rgba(10,12,20,.90);border:.22cqw solid var(--ac);border-radius:1.6cqw;
+        padding:1.5cqw 2.4cqw;box-shadow:0 1cqw 2.4cqw rgba(0,0,0,.6)}
+  .caja i{font-style:normal;margin-right:.9cqw}
+  .ancla{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;
+         font:400 7.6cqw/1 Anton,sans-serif;text-transform:uppercase;color:#fff;
+         text-shadow:0 .3cqw 2.2cqw rgba(0,0,0,.95)}
+</style>
+
+<header>
+  <h1>Doce estructuras, el mismo contenido</h1>
+  <p>Todas dibujan <b>exactamente lo mismo</b>: la palabra <code>MEMORIA</code> y tres conceptos
+  —🧠 recuerdo, ⏳ tiempo, 🔗 conexión—. Misma paleta, misma cámara, mismo ciclo.
+  <b>Lo único que cambia es la estructura.</b> Así se ve cuáles se leen como estilos distintos de
+  verdad y cuáles son la misma cosa movida. Ésa es la prueba: si dos cuadros no se distinguen a
+  simple vista, ese eje no se ha ganado su sitio.
+  Cambia la <b>cámara</b> y la <b>paleta</b> arriba para comprobar lo contrario — que esos ejes
+  <b>modulan</b> pero no cambian la identidad.</p>
+</header>
+
+<div class="bar">
+  <label for="t">t</label>
+  <input id="t" type="range" min="0" max="3" step="0.0333" value="1.6">
+  <span class="t" id="tv">1.600 s</span>
+  <button id="play">Reproducir</button>
+  <button id="loopcheck">Bucle</button>
+  <button id="zona">Zona segura</button>
+  <span style="width:1px;height:20px;background:var(--ui-line)"></span>
+  <label>cámara</label><div class="set" id="cams"></div>
+  <span style="width:1px;height:20px;background:var(--ui-line)"></span>
+  <label>paleta</label><div class="set" id="pals"></div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const CICLO = 3, TAU = 6.283185307;
+const R = (n,f)=>[...Array(n)].map((_,i)=>f(i)).join('');
+let _s = 1; const sem = s=>{_s=s||1}; const rnd = ()=>(_s=_s*16807%2147483647)/2147483647;
+
+let _k = 0; const reglas = [];
+function kf(fn, M){
+  M = M || 33; const nom = 'k'+(_k++); let c = '';
+  for(let i=0;i<M;i++){ const u = i/(M-1); c += (u*100).toFixed(3)+'%{'+fn(u)+'}'; }
+  reglas.push('@keyframes '+nom+'{'+c+'}'); return nom;
+}
+const dur = n => (CICLO/Math.round(n)).toFixed(4)+'s';
+const usa = (nom,n)=>'animation:'+nom+' '+dur(n||1)+' linear infinite both;';
+const ease = p => 1 - Math.pow(1-p, 3);
+// entrada escalonada: cada elemento arranca en su turno y termina antes del final
+const ent = (u,i,n,ini,tot)=>{
+  const a = (ini||0.06) + (i/Math.max(1,n))*(tot||0.34);
+  return Math.min(1, Math.max(0,(u-a)/0.26));
+};
+
+/* ─── contenido idéntico para las doce ─── */
+const ANCLA = 'MEMORIA';
+const CS = [
+  {e:'🧠', t:'recuerdo'},
+  {e:'⏳', t:'tiempo'},
+  {e:'🔗', t:'conexión'}
+];
+
+/* ─── paletas: MODULAN, no cambian identidad ─── */
+const PALETAS = {
+  voltaje:  {n:'voltaje',  ac:'#FF3B1F', f1:'#2a0d08', f2:'#0d0705', li:'rgba(255,90,50,.30)'},
+  clinico:  {n:'clínico',  ac:'#37C2E0', f1:'#06283a', f2:'#05090f', li:'rgba(80,200,235,.26)'},
+  calido:   {n:'cálido',   ac:'#E0864A', f1:'#2e1c0e', f2:'#0e0805', li:'rgba(224,150,90,.26)'},
+  editorial:{n:'editorial',ac:'#D8952F', f1:'#241a10', f2:'#0b0906', li:'rgba(216,149,47,.22)'}
+};
+let PAL = 'voltaje';
+
+/* ─── cámaras: MODULAN ─── */
+const CAMARAS = {
+  quieto:      (u,f)=>'transform:none',
+  deriva:      (u,f)=>{const x=Math.sin(u*TAU)*2.8*f,y=Math.cos(u*TAU)*1.8*f;
+                 return 'transform:translate('+x.toFixed(3)+'cqw,'+y.toFixed(3)+'cqw) scale('+(1+0.035*f).toFixed(4)+')'},
+  acercamiento:(u,f)=>{const k=0.5-0.5*Math.cos(u*TAU);
+                 return 'transform:translateY('+(-(2.0*f)*k).toFixed(3)+'cqw) scale('+(1+0.14*f*k).toFixed(4)+')'},
+  orbita:      (u,f)=>{const a=u*TAU;
+                 return 'transform:translate('+(Math.cos(a)*3.4*f).toFixed(3)+'cqw,'+(Math.sin(a)*2.0*f).toFixed(3)
+                 +'cqw) rotate('+(Math.sin(a)*1.4*f).toFixed(3)+'deg) scale('+(1+0.05*f).toFixed(4)+')'},
+  barrido:     (u,f)=>{const r=Math.sin(u*TAU)*3.0*f;
+                 return 'transform:translateX('+(Math.sin(u*TAU)*1.8*f).toFixed(3)+'cqw) rotate('+r.toFixed(3)
+                 +'deg) scale('+(1+0.04*f).toFixed(4)+')'}
+};
+let CAM = 'deriva';
+
+function cap(html, f, z){
+  if (CAM === 'quieto') return '<div class="capa" style="z-index:'+z+'">'+html+'</div>';
+  const nom = kf(u=>CAMARAS[CAM](u,f), 41);
+  return '<div class="capa" style="'+usa(nom,1)+'z-index:'+z+';will-change:transform">'+html+'</div>';
+}
+
+/* ─── piezas ─── */
+const P = ()=>PALETAS[PAL];
+const fondoBase = ()=>'<div class="capa" style="background:radial-gradient(ellipse 72% 52% at 50% 42%,'
+  + P().f1+' 0%,transparent 62%),linear-gradient(168deg,'+P().f2+',#05060B 74%)"></div>';
+const rejilla = (paso,op)=>'<div class="capa" style="background:'
+  + 'repeating-linear-gradient(0deg,'+P().li+' 0 .12cqw,transparent .12cqw '+paso+'cqw),'
+  + 'repeating-linear-gradient(90deg,'+P().li+' 0 .12cqw,transparent .12cqw '+paso+'cqw);opacity:'+op+'"></div>';
+
+// caja de concepto que entra en su turno
+function caja(c, i, n, x, y, extra){
+  const nom = kf(u=>{
+    const p = ease(ent(u,i,n));
+    return 'opacity:'+p.toFixed(3)+';transform:translate(-50%,-50%) scale('+(0.72+0.28*p).toFixed(3)+')';
+  }, 33);
+  return '<div class="caja" style="'+usa(nom,1)+'left:'+x+'%;top:'+y+'%;'+(extra||'')+'">'
+       + '<i>'+c.e+'</i>'+c.t+'</div>';
+}
+function ancla(x,y,tam){
+  const nom = kf(u=>{ const p = ease(Math.min(1,u/0.22));
+    return 'opacity:'+p.toFixed(3)+';transform:translate(-50%,-50%) scale('+(0.86+0.14*p).toFixed(3)+')'; },25);
+  return '<div class="ancla" style="'+usa(nom,1)+'left:'+x+'%;top:'+y+'%;font-size:'+(tam||7.6)+'cqw">'+ANCLA+'</div>';
+}
+// arista curva que se dibuja sola
+function aristas(pares, col){
+  let h = '<svg class="capa" viewBox="0 0 90 160" preserveAspectRatio="none">';
+  pares.forEach(([x1,y1,x2,y2],i)=>{
+    const nom = kf(u=>{ const p = ent(u,i,pares.length,0.04,0.30);
+      return 'stroke-dashoffset:'+((1-p)*80).toFixed(2)+';opacity:'+(p*0.85).toFixed(3); },33);
+    const mx=(x1+x2)/2, my=(y1+y2)/2-6;
+    h += '<path d="M'+x1+','+y1+' Q'+mx+','+my+' '+x2+','+y2+'" fill="none" stroke="'+(col||P().ac)
+       + '" stroke-width=".5" stroke-dasharray="80" style="'+usa(nom,1)+'"/>';
+  });
+  return h+'</svg>';
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   LAS DOCE ESTRUCTURAS
+   Mismo contenido, misma paleta, misma cámara. Solo cambia el reparto.
+   ══════════════════════════════════════════════════════════════════ */
+const EST = [
+
+{n:'radial', d:'conceptos alrededor de un ancla central',
+ g:()=>{
+  const pos = [[26,32],[74,38],[50,72]];
+  const fondo = fondoBase() + rejilla(9,.35);
+  const medio = aristas(pos.map(([x,y])=>[45,80, x*0.9, y*1.6])) ;
+  let cajas = pos.map(([x,y],i)=>caja(CS[i],i,3,x,y)).join('') + ancla(50,50);
+  return cap(fondo,1,1)+cap(medio,.6,2)+cap(cajas,.25,3);
+ }},
+
+{n:'malla', d:'rejilla conectada, todos con todos',
+ g:()=>{
+  const pos = [[28,30],[72,30],[50,66]];
+  const fondo = fondoBase() + rejilla(6,.55);
+  const medio = aristas([[25,48,65,48],[25,48,45,106],[65,48,45,106]]);
+  let cajas = pos.map(([x,y],i)=>caja(CS[i],i,3,x,y)).join('') + ancla(50,86,6.4);
+  return cap(fondo,1,1)+cap(medio,.6,2)+cap(cajas,.25,3);
+ }},
+
+{n:'capas apiladas', d:'planos isométricos etiquetados, uno sobre otro',
+ g:()=>{
+  const fondo = fondoBase();
+  let planos = '';
+  for(let i=0;i<3;i++){
+    const nom = kf(u=>{ const p = ease(ent(u,i,3));
+      const fl = Math.sin(u*TAU + i*0.9)*1.2;
+      return 'opacity:'+(p*0.9).toFixed(3)+';transform:translate(-50%,-50%) rotateX(58deg) rotateZ(45deg) '
+           + 'translateZ('+((1-p)*10 + fl).toFixed(2)+'cqw)'; },33);
+    planos += '<div style="'+usa(nom,1)+'position:absolute;left:50%;top:'+(36+i*15)+'%;width:44cqw;height:44cqw;'
+      + 'background:linear-gradient(135deg,'+P().ac+'55,'+P().ac+'18);border:.25cqw solid '+P().ac+'99;'
+      + 'transform-style:preserve-3d"></div>';
+  }
+  let cajas = CS.map((c,i)=>caja(c,i,3,72,36+i*15)).join('') + ancla(50,84,6.2);
+  return cap('<div class="capa" style="perspective:120cqw">'+fondo+planos+'</div>',1,1)+cap(cajas,.25,3);
+ }},
+
+{n:'cascada', d:'caída escalonada, uno detrás de otro',
+ g:()=>{
+  const fondo = fondoBase() + rejilla(12,.28);
+  let cajas = CS.map((c,i)=>{
+    const nom = kf(u=>{ const p = ease(ent(u,i,3,0.05,0.42));
+      return 'opacity:'+p.toFixed(3)+';transform:translate(-50%,-50%) translateY('+((1-p)*-14).toFixed(2)+'cqw)'; },33);
+    return '<div class="caja" style="'+usa(nom,1)+'left:'+(34+i*13)+'%;top:'+(30+i*17)+'%">'
+         + '<i>'+c.e+'</i>'+c.t+'</div>';
+  }).join('') + ancla(50,84,6.6);
+  return cap(fondo,1,1)+cap(cajas,.25,3);
+ }},
+
+{n:'centrado + dispersos', d:'ancla grande al centro, conceptos orbitando',
+ g:()=>{
+  const fondo = fondoBase();
+  let orb = CS.map((c,i)=>{
+    const a0 = (i/3)*TAU;
+    const nom = kf(u=>{ const a = a0+u*TAU; const p = ease(ent(u,i,3));
+      return 'opacity:'+p.toFixed(3)+';transform:translate(-50%,-50%) translate('
+        +(Math.cos(a)*26).toFixed(2)+'cqw,'+(Math.sin(a)*15).toFixed(2)+'cqw)'; },41);
+    return '<div class="caja" style="'+usa(nom,1)+'left:50%;top:48%">'+'<i>'+c.e+'</i>'+c.t+'</div>';
+  }).join('');
+  return cap(fondo,1,1)+cap(orb,.55,2)+cap(ancla(50,48,9.4),.2,3);
+ }},
+
+{n:'editorial', d:'texto pesado a la izquierda, contenido a la derecha',
+ g:()=>{
+  const fondo = fondoBase() + rejilla(14,.30);
+  let cajas = CS.map((c,i)=>caja(c,i,3,70,32+i*17,'font-size:3.9cqw')).join('');
+  const nom = kf(u=>{const p=ease(Math.min(1,u/0.26));
+    return 'opacity:'+p.toFixed(3)+';transform:translateX('+((1-p)*-8).toFixed(2)+'cqw)';},25);
+  const tit = '<div style="'+usa(nom,1)+'position:absolute;left:9%;top:26%;font:400 9.6cqw/0.92 Anton,sans-serif;'
+    + 'text-transform:uppercase;color:#fff;max-width:44%">'+ANCLA+'</div>';
+  return cap(fondo,1,1)+cap(cajas,.4,2)+cap(tit,.2,3);
+ }},
+
+{n:'mundo isométrico', d:'tiles que se construyen uno a uno — el videojuego',
+ g:()=>{
+  const fondo = fondoBase();
+  const N = 5; let tiles = '';
+  sem(7);
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+    const i = r*N+c, alt = 1 + Math.floor(rnd()*3);
+    const nom = kf(u=>{ const p = ease(ent(u,i,N*N,0.03,0.52));
+      return 'opacity:'+p.toFixed(3)+';transform:translate(-50%,-50%) translateZ('+((1-p)*-14).toFixed(2)+'cqw)'; },33);
+    const x = 50 + (c-r)*7.6, y = 52 + (c+r)*3.9 - alt*1.6;
+    tiles += '<div style="'+usa(nom,1)+'position:absolute;left:'+x.toFixed(2)+'%;top:'+y.toFixed(2)+'%;'
+      + 'width:13cqw;height:13cqw;transform-style:preserve-3d;'
+      + 'background:linear-gradient(135deg,'+P().ac+(alt>2?'88':'44')+','+P().ac+'12);'
+      + 'border:.2cqw solid '+P().ac+'aa;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)"></div>';
+  }
+  let cajas = CS.map((c,i)=>caja(c,i,3,[24,76,50][i],[26,30,80][i],'font-size:3.9cqw')).join('');
+  return cap(fondo,1,1)+cap('<div class="capa">'+tiles+'</div>',.8,2)+cap(cajas+ancla(50,16,6.4),.25,3);
+ }},
+
+{n:'territorio', d:'manchas que se expanden sobre el mapa — conquista',
+ g:()=>{
+  const fondo = fondoBase() + rejilla(7,.5);
+  let manchas = R(3,i=>{
+    const nom = kf(u=>{ const p = ease(ent(u,i,3,0.04,0.5));
+      return 'clip-path:circle('+(p*30).toFixed(2)+'% at 50% 50%);opacity:'+(0.25+p*0.5).toFixed(3); },41);
+    const L=[30,70,48][i], T=[34,42,72][i];
+    return '<div style="'+usa(nom,1)+'position:absolute;left:'+L+'%;top:'+T+'%;width:52cqw;height:52cqw;'
+      + 'transform:translate(-50%,-50%);background:radial-gradient(circle,'+P().ac+'99,'+P().ac+'0d 70%)"></div>';
+  });
+  let cajas = CS.map((c,i)=>caja(c,i,3,[30,70,48][i],[34,42,72][i],'font-size:3.8cqw')).join('') + ancla(50,88,6.2);
+  return cap(fondo+'<div class="capa">'+manchas+'</div>',1,1)+cap(cajas,.3,3);
+ }},
+
+{n:'corte transversal', d:'estratos horizontales, como un diagrama de terreno',
+ g:()=>{
+  const fondo = fondoBase();
+  let bandas = R(3,i=>{
+    const nom = kf(u=>{ const p = ease(ent(u,i,3,0.05,0.44));
+      return 'transform:scaleX('+p.toFixed(3)+');opacity:'+(0.30+p*0.5).toFixed(3); },33);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:0;right:0;top:'+(30+i*17)+'%;height:13%;'
+      + 'transform-origin:0 50%;background:linear-gradient(90deg,'+P().ac+'66,'+P().ac+'10)"></div>';
+  });
+  let cajas = CS.map((c,i)=>caja(c,i,3,50,36+i*17,'font-size:4.2cqw')).join('') + ancla(50,18,6.8);
+  return cap(fondo+'<div class="capa">'+bandas+'</div>',1,1)+cap(cajas,.28,3);
+ }},
+
+{n:'línea de tiempo', d:'eventos sobre un eje que avanza',
+ g:()=>{
+  const fondo = fondoBase() + rejilla(16,.24);
+  const eje = kf(u=>'transform:scaleY('+ease(Math.min(1,u/0.34)).toFixed(3)+')',25);
+  let linea = '<div style="'+usa(eje,1)+'position:absolute;left:22%;top:22%;bottom:22%;width:.5cqw;'
+    + 'transform-origin:50% 0;background:linear-gradient(180deg,'+P().ac+','+P().ac+'33)"></div>';
+  let cajas = CS.map((c,i)=>{
+    const nom = kf(u=>{ const p = ease(ent(u,i,3,0.14,0.40));
+      return 'opacity:'+p.toFixed(3)+';transform:translate(0,-50%) translateX('+((1-p)*-6).toFixed(2)+'cqw)'; },33);
+    return '<div class="caja" style="'+usa(nom,1)+'left:27%;top:'+(30+i*20)+'%;font-size:4cqw">'
+         + '<i>'+c.e+'</i>'+c.t+'</div>'
+         + '<div style="position:absolute;left:22%;top:'+(30+i*20)+'%;width:1.7cqw;height:1.7cqw;'
+         + 'transform:translate(-50%,-50%);border-radius:50%;background:'+P().ac+'"></div>';
+  }).join('') + ancla(50,88,6.4);
+  return cap(fondo,1,1)+cap(linea,.5,2)+cap(cajas,.25,3);
+ }},
+
+{n:'red de nodos', d:'esfera de puntos con aristas y profundidad',
+ g:()=>{
+  const fondo = fondoBase();
+  sem(23);
+  let nodos = R(22,i=>{
+    const y = 1-(i/21)*2, r = Math.sqrt(Math.max(0,1-y*y)), th = i*2.399963;
+    const nom = kf(u=>{
+      const a = th + u*TAU;
+      const x = Math.cos(a)*r*30, z = Math.sin(a)*r*30, yy = y*20;
+      const zf = (z+30)/60;
+      return 'transform:translate(-50%,-50%) translate('+x.toFixed(2)+'cqw,'+yy.toFixed(2)+'cqw) scale('
+        +(0.5+zf).toFixed(3)+');opacity:'+(0.25+zf*0.7).toFixed(3)+';filter:blur('+((1-zf)*1.2).toFixed(2)+'px)';
+    },41);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:50%;top:44%;width:1.9cqw;height:1.9cqw;'
+      + 'border-radius:50%;background:'+P().ac+';box-shadow:0 0 1.8cqw '+P().ac+'aa"></div>';
+  });
+  let cajas = CS.map((c,i)=>caja(c,i,3,[22,78,50][i],[24,32,74][i],'font-size:3.8cqw')).join('') + ancla(50,88,6.2);
+  return cap(fondo+'<div class="capa">'+nodos+'</div>',1,1)+cap(cajas,.28,3);
+ }},
+
+{n:'pila vertical', d:'bloques que caen y se apilan',
+ g:()=>{
+  const fondo = fondoBase() + rejilla(10,.3);
+  let cajas = CS.map((c,i)=>{
+    const nom = kf(u=>{
+      const p = ent(u,2-i,3,0.05,0.45);
+      const e = 1 - Math.pow(1-p,4);
+      return 'opacity:'+Math.min(1,p*2).toFixed(3)+';transform:translate(-50%,-50%) translateY('
+        + ((1-e)*-46).toFixed(2)+'cqw) scaleY('+(1+(1-e)*0.12).toFixed(3)+')';
+    },41);
+    return '<div class="caja" style="'+usa(nom,1)+'left:50%;top:'+(70-i*13)+'%;font-size:4.6cqw;min-width:44cqw;'
+      + 'text-align:center">'+'<i>'+c.e+'</i>'+c.t+'</div>';
+  }).join('') + ancla(50,22,7.2);
+  return cap(fondo,1,1)+cap(cajas,.25,3);
+ }}
+];
+
+/* ─── construcción ─── */
+let verZona = false;
+function construir(){
+  _k = 0; reglas.length = 0;
+  const html = EST.map((e,i)=>`
+    <div class="cell">
+      <h3><span class="num">${String(i+1).padStart(2,'0')}</span> ${e.n}</h3>
+      <p class="fis">${e.d}</p>
+      <div class="frame ${verZona?'ver':''}" style="--ac:${PALETAS[PAL].ac}">
+        ${e.g()}
+        <div class="zs"></div>
+      </div>
+    </div>`).join('');
+  let st = document.getElementById('hoja');
+  if(!st){ st = document.createElement('style'); st.id='hoja'; document.head.appendChild(st); }
+  st.textContent = reglas.join('\n');
+  document.getElementById('grid').innerHTML = html;
+  irA(+slider.value);
+}
+
+const slider = document.getElementById('t'), out = document.getElementById('tv');
+let corriendo=false, raf=0, t0=0;
+function irA(t){ out.textContent = t.toFixed(3)+' s';
+  for(const a of document.getAnimations()){ try{ a.pause(); a.currentTime = t*1000 }catch(e){} } }
+function parar(){ corriendo=false; cancelAnimationFrame(raf);
+  const b=document.getElementById('play'); b.classList.remove('on'); b.textContent='Reproducir' }
+slider.addEventListener('input', ()=>{ parar(); irA(+slider.value) });
+document.getElementById('play').addEventListener('click', ()=>{
+  if(corriendo){ parar(); return }
+  corriendo=true; t0=performance.now()-(+slider.value)*1000;
+  const b=document.getElementById('play'); b.classList.add('on'); b.textContent='Pausar';
+  const tick=()=>{ if(!corriendo) return; let t=(performance.now()-t0)/1000;
+    if(t>CICLO){ t0=performance.now(); t=0 } slider.value=t; irA(t); raf=requestAnimationFrame(tick); };
+  raf=requestAnimationFrame(tick);
+});
+let cara=0;
+document.getElementById('loopcheck').addEventListener('click', e=>{
+  parar(); cara^=1; const v = cara?CICLO-0.001:0; irA(v); slider.value=v;
+  e.target.textContent = cara?'t='+CICLO:'Bucle'; e.target.classList.toggle('on',!!cara);
+});
+document.getElementById('zona').addEventListener('click', e=>{
+  verZona=!verZona; document.querySelectorAll('.frame').forEach(f=>f.classList.toggle('ver',verZona));
+  e.target.classList.toggle('on',verZona);
+});
+const cams = document.getElementById('cams');
+cams.innerHTML = Object.keys(CAMARAS).map(k=>`<button data-c="${k}" class="${k===CAM?'on':''}">${k}</button>`).join('');
+cams.addEventListener('click', e=>{ const k=e.target.dataset.c; if(!k) return;
+  CAM=k; parar(); [...cams.children].forEach(b=>b.classList.toggle('on',b.dataset.c===k)); construir(); });
+const pals = document.getElementById('pals');
+pals.innerHTML = Object.keys(PALETAS).map(k=>`<button data-p="${k}" class="${k===PAL?'on':''}">${PALETAS[k].n}</button>`).join('');
+pals.addEventListener('click', e=>{ const k=e.target.dataset.p; if(!k) return;
+  PAL=k; parar(); [...pals.children].forEach(b=>b.classList.toggle('on',b.dataset.p===k)); construir(); });
+
+construir();
+document.fonts.ready.then(()=>irA(+slider.value));
+setTimeout(()=>irA(+slider.value), 120);
+</script>

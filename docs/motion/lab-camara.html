@@ -1,0 +1,449 @@
+<meta charset="utf-8">
+<title>CIPHER — lab cámara</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ciclo:3s;
+    --ui-bg:#08090F; --ui-line:#1C1F2B; --ui-ink:#EAEDF7; --ui-dim:#727A94;
+    --acento:#FF3B1F;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ui-bg);color:var(--ui-ink);font:400 14px/1.6 Inter,system-ui,sans-serif}
+  header{padding:26px 32px 18px;border-bottom:1px solid var(--ui-line)}
+  h1{margin:0;font:800 21px/1.2 Archivo,sans-serif;letter-spacing:-.02em}
+  header p{margin:8px 0 0;color:var(--ui-dim);max-width:98ch}
+  header b{color:var(--acento);font-weight:500}
+  header code{font:400 12.5px Space Mono,monospace;color:var(--ui-ink)}
+
+  .bar{position:sticky;top:0;z-index:20;background:rgba(8,9,15,.96);backdrop-filter:blur(12px);
+       border-bottom:1px solid var(--ui-line);padding:13px 32px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .bar label{color:var(--ui-dim);font:400 12px Space Mono,monospace;letter-spacing:.1em;text-transform:uppercase}
+  input[type=range]{flex:1;min-width:200px;accent-color:var(--acento)}
+  .t{font:700 15px/1 Space Mono,monospace;min-width:88px;color:var(--acento)}
+  button{background:transparent;border:1px solid var(--ui-line);color:var(--ui-ink);border-radius:6px;
+         padding:7px 14px;font:400 12.5px Space Mono,monospace;cursor:pointer}
+  button:hover{border-color:var(--acento);color:var(--acento)}
+  button.on{background:var(--acento);border-color:var(--acento);color:#0A0A0A;font-weight:700}
+  .cams{display:flex;gap:6px;flex-wrap:wrap}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:30px;padding:28px 32px 60px}
+  .cell h3{margin:0 0 2px;font:600 13.5px Inter,sans-serif;display:flex;align-items:center;gap:8px}
+  .tag{font:400 9.5px Space Mono,monospace;letter-spacing:.1em;text-transform:uppercase;
+       border-radius:99px;padding:2px 7px;color:var(--ui-dim);border:1px solid var(--ui-line)}
+  .fis{margin:0 0 9px;font-size:11px;line-height:1.55;color:var(--ui-dim)}
+  .fis b{color:var(--acento);font-weight:500}
+
+  .frame{position:relative;width:100%;aspect-ratio:9/16;overflow:hidden;border-radius:12px;
+         container-type:inline-size;border:1px solid var(--ui-line);background:#05060B}
+  .capa{position:absolute;inset:0}
+  .zs{position:absolute;left:8.33%;right:8.33%;top:13.54%;bottom:13.54%;
+      border:1px dashed rgba(255,255,255,.14);border-radius:4px;z-index:99;pointer-events:none;display:none}
+  .frame.ver .zs{display:block}
+
+  /* ---- texto ---- */
+  .txt{position:absolute;left:8.33%;right:8.33%;z-index:40}
+  .txt.arriba{top:16%}
+  .txt.abajo{bottom:16%}
+  .txt.izq{left:8.33%;right:30%;top:20%;text-align:left}
+  .tit{font:400 clamp(14px,10.5cqw,64px)/0.94 Anton,sans-serif;text-transform:uppercase;
+       color:#FAFAFA;text-shadow:0 .3cqw 2.4cqw rgba(0,0,0,.9);margin:0}
+  .sub{font:600 clamp(8px,3.6cqw,22px)/1.25 Archivo,sans-serif;color:rgba(255,255,255,.72);
+       margin:1.6cqw 0 0;text-shadow:0 .2cqw 1.6cqw rgba(0,0,0,.9)}
+  .ac{color:var(--ac);font-style:italic}
+  .centro{text-align:center}
+</style>
+
+<header>
+  <h1>Cámara sobre la escena — cuatro guiones reales</h1>
+  <p>Prototipo del eje que falta. Cada cuadro tiene <b>cuatro capas</b> —fondo procedural, héroe
+  recortado, decoradores y texto— y una <b>cámara</b> que las mueve a <b>velocidades distintas</b>.
+  Ahí está el truco: el fondo se mueve mucho, el héroe poco, los decoradores en medio. Eso es lo
+  que da profundidad; si todo se mueve igual, se ve plano.
+  Cambia la cámara arriba y compara. Todas las duraciones son <code>ciclo/n</code> exacto, así que
+  el bucle cierra. El emoji hace de <b>marcador del recorte</b> —ahí iría el sticker generado—;
+  el fondo es código puro y por eso <b>aguanta zoom infinito sin perder nitidez</b>.</p>
+</header>
+
+<div class="bar">
+  <label for="t">t</label>
+  <input id="t" type="range" min="0" max="3" step="0.0333" value="1.1">
+  <span class="t" id="tv">1.100 s</span>
+  <button id="play">Reproducir</button>
+  <button id="loopcheck">Verificar bucle</button>
+  <button id="zona">Zona segura</button>
+  <span style="width:1px;height:22px;background:var(--ui-line)"></span>
+  <label>cámara</label>
+  <div class="cams" id="cams"></div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const CICLO = 3;
+const TAU = 6.283185307;
+const R = (n,f)=>[...Array(n)].map((_,i)=>f(i)).join('');
+let _s = 20260825;
+const semilla = s=>{_s=s};
+const rnd = ()=>(_s=_s*16807%2147483647)/2147483647;
+
+let _k = 0;
+const reglas = [];
+function kf(fn, M){
+  M = M || 33; const nom = 'k'+(_k++);
+  let c = '';
+  for(let i=0;i<M;i++){ const u = i/(M-1); c += (u*100).toFixed(3)+'%{'+fn(u)+'}'; }
+  reglas.push('@keyframes '+nom+'{'+c+'}');
+  return nom;
+}
+// n divide el ciclo: la duracion SIEMPRE es ciclo/n, nunca un literal
+const dur = n => (CICLO/Math.round(n)).toFixed(4)+'s';
+const usa = (nom,n)=>'animation:'+nom+' '+dur(n||1)+' linear infinite both;';
+
+/* ══════════════════════════════════════════════════════════════════
+   LAS CINCO CÁMARAS
+   Una cámara es un transform sobre un envoltorio de escena — el mismo
+   patrón que ya usa extrusion.tsx con su div "mundo".
+   `f` es el FACTOR DE PROFUNDIDAD: 1 = fondo (se mueve todo),
+   0.25 = héroe (se mueve poco). Eso es el parallax.
+   ══════════════════════════════════════════════════════════════════ */
+const CAMARAS = {
+  quieto: {
+    n:'quieto', d:'sin movimiento — el control',
+    f:(u,f)=>'transform:none'
+  },
+  deriva: {
+    n:'deriva', d:'panorámica lenta en diagonal',
+    f:(u,f)=>{
+      const x = Math.sin(u*TAU)*3.2*f, y = Math.cos(u*TAU)*2.0*f;
+      return 'transform:translate('+x.toFixed(3)+'cqw,'+y.toFixed(3)+'cqw) scale('+(1+0.04*f).toFixed(4)+')';
+    }
+  },
+  acercamiento: {
+    n:'acercamiento', d:'zoom in continuo, tipo Ken Burns',
+    f:(u,f)=>{
+      // ida y vuelta para que cierre el bucle exacto
+      const s = 1 + (0.16*f) * (0.5 - 0.5*Math.cos(u*TAU));
+      const y = -(2.2*f) * (0.5 - 0.5*Math.cos(u*TAU));
+      return 'transform:translateY('+y.toFixed(3)+'cqw) scale('+s.toFixed(4)+')';
+    }
+  },
+  rebote: {
+    n:'rebote', d:'sube, planea y aterriza',
+    f:(u,f)=>{
+      const e = Math.sin(u*TAU);
+      const y = -e*3.4*f, s = 1 + 0.10*f*Math.abs(e);
+      return 'transform:translateY('+y.toFixed(3)+'cqw) scale('+s.toFixed(4)+')';
+    }
+  },
+  orbita: {
+    n:'orbita', d:'gira alrededor del sujeto',
+    f:(u,f)=>{
+      const a = u*TAU;
+      const x = Math.cos(a)*4.0*f, y = Math.sin(a)*2.4*f;
+      const r = Math.sin(a)*1.6*f;
+      return 'transform:translate('+x.toFixed(3)+'cqw,'+y.toFixed(3)+'cqw) rotate('+r.toFixed(3)+'deg) scale('+(1+0.06*f).toFixed(4)+')';
+    }
+  },
+  barrido: {
+    n:'barrido', d:'el mundo rota bajo el sujeto',
+    f:(u,f)=>{
+      const r = Math.sin(u*TAU)*3.4*f;
+      const x = Math.sin(u*TAU)*2.2*f;
+      return 'transform:translateX('+x.toFixed(3)+'cqw) rotate('+r.toFixed(3)+'deg) scale('+(1+0.05*f).toFixed(4)+')';
+    }
+  }
+};
+let CAM = 'acercamiento';
+
+// envuelve un bloque HTML en una capa con cámara al factor f
+function conCamara(html, f, z){
+  const c = CAMARAS[CAM];
+  if (CAM === 'quieto') return '<div class="capa" style="z-index:'+z+'">'+html+'</div>';
+  const nom = kf(u=>c.f(u,f), 41);
+  return '<div class="capa" style="'+usa(nom,1)+'z-index:'+z+';will-change:transform">'+html+'</div>';
+}
+
+/* ── piezas reutilizables ─────────────────────────────────────── */
+
+// rejilla técnica
+const grid = (col,op)=>'<div class="capa" style="background:'
+  + 'repeating-linear-gradient(0deg,'+col+' 0 .12cqw,transparent .12cqw 6cqw),'
+  + 'repeating-linear-gradient(90deg,'+col+' 0 .12cqw,transparent .12cqw 6cqw);opacity:'+op+'"></div>';
+
+// linea de barrido que recorre el cuadro
+function scanline(col){
+  const nom = kf(u=>'transform:translateY('+(u*160-30).toFixed(2)+'cqw)', 21);
+  return '<div style="'+usa(nom,1)+'position:absolute;left:0;right:0;height:14cqw;'
+    + 'background:linear-gradient(180deg,transparent,'+col+',transparent);opacity:.30"></div>';
+}
+
+// heroe: el emoji marca DONDE iria el sticker recortado
+function heroe(glifo, tam, top, idle){
+  const nom = kf(u=>{
+    const y = Math.sin(u*TAU)*(idle?1.5:0);
+    const s = 1 + (idle?0.025:0)*Math.sin(u*TAU + 1.1);
+    return 'transform:translate(-50%,-50%) translateY('+y.toFixed(3)+'cqw) scale('+s.toFixed(4)+')';
+  }, 33);
+  return '<div style="'+usa(nom,1)+'position:absolute;left:50%;top:'+top+'%;'
+    + 'font-size:'+tam+'cqw;line-height:1;filter:drop-shadow(0 2.4cqw 3.2cqw rgba(0,0,0,.75))">'+glifo+'</div>';
+}
+
+// decoradores: emojis con bob propio — fase y frecuencia distintas por objeto
+function orbitales(lista, radio, top){
+  return lista.map((g,i)=>{
+    const a0 = (i/lista.length)*TAU;
+    const nom = kf(u=>{
+      const a = a0 + u*TAU;
+      const x = Math.cos(a)*radio, y = Math.sin(a)*radio*0.52 + Math.sin(u*TAU*2 + i)*1.2;
+      const s = 0.82 + 0.18*(0.5+0.5*Math.sin(a));
+      return 'transform:translate(-50%,-50%) translate('+x.toFixed(2)+'cqw,'+y.toFixed(2)+'cqw) scale('+s.toFixed(3)+')';
+    }, 41);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:50%;top:'+top+'%;font-size:7cqw;'
+      + 'filter:drop-shadow(0 .8cqw 1.4cqw rgba(0,0,0,.6))">'+g+'</div>';
+  }).join('');
+}
+
+// flecha que se dibuja sola — SVG, sin una sola imagen
+function flechas(paths, col){
+  let h = '<svg class="capa" viewBox="0 0 90 160" preserveAspectRatio="none" style="overflow:visible">';
+  h += '<defs><marker id="pt" markerWidth="5" markerHeight="5" refX="3.6" refY="2.5" orient="auto">'
+     + '<path d="M0,0 L5,2.5 L0,5 z" fill="'+col+'"/></marker></defs>';
+  paths.forEach((d,i)=>{
+    const nom = kf(u=>{
+      const p = Math.min(1, Math.max(0, (u - i*0.06) / 0.42));
+      return 'stroke-dashoffset:'+((1-p)*60).toFixed(2)+';opacity:'+(p>0?1:0);
+    }, 41);
+    h += '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width=".55" '
+       + 'stroke-dasharray="60" marker-end="url(#pt)" style="'+usa(nom,1)+'"/>';
+  });
+  return h + '</svg>';
+}
+
+// particulas de aire muy desenfocadas: dan volumen, cuestan casi nada
+function aire(n, col, s){
+  semilla(s);
+  return '<div class="capa" style="filter:blur(1.5px);opacity:.45">' + R(n,i=>{
+    const a0 = rnd()*TAU, r = 10+rnd()*34, tam = (0.6+rnd()*1.1).toFixed(2);
+    const nom = kf(u=>{
+      const a = a0 + u*TAU;
+      return 'transform:translate('+(Math.cos(a)*r).toFixed(1)+'cqw,'+(Math.sin(a)*r*0.6).toFixed(1)+'cqw)';
+    }, 25);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:50%;top:45%;width:'+tam+'cqw;height:'+tam
+      + 'cqw;border-radius:50%;background:'+col+'"></div>';
+  }) + '</div>';
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   LAS CUATRO ESCENAS
+   ══════════════════════════════════════════════════════════════════ */
+const ESCENAS = [
+
+{ n:'GUERRA', fam:'blueprint técnico', ac:'#FF4A2B',
+  fis:'<b>Fondo que aguanta el zoom.</b> Rejilla y territorio son código, no imagen: la cámara puede acercarse todo lo que quiera y sigue nítido. Las flechas <b>se dibujan solas</b> con <code>stroke-dasharray</code> — cero imágenes, cero coste. El emoji marca dónde iría el recorte.',
+  g:()=>{
+    let fondo = '<div class="capa" style="background:'
+      + 'radial-gradient(ellipse 70% 50% at 50% 40%,#2a0d08 0%,transparent 62%),'
+      + 'linear-gradient(170deg,#0d0705,#05060B 72%)"></div>'
+      + grid('rgba(255,90,50,.30)', .55)
+      + scanline('rgba(255,90,50,.5)')
+      // territorio que se expande
+      + (()=>{ const nom = kf(u=>{
+            const p = Math.min(1, u/0.62);
+            return 'clip-path:circle('+(p*46).toFixed(2)+'% at 42% 46%);opacity:'+(0.15+p*0.5).toFixed(3);
+          }, 41);
+          return '<div style="'+usa(nom,1)+'position:absolute;inset:0;background:'
+            + 'radial-gradient(circle at 42% 46%,rgba(255,74,43,.55),rgba(255,74,43,.06) 70%)"></div>'; })();
+
+    let medio = flechas([
+      'M18,66 Q34,54 46,60',
+      'M74,52 Q58,46 48,56',
+      'M40,96 Q42,80 46,68'
+    ], '#FFB199') + orbitales(['⚔️','🛡️','🎖️'], 24, 46);
+
+    let hero = heroe('🪖', 30, 46, true);
+
+    return conCamara(fondo, 1.00, 1)
+         + conCamara(medio, 0.55, 2)
+         + conCamara(hero,  0.22, 3);
+  },
+  txt:'<div class="txt arriba centro"><p class="tit">Frentes</p></div>'
+     + '<div class="txt abajo centro"><p class="tit">que <span class="ac">no cierran</span></p>'
+     + '<p class="sub">1914 · el mapa deja de moverse</p></div>' },
+
+{ n:'PSICOLOGÍA', fam:'clean AI-3D', ac:'#E0644A',
+  fis:'<b>El héroe se mueve MENOS que el fondo.</b> Si estuviera clavado se leería como pegatina sobre una pared que se mueve. Un 2-3 % de deriva contra el 15 % del fondo ya lo pone delante. Fondo cálido, sin rejilla: la identidad la da la paleta, no la geometría.',
+  g:()=>{
+    let fondo = '<div class="capa" style="background:'
+      + 'radial-gradient(ellipse 80% 55% at 30% 28%,#FFE3C7 0%,transparent 62%),'
+      + 'radial-gradient(ellipse 70% 60% at 76% 76%,#FFD0BC 0%,transparent 60%),'
+      + 'linear-gradient(165deg,#FBF3E8,#F6E7D8)"></div>';
+    // manchas orgánicas que respiran
+    fondo += R(3,i=>{
+      const nom = kf(u=>{
+        const s = 1 + 0.14*Math.sin(u*TAU + i*2.1);
+        const x = Math.sin(u*TAU + i)*2.6, y = Math.cos(u*TAU + i*1.4)*2.0;
+        return 'transform:translate(-50%,-50%) translate('+x.toFixed(2)+'cqw,'+y.toFixed(2)+'cqw) scale('+s.toFixed(4)+')';
+      }, 33);
+      const L=[30,68,50][i], T=[36,58,72][i], D=[38,30,26][i];
+      return '<div style="'+usa(nom,1)+'position:absolute;left:'+L+'%;top:'+T+'%;width:'+D+'cqw;height:'+D
+        + 'cqw;border-radius:50%;background:rgba(224,100,74,'+[.16,.12,.10][i]+');filter:blur(2px)"></div>';
+    });
+
+    let medio = orbitales(['💭','🌀','🫧','⏳'], 27, 47)
+      + aire(12, '#E0644A', 77);
+
+    let hero = heroe('🧠', 34, 47, true);
+
+    return conCamara(fondo, 1.00, 1)
+         + conCamara(medio, 0.50, 2)
+         + conCamara(hero,  0.18, 3);
+  },
+  txt:'<div class="txt arriba centro"><p class="tit">Tu cerebro</p></div>'
+     + '<div class="txt abajo centro"><p class="tit">no está hecho para <span class="ac">esto</span></p>'
+     + '<p class="sub">cambiar de tarea cada 40 segundos</p></div>' },
+
+{ n:'CIVILIZACIÓN', fam:'editorial estatua', ac:'#D8952F',
+  fis:'<b>Cámara de barrido: el mundo rota bajo el sujeto.</b> La figura entra desde abajo y el texto revela línea a línea a la izquierda. Es la primitiva que AnimateMyMap llama <i>cinematic sweep</i> — y aquí sale de una rotación de 3° sobre el envoltorio del fondo.',
+  g:()=>{
+    let fondo = '<div class="capa" style="background:'
+      + 'radial-gradient(ellipse 75% 55% at 62% 62%,#241a10 0%,transparent 60%),'
+      + 'linear-gradient(180deg,#0b0906,#05060B)"></div>'
+      + grid('rgba(216,149,47,.22)', .5);
+    // horizonte de columnas
+    fondo += '<div class="capa" style="display:flex;align-items:flex-end;justify-content:center;gap:2.2cqw;padding-bottom:22%">'
+      + R(7,i=>{
+          const nom = kf(u=>{
+            const p = Math.min(1, Math.max(0,(u - i*0.045)/0.4));
+            return 'transform:scaleY('+p.toFixed(3)+');opacity:'+(0.18+p*0.34).toFixed(3);
+          }, 33);
+          return '<div style="'+usa(nom,1)+'width:3.4cqw;height:'+(16+((i*37)%14))+'cqw;transform-origin:50% 100%;'
+            + 'background:linear-gradient(180deg,rgba(216,149,47,.5),rgba(216,149,47,.12))"></div>';
+        })
+      + '</div>';
+
+    let medio = orbitales(['📜','⚱️','🗿'], 22, 52) + aire(10, '#D8952F', 31);
+
+    // la figura sube desde abajo y se queda
+    const sube = kf(u=>{
+      const p = Math.min(1, u/0.34);
+      const e = 1 - Math.pow(1-p, 3);
+      return 'transform:translate(-50%,-50%) translateY('+((1-e)*26).toFixed(2)+'cqw);opacity:'+e.toFixed(3);
+    }, 41);
+    let hero = '<div style="'+usa(sube,1)+'position:absolute;left:50%;top:56%;font-size:36cqw;line-height:1;'
+      + 'filter:drop-shadow(0 3cqw 4cqw rgba(0,0,0,.85))">🏛️</div>';
+
+    return conCamara(fondo, 1.00, 1)
+         + conCamara(medio, 0.55, 2)
+         + conCamara(hero,  0.20, 3);
+  },
+  txt:'<div class="txt izq"><p class="tit">Siglos</p><p class="tit">de <span class="ac">intuición</span></p>'
+     + '<p class="sub">y la máquina no jugó ajedrez</p></div>' },
+
+{ n:'UNIVERSO', fam:'expansión', ac:'#7FB8FF',
+  fis:'<b>Coste cero y profundidad real.</b> Anillos que crecen con gradiente de temperatura —caliente cerca del origen, frío lejos—, partículas desenfocadas detrás y un héroe casi quieto. Nada de esto es una imagen: por eso el zoom no lo degrada nunca.',
+  g:()=>{
+    let fondo = '<div class="capa" style="background:'
+      + 'radial-gradient(ellipse 60% 45% at 50% 30%,#2a1040 0%,transparent 58%),'
+      + 'radial-gradient(ellipse 90% 70% at 50% 82%,#06203a 0%,transparent 62%),'
+      + 'linear-gradient(180deg,#0a0616,#05060B)"></div>';
+    // anillos de expansión
+    fondo += R(9,i=>{
+      const f0 = i/9;
+      const nom = kf(u=>{
+        const p = (f0 + u) % 1;
+        const s = 0.14 + p*1.5;
+        const cr = Math.round(255 - p*170), cg = Math.round(150 - p*40), cb = Math.round(90 + p*160);
+        return 'transform:translate(-50%,-50%) scale('+s.toFixed(4)+');border-color:rgb('+cr+','+cg+','+cb+');'
+             + 'opacity:'+(p<0.1 ? (p/0.1) : (1-p)*0.85).toFixed(3);
+      }, 41);
+      return '<div style="'+usa(nom,1)+'position:absolute;left:50%;top:45%;width:64cqw;height:64cqw;'
+        + 'border:.42cqw solid;border-radius:50%"></div>';
+    });
+    fondo += aire(18, '#9FD8FF', 13);
+
+    let medio = orbitales(['🌑','☄️','✨'], 30, 45);
+    let hero = heroe('🪐', 30, 45, true);
+
+    return conCamara(fondo, 1.00, 1)
+         + conCamara(medio, 0.60, 2)
+         + conCamara(hero,  0.15, 3);
+  },
+  txt:'<div class="txt abajo centro"><p class="tit">Todo lo que existe</p>'
+     + '<p class="tit">cabía en <span class="ac">un punto</span></p>'
+     + '<p class="sub">y sigue separándose</p></div>' }
+];
+
+/* ── construcción ─────────────────────────────────────────────── */
+function construir(){
+  _k = 0; reglas.length = 0;
+  const html = ESCENAS.map(c=>`
+    <div class="cell">
+      <h3>${c.n} <span class="tag">${c.fam}</span></h3>
+      <p class="fis">${c.fis}</p>
+      <div class="frame ${verZona?'ver':''}" style="--ac:${c.ac}">
+        ${c.g()}
+        ${c.txt}
+        <div class="zs"></div>
+      </div>
+    </div>`).join('');
+  let st = document.getElementById('hoja');
+  if(!st){ st = document.createElement('style'); st.id='hoja'; document.head.appendChild(st); }
+  st.textContent = reglas.join('\n');
+  document.getElementById('grid').innerHTML = html;
+  irA(+slider.value);
+}
+
+/* ── controles ────────────────────────────────────────────────── */
+const slider = document.getElementById('t'), out = document.getElementById('tv');
+let corriendo = false, raf = 0, t0 = 0, verZona = false;
+
+function irA(t){
+  out.textContent = t.toFixed(3)+' s';
+  for(const a of document.getAnimations()){ try{ a.pause(); a.currentTime = t*1000 }catch(e){} }
+}
+function parar(){ corriendo=false; cancelAnimationFrame(raf);
+  const b=document.getElementById('play'); b.classList.remove('on'); b.textContent='Reproducir' }
+
+slider.addEventListener('input', ()=>{ parar(); irA(+slider.value) });
+
+document.getElementById('play').addEventListener('click', ()=>{
+  if(corriendo){ parar(); return }
+  corriendo = true; t0 = performance.now() - (+slider.value)*1000;
+  const b = document.getElementById('play'); b.classList.add('on'); b.textContent='Pausar';
+  const tick = ()=>{ if(!corriendo) return;
+    let t = (performance.now()-t0)/1000;
+    if(t > CICLO){ t0 = performance.now(); t = 0 }
+    slider.value = t; irA(t); raf = requestAnimationFrame(tick); };
+  raf = requestAnimationFrame(tick);
+});
+
+let cara = 0;
+document.getElementById('loopcheck').addEventListener('click', e=>{
+  parar(); cara ^= 1; const v = cara ? CICLO-0.001 : 0;
+  irA(v); slider.value = v;
+  e.target.textContent = cara ? 'Viendo t='+CICLO : 'Viendo t=0';
+  e.target.classList.toggle('on', !!cara);
+});
+
+document.getElementById('zona').addEventListener('click', e=>{
+  verZona = !verZona;
+  document.querySelectorAll('.frame').forEach(f=>f.classList.toggle('ver', verZona));
+  e.target.classList.toggle('on', verZona);
+});
+
+const cams = document.getElementById('cams');
+cams.innerHTML = Object.keys(CAMARAS).map(k=>
+  `<button data-cam="${k}" title="${CAMARAS[k].d}" class="${k===CAM?'on':''}">${CAMARAS[k].n}</button>`).join('');
+cams.addEventListener('click', e=>{
+  const k = e.target.dataset.cam; if(!k) return;
+  CAM = k; parar();
+  [...cams.children].forEach(b=>b.classList.toggle('on', b.dataset.cam===k));
+  construir();
+});
+
+construir();
+document.fonts.ready.then(()=>irA(+slider.value));
+setTimeout(()=>irA(+slider.value), 120);
+</script>

@@ -1,0 +1,436 @@
+<meta charset="utf-8">
+<title>CIPHER — fondos por tema</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{--ciclo:3s;--ui-bg:#08090F;--ui-line:#1C1F2B;--ui-ink:#EAEDF7;--ui-dim:#727A94;--acento:#FF3B1F}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ui-bg);color:var(--ui-ink);font:400 14px/1.6 Inter,system-ui,sans-serif}
+  header{padding:26px 32px 18px;border-bottom:1px solid var(--ui-line)}
+  h1{margin:0;font:800 21px/1.2 Archivo,sans-serif;letter-spacing:-.02em}
+  header p{margin:8px 0 0;color:var(--ui-dim);max-width:100ch}
+  header b{color:var(--acento);font-weight:500}
+  .bar{position:sticky;top:0;z-index:20;background:rgba(8,9,15,.96);backdrop-filter:blur(12px);
+       border-bottom:1px solid var(--ui-line);padding:13px 32px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .bar label{color:var(--ui-dim);font:400 11px Space Mono,monospace;letter-spacing:.1em;text-transform:uppercase}
+  input[type=range]{flex:1;min-width:220px;accent-color:var(--acento)}
+  .t{font:700 14px/1 Space Mono,monospace;min-width:80px;color:var(--acento)}
+  button{background:transparent;border:1px solid var(--ui-line);color:var(--ui-ink);border-radius:6px;
+         padding:6px 12px;font:400 12px Space Mono,monospace;cursor:pointer}
+  button:hover{border-color:var(--acento);color:var(--acento)}
+  button.on{background:var(--acento);border-color:var(--acento);color:#0A0A0A;font-weight:700}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:24px;padding:26px 32px 60px}
+  .cell h3{margin:0 0 3px;font:600 12.5px Inter,sans-serif;display:flex;align-items:center;gap:7px}
+  .num{font:700 9px Space Mono,monospace;color:var(--ui-dim);border:1px solid var(--ui-line);
+       border-radius:99px;padding:1px 6px}
+  .fis{margin:0 0 8px;font-size:10.5px;line-height:1.5;color:var(--ui-dim);min-height:44px}
+  .fis b{color:var(--acento);font-weight:500}
+  .frame{position:relative;width:100%;aspect-ratio:9/16;overflow:hidden;border-radius:11px;
+         container-type:inline-size;border:1px solid var(--ui-line);background:#05060B}
+  .capa{position:absolute;inset:0}
+  .cont{position:absolute;inset:0;z-index:50;display:none;pointer-events:none}
+  .frame.ver .cont{display:block}
+  .tit{position:absolute;left:7%;right:7%;top:40%;text-align:center;
+       font:400 9.6cqw/0.96 Anton,sans-serif;text-transform:uppercase;
+       text-shadow:0 .4cqw 3cqw rgba(0,0,0,.85)}
+  .osc .tit{color:#fff}
+  .cla .tit{color:#1a1206;text-shadow:0 .3cqw 2cqw rgba(255,255,255,.75)}
+</style>
+
+<header>
+  <h1>Doce fondos, doce temas</h1>
+  <p>Uno por cada palabra que me diste. Ninguno <b>ilustra</b> el tema —no hay dibujos de camiones ni
+  de corazones—: cada uno <b>lo evoca con movimiento y forma</b>. Eso es lo que hace que sirvan
+  para muchas palabras y no solo para una: <i>multitud</i> también vale para "sociedad", "público" o
+  "mercado". Pulsa <b>Ver palabra</b> para comprobar que el texto se lee encima.</p>
+</header>
+
+<div class="bar">
+  <label for="t">t</label>
+  <input id="t" type="range" min="0" max="3" step="0.0167" value="1.4">
+  <span class="t" id="tv">1.400 s</span>
+  <button id="play">Reproducir</button>
+  <button id="loopcheck">Bucle</button>
+  <button id="cont" class="on">Ver palabra</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const CICLO = 3, TAU = 6.283185307;
+const R = (n,f)=>[...Array(n)].map((_,i)=>f(i)).join('');
+let _s = 1; const sem = s=>{_s=s||1}; const rnd = ()=>(_s=_s*16807%2147483647)/2147483647;
+let _k = 0; const reglas = [];
+function kf(fn, M){
+  M = M || 33; const nom = 'h'+(_k++); let c = '';
+  for(let i=0;i<M;i++){ const u = i/(M-1); c += (u*100).toFixed(3)+'%{'+fn(u)+'}'; }
+  reglas.push('@keyframes '+nom+'{'+c+'}'); return nom;
+}
+const usa = (nom,n)=>'animation:'+nom+' '+(CICLO/Math.round(n||1)).toFixed(4)+'s linear infinite both;';
+
+const FONDOS = [
+
+{p:'MULTITUD', tono:'osc',
+ d:'<b>Cientos de siluetas con su propio balanceo.</b> Nadie se mueve igual que su vecino, así que el conjunto ondula como una masa viva. Sirve para sociedad, público, mercado, ciudad.',
+ g:()=>{
+  let h='<div class="capa" style="background:linear-gradient(180deg,#171b28,#080a10)"></div>';
+  sem(3);
+  let gente='';
+  for(let f=0;f<9;f++){
+    const esc = 0.5 + f*0.09, op = 0.25 + f*0.08;
+    for(let i=0;i<16;i++){
+      const x = (i+ (f%2)*0.5) * (100/16) + rnd()*2;
+      const ph = rnd()*TAU, an = 2.4*esc;
+      const nom = kf(u=>'transform:translate(-50%,0) translateX('+(Math.sin(u*TAU+ph)*1.1).toFixed(2)
+        + 'cqw) translateY('+(Math.abs(Math.sin(u*TAU*2+ph))*-0.7).toFixed(2)+'cqw)',25);
+      gente += '<div style="'+usa(nom,1)+'position:absolute;left:'+x.toFixed(1)+'%;bottom:'+(2+f*7.4)+'%;'
+        + 'width:'+an.toFixed(2)+'cqw;height:'+(an*2.1).toFixed(2)+'cqw;background:#0a0d16;opacity:'+op.toFixed(2)+';'
+        + 'border-radius:'+an.toFixed(2)+'cqw '+an.toFixed(2)+'cqw .4cqw .4cqw"></div>'
+        + '<div style="'+usa(nom,1)+'position:absolute;left:'+x.toFixed(1)+'%;bottom:'+(2+f*7.4+an*2.0/1.6)+'%;'
+        + 'width:'+(an*0.62).toFixed(2)+'cqw;height:'+(an*0.62).toFixed(2)+'cqw;background:#0a0d16;'
+        + 'opacity:'+op.toFixed(2)+';border-radius:50%;transform:translate(-50%,0)"></div>';
+    }
+  }
+  return h+'<div class="capa">'+gente+'</div>'
+    + '<div class="capa" style="background:linear-gradient(180deg,rgba(23,27,40,.9),transparent 40%)"></div>';
+ }},
+
+{p:'ORDEN ESPONTÁNEO', tono:'osc',
+ d:'<b>Puntos dispersos que se organizan solos en rejilla y se vuelven a soltar.</b> El concepto entero en un movimiento: nadie los ordena y sin embargo se ordenan.',
+ g:()=>{
+  let h='<div class="capa" style="background:radial-gradient(ellipse 80% 60% at 50% 46%,#0d1b1e,#03080a 72%)"></div>';
+  sem(17);
+  const CO=7, FI=11;
+  let pts='';
+  for(let i=0;i<CO*FI;i++){
+    const gx = (i%CO + 0.5)*(100/CO), gy = (Math.floor(i/CO) + 0.5)*(100/FI);
+    const cx = rnd()*100, cy = rnd()*100;
+    const nom = kf(u=>{
+      const k = 0.5 - 0.5*Math.cos(u*TAU);      // 0 caos -> 1 orden -> 0 caos
+      const x = cx + (gx-cx)*k, y = cy + (gy-cy)*k;
+      return 'left:'+x.toFixed(2)+'%;top:'+y.toFixed(2)+'%;opacity:'+(0.3+0.6*k).toFixed(3);
+    }, 41);
+    pts += '<div style="'+usa(nom,1)+'position:absolute;width:1.5cqw;height:1.5cqw;'
+      + 'transform:translate(-50%,-50%);border-radius:50%;background:#4FE3B0"></div>';
+  }
+  return h+'<div class="capa">'+pts+'</div>';
+ }},
+
+{p:'CORAZÓN', tono:'osc',
+ d:'<b>Latido doble, no pulso simple.</b> Dos golpes seguidos y una pausa larga — el ritmo real de un corazón. Las ramas de alrededor se llenan con cada golpe. Para vida, emoción, salud.',
+ g:()=>{
+  const lat = u=>{                     // dos golpes por ciclo, con pausa
+    const a = Math.exp(-Math.pow((u-0.10)/0.055,2));
+    const b = Math.exp(-Math.pow((u-0.24)/0.070,2))*0.72;
+    return Math.min(1, a+b);
+  };
+  const nucleo = kf(u=>'transform:translate(-50%,-50%) scale('+(1+0.30*lat(u)).toFixed(4)+');opacity:'
+    +(0.55+0.45*lat(u)).toFixed(3),49);
+  let h='<div class="capa" style="background:radial-gradient(circle at 50% 46%,#3a0511,#120206 62%,#060103)"></div>';
+  h += '<div style="'+usa(nucleo,1)+'position:absolute;left:50%;top:46%;width:46cqw;height:46cqw;'
+    + 'border-radius:50%;background:radial-gradient(circle,#FF2E4E,#8A0620 52%,transparent 70%);filter:blur(2px)"></div>';
+  h += '<svg class="capa" viewBox="0 0 90 160">';
+  sem(23);
+  for(let i=0;i<16;i++){
+    const a=(i/16)*TAU, r1=14+rnd()*4, r2=r1+16+rnd()*16;
+    const x1=45+Math.cos(a)*r1, y1=74+Math.sin(a)*r1*1.5;
+    const x2=45+Math.cos(a)*r2, y2=74+Math.sin(a)*r2*1.5;
+    const nom = kf(u=>'opacity:'+(0.10+0.55*lat(u)).toFixed(3)+';stroke-width:'+(0.22+0.30*lat(u)).toFixed(3),49);
+    h += '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)
+       + '" stroke="#FF6A80" style="'+usa(nom,1)+'"/>';
+  }
+  return h+'</svg>';
+ }},
+
+{p:'PUENTE COLGANTE', tono:'osc',
+ d:'<b>Catenarias con sus tirantes verticales, meciéndose.</b> La curva del cable es la fórmula real, no un arco cualquiera. Para conexión, infraestructura, unir dos orillas.',
+ g:()=>{
+  let h='<div class="capa" style="background:linear-gradient(180deg,#1b2740 0%,#33456b 44%,#0c1220 46%,#060a12)"></div>';
+  h += '<svg class="capa" viewBox="0 0 90 160" preserveAspectRatio="none">';
+  [0,1].forEach(k=>{
+    const y0 = 52 + k*8, comba = 22 - k*5;
+    const nom = kf(u=>{
+      const s = Math.sin(u*TAU + k)*1.4;
+      let d='M0,'+(y0+s).toFixed(2);
+      for(let x=0;x<=90;x+=5){
+        const t=(x/90)*2-1;
+        d += ' L'+x+','+(y0 + comba*(t*t) + s).toFixed(2);
+      }
+      return 'd:path("'+d+'")';
+    },33);
+    h += '<path style="'+usa(nom,1)+'" fill="none" stroke="#9FB6D9" stroke-width=".55" opacity="'+(0.85-k*0.35)+'"/>';
+  });
+  for(let i=1;i<18;i++){
+    const x=i*5, t=(x/90)*2-1;
+    const nom = kf(u=>{ const s=Math.sin(u*TAU)*1.4;
+      return 'd:path("M'+x+','+(52+22*t*t+s).toFixed(2)+' L'+x+',78")'; },33);
+    h += '<path style="'+usa(nom,1)+'" stroke="#7C90B4" stroke-width=".22" opacity=".65"/>';
+  }
+  h += '<rect x="0" y="77.6" width="90" height="1.6" fill="#B8C7E0" opacity=".9"/>';
+  [18,72].forEach(x=>{ h += '<rect x="'+(x-0.8)+'" y="30" width="1.6" height="49" fill="#C8D6EC"/>'; });
+  return h+'</svg>';
+ }},
+
+{p:'DEMOLICIÓN', tono:'osc',
+ d:'<b>Bloques que se sueltan y caen con polvo.</b> Cada fragmento rota a su aire y la nube sube al final. Para colapso, crisis, ruptura, fin de una época.',
+ g:()=>{
+  let h='<div class="capa" style="background:linear-gradient(180deg,#2a2520,#0d0b09)"></div>';
+  sem(37);
+  let frag='';
+  for(let i=0;i<34;i++){
+    const x=6+rnd()*88, an=2.5+rnd()*6.5, ph=rnd()*0.35, rot=(rnd()-0.5)*300;
+    const nom = kf(u=>{
+      const p = Math.min(1, Math.max(0,(u-ph)/0.62));
+      return 'transform:translateY('+(p*p*118).toFixed(2)+'cqw) rotate('+(rot*p).toFixed(1)
+        + 'deg);opacity:'+(p<0.9?1:(1-p)*10).toFixed(3);
+    },33);
+    frag += '<div style="'+usa(nom,1)+'position:absolute;left:'+x.toFixed(1)+'%;top:'+(6+rnd()*38).toFixed(1)+'%;'
+      + 'width:'+an.toFixed(1)+'cqw;height:'+(an*(0.5+rnd())).toFixed(1)+'cqw;'
+      + 'background:linear-gradient(140deg,#8C8177,#3B342E)"></div>';
+  }
+  let polvo = R(14,i=>{
+    const nom = kf(u=>{ const p=Math.min(1,Math.max(0,(u-0.34-i*0.012)/0.6));
+      return 'transform:translateY('+(-p*26).toFixed(2)+'cqw) scale('+(0.5+p*2.1).toFixed(3)
+        + ');opacity:'+((1-p)*0.34).toFixed(3); },33);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:'+(8+i*6.4)+'%;bottom:6%;width:22cqw;height:22cqw;'
+      + 'border-radius:50%;background:radial-gradient(circle,#B9AFA2,transparent 66%);filter:blur(3px)"></div>';
+  });
+  return h+'<div class="capa">'+frag+'</div><div class="capa">'+polvo+'</div>';
+ }},
+
+{p:'TRANSPORTE', tono:'osc',
+ d:'<b>Carretera nocturna: la línea central corre y los faros cruzan.</b> El bucle es exacto porque la línea avanza justo su propio paso. Para logística, comercio, movimiento, viaje.',
+ g:()=>{
+  const linea = kf(u=>'background-position:0 '+(u*18).toFixed(3)+'cqw',21);
+  let h='<div class="capa" style="background:linear-gradient(180deg,#0a1020 0%,#131a2c 40%,#1b1d22 42%,#0b0c0f)"></div>';
+  h += '<div style="position:absolute;left:0;right:0;top:42%;bottom:0;'
+    + 'background:linear-gradient(180deg,#23262d,#111316)"></div>';
+  h += '<div style="'+usa(linea,1)+'position:absolute;left:49%;width:2cqw;top:42%;bottom:0;'
+    + 'background:repeating-linear-gradient(180deg,#E8D25A 0 6cqw,transparent 6cqw 18cqw)"></div>';
+  [28,70].forEach((x,k)=>{
+    h += '<div style="position:absolute;left:'+x+'%;top:42%;bottom:0;width:.5cqw;background:#6E7480;opacity:.55"></div>';
+  });
+  sem(61);
+  h += R(6,i=>{
+    const ph=rnd(), lado=rnd()<0.5?-1:1;
+    const nom = kf(u=>{ const p=(u+ph)%1;
+      return 'transform:translate(-50%,0) translateY('+((1-p)*-40).toFixed(2)+'cqw) scale('+(0.3+p*1.5).toFixed(3)
+        + ');opacity:'+(p<0.1?p/0.1:(1-p)*0.9).toFixed(3); },33);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:'+(50+lado*13)+'%;top:88%;width:7cqw;height:3cqw;'
+      + 'border-radius:50%;background:radial-gradient(circle,#FFF3C4,transparent 68%)"></div>';
+  });
+  return h;
+ }},
+
+{p:'COMIDA EN FAMILIA', tono:'cla',
+ d:'<b>Platos alrededor de una mesa cálida, con vapor subiendo.</b> Vista cenital, sin dibujar comida. Es el fondo más acogedor del lote — para hogar, tradición, encuentro.',
+ g:()=>{
+  let h='<div class="capa" style="background:radial-gradient(ellipse 80% 60% at 50% 50%,#F7E2C2,#D9A96E 74%,#A9743F)"></div>';
+  h += '<div class="capa" style="background-image:radial-gradient(rgba(140,90,40,.16) 1px,transparent 1px);'
+    + 'background-size:3cqw 3cqw"></div>';
+  const platos=[[50,46,26],[24,30,15],[76,32,15],[27,66,14],[73,68,14],[50,80,13]];
+  h += platos.map(([x,y,d],i)=>{
+    const nom = kf(u=>'transform:translate(-50%,-50%) scale('+(1+0.02*Math.sin(u*TAU+i)).toFixed(4)+')',25);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:'+x+'%;top:'+y+'%;width:'+d+'cqw;height:'+d+'cqw;'
+      + 'border-radius:50%;background:radial-gradient(circle at 40% 36%,#FFFDF7,#EADCC6 62%,#C9AE8B);'
+      + 'box-shadow:0 1.2cqw 2.4cqw rgba(120,80,40,.30)"></div>';
+  }).join('');
+  h += R(10,i=>{
+    const nom = kf(u=>{ const p=(u+i*0.1)%1;
+      return 'transform:translate(-50%,0) translateY('+(-p*22).toFixed(2)+'cqw) translateX('
+        + (Math.sin(p*TAU+i)*2.4).toFixed(2)+'cqw);opacity:'+((1-p)*0.42).toFixed(3); },33);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:'+(50+(i%3-1)*12)+'%;top:44%;width:5cqw;height:5cqw;'
+      + 'border-radius:50%;background:#fff;filter:blur(3px)"></div>';
+  });
+  return h;
+ }},
+
+{p:'NAVIDAD', tono:'osc',
+ d:'<b>Nieve cayendo sobre luces desenfocadas.</b> Los puntos de luz laten a destiempo, como una guirnalda real. Para celebración, invierno, familia, fin de año.',
+ g:()=>{
+  let h='<div class="capa" style="background:linear-gradient(180deg,#0b1730,#061024 60%,#03060f)"></div>';
+  sem(77);
+  h += '<div class="capa" style="filter:blur(3px)">'+R(18,i=>{
+    const x=rnd()*100, y=rnd()*100, d=(3+rnd()*5).toFixed(1), ph=rnd();
+    const col=['#FFCF6B','#FF6B6B','#6BE3FF','#8CFF8C'][Math.floor(rnd()*4)];
+    const nom = kf(u=>'opacity:'+(0.30+0.55*Math.abs(Math.sin((u+ph)*TAU))).toFixed(3),25);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:'+x.toFixed(1)+'%;top:'+y.toFixed(1)+'%;'
+      + 'width:'+d+'cqw;height:'+d+'cqw;border-radius:50%;background:'+col+'"></div>';
+  })+'</div>';
+  h += R(46,i=>{
+    const x=rnd()*100, ph=rnd(), t=(0.5+rnd()*1.1).toFixed(2), sw=(2+rnd()*5).toFixed(1);
+    const nom = kf(u=>{ const p=(u+ph)%1;
+      return 'transform:translate('+(Math.sin(p*TAU+i)*sw).toFixed(2)+'cqw,'+(p*118-9).toFixed(2)+'cqw)'; },33);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:'+x.toFixed(1)+'%;top:-8%;width:'+t+'cqw;'
+      + 'height:'+t+'cqw;border-radius:50%;background:#fff;opacity:'+(0.4+rnd()*0.5).toFixed(2)+'"></div>';
+  });
+  return h;
+ }},
+
+{p:'VÍA LÁCTEA', tono:'osc',
+ d:'<b>Banda densa de estrellas en diagonal, con sus vetas de polvo oscuro.</b> No es un cielo estrellado cualquiera: la concentración en la banda es lo que la hace reconocible.',
+ g:()=>{
+  let h='<div class="capa" style="background:radial-gradient(ellipse 120% 60% at 30% 30%,#131a3d,#04060f 62%,#010206)"></div>';
+  h += '<div class="capa" style="background:linear-gradient(62deg,transparent 30%,rgba(150,170,255,.22) 44%,'
+    + 'rgba(220,200,255,.30) 50%,rgba(150,170,255,.20) 56%,transparent 70%);filter:blur(6px)"></div>';
+  h += '<div class="capa" style="background:linear-gradient(62deg,transparent 44%,rgba(6,4,14,.75) 49%,'
+    + 'transparent 53%);filter:blur(3px)"></div>';
+  sem(89);
+  const gir = kf(u=>'transform:rotate('+(u*4).toFixed(3)+'deg) scale(1.12)',33);
+  h += '<div class="capa" style="'+usa(gir,1)+'">'+R(150,i=>{
+    const banda = rnd()<0.72;
+    let x,y;
+    if(banda){ const t=rnd(); x=t*100; y=104-t*88 + (rnd()-0.5)*22; }
+    else { x=rnd()*100; y=rnd()*100; }
+    const t=(0.28+rnd()*0.75).toFixed(2), ph=rnd();
+    const nom = kf(u=>'opacity:'+(0.30+0.55*Math.abs(Math.sin((u+ph)*TAU))).toFixed(3),25);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:'+x.toFixed(1)+'%;top:'+y.toFixed(1)+'%;'
+      + 'width:'+t+'cqw;height:'+t+'cqw;border-radius:50%;background:#EAF0FF"></div>';
+  })+'</div>';
+  return h;
+ }},
+
+{p:'REINO ANIMAL', tono:'osc',
+ d:'<b>El pelaje cambia de patrón: manchas, rayas, retícula.</b> Un solo fondo que recorre tres pieles distintas dentro del ciclo. Para naturaleza, especies, diversidad.',
+ g:()=>{
+  let h='<div class="capa" style="background:#2a1c0c"></div>';
+  sem(43);
+  // manchas tipo leopardo
+  let manchas='';
+  for(let i=0;i<46;i++){
+    const x=rnd()*100, y=rnd()*100, d=(5+rnd()*7).toFixed(1);
+    const nom = kf(u=>{ const k=Math.max(0,Math.cos(u*TAU));
+      return 'opacity:'+(k*0.85).toFixed(3)+';transform:translate(-50%,-50%) scale('+(0.6+0.4*k).toFixed(3)+')'; },33);
+    manchas += '<div style="'+usa(nom,1)+'position:absolute;left:'+x.toFixed(1)+'%;top:'+y.toFixed(1)+'%;'
+      + 'width:'+d+'cqw;height:'+(+d*0.82).toFixed(1)+'cqw;border-radius:50%;background:#170d03;'
+      + 'box-shadow:0 0 0 .6cqw #C98A2E"></div>';
+  }
+  // rayas tipo cebra
+  const rayas = kf(u=>{ const k=Math.max(0,Math.cos((u-0.333)*TAU));
+    return 'opacity:'+k.toFixed(3); },33);
+  const ret = kf(u=>{ const k=Math.max(0,Math.cos((u-0.666)*TAU));
+    return 'opacity:'+k.toFixed(3); },33);
+  h += '<div class="capa">'+manchas+'</div>'
+    + '<div class="capa" style="'+usa(rayas,1)+'background:repeating-linear-gradient(78deg,'
+    + '#12100e 0 2.6cqw,#EDE6DA 2.6cqw 5.6cqw)"></div>'
+    + '<div class="capa" style="'+usa(ret,1)+'background:'
+    + 'repeating-linear-gradient(0deg,#4A2E10 0 1.1cqw,transparent 1.1cqw 9cqw),'
+    + 'repeating-linear-gradient(90deg,#4A2E10 0 1.1cqw,transparent 1.1cqw 9cqw),#C9862E"></div>'
+    + '<div class="capa" style="background:radial-gradient(ellipse 70% 55% at 50% 46%,transparent,rgba(10,6,2,.78) 80%)"></div>';
+  return h;
+ }},
+
+{p:'LEY DE DARWIN', tono:'osc',
+ d:'<b>Un árbol que se ramifica: cada rama se divide en dos y sigue.</b> Se dibuja sola de abajo arriba. Para evolución, herencia, decisiones que se bifurcan, genealogía.',
+ g:()=>{
+  let h='<div class="capa" style="background:radial-gradient(ellipse 80% 60% at 50% 86%,#0d2018,#03080a 70%)"></div>';
+  h += '<svg class="capa" viewBox="0 0 90 160">';
+  const ramas=[];
+  (function rama(x,y,ang,len,prof){
+    if(prof>5) return;
+    const x2=x+Math.cos(ang)*len, y2=y+Math.sin(ang)*len;
+    ramas.push([x,y,x2,y2,prof]);
+    rama(x2,y2,ang-0.42-prof*0.02,len*0.74,prof+1);
+    rama(x2,y2,ang+0.42+prof*0.02,len*0.74,prof+1);
+  })(45,152,-Math.PI/2,30,0);
+  ramas.forEach(([x1,y1,x2,y2,prof])=>{
+    const nom = kf(u=>{ const p=Math.min(1,Math.max(0,(u-prof*0.10)/0.24));
+      return 'stroke-dashoffset:'+((1-p)*40).toFixed(2)+';opacity:'+(p*0.95).toFixed(3); },33);
+    h += '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)
+       + '" stroke="#5FE39A" stroke-width="'+(1.5-prof*0.22).toFixed(2)+'" stroke-linecap="round" '
+       + 'stroke-dasharray="40" style="'+usa(nom,1)+'"/>';
+  });
+  ramas.filter(r=>r[4]===5).forEach(([,,x2,y2],i)=>{
+    const nom = kf(u=>{ const p=Math.min(1,Math.max(0,(u-0.56-i*0.004)/0.2));
+      return 'opacity:'+p.toFixed(3)+';r:'+(p*1.1).toFixed(2); },25);
+    h += '<circle cx="'+x2.toFixed(1)+'" cy="'+y2.toFixed(1)+'" r="1.1" fill="#BFFFDD" style="'+usa(nom,1)+'"/>';
+  });
+  return h+'</svg>';
+ }},
+
+{p:'ECOSISTEMA MARINO', tono:'osc',
+ d:'<b>Rayos de luz atravesando el agua, algas que se mecen y partículas suspendidas.</b> Tres capas a velocidades distintas: eso es lo que da la sensación de profundidad real.',
+ g:()=>{
+  let h='<div class="capa" style="background:linear-gradient(180deg,#0d5f7a 0%,#084357 34%,#03202d 68%,#010c12)"></div>';
+  h += R(7,i=>{
+    const nom = kf(u=>'transform:translateX('+(Math.sin(u*TAU+i*0.8)*5).toFixed(2)+'cqw) skewX('
+      +(-12+Math.sin(u*TAU+i)*3).toFixed(2)+'deg);opacity:'+(0.10+0.10*Math.sin(u*TAU+i*1.3)).toFixed(3),33);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:'+(i*15-4)+'%;top:-10%;width:12cqw;height:110%;'
+      + 'background:linear-gradient(180deg,rgba(190,245,255,.85),transparent 72%);filter:blur(3px)"></div>';
+  });
+  sem(67);
+  h += R(30,i=>{
+    const x=rnd()*100, ph=rnd(), t=(0.4+rnd()*0.9).toFixed(2);
+    const nom = kf(u=>{ const p=(u+ph)%1;
+      return 'transform:translateY('+(-p*40).toFixed(2)+'cqw) translateX('+(Math.sin(p*TAU+i)*2.4).toFixed(2)
+        + 'cqw);opacity:'+((p<0.12?p/0.12:(1-p))*0.7).toFixed(3); },33);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:'+x.toFixed(1)+'%;bottom:'+(rnd()*40).toFixed(1)+'%;'
+      + 'width:'+t+'cqw;height:'+t+'cqw;border-radius:50%;background:#CFF6FF"></div>';
+  });
+  h += '<svg class="capa" viewBox="0 0 90 160" preserveAspectRatio="none">';
+  for(let i=0;i<9;i++){
+    const x0=4+i*10.4, alt=40+((i*29)%40);
+    const nom = kf(u=>{
+      let d='M'+x0.toFixed(1)+',160';
+      for(let s=1;s<=6;s++){
+        const y=160-(alt/6)*s;
+        const x=x0+Math.sin(u*TAU+i*0.7+s*0.5)*(s*0.9);
+        d += ' L'+x.toFixed(2)+','+y.toFixed(2);
+      }
+      return 'd:path("'+d+'")';
+    },33);
+    h += '<path style="'+usa(nom,1)+'" fill="none" stroke="#0E7A5F" stroke-width="1.5" '
+       + 'stroke-linecap="round" opacity=".55"/>';
+  }
+  return h+'</svg>';
+ }}
+];
+
+let verCont = true;
+function construir(){
+  _k = 0; reglas.length = 0;
+  document.getElementById('grid').innerHTML = FONDOS.map((f,i)=>`
+    <div class="cell">
+      <h3><span class="num">${String(i+1).padStart(2,'0')}</span> ${f.p.toLowerCase()}</h3>
+      <p class="fis">${f.d}</p>
+      <div class="frame ${f.tono} ${verCont?'ver':''}">
+        ${f.g()}
+        <div class="cont"><div class="tit">${f.p}</div></div>
+      </div>
+    </div>`).join('');
+  let st = document.getElementById('hoja');
+  if(!st){ st = document.createElement('style'); st.id='hoja'; document.head.appendChild(st); }
+  st.textContent = reglas.join('\n');
+  irA(+slider.value);
+}
+
+const slider = document.getElementById('t'), out = document.getElementById('tv');
+let corriendo=false, raf=0, t0=0;
+function irA(t){ out.textContent = t.toFixed(3)+' s';
+  for(const a of document.getAnimations()){ try{ a.pause(); a.currentTime = t*1000 }catch(e){} } }
+function parar(){ corriendo=false; cancelAnimationFrame(raf);
+  const b=document.getElementById('play'); b.classList.remove('on'); b.textContent='Reproducir' }
+slider.addEventListener('input', ()=>{ parar(); irA(+slider.value) });
+document.getElementById('play').addEventListener('click', ()=>{
+  if(corriendo){ parar(); return }
+  corriendo=true; t0=performance.now()-(+slider.value)*1000;
+  const b=document.getElementById('play'); b.classList.add('on'); b.textContent='Pausar';
+  const tick=()=>{ if(!corriendo) return; let t=(performance.now()-t0)/1000;
+    if(t>CICLO){ t0=performance.now(); t=0 } slider.value=t; irA(t); raf=requestAnimationFrame(tick); };
+  raf=requestAnimationFrame(tick);
+});
+let cara=0;
+document.getElementById('loopcheck').addEventListener('click', e=>{
+  parar(); cara^=1; const v = cara?CICLO-0.001:0; irA(v); slider.value=v;
+  e.target.textContent = cara?'t='+CICLO:'Bucle'; e.target.classList.toggle('on',!!cara);
+});
+document.getElementById('cont').addEventListener('click', e=>{
+  verCont=!verCont; document.querySelectorAll('.frame').forEach(f=>f.classList.toggle('ver',verCont));
+  e.target.classList.toggle('on',verCont);
+});
+
+construir();
+document.fonts.ready.then(()=>irA(+slider.value));
+setTimeout(()=>irA(+slider.value), 150);
+</script>

@@ -1318,6 +1318,64 @@ de defecto que este, y se reportan igual.
 
 ---
 
+## ⏱️ «✓ built in 19ms» NO ES UN BUILD VACIO — el build son TRES pasos, y ese es el tercero
+
+Anotado porque asusta, y con razon: diecinueve milisegundos no parecen un build de una app
+Electron + React. La sospecha era legitima y se midio. **El build produce todo; los 19 ms eran una
+medicion parcial** —la ultima linea de una salida que tiene tres bloques—.
+
+`npm run build` es `tsc && vite build`, y ese `vite build` dispara **tres builds de Vite
+encadenados**, porque `vite.config.ts` registra `vite-plugin-electron` con dos entradas ademas de
+la del renderer:
+
+| # | que compila | modulos | tiempo |
+|---|---|---|---|
+| 1 | el renderer (React), dos entradas HTML | **1611** | ~10 s |
+| 2 | `src/main/index.ts` -> `dist-electron/main` | 83 | ~0.6 s |
+| 3 | `src/preload/index.ts` -> `dist-electron/preload` | **1** | **~16-19 ms** |
+
+El tercero compila **un solo modulo**, el preload. Que tarde milisegundos es exactamente lo que
+debe pasar. Si alguien mira solo el final de la salida, ve el 19 ms y cree que no se construyo
+nada.
+
+**Como comprobarlo de verdad: no mires el tiempo, mira los ficheros.** Tras `rm -rf dist
+dist-electron && npm run build`, quedan **13 ficheros**, 645 KB en `dist/` y 1.1 MB en
+`dist-electron/`:
+
+```
+    351943  dist-electron/main/index.js
+    768494  dist-electron/main/index.js.map
+      4463  dist-electron/preload/index.js
+      7758  dist-electron/preload/index.js.map
+    223861  dist/assets/AnimatedGraphic-7kbxuJhU.js
+    103681  dist/assets/AnimatedGraphic-C_rEsOcp.css
+      2343  dist/assets/grafico-DZcwwXWL.js
+    217106  dist/assets/principal-QHhP90cP.js
+     18612  dist/fonts/anton-400.woff2
+     34928  dist/fonts/archivo-var.woff2
+     32292  dist/fonts/outfit-var.woff2
+       750  dist/grafico.html
+       613  dist/index.html
+```
+
+Tres cosas que conviene reconocer en esa lista:
+
+1. **Son DOS entradas HTML, no una.** `index.html` (la app) y `grafico.html` (la ventana
+   offscreen que pinta los Visuales). Estan declaradas a mano en `rollupOptions.input`, y el
+   propio comentario del `vite.config.ts` avisa de por que: al declarar input explicito, Vite deja
+   de detectar `index.html` solo.
+2. **`dist/fonts/` no lo genera el build: lo COPIA** desde `public/fonts/`, que es el `publicDir`.
+   Los tres `woff2` estan en git. Por eso reaparecen tras un `rm -rf dist` **conservando su fecha
+   original** —15:57 cuando todo lo demas marca 17:52—: es una copia, no una compilacion. No es un
+   resto sin borrar.
+3. **`main` y `preload` llevan `minify: false` y `sourcemap: true`** por configuracion. De ahi que
+   el `.map` del main pese el doble que el `.js`.
+
+**La etiqueta `v-paso9-mapa-sin-palabra` queda verificada por los ficheros, no por el exit 0.**
+Un `exit 0` sobre una carpeta vacia no probaria nada, y ese era justamente el riesgo.
+
+---
+
 ## 🤖 `vibes-bot.ts`: por que se conserva un fichero que probablemente nunca se ejecute
 
 **Que pretendia.** Automatizar vibes.ai (Meta) para generar imagenes gratis.
@@ -1340,3 +1398,44 @@ resuelva**.
 produce una carpeta con `images/` y `videos/`. CIPHER **lee esa carpeta y no sabe que Vibes
 existe**. Ningun codigo de CIPHER conduce un navegador, y ese es justamente el punto: el limite
 entre los dos mundos es un directorio en disco, no una API.
+
+---
+
+## 📏 EL LISTÓN — la línea base contra la que se mide el motor de motion nuevo
+
+Antes de tocar nada del motor de Visuales ampliado, esto es lo único medido hasta hoy sobre
+el coste del lazo de captura, y lo que falta por medir.
+
+**Lo medido**, [main/index.ts:1340-1345](../src/main/index.ts#L1340), sobre composiciones ligeras
+—`mapa` y `extrusion`, sin imágenes, sin blur, sin filtros de compositing—:
+
+```
+caliente   Visual voltaje 3s   90f   4500 ms   50.3 ms/frame   0.08 MB
+caliente   Visual clinico 3s   90f   4471 ms   49.2 ms/frame   0.13 MB
+caliente   tarjeta 2s          60f   3036 ms   50.1 ms/frame   2.14 MB
+```
+
+**50.3 ms/frame y 1.30 intentos/frame** son los dos números de referencia. **El coste vive en el
+LAZO DE CAPTURA** —`capturePage()` más los reintentos de la sonda— **y no en el DOM ni en el
+encoder**: el contenido apenas influye (voltaje y clínico, con fondos opuestos, difieren un
+2.3%), y codificar es la parte barata frente a capturar.
+
+**Lo que NO está medido, y hay que decirlo antes de empezar**: nadie ha medido cómo escalan
+estos dos números con un DOM más pesado —más nodos, imágenes, filtros de `blur`—. Los tres
+casos de arriba son todos composiciones ligeras y comparables entre sí; ninguno lleva una
+imagen ni un `filter: blur(...)`.
+
+**El blur importa más que el resto**: es la operación de compositing más cara que existe en
+CSS —fuerza al compositor a resolver una convolución sobre toda el área afectada, no una
+transformación barata como `translate`/`opacity`— y **nunca se ha probado en este lazo**. Una
+capa de acabado con glow en dos niveles + profundidad de campo por Z (blur variable) es
+exactamente el escenario que puede hacer que estos números dejen de valer.
+
+**MEDIR INTENTOS/FRAME, NO SÓLO ms/frame.** Son dos preguntas distintas: ms/frame dice cuánto
+tarda un render completo; intentos/frame dice si la sonda consigue sincronizar el frame a la
+primera. El segundo es el que importa cuando se degrada: `MAX_INTENTOS_FRAME` es un tope
+([main/index.ts:1412-1414](../src/main/index.ts#L1412)) — si un frame no llega tras agotarlo,
+**el clip entero falla**, no sale más lento. Un DOM más pesado podría seguir dando un ms/frame
+razonable y aun así perder clips enteros si tarda más en estabilizarse entre el `__setT(t)` y
+la captura, empujando los intentos hacia el tope. La medida de éxito de la Fase 0 no es sólo
+"¿cuánto tarda?", es "¿sigue synchronizando a la primera o segunda vez?".

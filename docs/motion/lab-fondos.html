@@ -1,0 +1,353 @@
+<meta charset="utf-8">
+<title>CIPHER — lab fondos</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@600;700;800&family=Caveat:wght@600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ciclo:3s;
+    --ui-bg:#08090F; --ui-line:#1C1F2B; --ui-ink:#EAEDF7; --ui-dim:#727A94;
+    --acento:#FF3B1F;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ui-bg);color:var(--ui-ink);font:400 14px/1.6 Inter,system-ui,sans-serif}
+  header{padding:26px 32px 18px;border-bottom:1px solid var(--ui-line)}
+  h1{margin:0;font:800 21px/1.2 Archivo,sans-serif;letter-spacing:-.02em}
+  header p{margin:8px 0 0;color:var(--ui-dim);max-width:100ch}
+  header b{color:var(--acento);font-weight:500}
+
+  .bar{position:sticky;top:0;z-index:20;background:rgba(8,9,15,.96);backdrop-filter:blur(12px);
+       border-bottom:1px solid var(--ui-line);padding:13px 32px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .bar label{color:var(--ui-dim);font:400 11px Space Mono,monospace;letter-spacing:.1em;text-transform:uppercase}
+  input[type=range]{flex:1;min-width:220px;accent-color:var(--acento)}
+  .t{font:700 14px/1 Space Mono,monospace;min-width:80px;color:var(--acento)}
+  button{background:transparent;border:1px solid var(--ui-line);color:var(--ui-ink);border-radius:6px;
+         padding:6px 12px;font:400 12px Space Mono,monospace;cursor:pointer}
+  button:hover{border-color:var(--acento);color:var(--acento)}
+  button.on{background:var(--acento);border-color:var(--acento);color:#0A0A0A;font-weight:700}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:24px;padding:26px 32px 60px}
+  .cell h3{margin:0 0 3px;font:600 12.5px Inter,sans-serif;display:flex;align-items:center;gap:7px}
+  .num{font:700 9px Space Mono,monospace;color:var(--ui-dim);border:1px solid var(--ui-line);
+       border-radius:99px;padding:1px 6px}
+  .fis{margin:0 0 8px;font-size:10.5px;line-height:1.5;color:var(--ui-dim);min-height:44px}
+  .fis b{color:var(--acento);font-weight:500}
+
+  .frame{position:relative;width:100%;aspect-ratio:9/16;overflow:hidden;border-radius:11px;
+         container-type:inline-size;border:1px solid var(--ui-line);background:#05060B}
+  .capa{position:absolute;inset:0}
+  .cont{position:absolute;inset:0;z-index:50;display:none;pointer-events:none}
+  .frame.ver .cont{display:block}
+  .tit{position:absolute;left:8.33%;right:8.33%;top:26%;text-align:center;
+       font:400 11cqw/0.94 Anton,sans-serif;text-transform:uppercase;color:#fff;
+       text-shadow:0 .4cqw 3cqw rgba(0,0,0,.9)}
+  .chip{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;
+        font:700 4cqw/1 Archivo,sans-serif;color:#fff;background:rgba(8,10,18,.86);
+        border:.22cqw solid rgba(255,255,255,.5);border-radius:1.4cqw;padding:1.3cqw 2.2cqw;
+        box-shadow:0 1cqw 2.4cqw rgba(0,0,0,.55)}
+</style>
+
+<header>
+  <h1>Diez fondos con vida — todos procedurales</h1>
+  <p>Ni una imagen. Todo son degradados, rejillas, SVG y <code>transform</code>, así que
+  <b>aguantan zoom infinito sin degradarse</b> y cuestan casi nada de render.
+  Pulsa <b>Ver contenido</b> para comprobar lo que de verdad importa en un fondo:
+  <b>que la palabra siga leyéndose encima</b>. Un fondo bonito que se come el texto no sirve.
+  Todas las duraciones son <code>ciclo/n</code> exacto.</p>
+</header>
+
+<div class="bar">
+  <label for="t">t</label>
+  <input id="t" type="range" min="0" max="3" step="0.0167" value="1.2">
+  <span class="t" id="tv">1.200 s</span>
+  <button id="play">Reproducir</button>
+  <button id="loopcheck">Bucle</button>
+  <button id="cont" class="on">Ver contenido</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const CICLO = 3, TAU = 6.283185307;
+const R = (n,f)=>[...Array(n)].map((_,i)=>f(i)).join('');
+let _s = 1; const sem = s=>{_s=s||1}; const rnd = ()=>(_s=_s*16807%2147483647)/2147483647;
+
+let _k = 0; const reglas = [];
+function kf(fn, M){
+  M = M || 33; const nom = 'f'+(_k++); let c = '';
+  for(let i=0;i<M;i++){ const u = i/(M-1); c += (u*100).toFixed(3)+'%{'+fn(u)+'}'; }
+  reglas.push('@keyframes '+nom+'{'+c+'}'); return nom;
+}
+const usa = (nom,n)=>'animation:'+nom+' '+(CICLO/Math.round(n||1)).toFixed(4)+'s linear infinite both;';
+
+/* ══════════════════════════════════════════════════════════════════
+   DIEZ FONDOS
+   Cada uno es una función pura que devuelve HTML. Ninguno sabe qué se
+   va a pintar encima: por eso son un eje independiente.
+   ══════════════════════════════════════════════════════════════════ */
+const FONDOS = [
+
+{n:'ondas', ac:'#3AA0FF',
+ d:'<b>Líneas sinusoidales que se desplazan.</b> Cada línea va a una fase distinta, así que el conjunto respira en vez de moverse en bloque. Es el fondo más neutro del lote: no compite con nada.',
+ g:()=>{
+  let h = '<div class="capa" style="background:linear-gradient(180deg,#04101f,#020509)"></div>';
+  h += '<svg class="capa" viewBox="0 0 90 160" preserveAspectRatio="none">';
+  for(let i=0;i<11;i++){
+    const y0 = 12 + i*13.5, amp = 4 + (i%3)*1.6;
+    const nom = kf(u=>{
+      let d='M0,'+y0.toFixed(2);
+      for(let x=0;x<=90;x+=6){
+        const y = y0 + Math.sin((x/90)*TAU*1.6 + u*TAU + i*0.5)*amp;
+        d += ' L'+x+','+y.toFixed(2);
+      }
+      return 'd:path("'+d+'")';
+    }, 33);
+    h += '<path style="'+usa(nom,1)+'" fill="none" stroke="#3AA0FF" stroke-width=".34" '
+       + 'opacity="'+(0.18+0.05*(i%4)).toFixed(2)+'"/>';
+  }
+  return h+'</svg>';
+ }},
+
+{n:'rejilla 3D', ac:'#FF2E9A',
+ d:'<b>Suelo en perspectiva que avanza hacia ti.</b> El truco del bucle: las líneas se desplazan exactamente el paso de la rejilla, así que al cerrar el ciclo la imagen es idéntica. Estética retro-futuro.',
+ g:()=>{
+  const desp = kf(u=>'background-position:0 '+(u*14).toFixed(3)+'cqw',21);
+  let h = '<div class="capa" style="background:linear-gradient(180deg,#12021d 0%,#2a0538 46%,#0a0110 47%,#05000a)"></div>';
+  // sol
+  h += '<div style="position:absolute;left:50%;top:36%;width:44cqw;height:44cqw;'
+    + 'transform:translate(-50%,-50%);border-radius:50%;'
+    + 'background:linear-gradient(180deg,#FFD36E,#FF2E9A);opacity:.9;'
+    + '-webkit-mask-image:repeating-linear-gradient(180deg,#000 0 2.6cqw,transparent 2.6cqw 3.8cqw);'
+    + 'mask-image:repeating-linear-gradient(180deg,#000 0 2.6cqw,transparent 2.6cqw 3.8cqw)"></div>';
+  // suelo
+  h += '<div style="position:absolute;left:-50%;right:-50%;top:47%;bottom:-10%;'
+    + 'perspective:26cqw;perspective-origin:50% 0"><div style="'+usa(desp,1)
+    + 'position:absolute;inset:-60% -20% -40%;transform:rotateX(74deg);transform-origin:50% 0;'
+    + 'background:repeating-linear-gradient(0deg,#FF2E9A 0 .28cqw,transparent .28cqw 14cqw),'
+    + 'repeating-linear-gradient(90deg,#FF2E9A 0 .28cqw,transparent .28cqw 14cqw);opacity:.55"></div></div>';
+  return h;
+ }},
+
+{n:'túnel', ac:'#00E0C0',
+ d:'<b>Anillos que vienen hacia la cámara.</b> Da sensación de avance inevitable, de estar entrando en algo. Muy fuerte de identidad: úsalo cuando el guion hable de foco o de encierro.',
+ g:()=>{
+  let h = '<div class="capa" style="background:radial-gradient(circle at 50% 46%,#04211d 0%,#020a09 62%,#010404)"></div>';
+  h += R(11,i=>{
+    const nom = kf(u=>{ const p=(i/11+u)%1; const s = Math.pow(p,2.1)*2.6+0.06;
+      return 'transform:translate(-50%,-50%) scale('+s.toFixed(4)+') rotate('+(p*22).toFixed(2)+'deg);'
+        + 'opacity:'+(p<0.08?p/0.08:(1-p)*0.85).toFixed(3); },41);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:50%;top:46%;width:70cqw;height:70cqw;'
+      + 'border:.55cqw solid #00E0C0;border-radius:'+(i%2?'50%':'14%')+'"></div>';
+  });
+  return h;
+ }},
+
+{n:'papel de cuaderno', ac:'#2F6BFF',
+ d:'<b>El único claro del lote.</b> Renglones, margen y grano de papel. Vale doble justamente por eso: rompe la monotonía de que todo sea oscuro. El texto encima tiene que ir en tinta, no en blanco.',
+ g:()=>{
+  const respira = kf(u=>'opacity:'+(0.16+0.05*Math.sin(u*TAU)).toFixed(3),25);
+  let h = '<div class="capa" style="background:#F7F4EC"></div>'
+    + '<div class="capa" style="background:repeating-linear-gradient(180deg,transparent 0 7.4cqw,'
+    + 'rgba(47,107,255,.20) 7.4cqw 7.6cqw)"></div>'
+    + '<div style="position:absolute;left:15%;top:0;bottom:0;width:.3cqw;background:rgba(255,80,80,.4)"></div>'
+    + '<div class="capa" style="'+usa(respira,1)+'background-image:radial-gradient(rgba(90,80,60,.5) .6px,transparent .6px);'
+    + 'background-size:2.1cqw 2.1cqw"></div>'
+    + '<div class="capa" style="box-shadow:inset 0 0 14cqw rgba(120,110,90,.28)"></div>';
+  return h;
+ }},
+
+{n:'malla deformada', ac:'#8B5CF6',
+ d:'<b>Rejilla que se hunde donde hay masa.</b> Lo que la hace leerse como gravedad es que las líneas <b>se juntan</b> al acercarse al pozo, no solo bajan. El pozo orbita, así que la deformación viaja.',
+ g:()=>{
+  const FIL=13, COL=11;
+  let h = '<div class="capa" style="background:radial-gradient(ellipse 70% 50% at 50% 44%,#1a0b30,#07040f 66%)"></div>';
+  h += '<svg class="capa" viewBox="0 0 90 160" preserveAspectRatio="none">';
+  const pozo = u=>[45+Math.cos(u*TAU)*15, 72+Math.sin(u*TAU)*13];
+  const dz = (x,y,u)=>{ const [px,py]=pozo(u); const d=Math.hypot(x-px,(y-py)*0.55);
+    return -22/(1+d*d*0.012); };
+  for(let c=0;c<COL;c++){
+    const nom = kf(u=>{ const x = 4 + c*(82/(COL-1)); let d='';
+      for(let f=0;f<FIL;f++){ const y = 18 + f*(126/(FIL-1));
+        d += (f?' L':'M')+x.toFixed(2)+','+(y+dz(x,y,u)).toFixed(2); }
+      return 'd:path("'+d+'")'; },25);
+    h += '<path style="'+usa(nom,1)+'" fill="none" stroke="#8B5CF6" stroke-width=".26" opacity=".55"/>';
+  }
+  for(let f=0;f<FIL;f++){
+    const nom = kf(u=>{ const y = 18 + f*(126/(FIL-1)); let d='';
+      for(let c=0;c<COL;c++){ const x = 4 + c*(82/(COL-1));
+        d += (c?' L':'M')+x.toFixed(2)+','+(y+dz(x,y,u)).toFixed(2); }
+      return 'd:path("'+d+'")'; },25);
+    h += '<path style="'+usa(nom,1)+'" fill="none" stroke="#8B5CF6" stroke-width=".26" opacity="'
+       + (0.22+0.4*(f/FIL)).toFixed(2)+'"/>';
+  }
+  return h+'</svg>';
+ }},
+
+{n:'niebla', ac:'#E0864A',
+ d:'<b>Manchas suaves que se desplazan y respiran.</b> El fondo más silencioso: no tiene geometría, así que nunca compite con el contenido. Es el que usarías el 40 % de las veces.',
+ g:()=>{
+  let h = '<div class="capa" style="background:linear-gradient(160deg,#1a0f08,#070403)"></div>';
+  sem(19);
+  h += R(6,i=>{
+    const L=(15+rnd()*70).toFixed(1), T=(15+rnd()*70).toFixed(1), D=(30+rnd()*34).toFixed(1);
+    const nom = kf(u=>{
+      const a = u*TAU + i;
+      return 'transform:translate(-50%,-50%) translate('+(Math.cos(a)*4.2).toFixed(2)+'cqw,'
+        + (Math.sin(a*0.8)*3.4).toFixed(2)+'cqw) scale('+(1+0.18*Math.sin(a+i)).toFixed(4)+')'; },33);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:'+L+'%;top:'+T+'%;width:'+D+'cqw;height:'+D
+      + 'cqw;border-radius:50%;background:radial-gradient(circle,rgba(224,134,74,'
+      + (0.16+rnd()*0.14).toFixed(2)+'),transparent 68%);filter:blur(3px)"></div>';
+  });
+  return h;
+ }},
+
+{n:'circuito', ac:'#39FF88',
+ d:'<b>Pistas de placa con pulsos que las recorren.</b> Los pulsos viajan a velocidades distintas por cada pista, así que nunca se sincronizan. Estética técnica sin llegar a rejilla.',
+ g:()=>{
+  let h = '<div class="capa" style="background:linear-gradient(150deg,#04140b,#020705)"></div>';
+  sem(53);
+  h += '<svg class="capa" viewBox="0 0 90 160">';
+  const trazas = [];
+  for(let i=0;i<9;i++){
+    let x = rnd()*90, y = -4, d = 'M'+x.toFixed(1)+','+y;
+    for(let s=0;s<5;s++){
+      const dy = 22 + rnd()*16;
+      y += dy; d += ' V'+y.toFixed(1);
+      const dx = (rnd()<0.5?-1:1)*(6+rnd()*16);
+      x = Math.max(3, Math.min(87, x+dx)); d += ' H'+x.toFixed(1);
+    }
+    trazas.push(d);
+    h += '<path d="'+d+'" fill="none" stroke="#39FF88" stroke-width=".28" opacity=".22"/>';
+  }
+  trazas.forEach((d,i)=>{
+    const nom = kf(u=>'stroke-dashoffset:'+(((1-((u+i/9)%1))*300)).toFixed(1),21);
+    h += '<path d="'+d+'" fill="none" stroke="#39FF88" stroke-width=".5" opacity=".9" '
+       + 'stroke-dasharray="14 286" style="'+usa(nom,1)+'"/>';
+  });
+  return h+'</svg>';
+ }},
+
+{n:'topografía', ac:'#D8952F',
+ d:'<b>Curvas de nivel que se expanden y contraen.</b> Parece un mapa respirando. Muy buen fondo para historia, territorio o geología — dice "terreno" sin dibujar un mapa.',
+ g:()=>{
+  let h = '<div class="capa" style="background:linear-gradient(170deg,#1a1206,#080502)"></div>';
+  h += '<svg class="capa" viewBox="0 0 90 160" preserveAspectRatio="none">';
+  for(let i=0;i<12;i++){
+    const nom = kf(u=>{
+      const k = 1 + 0.10*Math.sin(u*TAU + i*0.42);
+      const rx = (7 + i*4.2)*k, ry = (5 + i*3.1)*k;
+      let d = '';
+      for(let a=0;a<=24;a++){
+        const th = (a/24)*TAU;
+        const wob = 1 + 0.13*Math.sin(th*3 + i*0.8 + u*TAU);
+        const x = 45 + Math.cos(th)*rx*wob, y = 76 + Math.sin(th)*ry*wob;
+        d += (a?' L':'M')+x.toFixed(2)+','+y.toFixed(2);
+      }
+      return 'd:path("'+d+' Z")';
+    }, 33);
+    h += '<path style="'+usa(nom,1)+'" fill="none" stroke="#D8952F" stroke-width=".28" opacity="'
+       + (0.6 - i*0.035).toFixed(2)+'"/>';
+  }
+  return h+'</svg>';
+ }},
+
+{n:'mosaico', ac:'#FF6B35',
+ d:'<b>Cuadros que giran sobre su eje, uno por uno.</b> Cada tile tiene su propio turno, así que el cuadro nunca está quieto pero tampoco se mueve entero. Da textura sin ruido.',
+ g:()=>{
+  const CO=6, FI=10;
+  let h = '<div class="capa" style="background:#140803"></div>';
+  let cel='';
+  sem(11);
+  for(let i=0;i<CO*FI;i++){
+    const ph = rnd();
+    const nom = kf(u=>{
+      const p = (u + ph) % 1;
+      const g = p < 0.34 ? (p/0.34) : 0;
+      return 'transform:rotateY('+(g*180).toFixed(2)+'deg);opacity:'+(0.30+0.5*Math.abs(Math.cos(g*Math.PI))).toFixed(3);
+    }, 33);
+    cel += '<div style="'+usa(nom,1)+'background:linear-gradient(135deg,#FF6B35,#8A2A08);'
+      + 'border:.1cqw solid #140803"></div>';
+  }
+  h += '<div class="capa" style="display:grid;grid-template-columns:repeat('+CO+',1fr);'
+    + 'grid-template-rows:repeat('+FI+',1fr);perspective:60cqw">'+cel+'</div>'
+    + '<div class="capa" style="background:radial-gradient(ellipse 66% 52% at 50% 44%,transparent,rgba(10,4,2,.86) 78%)"></div>';
+  return h;
+ }},
+
+{n:'warp estelar', ac:'#BFD9FF',
+ d:'<b>Estrellas que se estiran hacia fuera.</b> El clásico salto al hiperespacio, resuelto con líneas que crecen desde el centro. Muy fuerte: úsalo poco y en momentos de salto.',
+ g:()=>{
+  let h = '<div class="capa" style="background:radial-gradient(circle at 50% 46%,#0b1430 0%,#03050e 60%,#010208)"></div>';
+  sem(71);
+  h += R(46,i=>{
+    const a = rnd()*360, ph = rnd();
+    const nom = kf(u=>{
+      const p = (u + ph) % 1;
+      return 'transform:rotate('+a.toFixed(1)+'deg) translateX('+(6+p*54).toFixed(2)+'cqw) scaleX('
+        + (0.4+p*3.4).toFixed(2)+');opacity:'+(p<0.12?p/0.12:(1-p)).toFixed(3);
+    }, 33);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:50%;top:46%;width:3cqw;height:.34cqw;'
+      + 'transform-origin:0 50%;border-radius:99px;background:#BFD9FF"></div>';
+  });
+  return h;
+ }}
+];
+
+/* ─── contenido de prueba: lo importante es que se lea ─── */
+function contenido(){
+  return '<div class="cont">'
+    + '<div class="tit">MEMORIA</div>'
+    + '<div class="chip" style="top:52%">🧠 recuerdo</div>'
+    + '<div class="chip" style="top:64%">⏳ tiempo</div>'
+    + '<div class="chip" style="top:76%">🔗 conexión</div>'
+    + '</div>';
+}
+
+let verCont = true;
+function construir(){
+  _k = 0; reglas.length = 0;
+  const html = FONDOS.map((f,i)=>`
+    <div class="cell">
+      <h3><span class="num">${String(i+1).padStart(2,'0')}</span> ${f.n}</h3>
+      <p class="fis">${f.d}</p>
+      <div class="frame ${verCont?'ver':''}">
+        ${f.g()}
+        ${contenido()}
+      </div>
+    </div>`).join('');
+  let st = document.getElementById('hoja');
+  if(!st){ st = document.createElement('style'); st.id='hoja'; document.head.appendChild(st); }
+  st.textContent = reglas.join('\n');
+  document.getElementById('grid').innerHTML = html;
+  irA(+slider.value);
+}
+
+const slider = document.getElementById('t'), out = document.getElementById('tv');
+let corriendo=false, raf=0, t0=0;
+function irA(t){ out.textContent = t.toFixed(3)+' s';
+  for(const a of document.getAnimations()){ try{ a.pause(); a.currentTime = t*1000 }catch(e){} } }
+function parar(){ corriendo=false; cancelAnimationFrame(raf);
+  const b=document.getElementById('play'); b.classList.remove('on'); b.textContent='Reproducir' }
+slider.addEventListener('input', ()=>{ parar(); irA(+slider.value) });
+document.getElementById('play').addEventListener('click', ()=>{
+  if(corriendo){ parar(); return }
+  corriendo=true; t0=performance.now()-(+slider.value)*1000;
+  const b=document.getElementById('play'); b.classList.add('on'); b.textContent='Pausar';
+  const tick=()=>{ if(!corriendo) return; let t=(performance.now()-t0)/1000;
+    if(t>CICLO){ t0=performance.now(); t=0 } slider.value=t; irA(t); raf=requestAnimationFrame(tick); };
+  raf=requestAnimationFrame(tick);
+});
+let cara=0;
+document.getElementById('loopcheck').addEventListener('click', e=>{
+  parar(); cara^=1; const v = cara?CICLO-0.001:0; irA(v); slider.value=v;
+  e.target.textContent = cara?'t='+CICLO:'Bucle'; e.target.classList.toggle('on',!!cara);
+});
+document.getElementById('cont').addEventListener('click', e=>{
+  verCont=!verCont; document.querySelectorAll('.frame').forEach(f=>f.classList.toggle('ver',verCont));
+  e.target.classList.toggle('on',verCont);
+});
+
+construir();
+document.fonts.ready.then(()=>irA(+slider.value));
+setTimeout(()=>irA(+slider.value), 150);
+</script>

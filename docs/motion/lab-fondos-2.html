@@ -1,0 +1,397 @@
+<meta charset="utf-8">
+<title>CIPHER — lab fondos 2</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@600;700;800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{--ciclo:3s;--ui-bg:#08090F;--ui-line:#1C1F2B;--ui-ink:#EAEDF7;--ui-dim:#727A94;--acento:#FF3B1F}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ui-bg);color:var(--ui-ink);font:400 14px/1.6 Inter,system-ui,sans-serif}
+  header{padding:26px 32px 18px;border-bottom:1px solid var(--ui-line)}
+  h1{margin:0;font:800 21px/1.2 Archivo,sans-serif;letter-spacing:-.02em}
+  header p{margin:8px 0 0;color:var(--ui-dim);max-width:100ch}
+  header b{color:var(--acento);font-weight:500}
+  .bar{position:sticky;top:0;z-index:20;background:rgba(8,9,15,.96);backdrop-filter:blur(12px);
+       border-bottom:1px solid var(--ui-line);padding:13px 32px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .bar label{color:var(--ui-dim);font:400 11px Space Mono,monospace;letter-spacing:.1em;text-transform:uppercase}
+  input[type=range]{flex:1;min-width:220px;accent-color:var(--acento)}
+  .t{font:700 14px/1 Space Mono,monospace;min-width:80px;color:var(--acento)}
+  button{background:transparent;border:1px solid var(--ui-line);color:var(--ui-ink);border-radius:6px;
+         padding:6px 12px;font:400 12px Space Mono,monospace;cursor:pointer}
+  button:hover{border-color:var(--acento);color:var(--acento)}
+  button.on{background:var(--acento);border-color:var(--acento);color:#0A0A0A;font-weight:700}
+  section{padding:22px 32px 8px}
+  section h2{margin:0 0 4px;font:800 15px Archivo,sans-serif}
+  section > p{margin:0 0 16px;color:var(--ui-dim);font-size:12px;max-width:98ch}
+  section > p b{color:var(--acento);font-weight:500}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:24px}
+  .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:820px}
+  @media(max-width:760px){.g3{grid-template-columns:repeat(2,1fr)}}
+  .cell h3{margin:0 0 3px;font:600 12.5px Inter,sans-serif;display:flex;align-items:center;gap:7px}
+  .num{font:700 9px Space Mono,monospace;color:var(--ui-dim);border:1px solid var(--ui-line);
+       border-radius:99px;padding:1px 6px}
+  .fis{margin:0 0 8px;font-size:10.5px;line-height:1.5;color:var(--ui-dim);min-height:44px}
+  .fis b{color:var(--acento);font-weight:500}
+  .frame{position:relative;width:100%;aspect-ratio:9/16;overflow:hidden;border-radius:11px;
+         container-type:inline-size;border:1px solid var(--ui-line);background:#05060B}
+  .capa{position:absolute;inset:0}
+  .cont{position:absolute;inset:0;z-index:50;display:none;pointer-events:none}
+  .frame.ver .cont{display:block}
+  .tit{position:absolute;left:8.33%;right:8.33%;top:26%;text-align:center;
+       font:400 11cqw/0.94 Anton,sans-serif;text-transform:uppercase;
+       text-shadow:0 .4cqw 3cqw rgba(0,0,0,.9)}
+  .chip{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;
+        font:700 4cqw/1 Archivo,sans-serif;border-radius:1.4cqw;padding:1.3cqw 2.2cqw;
+        box-shadow:0 1cqw 2.4cqw rgba(0,0,0,.45)}
+  .osc .tit{color:#fff}
+  .osc .chip{color:#fff;background:rgba(8,10,18,.86);border:.22cqw solid rgba(255,255,255,.5)}
+  .cla .tit{color:#16213a;text-shadow:0 .3cqw 2cqw rgba(255,255,255,.8)}
+  .cla .chip{color:#16213a;background:rgba(255,255,255,.9);border:.22cqw solid rgba(20,30,60,.35)}
+</style>
+
+<header>
+  <h1>Doce fondos más — y un mismo fondo a tres intensidades</h1>
+  <p>Todos procedurales, todos con el bucle cerrado exacto. Dos son <b>claros</b> y dos son
+  deliberadamente <b>silenciosos</b>: si los seis que ya elegiste son todos de geometría fuerte y
+  oscuros, el vídeo entero se sentirá igual aunque cambies de fondo.
+  Al final tienes la <b>malla a tres intensidades</b> — la prueba de que un fondo no es un valor,
+  es una <b>familia con parámetros</b>.</p>
+</header>
+
+<div class="bar">
+  <label for="t">t</label>
+  <input id="t" type="range" min="0" max="3" step="0.0167" value="1.2">
+  <span class="t" id="tv">1.200 s</span>
+  <button id="play">Reproducir</button>
+  <button id="loopcheck">Bucle</button>
+  <button id="cont" class="on">Ver contenido</button>
+</div>
+
+<section><h2>Doce fondos nuevos</h2>
+  <p>Comprueba con <b>Ver contenido</b> que la palabra se sigue leyendo. Los claros llevan el texto
+  en tinta oscura automáticamente — eso es una <b>regla del fondo</b>, no una decisión suelta.</p>
+  <div class="grid" id="g1"></div>
+</section>
+
+<section><h2>Un mismo fondo, tres intensidades</h2>
+  <p>La misma malla con tres juegos de parámetros: <b>profundidad del pozo, densidad de la rejilla y
+  velocidad</b>. No son tres fondos: es uno con tres ajustes. Así cada familia de fondo multiplica
+  por su cuenta antes de cruzarse con nada.</p>
+  <div class="g3" id="g2"></div>
+</section>
+
+<script>
+const CICLO = 3, TAU = 6.283185307;
+const R = (n,f)=>[...Array(n)].map((_,i)=>f(i)).join('');
+let _s = 1; const sem = s=>{_s=s||1}; const rnd = ()=>(_s=_s*16807%2147483647)/2147483647;
+let _k = 0; const reglas = [];
+function kf(fn, M){
+  M = M || 33; const nom = 'g'+(_k++); let c = '';
+  for(let i=0;i<M;i++){ const u = i/(M-1); c += (u*100).toFixed(3)+'%{'+fn(u)+'}'; }
+  reglas.push('@keyframes '+nom+'{'+c+'}'); return nom;
+}
+const usa = (nom,n)=>'animation:'+nom+' '+(CICLO/Math.round(n||1)).toFixed(4)+'s linear infinite both;';
+
+/* ══════════════ MALLA PARAMETRIZADA — la familia ══════════════ */
+function malla({pozo=22, paso=11, vel=1, col='#8B5CF6', f1='#1a0b30', f2='#07040f'}={}){
+  const FIL = Math.round(160/paso), COL = Math.round(90/paso);
+  let h = '<div class="capa" style="background:radial-gradient(ellipse 70% 50% at 50% 44%,'+f1+','+f2+' 66%)"></div>';
+  h += '<svg class="capa" viewBox="0 0 90 160" preserveAspectRatio="none">';
+  const cen = u=>[45+Math.cos(u*TAU*vel)*15, 74+Math.sin(u*TAU*vel)*13];
+  const dz = (x,y,u)=>{ const [px,py]=cen(u); const d=Math.hypot(x-px,(y-py)*0.55);
+    return -pozo/(1+d*d*0.012); };
+  for(let c=0;c<COL;c++){
+    const nom = kf(u=>{ const x = 4 + c*(82/(COL-1)); let d='';
+      for(let f=0;f<FIL;f++){ const y = 14 + f*(134/(FIL-1));
+        d += (f?' L':'M')+x.toFixed(2)+','+(y+dz(x,y,u)).toFixed(2); }
+      return 'd:path("'+d+'")'; },25);
+    h += '<path style="'+usa(nom,1)+'" fill="none" stroke="'+col+'" stroke-width=".26" opacity=".5"/>';
+  }
+  for(let f=0;f<FIL;f++){
+    const nom = kf(u=>{ const y = 14 + f*(134/(FIL-1)); let d='';
+      for(let c=0;c<COL;c++){ const x = 4 + c*(82/(COL-1));
+        d += (c?' L':'M')+x.toFixed(2)+','+(y+dz(x,y,u)).toFixed(2); }
+      return 'd:path("'+d+'")'; },25);
+    h += '<path style="'+usa(nom,1)+'" fill="none" stroke="'+col+'" stroke-width=".26" opacity="'
+       + (0.2+0.4*(f/FIL)).toFixed(2)+'"/>';
+  }
+  return h+'</svg>';
+}
+
+/* ══════════════ LOS DOCE ══════════════ */
+const FONDOS = [
+
+{n:'enjambre', tono:'osc',
+ d:'<b>Bandada de puntos que se mueve como un solo cuerpo.</b> Cada punto lleva su fase, así que el grupo ondula en vez de desplazarse en bloque. Dice "muchos actuando a la vez".',
+ g:()=>{
+  let h='<div class="capa" style="background:radial-gradient(ellipse 80% 60% at 50% 46%,#0b1a22,#03080b 70%)"></div>';
+  sem(31);
+  h += R(60,i=>{
+    const ph=rnd()*TAU, rr=8+rnd()*30, sp=0.7+rnd()*0.6;
+    const nom = kf(u=>{
+      const a = ph + u*TAU*sp;
+      const x = Math.cos(a)*rr + Math.sin(a*2.1+ph)*5;
+      const y = Math.sin(a)*rr*0.62 + Math.cos(a*1.7+ph)*4;
+      return 'transform:translate(-50%,-50%) translate('+x.toFixed(2)+'cqw,'+y.toFixed(2)+'cqw)';
+    },33);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:50%;top:46%;width:'+(0.7+rnd()*0.8).toFixed(2)
+      + 'cqw;height:'+(0.7+rnd()*0.8).toFixed(2)+'cqw;border-radius:50%;background:#5FE3C0;opacity:'
+      + (0.3+rnd()*0.5).toFixed(2)+'"></div>';
+  });
+  return h;
+ }},
+
+{n:'cristales', tono:'osc',
+ d:'<b>Facetas poligonales que captan luz.</b> Cada polígono cambia de brillo en su turno, como si la luz girara alrededor. Estética mineral, dura, sin ser técnica.',
+ g:()=>{
+  let h='<div class="capa" style="background:linear-gradient(150deg,#0d1226,#04060f)"></div>';
+  sem(59);
+  h += '<svg class="capa" viewBox="0 0 90 160">';
+  for(let i=0;i<26;i++){
+    const cx=rnd()*90, cy=rnd()*160, r=8+rnd()*18, n=3+Math.floor(rnd()*2);
+    let pts='';
+    for(let k=0;k<n;k++){ const a=(k/n)*TAU+rnd()*0.7;
+      pts += (cx+Math.cos(a)*r).toFixed(1)+','+(cy+Math.sin(a)*r).toFixed(1)+' '; }
+    const ph=rnd();
+    const nom = kf(u=>'opacity:'+(0.06+0.26*Math.abs(Math.sin((u+ph)*TAU))).toFixed(3),25);
+    h += '<polygon points="'+pts+'" fill="#6E8BFF" stroke="#9FB4FF" stroke-width=".2" style="'+usa(nom,1)+'"/>';
+  }
+  return h+'</svg>';
+ }},
+
+{n:'lluvia de datos', tono:'osc',
+ d:'<b>Columnas de caracteres que caen.</b> Cada columna a su velocidad y con su cabeza brillante. Muy reconocible; úsalo para tecnología, información o vigilancia.',
+ g:()=>{
+  let h='<div class="capa" style="background:#020604"></div>';
+  sem(83);
+  const gl='01<>{}[]/\\#$%&*+=~';
+  h += R(14,i=>{
+    const x=(i+0.5)*(100/14), vel=Math.max(1,Math.round(1+rnd()*2)), ph=rnd();
+    const txt = R(16,()=>'<div>'+gl[Math.floor(rnd()*gl.length)]+'</div>');
+    const nom = kf(u=>'transform:translateY('+((((u*vel+ph)%1)*100-50).toFixed(2))+'cqw)',21);
+    return '<div style="'+usa(nom,vel)+'position:absolute;left:'+x.toFixed(1)+'%;top:-20%;'
+      + 'transform:translateX(-50%);font:700 3.4cqw/1.35 Space Mono,monospace;color:#39FF88;'
+      + 'text-align:center;opacity:'+(0.22+rnd()*0.4).toFixed(2)+'">'+txt+'</div>';
+  });
+  h += '<div class="capa" style="background:linear-gradient(180deg,rgba(2,6,4,.9),transparent 22%,transparent 74%,rgba(2,6,4,.95))"></div>';
+  return h;
+ }},
+
+{n:'tinta en agua', tono:'osc',
+ d:'<b>Manchas que se difunden y se disuelven.</b> Orgánico, lento, sin bordes. Es de los silenciosos: no compite con el contenido y sirve de base para casi cualquier estructura.',
+ g:()=>{
+  let h='<div class="capa" style="background:linear-gradient(170deg,#0a0f14,#04070a)"></div>';
+  sem(13);
+  h += R(7,i=>{
+    const L=(12+rnd()*76).toFixed(1), T=(12+rnd()*76).toFixed(1), D=(26+rnd()*40).toFixed(1), ph=rnd();
+    const nom = kf(u=>{ const p=(u+ph)%1;
+      return 'transform:translate(-50%,-50%) scale('+(0.5+p*1.5).toFixed(3)+');opacity:'
+        +((p<0.15?p/0.15:(1-p))*0.5).toFixed(3); },33);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:'+L+'%;top:'+T+'%;width:'+D+'cqw;height:'+D
+      + 'cqw;border-radius:50%;background:radial-gradient(circle,#4FA3C7,transparent 66%);filter:blur(4px)"></div>';
+  });
+  return h;
+ }},
+
+{n:'cuerdas', tono:'osc',
+ d:'<b>Hilos verticales que vibran.</b> Cada cuerda tiene su frecuencia, como un instrumento. Muy bueno para sonido, música o tensión.',
+ g:()=>{
+  let h='<div class="capa" style="background:linear-gradient(180deg,#140a1e,#050208)"></div>';
+  h += '<svg class="capa" viewBox="0 0 90 160" preserveAspectRatio="none">';
+  for(let i=0;i<15;i++){
+    const x0=4+i*(82/14), amp=1.4+ (i%4)*1.1, mod = 1+(i%3);
+    const nom = kf(u=>{
+      let d='M'+x0.toFixed(2)+',0';
+      for(let y=0;y<=160;y+=8){
+        const x = x0 + Math.sin((y/160)*Math.PI*mod)*amp*Math.sin(u*TAU + i*0.6);
+        d += ' L'+x.toFixed(2)+','+y;
+      }
+      return 'd:path("'+d+'")';
+    },33);
+    h += '<path style="'+usa(nom,1)+'" fill="none" stroke="#C77DFF" stroke-width=".3" opacity="'
+       + (0.24+0.34*((i%5)/5)).toFixed(2)+'"/>';
+  }
+  return h+'</svg>';
+ }},
+
+{n:'panal', tono:'osc',
+ d:'<b>Hexágonos que se encienden por oleadas.</b> La onda recorre el panal en diagonal, así que nunca parpadea todo a la vez. Orden y organismo al mismo tiempo.',
+ g:()=>{
+  let h='<div class="capa" style="background:#0d0a02"></div>';
+  const CO=7, FI=11;
+  let cel='';
+  for(let f=0;f<FI;f++) for(let c=0;c<CO;c++){
+    const off = (f%2)*0.5;
+    const x = (c+off)*(100/CO), y = f*(100/FI);
+    const fase = ((c+f)%7)/7;
+    const nom = kf(u=>'opacity:'+(0.08+0.42*Math.pow(Math.max(0,Math.cos(((u+fase)%1)*TAU)),3)).toFixed(3),25);
+    cel += '<div style="'+usa(nom,1)+'position:absolute;left:'+x.toFixed(2)+'%;top:'+y.toFixed(2)+'%;'
+      + 'width:'+(100/CO*0.94)+'%;height:'+(100/FI*1.06)+'%;background:#F5B301;'
+      + 'clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)"></div>';
+  }
+  h += '<div class="capa">'+cel+'</div>'
+    + '<div class="capa" style="background:radial-gradient(ellipse 70% 55% at 50% 46%,transparent,rgba(13,10,2,.9) 78%)"></div>';
+  return h;
+ }},
+
+{n:'skyline', tono:'osc',
+ d:'<b>Barras que crecen y bajan como un ecualizador urbano.</b> Cada barra a su ritmo. Dice ciudad, mercado, datos — y funciona genial en la mitad inferior del cuadro.',
+ g:()=>{
+  let h='<div class="capa" style="background:linear-gradient(180deg,#0a1020 0%,#1a2440 52%,#050810)"></div>';
+  sem(29);
+  let barras='';
+  for(let i=0;i<22;i++){
+    const alt=14+rnd()*44, ph=rnd(), an=100/22;
+    const nom = kf(u=>'transform:scaleY('+(0.72+0.28*Math.sin((u+ph)*TAU)).toFixed(3)+')',25);
+    barras += '<div style="'+usa(nom,1)+'position:absolute;left:'+(i*an).toFixed(2)+'%;bottom:0;'
+      + 'width:'+(an*0.86).toFixed(2)+'%;height:'+alt.toFixed(1)+'%;transform-origin:50% 100%;'
+      + 'background:linear-gradient(180deg,#4A7FFF,#0d1530);border-top:.2cqw solid #9FBBFF"></div>';
+  }
+  h += '<div class="capa">'+barras+'</div>';
+  return h;
+ }},
+
+{n:'vórtice', tono:'osc',
+ d:'<b>Puntos que espiralan hacia el centro.</b> Succión constante, hipnótico. Muy fuerte de identidad — para pérdida, colapso o concentración.',
+ g:()=>{
+  const gir = kf(u=>'transform:rotate('+(u*360).toFixed(2)+'deg)',41);
+  let h='<div class="capa" style="background:radial-gradient(circle at 50% 46%,#2b0b1e,#0a0208 66%)"></div>';
+  let pts='';
+  for(let i=0;i<70;i++){
+    const a=i*0.55, r=2+i*0.62;
+    pts += '<div style="position:absolute;left:'+(50+Math.cos(a)*r).toFixed(2)+'%;top:'
+      + (46+Math.sin(a)*r*0.6).toFixed(2)+'%;width:'+(0.5+i*0.028).toFixed(2)+'cqw;height:'
+      + (0.5+i*0.028).toFixed(2)+'cqw;transform:translate(-50%,-50%);border-radius:50%;'
+      + 'background:#FF5C8A;opacity:'+(0.2+0.6*(i/70)).toFixed(2)+'"></div>';
+  }
+  h += '<div class="capa" style="'+usa(gir,1)+'">'+pts+'</div>';
+  return h;
+ }},
+
+{n:'caústicas', tono:'osc',
+ d:'<b>Luz refractada bajo el agua.</b> Dos capas de ondas cruzadas que se desplazan en direcciones distintas: donde se cruzan, brilla. Silencioso pero vivo.',
+ g:()=>{
+  const a1 = kf(u=>'background-position:'+(u*24).toFixed(2)+'cqw '+(u*16).toFixed(2)+'cqw',21);
+  const a2 = kf(u=>'background-position:'+(-u*18).toFixed(2)+'cqw '+(u*22).toFixed(2)+'cqw',21);
+  let h='<div class="capa" style="background:linear-gradient(180deg,#04222c,#01090d)"></div>';
+  h += '<div class="capa" style="'+usa(a1,1)+'background:repeating-radial-gradient(circle at 0 0,'
+    + 'rgba(120,230,255,.16) 0 1.4cqw,transparent 1.4cqw 8cqw);background-size:24cqw 16cqw"></div>';
+  h += '<div class="capa" style="'+usa(a2,1)+'background:repeating-radial-gradient(circle at 100% 0,'
+    + 'rgba(120,230,255,.13) 0 1.2cqw,transparent 1.2cqw 7cqw);background-size:18cqw 22cqw;'
+    + 'mix-blend-mode:screen"></div>';
+  return h;
+ }},
+
+{n:'brasa', tono:'osc',
+ d:'<b>Calor que sube.</b> Partículas naranjas ascendiendo sobre un degradado que va de rojo profundo a negro. Para energía, riesgo, destrucción.',
+ g:()=>{
+  let h='<div class="capa" style="background:linear-gradient(0deg,#3a0d02 0%,#150401 44%,#050101 100%)"></div>';
+  sem(101);
+  h += R(38,i=>{
+    const x=rnd()*100, ph=rnd(), t=(0.5+rnd()*1.3).toFixed(2), sw=(2+rnd()*5).toFixed(1);
+    const nom = kf(u=>{ const p=(u+ph)%1;
+      return 'transform:translate('+(Math.sin(p*TAU+i)*sw).toFixed(2)+'cqw,'+(-p*115).toFixed(2)
+        + 'cqw);opacity:'+((p<0.12?p/0.12:(1-p))*0.9).toFixed(3); },33);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:'+x.toFixed(1)+'%;bottom:-4%;width:'+t+'cqw;'
+      + 'height:'+t+'cqw;border-radius:50%;background:#FF9A2E;box-shadow:0 0 1.6cqw #FF6A00"></div>';
+  });
+  return h;
+ }},
+
+{n:'amanecer', tono:'cla',
+ d:'<b>Claro y cálido.</b> Bandas de luz que se desplazan sobre un cielo pálido. Es el contrapeso: si todos tus fondos son oscuros, el vídeo entero se siente igual aunque cambies de estructura.',
+ g:()=>{
+  let h='<div class="capa" style="background:linear-gradient(180deg,#FFE7C2 0%,#FFD1A8 42%,#FFBE95 72%,#F7A98A)"></div>';
+  h += R(6,i=>{
+    const nom = kf(u=>{ const p=(u+i/6)%1;
+      return 'transform:translateX('+((p*130-30).toFixed(2))+'%) skewX(-14deg);opacity:'
+        +((p<0.14?p/0.14:(1-p))*0.42).toFixed(3); },33);
+    return '<div style="'+usa(nom,1)+'position:absolute;left:0;top:'+(16+i*12)+'%;width:52%;height:6cqw;'
+      + 'background:linear-gradient(90deg,transparent,#FFF6E6,transparent);filter:blur(2px)"></div>';
+  });
+  const sol = kf(u=>'transform:translate(-50%,-50%) scale('+(1+0.05*Math.sin(u*TAU)).toFixed(4)+')',25);
+  h += '<div style="'+usa(sol,1)+'position:absolute;left:50%;top:70%;width:36cqw;height:36cqw;'
+    + 'border-radius:50%;background:radial-gradient(circle,#FFF3D6,#FFC46B 62%,transparent 72%)"></div>';
+  return h;
+ }},
+
+{n:'trama tejida', tono:'cla',
+ d:'<b>Textil claro con hilos que se cruzan.</b> El segundo claro, y el más tranquilo de todos: da textura sin decir nada. Base perfecta cuando el contenido ya es fuerte.',
+ g:()=>{
+  const on = kf(u=>'background-position:'+(u*6).toFixed(3)+'cqw '+(u*6).toFixed(3)+'cqw',21);
+  let h='<div class="capa" style="background:#F2ECE0"></div>';
+  h += '<div class="capa" style="'+usa(on,1)+'background:'
+    + 'repeating-linear-gradient(90deg,rgba(120,105,85,.16) 0 .5cqw,transparent .5cqw 3cqw),'
+    + 'repeating-linear-gradient(0deg,rgba(120,105,85,.13) 0 .5cqw,transparent .5cqw 3cqw);'
+    + 'background-size:6cqw 6cqw"></div>';
+  h += '<div class="capa" style="background-image:radial-gradient(rgba(120,105,85,.30) .7px,transparent .7px);'
+    + 'background-size:1.7cqw 1.7cqw;opacity:.6"></div>'
+    + '<div class="capa" style="box-shadow:inset 0 0 16cqw rgba(140,124,100,.35)"></div>';
+  return h;
+ }}
+];
+
+/* variantes de la malla */
+const MALLAS = [
+  {n:'suave',   d:'pozo poco profundo, rejilla amplia, giro lento. Casi un fondo silencioso.',
+   p:{pozo:11, paso:15, vel:1, col:'#7C8BFF', f1:'#0f1430'}},
+  {n:'media',   d:'la que ya conocías: equilibrio entre presencia y calma.',
+   p:{pozo:22, paso:11, vel:1, col:'#8B5CF6', f1:'#1a0b30'}},
+  {n:'extrema', d:'pozo profundo, rejilla densa, giro doble. Deja de ser fondo y empieza a ser tema.',
+   p:{pozo:40, paso:7, vel:2, col:'#FF4D9D', f1:'#2b0a20'}}
+];
+
+function contenido(){
+  return '<div class="cont"><div class="tit">MEMORIA</div>'
+    + '<div class="chip" style="top:52%">🧠 recuerdo</div>'
+    + '<div class="chip" style="top:64%">⏳ tiempo</div>'
+    + '<div class="chip" style="top:76%">🔗 conexión</div></div>';
+}
+
+let verCont = true;
+function construir(){
+  _k = 0; reglas.length = 0;
+  document.getElementById('g1').innerHTML = FONDOS.map((f,i)=>`
+    <div class="cell">
+      <h3><span class="num">${String(i+1).padStart(2,'0')}</span> ${f.n}</h3>
+      <p class="fis">${f.d}</p>
+      <div class="frame ${f.tono} ${verCont?'ver':''}">${f.g()}${contenido()}</div>
+    </div>`).join('');
+  document.getElementById('g2').innerHTML = MALLAS.map(m=>`
+    <div class="cell"><h3>malla · ${m.n}</h3><p class="fis">${m.d}</p>
+      <div class="frame osc ${verCont?'ver':''}">${malla(m.p)}${contenido()}</div></div>`).join('');
+  let st = document.getElementById('hoja');
+  if(!st){ st = document.createElement('style'); st.id='hoja'; document.head.appendChild(st); }
+  st.textContent = reglas.join('\n');
+  irA(+slider.value);
+}
+
+const slider = document.getElementById('t'), out = document.getElementById('tv');
+let corriendo=false, raf=0, t0=0;
+function irA(t){ out.textContent = t.toFixed(3)+' s';
+  for(const a of document.getAnimations()){ try{ a.pause(); a.currentTime = t*1000 }catch(e){} } }
+function parar(){ corriendo=false; cancelAnimationFrame(raf);
+  const b=document.getElementById('play'); b.classList.remove('on'); b.textContent='Reproducir' }
+slider.addEventListener('input', ()=>{ parar(); irA(+slider.value) });
+document.getElementById('play').addEventListener('click', ()=>{
+  if(corriendo){ parar(); return }
+  corriendo=true; t0=performance.now()-(+slider.value)*1000;
+  const b=document.getElementById('play'); b.classList.add('on'); b.textContent='Pausar';
+  const tick=()=>{ if(!corriendo) return; let t=(performance.now()-t0)/1000;
+    if(t>CICLO){ t0=performance.now(); t=0 } slider.value=t; irA(t); raf=requestAnimationFrame(tick); };
+  raf=requestAnimationFrame(tick);
+});
+let cara=0;
+document.getElementById('loopcheck').addEventListener('click', e=>{
+  parar(); cara^=1; const v = cara?CICLO-0.001:0; irA(v); slider.value=v;
+  e.target.textContent = cara?'t='+CICLO:'Bucle'; e.target.classList.toggle('on',!!cara);
+});
+document.getElementById('cont').addEventListener('click', e=>{
+  verCont=!verCont; document.querySelectorAll('.frame').forEach(f=>f.classList.toggle('ver',verCont));
+  e.target.classList.toggle('on',verCont);
+});
+
+construir();
+document.fonts.ready.then(()=>irA(+slider.value));
+setTimeout(()=>irA(+slider.value), 150);
+</script>
