@@ -173,8 +173,13 @@ export function cabeEnElPie(texto: unknown): boolean {
 // La condicion es la del caso (b): si NI SIQUIERA CENTRADA la caja cabe en la zona, no hay
 // posicion que la salve.
 export const MAX_CARACTERES_ETIQUETA = (() => {
+  // OJO: `anchoCaja` recibe LA ETIQUETA, no su longitud -- mide `String(etiqueta).length` por
+  // dentro. Pasarle el numero `c + 1` medía `String(57).length` = 2 caracteres, el ancho salia
+  // siempre 14.7 % y el bucle llegaba a la guarda de 500: el tope quedaba en 500 y la puerta no
+  // se disparaba nunca. No fallaba nada; lo cazo el render, con una etiqueta de 60 caracteres
+  // dibujandose y saliendose del cuadro. Se le pasa una CADENA de la longitud que se prueba.
   let c = 0;
-  while (c < 500 && anchoCaja(c + 1, true) <= ZONA_ANCHO_UTIL) c++;
+  while (c < 500 && anchoCaja('x'.repeat(c + 1), true) <= ZONA_ANCHO_UTIL) c++;
   return c;
 })();
 
