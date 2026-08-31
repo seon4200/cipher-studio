@@ -31,6 +31,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; graphicsPercent?: number; hasVideoV2?: boolean }) => ipcRenderer.invoke('generate-timeline-assets', params),
   generatePerfectSync: (params: any) => ipcRenderer.invoke('generate-perfect-sync', params),
   renderGraphicsBatch: (params: any) => ipcRenderer.invoke('render-graphics-batch', params),
+  // CANAL PROPIO, no un campo mas en `generation-progress`. La barra de progreso es lo unico
+  // que el usuario mira durante media hora de generacion; meterle un discriminador para poder
+  // avisar de fallos, y arriesgarse a romperla, seria ironico.
+  onGenerationAviso: (callback: (event: any, data: any) => void) => {
+    const listener = (_event: any, value: any) => callback(_event, value)
+    ipcRenderer.on('generation-aviso', listener)
+    return () => {
+      ipcRenderer.removeListener('generation-aviso', listener)
+    }
+  },
   onGenerationProgress: (callback: (event: any, data: any) => void) => {
     const listener = (_event: any, value: any) => callback(_event, value)
     ipcRenderer.on('generation-progress', listener)

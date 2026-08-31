@@ -50,6 +50,14 @@ export const {
   MAX_CARACTERES_PIE, MAX_CARACTERES_ETIQUETA, FRANJA_TEXTO_Y, ZONA_X_MIN, ZONA_X_MAX,
   parametrosDe, instanciasDe
 } = escenaShared
+// SOLO RE-EXPORTACION, para que la suite ejercite el modulo sobre el BUNDLE COMPILADO en vez
+// de reimplementarlo. `avisos.ts` es puro -- sin Electron, sin React, sin fs -- justamente para
+// poder probarlo entero, que es lo que hace utiles a reparto.ts, exclusion.ts y ciclo.ts.
+import {
+  coleccionDeAvisos, armarResumen, textoResumen, describirMotivo, totalRespaldo, MOTIVOS,
+  type Aviso, type Resumen, type FilaResumen, type MotivoRespaldo
+} from '../shared/avisos'
+export { coleccionDeAvisos, armarResumen, textoResumen, describirMotivo, totalRespaldo, MOTIVOS }
 import { recortarTexto } from '../shared/texto'
 export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
 
@@ -3706,6 +3714,24 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
   }
 })
 
+/**
+ * EL CANAL DE AVISOS: propio, y no un campo mas en `generation-progress`.
+ *
+ * La barra de progreso es lo UNICO que el usuario mira durante media hora de generacion, y su
+ * consumidor hace `setGenerationProgress` sobre un objeto unico. Meterle un discriminador para
+ * poder avisar de fallos, y arriesgarse a romperla, seria ironico.
+ *
+ * NO LANZA NUNCA. Con la ventana cerrada, `send` sobre un webContents destruido revienta -- y un
+ * aviso no puede tumbar el proceso. Se traga la excepcion, y el aviso NO se pierde en silencio
+ * porque el log lo tiene igual.
+ */
+function enviarAviso(event: any, carga: unknown): void {
+  try {
+    const wc = event?.sender;
+    if (wc && !wc.isDestroyed?.()) wc.send('generation-aviso', carga);
+  } catch (e) { /* ventana cerrada: el log ya lo tiene */ }
+}
+
 ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
   const isOriginalAudio = transcriptSegments && newAudioSegments && 
     transcriptSegments.length === newAudioSegments.length &&
@@ -3734,6 +3760,32 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     }
     newAudioSegments = merged;
   }
+
+  // LOS AVISOS DE ESTA GENERACION. Se crean AQUI, o sea que se vacian al empezar cada una: un
+  // aviso viejo colgado de una generacion previa miente igual que no avisar. Es el mismo
+  // razonamiento que ya justifica `anunciarExclusion` en el renderer, y no se reinventa.
+  const avisos = coleccionDeAvisos();
+  // Ver el comentario de `decisiones = clipsDecision`: existe para que el resumen del `finally`
+  // pueda contar aunque la generacion no llegue al final.
+  let decisiones: any[] = [];
+  let completa = false;
+
+  /**
+   * Anade un aviso y lo emite. SINCRONO a proposito: no espera al log.
+   *
+   * `writeDebugLog` es asincrono y va en cola -- medido: leyendo el log justo despues de un
+   * lote se recogian 2 de 3 tiradas porque la ultima no habia bajado a disco. Si el aviso
+   * esperara a esa cola, un log atascado se llevaria el aviso por delante, que es exactamente
+   * el fallo que esta fase existe para impedir.
+   *
+   * SOLO EMITE CUANDO EL CODIGO ES NUEVO. Eso ES la agregacion: el mismo codigo 200 veces es
+   * UNA linea con contador, no 200 mensajes. El contador definitivo viaja en el resumen final.
+   */
+  const avisar = (a: Omit<Aviso, 'veces'>): void => {
+    if (avisos.anadir(a)) enviarAviso(event, { tipo: 'avisos', lista: avisos.lista() });
+    writeDebugLog(`[AVISO] ${a.severidad} ${a.origen}/${a.codigo}: ${a.mensaje}` +
+      (a.detalle ? ` | ${a.detalle}` : '')).catch(() => {});
+  };
 
   const logMessage = async (msg: string) => {
     console.log(msg);
@@ -3827,7 +3879,6 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // El precio es el doble de llamadas, que a este tamaño es ruido frente a perder un lote.
       const BATCH_SIZE = 12;
       let phrasesDecision: any[] = [];
-      let graphicsDecision: any[] = [];
 
       for (let batchStart = 0; batchStart < newAudioSegments.length; batchStart += BATCH_SIZE) {
         const batchEnd = Math.min(batchStart + BATCH_SIZE, newAudioSegments.length);
@@ -3971,6 +4022,19 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           } else {
             const errBody = await dsResp.text().catch(() => '');
             await logMessage(`[FASE 2] DeepSeek HTTP ${dsResp.status}: ${errBody.slice(0, 300)}`);
+            // EL 402 DEL 25/8 TENIA QUE HABERSE VISTO A LA PRIMERA. El log lo dijo cinco veces
+            // y nadie lo vio: `logMessage` solo escribe a disco. El codigo lleva el HTTP dentro
+            // para que 402 -- saldo -- y 401 -- clave rechazada -- no se confundan: son dos
+            // problemas con dos arreglos distintos.
+            avisar({
+              severidad: 'error',
+              codigo: `http-${dsResp.status}`,
+              origen: 'deepseek',
+              mensaje: dsResp.status === 402
+                ? 'DeepSeek rechazó la petición por saldo agotado. Sin él no hay palabras clave, así que los clips de stock y los Visuales se rellenan con el vídeo original.'
+                : `DeepSeek respondió con error ${dsResp.status}. Los clips de stock y los Visuales se rellenan con el vídeo original.`,
+              detalle: errBody.slice(0, 200)
+            });
           }
         } catch (err: any) {
           await logMessage('[FASE 2] Error lote: ' + err.message);
@@ -4007,7 +4071,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         } catch (err) { return '(ilegible)'; }
       };
 
-      // Procesar y sanitizar con phrasesDecision y graphicsDecision
+      // Procesar y sanitizar con phrasesDecision
       for (let idx = 0; idx < newAudioSegments.length; idx++) {
         const seg = newAudioSegments[idx];
         const nextSegStart = newAudioSegments[idx + 1]?.start;
@@ -4017,7 +4081,6 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         const numClipsExpected = phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
         
         const matchClips = phrasesDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
-        const matchGraphics = graphicsDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
 
         let visualClips = matchClips?.visualClips || matchClips?.clips;
         if (!Array.isArray(visualClips) || visualClips.length === 0) {
@@ -4134,43 +4197,17 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           }
         }
 
-        let graphic = matchGraphics?.graphic;
-        if (graphic && typeof graphic === 'object') {
-          const type = graphic.type || 'decorativo_emoji';
-          let start = parseFloat(Number(graphic.graphicStart).toFixed(2));
-          let end = parseFloat(Number(graphic.graphicEnd).toFixed(2));
-          
-          if (isNaN(start) || start < 0) start = 0;
-          if (start > phraseDuration) start = phraseDuration;
-          if (isNaN(end) || end < start) end = start + 2.0;
-          if (end > phraseDuration) end = phraseDuration;
-          
-          let dur = end - start;
-          if (dur > 2.0) {
-            end = parseFloat((start + 2.0).toFixed(2));
-            if (end > phraseDuration) {
-              end = phraseDuration;
-              start = parseFloat(Math.max(0, end - 2.0).toFixed(2));
-            }
-          }
-          if (end - start < 0.2) {
-            start = parseFloat(Math.max(0, end - 1.0).toFixed(2));
-            end = parseFloat(Math.min(phraseDuration, start + 1.0).toFixed(2));
-          }
-
-          graphic = {
-            type,
-            value: graphic.value !== undefined ? graphic.value : '📊',
-            label: graphic.label || 'Concepto clave',
-            unit: graphic.unit || '',
-            emoji: graphic.emoji || '💡',
-            graphicStart: start,
-            graphicEnd: end,
-            extra: graphic.extra !== undefined ? graphic.extra : null
-          };
-        } else {
-          graphic = null;
-        }
+        // NUNCA HUBO GRAFICO POR ESTA VIA, y el codigo fingia que si. `graphicsDecision` se
+        // declaraba vacio y nadie le hacia push ni se lo reasignaba, o sea que su `.find`
+        // devolvia `undefined` SIEMPRE: las 35 lineas que saneaban `graphicStart`, recortaban
+        // a 2 segundos y montaban el objeto no se ejecutaron una sola vez. Peor que inutiles:
+        // se leian como si el camino existiera, y buscar por que "no salen los graficos"
+        // llevaba derecho a un saneo impecable de un valor que no llegaba nunca.
+        //
+        // Los graficos de verdad salen por `regenerate-graphics`, que parsea su propia
+        // respuesta de DeepSeek: ese camino esta vivo y no se toca. Y los Visuales son otra
+        // cosa distinta, con su composicion y su hash.
+        const graphic = null;
 
         sanitizedPhrases.push({
           phraseIndex: idx + 1,
@@ -4399,6 +4436,31 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         }
       }
 
+      // ── LOS SLOTS DE STOCK QUE SE DEGRADARON, ANOTADOS ── Y VA AQUI, NO ARRIBA.
+      //
+      // No pasan por ninguno de los cinco puntos de respaldo: caen ANTES, en el reparto, porque
+      // sin keyword propio una busqueda de stock seria generica y no ilustraria nada. Sin esta
+      // anotacion el resumen decia 'stock: se pidieron 11 y salieron 0' con el desglose VACIO --
+      // enseñaba el sintoma y escondia la causa, que es la principal del 25/8.
+      //
+      // ANOTARLO ANTES DE ESTE BLOQUE ERA UN ERROR, y lo cazo la prueba de aceptacion: la
+      // asignacion de Visuales de arriba PROMUEVE clips que estan en 'original', asi que tres de
+      // los marcados como 'stock caido' acababan siendo Visuales de verdad. Contaban como
+      // respaldo sin serlo, y el resumen decia 'Visual: se pidieron 18 y salieron 15' sin que
+      // hubiera caido ningun Visual. Se anota DESPUES y solo sobre los que siguen en 'original':
+      // esos si se quedaron sin ser nada de lo que se pidio.
+      if (sinKeyword > 0) {
+        const conKw = new Set(conKeyword);
+        const degradados = reasignables
+          .filter(j => !conKw.has(j) && cuotaLista[j].clip.type === 'original')
+          .slice(0, sinKeyword);
+        for (const j of degradados) {
+          const c = cuotaLista[j].clip as any;
+          c.origenPedido ??= 'stock';
+          c.motivoRespaldo ??= 'stock-sin-keyword';
+        }
+      }
+
       const finStock = cuotaLista.filter(x => x.clip.type === 'stock').length;
       const finOriginal = cuotaLista.filter(x => x.clip.type === 'original').length;
       await logMessage(`[FASE 2] Cuota: objetivo original=${objOriginal} stock=${objStock} ` +
@@ -4458,6 +4520,15 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           // lineas mas arriba se sanean y aqui se tiraban, sin error y sin log. El mismo patron
           // que obligo a nombrarlos alli.
           conceptos: subClip.conceptos,
+          // EL ORIGEN PEDIDO Y EL MOTIVO CRUZAN EL APLANADO, y hay que nombrarlos igual que
+          // `conceptos`. Es LA MISMA TRAMPA que documenta el comentario de aqui arriba: este
+          // push construye objetos NUEVOS con claves a mano, asi que lo anotado sobre el
+          // sub-clip -- y la degradacion por falta de keyword se anota alli -- se tiraba aqui
+          // sin error y sin log. La advertencia ya estaba escrita en este mismo sitio y volvio
+          // a pasar. Lo cazo la prueba de aceptacion: el resumen decia 'stock: se pidieron 11 y
+          // salieron 0' con el desglose de motivos VACIO.
+          origenPedido: subClip.origenPedido,
+          motivoRespaldo: subClip.motivoRespaldo,
           graphic: null
         });
         globalIdx++;
@@ -4465,6 +4536,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     }
 
     clipsDecision = flattenedClips;
+    // La MISMA referencia, expuesta al `finally` del resumen: `clipsDecision` se declara dentro
+    // del `try` y el resumen tiene que salir tambien cuando la generacion aborta. Si aborta
+    // antes de esta linea, `decisiones` sigue vacio y el resumen dice 0 clips, que es la verdad.
+    decisiones = clipsDecision;
     totalClips = flattenedClips.length;
 
     await logMessage(`[FASE 2] Decisiones de clips listas. Sub-clips totales: ${clipsDecision.length}. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}, Gráficos asignados: ${sanitizedPhrases.filter(p => p.graphic !== null).length}`);
@@ -4547,7 +4622,23 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // su hueco cae a 'original'. No se inventa una palabra ni se amplia la ventana: ampliarla
       // pintaria algo que no suena en ese momento.
       const sinPalabra = conPalabra.filter(x => !x.palabra);
-      for (const x of sinPalabra) x.item.type = 'original';
+      // EL ORIGEN PEDIDO Y EL MOTIVO SE GUARDAN ANTES DE REASIGNAR, y esto es lo que hace que
+      // el resumen no mienta. `type` se muta EN EL SITIO en los seis caminos de respaldo, asi
+      // que al final un Visual caido es indistinguible de un 'original' legitimo: el 25/8 los
+      // clips de stock y los Visuales perdidos habrian salido como 'original' correcto y el
+      // resumen habria dicho que todo cuadraba, igual que dijo la app.
+      //
+      // `??=` Y NO `=`: si un clip cae dos veces, el origen de verdad es el PRIMERO. Con `=` el
+      // segundo lo pisaria y el resumen contaria una caida de stock donde hubo una de Visual.
+      //
+      // ESTOS CAMPOS NO ENTRAN EN NINGUN HASH: `graphicData` se construye con claves EXPLICITAS
+      // y `extra` con dos, `pos` y `conceptos`. Nadie esparce el item. Verificado midiendo: la
+      // clave de un Visual real no cambia.
+      for (const x of sinPalabra) {
+        x.item.origenPedido ??= x.item.type;
+        x.item.motivoRespaldo ??= 'visual-sin-palabra';
+        x.item.type = 'original';
+      }
       if (sinPalabra.length) {
         await logMessage(`[FASE 3] ${sinPalabra.length} de ${visuales.length} Visuales sin ` +
           `palabra con significado en su tramo: pasan a original.`);
@@ -4596,7 +4687,12 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         for (let i = 0; i < aRenderizar.length; i++) {
           const ruta = resVis.rutas?.[i];
           const item = aRenderizar[i].item;
-          if (!ruta || !(await exists(ruta))) { item.type = 'original'; continue; }
+          if (!ruta || !(await exists(ruta))) {
+            item.origenPedido ??= item.type;
+            item.motivoRespaldo ??= 'visual-sin-fichero';
+            item.type = 'original';
+            continue;
+          }
           const durReal = await getVideoDuration(ruta);
           results[item.index - 1] = {
             id: `visual-${item.index}`,
@@ -4677,6 +4773,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           } catch (iaErr: any) {
             await logMessage(`[FASE 3] Error IA en clip ${item.index}: ${iaErr.message || iaErr}. Usando fallback original.`);
             // Caída de seguridad: convertimos el clip a tipo original y le asignamos un timestamp proporcional
+            item.origenPedido ??= item.type;
+            item.motivoRespaldo ??= 'ia-fallida';
             item.type = 'original';
             item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
           }
@@ -4917,6 +5015,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             // Si no se encontró stock en ningún proveedor, usar clip original como fallback
             if (!stockClipPath) {
               await logMessage(`[FASE 3] Sin stock disponible para: "${keyword}". Usando fallback original.`);
+              item.origenPedido ??= item.type;
+              item.motivoRespaldo ??= 'stock-sin-resultados';
               item.type = 'original';
               item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
             } else {
@@ -4963,6 +5063,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             }
           } catch (stockErr: any) {
             await logMessage(`[FASE 3] Error Stock en clip ${item.index}: ${stockErr.message || stockErr}. Usando fallback original.`);
+            // El origen pedido y el motivo, ANTES de reasignar. Ver el bloque de sinPalabra.
+            item.origenPedido ??= item.type;
+            item.motivoRespaldo ??= 'stock-error';
             item.type = 'original';
             item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
           }
@@ -5045,7 +5148,6 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     await logMessage('[FASE 5] Ensamblando timeline...');
     let currentStart = 0;
     const finalClips: any[] = [];
-    const graphicClips: any[] = [];
 
     let globalClipIdx = 0;
         await logMessage(`[DIAG] sanitizedPhrases=${sanitizedPhrases.length} newAudioSegments=${newAudioSegments.length}`);
@@ -5122,51 +5224,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         currentStart += clip.durationSeconds;
       }
 
-      // Si la frase tiene gráfico asignado, creamos un clip de gráfico independiente
-      if (phrase.graphic) {
-        const seg = newAudioSegments[phraseIdx];
-        let graphicStartOffset = phrase.graphic.graphicStart;
-
-        if (seg && seg.words && seg.words.length > 0) {
-          const segStart = seg.start || 0;
-          // La lista vivia AQUI y copiada otra vez mas abajo. Ahora es una sola, en
-          // shared/palabra.ts, y de paso el filtro deja de descartar cifras: "48.6%" se
-          // convertia en cadena vacia y era justo el dato que mas merece un grafico.
-          const keyWord = seg.words.find((w: any) => tieneSignificado(w.word));
-          
-          if (keyWord) {
-            const relative = Math.max(0,
-              parseFloat((keyWord.start - segStart).toFixed(2)));
-            const phraseDuration = seg.end - seg.start;
-            graphicStartOffset = Math.min(relative, phraseDuration * 0.7);
-          }
-        }
-
-        const startSec = phraseStartSeconds + graphicStartOffset;
-        const durSec = phrase.graphic.graphicEnd - phrase.graphic.graphicStart;
-        if (startSec < audioDuration && durSec > 0) {
-          graphicClips.push({
-            id: 'timeline-graphic-' + Math.random(),
-            name: 'Gráfico: ' + (phrase.graphic.label || phrase.graphic.type),
-            startSeconds: startSec,
-            graphicStartRelative: phrase.graphic.graphicStart,
-            phraseIdx: phraseIdx,
-            durationSeconds: Math.min(durSec, audioDuration - startSec),
-            type: 'graphic',
-            graphicData: {
-              type: phrase.graphic.type,
-              value: phrase.graphic.value,
-              label: phrase.graphic.label,
-              unit: phrase.graphic.unit,
-              emoji: phrase.graphic.emoji,
-              extra: phrase.graphic.extra
-            }
-          });
-        }
-      }
     }
-
-    finalClips.push(...graphicClips);
 
         // ═══ NORMALIZACIÓN: cada clip llena hasta el inicio del siguiente ═══
         // Evita huecos por diferencia entre duración planificada y duración real de FFmpeg
@@ -5187,6 +5245,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         currentStart = audioTotal;
 
     await logMessage(`[generate-timeline-assets] Completado. Clips: ${finalClips.length} (Videos: ${finalClips.filter(c => c.type === 'video').length}, Gráficos: ${finalClips.filter(c => c.type === 'graphic').length})`);
+    // La generacion llego al final. Si algo lanza antes, esto no se ejecuta y el resumen dira
+    // que quedo incompleta -- que es lo que hay que decir.
+    completa = true;
     return { success: true, clips: finalClips };
 
   } catch (err: any) {
@@ -5194,6 +5255,45 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     console.error(errMsg, err);
     await writeDebugLog(errMsg);
     return { success: false, error: err.message || 'Error interno' };
+  } finally {
+    // ═══ EL RESUMEN SALE SIEMPRE, TAMBIEN SI LA GENERACION ABORTA O LANZA ═══════════════
+    //
+    // Va en `finally` a proposito: EL CAMINO FELIZ ES JUSTO EL QUE MINTIO EL 25/8. La app dijo
+    // "exito, 78 de 78" y era verdad -- salieron 78 clips; lo que no dijo es que 31 se habian
+    // degradado por el camino. Un resumen que solo apareciera en el camino feliz no serviria.
+    //
+    // NADA DE AQUI PUEDE LANZAR: una excepcion en un `finally` se comeria el return o el error
+    // original, y el usuario se quedaria sin las dos cosas.
+    try {
+      const objetivo = repartoObjetivos(weights, decisiones.length);
+      // EL `real` DE CADA ORIGEN. Un clip que cayo NO cuenta para el origen al que cayo: un
+      // Visual que acabo en "original" es un Visual perdido, no un original legitimo.
+      const legitimos = (t: string) =>
+        decisiones.filter((c: any) => c.type === t && !c.origenPedido).length;
+      const filas: FilaResumen[] = [
+        { origen: 'original', objetivo: objetivo.original, real: legitimos('original') },
+        { origen: 'stock',    objetivo: objetivo.stock,    real: legitimos('stock') },
+        { origen: 'IA',       objetivo: objetivo.ia,       real: legitimos('ia') },
+        { origen: 'Visual',   objetivo: objetivo.visual,   real: legitimos('visual') }
+      ];
+      const porMotivo = new Map<string, number>();
+      for (const c of decisiones as any[]) {
+        if (!c.motivoRespaldo) continue;
+        porMotivo.set(c.motivoRespaldo, (porMotivo.get(c.motivoRespaldo) ?? 0) + 1);
+      }
+      const respaldo: MotivoRespaldo[] = [...porMotivo.entries()].map(([motivo, veces]) => ({
+        motivo, descripcion: describirMotivo(motivo), veces
+      })).sort((a, b) => b.veces - a.veces);
+
+      const resumen: Resumen = armarResumen(filas, respaldo, decisiones.length, completa);
+
+      // A LA INTERFAZ **Y** AL FICHERO. Lo primero para verlo ahora; lo segundo para poder
+      // recuperarlo despues de cerrar la app, que es cuando uno se pregunta que paso.
+      enviarAviso(event, { tipo: 'resumen', resumen, lista: avisos.lista() });
+      for (const linea of textoResumen(resumen)) {
+        writeDebugLog('[RESUMEN] ' + linea).catch(() => {});
+      }
+    } catch (e) { /* el resumen nunca puede tumbar la generacion */ }
   }
 });
 
