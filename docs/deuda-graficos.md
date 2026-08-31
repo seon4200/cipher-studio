@@ -1558,3 +1558,38 @@ Dos avisos sobre este numero:
   mas un `scale`, que el compositor resuelve sin repintar. Una camara futura que anime `filter`
   o `clip-path` es otra cosa entera.
 
+
+---
+
+## 🔍 PENDIENTE: el −3 de Visual, y por que NO se persiguio en la Fase 2
+
+En la prueba de aceptacion de los avisos, el resumen dijo:
+
+```
+    Visual: se pidieron 18 y salieron 15  (-3)
+```
+
+y el desglose por motivo **no explicaba esos tres**. Se investigo hasta cierto punto y **ahi se
+paro a proposito**. Lo que queda descartado, mirando el log de la tirada:
+
+- **NO es falta de palabra**: no salto la linea `[FASE 3] N de M Visuales sin palabra con
+  significado en su tramo`.
+- **NO es infra-asignacion**: no salto `[FASE 2] Visuales: se pidieron X pero solo habia Y slots
+  de 'original' que ceder`. O sea que la cuota si asigno los 18.
+- **NO es el defecto de orden que si se encontro y se arreglo** — la anotacion de
+  `stock-sin-keyword` corria ANTES de la asignacion de Visuales y marcaba como "stock caido" a
+  tres clips que despues se promovian a Visual. Corregido moviendola detras. Tras el arreglo el
+  resumen da `Visual: 18 y 18`, asi que ese −3 concreto **era artefacto de ese bug**.
+
+**Queda pendiente comprobar si reaparece en una generacion REAL.** Y se persigue entonces, no
+antes, por dos razones:
+
+1. **El resumen ya hizo su trabajo**: marco la desviacion y se NEGO a inventar un motivo. Un
+   resumen que rellena huecos con conjeturas es peor que uno con huecos honestos.
+2. **La prueba corria sobre un fixture**: un video sintetico hecho con ffmpeg y segmentos
+   inventados. Perseguir ahi un defecto de GENERACION puede ser perseguir un artefacto de la
+   prueba -- y ademas es el mismo desvio de alcance que ya se cometio una vez.
+
+Cuando se persiga, se persigue **con la herramienta que esta fase construye**: el resumen sobre
+una generacion de verdad. Ese es el sentido de haberla construido.
+

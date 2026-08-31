@@ -50,6 +50,13 @@ export const {
   MAX_CARACTERES_PIE, MAX_CARACTERES_ETIQUETA, FRANJA_TEXTO_Y, ZONA_X_MIN, ZONA_X_MAX,
   parametrosDe, instanciasDe
 } = escenaShared
+// SOLO RE-EXPORTACION, para que la suite ejercite el modulo sobre el BUNDLE COMPILADO en vez
+// de reimplementarlo. `avisos.ts` es puro -- sin Electron, sin React, sin fs -- justamente para
+// poder probarlo entero, que es lo que hace utiles a reparto.ts, exclusion.ts y ciclo.ts.
+import {
+  coleccionDeAvisos, armarResumen, textoResumen, describirMotivo, totalRespaldo, MOTIVOS
+} from '../shared/avisos'
+export { coleccionDeAvisos, armarResumen, textoResumen, describirMotivo, totalRespaldo, MOTIVOS }
 import { recortarTexto } from '../shared/texto'
 export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
 

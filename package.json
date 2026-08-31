@@ -17,6 +17,7 @@
     "test:exclusion": "electron tests/exclusion.js",
     "test:ciclo": "electron tests/ciclo.js",
     "test:mapa": "electron tests/mapa.js",
+    "test:avisos": "electron tests/avisos.js",
     "test:ventana": "electron tests/ventana.js"
   },
   "dependencies": {
