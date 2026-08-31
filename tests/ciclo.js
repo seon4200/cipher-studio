@@ -482,6 +482,81 @@ function conceptos (bundle) {
   // canonizar. Se fija para que nadie lo cambie sin darse cuenta.
   ok(H({ pos: '3:1', conceptos: null }) === H({ pos: '3:1', conceptos: undefined }),
     'conceptos null y undefined dan el MISMO hash (canonizar los colapsa)')
+
+  // ── J) EL ESPACIO DE ESTILOS, CALCULADO POR EL CODIGO ─────────────────────────────
+  //
+  // "Cuantos estilos tengo" no puede ser una multiplicacion escrita en un documento: el dia que
+  // una regla nueva recorte el espacio, el documento seguiria diciendo el numero viejo. Aqui lo
+  // calcula `combinacionesLegales` recorriendo los registros, y esta suite lo FIJA.
+  //
+  // SI ESTE NUMERO BAJA, NO LO ACTUALICES SIN MIRAR POR QUE. Que baje significa que una pieza
+  // nueva no cumple una regla, o que una regla nueva ha recortado el espacio. Las dos cosas hay
+  // que verlas; ninguna se arregla cambiando el numero de aqui.
+  console.log('')
+  console.log('=== J) EL REGISTRO DE PIEZAS Y EL ESPACIO DE ESTILOS ===')
+  const { combinacionesLegales, FONDOS_ESCENA, ESTRUCTURAS_ESCENA, CAMARAS_ESCENA } = bundle
+  ok(typeof combinacionesLegales === 'function', 'combinacionesLegales se exporta del bundle')
+  if (typeof combinacionesLegales !== 'function') return
+
+  // DOS NUMEROS, Y NO SE MEZCLAN.
+  //   identidades = combinaciones de EJES. Impide que dos Visuales SE VEAN IGUAL.
+  //   instancias  = identidades x los rangos discretizados. Impide ver ESTA ESCENA otra vez.
+  // El fallo de formaDe(semilla) fue creer que las segundas sustituyen a las primeras: cuatro
+  // rangos barridos y los quintiles planos. Sumarlos aqui repetiria el mismo error de lectura.
+  const REP = combinacionesLegales()
+  const PRU = combinacionesLegales({ incluirPruebas: true })
+  ok(typeof REP === 'object' && 'identidades' in REP && 'instancias' in REP,
+    'combinacionesLegales devuelve identidades E instancias, no un solo numero',
+    JSON.stringify(REP))
+  ok(REP.identidades === 2, 'el repertorio da 2 IDENTIDADES en 9:16', String(REP.identidades))
+  ok(REP.instancias === 1176000, 'y 1.176.000 INSTANCIAS', String(REP.instancias))
+  ok(PRU.identidades === 12, 'con las piezas de prueba, 12 identidades', String(PRU.identidades))
+
+  // LAS INSTANCIAS NUNCA SON MENOS QUE LAS IDENTIDADES: cada identidad tiene al menos una.
+  ok(REP.instancias >= REP.identidades, 'instancias >= identidades, siempre',
+    REP.instancias + ' >= ' + REP.identidades)
+
+  // Y UNA PIEZA SIN RANGOS APORTA x1, no x0. Si aportara cero, una sola pieza sin rangos
+  // aniquilaria el recuento entero y nadie lo notaria: el numero saldria 0 y pareceria una regla.
+  ok(PRU.instancias > 0, 'las piezas sin rangos multiplican por 1, no por 0',
+    String(PRU.instancias))
+
+  // LOS TRES REGISTROS EXISTEN Y TIENEN CONTRATO. Una pieza sin `descripcion` deja a la IA de
+  // la Fase 7 eligiendo a ciegas, y eso no da ningun error.
+  for (const [nom, reg] of [['fondos', FONDOS_ESCENA], ['estructuras', ESTRUCTURAS_ESCENA],
+                            ['camaras', CAMARAS_ESCENA]]) {
+    const ps = Object.values(reg)
+    const malas = ps.filter(p => !p.id || !p.descripcion || typeof p.energia !== 'number' ||
+      !Array.isArray(p.formatos) || p.formatos.length === 0 || !Array.isArray(p.rangos))
+    ok(malas.length === 0, 'todas las piezas de ' + nom + ' declaran el contrato base',
+      ps.length + ' piezas: ' + ps.map(p => p.id).join(', '))
+    const fuera = ps.filter(p => p.energia < 0 || p.energia > 3)
+    ok(fuera.length === 0, 'y su energia esta en 0..3')
+    // CADA RANGO, COMPLETO. Un rango sin `pasos` haria que el recuento de instancias mintiera
+    // sin fallar: multiplicaria por 1 y esa pieza pareceria no aportar variedad.
+    const rotos = []
+    for (const pi of ps) for (const r of pi.rangos) {
+      if (!r.id || !r.descripcion || !(r.max > r.min) || !(r.pasos >= 1)) rotos.push(pi.id + '.' + (r.id || '?'))
+    }
+    ok(rotos.length === 0, 'y todos sus rangos declaran id, descripcion, min<max y pasos>=1',
+      rotos.length ? rotos.join(', ') : ps.reduce((n, pi) => n + pi.rangos.length, 0) + ' rangos')
+  }
+
+  // LA REGLA DE LA ENERGIA MUERDE. Sin esto, la regla podria estar escrita y no aplicarse.
+  const sinRegla = Object.values(FONDOS_ESCENA).length * Object.values(CAMARAS_ESCENA).length *
+    Object.values(ESTRUCTURAS_ESCENA).length
+  ok(PRU.identidades <= sinRegla, 'la regla de energia nunca AMPLIA el espacio',
+    PRU.identidades + ' <= ' + sinRegla)
+
+  // minConceptos RECORTA de verdad: con 1 concepto, `constelacion` (que pide 3) no cuenta.
+  const conUno = combinacionesLegales({ conceptos: 1, incluirPruebas: true })
+  ok(conUno.identidades < PRU.identidades, 'con 1 concepto hay MENOS identidades que con 3',
+    conUno.identidades + ' < ' + PRU.identidades)
+
+  // Y el formato tambien: casi nada esta portado a 16:9 todavia.
+  const horizontal = combinacionesLegales({ formato: '16:9', incluirPruebas: true })
+  ok(horizontal.identidades < PRU.identidades, 'en 16:9 hay menos identidades que en 9:16',
+    horizontal.identidades + ' < ' + PRU.identidades)
 }
 
 app.whenReady().then(() => {

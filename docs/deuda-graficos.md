@@ -1439,3 +1439,122 @@ primera. El segundo es el que importa cuando se degrada: `MAX_INTENTOS_FRAME` es
 razonable y aun así perder clips enteros si tarda más en estabilizarse entre el `__setT(t)` y
 la captura, empujando los intentos hacia el tope. La medida de éxito de la Fase 0 no es sólo
 "¿cuánto tarda?", es "¿sigue synchronizando a la primera o segunda vez?".
+
+---
+
+## 🐛 EL ACOTADO MIRA EL CENTRO Y LO QUE SE SALE ES EL BORDE — `mapa` sigue con el agujero
+
+Lo encontro la revision de la Fase 1 midiendo `escena`, pero **no es un defecto de `escena`: es el
+mismo que `mapa` lleva dentro**, y `separados()` en `src/shared/mapa.ts` ya lo dice con todas
+las letras:
+
+> OJO, Y ESTA SIN RESOLVER: la comprobacion de zona mira EL CENTRO del nodo, no la caja. Una
+> caja de 30% centrada en x=86 llega a x=101, fuera del cuadro.
+
+`acotar()` acota **centros** a `ZONA` (13..87). Una caja de concepto mide `12.18 + 1.257 * c`
+por ciento del ancho, asi que su borde esta en `centro ± ancho/2`. Con una etiqueta de 17
+caracteres —`anchoCaja(17) = 33.5 %`— un centro en 75, **que acotar considera correcto**, pone
+el borde derecho en 91.8: fuera de la zona segura, que acaba en 91.67.
+
+**No da error.** El nodo sale en el video, medio pisado por la interfaz de la plataforma, y nadie
+se entera hasta verlo.
+
+### En `escena` esta cerrado, en `mapa` NO
+
+`escena` lo cierra en `constelacionDe`: acota cada x a `[8.33 + semi, 91.67 - semi]` y, si ese
+intervalo queda vacio, centra en 50 y `MAX_CARACTERES_ETIQUETA = 56` hace que ese caso ni llegue
+a pintarse. Medido: 0 de 9000 bordes fuera de zona.
+
+**`mapa` NO se ha tocado** —sigue vivo y etiquetado, y tocarlo pedia re-medir sus cuatro
+familias— asi que **conserva el agujero**. Cuando le toque, el arreglo NO es cambiar `acotar()`:
+es que `layoutSeguro` acote por borde igual que hace `escena`, porque `acotar()` tambien lo usan
+las cuatro familias y cambiarlo moveria todos los dibujos a la vez.
+
+### Y cuanto muerde, honestamente
+
+`sanearConceptos` recorta a `MAX_PALABRAS_ETIQUETA = 2`, asi que hacen falta dos palabras que
+sumen 17+ caracteres —"energia renovable" son 17— para dispararlo. **Con que frecuencia pasa de
+verdad no se ha medido**: haria falta el corpus de etiquetas de una generacion real, y no se ha
+contado. Lo que si esta medido es el umbral: 17 caracteres.
+
+
+---
+
+## 📏 REGLA PERMANENTE: NINGUN ARNES REIMPLEMENTA UNA FUNCION DEL PROYECTO
+
+Las ocho suites ya lo hacen bien y lo dicen en su cabecera:
+
+> Se importa del BUNDLE COMPILADO, no se reimplementa: una prueba que copiara la regla probaria
+> su copia y seguiria verde con la regla rota.
+
+**Los arnes sueltos tienen que cumplir lo mismo, y uno no lo cumplio.** Al verificar el acotado
+por borde de caja de la Fase 1, el arnes copio `anchoCaja` escribiendola para recibir **un
+numero**. La real recibe **la etiqueta** y mide `String(etiqueta).length` por dentro. Dos
+consecuencias, y las dos pasaron:
+
+1. El tope `MAX_CARACTERES_ETIQUETA` se derivaba con `anchoCaja(c + 1)`, o sea midiendo
+   `String(57).length` = 2 caracteres. El tope real quedo en **500**, no en 56, y la puerta no se
+   disparaba nunca. Lo cazo el render: una etiqueta de 60 caracteres dibujandose y saliendose.
+2. El **"0 de 9000 fuera de zona"** salio del MISMO arnes, asi que tampoco valia: verificaba su
+   propia copia. Se rehizo importando `anchoCaja`, `altoCaja` y `acotarPuntos` del bundle, y
+   entonces si: 0 de 9000 en X y 0 pisando el pie, de 4 a 56 caracteres.
+
+**Un arnes que reimplementa no verifica el codigo: verifica la copia.** Si hace falta ejecutar
+algo del proyecto fuera de las suites, se ejecuta bajo `electron` contra
+`dist-electron/main/index.js`, como hacen las ocho.
+
+---
+
+## 🎨 LO QUE LA FASE 1 DEJA FEO A PROPOSITO — para la Fase 4 y la Fase 8
+
+Anotado, NO arreglado: con una pieza por eje no tiene sentido pulir el aspecto. Pero se ve en el
+render y conviene que este escrito antes de que alguien lo redescubra.
+
+**Los anillos del fondo son casi invisibles.** Son `var(--acento)` a opacidad 0.20-0.30 sobre
+`var(--fondo)`, o sea rojo oscuro sobre negro en `voltaje`. **El fondo es el eje que MAS variedad
+tiene que dar** -- 22 piezas previstas contra 17 de estructura -- y hoy es el que menos se ve. Un
+eje que no se percibe no multiplica nada: da la misma escena con otro nombre.
+
+**Los decoradores se leen como polvo.** Cinco puntos de 1.6 cqmin en `var(--apoyo)` gris. La
+densidad no se lee como densidad, se lee como **suciedad** en el fondo. `densidad: media` deberia
+cambiar la sensacion de la escena y hoy solo anade motas. Cuando la Fase 5 derive la densidad del
+contenido, esto tiene que ser algo que se vea.
+
+**El acento no se relaciona con el heroe.** El emoji tiñe el heroe y los emojis de los nodos
+--son glifos de color, traen el suyo-- pero los anillos, las aristas y los bordes de caja siguen
+en `var(--acento)` del sistema. Con el cerebro rosa y con la gota azul, **el rojo es el mismo**.
+La escena no tiene una identidad de color: tiene dos, y no se hablan. Es el mismo problema que
+`SISTEMA_VISUAL` ya tiene anotado en `mapa`, pero aqui es peor porque el heroe es el elemento
+dominante del cuadro.
+
+---
+
+## ⏱️ LA CAMARA NO ES DE DONDE SALEN LOS INTENTOS/FRAME — medido, y contradice la hipotesis
+
+El liston son **50.3 ms/frame y 1.30 intentos/frame**. `escena` con una pieza por eje da
+**~51 ms/frame y ~1.65 intentos/frame**: el tiempo aguanta, los intentos suben un tercio.
+
+La sospecha era la camara -- cuatro envoltorios con `transform` animado y `will-change` --. **Se
+midio y NO es.** A/B con la misma palabra y la misma semilla, cambiando UNA pieza del registro
+(`camara: deriva` contra `camara: quieto`, que con `transform: null` no emite ningun @keyframes
+ni pone `will-change`):
+
+```
+  LISTON       50.3 ms/frame      1.30 intentos/frame
+  deriva       51.8 ms/frame      1.69 intentos/frame
+  quieto       50.1 ms/frame      1.60 intentos/frame
+  DIFERENCIA    1.8 ms/frame      0.09 intentos/frame
+```
+
+Dos tiradas independientes dan lo mismo. **La camara cuesta 0.09 intentos/frame: casi nada.** El
+tercio de margen comido viene de OTRO SITIO -- el DOM en general, `container-type: size`, o el
+peso de los glifos de emoji-- y eso hay que medirlo ANTES de la Fase 8, que es la que mete blur.
+
+Dos avisos sobre este numero:
+- **La muestra es pequeña**: 4 clips pedidos por tirada y el lector de log recogio 3 y 2. El log
+  se escribe en cola y el ultimo no habia bajado a disco. La conclusion aguanta porque las dos
+  tiradas coinciden, pero para decidir sobre la Fase 8 hace falta una medicion con mas clips.
+- **Que la camara sea gratis NO significa que 16 camaras lo sean.** `deriva` es un `translate`
+  mas un `scale`, que el compositor resuelve sin repintar. Una camara futura que anime `filter`
+  o `clip-path` es otra cosa entera.
+

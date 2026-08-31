@@ -40,6 +40,16 @@ export const {
   anchoCaja, altoCaja, cajasDe, recorteCaja, recortesArista, MARGEN_H, MARGEN_V,
   FRACCION_MAXIMA_RECORTE
 } = mapa
+// SOLO RE-EXPORTACION, para que la suite ejercite el registro de piezas sobre el BUNDLE
+// COMPILADO en vez de reimplementarlo. `combinacionesLegales` tiene que poder comprobarse sin
+// montar React: es lo que hace que el numero de estilos lo calcule el codigo y no un documento.
+import * as escenaShared from '../shared/escena'
+export const {
+  FONDOS: FONDOS_ESCENA, ESTRUCTURAS: ESTRUCTURAS_ESCENA, CAMARAS: CAMARAS_ESCENA,
+  combinacionesLegales, direccionDe, acotarPuntos, cabeEnElPie, cabeLaEtiqueta,
+  MAX_CARACTERES_PIE, MAX_CARACTERES_ETIQUETA, FRANJA_TEXTO_Y, ZONA_X_MIN, ZONA_X_MAX,
+  parametrosDe, instanciasDe
+} = escenaShared
 import { recortarTexto } from '../shared/texto'
 export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
 
