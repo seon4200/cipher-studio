@@ -25,9 +25,9 @@ import { ajustar, type DuracionUsada } from '../../../shared/ciclo'
 import { generador, semillaDe } from '../../../shared/semilla'
 import { CUANTOS_CONCEPTOS, type Concepto } from '../../../shared/conceptos'
 import {
-  ESTRUCTURAS, CAMARAS, direccionDesde, PROFUNDIDAD, retardosDecoradores,
-  posicionDecorador, DENSIDAD_A_N, ANILLOS_FONDO, faseAnillo, cabeEnElPie, cabeLaEtiqueta,
-  type IdFondo, type IdEstructura, type IdCamara, type PuntoEscena
+  FONDOS, ESTRUCTURAS, CAMARAS, direccionDesde, PROFUNDIDAD, retardosDecoradores,
+  posicionDecorador, DENSIDAD_A_N, faseAnillo, cabeEnElPie, cabeLaEtiqueta, parametrosDe,
+  type IdFondo, type IdEstructura, type IdCamara, type PuntoEscena, type Parametros
 } from '../../../shared/escena'
 import type { Composicion, PropsComposicion } from './index'
 
@@ -115,8 +115,10 @@ const CSS_FIJO = `
 `
 
 // ── LO QUE RECIBE CADA PIEZA AL DIBUJARSE ───────────────────────────────────────────────────
-export type CtxFondo = { kf: Kf }
-export type CtxEstructura = { kf: Kf; puntos: PuntoEscena[]; conceptos: Concepto[] }
+// `params` sale de los RANGOS de la pieza mas la semilla: es su instancia. Va en el contexto y
+// no como argumento suelto para que anadir un dato mas tarde no cambie la firma de las 17.
+export type CtxFondo = { kf: Kf; params: Parametros }
+export type CtxEstructura = { kf: Kf; puntos: PuntoEscena[]; conceptos: Concepto[]; params: Parametros }
 
 export type DibujoFondo = (c: CtxFondo) => React.ReactNode
 export type DibujoEstructura = (c: CtxEstructura) => React.ReactNode
@@ -126,19 +128,24 @@ export type DibujoEstructura = (c: CtxEstructura) => React.ReactNode
 const DIBUJO_FONDOS: Record<IdFondo, DibujoFondo> = {
   /** UN KEYFRAME POR ANILLO, con su fase: compartir uno solo los hace respirar a la vez y los
    *  tres se leen como un unico objeto que late. */
-  ondas: ({ kf }) => {
+  ondas: ({ kf, params }) => {
+    // Los tres rangos de la pieza. Sin ellos cae a los valores de antes: una pieza tiene que
+    // poder dibujarse aunque el sorteo de parametros falle.
+    const n = Math.max(1, Math.round(params.anillos ?? 3))
+    const amp = params.amplitud ?? 0.05
+    const sep = params.separacion ?? 18
     const anillos: React.ReactNode[] = []
-    for (let i = 0; i < ANILLOS_FONDO; i++) {
-      const fase = faseAnillo(i)
+    for (let i = 0; i < n; i++) {
+      const fase = faseAnillo(i, n)
       const nom = kf('ondas' + i, 33, u => {
         const p = (u + fase) % 1
-        const s = 1 + 0.05 * Math.sin(p * TAU)
+        const s = 1 + amp * Math.sin(p * TAU)
         const o = 0.20 + 0.10 * Math.sin(p * TAU)
         return `transform:translate(-50%,-50%) scale(${s.toFixed(4)});opacity:${o.toFixed(3)}`
       })
       anillos.push(
         <div key={i} className="es-anillo" style={{
-          ...usa(nom), width: `${50 + i * 18}cqmin`, height: `${50 + i * 18}cqmin`
+          ...usa(nom), width: `${(50 + i * sep).toFixed(2)}cqmin`, height: `${(50 + i * sep).toFixed(2)}cqmin`
         }} />
       )
     }
@@ -171,7 +178,9 @@ function caja(cs: Concepto[], i: number): React.ReactNode {
 }
 
 const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
-  constelacion: ({ kf, puntos, conceptos }) => {
+  constelacion: ({ kf, puntos, conceptos, params }) => {
+    const curva = params.curva ?? 4
+    const escalaHero = params.escalaHero ?? 26
     const nomEntrada = puntos.map((_, i) => kf('nodo' + i, 33, u => {
       const a = 0.06 + (i / puntos.length) * 0.30
       const p = Math.min(1, Math.max(0, (u - a) / 0.26))
@@ -192,7 +201,7 @@ const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
       <svg className="es-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
         {puntos.map((p, i) => (
           <path key={i}
-            d={`M50,45 Q${((50 + p.x) / 2).toFixed(2)},${((45 + p.y) / 2 - 4).toFixed(2)} ${p.x.toFixed(2)},${p.y.toFixed(2)}`}
+            d={`M50,45 Q${((50 + p.x) / 2).toFixed(2)},${((45 + p.y) / 2 - curva).toFixed(2)} ${p.x.toFixed(2)},${p.y.toFixed(2)}`}
             fill="none" stroke="var(--acento)" strokeWidth=".5"
             strokeDasharray="90" style={usa(nomArista[i])} />
         ))}
@@ -202,7 +211,11 @@ const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
       `transform:translate(-50%,-50%) translateY(${(Math.sin(u * TAU) * 1.3).toFixed(3)}cqmin)`)
     // LA RANURA DEL HEROE: hoy un emoji, mañana un `<img>` recortado en el MISMO sitio y con el
     // MISMO factor de camara.
-    const hero = <div className="es-hero" style={usa(nomHero)}>{conceptos[0]?.emoji ?? ''}</div>
+    const hero = (
+      <div className="es-hero" style={{ ...usa(nomHero), fontSize: `${escalaHero.toFixed(2)}cqmin` }}>
+        {conceptos[0]?.emoji ?? ''}
+      </div>
+    )
     return <>{aristas}{nodos}{hero}</>
   },
 
@@ -262,13 +275,13 @@ function textoPie(kf: Kf, palabra: string): React.ReactNode {
  * EMITE, asi que TIENE que llamarse antes del return. Ver `construir()`.
  */
 function conCamara(
-  kf: Kf, contenido: React.ReactNode, f: number, z: number, idCamara: IdCamara
+  kf: Kf, contenido: React.ReactNode, f: number, z: number, idCamara: IdCamara, params: Parametros
 ): React.ReactNode {
   const fn = CAMARAS[idCamara].transform
   if (!fn) {
     return <div key={z} className="es-capa" style={{ zIndex: z }}>{contenido}</div>
   }
-  const nom = kf('cam' + z, 41, u => fn(u, f))
+  const nom = kf('cam' + z, 41, u => fn(u, f, params))
   return (
     <div key={z} className="es-capa" style={{ ...usa(nom), zIndex: z, willChange: 'transform' }}>
       {contenido}
@@ -313,8 +326,22 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown): React.Reac
 
   // ═══ RESOLUCION POR REGISTRO: aqui esta el enchufe ══════════════════════════════════════
   // Ni un nombre de pieza escrito a mano. Anadir la estructura 18 no toca ninguna linea de aqui.
+  const metaFondo = FONDOS[direccion.fondo]
   const metaEstructura = ESTRUCTURAS[direccion.estructura]
-  const puntos = metaEstructura.puntos(rndPts, cs.map(c => c.etiqueta))
+  const metaCamara = CAMARAS[direccion.camara]
+
+  // LOS PARAMETROS DE INSTANCIA. Un stream propio, separado del de los puntos y del de los
+  // decoradores: si compartieran generador, anadir un rango a una pieza desplazaria TAMBIEN la
+  // disposicion de las otras dos capas para semillas que ya tenian un dibujo asignado.
+  //
+  // EL ORDEN -- fondo, estructura, camara -- ES PARTE DEL RESULTADO: cada `parametrosDe` avanza
+  // el generador, asi que reordenar estas tres lineas cambia todos los dibujos.
+  const rndPar = generador(semillaDe(value + '#params'))
+  const parFondo = parametrosDe(metaFondo.rangos, rndPar)
+  const parEstructura = parametrosDe(metaEstructura.rangos, rndPar)
+  const parCamara = parametrosDe(metaCamara.rangos, rndPar)
+
+  const puntos = metaEstructura.puntos(rndPts, cs.map(c => c.etiqueta), parEstructura)
   const nDeco = DENSIDAD_A_N[direccion.densidad]
   const retardos = retardosDecoradores(nDeco, direccion.ritmo)
 
@@ -323,16 +350,17 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown): React.Reac
   // por eso ninguna capa se movia: JSX evalua sus hijos EN ORDEN y el <style> es el primero.
   // La forma de que no vuelva a pasar no es acordarse: es que el JSX de abajo NO PUEDA llamar a
   // nada que emita. Solo consume constantes ya construidas.
-  const capaFondo = DIBUJO_FONDOS[direccion.fondo]({ kf })
-  const capaEstructura = DIBUJO_ESTRUCTURAS[direccion.estructura]({ kf, puntos, conceptos: cs })
+  const capaFondo = DIBUJO_FONDOS[direccion.fondo]({ kf, params: parFondo })
+  const capaEstructura = DIBUJO_ESTRUCTURAS[direccion.estructura](
+    { kf, puntos, conceptos: cs, params: parEstructura })
   const capaDecoradores = decoradores(kf, nDeco, retardos, rndDeco)
   const capaTexto = textoPie(kf, value)
 
   const capas: React.ReactNode[] = [
-    conCamara(kf, capaFondo, PROFUNDIDAD.fondo, 1, direccion.camara),
-    conCamara(kf, capaEstructura, PROFUNDIDAD.estructura, 2, direccion.camara),
-    conCamara(kf, capaDecoradores, PROFUNDIDAD.decoradores, 3, direccion.camara),
-    conCamara(kf, capaTexto, PROFUNDIDAD.texto, 4, direccion.camara)
+    conCamara(kf, capaFondo, PROFUNDIDAD.fondo, 1, direccion.camara, parCamara),
+    conCamara(kf, capaEstructura, PROFUNDIDAD.estructura, 2, direccion.camara, parCamara),
+    conCamara(kf, capaDecoradores, PROFUNDIDAD.decoradores, 3, direccion.camara, parCamara),
+    conCamara(kf, capaTexto, PROFUNDIDAD.texto, 4, direccion.camara, parCamara)
   ]
 
   // LA HOJA SE SERIALIZA AQUI, LA ULTIMA. Nada por debajo de esta linea puede emitir.

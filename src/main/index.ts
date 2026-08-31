@@ -47,7 +47,8 @@ import * as escenaShared from '../shared/escena'
 export const {
   FONDOS: FONDOS_ESCENA, ESTRUCTURAS: ESTRUCTURAS_ESCENA, CAMARAS: CAMARAS_ESCENA,
   combinacionesLegales, direccionDe, acotarPuntos, cabeEnElPie, cabeLaEtiqueta,
-  MAX_CARACTERES_PIE, MAX_CARACTERES_ETIQUETA, FRANJA_TEXTO_Y, ZONA_X_MIN, ZONA_X_MAX
+  MAX_CARACTERES_PIE, MAX_CARACTERES_ETIQUETA, FRANJA_TEXTO_Y, ZONA_X_MIN, ZONA_X_MAX,
+  parametrosDe, instanciasDe
 } = escenaShared
 import { recortarTexto } from '../shared/texto'
 export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }

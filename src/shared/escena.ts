@@ -114,6 +114,66 @@ export function cabeLaEtiqueta(etiqueta: unknown): boolean {
 
 export type Formato = '9:16' | '16:9';
 
+// ── IDENTIDAD E INSTANCIA: DOS ESPACIOS, NO UNO ──────────────────────────────────────
+//
+// IDENTIDAD es la combinacion de ejes: que fondo, que estructura, que camara. Es lo que impide
+// que dos Visuales SE VEAN IGUAL.
+//
+// INSTANCIA es como se dibuja esa identidad concreta segun la semilla. Es lo que impide volver
+// a ver ESTA ESCENA EXACTA.
+//
+// SON DOS COSAS Y NO SE SUSTITUYEN. El fallo de `formaDe(semilla)` en extrusion fue creer que
+// las instancias hacian el trabajo de las identidades: cuatro rangos barridos y los quintiles
+// salian planos, porque mover un parametro NO cambia lo que la pieza ES. Y al reves tampoco: con
+// ejes y sin rangos, dos videos que cayeran en la misma combinacion saldrian identicos.
+//
+// ═══ LA REGLA QUE SALE DE AQUI ═══
+// UN RANGO ES DE INSTANCIA, NUNCA DE IDENTIDAD. Un parametro no puede convertir `constelacion`
+// en otra estructura. Si un rango llega tan lejos que cambia lo que la pieza es, ahi hay DOS
+// PIEZAS y no un rango -- y meterlas como rango las esconde del recuento de identidades, que es
+// justo el numero que dice si el motor da variedad de verdad.
+
+export type Rango = {
+  id: string;
+  /** Que mueve, en una frase. Tambien para la IA: un rango es algo que puede pedir. */
+  descripcion: string;
+  min: number;
+  max: number;
+  /**
+   * Cuantos valores DISTINGUIBLES tiene el rango a ojo.
+   *
+   * No es la resolucion del numero -- es continuo -- sino cuantos escalones se notan al mirar
+   * dos clips seguidos. Es lo unico honesto que se puede multiplicar para contar instancias:
+   * decir "infinitas porque es un real" seria contar variedad que nadie percibe.
+   */
+  pasos: number;
+  /** Si el valor tiene que salir entero (un numero de anillos no puede ser 2.7). */
+  entero?: boolean;
+};
+
+/** Los valores concretos de esta instancia. La clave es el `id` del rango. */
+export type Parametros = Record<string, number>;
+
+/**
+ * Sortea los parametros de una pieza. Deterministico: el `rnd` sale de la semilla.
+ *
+ * EL ORDEN DE LOS RANGOS IMPORTA y no se puede reordenar sin cambiar todos los dibujos: cada
+ * llamada avanza el generador. Mismo motivo que el orden de sorteos de `receta()`.
+ */
+export function parametrosDe(rangos: readonly Rango[], rnd: () => number): Parametros {
+  const out: Parametros = {};
+  for (const r of rangos) {
+    const v = entre(rnd, r.min, r.max);
+    out[r.id] = r.entero ? Math.round(v) : v;
+  }
+  return out;
+}
+
+/** Cuantas instancias distinguibles produce una lista de rangos. Sin rangos, una. */
+export function instanciasDe(rangos: readonly Rango[]): number {
+  return rangos.reduce((n, r) => n * Math.max(1, Math.round(r.pasos)), 1);
+}
+
 /** Lo que TODA pieza declara, sea del eje que sea. */
 export type PiezaBase = {
   id: string;
@@ -136,6 +196,15 @@ export type PiezaBase = {
   energia: number;
   /** En que relaciones de aspecto es valida. Hoy casi todo es solo vertical. */
   formatos: readonly Formato[];
+  /**
+   * LOS PARAMETROS DE INSTANCIA, con sus limites declarados.
+   *
+   * Declararlos -- en vez de sortear numeros sueltos dentro del dibujo -- es lo que permite
+   * CONTAR las instancias sin ejecutar la pieza, y es lo que obliga a decidir si algo es un
+   * rango o es otra pieza. Una pieza sin rangos es legitima: `liso` y `quieto` no tienen nada
+   * que variar, y fingir que si lo tienen inflaria el recuento con variedad que no existe.
+   */
+  rangos: readonly Rango[];
   /**
    * Pieza TONTA, escrita solo para probar que el registro es de verdad un enchufe.
    *
@@ -162,7 +231,7 @@ export type MetaEstructura = PiezaBase & {
    */
   presupuestoTexto: number;
   /** La geometria, PURA. Devuelve los centros ya acotados a zona y a presupuesto. */
-  puntos: (rnd: () => number, etiquetas: readonly string[]) => PuntoEscena[];
+  puntos: (rnd: () => number, etiquetas: readonly string[], p: Parametros) => PuntoEscena[];
 };
 
 export type MetaCamara = PiezaBase & {
@@ -176,7 +245,7 @@ export type MetaCamara = PiezaBase & {
    *
    * `null` = camara quieta: el envoltorio no emite @keyframes ni pone `will-change`.
    */
-  transform: ((u: number, f: number) => string) | null;
+  transform: ((u: number, f: number, p: Parametros) => string) | null;
 };
 
 // ── LOS TRES REGISTROS ───────────────────────────────────────────────────────────────
@@ -191,7 +260,15 @@ export const FONDOS = {
     descripcion: 'Fondo oscuro y sereno con anillos concentricos que respiran despacio.',
     energia: 1,
     tono: 'oscuro',
-    formatos: ['9:16']
+    formatos: ['9:16'],
+    // Los tres mueven CUANTO y COMO respira, nunca QUE es: sigan los valores que sigan, esto
+    // es "anillos concentricos sobre un degradado". El dia que un rango lo convierta en otra
+    // cosa, eso es un fondo nuevo.
+    rangos: [
+      { id: 'anillos', descripcion: 'Cuantos anillos concentricos hay.', min: 2, max: 4, pasos: 3, entero: true },
+      { id: 'amplitud', descripcion: 'Cuanto se ensanchan al respirar.', min: 0.03, max: 0.08, pasos: 4 },
+      { id: 'separacion', descripcion: 'Distancia entre anillos, en cqmin.', min: 14, max: 22, pasos: 5 }
+    ]
   },
   liso: {
     id: 'liso',
@@ -199,7 +276,10 @@ export const FONDOS = {
     energia: 0,
     tono: 'oscuro',
     formatos: ['9:16', '16:9'],
-    prueba: true
+    prueba: true,
+    // SIN RANGOS, y es honesto: un plano de un color no tiene nada que variar. Inventarle un
+    // rango inflaria el recuento de instancias con variedad que nadie veria.
+    rangos: []
   }
 } as const satisfies Record<string, MetaFondo>;
 
@@ -211,10 +291,19 @@ export const ESTRUCTURAS = {
     formatos: ['9:16'],
     minConceptos: CUANTOS_CONCEPTOS,
     presupuestoTexto: FRANJA_TEXTO_Y,
-    puntos: (rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
+    // NINGUNO de estos cambia lo que la estructura ES: sigan los valores que sigan, esto es
+    // "tres conceptos alrededor de un centro". El numero de puntos NO es un rango -- lo fija
+    // `minConceptos` y cambiarlo seria otra estructura.
+    rangos: [
+      { id: 'dispersionX', descripcion: 'Cuanto se desvian los nodos en horizontal.', min: 1, max: 5, pasos: 5 },
+      { id: 'dispersionY', descripcion: 'Cuanto se desvian en vertical.', min: 1, max: 4, pasos: 4 },
+      { id: 'curva', descripcion: 'Cuanto se arquean las lineas hacia arriba.', min: 2, max: 8, pasos: 4 },
+      { id: 'escalaHero', descripcion: 'Tamaño del elemento central, en cqmin.', min: 22, max: 30, pasos: 5 }
+    ],
+    puntos: (rnd: () => number, etiquetas: readonly string[], pa: Parametros) => acotarPuntos(
       [{ x: 28, y: 30 }, { x: 72, y: 32 }, { x: 50, y: 70 }].map(p => ({
-        x: p.x + entre(rnd, -3, 3),
-        y: p.y + entre(rnd, -2.5, 2.5)
+        x: p.x + entre(rnd, -(pa.dispersionX ?? 3), pa.dispersionX ?? 3),
+        y: p.y + entre(rnd, -(pa.dispersionY ?? 2.5), pa.dispersionY ?? 2.5)
       })), etiquetas, FRANJA_TEXTO_Y)
   },
   unaCaja: {
@@ -225,8 +314,12 @@ export const ESTRUCTURAS = {
     minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y,
     prueba: true,
-    puntos: (rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
-      [{ x: 50, y: 40 + entre(rnd, -2, 2) }], etiquetas, FRANJA_TEXTO_Y)
+    rangos: [
+      { id: 'desviacionY', descripcion: 'Cuanto sube o baja la caja del centro.', min: 1, max: 3, pasos: 3 }
+    ],
+    puntos: (rnd: () => number, etiquetas: readonly string[], pa: Parametros) => acotarPuntos(
+      [{ x: 50, y: 40 + entre(rnd, -(pa.desviacionY ?? 2), pa.desviacionY ?? 2) }],
+      etiquetas, FRANJA_TEXTO_Y)
   }
 } as const satisfies Record<string, MetaEstructura>;
 
@@ -236,11 +329,16 @@ export const CAMARAS = {
     descripcion: 'Panoramica lenta en diagonal, con un acercamiento minimo.',
     energia: 2,
     formatos: ['9:16'],
-    transform: (u: number, f: number) => {
-      const x = Math.sin(u * TAU) * 3.2 * f;
-      const y = Math.cos(u * TAU) * 2.0 * f;
+    rangos: [
+      { id: 'amplitudX', descripcion: 'Cuanto recorre en horizontal, en cqmin.', min: 2, max: 4, pasos: 4 },
+      { id: 'amplitudY', descripcion: 'Cuanto recorre en vertical, en cqmin.', min: 1.5, max: 3, pasos: 4 },
+      { id: 'zoom', descripcion: 'Cuanto se acerca a lo largo del ciclo.', min: 0.02, max: 0.06, pasos: 3 }
+    ],
+    transform: (u: number, f: number, pa: Parametros) => {
+      const x = Math.sin(u * TAU) * (pa.amplitudX ?? 3.2) * f;
+      const y = Math.cos(u * TAU) * (pa.amplitudY ?? 2.0) * f;
       return `transform:translate(${x.toFixed(3)}cqmin,${y.toFixed(3)}cqmin) ` +
-        `scale(${(1 + 0.04 * f).toFixed(4)})`;
+        `scale(${(1 + (pa.zoom ?? 0.04) * f).toFixed(4)})`;
     }
   },
   quieto: {
@@ -252,6 +350,10 @@ export const CAMARAS = {
     // `quieto` el envoltorio no emite un solo @keyframes ni pone `will-change`, o sea
     // exactamente la version "sin camara". La medicion se hace CAMBIANDO UNA PIEZA, no
     // parcheando el codigo y acordandose de no commitear el parche.
+    //
+    // SIN RANGOS: no hay nada que variar en no moverse. Es la unica pieza cuyo espacio de
+    // instancias es exactamente 1, y eso es correcto.
+    rangos: [],
     transform: null
   },
   derivaMinima: {
@@ -260,8 +362,11 @@ export const CAMARAS = {
     energia: 1,
     formatos: ['9:16'],
     prueba: true,
-    transform: (u: number, f: number) =>
-      `transform:translateX(${(Math.sin(u * TAU) * 0.32 * f).toFixed(3)}cqmin)`
+    rangos: [
+      { id: 'amplitud', descripcion: 'Cuanto recorre, en cqmin.', min: 0.2, max: 0.5, pasos: 3 }
+    ],
+    transform: (u: number, f: number, pa: Parametros) =>
+      `transform:translateX(${(Math.sin(u * TAU) * (pa.amplitud ?? 0.32) * f).toFixed(3)}cqmin)`
   }
 } as const satisfies Record<string, MetaCamara>;
 
@@ -378,7 +483,37 @@ export type OpcionesCombinaciones = {
  * este numero baja SOLO y la suite lo grita. Sin eso el espacio se encogeria en silencio y
  * seguiriamos creyendo la aritmetica vieja.
  */
-export function combinacionesLegales(op: OpcionesCombinaciones = {}): number {
+export type EspacioDeEstilos = {
+  /**
+   * Combinaciones legales de EJES. Lo que impide que dos Visuales SE VEAN IGUAL.
+   *
+   * Es el numero pequeño, y es el que importa vigilar: es finito por construccion y solo crece
+   * escribiendo piezas nuevas.
+   */
+  identidades: number;
+  /**
+   * Identidades x los rangos discretizados de las piezas que participan. Lo que impide volver a
+   * ver ESTA ESCENA EXACTA.
+   *
+   * NO SE SUMA NI SE MEZCLA CON EL ANTERIOR. Un millon de instancias sobre dos identidades
+   * siguen siendo dos cosas distintas de ver -- que es exactamente el fallo que se midio en
+   * `formaDe(semilla)`: cuatro rangos barridos y los quintiles planos.
+   */
+  instancias: number;
+};
+
+/**
+ * EL ESPACIO DE ESTILOS, calculado por el codigo y no por una multiplicacion en un documento.
+ *
+ * Se re-exporta desde main/index.ts para que una suite lo ejercite sobre el BUNDLE COMPILADO. Y
+ * esta en una suite por un motivo concreto: el dia que una regla nueva recorte el espacio, estos
+ * numeros bajan SOLOS y la suite lo grita. Sin eso el espacio se encogeria en silencio.
+ *
+ * LAS INSTANCIAS SE SUMAN POR COMBINACION, no se multiplican en bloque: cada terna legal tiene
+ * SUS piezas y por tanto SUS rangos. Multiplicar "todos los rangos" por "todas las identidades"
+ * contaria instancias de piezas que no coinciden nunca en la misma escena.
+ */
+export function combinacionesLegales(op: OpcionesCombinaciones = {}): EspacioDeEstilos {
   const conceptos = op.conceptos ?? CUANTOS_CONCEPTOS;
   const formato: Formato = op.formato ?? '9:16';
   const vale = (p: PiezaBase) => (op.incluirPruebas ? true : !p.prueba) &&
@@ -389,11 +524,17 @@ export function combinacionesLegales(op: OpcionesCombinaciones = {}): number {
   const estructuras = (Object.values(ESTRUCTURAS) as MetaEstructura[])
     .filter(e => vale(e) && e.minConceptos <= conceptos);
 
-  let paresFondoCamara = 0;
+  const ejesSueltos = DENSIDADES.length * RITMOS.length;
+  let identidades = 0, instancias = 0;
   for (const f of fondos) for (const c of camaras) {
-    if (f.energia + c.energia <= 3) paresFondoCamara++;   // LA REGLA DE LA ENERGIA
+    if (f.energia + c.energia > 3) continue;        // LA REGLA DE LA ENERGIA
+    for (const e of estructuras) {
+      identidades += ejesSueltos;
+      instancias += ejesSueltos *
+        instanciasDe(f.rangos) * instanciasDe(e.rangos) * instanciasDe(c.rangos);
+    }
   }
-  return paresFondoCamara * estructuras.length * DENSIDADES.length * RITMOS.length;
+  return { identidades, instancias };
 }
 
 // ── LAS CUATRO CAPAS Y SU PROFUNDIDAD ────────────────────────────────────────────────
