@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { excluirSobreVisuales, colocarYFiltrarTarjetas, avisoDeExclusion } from '../../shared/exclusion'
+import { textoResumen, type Aviso, type Resumen } from '../../shared/avisos'
 import { hayTiemposPorPalabra } from '../../shared/palabra'
 import { repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../../shared/reparto'
 import ReactDOM from 'react-dom/client'
@@ -162,6 +163,10 @@ function App() {
   // Recuento de tarjetas descartadas por caer sobre un Visual. No basta con la consola: el
   // usuario pidio N graficos y va a recibir menos, y tiene que saber por que.
   const [avisoGraficos, setAvisoGraficos] = useState('')
+  // LOS AVISOS DE LA GENERACION, ya AGREGADOS por el proceso principal: cada entrada es un
+  // codigo distinto con su contador, nunca 200 lineas del mismo fallo.
+  const [avisos, setAvisos] = useState<Aviso[]>([])
+  const [resumen, setResumen] = useState<Resumen | null>(null)
   // CONTAR EL DESCARTE, en un solo sitio. Los tres caminos que construyen tarjetas lo llaman y
   // ninguno redacta su propio mensaje: el texto lo pone `avisoDeExclusion`. Se llama SIEMPRE,
   // tambien con cero descartadas —el aviso vacio limpia el anterior—, porque un aviso viejo
@@ -1445,6 +1450,20 @@ function App() {
     return undefined;
   }, []);
 
+  // LOS AVISOS. Canal propio `generation-aviso`, no un campo mas en el progreso.
+  useEffect(() => {
+    if (!window.electronAPI?.onGenerationAviso) return undefined
+    const unsub = window.electronAPI.onGenerationAviso((_e: any, data: any) => {
+      if (!data) return
+      if (data.tipo === 'avisos') setAvisos(data.lista ?? [])
+      else if (data.tipo === 'resumen') {
+        setAvisos(data.lista ?? [])
+        setResumen(data.resumen ?? null)
+      }
+    })
+    return () => unsub()
+  }, [])
+
   useEffect(() => {
     const cleanup = window.electronAPI.onExportProgress((_event: any, data: any) => {
       setExportProgress(data);
@@ -2465,6 +2484,10 @@ ${res.filePath}`);
 
     setIsGeneratingAssets(true);
     setGenerationError('');
+    // SE LIMPIAN AL EMPEZAR. Un aviso viejo colgado de una generacion previa miente igual que
+    // no avisar -- el mismo razonamiento que ya justifica `anunciarExclusion` mas arriba.
+    setAvisos([]);
+    setResumen(null);
     setGenerationProgress(null);
 
     try {
@@ -4134,6 +4157,37 @@ ${res.filePath}`);
             {generationError && (
               <div className="w-full mt-2 p-2 bg-red-950/20 border border-red-900/50 rounded-xl text-[9px] text-red-400 font-medium text-center select-text leading-relaxed">
                 Error: {generationError}
+              </div>
+            )}
+
+            {/* LOS AVISOS Y EL RESUMEN, en el MISMO contenedor donde ya viven `avisoGraficos`
+                y `generationError`: mismo estilo de caja, una por severidad. Ni pestana, ni
+                panel, ni ventana -- es una caja mas donde ya hay dos. */}
+            {avisos.map(a => (
+              <div key={a.origen + '|' + a.codigo}
+                className={'w-full mt-2 p-2 rounded-xl text-[9px] font-medium text-center select-text leading-relaxed border ' +
+                  (a.severidad === 'error' ? 'bg-red-950/20 border-red-900/50 text-red-400'
+                   : a.severidad === 'aviso' ? 'bg-amber-950/20 border-amber-900/50 text-amber-400'
+                   : 'bg-slate-900/40 border-slate-700/50 text-slate-400')}>
+                {a.mensaje}
+                {/* EL CONTADOR, no la repeticion. El mismo codigo 200 veces es esta linea con
+                    un x200, que es lo que hace legible un fallo que se repite. */}
+                {a.veces > 1 && (
+                  <span className='ml-1 opacity-70'>(x{a.veces})</span>
+                )}
+              </div>
+            ))}
+
+            {/* EL RESUMEN SALE SIEMPRE, tambien cuando todo cuadra: un resumen que solo
+                aparece con problemas entrena al usuario a no leerlo, y el dia que aparezca
+                tampoco lo leera. */}
+            {resumen && (
+              <div className={'w-full mt-2 p-2 rounded-xl text-[9px] font-medium select-text leading-relaxed border text-left ' +
+                (resumen.cuadra ? 'bg-slate-900/40 border-slate-700/50 text-slate-300'
+                                : 'bg-amber-950/20 border-amber-900/50 text-amber-300')}>
+                {textoResumen(resumen).map((linea, n) => (
+                  <div key={n} className={linea.startsWith('  ') ? 'pl-2 opacity-80' : ''}>{linea}</div>
+                ))}
               </div>
             )}
           </div>

@@ -54,7 +54,8 @@ export const {
 // de reimplementarlo. `avisos.ts` es puro -- sin Electron, sin React, sin fs -- justamente para
 // poder probarlo entero, que es lo que hace utiles a reparto.ts, exclusion.ts y ciclo.ts.
 import {
-  coleccionDeAvisos, armarResumen, textoResumen, describirMotivo, totalRespaldo, MOTIVOS
+  coleccionDeAvisos, armarResumen, textoResumen, describirMotivo, totalRespaldo, MOTIVOS,
+  type Aviso, type Resumen, type FilaResumen, type MotivoRespaldo
 } from '../shared/avisos'
 export { coleccionDeAvisos, armarResumen, textoResumen, describirMotivo, totalRespaldo, MOTIVOS }
 import { recortarTexto } from '../shared/texto'
@@ -3713,6 +3714,24 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
   }
 })
 
+/**
+ * EL CANAL DE AVISOS: propio, y no un campo mas en `generation-progress`.
+ *
+ * La barra de progreso es lo UNICO que el usuario mira durante media hora de generacion, y su
+ * consumidor hace `setGenerationProgress` sobre un objeto unico. Meterle un discriminador para
+ * poder avisar de fallos, y arriesgarse a romperla, seria ironico.
+ *
+ * NO LANZA NUNCA. Con la ventana cerrada, `send` sobre un webContents destruido revienta -- y un
+ * aviso no puede tumbar el proceso. Se traga la excepcion, y el aviso NO se pierde en silencio
+ * porque el log lo tiene igual.
+ */
+function enviarAviso(event: any, carga: unknown): void {
+  try {
+    const wc = event?.sender;
+    if (wc && !wc.isDestroyed?.()) wc.send('generation-aviso', carga);
+  } catch (e) { /* ventana cerrada: el log ya lo tiene */ }
+}
+
 ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
   const isOriginalAudio = transcriptSegments && newAudioSegments && 
     transcriptSegments.length === newAudioSegments.length &&
@@ -3741,6 +3760,32 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     }
     newAudioSegments = merged;
   }
+
+  // LOS AVISOS DE ESTA GENERACION. Se crean AQUI, o sea que se vacian al empezar cada una: un
+  // aviso viejo colgado de una generacion previa miente igual que no avisar. Es el mismo
+  // razonamiento que ya justifica `anunciarExclusion` en el renderer, y no se reinventa.
+  const avisos = coleccionDeAvisos();
+  // Ver el comentario de `decisiones = clipsDecision`: existe para que el resumen del `finally`
+  // pueda contar aunque la generacion no llegue al final.
+  let decisiones: any[] = [];
+  let completa = false;
+
+  /**
+   * Anade un aviso y lo emite. SINCRONO a proposito: no espera al log.
+   *
+   * `writeDebugLog` es asincrono y va en cola -- medido: leyendo el log justo despues de un
+   * lote se recogian 2 de 3 tiradas porque la ultima no habia bajado a disco. Si el aviso
+   * esperara a esa cola, un log atascado se llevaria el aviso por delante, que es exactamente
+   * el fallo que esta fase existe para impedir.
+   *
+   * SOLO EMITE CUANDO EL CODIGO ES NUEVO. Eso ES la agregacion: el mismo codigo 200 veces es
+   * UNA linea con contador, no 200 mensajes. El contador definitivo viaja en el resumen final.
+   */
+  const avisar = (a: Omit<Aviso, 'veces'>): void => {
+    if (avisos.anadir(a)) enviarAviso(event, { tipo: 'avisos', lista: avisos.lista() });
+    writeDebugLog(`[AVISO] ${a.severidad} ${a.origen}/${a.codigo}: ${a.mensaje}` +
+      (a.detalle ? ` | ${a.detalle}` : '')).catch(() => {});
+  };
 
   const logMessage = async (msg: string) => {
     console.log(msg);
@@ -3978,6 +4023,19 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           } else {
             const errBody = await dsResp.text().catch(() => '');
             await logMessage(`[FASE 2] DeepSeek HTTP ${dsResp.status}: ${errBody.slice(0, 300)}`);
+            // EL 402 DEL 25/8 TENIA QUE HABERSE VISTO A LA PRIMERA. El log lo dijo cinco veces
+            // y nadie lo vio: `logMessage` solo escribe a disco. El codigo lleva el HTTP dentro
+            // para que 402 -- saldo -- y 401 -- clave rechazada -- no se confundan: son dos
+            // problemas con dos arreglos distintos.
+            avisar({
+              severidad: 'error',
+              codigo: `http-${dsResp.status}`,
+              origen: 'deepseek',
+              mensaje: dsResp.status === 402
+                ? 'DeepSeek rechazó la petición por saldo agotado. Sin él no hay palabras clave, así que los clips de stock y los Visuales se rellenan con el vídeo original.'
+                : `DeepSeek respondió con error ${dsResp.status}. Los clips de stock y los Visuales se rellenan con el vídeo original.`,
+              detalle: errBody.slice(0, 200)
+            });
           }
         } catch (err: any) {
           await logMessage('[FASE 2] Error lote: ' + err.message);
@@ -4506,6 +4564,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     }
 
     clipsDecision = flattenedClips;
+    // La MISMA referencia, expuesta al `finally` del resumen: `clipsDecision` se declara dentro
+    // del `try` y el resumen tiene que salir tambien cuando la generacion aborta. Si aborta
+    // antes de esta linea, `decisiones` sigue vacio y el resumen dice 0 clips, que es la verdad.
+    decisiones = clipsDecision;
     totalClips = flattenedClips.length;
 
     await logMessage(`[FASE 2] Decisiones de clips listas. Sub-clips totales: ${clipsDecision.length}. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}, Gráficos asignados: ${sanitizedPhrases.filter(p => p.graphic !== null).length}`);
@@ -5256,6 +5318,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         currentStart = audioTotal;
 
     await logMessage(`[generate-timeline-assets] Completado. Clips: ${finalClips.length} (Videos: ${finalClips.filter(c => c.type === 'video').length}, Gráficos: ${finalClips.filter(c => c.type === 'graphic').length})`);
+    // La generacion llego al final. Si algo lanza antes, esto no se ejecuta y el resumen dira
+    // que quedo incompleta -- que es lo que hay que decir.
+    completa = true;
     return { success: true, clips: finalClips };
 
   } catch (err: any) {
@@ -5263,6 +5328,45 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     console.error(errMsg, err);
     await writeDebugLog(errMsg);
     return { success: false, error: err.message || 'Error interno' };
+  } finally {
+    // ═══ EL RESUMEN SALE SIEMPRE, TAMBIEN SI LA GENERACION ABORTA O LANZA ═══════════════
+    //
+    // Va en `finally` a proposito: EL CAMINO FELIZ ES JUSTO EL QUE MINTIO EL 25/8. La app dijo
+    // "exito, 78 de 78" y era verdad -- salieron 78 clips; lo que no dijo es que 31 se habian
+    // degradado por el camino. Un resumen que solo apareciera en el camino feliz no serviria.
+    //
+    // NADA DE AQUI PUEDE LANZAR: una excepcion en un `finally` se comeria el return o el error
+    // original, y el usuario se quedaria sin las dos cosas.
+    try {
+      const objetivo = repartoObjetivos(weights, decisiones.length);
+      // EL `real` DE CADA ORIGEN. Un clip que cayo NO cuenta para el origen al que cayo: un
+      // Visual que acabo en "original" es un Visual perdido, no un original legitimo.
+      const legitimos = (t: string) =>
+        decisiones.filter((c: any) => c.type === t && !c.origenPedido).length;
+      const filas: FilaResumen[] = [
+        { origen: 'original', objetivo: objetivo.original, real: legitimos('original') },
+        { origen: 'stock',    objetivo: objetivo.stock,    real: legitimos('stock') },
+        { origen: 'IA',       objetivo: objetivo.ia,       real: legitimos('ia') },
+        { origen: 'Visual',   objetivo: objetivo.visual,   real: legitimos('visual') }
+      ];
+      const porMotivo = new Map<string, number>();
+      for (const c of decisiones as any[]) {
+        if (!c.motivoRespaldo) continue;
+        porMotivo.set(c.motivoRespaldo, (porMotivo.get(c.motivoRespaldo) ?? 0) + 1);
+      }
+      const respaldo: MotivoRespaldo[] = [...porMotivo.entries()].map(([motivo, veces]) => ({
+        motivo, descripcion: describirMotivo(motivo), veces
+      })).sort((a, b) => b.veces - a.veces);
+
+      const resumen: Resumen = armarResumen(filas, respaldo, decisiones.length, completa);
+
+      // A LA INTERFAZ **Y** AL FICHERO. Lo primero para verlo ahora; lo segundo para poder
+      // recuperarlo despues de cerrar la app, que es cuando uno se pregunta que paso.
+      enviarAviso(event, { tipo: 'resumen', resumen, lista: avisos.lista() });
+      for (const linea of textoResumen(resumen)) {
+        writeDebugLog('[RESUMEN] ' + linea).catch(() => {});
+      }
+    } catch (e) { /* el resumen nunca puede tumbar la generacion */ }
   }
 });
 
