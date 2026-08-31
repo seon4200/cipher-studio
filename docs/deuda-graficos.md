@@ -1596,73 +1596,123 @@ una generacion de verdad. Ese es el sentido de haberla construido.
 
 ---
 
-## 🎲 EL RENDER NO ES REPRODUCIBLE. Punto de la Fase 3
+## 🎲 EL RENDER: una tirada de seis salio distinta
 
-Salio buscando otra cosa: el diff de comportamiento de la Fase 2 comparaba pixeles contra master
-para probar que la rama no tocaba la composicion. Fallo. Y al hacer el CONTROL —**dos renders del
-MISMO arbol y el MISMO commit**— fallo tambien. La prueba no servia; lo que no servia era el
-metodo, no la rama.
+**NO es bloqueante y NO es el cimiento de la Fase 3.** Se llego a escribir aqui que "un
+verificador de artefacto no puede existir si dos renders del mismo clip difieren", y es falso: el
+verificador de la Fase 3 compara frames **dentro de un mismo video** -- no vacios, distintos
+entre si, capas ciclicas que cierran, contenido en zona segura -- y ninguna de esas cuatro
+comprobaciones necesita que dos renders coincidan. Era una molestia de herramientas convertida en
+cimiento. Queda escrito y **se retoma solo si vuelve a aparecer**.
 
-### El sintoma, exacto
+Esta seccion se ha reescrito dos veces. La primera version decia "el render no es reproducible",
+sacado de UNA pareja de tiradas de la que una era justo la anomala.
 
-Un Visual real (`value: 'agua'`, `pos: '3:1'`, tres conceptos, 2.6 s, 1080x1920, 30 fps),
-renderizado dos veces desde el mismo arbol, y comparados los frames crudos RGBA byte a byte:
+### Las seis tiradas
+
+Un Visual real (`value: 'agua'`, `pos: '3:1'`, tres conceptos, 2.6 s, 1080x1920, 30 fps, clave
+`db7cb15ea714`), renderizado seis veces, frames crudos RGBA comparados **byte a byte**:
+
+```
+  c11226f · 3b24804 · BIS · P1 · P2     -> IDENTICAS entre si, las cinco, en f0, f39 y f77
+  5cb7d33                               -> distinta de las cinco, en f39 y f77 (f0 igual)
+```
+
+**Cinco de seis coinciden al byte.** El render **no** es no-determinista: es determinista con una
+anomalia intermitente, medida una vez de seis.
+
+### Cuanto se desvio la anomala
 
 ```
   frame  0 : IDENTICO
-  frame 39 : DISTINTO
-  frame 77 : DISTINTO
+  frame 39 :  28.674 px de 2.073.600 (1,38%)   delta max=16   medio=1,6
+  frame 77 : 247.745 px de 2.073.600 (11,9%)   delta max=37   medio=2,0
+  reparto del delta -> 99% de los cambiados en 1-4 niveles;  CERO por encima de 64
 ```
 
-- **El frame 0 coincide SIEMPRE**, en las cuatro tiradas hechas.
-- **La deriva CRECE con el tiempo del clip**: contra master, 74 249 bytes distintos en el frame 39
-  (0,9 % del frame) y **591 726 en el frame 77 (7,1 %)**. No es ruido de codec: es ocho veces mas
-  a mitad de clip que al principio.
-- La clave de hash es la misma en todas las tiradas (`db7cb15ea714`), o sea que **el fichero se
-  llama igual y por dentro no lo es**.
+### EL DISCRIMINADOR, que es lo que vale de todo esto
 
-### Lo que YA esta descartado
+```
+  pocos pixeles  + delta enorme              -> algo SE MOVIO. Cambio real.
+  muchos pixeles + delta <= 4, ninguno > 64  -> RASTERIZADO. Ruido.
+```
 
-- **No hay `Math.random`, ni `Date.now`, ni `performance.now`, ni `new Date()`** en
-  `AnimatedGraphic.tsx`, `grafico.tsx` ni `escena.ts`.
-- **La semilla sale SOLO de `value`** (`shared/semilla.ts`), que esta en la clave.
-- Por tanto **el DIBUJO es determinista**. Lo que varia esta despues: en la captura, en el
-  ensamblado o en el encode.
+Un elemento desplazado deja pocos pixeles cambiados con delta de cientos: donde habia fondo hay
+figura. Un rasterizado ligeramente distinto deja muchisimos pixeles con delta de uno o dos: los
+mismos bordes, medio nivel corridos. **Son firmas opuestas**, y por eso se pueden separar. La
+anomalia medida es, sin ambiguedad, la segunda.
 
-### La consecuencia, que no estaba escrita en ningun sitio
+Esto convierte la comparacion de pixeles de inservible en fiable **con tolerancia**, y esta
+versionado en `tests/aceptacion/comparar-capturas.js`, con sus umbrales justificados. **Sustituye
+a la igualdad byte a byte** en el diff de comportamiento de los merges.
 
-**Hoy CIPHER no puede garantizar que el mismo proyecto exportado dos veces de el mismo video.** Y
-no por las imagenes de IA, que es donde uno miraria primero: **por el motor de captura**, en un
-clip cuyo contenido esta completamente determinado por su clave.
+> Con los umbrales de hoy, el frame 77 de esa anomalia sale **DISTINTO** por superar el 5% de
+> pixeles cambiados, pese a que ningun pixel pasa de 64. Es a proposito -- un cambio suave que
+> cubra media pantalla sigue siendo un cambio -- pero conviene saberlo: esa anomalia concreta
+> pondria un merge en rojo.
 
-Se busco esa afirmacion en los documentos antes de escribir esto y **no esta**: el plan maestro no
-tiene encabezados de fase numerada y ni "exportado dos veces" ni "reproducible / repetible / bit a
-bit" aparecen en ningun `.md` del repo. Queda escrita aqui como afirmacion propia y medida, no
-como cita. Lo unico proximo que si esta en el plan es la regla de que un motor de animacion con
-reloj propio necesita reloj manual "o se capturarian N frames identicos" — la misma ley vista por
-el otro lado.
+### Lo que esta DESCARTADO, con linea
 
-### Por que es el cimiento de la Fase 3
+- **El reloj de las animaciones no es la causa.** `grafico.tsx:193` recorre
+  `document.getAnimations()`, **pausa** cada una y le fija `currentTime` a un valor **absoluto**
+  (`t * 1000`). No se espera a un rAF ni se captura "lo que haya".
+- **El lazo de reintentos no es la causa.** `index.ts:1408` llama a `__setT(t)` **una vez por
+  frame, FUERA** del lazo (1413-1427). Un reintento solo repite `capturePage()` sobre el **mismo
+  estado del DOM**: no reposiciona el tiempo, y si lo hiciera daria el mismo valor por ser
+  absoluto. La hipotesis del "reintento que captura en otro instante" queda **falsada**.
+- **No hay `Math.random`, `Date.now`, `performance.now` ni `new Date()`** en la ruta de
+  composicion, y la semilla sale SOLO de `value` (`shared/semilla.ts`), que esta en la clave.
 
-Un verificador de artefacto **compara**. Si dos renders del mismo clip difieren, no hay contra que
-comparar: cualquier verificador que se construya encima estara midiendo su propio ruido y dara
-falsos positivos para siempre. **Esto se arregla ANTES de construir el verificador, no despues.**
+### Los sospechosos que quedan: RASTERIZADO
 
-### La hipotesis — COMO HIPOTESIS, no como hecho
+Presentes en `visual_mapa`; los tres primeros fuerzan capa de composicion por si solos:
 
-**El lazo de reintentos de la captura.** Se esta en **1,73 intentos/frame**: casi tres de cada
-cuatro frames se recapturan. Si un reintento captura el frame en un instante distinto del
-previsto, sale exactamente esta firma — el frame 0 intacto porque no ha dado tiempo a derivar, y
-el error acumulandose con el tiempo del clip.
+| sospechoso | donde |
+|---|---|
+| `backdrop-filter: blur(.19cqw)` | `composiciones/mapa.tsx:202` |
+| `mix-blend-mode: screen` | `composiciones/mapa.tsx:206` |
+| `filter: blur(3cqw)` | `composiciones/mapa.tsx:212` |
+| `<svg viewBox>` como capa | `composiciones/mapa.tsx:537` |
+| gradientes | 8 apariciones en `mapa.tsx` |
+| `will-change: transform` | `composiciones/escena.tsx:286` — `escena` esta INACTIVA, hoy no entra |
 
-**Si es eso, no es solo un problema de comparar: es micro-tembleque en el video que se entrega.**
+Y un detalle del mecanismo: **la sonda valida su propia franja, no el frame entero.** Son 8 px
+pintados por DOM directo y sincrono, fuera de React. Que la sonda llegue al compositor demuestra
+que hubo un frame nuevo; no demuestra que una capa promovida a GPU haya terminado de repintarse.
+Encaja con que el frame 0 sea siempre identico y la diferencia crezca con el tiempo del clip.
 
-Nada de esto esta medido todavia. Se mide en la Fase 3. Dos numeros para empezar: el liston medido
-en seco fue **1,30 intentos/frame**, y la cifra de la composicion real es **1,73** — ese hueco es
-parte de lo que hay que explicar.
+### La pista de cuando pasa — UNA observacion, no una causa
 
+La tirada anomala fue **el primer render en un clon recien instalado con `npm ci`**: Electron
+nuevo, cache de fuentes fria, cache de shaders fria. Las cinco que coinciden se hicieron sobre
+arboles ya usados. Es **una sola observacion**. No se ha intentado reproducirla y no se ha
+demostrado que sea la causa.
+
+### Lo que NO se ha demostrado, y no debe escribirse como si si
+
+- **Que no haya micro-tembleque en el video entregado.** Es **probable** -- delta medio 2 sobre
+  255 y nada desplazado -- pero lo medido son **dos renders distintos**, no frames consecutivos
+  dentro de una tirada. El tembleque seria que un elemento quieto cambie entre frames del MISMO
+  video, y eso no se ha mirado. Probable, no demostrado.
+- **La correlacion entre frames reintentados y frames que difieren.** Sigue teniendo sentido -- un
+  reintento indica que el compositor iba retrasado, que es justo cuando una capa podria estar sin
+  repintar -- pero hace falta registrar los intentos POR FRAME, y eso es tocar el lazo de captura.
 
 ---
+
+## ⚖️ REGLA: una comparacion pareada no prueba reproducibilidad
+
+Sale de este episodio y vale para cualquier medida futura.
+
+La "prueba de pixeles" de la Fase 1 comparo **dos** tiradas, salieron identicas y se dieron por
+buenas. Despues otra pareja salio distinta y se **retiro** la primera. **Ninguna de las dos decia
+nada**: con una anomalia cada seis, dos muestras no distinguen la suerte de la ley. Hizo falta
+una tercera tirada de arbitro -- y al final seis -- para ver que la anomala era una y no cinco.
+
+**Con n=2, "identico" e "distinto" son igual de poco informativos.** Toda afirmacion de
+reproducibilidad necesita una TERCERA tirada como minimo, y decir cuantas se hicieron.
+
+
 
 ## 🕳️ DOS AGUJEROS DE COBERTURA, dichos sin adornos
 
