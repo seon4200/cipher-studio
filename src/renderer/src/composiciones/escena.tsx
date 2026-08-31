@@ -1,58 +1,45 @@
-// ESCENA — la composicion GENERICA. FASE 1: el esqueleto, una pieza por eje.
+// ESCENA — el DIBUJO de las piezas. Los metadatos y la aritmetica viven en shared/escena.ts.
 //
-// A diferencia de `mapa`, que es una escena escrita a mano, esta composicion COMBINA piezas de
-// vocabularios cerrados (shared/escena.ts). El objetivo de este paso no es que se vea
-// espectacular: es que el mecanismo -- direccionDe, las cuatro capas con su camara, la cache de
-// arbol -- funcione con datos reales antes de que la Fase 7 multiplique cada vocabulario.
+// ── LO QUE `render` NO HACE, Y ES EL PUNTO DE TODO ESTE FICHERO ──────────────────────────────
 //
-// mapa.tsx NO SE TOCA. Prefijo de clases `es-` (no `cm-`, no `cx-`) para no chocar con ninguna.
+// `render` NO llama a ninguna pieza por su nombre. Resuelve por `direccion.fondo`,
+// `direccion.estructura` y `direccion.camara` contra los tres registros de abajo. Anadir la
+// estructura numero 18 es anadir una entrada en shared/escena.ts y su dibujo aqui: `render` no
+// se toca. Con llamadas directas -- `fondoOndas(kf)` -- cada pieza nueva obligaba a reescribirlo,
+// y eso SUMA donde hace falta MULTIPLICAR.
+//
+// LOS DOS REGISTROS ESTAN ATADOS POR EL TIPO. `DIBUJO_FONDOS` es `Record<IdFondo, ...>`, e
+// `IdFondo` sale de las claves de shared/escena.ts. Anadir una pieza alli y olvidar su dibujo
+// aqui NO COMPILA: fallar ruidoso -- tsc -- en vez de mudo, igual que `puedeDibujar`.
 //
 // ── LAS DOS REGLAS QUE ESTE FICHERO NO PUEDE ROMPER ─────────────────────────────────────────
 //
 //  1. TODO LO QUE EMITA @keyframes SE EJECUTA ANTES DEL `return`, y la hoja se serializa la
-//     ULTIMA. Ver el bloque de `construir()`: no es una recomendacion, es la unica razon por la
-//     que las camaras se mueven. Es la regla que documenta composiciones/index.ts:15-29, y este
-//     fichero ya la incumplio una vez -- las cuatro capas salian QUIETAS y no fallaba nada.
-//  2. NI UN NUMERO DE SEGUNDOS en el <style>. Toda duracion es `calc(var(--ciclo) / n)`. Si el
-//     arbol llevara segundos calculados en JS, pasaria a depender de `ciclo` -- y `claveDe`, mas
-//     abajo, no lo sabe: dos clips con la misma palabra y distinta duracion compartirian arbol.
-//     Y con DIVISION y no multiplicacion: `/ n` no puede expresar una duracion ilegal, `* 0.333`
-//     si.
-//
-// ESTA COMPOSICION SI LEE `sistema`, a diferencia de mapa -- que lo ignora casi del todo, deuda
-// ya anotada en docs/deuda-graficos.md. Aqui el color sale de `var(--acento)` etc, que
-// AnimatedGraphic YA publica sobre un ancestro: la composicion no necesita saber que sistema
-// esta activo, y el arbol cacheado sigue siendo el mismo para cualquiera de los cuatro.
+//     ULTIMA. Este fichero ya la incumplio una vez: las cuatro capas salian QUIETAS, la hoja
+//     llevaba 16 reglas donde la aritmetica decia 20, y no fallaba nada.
+//  2. NI UN NUMERO DE SEGUNDOS en el <style>. Toda duracion es `calc(var(--ciclo) / n)`, con
+//     DIVISION y no multiplicacion: `/ n` no puede expresar una duracion ilegal, `* 0.333` si.
 
 import React from 'react'
 import { ajustar, type DuracionUsada } from '../../../shared/ciclo'
 import { generador, semillaDe } from '../../../shared/semilla'
 import { CUANTOS_CONCEPTOS, type Concepto } from '../../../shared/conceptos'
 import {
-  direccionDe, PROFUNDIDAD, camaraDeriva, constelacionDe, retardosDecoradores,
+  ESTRUCTURAS, CAMARAS, direccionDe, PROFUNDIDAD, retardosDecoradores,
   posicionDecorador, DENSIDAD_A_N, ANILLOS_FONDO, faseAnillo, cabeEnElPie, cabeLaEtiqueta,
-  type Direccion, type PuntoEscena
+  type IdFondo, type IdEstructura, type IdCamara, type PuntoEscena
 } from '../../../shared/escena'
 import type { Composicion, PropsComposicion } from './index'
 
 const TAU = 6.283185307
 
 // ── LA UNICA DURACION ───────────────────────────────────────────────────────────────────────
-//
-// Un solo divisor, igual que mapa.tsx: todo el movimiento vive en @keyframes por-porcentaje, y
-// la FORMA de la curva -- no una duracion mas corta -- es lo que separa "entra y se queda" de
-// "se repite". Si un futuro decorador necesita su propio ciclo mas rapido, ESE es el momento de
-// anadir un segundo divisor, con `ajustar()` protegiendolo igual que a este.
 const DIVISORES = [{ que: 'escena', n: 1 }] as const
 
 /**
- * LAS DURACIONES Y SUS AVISOS, DE UNA SOLA LLAMADA A `ajustar()`.
- *
- * No son dos caminos paralelos: `duraciones` devuelve el valor YA CORREGIDO y `avisos` devuelve
- * lo que hubo que corregir para llegar a el, y los dos salen de este mismo bucle. Calcular
- * `ciclo / n` por un lado y `ajustar()` por otro deja que las dos verdades se separen -- el
- * candado avisaria de una correccion que `duraciones` no refleja, y quien leyera `duraciones`
- * creeria una duracion que no es la que se usa.
+ * LAS DURACIONES Y SUS AVISOS, DE UNA SOLA LLAMADA A `ajustar()`. No son dos caminos paralelos:
+ * `duraciones` devuelve el valor YA CORREGIDO y `avisos` lo que hubo que corregir para llegar a
+ * el, y los dos salen de este mismo bucle.
  */
 function duracionesDe(ciclo: number): { usadas: DuracionUsada[]; avisos: string[] } {
   const usadas: DuracionUsada[] = []
@@ -66,8 +53,6 @@ function duracionesDe(ciclo: number): { usadas: DuracionUsada[]; avisos: string[
 }
 
 // ── EL EMISOR DE KEYFRAMES, UNO POR RENDER ─────────────────────────────────────────────────
-//
-// Mismo patron que mapa.tsx: sin estado de modulo, prefijo desde la semilla, deterministico.
 function emisor(prefijo: string) {
   const reglas: string[] = []
   const kf = (clave: string, M: number, fn: (u: number) => string): string => {
@@ -82,12 +67,11 @@ function emisor(prefijo: string) {
   }
   return { kf, reglas }
 }
+export type Kf = ReturnType<typeof emisor>['kf']
 
 // LA UNICA FORMA DE USAR UNA ANIMACION AQUI, y en propiedades LARGAS y no en el atajo
 // `animation:`. El atajo obliga a interpolar la duracion dentro de una cadena, que es
-// exactamente el sitio donde se cuela un `${d}s` sin que nadie lo vea. Con las largas, la
-// duracion tiene su propia propiedad y `animationDuration` no puede ser otra cosa que este
-// calc(). Cero segundos literales, por construccion y no por disciplina.
+// exactamente donde se cuela un `${d}s` sin que nadie lo vea.
 const usa = (nom: string, n = 1): React.CSSProperties => ({
   animationName: nom,
   animationDuration: `calc(var(--ciclo) / ${Math.max(1, Math.round(n))})`,
@@ -98,21 +82,18 @@ const usa = (nom: string, n = 1): React.CSSProperties => ({
 
 // ── EL CSS FIJO ─────────────────────────────────────────────────────────────────────────────
 //
-// Prefijo `es-`. TODO en cqmin, y NI UN `px`: en vertical (9:16) cqmin === cqw -- el ancho ya es
-// el menor -- pero en 16:9 cqmin escala con el ALTO, que es la dimension que manda. Usar cqw
-// aqui haria que una escena vista en horizontal escalara con el eje que sobra.
+// TODO en cqmin y NI UN `px`: en 9:16 cqmin === cqw, pero en 16:9 cqmin escala con el ALTO, que
+// es la dimension que manda.
 //
-// El `border-radius` de la barra va en cqmin y no en el `99px` del laboratorio. Hoy los dos
-// producen la misma pastilla -- el navegador acota el radio a la mitad del lado menor -- asi que
-// el cambio no mueve un pixel; se hace porque es la misma regla que mapa.tsx ya aplico al
-// portar, y un `px` suelto es el que sobrevive al siguiente copiar y pegar.
-//
-// EL PIE PRESUPUESTA DOS LINEAS SIEMPRE (`min-height`), no cuando hacen falta. Si el alto
-// dependiera de si la palabra parte o no, el pie subiria y bajaria de un Visual a otro y la
-// escena se recolocaria sola. `overflow-wrap:anywhere` es lo que permite partir una palabra sin
-// espacios -- sin el, una palabra larga no puede envolverse y SE SALE por los lados.
+// `.es-svg` LLEVA width Y height EXPLICITOS, y ese es el arreglo A. Un `<svg>` con viewBox y sin
+// alto explicito es un elemento REEMPLAZADO: `inset:0` no lo estira, resuelve su alto por la
+// relacion del viewBox y se queda CUADRADO anclado arriba. Con viewBox 0 0 100 100 sobre un
+// marco 1080x1920, un `y=30` caia en 30 % de 1080 = 16.9 % del cuadro, y las aristas morian muy
+// por encima de sus nodos sin dar un error. Esta en el CSS COMPARTIDO y no dentro de
+// `constelacion` a proposito: lo hereda toda estructura que use SVG, que seran casi todas.
 const CSS_FIJO = `
 .es-capa{position:absolute;inset:0}
+.es-svg{position:absolute;inset:0;width:100%;height:100%}
 .es-nodo{position:absolute;transform:translate(-50%,-50%);white-space:nowrap}
 .es-caja{display:flex;align-items:center;gap:1.3cqmin;padding:1.5cqmin 2.4cqmin;
   border-radius:1.7cqmin;background:rgba(9,12,20,.9);border:.3cqmin solid var(--acento);
@@ -133,97 +114,116 @@ const CSS_FIJO = `
   background:var(--acento)}
 `
 
-// ── PIEZAS ──────────────────────────────────────────────────────────────────────────────────
+// ── LO QUE RECIBE CADA PIEZA AL DIBUJARSE ───────────────────────────────────────────────────
+export type CtxFondo = { kf: Kf }
+export type CtxEstructura = { kf: Kf; puntos: PuntoEscena[]; conceptos: Concepto[] }
 
-/**
- * FONDO — 'ondas': un fondo neutro de baja energia. Gradiente base + tres anillos.
- *
- * UN KEYFRAME POR ANILLO, con su fase propia (`faseAnillo`). Compartir uno solo los hace
- * respirar EN FASE, y tres circulos concentricos que laten a la vez se leen como un unico
- * objeto: se pierde toda la profundidad y no falla nada, que es el peor tipo de fallo.
- */
-function fondoOndas(kf: ReturnType<typeof emisor>['kf']): React.ReactNode {
-  const anillos: React.ReactNode[] = []
-  for (let i = 0; i < ANILLOS_FONDO; i++) {
-    const fase = faseAnillo(i)
-    const nom = kf('ondas' + i, 33, u => {
-      const p = (u + fase) % 1
-      const s = 1 + 0.05 * Math.sin(p * TAU)
-      const o = 0.20 + 0.10 * Math.sin(p * TAU)
-      return `transform:translate(-50%,-50%) scale(${s.toFixed(4)});opacity:${o.toFixed(3)}`
+export type DibujoFondo = (c: CtxFondo) => React.ReactNode
+export type DibujoEstructura = (c: CtxEstructura) => React.ReactNode
+
+// ── EL REGISTRO DE DIBUJOS: FONDOS ──────────────────────────────────────────────────────────
+
+const DIBUJO_FONDOS: Record<IdFondo, DibujoFondo> = {
+  /** UN KEYFRAME POR ANILLO, con su fase: compartir uno solo los hace respirar a la vez y los
+   *  tres se leen como un unico objeto que late. */
+  ondas: ({ kf }) => {
+    const anillos: React.ReactNode[] = []
+    for (let i = 0; i < ANILLOS_FONDO; i++) {
+      const fase = faseAnillo(i)
+      const nom = kf('ondas' + i, 33, u => {
+        const p = (u + fase) % 1
+        const s = 1 + 0.05 * Math.sin(p * TAU)
+        const o = 0.20 + 0.10 * Math.sin(p * TAU)
+        return `transform:translate(-50%,-50%) scale(${s.toFixed(4)});opacity:${o.toFixed(3)}`
+      })
+      anillos.push(
+        <div key={i} className="es-anillo" style={{
+          ...usa(nom), width: `${50 + i * 18}cqmin`, height: `${50 + i * 18}cqmin`
+        }} />
+      )
+    }
+    return (
+      <>
+        <div className="es-capa" style={{
+          background: 'radial-gradient(ellipse 70% 50% at 50% 42%, var(--sup) 0%, transparent 62%),' +
+            'linear-gradient(170deg, var(--fondo), var(--fondo))'
+        }} />
+        {anillos}
+      </>
+    )
+  },
+
+  /** PIEZA DE PRUEBA. Fea a proposito: existe para demostrar que cambiar `direccion.fondo`
+   *  cambia el fondo SIN tocar `render`. Si esto no bastara, el registro seria decorativo. */
+  liso: () => <div className="es-capa" style={{ background: 'var(--sup)' }} />
+}
+
+// ── EL REGISTRO DE DIBUJOS: ESTRUCTURAS ─────────────────────────────────────────────────────
+
+/** La caja de un concepto. Compartida: la usan las dos estructuras y la heredaran las 17. */
+function caja(cs: Concepto[], i: number): React.ReactNode {
+  return (
+    <div className="es-caja">
+      <span className="es-mini">{cs[i]?.emoji ?? ''}</span>
+      <span className="es-etq">{cs[i]?.etiqueta ?? ''}</span>
+    </div>
+  )
+}
+
+const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
+  constelacion: ({ kf, puntos, conceptos }) => {
+    const nomEntrada = puntos.map((_, i) => kf('nodo' + i, 33, u => {
+      const a = 0.06 + (i / puntos.length) * 0.30
+      const p = Math.min(1, Math.max(0, (u - a) / 0.26))
+      const e = 1 - Math.pow(1 - p, 3)
+      return `opacity:${e.toFixed(3)};transform:translate(-50%,-50%) scale(${(0.7 + 0.3 * e).toFixed(3)})`
+    }))
+    const nodos = puntos.map((p, i) => (
+      <div key={i} className="es-nodo" style={{ ...usa(nomEntrada[i]), left: p.x + '%', top: p.y + '%' }}>
+        {caja(conceptos, i)}
+      </div>
+    ))
+    const nomArista = puntos.map((_, i) => kf('arista' + i, 33, u => {
+      const a = 0.10 + (i / puntos.length) * 0.24
+      const p = Math.min(1, Math.max(0, (u - a) / 0.30))
+      return `stroke-dashoffset:${((1 - p) * 90).toFixed(2)};opacity:${(p * 0.8).toFixed(3)}`
+    }))
+    const aristas = (
+      <svg className="es-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {puntos.map((p, i) => (
+          <path key={i}
+            d={`M50,45 Q${((50 + p.x) / 2).toFixed(2)},${((45 + p.y) / 2 - 4).toFixed(2)} ${p.x.toFixed(2)},${p.y.toFixed(2)}`}
+            fill="none" stroke="var(--acento)" strokeWidth=".5"
+            strokeDasharray="90" style={usa(nomArista[i])} />
+        ))}
+      </svg>
+    )
+    const nomHero = kf('hero', 41, u =>
+      `transform:translate(-50%,-50%) translateY(${(Math.sin(u * TAU) * 1.3).toFixed(3)}cqmin)`)
+    // LA RANURA DEL HEROE: hoy un emoji, mañana un `<img>` recortado en el MISMO sitio y con el
+    // MISMO factor de camara.
+    const hero = <div className="es-hero" style={usa(nomHero)}>{conceptos[0]?.emoji ?? ''}</div>
+    return <>{aristas}{nodos}{hero}</>
+  },
+
+  /** PIEZA DE PRUEBA. Una sola caja centrada, sin aristas ni heroe. */
+  unaCaja: ({ kf, puntos, conceptos }) => {
+    const nom = kf('caja0', 25, u => {
+      const e = 1 - Math.pow(1 - Math.min(1, u / 0.3), 3)
+      return `opacity:${e.toFixed(3)};transform:translate(-50%,-50%) scale(${(0.8 + 0.2 * e).toFixed(3)})`
     })
-    anillos.push(
-      <div key={i} className="es-anillo" style={{
-        ...usa(nom),
-        width: `${50 + i * 18}cqmin`,
-        height: `${50 + i * 18}cqmin`
-      }} />
+    const p = puntos[0] ?? { x: 50, y: 40 }
+    return (
+      <div className="es-nodo" style={{ ...usa(nom), left: p.x + '%', top: p.y + '%' }}>
+        {caja(conceptos, 0)}
+      </div>
     )
   }
-  return (
-    <>
-      <div className="es-capa" style={{
-        background: 'radial-gradient(ellipse 70% 50% at 50% 42%, var(--sup) 0%, transparent 62%),' +
-          'linear-gradient(170deg, var(--fondo), var(--fondo))'
-      }} />
-      {anillos}
-    </>
-  )
 }
 
-/** ESTRUCTURA — 'constelacion': tres nodos de concepto unidos al ancla, y en el ancla la
- *  RANURA DEL HEROE. Hoy un emoji (el del primer concepto); mañana un `<img>` recortado en el
- *  MISMO sitio, con el MISMO factor de camara -- este bloque es exactamente lo que cambia. */
-function estructuraConstelacion(
-  kf: ReturnType<typeof emisor>['kf'], pts: PuntoEscena[], cs: Concepto[]
-): React.ReactNode {
-  const nomEntrada = pts.map((_, i) => kf('nodo' + i, 33, u => {
-    const a = 0.06 + (i / pts.length) * 0.30
-    const p = Math.min(1, Math.max(0, (u - a) / 0.26))
-    const e = 1 - Math.pow(1 - p, 3)
-    return `opacity:${e.toFixed(3)};transform:translate(-50%,-50%) scale(${(0.7 + 0.3 * e).toFixed(3)})`
-  }))
-  const nodos = pts.map((p, i) => (
-    <div key={i} className="es-nodo" style={{ ...usa(nomEntrada[i]), left: p.x + '%', top: p.y + '%' }}>
-      <div className="es-caja">
-        <span className="es-mini">{cs[i].emoji}</span>
-        <span className="es-etq">{cs[i].etiqueta}</span>
-      </div>
-    </div>
-  ))
+// ── PIEZAS COMUNES A TODAS LAS ESCENAS ──────────────────────────────────────────────────────
 
-  // Las aristas: viewBox 0..100 en X, 0..100 en Y -- SIN la correccion SY de mapa.ts (16/9).
-  // Simplificacion deliberada: con jitter pequeno sobre tres posiciones fijas, las lineas salen
-  // legibles aunque no geometricamente perfectas. Ver el comentario en shared/escena.ts.
-  const nomArista = pts.map((_, i) => kf('arista' + i, 33, u => {
-    const a = 0.10 + (i / pts.length) * 0.24
-    const p = Math.min(1, Math.max(0, (u - a) / 0.30))
-    return `stroke-dashoffset:${((1 - p) * 90).toFixed(2)};opacity:${(p * 0.8).toFixed(3)}`
-  }))
-  const aristas = (
-    <svg className="es-capa" viewBox="0 0 100 100" preserveAspectRatio="none">
-      {pts.map((p, i) => (
-        <path key={i} d={`M50,45 Q${((50 + p.x) / 2).toFixed(2)},${((45 + p.y) / 2 - 4).toFixed(2)} ${p.x.toFixed(2)},${p.y.toFixed(2)}`}
-          fill="none" stroke="var(--acento)" strokeWidth=".5"
-          strokeDasharray="90" style={usa(nomArista[i])} />
-      ))}
-    </svg>
-  )
-
-  const nomHero = kf('hero', 41, u => {
-    const y = Math.sin(u * TAU) * 1.3
-    return `transform:translate(-50%,-50%) translateY(${y.toFixed(3)}cqmin)`
-  })
-  const hero = <div className="es-hero" style={usa(nomHero)}>{cs[0].emoji}</div>
-
-  return <>{aristas}{nodos}{hero}</>
-}
-
-/** DECORADORES — particulas neutras, sin vocabulario propio de forma este paso. `densidad`
- *  decide cuantas; `ritmo` decide cuando entra cada una. */
-function decoradores(
-  kf: ReturnType<typeof emisor>['kf'], n: number, retardos: number[], rndPos: () => number
-): React.ReactNode {
+function decoradores(kf: Kf, n: number, retardos: number[], rndPos: () => number): React.ReactNode {
   const salida: React.ReactNode[] = []
   for (let i = 0; i < n; i++) {
     const p = posicionDecorador(rndPos)
@@ -232,20 +232,16 @@ function decoradores(
       const e = Math.min(1, Math.max(0, (u - ret) / 0.20))
       return `opacity:${(e * 0.7).toFixed(3)};transform:translate(-50%,-50%) scale(${(0.5 + 0.5 * e).toFixed(3)})`
     })
-    salida.push(
-      <div key={i} className="es-deco" style={{ ...usa(nom), left: p.x + '%', top: p.y + '%' }} />
-    )
+    salida.push(<div key={i} className="es-deco" style={{ ...usa(nom), left: p.x + '%', top: p.y + '%' }} />)
   }
   return salida
 }
 
-/** TEXTO — la palabra, con su barra de acento. Vive DENTRO del arbol de la composicion (no en
- *  AnimatedGraphic, como el pie de siempre) porque solo asi recibe el factor de camara 0.20:
- *  el pie de AnimatedGraphic es HERMANO del arbol de render(), no esta dentro. */
-function textoPie(kf: ReturnType<typeof emisor>['kf'], palabra: string): React.ReactNode {
+/** El pie vive DENTRO del arbol de la composicion -- no en AnimatedGraphic -- porque solo asi
+ *  recibe el factor de camara 0.20: el pie de AnimatedGraphic es HERMANO de este arbol. */
+function textoPie(kf: Kf, palabra: string): React.ReactNode {
   const nom = kf('pie', 25, u => {
-    const p = Math.min(1, u / 0.22)
-    const e = 1 - Math.pow(1 - p, 3)
+    const e = 1 - Math.pow(1 - Math.min(1, u / 0.22), 3)
     return `opacity:${e.toFixed(3)};transform:translateY(${((1 - e) * 3).toFixed(2)}cqmin)`
   })
   return (
@@ -256,23 +252,23 @@ function textoPie(kf: ReturnType<typeof emisor>['kf'], palabra: string): React.R
   )
 }
 
-/** Envuelve una capa con la camara al factor de profundidad `f`. Portado de
- *  docs/motion/lab-camara.html (`conCamara`). En Fase 1 `direccion.camara` es siempre
- *  'deriva'; el switch queda listo para cuando deje de serlo.
+/**
+ * EL ENVOLTORIO DE CAMARA, generico: no sabe que camara es, se la pregunta al registro.
  *
- *  EMITE UN @keyframes, asi que TIENE que llamarse antes del return. Ver `construir()`. */
+ * Con `transform: null` -- la pieza `quieto` -- NO emite @keyframes y NO pone `will-change`.
+ * Eso la convierte en el CONTROL de la medicion de coste: la version "sin camara" es una pieza
+ * registrada, no un parche que hay que acordarse de no commitear.
+ *
+ * EMITE, asi que TIENE que llamarse antes del return. Ver `construir()`.
+ */
 function conCamara(
-  kf: ReturnType<typeof emisor>['kf'], contenido: React.ReactNode, f: number, z: number,
-  camara: Direccion['camara']
+  kf: Kf, contenido: React.ReactNode, f: number, z: number, idCamara: IdCamara
 ): React.ReactNode {
-  const fn = (u: number): string => {
-    switch (camara) {
-      case 'deriva':
-      default:
-        return camaraDeriva(u, f)
-    }
+  const fn = CAMARAS[idCamara].transform
+  if (!fn) {
+    return <div key={z} className="es-capa" style={{ zIndex: z }}>{contenido}</div>
   }
-  const nom = kf('cam' + z, 41, fn)
+  const nom = kf('cam' + z, 41, u => fn(u, f))
   return (
     <div key={z} className="es-capa" style={{ ...usa(nom), zIndex: z, willChange: 'transform' }}>
       {contenido}
@@ -282,21 +278,15 @@ function conCamara(
 
 // ── LA CACHE DE ARBOL ───────────────────────────────────────────────────────────────────────
 //
-// Mismo mecanismo que mapa.tsx: FIFO, CACHE_MAX=4, la clave es SOLO lo que el arbol necesita.
-//
-// `direccionDe` depende UNICAMENTE de `semilla`, que sale de `semillaDe(texto)` -- `texto` ya
-// esta en `value`, que YA es la clave del hash del fichero. Y el arbol nunca hornea `ciclo` ni
-// `sistema`: usa `var(--ciclo)` y `var(--acento)` simbolicos, resueltos por CSS fuera de este
-// componente. Asi que `claveDe` no necesita nada mas que `value` y `conceptos` -- exactamente
-// lo mismo que usa mapa.tsx, y por la misma razon.
+// `direccionDe` depende UNICAMENTE de `semilla`, que sale de `semillaDe(texto)`, y `texto` YA es
+// la clave del hash del fichero. Y el arbol nunca hornea `ciclo` ni `sistema`: usa
+// `var(--ciclo)` y `var(--acento)` simbolicos. Asi que la clave no necesita nada mas.
 const CACHE_MAX = 4
 const cache = new Map<string, React.ReactNode>()
 
-/** La clave: lo UNICO de lo que depende el arbol. Los separadores son caracteres de control
- *  para que no puedan aparecer dentro de una etiqueta y colar dos claves distintas en una.
- *  Se escriben con SECUENCIA DE ESCAPE y nunca literales -- igual que mapa.tsx: un caracter de
- *  control literal es invisible en el fuente, y el dia que un editor o un copiar-y-pegar se lo
- *  coma, "ab"+"c" y "a"+"bc" pasarian a dar la MISMA clave sin que nada lo dijera. */
+/** Los separadores son caracteres de control, escritos con SECUENCIA DE ESCAPE y nunca
+ *  literales: un caracter de control literal es invisible en el fuente, y el dia que un editor
+ *  se lo coma, "ab"+"c" y "a"+"bc" darian la MISMA clave sin que nada lo dijera. */
 function claveDe(value: string, cs: Concepto[]): string {
   return value + '\u0002' + cs.map(c => c.emoji + '\u0001' + c.etiqueta).join('\u0003')
 }
@@ -305,35 +295,29 @@ function construir(value: string, cs: Concepto[]): React.ReactNode {
   const semilla = semillaDe(value)
   const direccion = direccionDe(semilla)
 
-  // Tres streams de aleatoriedad INDEPENDIENTES, mismo patron que mapa.tsx con su
-  // `generador(semillaDe(value + '#decorado'))`. Si no se separan, anadir una pieza a
-  // FONDOS/CAMARAS mas adelante desplazaria TAMBIEN el jitter de los puntos y las posiciones
-  // de los decoradores para semillas que ya tenian un dibujo asignado -- un efecto colateral
-  // que nadie estaria buscando ahi.
+  // Streams de aleatoriedad INDEPENDIENTES, mismo patron que mapa.tsx: si no se separan, anadir
+  // una pieza a un registro desplazaria TAMBIEN el jitter de los puntos y las posiciones de los
+  // decoradores para semillas que ya tenian un dibujo asignado.
   const rndPts = generador(semillaDe(value + '#pts'))
   const rndDeco = generador(semillaDe(value + '#deco'))
 
   const pref = 'es' + (semilla >>> 0).toString(36)
   const { kf, reglas } = emisor(pref)
 
-  // Las etiquetas viajan a la geometria porque el acotado depende del ANCHO de cada caja,
-  // y el ancho depende de su etiqueta. Sin ellas solo se puede acotar el centro, que es
-  // exactamente lo que no bastaba.
-  const constelacion = constelacionDe(rndPts, cs.map(c => c.etiqueta))
+  // ═══ RESOLUCION POR REGISTRO: aqui esta el enchufe ══════════════════════════════════════
+  // Ni un nombre de pieza escrito a mano. Anadir la estructura 18 no toca ninguna linea de aqui.
+  const metaEstructura = ESTRUCTURAS[direccion.estructura]
+  const puntos = metaEstructura.puntos(rndPts, cs.map(c => c.etiqueta))
   const nDeco = DENSIDAD_A_N[direccion.densidad]
   const retardos = retardosDecoradores(nDeco, direccion.ritmo)
 
   // ═══ TODO LO QUE EMITE @keyframes, ANTES DEL RETURN. LAS CAMARAS TAMBIEN. ═══════════════
-  //
   // Las cuatro `conCamara` estaban DENTRO del return en la primera version de este fichero, y
-  // por eso ninguna capa se movia. JSX evalua sus hijos EN ORDEN y el <style> es el primero:
-  // cuando `reglas.join` corria, los cuatro @keyframes de camara todavia no existian. Contado:
-  // la hoja llevaba 16 reglas donde la aritmetica decia 20, y no habia ni un error.
-  //
+  // por eso ninguna capa se movia: JSX evalua sus hijos EN ORDEN y el <style> es el primero.
   // La forma de que no vuelva a pasar no es acordarse: es que el JSX de abajo NO PUEDA llamar a
   // nada que emita. Solo consume constantes ya construidas.
-  const capaFondo = fondoOndas(kf)
-  const capaEstructura = estructuraConstelacion(kf, constelacion.pts, cs)
+  const capaFondo = DIBUJO_FONDOS[direccion.fondo]({ kf })
+  const capaEstructura = DIBUJO_ESTRUCTURAS[direccion.estructura]({ kf, puntos, conceptos: cs })
   const capaDecoradores = decoradores(kf, nDeco, retardos, rndDeco)
   const capaTexto = textoPie(kf, value)
 
@@ -347,18 +331,11 @@ function construir(value: string, cs: Concepto[]): React.ReactNode {
   // LA HOJA SE SERIALIZA AQUI, LA ULTIMA. Nada por debajo de esta linea puede emitir.
   const hoja = CSS_FIJO + reglas.join('\n')
 
-  // `container-type: size` Y NO `inline-size`.
-  //
-  // Todas las medidas de esta composicion son `cqmin`, que es el MENOR de las dos dimensiones
-  // del contenedor -- o sea que necesita las DOS. Con `inline-size` solo el eje en linea es
-  // consultable, `cqmin` no resuelve contra este contenedor y cae a su valor de reserva: la
-  // escena sale "casi bien", a una escala que no es la suya, y no falla nada.
-  //
-  // mapa.tsx usa `inline-size` y esta CORRECTO: sus medidas son `cqw`, que solo necesita el
-  // ancho. La unidad decide el container-type, no al reves.
-  //
-  // `size` implica `contain: size`, o sea que el tamaño no puede salir del contenido. Aqui sale
-  // del `inset: 0` sobre el marco, asi que la condicion se cumple por construccion.
+  // `container-type: size` Y NO `inline-size`: todas las medidas son `cqmin`, que es el MENOR de
+  // las dos dimensiones y necesita las DOS. Con `inline-size` no resuelve y cae a su valor de
+  // reserva: la escena sale "casi bien", a una escala que no es la suya, y no falla nada.
+  // mapa.tsx usa `inline-size` y esta CORRECTO: sus medidas son `cqw`. La unidad decide el
+  // container-type, no al reves.
   const raiz: React.CSSProperties = { position: 'absolute', inset: 0, containerType: 'size' }
 
   return (
@@ -389,37 +366,33 @@ export const escena: Composicion = {
   duraciones: (ciclo) => duracionesDe(ciclo).usadas,
   avisos: (ciclo) => duracionesDe(ciclo).avisos,
   /**
-   * DOS CONDICIONES, y las dos caen al respaldo que ya existe en vez de pintar algo peor.
+   * TRES CONDICIONES, y las tres caen al respaldo que ya existe en vez de pintar algo peor.
    *
-   * 1. AL MENOS TRES CONCEPTOS -- 'minimo 3', no 'exactamente 3' como mapa. Hoy da lo mismo en
-   *    la practica porque `sanearConceptos` devuelve exactamente 3 o null, pero el `>=` no le
-   *    cierra la puerta a una estructura futura que acepte mas.
+   * 1. CONCEPTOS SUFICIENTES para la estructura que toque. El minimo lo declara la PIEZA
+   *    (`minConceptos`), no esta escrito aqui: `unaCaja` se conforma con uno y `constelacion`
+   *    pide tres, y `render` no tiene que saberlo.
+   * 2. QUE CADA ETIQUETA QUEPA en la zona aunque haya que centrarla.
+   * 3. QUE LA PALABRA QUEPA EN EL PIE, en las DOS lineas presupuestadas.
    *
-   * 2. QUE CADA ETIQUETA QUEPA EN LA ZONA aunque haya que centrarla. Por debajo del tope la
-   *    caja se acota por su BORDE en `constelacionDe` y cabe siempre; por encima no hay
-   *    posicion que la salve, asi que no se pinta a medias: se cae al respaldo.
-   *
-   * 3. QUE LA PALABRA QUEPA EN EL PIE, en las DOS lineas presupuestadas. No se encoge la letra
-   *    -- un Visual con letra pequeña deja de ser un Visual -- y no se trunca -- truncar inventa
-   *    una palabra que nadie dijo. Lo que no cabe cae al Visual de texto, que es el patron del
-   *    proyecto. El tope sale de `MAX_CARACTERES_PIE`, que se DERIVA del ancho util, del tamaño
-   *    de la fuente y del numero de lineas: si cambia el tamaño del pie, el tope cambia solo.
-   *
-   * ═══ SI CAMBIAS CUALQUIERA DE LAS DOS, SUBE VERSION_PLANTILLAS EN main/index.ts ═══
-   * La condicion NO esta en la clave del hash: el `type` sigue diciendo `visual_escena` tanto
-   * si se dibuja la escena como si cae a texto. Relajarla o endurecerla haria que LA MISMA
-   * CLAVE diera pixeles distintos. Es el mismo aviso que lleva `mapa`.
+   * ═══ SI CAMBIAS CUALQUIERA, SUBE VERSION_PLANTILLAS EN main/index.ts ═══
+   * La condicion NO esta en la clave del hash: el `type` sigue diciendo `visual_escena` tanto si
+   * se dibuja como si cae a texto.
    */
   puedeDibujar: (d) => {
     const cs = d.conceptos
-    if (!Array.isArray(cs) || cs.length < CUANTOS_CONCEPTOS) return false
-    if (!cs.slice(0, CUANTOS_CONCEPTOS).every(c => !!c && !!c.emoji && !!c.etiqueta)) return false
-    if (!cs.slice(0, CUANTOS_CONCEPTOS).every(c => cabeLaEtiqueta(c.etiqueta))) return false
+    if (!Array.isArray(cs)) return false
+    const buenos = cs.filter(c => !!c && !!c.emoji && !!c.etiqueta)
+    if (buenos.length !== cs.length) return false
+    // El minimo sale de la ESTRUCTURA que va a tocar, y esa depende de la MISMA semilla que usa
+    // `construir`: la puerta y el dibujo no pueden discrepar.
+    const dir = direccionDe(semillaDe(d.texto ?? ''))
+    if (buenos.length < ESTRUCTURAS[dir.estructura].minConceptos) return false
+    if (!buenos.every(c => cabeLaEtiqueta(c.etiqueta))) return false
     return cabeEnElPie(d.texto)
   },
-  // TRUE: la composicion pinta su propio texto (capaTexto, con factor de camara 0.20). El pie
-  // de AnimatedGraphic es HERMANO del arbol de render(), no hijo -- si se dejara en false, la
-  // palabra de AnimatedGraphic aparecería SIN camara, y ademas dos veces.
+  // TRUE: la composicion pinta su propio texto (capaTexto, con factor de camara 0.20). El pie de
+  // AnimatedGraphic es HERMANO del arbol de render(), no hijo -- con `false` la palabra saldria
+  // SIN camara, y ademas dos veces.
   pintaPie: true,
   render
 }
