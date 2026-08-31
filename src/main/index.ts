@@ -1053,7 +1053,7 @@ const canonizar = (v: any): string => {
 // fichero viejo diciendo ACIERTO: se veria exactamente lo mismo y pareceria que la composicion
 // no funciona. Es el modo de fallo que esta constante existe para evitar, y cuesta re-renderizar
 // lo que haya en cache (~2.7 s por grafico).
-const VERSION_PLANTILLAS = 9;
+const VERSION_PLANTILLAS = 8;
 
 // EL FORMATO LO DECIDE EL MODO, y se dice AQUI una sola vez. Las tres cosas —codec, pix_fmt y
 // extension— tienen que ir juntas o el fichero sale mintiendo sobre si mismo: un .mp4 con
