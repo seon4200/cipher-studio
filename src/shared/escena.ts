@@ -328,6 +328,38 @@ export function direccionDe(semilla: number): Direccion {
   };
 }
 
+/**
+ * LA DIRECCION QUE LLEGA DE FUERA, validada contra los registros -- y `direccionDe` de respaldo.
+ *
+ * ES LA COSTURA DE LA FASE 7. Alli la IA rellenara `extra.direccion` y llegara aqui como un objeto
+ * cualquiera: puede venir a medias, con un nombre de pieza que ya no existe, o no venir. Cada
+ * campo se comprueba por separado contra su registro y lo que no valga cae al sorteo por
+ * semilla, que siempre da algo dibujable. NUNCA lanza: un dato malo no puede costar un Visual.
+ *
+ * `extra` ESTA EN LA CLAVE DEL HASH, asi que dos direcciones distintas son dos ficheros distintos
+ * por construccion. No hace falta anadir nada a la clave.
+ *
+ * UNA DIRECCION EXPLICITA PUEDE PEDIR UNA PIEZA DE PRUEBA; el SORTEO no. Son dos cosas
+ * distintas: pedir una pieza a mano es deliberado, y es lo que permite demostrar que el
+ * registro es un enchufe de verdad. `direccionDe` solo reparte repertorio.
+ */
+export function direccionDesde(crudo: unknown, semilla: number): Direccion {
+  const base = direccionDe(semilla);
+  if (!crudo || typeof crudo !== 'object') return base;
+  const c = crudo as Record<string, unknown>;
+  const val = <K extends string>(v: unknown, reg: Record<string, unknown>, porDefecto: K): K =>
+    (typeof v === 'string' && Object.prototype.hasOwnProperty.call(reg, v)) ? (v as K) : porDefecto;
+  return {
+    fondo: val<IdFondo>(c.fondo, FONDOS, base.fondo),
+    estructura: val<IdEstructura>(c.estructura, ESTRUCTURAS, base.estructura),
+    camara: val<IdCamara>(c.camara, CAMARAS, base.camara),
+    densidad: (DENSIDADES as readonly string[]).includes(String(c.densidad))
+      ? (c.densidad as Densidad) : base.densidad,
+    ritmo: (RITMOS as readonly string[]).includes(String(c.ritmo))
+      ? (c.ritmo as Ritmo) : base.ritmo
+  };
+}
+
 // ── CUANTOS ESTILOS HAY, CALCULADO ───────────────────────────────────────────────────
 
 export type OpcionesCombinaciones = {

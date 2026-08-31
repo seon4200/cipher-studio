@@ -522,6 +522,10 @@ export const AnimatedGraphic: React.FC<{
     // en la clave del hash. Se pasan TAL CUAL: ya vienen de `sanearConceptos`, y volver a
     // sanearlos aqui podria cambiar el dibujo sin cambiar la clave.
     const conceptos = extra?.conceptos ?? null
+    // LA DIRECCION viaja por el mismo sitio y por la misma razon: `extra` esta en la clave del
+    // hash, asi que dos direcciones distintas dan dos ficheros distintos. Se pasa TAL CUAL --
+    // sin validar-- porque quien sabe que piezas existen es la composicion, no este fichero.
+    const direccion = extra?.direccion ?? null
 
     // LA PUERTA. Que el tipo nombre una composicion no significa que pueda dibujarse: el
     // despacho es por `type` y `type` no sabe nada de los datos. Un Visual con `visual_mapa` y
@@ -563,7 +567,7 @@ export const AnimatedGraphic: React.FC<{
           className="w-full h-full relative overflow-hidden"
         >
           {comp.render({ u: cicloUsado > 0 ? ((t ?? 0) / cicloUsado) % 1 : 0,
-                         ciclo: cicloUsado, sistema, texto: palabra, conceptos,
+                         ciclo: cicloUsado, sistema, texto: palabra, conceptos, direccion,
                          // De la PALABRA, no del indice ni del instante: la palabra esta en la
                          // clave del hash, asi que la clave describe el dibujo.
                          semilla: semillaDe(palabra) })}

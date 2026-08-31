@@ -25,7 +25,7 @@ import { ajustar, type DuracionUsada } from '../../../shared/ciclo'
 import { generador, semillaDe } from '../../../shared/semilla'
 import { CUANTOS_CONCEPTOS, type Concepto } from '../../../shared/conceptos'
 import {
-  ESTRUCTURAS, CAMARAS, direccionDe, PROFUNDIDAD, retardosDecoradores,
+  ESTRUCTURAS, CAMARAS, direccionDesde, PROFUNDIDAD, retardosDecoradores,
   posicionDecorador, DENSIDAD_A_N, ANILLOS_FONDO, faseAnillo, cabeEnElPie, cabeLaEtiqueta,
   type IdFondo, type IdEstructura, type IdCamara, type PuntoEscena
 } from '../../../shared/escena'
@@ -287,13 +287,20 @@ const cache = new Map<string, React.ReactNode>()
 /** Los separadores son caracteres de control, escritos con SECUENCIA DE ESCAPE y nunca
  *  literales: un caracter de control literal es invisible en el fuente, y el dia que un editor
  *  se lo coma, "ab"+"c" y "a"+"bc" darian la MISMA clave sin que nada lo dijera. */
-function claveDe(value: string, cs: Concepto[]): string {
-  return value + '\u0002' + cs.map(c => c.emoji + '\u0001' + c.etiqueta).join('\u0003')
+function claveDe(value: string, cs: Concepto[], dir: unknown): string {
+  // LA DIRECCION ENTRA EN LA CLAVE. El arbol depende de ella -- otra pieza es otro dibujo -- y
+  // esta cache es por proceso: sin esto, dos Visuales con la misma palabra y direcciones
+  // distintas se servirian el mismo arbol y el segundo saldria con las piezas del primero.
+  const d = dir && typeof dir === "object" ? JSON.stringify(dir) : String(dir ?? "")
+  return value + '\u0002' + cs.map(c => c.emoji + '\u0001' + c.etiqueta).join('\u0003') +
+    '\u0004' + d
 }
 
-function construir(value: string, cs: Concepto[]): React.ReactNode {
+function construir(value: string, cs: Concepto[], dirCruda: unknown): React.ReactNode {
   const semilla = semillaDe(value)
-  const direccion = direccionDe(semilla)
+  // La direccion que trajo el guion, validada contra los registros; lo que falte o no exista,
+  // sorteado por semilla. Es la costura de la Fase 7 y hoy ya es el camino real.
+  const direccion = direccionDesde(dirCruda, semilla)
 
   // Streams de aleatoriedad INDEPENDIENTES, mismo patron que mapa.tsx: si no se separan, anadir
   // una pieza a un registro desplazaria TAMBIEN el jitter de los puntos y las posiciones de los
@@ -346,13 +353,13 @@ function construir(value: string, cs: Concepto[]): React.ReactNode {
   )
 }
 
-function render({ texto, conceptos }: PropsComposicion): React.ReactNode {
+function render({ texto, conceptos, direccion }: PropsComposicion): React.ReactNode {
   const value = texto ?? ''
   const cs: Concepto[] = Array.isArray(conceptos) ? conceptos.slice(0, CUANTOS_CONCEPTOS).filter(Boolean) : []
-  const clave = claveDe(value, cs)
+  const clave = claveDe(value, cs, direccion)
   const visto = cache.get(clave)
   if (visto !== undefined) return visto
-  const arbol = construir(value, cs)
+  const arbol = construir(value, cs, direccion)
   if (cache.size >= CACHE_MAX) {
     const primera = cache.keys().next().value
     if (primera !== undefined) cache.delete(primera)
@@ -385,7 +392,7 @@ export const escena: Composicion = {
     if (buenos.length !== cs.length) return false
     // El minimo sale de la ESTRUCTURA que va a tocar, y esa depende de la MISMA semilla que usa
     // `construir`: la puerta y el dibujo no pueden discrepar.
-    const dir = direccionDe(semillaDe(d.texto ?? ''))
+    const dir = direccionDesde(d.direccion, semillaDe(d.texto ?? ''))
     if (buenos.length < ESTRUCTURAS[dir.estructura].minConceptos) return false
     if (!buenos.every(c => cabeLaEtiqueta(c.etiqueta))) return false
     return cabeEnElPie(d.texto)

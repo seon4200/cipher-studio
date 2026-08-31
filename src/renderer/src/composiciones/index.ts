@@ -60,6 +60,14 @@ export type DatosVisual = {
    * corresponde al dibujo diciendo ACIERTO.
    */
   conceptos?: Concepto[] | null;
+  /**
+   * LA DIRECCION, cruda, tal como viene de `extra.direccion`. Sin validar a proposito: quien
+   * la consume la valida contra SUS registros, que son los que saben que piezas existen.
+   *
+   * Opcional porque `mapa` y `extrusion` no la miran y no tienen por que. `undefined` significa
+   * "el guion no trajo direccion", y entonces la composicion la deriva de la semilla.
+   */
+  direccion?: unknown;
 };
 
 export type PropsComposicion = DatosVisual & {
