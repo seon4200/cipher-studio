@@ -9,6 +9,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "test": "node tests/todas.js",
     "test:persistencia": "electron tests/persistencia.js",
     "test:via4": "electron tests/via4.js",
     "test:materiales": "electron tests/materiales.js",
