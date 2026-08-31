@@ -4,7 +4,8 @@
 // `AnimatedGraphic` ya tiene 17 ramas por tipo de tarjeta y es exactamente el sitio donde nadie
 // quiere entrar a añadir la decimoctava.
 //
-// Hay DOS entradas: EXTRUSION y MAPA. Quien decide cual se pinta no es este fichero sino el
+// Hay TRES entradas: EXTRUSION, MAPA y ESCENA. Quien decide cual se pinta no es este fichero
+// sino el
 // `type` del guion, que AnimatedGraphic resuelve quitandole el prefijo `visual_`.
 //
 // Y que quede dicho, porque en este repo ya paso una vez (la PIEZA 2 estuvo escrita, probada y
@@ -34,6 +35,7 @@ import type { Concepto } from '../../../shared/conceptos';
 import type { NombreSistema } from '../sistemas';
 import { extrusion } from './extrusion';
 import { mapa } from './mapa';
+import { escena } from './escena';
 
 /**
  * LOS DATOS DEL VISUAL: lo que trae el guion, sin nada del reloj ni del render.
@@ -150,7 +152,7 @@ export type Composicion = {
 // La CLAVE es el nombre SIN el prefijo `visual_`: AnimatedGraphic hace
 // `composicion(type.replace(/^visual_/, ''))`, asi que el tipo `visual_mapa` del guion resuelve
 // a la entrada `mapa`, igual que `visual_extrusion` resuelve a `extrusion`.
-export const COMPOSICIONES: Record<string, Composicion> = { extrusion, mapa };
+export const COMPOSICIONES: Record<string, Composicion> = { extrusion, mapa, escena };
 
 /**
  * Devuelve la composicion o NULL. Nunca lanza y nunca inventa una por defecto.
