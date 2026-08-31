@@ -30,7 +30,7 @@ import { generador, semillaDe } from '../../../shared/semilla'
 import { CUANTOS_CONCEPTOS, type Concepto } from '../../../shared/conceptos'
 import {
   direccionDe, PROFUNDIDAD, camaraDeriva, constelacionDe, retardosDecoradores,
-  posicionDecorador, DENSIDAD_A_N, ANILLOS_FONDO, faseAnillo, cabeEnElPie,
+  posicionDecorador, DENSIDAD_A_N, ANILLOS_FONDO, faseAnillo, cabeEnElPie, cabeLaEtiqueta,
   type Direccion, type PuntoEscena
 } from '../../../shared/escena'
 import type { Composicion, PropsComposicion } from './index'
@@ -316,7 +316,10 @@ function construir(value: string, cs: Concepto[]): React.ReactNode {
   const pref = 'es' + (semilla >>> 0).toString(36)
   const { kf, reglas } = emisor(pref)
 
-  const constelacion = constelacionDe(rndPts)
+  // Las etiquetas viajan a la geometria porque el acotado depende del ANCHO de cada caja,
+  // y el ancho depende de su etiqueta. Sin ellas solo se puede acotar el centro, que es
+  // exactamente lo que no bastaba.
+  const constelacion = constelacionDe(rndPts, cs.map(c => c.etiqueta))
   const nDeco = DENSIDAD_A_N[direccion.densidad]
   const retardos = retardosDecoradores(nDeco, direccion.ritmo)
 
@@ -392,7 +395,11 @@ export const escena: Composicion = {
    *    la practica porque `sanearConceptos` devuelve exactamente 3 o null, pero el `>=` no le
    *    cierra la puerta a una estructura futura que acepte mas.
    *
-   * 2. QUE LA PALABRA QUEPA EN EL PIE, en las DOS lineas presupuestadas. No se encoge la letra
+   * 2. QUE CADA ETIQUETA QUEPA EN LA ZONA aunque haya que centrarla. Por debajo del tope la
+   *    caja se acota por su BORDE en `constelacionDe` y cabe siempre; por encima no hay
+   *    posicion que la salve, asi que no se pinta a medias: se cae al respaldo.
+   *
+   * 3. QUE LA PALABRA QUEPA EN EL PIE, en las DOS lineas presupuestadas. No se encoge la letra
    *    -- un Visual con letra pequeña deja de ser un Visual -- y no se trunca -- truncar inventa
    *    una palabra que nadie dijo. Lo que no cabe cae al Visual de texto, que es el patron del
    *    proyecto. El tope sale de `MAX_CARACTERES_PIE`, que se DERIVA del ancho util, del tamaño
@@ -407,6 +414,7 @@ export const escena: Composicion = {
     const cs = d.conceptos
     if (!Array.isArray(cs) || cs.length < CUANTOS_CONCEPTOS) return false
     if (!cs.slice(0, CUANTOS_CONCEPTOS).every(c => !!c && !!c.emoji && !!c.etiqueta)) return false
+    if (!cs.slice(0, CUANTOS_CONCEPTOS).every(c => cabeLaEtiqueta(c.etiqueta))) return false
     return cabeEnElPie(d.texto)
   },
   // TRUE: la composicion pinta su propio texto (capaTexto, con factor de camara 0.20). El pie

@@ -12,7 +12,7 @@
 // se reescribe una segunda version de algo asi.
 
 import { generador, entre } from './semilla';
-import { acotar, type Layout, type Punto } from './mapa';
+import { acotar, anchoCaja, cl, type Layout, type Punto } from './mapa';
 
 const TAU = 6.283185307;
 
@@ -113,6 +113,16 @@ export const PROFUNDIDAD = {
   texto: 0.20
 } as const;
 
+// ── LA ZONA SEGURA EN X, la constante de la que cuelga todo lo demas ──────────────────
+//
+// La zona segura son 900x1400 centrados en 1080x1920, asi que a los lados quedan
+// (1080-900)/2/1080 = 8.33 %. NO es una preferencia: es la misma aritmetica que documenta
+// ZONA en shared/mapa.ts, y de aqui salen los DOS topes -- el del pie y el de la etiqueta --
+// para que no puedan decir cosas distintas.
+export const ZONA_X_MIN = 8.33;
+export const ZONA_X_MAX = 91.67;
+export const ZONA_ANCHO_UTIL = ZONA_X_MAX - ZONA_X_MIN;
+
 // ── EL PIE: CUANTO TEXTO CABE, Y DE DONDE SALE EL NUMERO ─────────────────────────────
 //
 // El pie NO encoge la letra y NO trunca: un Visual con letra pequeña deja de ser un Visual
@@ -131,7 +141,7 @@ export const PROFUNDIDAD = {
 //
 // SI SE CAMBIA EL TAMAÑO DE LA FUENTE DEL PIE HAY QUE REHACER ESTA CUENTA, y por eso los tres
 // numeros estan aqui y no dentro de una constante ya resuelta.
-export const PIE_ANCHO_UTIL = 83.34;
+export const PIE_ANCHO_UTIL = ZONA_ANCHO_UTIL;
 export const PIE_FUENTE_CQMIN = 9;
 export const PIE_EM_POR_CARACTER = 0.58;
 export const PIE_LINEAS = 2;
@@ -146,6 +156,31 @@ export const MAX_CARACTERES_PIE = Math.floor(PIE_LINEAS * PIE_CARACTERES_POR_LIN
 export function cabeEnElPie(texto: unknown): boolean {
   const s = String(texto ?? '').trim();
   return s.length > 0 && s.length <= MAX_CARACTERES_PIE;
+}
+
+// ── EL TOPE DE LA ETIQUETA DE UN CONCEPTO ────────────────────────────────────────────
+//
+// Simetrico al del pie y por el mismo motivo: lo que no cabe no se encoge ni se trunca, se
+// cae al respaldo. La diferencia es el modelo de ancho -- el pie es texto suelto y se estima
+// por caracteres; una caja de concepto tiene su ancho MEDIDO en el DOM real, y esa medida ya
+// vive en `anchoCaja` de shared/mapa.ts.
+//
+// SE DERIVA DE LA PROPIA FUNCION MEDIDA, no de copiar sus dos constantes: el dia que alguien
+// vuelva a medir la caja -- y el comentario de mapa.ts dice que HAY que remedirla si cambia la
+// fuente -- este tope se mueve solo. Copiar 12.18 y 1.257 aqui los dejaria desincronizados en
+// silencio, que es el patron de las dos puertas.
+//
+// La condicion es la del caso (b): si NI SIQUIERA CENTRADA la caja cabe en la zona, no hay
+// posicion que la salve.
+export const MAX_CARACTERES_ETIQUETA = (() => {
+  let c = 0;
+  while (c < 500 && anchoCaja(c + 1, true) <= ZONA_ANCHO_UTIL) c++;
+  return c;
+})();
+
+/** ¿Cabe esta etiqueta en la zona segura, aunque haya que centrarla? */
+export function cabeLaEtiqueta(etiqueta: unknown): boolean {
+  return String(etiqueta ?? '').length <= MAX_CARACTERES_ETIQUETA;
 }
 
 // ── CAMARA: LA FUNCION DE MUESTREO, PURA ─────────────────────────────────────────────
@@ -202,15 +237,33 @@ export type Constelacion = { ancla: PuntoEscena; pts: PuntoEscena[] };
 
 /** Siempre tres puntos: `puedeDibujar` en composiciones/escena.tsx exige al menos eso antes de
  *  llamar aqui -- la misma puerta que usa `mapa` con `CUANTOS_CONCEPTOS`. */
-export function constelacionDe(rnd: () => number): Constelacion {
+export function constelacionDe(rnd: () => number, etiquetas: readonly string[] = []): Constelacion {
   const cx = 50, cy = 45; // mismo foco visual que documenta FOCO en shared/mapa.ts (y = 45)
   const base: PuntoEscena[] = [
     { x: 28, y: 30 }, { x: 72, y: 32 }, { x: 50, y: 70 }
   ];
-  const pts = base.map(p => ({
-    x: p.x + entre(rnd, -3, 3),
-    y: p.y + entre(rnd, -2.5, 2.5)
-  }));
+  const pts = base.map((p, i) => {
+    // EL ORDEN DE LAS LLAMADAS A `rnd` NO CAMBIA: primero la x, luego la y, igual que antes.
+    // Mover una sola desplazaria todos los sorteos siguientes y cambiaria TODOS los dibujos.
+    const x0 = p.x + entre(rnd, -3, 3);
+    const y0 = p.y + entre(rnd, -2.5, 2.5);
+    // EL ACOTADO POR EL BORDE DE LA CAJA, y no por su centro.
+    //
+    // `acotar()` -- que sigue abajo como cinturon -- acota CENTROS a ZONA. Eso no basta: lo
+    // que se sale de la zona segura es el BORDE, que esta a `centro +- semiancho`, y con una
+    // etiqueta de 17 caracteres el borde derecho llegaba a 91.8 con el centro en 75, dentro.
+    // Medido antes de arreglarlo.
+    const semi = anchoCaja(etiquetas[i] ?? '', true) / 2;
+    const lo = ZONA_X_MIN + semi;
+    const hi = ZONA_X_MAX - semi;
+    // (a) EL INTERVALO PUEDE QUEDAR VACIO: una caja mas ancha que la zona entera no tiene
+    // ninguna posicion valida, y `cl(v, lo, hi)` con lo > hi devuelve `hi`, que es peor que
+    // no hacer nada -- pegaria la caja al borde izquierdo. Centrada es lo menos malo, y
+    // `MAX_CARACTERES_ETIQUETA` hace que este caso no llegue a pintarse: `puedeDibujar` ya
+    // habra dicho que no. Esto es el cinturon del cinturon.
+    const x = lo <= hi ? cl(x0, lo, hi) : 50;
+    return { x, y: y0 };
+  });
   // `acotar` trabaja sobre un Layout completo. Las aristas y la curva no le importan -- solo
   // toca `ancla` y `pts` -- asi que se le pasa la forma minima y se recogen los dos que usa.
   const L: Layout = { ancla: { x: cx, y: cy }, pts, aristas: [], curva: 0 };
