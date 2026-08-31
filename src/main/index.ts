@@ -4528,7 +4528,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     //
     // `puedeDibujar` protege el caso que falta: un Visual sin los tres conceptos -- 1 de 82 en
     // la ultima generacion -- cae al Visual de texto de siempre y lo dice en el log.
-    const COMPOSICION_VISUAL = 'visual_escena';
+    const COMPOSICION_VISUAL = 'visual_mapa';
     const visuales = clipsDecision.filter((c: any) => c.type === 'visual');
     if (visuales.length) {
       // La palabra se elige AQUI y no en el componente: entra en graphicData y por tanto en la
