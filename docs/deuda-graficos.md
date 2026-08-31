@@ -1593,3 +1593,113 @@ antes, por dos razones:
 Cuando se persiga, se persigue **con la herramienta que esta fase construye**: el resumen sobre
 una generacion de verdad. Ese es el sentido de haberla construido.
 
+
+---
+
+## 🎲 EL RENDER NO ES REPRODUCIBLE. Punto de la Fase 3
+
+Salio buscando otra cosa: el diff de comportamiento de la Fase 2 comparaba pixeles contra master
+para probar que la rama no tocaba la composicion. Fallo. Y al hacer el CONTROL —**dos renders del
+MISMO arbol y el MISMO commit**— fallo tambien. La prueba no servia; lo que no servia era el
+metodo, no la rama.
+
+### El sintoma, exacto
+
+Un Visual real (`value: 'agua'`, `pos: '3:1'`, tres conceptos, 2.6 s, 1080x1920, 30 fps),
+renderizado dos veces desde el mismo arbol, y comparados los frames crudos RGBA byte a byte:
+
+```
+  frame  0 : IDENTICO
+  frame 39 : DISTINTO
+  frame 77 : DISTINTO
+```
+
+- **El frame 0 coincide SIEMPRE**, en las cuatro tiradas hechas.
+- **La deriva CRECE con el tiempo del clip**: contra master, 74 249 bytes distintos en el frame 39
+  (0,9 % del frame) y **591 726 en el frame 77 (7,1 %)**. No es ruido de codec: es ocho veces mas
+  a mitad de clip que al principio.
+- La clave de hash es la misma en todas las tiradas (`db7cb15ea714`), o sea que **el fichero se
+  llama igual y por dentro no lo es**.
+
+### Lo que YA esta descartado
+
+- **No hay `Math.random`, ni `Date.now`, ni `performance.now`, ni `new Date()`** en
+  `AnimatedGraphic.tsx`, `grafico.tsx` ni `escena.ts`.
+- **La semilla sale SOLO de `value`** (`shared/semilla.ts`), que esta en la clave.
+- Por tanto **el DIBUJO es determinista**. Lo que varia esta despues: en la captura, en el
+  ensamblado o en el encode.
+
+### La consecuencia, que no estaba escrita en ningun sitio
+
+**Hoy CIPHER no puede garantizar que el mismo proyecto exportado dos veces de el mismo video.** Y
+no por las imagenes de IA, que es donde uno miraria primero: **por el motor de captura**, en un
+clip cuyo contenido esta completamente determinado por su clave.
+
+Se busco esa afirmacion en los documentos antes de escribir esto y **no esta**: el plan maestro no
+tiene encabezados de fase numerada y ni "exportado dos veces" ni "reproducible / repetible / bit a
+bit" aparecen en ningun `.md` del repo. Queda escrita aqui como afirmacion propia y medida, no
+como cita. Lo unico proximo que si esta en el plan es la regla de que un motor de animacion con
+reloj propio necesita reloj manual "o se capturarian N frames identicos" — la misma ley vista por
+el otro lado.
+
+### Por que es el cimiento de la Fase 3
+
+Un verificador de artefacto **compara**. Si dos renders del mismo clip difieren, no hay contra que
+comparar: cualquier verificador que se construya encima estara midiendo su propio ruido y dara
+falsos positivos para siempre. **Esto se arregla ANTES de construir el verificador, no despues.**
+
+### La hipotesis — COMO HIPOTESIS, no como hecho
+
+**El lazo de reintentos de la captura.** Se esta en **1,73 intentos/frame**: casi tres de cada
+cuatro frames se recapturan. Si un reintento captura el frame en un instante distinto del
+previsto, sale exactamente esta firma — el frame 0 intacto porque no ha dado tiempo a derivar, y
+el error acumulandose con el tiempo del clip.
+
+**Si es eso, no es solo un problema de comparar: es micro-tembleque en el video que se entrega.**
+
+Nada de esto esta medido todavia. Se mide en la Fase 3. Dos numeros para empezar: el liston medido
+en seco fue **1,30 intentos/frame**, y la cifra de la composicion real es **1,73** — ese hueco es
+parte de lo que hay que explicar.
+
+
+---
+
+## 🕳️ DOS AGUJEROS DE COBERTURA, dichos sin adornos
+
+Se preguntaron al cerrar la Fase 2 y las dos respuestas son que no. Se anotan sin arreglarlos.
+
+### 1. El bug de ORDEN del −3 no lo caza ninguna suite
+
+El defecto que se arreglo en la Fase 2 —anotar la degradacion de stock ANTES de la asignacion de
+Visuales, de forma que tres clips anotados se promovian despues— **era de orden dentro del
+handler**, y lo cazo la prueba de aceptacion, no una suite.
+
+Comprobado sobre el arbol:
+
+- **Ninguna suite invoca `generate-timeline-assets`.** Ni una.
+- **Ninguna suite menciona `origenPedido` ni `motivoRespaldo`.**
+- Lo que `tests/avisos.js` congela es el **TEXTO** del resumen a partir de conteos sinteticos:
+  ejercita `coleccionDeAvisos`, `armarResumen` y `textoResumen`, que son puros. **No vuelve a
+  ejecutar el handler**, asi que el orden de las anotaciones le es invisible.
+
+**Si manana alguien mueve esas lineas otra vez, el bug vuelve y nada lo detecta.**
+
+Y hay un agravante: **el arnes de aceptacion no esta en el repo**. Vive en un directorio temporal
+fuera del proyecto, o sea que hoy nadie mas puede repetir la prueba que es la unica cobertura que
+existe. Estado real: **cubierto por la prueba de aceptacion manual, no por una suite** — y esa
+prueba manual, ademas, no esta versionada.
+
+### 2. No existe "lo que ejecuta el conjunto"
+
+Se pregunto si `test:avisos` esta enganchada al ejecutor del conjunto. **No hay ejecutor del
+conjunto.** No hay script `test`, no hay `.github/`, no hay `.husky/`. Las diez suites son diez
+scripts sueltos de `package.json` y el "conjunto" es una persona escribiendo un bucle a mano.
+
+`test:avisos` esta exactamente igual de enganchada que las otras nueve, que es decir **nada**. El
+problema no es la novena: son las diez.
+
+Es, palabra por palabra, el modo de fallo que la Fase 2 existe para impedir —algo que hay que
+acordarse de mirar es algo que un dia deja de mirarse y nadie se entera— aplicado a las propias
+pruebas. Cuando se arregle, hay una decision de diseno que tomar y no es automatica: **`test:ventana`
+esta roja A PROPOSITO**, asi que un ejecutor que la incluya nace rojo para siempre y entrena a no
+mirarlo, y uno que la excluya tiene que dejar escrito por que.
