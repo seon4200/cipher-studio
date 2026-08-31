@@ -4406,6 +4406,31 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         }
       }
 
+      // ── LOS SLOTS DE STOCK QUE SE DEGRADARON, ANOTADOS ── Y VA AQUI, NO ARRIBA.
+      //
+      // No pasan por ninguno de los cinco puntos de respaldo: caen ANTES, en el reparto, porque
+      // sin keyword propio una busqueda de stock seria generica y no ilustraria nada. Sin esta
+      // anotacion el resumen decia 'stock: se pidieron 11 y salieron 0' con el desglose VACIO --
+      // enseñaba el sintoma y escondia la causa, que es la principal del 25/8.
+      //
+      // ANOTARLO ANTES DE ESTE BLOQUE ERA UN ERROR, y lo cazo la prueba de aceptacion: la
+      // asignacion de Visuales de arriba PROMUEVE clips que estan en 'original', asi que tres de
+      // los marcados como 'stock caido' acababan siendo Visuales de verdad. Contaban como
+      // respaldo sin serlo, y el resumen decia 'Visual: se pidieron 18 y salieron 15' sin que
+      // hubiera caido ningun Visual. Se anota DESPUES y solo sobre los que siguen en 'original':
+      // esos si se quedaron sin ser nada de lo que se pidio.
+      if (sinKeyword > 0) {
+        const conKw = new Set(conKeyword);
+        const degradados = reasignables
+          .filter(j => !conKw.has(j) && cuotaLista[j].clip.type === 'original')
+          .slice(0, sinKeyword);
+        for (const j of degradados) {
+          const c = cuotaLista[j].clip as any;
+          c.origenPedido ??= 'stock';
+          c.motivoRespaldo ??= 'stock-sin-keyword';
+        }
+      }
+
       const finStock = cuotaLista.filter(x => x.clip.type === 'stock').length;
       const finOriginal = cuotaLista.filter(x => x.clip.type === 'original').length;
       await logMessage(`[FASE 2] Cuota: objetivo original=${objOriginal} stock=${objStock} ` +
@@ -4465,6 +4490,15 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           // lineas mas arriba se sanean y aqui se tiraban, sin error y sin log. El mismo patron
           // que obligo a nombrarlos alli.
           conceptos: subClip.conceptos,
+          // EL ORIGEN PEDIDO Y EL MOTIVO CRUZAN EL APLANADO, y hay que nombrarlos igual que
+          // `conceptos`. Es LA MISMA TRAMPA que documenta el comentario de aqui arriba: este
+          // push construye objetos NUEVOS con claves a mano, asi que lo anotado sobre el
+          // sub-clip -- y la degradacion por falta de keyword se anota alli -- se tiraba aqui
+          // sin error y sin log. La advertencia ya estaba escrita en este mismo sitio y volvio
+          // a pasar. Lo cazo la prueba de aceptacion: el resumen decia 'stock: se pidieron 11 y
+          // salieron 0' con el desglose de motivos VACIO.
+          origenPedido: subClip.origenPedido,
+          motivoRespaldo: subClip.motivoRespaldo,
           graphic: null
         });
         globalIdx++;
@@ -4554,7 +4588,23 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // su hueco cae a 'original'. No se inventa una palabra ni se amplia la ventana: ampliarla
       // pintaria algo que no suena en ese momento.
       const sinPalabra = conPalabra.filter(x => !x.palabra);
-      for (const x of sinPalabra) x.item.type = 'original';
+      // EL ORIGEN PEDIDO Y EL MOTIVO SE GUARDAN ANTES DE REASIGNAR, y esto es lo que hace que
+      // el resumen no mienta. `type` se muta EN EL SITIO en los seis caminos de respaldo, asi
+      // que al final un Visual caido es indistinguible de un 'original' legitimo: el 25/8 los
+      // clips de stock y los Visuales perdidos habrian salido como 'original' correcto y el
+      // resumen habria dicho que todo cuadraba, igual que dijo la app.
+      //
+      // `??=` Y NO `=`: si un clip cae dos veces, el origen de verdad es el PRIMERO. Con `=` el
+      // segundo lo pisaria y el resumen contaria una caida de stock donde hubo una de Visual.
+      //
+      // ESTOS CAMPOS NO ENTRAN EN NINGUN HASH: `graphicData` se construye con claves EXPLICITAS
+      // y `extra` con dos, `pos` y `conceptos`. Nadie esparce el item. Verificado midiendo: la
+      // clave de un Visual real no cambia.
+      for (const x of sinPalabra) {
+        x.item.origenPedido ??= x.item.type;
+        x.item.motivoRespaldo ??= 'visual-sin-palabra';
+        x.item.type = 'original';
+      }
       if (sinPalabra.length) {
         await logMessage(`[FASE 3] ${sinPalabra.length} de ${visuales.length} Visuales sin ` +
           `palabra con significado en su tramo: pasan a original.`);
@@ -4603,7 +4653,12 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         for (let i = 0; i < aRenderizar.length; i++) {
           const ruta = resVis.rutas?.[i];
           const item = aRenderizar[i].item;
-          if (!ruta || !(await exists(ruta))) { item.type = 'original'; continue; }
+          if (!ruta || !(await exists(ruta))) {
+            item.origenPedido ??= item.type;
+            item.motivoRespaldo ??= 'visual-sin-fichero';
+            item.type = 'original';
+            continue;
+          }
           const durReal = await getVideoDuration(ruta);
           results[item.index - 1] = {
             id: `visual-${item.index}`,
@@ -4684,6 +4739,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           } catch (iaErr: any) {
             await logMessage(`[FASE 3] Error IA en clip ${item.index}: ${iaErr.message || iaErr}. Usando fallback original.`);
             // Caída de seguridad: convertimos el clip a tipo original y le asignamos un timestamp proporcional
+            item.origenPedido ??= item.type;
+            item.motivoRespaldo ??= 'ia-fallida';
             item.type = 'original';
             item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
           }
@@ -4924,6 +4981,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             // Si no se encontró stock en ningún proveedor, usar clip original como fallback
             if (!stockClipPath) {
               await logMessage(`[FASE 3] Sin stock disponible para: "${keyword}". Usando fallback original.`);
+              item.origenPedido ??= item.type;
+              item.motivoRespaldo ??= 'stock-sin-resultados';
               item.type = 'original';
               item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
             } else {
@@ -4970,6 +5029,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             }
           } catch (stockErr: any) {
             await logMessage(`[FASE 3] Error Stock en clip ${item.index}: ${stockErr.message || stockErr}. Usando fallback original.`);
+            // El origen pedido y el motivo, ANTES de reasignar. Ver el bloque de sinPalabra.
+            item.origenPedido ??= item.type;
+            item.motivoRespaldo ??= 'stock-error';
             item.type = 'original';
             item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
           }
