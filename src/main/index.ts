@@ -3879,7 +3879,6 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // El precio es el doble de llamadas, que a este tamaño es ruido frente a perder un lote.
       const BATCH_SIZE = 12;
       let phrasesDecision: any[] = [];
-      let graphicsDecision: any[] = [];
 
       for (let batchStart = 0; batchStart < newAudioSegments.length; batchStart += BATCH_SIZE) {
         const batchEnd = Math.min(batchStart + BATCH_SIZE, newAudioSegments.length);
@@ -4072,7 +4071,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         } catch (err) { return '(ilegible)'; }
       };
 
-      // Procesar y sanitizar con phrasesDecision y graphicsDecision
+      // Procesar y sanitizar con phrasesDecision
       for (let idx = 0; idx < newAudioSegments.length; idx++) {
         const seg = newAudioSegments[idx];
         const nextSegStart = newAudioSegments[idx + 1]?.start;
@@ -4082,7 +4081,6 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         const numClipsExpected = phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
         
         const matchClips = phrasesDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
-        const matchGraphics = graphicsDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
 
         let visualClips = matchClips?.visualClips || matchClips?.clips;
         if (!Array.isArray(visualClips) || visualClips.length === 0) {
@@ -4199,43 +4197,17 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           }
         }
 
-        let graphic = matchGraphics?.graphic;
-        if (graphic && typeof graphic === 'object') {
-          const type = graphic.type || 'decorativo_emoji';
-          let start = parseFloat(Number(graphic.graphicStart).toFixed(2));
-          let end = parseFloat(Number(graphic.graphicEnd).toFixed(2));
-          
-          if (isNaN(start) || start < 0) start = 0;
-          if (start > phraseDuration) start = phraseDuration;
-          if (isNaN(end) || end < start) end = start + 2.0;
-          if (end > phraseDuration) end = phraseDuration;
-          
-          let dur = end - start;
-          if (dur > 2.0) {
-            end = parseFloat((start + 2.0).toFixed(2));
-            if (end > phraseDuration) {
-              end = phraseDuration;
-              start = parseFloat(Math.max(0, end - 2.0).toFixed(2));
-            }
-          }
-          if (end - start < 0.2) {
-            start = parseFloat(Math.max(0, end - 1.0).toFixed(2));
-            end = parseFloat(Math.min(phraseDuration, start + 1.0).toFixed(2));
-          }
-
-          graphic = {
-            type,
-            value: graphic.value !== undefined ? graphic.value : '📊',
-            label: graphic.label || 'Concepto clave',
-            unit: graphic.unit || '',
-            emoji: graphic.emoji || '💡',
-            graphicStart: start,
-            graphicEnd: end,
-            extra: graphic.extra !== undefined ? graphic.extra : null
-          };
-        } else {
-          graphic = null;
-        }
+        // NUNCA HUBO GRAFICO POR ESTA VIA, y el codigo fingia que si. `graphicsDecision` se
+        // declaraba vacio y nadie le hacia push ni se lo reasignaba, o sea que su `.find`
+        // devolvia `undefined` SIEMPRE: las 35 lineas que saneaban `graphicStart`, recortaban
+        // a 2 segundos y montaban el objeto no se ejecutaron una sola vez. Peor que inutiles:
+        // se leian como si el camino existiera, y buscar por que "no salen los graficos"
+        // llevaba derecho a un saneo impecable de un valor que no llegaba nunca.
+        //
+        // Los graficos de verdad salen por `regenerate-graphics`, que parsea su propia
+        // respuesta de DeepSeek: ese camino esta vivo y no se toca. Y los Visuales son otra
+        // cosa distinta, con su composicion y su hash.
+        const graphic = null;
 
         sanitizedPhrases.push({
           phraseIndex: idx + 1,
@@ -5176,7 +5148,6 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     await logMessage('[FASE 5] Ensamblando timeline...');
     let currentStart = 0;
     const finalClips: any[] = [];
-    const graphicClips: any[] = [];
 
     let globalClipIdx = 0;
         await logMessage(`[DIAG] sanitizedPhrases=${sanitizedPhrases.length} newAudioSegments=${newAudioSegments.length}`);
@@ -5253,51 +5224,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         currentStart += clip.durationSeconds;
       }
 
-      // Si la frase tiene gráfico asignado, creamos un clip de gráfico independiente
-      if (phrase.graphic) {
-        const seg = newAudioSegments[phraseIdx];
-        let graphicStartOffset = phrase.graphic.graphicStart;
-
-        if (seg && seg.words && seg.words.length > 0) {
-          const segStart = seg.start || 0;
-          // La lista vivia AQUI y copiada otra vez mas abajo. Ahora es una sola, en
-          // shared/palabra.ts, y de paso el filtro deja de descartar cifras: "48.6%" se
-          // convertia en cadena vacia y era justo el dato que mas merece un grafico.
-          const keyWord = seg.words.find((w: any) => tieneSignificado(w.word));
-          
-          if (keyWord) {
-            const relative = Math.max(0,
-              parseFloat((keyWord.start - segStart).toFixed(2)));
-            const phraseDuration = seg.end - seg.start;
-            graphicStartOffset = Math.min(relative, phraseDuration * 0.7);
-          }
-        }
-
-        const startSec = phraseStartSeconds + graphicStartOffset;
-        const durSec = phrase.graphic.graphicEnd - phrase.graphic.graphicStart;
-        if (startSec < audioDuration && durSec > 0) {
-          graphicClips.push({
-            id: 'timeline-graphic-' + Math.random(),
-            name: 'Gráfico: ' + (phrase.graphic.label || phrase.graphic.type),
-            startSeconds: startSec,
-            graphicStartRelative: phrase.graphic.graphicStart,
-            phraseIdx: phraseIdx,
-            durationSeconds: Math.min(durSec, audioDuration - startSec),
-            type: 'graphic',
-            graphicData: {
-              type: phrase.graphic.type,
-              value: phrase.graphic.value,
-              label: phrase.graphic.label,
-              unit: phrase.graphic.unit,
-              emoji: phrase.graphic.emoji,
-              extra: phrase.graphic.extra
-            }
-          });
-        }
-      }
     }
-
-    finalClips.push(...graphicClips);
 
         // ═══ NORMALIZACIÓN: cada clip llena hasta el inicio del siguiente ═══
         // Evita huecos por diferencia entre duración planificada y duración real de FFmpeg
