@@ -1740,14 +1740,41 @@ Esto **refuerza la pista**, no demuestra la causa: la tirada lenta tenia dos fac
 arranque de la ventana y una maquina ocupada por Vite y el banco. No separa cache fria de
 competencia de recursos, y no se persigue aqui.
 
-Lo que si queda demostrado es otra deuda: `tests/graficos.js` mezcla correccion y rendimiento.
-`TOPE_MS = 5000` se aplica al primer render y al segundo **por separado**, no a una media. Con
-4844 ms una tirada descargada quedo a solo 156 ms del rojo. El mismo fichero exige tambien que
-un acierto de cache tarde menos de 100 ms y que la sonda no pase de cinco intentos. Son senales
-utiles, pero su verde depende de la carga de la maquina. Hay que separar el contrato determinista
-del artefacto de un benchmark que reporte frio, caliente y cache; la suite de correccion solo
-deberia fallar por rendimiento ante un bloqueo o una demora absurda, no por cruzar un liston de
-producto en una muestra unica.
+~~`tests/graficos.js` mezcla correccion y rendimiento: `TOPE_MS = 5000` se aplica al primer~~
+~~render y al segundo por separado; 4844 ms dejo una tirada descargada a 156 ms del rojo. Tambien~~
+~~exige que un acierto de cache tarde menos de 100 ms y que la sonda no pase de cinco intentos.~~
+
+**CERRADO en la rama `separa-rendimiento-graficos`:** los tiempos del primero, segundo, cache y
+lectura de la sonda se imprimen pero no deciden el verde. La cache se demuestra por el contador
+autoritativo del lote (`aciertos === 1`, `renderizados === 2`), no porque haya sido rapida. La
+suite conserva un watchdog de 90 s contra bloqueo; el liston de producto vive en
+`npm run bench:graficos`, con seis muestras y dos resumenes separados: las tres de arranque y
+las tres de regimen asentado, cada uno con mediana y p95 de ms/frame e intentos/frame.
+
+### El supuesto efecto observador y la supuesta regresion de 62 contra 50 — descartados
+
+El primer banco nuevo midio clips de **1 s / 30 frames** y mezclo el calentamiento en una sola
+mediana: **62,17 ms/frame** contra un liston historico de **50,30**. La comparacion no era valida:
+el liston se midio a **3 s / 90 frames**, y el coste fijo pesa tres veces mas por frame en el clip
+corto.
+
+El observador tampoco corre dentro del lazo: `emitirMedicionRenderGrafico()` se invoca **una vez
+por clip**, despues de escribir todos los frames y cerrar FFmpeg; `ms` se captura antes de llamar
+al observador. Un A/B de seis renders activos contra seis inactivos, con el mismo arbol y semilla
+dentro de cada par y alternando el orden, no mostro penalizacion consistente. En regimen asentado
+el lado activo fue incluso **5,13 ms/frame mas rapido**, signo de ruido, no de coste causal. La
+diferencia entre el tiempo exterior y el `ms` interno en las seis muestras activas fue solo
+**1-3 ms por render completo** (aprox. **0,02 ms/frame**) e incluye tambien el log: es una cota
+superior, no 9-12 ms/frame.
+
+Repetido en la condicion demostrable del liston --`visual_mapa`, voltaje, 1080x1920, 3 s, 90
+frames--, el regimen asentado dio **51,51 ms/frame de mediana y 52,31 de p95**: x1,02, no x1,24.
+Los intentos asentados dieron **1,63 de mediana y 1,69 de p95** contra el 1,30 historico, sin
+frames en el tope. La posible regresion de intentos queda **ni confirmada ni descartada**: el
+`graphicData` exacto del arnes de 2026-08-08 no quedo en Git, solo su composicion, duracion,
+frames y sistema. El numero actual queda escrito, pero la comparacion clip-a-clip historica no
+se puede reconstruir honestamente. Desde ahora el benchmark versiona su fixture completo y la
+regla que sustituye `{id}` para evitar la cache.
 
 ### Lo que NO se ha demostrado, y no debe escribirse como si si
 
@@ -1823,6 +1850,29 @@ mirarlo, y uno que la excluya tiene que dejar escrito por que.~~
 **CERRADO en `6c20996`:** `npm test` ejecuta las nueve suites verdes, declara que espera nueve,
 cruza los scripts con los ficheros para detectar una suite no enganchada y excluye
 `test:ventana` con el motivo escrito en el propio ejecutor.
+
+---
+
+## Crash inexplicado de `test:exclusion` durante el desmontaje
+
+**Estado: inexplicado y sin atribuir.** En una ejecución apareció el código de salida
+`3221225477` (`0xC0000005`, *access violation*) durante el desmontaje del proceso, después de
+que todas las aserciones hubieran impreso verde. No hubo ninguna aserción fallada asociada.
+
+Condiciones observadas: rama `separa-rendimiento-graficos`, **1 crash / 12 ejecuciones**;
+`master`, **0 / 10**. Diez muestras por lado no distinguen estadísticamente una tasa del 0 %
+de una del 8 %, así que se deja de muestrear por esa vía; **no porque el problema se haya
+resuelto**.
+
+También se descartó el criterio «el diff no toca la suite»: `tests/exclusion.js:238` carga
+`dist-electron/main/index.js`, el bundle entero generado desde `src/main/index.ts`, y la rama sí
+modifica ese fichero. La instrumentación añadida no deja un recurso nativo vivo: no crea
+`PerformanceObserver`, temporizadores ni listeners; mantiene callbacks en un `Set` y su único
+consumidor (`tests/rendimiento/graficos.js:80-91`) retira la suscripción dentro de un `finally`,
+también si el render falla. Esto **no demuestra** la causa del crash.
+
+La decisión que queda en pie: **una suite que crashea es roja aunque las aserciones hayan
+pasado**. Si reaparece, se investiga como fallo, no como ruido.
 
 ---
 

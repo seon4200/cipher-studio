@@ -14,7 +14,7 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 | **1** | El esqueleto | ✅ 10/10 · `v-fase1-escena-inactiva` |
 | **2** | Hacer visibles los fallos | ✅ 4/4 · `v-fase2-avisos` |
 | **puente** | El suelo de las pruebas | ✅ · `v-puente-suelo` (`4157e0c`) |
-| **3** | Las dos herramientas | 🟨 1/7 · `v-fase3-banco` |
+| **3** | Banco + hoja de contactos | 🟨 1/2 · `v-fase3-banco` |
 | 4 | Vocabulario mínimo | ⬜ 0/6 |
 | 5 | Densidad y ritmo | ⬜ 0/4 |
 | 6 | Resto del vocabulario | ⬜ 0/4 · **aquí se entrega la meta** |
@@ -76,21 +76,32 @@ pendiente**, no el desnivel: cuánto sube el coste por elemento añadido.
 
 ---
 
-## FASE 3 · Las dos herramientas — en curso
+## FASE 3 · Banco + hoja de contactos — en curso
 
 *Escribir una pieza es barato; **mirarla** cuesta un render, y eso se repite 65
 veces.*
 
-- ⬜ 3.1 Verificar el `.mp4`: frames no vacíos, distintos entre sí, **las capas
-  cíclicas cierran** (no el cuadro entero — las entradas van de 0 a 1 y se
-  quedan), contenido en la zona segura
-- ⬜ 3.2 Si falla, entra el respaldo que ya existe
-- ⬜ 3.3 Reutilizar `tests/graficos.js`
-- ⬜ 3.4 Gancho de medición de píxeles (lo usa 9.8)
 - ✅ 3.5 **El banco de pruebas**: monta la composición **real**, sin lazo de
   captura ni FFmpeg. No un serializador, no un segundo emisor
 - ⬜ 3.6 **Hoja de contactos** + calibrar `pasos` contra ella
-- ⬜ 3.7 **Medir la pendiente**: densidad baja contra alta
+
+> **Una herramienta se construye cuando el trabajo que ahorra ya duele, no cuando
+> se puede imaginar que dolerá.**
+
+El verificador de artefacto ya no bloquea la Fase 4. Con el banco, mirar cada pieza
+es barato y en la Fase 4 se miran todas de todos modos. Protege el momento en que se
+deja de mirar una por una: antes de la Fase 6, cuando entran 31 piezas por lotes.
+
+**Orden operativo actualizado:**
+
+1. Banco de pruebas — hecho.
+2. Hoja de contactos y calibración perceptiva.
+3. Fase 4 — piezas mínimas y mover el interruptor.
+4. Fase 5 — densidad y ritmo.
+5. Puente antes de la Fase 6: cerrar los 1.154 huérfanos; construir el verificador
+   de artefacto (antiguos 3.1–3.4); medir la pendiente, densidad baja contra alta
+   (antiguo 3.7).
+6. Fase 6 — resto del vocabulario por lotes.
 
 *El antiguo punto 3.0 (determinismo del render) se retiró: resultó no ser
 bloqueante. Ver `puntos-retorno.md`.*

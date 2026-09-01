@@ -1230,6 +1230,39 @@ export function cerrarVentanaGraficos() {
   ventanaGraficos = null;
 }
 
+export type MedicionRenderGrafico = {
+  hash: string;
+  type: string;
+  totalFrames: number;
+  ancho: number;
+  alto: number;
+  ms: number;
+  intentosTotales: number;
+  intentosPorFrame: number;
+  framesEnElTope: number;
+  maxIntentosFrame: number;
+};
+
+const observadoresRendimientoGraficos = new Set<(m: MedicionRenderGrafico) => void>();
+
+/**
+ * Instrumentacion de medida, independiente de la cola del log. No decide si un render
+ * es correcto ni participa en sus pixeles: solo publica los contadores que el lazo ya
+ * calculaba. Devuelve una funcion para retirar el observador y no dejar estado entre pruebas.
+ */
+export function observarRendimientoGraficos(
+  observador: (m: MedicionRenderGrafico) => void
+): () => void {
+  observadoresRendimientoGraficos.add(observador);
+  return () => observadoresRendimientoGraficos.delete(observador);
+}
+
+function emitirMedicionRenderGrafico(medicion: MedicionRenderGrafico) {
+  for (const observador of observadoresRendimientoGraficos) {
+    try { observador(medicion); } catch { /* medir nunca puede romper el render */ }
+  }
+}
+
 /**
  * Renderiza un grafico a un .mov con alpha. Devuelve la ruta, o null si falla: se pierde ese
  * grafico, nunca el export.
@@ -1442,9 +1475,24 @@ export async function renderGraphicClip(
     const { size } = await fs.promises.stat(destino);
     // framesEnElTope aparte de la media: un maximo de 5 suelto es ruido, pero veinte frames
     // rozando el tope es un tipo de grafico a punto de fallar entero.
+    const ms = Date.now() - t0;
+    const medicion: MedicionRenderGrafico = {
+      hash,
+      type: String(graphicData?.type ?? ''),
+      totalFrames,
+      ancho,
+      alto,
+      ms,
+      intentosTotales,
+      intentosPorFrame: intentosTotales / totalFrames,
+      framesEnElTope,
+      maxIntentosFrame: MAX_INTENTOS_FRAME
+    };
+    // Antes del await del log: la medida no depende de que su cola avance o llegue a disco.
+    emitirMedicionRenderGrafico(medicion);
     await writeDebugLog(`[GRAFICO] RENDER ${hash} — ${graphicData?.type} — ` +
       `${totalFrames}f ${ancho}x${alto} — ${(size / 1048576).toFixed(2)} MB — ` +
-      `${Date.now() - t0} ms — ${(intentosTotales / totalFrames).toFixed(2)} intentos/frame — ` +
+      `${ms} ms — ${medicion.intentosPorFrame.toFixed(2)} intentos/frame — ` +
       `${framesEnElTope} frame(s) en el tope de ${MAX_INTENTOS_FRAME}`);
     return destino;
 

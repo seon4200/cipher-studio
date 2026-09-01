@@ -34,7 +34,9 @@ const ANCHO = 1080, ALTO = 1920, FPS = 30, DUR = 2
 // no, esta comprobacion pasaria a mirar el sitio equivocado.
 const SONDA_ALTO_TEST = 8
 const FRAMES = FPS * DUR
-const TOPE_MS = 5000   // el experimento dio ~2100 ms; holgado a proposito, es un detector
+// Este watchdog detecta un BLOQUEO de la suite completa. No es un liston de producto: el
+// rendimiento se mide con `npm run bench:graficos`, con varias muestras y percentiles.
+const WATCHDOG_MS = 90_000
 
 const GRAFICO = { type: 'decorativo_emoji', value: '🔥', label: 'Concepto' }
 
@@ -227,12 +229,10 @@ async function main (bundle) {
       `id ${id1} -> ${tras2[0] && tras2[0].id}`)
     ok(mov2 && mov2 !== mov, 'un graphicData distinto da otro fichero')
 
-    // ── F) el tiempo ───────────────────────────────────────────────────────────────
-    console.log('\n=== F) TIEMPO POR GRAFICO ===')
-    ok(msPrimero < TOPE_MS, `el primero tarda menos de ${TOPE_MS} ms`,
-      `${msPrimero} ms (incluye crear la ventana; el experimento dio ~2100 ms)`)
-    ok(msSegundo < TOPE_MS, 'el segundo tambien',
-      `${msSegundo} ms (ventana ya caliente)`)
+    // ── F) el tiempo, SOLO MEDIDA ─────────────────────────────────────────────────
+    console.log('\n=== F) TIEMPO POR GRAFICO (informa; no decide el verde) ===')
+    console.log(`  MEDIDA primer render: ${msPrimero} ms (incluye crear la ventana)`)
+    console.log(`  MEDIDA segundo render: ${msSegundo} ms (ventana reutilizada)`)
 
     // ── H) LA CACHE POR HASH ───────────────────────────────────────────────────────
     console.log('\n=== H) LA CACHE POR HASH ===')
@@ -244,8 +244,9 @@ async function main (bundle) {
       { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: DUR, modo: 'overlay' })
     const msCache = Date.now() - tCache
     ok(repetido === mov, 'el mismo graphicData devuelve LA MISMA ruta', hashDe(mov))
-    ok(msCache < 100, 'y no renderiza: tarda menos de 100 ms',
-      `${msCache} ms frente a los ~2700 de un render`)
+    console.log(`  MEDIDA acierto de cache: ${msCache} ms (no decide el verde)`)
+    console.log('          La prueba autoritativa de que se uso la cache esta en I: ' +
+      'aciertos y renderizados son contadores del lote, no una inferencia temporal.')
 
     // 2) cambiar `value` cambia el hash
     const otroValor = await renderGraphicClip({ ...GRAFICO, value: '🎯' },
@@ -548,8 +549,7 @@ async function main (bundle) {
       ok(!!r && !!r.fondo && r.fondo.every((c, i) => Math.abs(c - fondoEsperado[i]) <= 6),
         `sistema ${sis}: y justo debajo esta el fondo del sistema, no la sonda`,
         r && r.fondo ? `rgb(${r.fondo.join(',')}) contra rgb(${fondoEsperado.join(',')})` : '(sin dato)')
-      ok(!!r && r.intentos <= 5,
-        `sistema ${sis}: no hace falta agotar intentos`, r ? `${r.intentos} intentos` : '-')
+      console.log(`  MEDIDA sistema ${sis}: ${r ? r.intentos : '-'} intento(s) para leer la sonda`)
     }
 
     // Cancelacion: sin proyecto activo. Recorre la MISMA rama que un cambio de proyecto a
@@ -597,7 +597,28 @@ async function main (bundle) {
 app.whenReady().then(async () => {
   const bundle = require(path.join(RAIZ, 'dist-electron/main/index.js'))
   await new Promise(r => setTimeout(r, 1500))
-  try { await main(bundle) } catch (e) { fallos.push('excepcion'); console.log('EXCEPCION: ' + e.stack) }
+  let watchdog
+  try {
+    await Promise.race([
+      main(bundle),
+      new Promise((_, reject) => {
+        watchdog = setTimeout(() => reject(new Error(
+          `WATCHDOG: test:graficos no termino en ${WATCHDOG_MS / 1000}s; probable bloqueo`)),
+        WATCHDOG_MS)
+      })
+    ])
+  } catch (e) {
+    fallos.push('excepcion')
+    console.log('EXCEPCION: ' + e.stack)
+  } finally {
+    clearTimeout(watchdog)
+    // Respaldo del finally interno: si el watchdog gana, main sigue pendiente y no puede
+    // dejar una ventana Electron viva esperando para siempre.
+    try { bundle.cerrarVentanaGraficos() } catch (e) {}
+    try { await llamar('close-project', {}) } catch (e) {}
+    limpiar()
+    try { fs.rmSync(TMP, { recursive: true, force: true }) } catch (e) {}
+  }
 
   console.log('\n' + '─'.repeat(70))
   if (fallos.length) {
