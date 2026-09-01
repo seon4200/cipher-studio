@@ -11,7 +11,6 @@ const fs = require('fs')
 const path = require('path')
 
 const RAIZ = path.resolve(__dirname, '..', '..')
-const PROY = path.join(RAIZ, 'proyectos')
 const MARCA = 'zz-bench-graficos'
 const MUESTRAS = 5
 const WATCHDOG_MS = 90_000
@@ -32,15 +31,6 @@ const llamar = (canal, arg) => {
   return h({ sender: { send: () => {} } }, arg)
 }
 
-const limpiar = () => {
-  if (!fs.existsSync(PROY)) return
-  for (const d of fs.readdirSync(PROY)) {
-    if (d.toLowerCase().startsWith(MARCA)) {
-      fs.rmSync(path.join(PROY, d), { recursive: true, force: true })
-    }
-  }
-}
-
 const percentil = (valores, p) => {
   const ordenados = [...valores].sort((a, b) => a - b)
   return ordenados[Math.ceil(p * ordenados.length) - 1]
@@ -57,8 +47,7 @@ const mediana = (valores) => {
 async function main (bundle) {
   const mediciones = []
   const dejarDeObservar = bundle.observarRendimientoGraficos(m => mediciones.push(m))
-  limpiar()
-  await llamar('create-project', { name: MARCA })
+  const proyecto = await llamar('create-project', { name: MARCA })
 
   try {
     console.log('BANCO DE RENDIMIENTO — cinco muestras medidas por el lazo real')
@@ -115,7 +104,12 @@ async function main (bundle) {
     dejarDeObservar()
     try { bundle.cerrarVentanaGraficos() } catch (e) {}
     try { await llamar('close-project', {}) } catch (e) {}
-    limpiar()
+    // Se borra la ruta REAL devuelta por create-project. En un clon sin .env la raiz no es
+    // necesariamente RAIZ/proyectos; suponerla dejaria basura justo en la prueba limpia.
+    const ruta = proyecto?.projectPath
+    if (ruta && path.basename(ruta).toLowerCase().startsWith(MARCA)) {
+      try { fs.rmSync(ruta, { recursive: true, force: true }) } catch (e) {}
+    }
   }
 }
 
