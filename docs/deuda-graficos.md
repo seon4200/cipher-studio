@@ -1,7 +1,7 @@
 # Deuda de los gráficos
 
-Deuda específica del bloque de gráficos. La deuda del proyecto entero vive en la tabla
-"DEUDA ABIERTA, por gravedad" de `CIPHER_plan_maestro_transiciones_graficos_vibes.md`.
+Deuda específica del bloque de gráficos. La deuda general del proyecto se resume en
+`avance.md`; las fases y sus riesgos viven en `plan-maestro.md`.
 
 ---
 
@@ -1154,14 +1154,17 @@ Al ir en `extra` entra en la clave del hash, así que dos Visuales con ambiente 
 compartir fichero por construcción.
 
 **Y lo que pinta cada ambiente no hay que inventarlo.** Segun el usuario, en su laboratorio
-`labacabado.html` las escenas **RED**, **EXPANSION** y **MALLA** no son escenas: son **fondos**. La malla
+`lab-acabado.html` las escenas **RED**, **EXPANSION** y **MALLA** no son escenas: son **fondos**. La malla
 que se hunde donde hay masa, los anillos con gradiente de temperatura, la esfera de nodos con
 profundidad. Detrás del mapa son exactamente «el fondo tiene vida».
 
-> ⚠️ **`labacabado.html` NO ESTA EN EL REPO NI EN Descargas.** Lo de arriba viene de lo que el
+> ~~⚠️ **`labacabado.html` NO ESTA EN EL REPO NI EN Descargas.** Lo de arriba viene de lo que el
 > usuario conto, no de haberlo leido. Antes de implementar esto hay que pedirle el fichero y
 > guardarlo en `docs/motion/`, como se hizo con `generador-clips.html`. Sin el, esta nota es una
-> intencion, no una especificacion.
+> intencion, no una especificacion.~~
+>
+> **CERRADO el 28/08/2026 en `757b6cc`:** la referencia está versionada como
+> `docs/motion/lab-acabado.html`.
 
 Lo que SI esta en `docs/motion/`: `generador-clips.html`, `lab-volumen.html`,
 `lab-materia.html`, `lab-3d-guion.html`, `cipher-motion-loop.html`, `cipher-motion-loop-2.html`.
@@ -1170,12 +1173,15 @@ Lo que SI esta en `docs/motion/`: `generador-clips.html`, `lab-volumen.html`,
 
 ## 📌 B) UN CATÁLOGO DE VISUALES QUE ROTA, no sólo el mapa — sin implementar
 
-Al usuario le sirven las composiciones de `labgraficos.html`: el anillo que se dibuja con el
+Al usuario le sirven las composiciones de `lab-graficos.html`: el anillo que se dibuja con el
 74 %, el dato grande con revelado, las barras en carrera, las capas isométricas — **sin palabra
 principal y centradas**, como el mapa queda tras el paso 9.
 
-> ⚠️ **`labgraficos.html` TAMPOCO ESTA**, ni en el repo ni en Descargas. Mismo aviso: hay que
-> pedirlo antes de trabajar sobre el.
+> ~~⚠️ **`labgraficos.html` TAMPOCO ESTA**, ni en el repo ni en Descargas. Mismo aviso: hay que
+> pedirlo antes de trabajar sobre el.~~
+>
+> **CERRADO el 28/08/2026 en `757b6cc`:** la referencia está versionada como
+> `docs/motion/lab-graficos.html`.
 
 **La infraestructura ya lo soporta**, y esto es lo que hace la nota barata:
 
@@ -1482,7 +1488,7 @@ contado. Lo que si esta medido es el umbral: 17 caracteres.
 
 ## 📏 REGLA PERMANENTE: NINGUN ARNES REIMPLEMENTA UNA FUNCION DEL PROYECTO
 
-Las ocho suites ya lo hacen bien y lo dicen en su cabecera:
+Las nueve suites ya lo hacen bien y lo dicen en su cabecera:
 
 > Se importa del BUNDLE COMPILADO, no se reimplementa: una prueba que copiara la regla probaria
 > su copia y seguiria verde con la regla rota.
@@ -1501,7 +1507,7 @@ consecuencias, y las dos pasaron:
 
 **Un arnes que reimplementa no verifica el codigo: verifica la copia.** Si hace falta ejecutar
 algo del proyecto fuera de las suites, se ejecuta bajo `electron` contra
-`dist-electron/main/index.js`, como hacen las ocho.
+`dist-electron/main/index.js`, como hacen las nueve.
 
 ---
 
@@ -1718,9 +1724,10 @@ reproducibilidad necesita una TERCERA tirada como minimo, y decir cuantas se hic
 
 
 
-## 🕳️ DOS AGUJEROS DE COBERTURA, dichos sin adornos
+## 🕳️ DOS AGUJEROS DE COBERTURA — uno sigue abierto y el otro está cerrado
 
-Se preguntaron al cerrar la Fase 2 y las dos respuestas son que no. Se anotan sin arreglarlos.
+Se preguntaron al cerrar la Fase 2 y las dos respuestas eran que no. La cobertura del
+handler sigue abierta; el suelo de pruebas se cerró en el puente y se conserva tachado.
 
 ### 1. El bug de ORDEN del −3 no lo caza ninguna suite
 
@@ -1738,22 +1745,34 @@ Comprobado sobre el arbol:
 
 **Si manana alguien mueve esas lineas otra vez, el bug vuelve y nada lo detecta.**
 
-Y hay un agravante: **el arnes de aceptacion no esta en el repo**. Vive en un directorio temporal
+~~Y hay un agravante: **el arnes de aceptacion no esta en el repo**. Vive en un directorio temporal
 fuera del proyecto, o sea que hoy nadie mas puede repetir la prueba que es la unica cobertura que
 existe. Estado real: **cubierto por la prueba de aceptacion manual, no por una suite** — y esa
-prueba manual, ademas, no esta versionada.
+prueba manual, ademas, no esta versionada.~~
 
-### 2. No existe "lo que ejecuta el conjunto"
+**CERRADO el 31/08/2026 en `2956925`:** el arnés y su README están versionados en
+`tests/aceptacion/`. Sigue siendo una prueba de aceptación manual, no una suite automática;
+el agujero de cobertura del orden del handler sigue abierto.
 
-Se pregunto si `test:avisos` esta enganchada al ejecutor del conjunto. **No hay ejecutor del
+### ~~2. No existe "lo que ejecuta el conjunto"~~ — ✅ CERRADO el 31/08/2026
+
+~~Se pregunto si `test:avisos` esta enganchada al ejecutor del conjunto. **No hay ejecutor del
 conjunto.** No hay script `test`, no hay `.github/`, no hay `.husky/`. Las diez suites son diez
-scripts sueltos de `package.json` y el "conjunto" es una persona escribiendo un bucle a mano.
+scripts sueltos de `package.json` y el "conjunto" es una persona escribiendo un bucle a mano.~~
 
-`test:avisos` esta exactamente igual de enganchada que las otras nueve, que es decir **nada**. El
-problema no es la novena: son las diez.
+~~`test:avisos` esta exactamente igual de enganchada que las otras nueve, que es decir **nada**. El
+problema no es la novena: son las diez.~~
 
-Es, palabra por palabra, el modo de fallo que la Fase 2 existe para impedir —algo que hay que
+~~Es, palabra por palabra, el modo de fallo que la Fase 2 existe para impedir —algo que hay que
 acordarse de mirar es algo que un dia deja de mirarse y nadie se entera— aplicado a las propias
 pruebas. Cuando se arregle, hay una decision de diseno que tomar y no es automatica: **`test:ventana`
 esta roja A PROPOSITO**, asi que un ejecutor que la incluya nace rojo para siempre y entrena a no
-mirarlo, y uno que la excluya tiene que dejar escrito por que.
+mirarlo, y uno que la excluya tiene que dejar escrito por que.~~
+
+**CERRADO en `6c20996`:** `npm test` ejecuta las nueve suites verdes, declara que espera nueve,
+cruza los scripts con los ficheros para detectar una suite no enganchada y excluye
+`test:ventana` con el motivo escrito en el propio ejecutor.
+
+---
+
+**Regla:** Cuando se cierra una deuda, se tacha en el MISMO commit que la cierra.

@@ -138,9 +138,9 @@ duracion, fps, VERSION_PLANTILLAS, modo, codec, sistema`.
 
 | documento | qué contiene |
 |---|---|
-| `plan-maestro-motor-visuales.md` | las leyes, las fases, los riesgos |
+| `plan-maestro.md` | las leyes, las fases, los riesgos |
 | `avance.md` | qué está hecho y con qué evidencia |
-| `punto-retorno-paso9.md` | las etiquetas y cómo volver |
+| `puntos-retorno.md` | las etiquetas y cómo volver |
 | `docs/deuda-graficos.md` | lo que se sabe roto y aún no se ha tocado |
 | `docs/motion/lab-*.html` | los ocho labs: el vocabulario visual aprobado |
 

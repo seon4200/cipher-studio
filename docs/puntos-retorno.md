@@ -56,7 +56,22 @@ acabado de repintarse.
 
 ---
 
-## `v-fase2-avisos` — el actual
+## `v-puente-suelo` — último checkpoint ejecutable
+
+**`4157e0c81687caf4ae263a7e3cd6a239c908e2df`** · merge `--no-ff`.
+
+Añade el suelo de pruebas sin tocar `src/`: `npm test` con nueve suites y seguro de
+conteo, arneses de aceptación versionados y comparador de capturas con tolerancia.
+
+**Qué hay después de la etiqueta:** `97cad34` retira el porcentaje del veredicto del
+comparador; `56f02ba` incorpora los cuatro documentos canónicos; `86045c6` archiva el
+contexto que quedó falso desde la Fase 1; y el commit documental que contiene esta nota
+corrige las deudas cerradas y los nombres canónicos. Volver a la etiqueta deja atrás
+todo eso, aunque no cambia el código de la app.
+
+---
+
+## `v-fase2-avisos`
 
 **`1db2f487dacbd78bc48e0150cca2985a7135b162`** · merge `--no-ff`.
 Etiqueta anotada `046fdaf`, confirmada en remoto.
@@ -75,6 +90,11 @@ degrada.
 **Verificado desde clon nuevo:** `npm ci` 0 · `tsc` 0 · `build` 0 en tres pasos por
 ficheros · nueve suites verdes · hash `db7cb15ea714` · el texto del 25/8 idéntico
 palabra por palabra.
+
+**Qué hay después de la etiqueta:** el puente completo (`4157e0c`), el arreglo del
+comparador (`97cad34`) y toda la documentación canónica y de retorno posterior. Volver
+aquí conserva los avisos, pero pierde el ejecutor del conjunto, los arneses versionados
+y el comparador tolerante.
 
 **El texto que produce:**
 
@@ -107,12 +127,21 @@ ranura de héroe · `cqmin` con `container-type: size` · `calc(var(--ciclo) / n
 `rangos` de instancia · `combinacionesLegales()` con **dos** números
 (2 identidades, 1.176.000 instancias — el segundo, inflado).
 
+**Qué hay después de la etiqueta:** toda la Fase 2 (`1db2f48`), el puente
+(`4157e0c`) y sus correcciones y documentos posteriores. Volver aquí conserva el motor
+nuevo inactivo, pero pierde los avisos y el suelo de pruebas.
+
 ---
 
 ## `v-paso9-mapa-sin-palabra`
 
 **`757b6ccd9c7e2290d31ca024dc96f2863039b8d2`** — `mapa` funcionando, sin nada del
 motor combinatorio. La red de último recurso.
+
+**Qué hay después de la etiqueta:** la Fase 0 (`c11226f`), el motor combinatorio de
+la Fase 1 (`3b24804`), los avisos de la Fase 2 (`1db2f48`), el puente (`4157e0c`) y
+toda la documentación posterior. Volver aquí pierde el motor nuevo entero, aunque
+`visual_mapa` sigue siendo la composición activa en ambos lados.
 
 ---
 
