@@ -1,0 +1,137 @@
+# PUNTOS DE RETORNO
+
+Etiquetas a las que se puede volver, y qué está probado de cada una.
+
+---
+
+## Sobre la reproducibilidad del render — versión definitiva
+
+Esta sección se ha escrito tres veces. Las dos primeras estaban mal, y el motivo
+de las dos es el mismo error: **`n=2` no es evidencia.**
+
+**Lo medido, con seis tiradas del mismo clip:**
+
+| tirada | resultado |
+|---|---|
+| `c11226f` · `3b24804` · `BIS` · `P1` · `P2` | **idénticas al byte** en los tres frames |
+| `5cb7d33` | difiere en dos frames |
+
+**Cinco de seis coinciden.** El render **es determinista con una anomalía
+intermitente**, no "no reproducible".
+
+**Cuánto difiere la anómala** (frame 77, el peor):
+delta **máximo 37**, **medio 2,0**, el **99 % de los píxeles que cambian tienen
+delta ≤ 4**, y **cero** píxeles con delta > 64.
+
+**El discriminador que sale de ahí, y que sustituye a la igualdad byte a byte:**
+
+| firma | qué significa |
+|---|---|
+| pocos píxeles, delta enorme | **algo se movió de sitio** — cambio real |
+| muchos píxeles, delta ≤ 4, ninguno > 64 | **rasterizado** — ruido, no cambio |
+
+**Pista, no conclusión:** la tirada anómala fue el **primer render en un clon
+recién instalado**, con cachés de fuentes y shaders en frío. Una sola observación.
+
+**Lo que NO es, y yo dije que sí:** no es el cimiento de la Fase 3. El verificador
+compara frames **dentro de un mismo vídeo** —no vacíos, distintos entre sí, capas
+cíclicas que cierran, contenido en zona segura—; ninguna de esas cuatro cosas
+necesita que dos renders coincidan. Era una molestia de herramientas, no un
+cimiento.
+
+**Lo que sí queda tocado:** cualquier comparación entre renders se hace **con
+tolerancia**, nunca por igualdad de bytes.
+
+**Descartado con línea:** `grafico.tsx:193` pausa cada animación y le fija
+`currentTime = t*1000` **absoluto**; `index.ts:1408` llama a `__setT(t)` **una vez
+por frame, fuera del lazo de reintentos**. Un reintento repite `capturePage()`
+sobre el mismo DOM. **El tiempo no es la causa, y la hipótesis del lazo de
+reintentos está muerta.**
+
+**Sospechosos vivos, de rasterizado:** `backdrop-filter` (`mapa.tsx:202`),
+`mix-blend-mode` (206), `filter:blur` (212), el SVG (537), ocho gradientes. Y un
+detalle del mecanismo: **la sonda valida su propia franja de 8 px, no el frame
+entero** — que esa franja llegue al compositor no prueba que una capa de GPU haya
+acabado de repintarse.
+
+---
+
+## `v-fase2-avisos` — el actual
+
+**`1db2f487dacbd78bc48e0150cca2985a7135b162`** · merge `--no-ff`.
+Etiqueta anotada `046fdaf`, confirmada en remoto.
+
+La app ya **no puede** decir *"éxito, 78 de 78"* mientras la mitad del vídeo se
+degrada.
+
+| commit | qué |
+|---|---|
+| `6bc3695` | `shared/avisos.ts` puro + la novena suite, con el 25/8 congelado |
+| `0d1d67c` | los seis puntos de anotación + el arrastre en el aplanado |
+| `406b4d6` | canal `generation-aviso`, emisor, preload y ventana |
+| `5cb7d33` | **aislado**: borrar `graphicsDecision` (−85/+12) |
+| `6c70748` | la nota del determinismo, sin una línea de código |
+
+**Verificado desde clon nuevo:** `npm ci` 0 · `tsc` 0 · `build` 0 en tres pasos por
+ficheros · nueve suites verdes · hash `db7cb15ea714` · el texto del 25/8 idéntico
+palabra por palabra.
+
+**El texto que produce:**
+
+```
+[ ERROR ] DeepSeek rechazó la petición por saldo agotado. Sin él no hay
+          palabras clave…  (x5)
+Resumen de la generación: 57 clips.
+  original: se pidieron 28 y salieron 28
+  stock:    se pidieron 11 y salieron 0  (-11)
+  IA:       se pidieron 0  y salieron 0
+  Visual:   se pidieron 18 y salieron 18
+11 clips no salieron como se pidió y se rellenaron con otra cosa:
+  11 — clips de stock que se quedaron sin palabra clave y se dejaron como
+       vídeo original
+El vídeo NO salió como se pidió. Revisa los avisos de arriba antes de exportar.
+```
+
+---
+
+## `v-fase1-escena-inactiva`
+
+**`3b248045d00e8d3a903d6518c968e3e7f1799580`**
+
+La composición combinatoria (`escena`) **registrada, verificada e INACTIVA**.
+El interruptor: `COMPOSICION_VISUAL` en `src/main/index.ts`, hoy `'visual_mapa'`,
+aislado en `261269d` para la Fase 4. `VERSION_PLANTILLAS = 8`.
+
+Cuatro capas · registro de piezas con contrato tipado · `direccionDe(semilla)` ·
+ranura de héroe · `cqmin` con `container-type: size` · `calc(var(--ciclo) / n)` ·
+`rangos` de instancia · `combinacionesLegales()` con **dos** números
+(2 identidades, 1.176.000 instancias — el segundo, inflado).
+
+---
+
+## `v-paso9-mapa-sin-palabra`
+
+**`757b6ccd9c7e2290d31ca024dc96f2863039b8d2`** — `mapa` funcionando, sin nada del
+motor combinatorio. La red de último recurso.
+
+---
+
+## Cómo volver
+
+```
+git checkout <etiqueta>
+```
+
+Verificar **desde clon nuevo**: `git clone` + `npm ci` sin `node_modules` padre.
+Un worktree NO sirve, y **un clon con borradores dentro deja de ser un clon
+limpio** — se consume.
+
+## Lecciones que costaron tiempo
+
+- **`n=2` no es evidencia.** Una comparación pareada no prueba reproducibilidad;
+  hace falta una tercera tirada como árbitro. Dos veces se dio por buena y por mala
+  la misma medición por no tenerla.
+- **El código de salida es la autoridad, no el texto.** Una suite rota llegó a
+  imprimir "TODO CORRECTO" y salió en rojo igualmente.
+- **Un bundle viejo miente.** Un arnés falló y tenía razón: el `dist-electron` del
+  repo de trabajo era anterior al commit que probaba.
