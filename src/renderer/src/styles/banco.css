@@ -1,0 +1,36 @@
+html, body, #banco-root { min-height: 100%; margin: 0; }
+body { background: #080b12; color: #eef2ff; }
+
+.banco-app { min-height: 100vh; padding: 24px; box-sizing: border-box; font-family: 'Outfit', sans-serif; }
+.banco-grid { display: grid; grid-template-columns: minmax(330px, 430px) 403px; gap: 24px; align-items: start; }
+.banco-panel { display: grid; gap: 16px; padding: 20px; border: 1px solid #293044; border-radius: 16px; background: #111622; }
+.banco-panel h1, .banco-panel h2, .banco-panel p { margin: 0; }
+.banco-campo { display: grid; gap: 6px; }
+.banco-campo label { color: #aeb8d0; font-size: 13px; font-weight: 700; }
+.banco-campo input, .banco-campo select, .banco-campo button {
+  box-sizing: border-box; width: 100%; border: 1px solid #3b455d; border-radius: 8px;
+  background: #0b101a; color: #f8fafc; padding: 9px 10px; font: inherit;
+}
+.banco-campo button { cursor: pointer; background: #26314a; font-weight: 700; }
+.banco-fila { display: grid; grid-template-columns: 64px 1fr; gap: 8px; }
+.banco-ejes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.banco-tiempo { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: end; }
+.banco-check { display: flex; gap: 8px; align-items: center; color: #d5dcf0; }
+.banco-check input { width: auto; }
+.banco-datos { margin: 0; padding: 12px; border-radius: 10px; background: #090d16; color: #b9c6e4; white-space: pre-wrap; overflow-wrap: anywhere; }
+.banco-fuentes { display: grid; gap: 6px; padding: 12px; border-radius: 10px; }
+.banco-fuentes.ok { border: 1px solid #267a58; background: #102c22; color: #b9f6dc; }
+.banco-fuentes.comprobando { border: 1px solid #626f8e; background: #172033; color: #d8e1f5; }
+.banco-fuentes.miente { border: 2px solid #dc4c64; background: #3b1018; color: #ffd9df; }
+.banco-fuentes ul { margin: 0; padding-left: 20px; }
+
+.banco-marco { width: 389px; height: 691px; overflow: hidden; border: 2px solid #35415d; border-radius: 14px; background: #000; }
+.banco-escala { position: relative; width: 1080px; height: 1920px; transform: scale(.36); transform-origin: top left; }
+.banco-zona { position: absolute; z-index: 9999; pointer-events: none; border: 5px dashed #3cff9e; box-sizing: border-box; box-shadow: inset 0 0 0 2px #001d11; }
+.banco-zona::before { content: 'ZONA SEGURA'; position: absolute; left: 10px; top: 10px; padding: 5px 8px; background: #001d11; color: #76ffc0; font: 700 24px 'Outfit', sans-serif; }
+.banco-sondas-fuente { position: fixed; left: -10000px; top: 0; white-space: nowrap; }
+.banco-nota { color: #8f9bb5; font-size: 12px; line-height: 1.4; }
+
+@media (max-width: 900px) {
+  .banco-grid { grid-template-columns: 1fr; }
+}
