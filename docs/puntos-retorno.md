@@ -56,6 +56,27 @@ acabado de repintarse.
 
 ---
 
+## `v-fase3-banco`
+
+**Merge `581ac6b804edb9607a2c935fcf5f1c6b4a3bb305`** · `--no-ff`.
+
+El banco monta el mismo `AnimatedGraphic` que el render real y permite mirar una
+combinación sin captura ni FFmpeg. Se abre con `npm run banco` y la URL
+`http://127.0.0.1:5174/banco.html`. El modo `banco` vive en el único
+`vite.config.ts`, excluye los plugins que arrancan Electron y produce **cero**
+`banco-*.js` en `dist/`.
+
+Incluye la comprobación compartida de fuentes, dirección y semilla visibles, zona
+segura, reloj dirigido, registros de piezas y la normalización de aristas SVG con
+`pathLength=1`. La composición nueva sigue inactiva:
+`COMPOSICION_VISUAL='visual_mapa'` y `VERSION_PLANTILLAS=8`.
+
+**Qué hay después de la etiqueta:** nada de las fases posteriores. El siguiente
+paso es 3.6, la hoja de contactos y la calibración perceptiva de `pasos`. Volver a
+esta etiqueta conserva el banco y deja fuera ese trabajo.
+
+---
+
 ## `v-puente-suelo` — último checkpoint ejecutable
 
 **`4157e0c81687caf4ae263a7e3cd6a239c908e2df`** · merge `--no-ff`.

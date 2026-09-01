@@ -14,7 +14,7 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 | **1** | El esqueleto | ✅ 10/10 · `v-fase1-escena-inactiva` |
 | **2** | Hacer visibles los fallos | ✅ 4/4 · `v-fase2-avisos` |
 | **puente** | El suelo de las pruebas | ✅ · `v-puente-suelo` (`4157e0c`) |
-| **3** | Las dos herramientas | ⬜ 0/7 — **siguiente** |
+| **3** | Las dos herramientas | 🟨 1/7 · `v-fase3-banco` |
 | 4 | Vocabulario mínimo | ⬜ 0/6 |
 | 5 | Densidad y ritmo | ⬜ 0/4 |
 | 6 | Resto del vocabulario | ⬜ 0/4 · **aquí se entrega la meta** |
@@ -50,6 +50,12 @@ falla, con un seguro que salta si alguien añade una suite sin engancharla. Los
 arneses de aceptación versionados, con su propio fixture. Y un comparador de
 capturas con tolerancia.
 
+**El banco de Visuales.** `npm run banco` abre la composición real en
+`http://127.0.0.1:5174/banco.html`, sin Electron, captura ni FFmpeg. Monta
+`AnimatedGraphic` directamente, permite fijar los ejes y el tiempo, comprueba las
+fuentes por geometría y superpone la zona segura. El banco no entra en el build de
+producción.
+
 ---
 
 ## Los tres números del motor
@@ -70,7 +76,7 @@ pendiente**, no el desnivel: cuánto sube el coste por elemento añadido.
 
 ---
 
-## FASE 3 · Las dos herramientas — siguiente
+## FASE 3 · Las dos herramientas — en curso
 
 *Escribir una pieza es barato; **mirarla** cuesta un render, y eso se repite 65
 veces.*
@@ -81,13 +87,15 @@ veces.*
 - ⬜ 3.2 Si falla, entra el respaldo que ya existe
 - ⬜ 3.3 Reutilizar `tests/graficos.js`
 - ⬜ 3.4 Gancho de medición de píxeles (lo usa 9.8)
-- ⬜ 3.5 **El banco de pruebas**: monta la composición **real**, sin lazo de
+- ✅ 3.5 **El banco de pruebas**: monta la composición **real**, sin lazo de
   captura ni FFmpeg. No un serializador, no un segundo emisor
 - ⬜ 3.6 **Hoja de contactos** + calibrar `pasos` contra ella
 - ⬜ 3.7 **Medir la pendiente**: densidad baja contra alta
 
 *El antiguo punto 3.0 (determinismo del render) se retiró: resultó no ser
 bloqueante. Ver `puntos-retorno.md`.*
+
+**Siguiente:** 3.6, hoja de contactos y calibración perceptiva de `pasos`.
 
 ## Fases 4 a 10
 
