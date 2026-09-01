@@ -1724,12 +1724,30 @@ pintados por DOM directo y sincrono, fuera de React. Que la sonda llegue al comp
 que hubo un frame nuevo; no demuestra que una capa promovida a GPU haya terminado de repintarse.
 Encaja con que el frame 0 sea siempre identico y la diferencia crezca con el tiempo del clip.
 
-### La pista de cuando pasa — UNA observacion, no una causa
+### La pista de cuando pasa — DOS observaciones, todavia no una causa
 
 La tirada anomala fue **el primer render en un clon recien instalado con `npm ci`**: Electron
 nuevo, cache de fuentes fria, cache de shaders fria. Las cinco que coinciden se hicieron sobre
-arboles ya usados. Es **una sola observacion**. No se ha intentado reproducirla y no se ha
-demostrado que sea la causa.
+arboles ya usados.
+
+Hay una segunda observacion independiente de que el primer render puede comportarse distinto:
+`test:graficos`, con el banco de Visuales abierto a la vez, midio **7075 ms** en su primer render
+contra un limite de 5000 ms y se puso roja. Al cerrar el banco, tres tiradas consecutivas dieron
+**3941, 3525 y 3612 ms** para el primero; los segundos renders dieron **4844, 4111 y 3201 ms**.
+El 7075 es 2,6 veces el liston historico aproximado de 2,7 s.
+
+Esto **refuerza la pista**, no demuestra la causa: la tirada lenta tenia dos factores mezclados,
+arranque de la ventana y una maquina ocupada por Vite y el banco. No separa cache fria de
+competencia de recursos, y no se persigue aqui.
+
+Lo que si queda demostrado es otra deuda: `tests/graficos.js` mezcla correccion y rendimiento.
+`TOPE_MS = 5000` se aplica al primer render y al segundo **por separado**, no a una media. Con
+4844 ms una tirada descargada quedo a solo 156 ms del rojo. El mismo fichero exige tambien que
+un acierto de cache tarde menos de 100 ms y que la sonda no pase de cinco intentos. Son senales
+utiles, pero su verde depende de la carga de la maquina. Hay que separar el contrato determinista
+del artefacto de un benchmark que reporte frio, caliente y cache; la suite de correccion solo
+deberia fallar por rendimiento ante un bloqueo o una demora absurda, no por cruzar un liston de
+producto en una muestra unica.
 
 ### Lo que NO se ha demostrado, y no debe escribirse como si si
 
