@@ -1853,4 +1853,27 @@ cruza los scripts con los ficheros para detectar una suite no enganchada y exclu
 
 ---
 
+## Crash inexplicado de `test:exclusion` durante el desmontaje
+
+**Estado: inexplicado y sin atribuir.** En una ejecución apareció el código de salida
+`3221225477` (`0xC0000005`, *access violation*) durante el desmontaje del proceso, después de
+que todas las aserciones hubieran impreso verde. No hubo ninguna aserción fallada asociada.
+
+Condiciones observadas: rama `separa-rendimiento-graficos`, **1 crash / 12 ejecuciones**;
+`master`, **0 / 10**. Diez muestras por lado no distinguen estadísticamente una tasa del 0 %
+de una del 8 %, así que se deja de muestrear por esa vía; **no porque el problema se haya
+resuelto**.
+
+También se descartó el criterio «el diff no toca la suite»: `tests/exclusion.js:238` carga
+`dist-electron/main/index.js`, el bundle entero generado desde `src/main/index.ts`, y la rama sí
+modifica ese fichero. La instrumentación añadida no deja un recurso nativo vivo: no crea
+`PerformanceObserver`, temporizadores ni listeners; mantiene callbacks en un `Set` y su único
+consumidor (`tests/rendimiento/graficos.js:80-91`) retira la suscripción dentro de un `finally`,
+también si el render falla. Esto **no demuestra** la causa del crash.
+
+La decisión que queda en pie: **una suite que crashea es roja aunque las aserciones hayan
+pasado**. Si reaparece, se investiga como fallo, no como ruido.
+
+---
+
 **Regla:** Cuando se cierra una deuda, se tacha en el MISMO commit que la cierra.
