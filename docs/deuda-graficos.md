@@ -1748,7 +1748,31 @@ competencia de recursos, y no se persigue aqui.
 lectura de la sonda se imprimen pero no deciden el verde. La cache se demuestra por el contador
 autoritativo del lote (`aciertos === 1`, `renderizados === 2`), no porque haya sido rapida. La
 suite conserva un watchdog de 90 s contra bloqueo; el liston de producto vive en
-`npm run bench:graficos`, con cinco muestras, mediana y p95 de ms/frame e intentos/frame.
+`npm run bench:graficos`, con seis muestras y dos resumenes separados: las tres de arranque y
+las tres de regimen asentado, cada uno con mediana y p95 de ms/frame e intentos/frame.
+
+### El supuesto efecto observador y la supuesta regresion de 62 contra 50 — descartados
+
+El primer banco nuevo midio clips de **1 s / 30 frames** y mezclo el calentamiento en una sola
+mediana: **62,17 ms/frame** contra un liston historico de **50,30**. La comparacion no era valida:
+el liston se midio a **3 s / 90 frames**, y el coste fijo pesa tres veces mas por frame en el clip
+corto.
+
+El observador tampoco corre dentro del lazo: `emitirMedicionRenderGrafico()` se invoca **una vez
+por clip**, despues de escribir todos los frames y cerrar FFmpeg; `ms` se captura antes de llamar
+al observador. Un A/B de seis renders activos contra seis inactivos, con el mismo arbol y semilla
+dentro de cada par y alternando el orden, no mostro penalizacion consistente. En regimen asentado
+el lado activo fue incluso **5,13 ms/frame mas rapido**, signo de ruido, no de coste causal. La
+diferencia entre el tiempo exterior y el `ms` interno en las seis muestras activas fue solo
+**1-3 ms por render completo** (aprox. **0,02 ms/frame**) e incluye tambien el log: es una cota
+superior, no 9-12 ms/frame.
+
+Repetido en la condicion demostrable del liston --`visual_mapa`, voltaje, 1080x1920, 3 s, 90
+frames--, el regimen asentado dio **51,51 ms/frame de mediana y 52,31 de p95**: x1,02, no x1,24.
+Los intentos asentados dieron **1,63 de mediana y 1,69 de p95** contra el 1,30 historico, sin
+frames en el tope. **No se puede llamar regresion**: el `graphicData` exacto del arnes de 2026-08-08
+no quedo en Git, solo su composicion, duracion, frames y sistema. El numero actual queda escrito;
+la comparacion clip-a-clip historica no se puede reconstruir honestamente.
 
 ### Lo que NO se ha demostrado, y no debe escribirse como si si
 

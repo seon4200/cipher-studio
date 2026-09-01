@@ -2,9 +2,11 @@
  * BANCO DE RENDIMIENTO DEL RENDER DE GRAFICOS
  *
  * Se ejecuta con: npm run bench:graficos
- * NO es una suite de correccion y NO forma parte de `npm test`. Mide varias muestras,
+ * NO es una suite de correccion y NO forma parte de `npm test`. Separa arranque de regimen,
  * informa mediana/p95 y las compara con el liston historico. Solo sale rojo si el render
  * falla o se bloquea; cruzar el liston es informacion, no una asercion de correccion.
+ *
+ * A/B del observador: npm run bench:graficos -- --comparar-observador
  */
 const { app, ipcMain } = require('electron')
 const fs = require('fs')
@@ -12,15 +14,19 @@ const path = require('path')
 
 const RAIZ = path.resolve(__dirname, '..', '..')
 const MARCA = 'zz-bench-graficos'
-const MUESTRAS = 5
-const WATCHDOG_MS = 90_000
+const MUESTRAS = 6
+const MUESTRAS_POR_FASE = 3
+const COMPARAR_OBSERVADOR = process.argv.includes('--comparar-observador')
+const WATCHDOG_MS = COMPARAR_OBSERVADOR ? 180_000 : 90_000
 const BASE_MS_FRAME = 50.3
 const BASE_INTENTOS_FRAME = 1.30
 const OPCIONES = {
   ancho: 1080,
   alto: 1920,
   fps: 30,
-  duracion: 1,
+  // El liston versionado se midio a 3 s / 90 frames. El graphicData exacto del arnes
+  // historico no quedo en Git, asi que se iguala lo demostrable y no se afirma mas.
+  duracion: 3,
   modo: 'pantalla',
   sistema: 'voltaje'
 }
@@ -44,64 +50,123 @@ const mediana = (valores) => {
     : (ordenados[mitad - 1] + ordenados[mitad]) / 2
 }
 
+const graphicDataDe = (id) => ({
+  type: 'visual_mapa',
+  value: `rendimiento-${id}`,
+  label: '',
+  unit: '',
+  emoji: '',
+  extra: { conceptos: ['medida', 'control', `muestra-${id}`] }
+})
+
+async function renderMuestra (bundle, id, conObservador) {
+  const recibidas = []
+  const dejarDeObservar = conObservador
+    ? bundle.observarRendimientoGraficos(m => recibidas.push(m))
+    : () => {}
+  const inicio = process.hrtime.bigint()
+  let ruta
+  try {
+    ruta = await bundle.renderGraphicClip(graphicDataDe(id), OPCIONES)
+  } finally {
+    dejarDeObservar()
+  }
+  const wallMs = Number(process.hrtime.bigint() - inicio) / 1e6
+  if (!ruta) throw new Error(`la muestra ${id} no produjo fichero`)
+  if (conObservador && recibidas.length !== 1) {
+    throw new Error(`la muestra ${id} produjo ${recibidas.length} mediciones; se esperaba UNA`)
+  }
+  return { ruta, wallMs, medicion: recibidas[0] }
+}
+
+const imprimirResumen = (titulo, medidas) => {
+  const msFrame = medidas.map(m => m.ms / m.totalFrames)
+  const intentos = medidas.map(m => m.intentosPorFrame)
+  const framesTope = medidas.reduce((n, m) => n + m.framesEnElTope, 0)
+  const medMs = mediana(msFrame)
+  const medInt = mediana(intentos)
+  console.log(`\n${titulo}`)
+  console.log(`ms/frame       mediana ${medMs.toFixed(2)} · p95 ${percentil(msFrame, 0.95).toFixed(2)} · ` +
+    `liston ${BASE_MS_FRAME.toFixed(2)} · x${(medMs / BASE_MS_FRAME).toFixed(2)}`)
+  console.log(`intentos/frame mediana ${medInt.toFixed(2)} · p95 ${percentil(intentos, 0.95).toFixed(2)} · ` +
+    `liston ${BASE_INTENTOS_FRAME.toFixed(2)} · x${(medInt / BASE_INTENTOS_FRAME).toFixed(2)}`)
+  console.log(`frames en MAX_INTENTOS_FRAME: ${framesTope}`)
+}
+
+async function ejecutarNormal (bundle) {
+  console.log('BANCO DE RENDIMIENTO — seis muestras medidas por el lazo real')
+  console.log(`Condicion: visual_mapa · ${OPCIONES.duracion}s · ` +
+    `${OPCIONES.duracion * OPCIONES.fps} frames · ${OPCIONES.sistema}`)
+  console.log('El liston usa esa composicion, duracion, frames y sistema; el graphicData historico no se versiono.')
+  console.log(`Liston historico: ${BASE_MS_FRAME} ms/frame · ${BASE_INTENTOS_FRAME} intentos/frame`)
+  console.log('Cruzar el liston se informa; no convierte este banco en una suite de correccion.\n')
+
+  const medidas = []
+  for (let i = 0; i < MUESTRAS; i++) {
+    const r = await renderMuestra(bundle, i + 1, true)
+    const m = r.medicion
+    medidas.push(m)
+    const fase = i < MUESTRAS_POR_FASE ? 'ARRANQUE' : 'ASENTADO'
+    console.log(`M${i + 1} ${fase.padEnd(8)} ${m.ms} ms · ` +
+      `${(m.ms / m.totalFrames).toFixed(2)} ms/frame · ` +
+      `${m.intentosPorFrame.toFixed(2)} intentos/frame · ${m.framesEnElTope} en el tope`)
+  }
+
+  imprimirResumen('ARRANQUE — primeras tres muestras', medidas.slice(0, MUESTRAS_POR_FASE))
+  imprimirResumen('ASENTADO — ultimas tres muestras', medidas.slice(MUESTRAS_POR_FASE))
+}
+
+const resumenWall = (titulo, muestras) => {
+  const porFrame = muestras.map(m => m.wallMs / (OPCIONES.duracion * OPCIONES.fps))
+  const med = mediana(porFrame)
+  console.log(`${titulo}: mediana ${med.toFixed(3)} ms/frame · ` +
+    `p95 ${percentil(porFrame, 0.95).toFixed(3)} ms/frame`)
+  return med
+}
+
+async function compararObservador (bundle) {
+  console.log('A/B DEL OBSERVADOR — seis muestras activas y seis desactivadas')
+  console.log(`Condicion: visual_mapa · ${OPCIONES.duracion}s · ` +
+    `${OPCIONES.duracion * OPCIONES.fps} frames · misma semilla dentro de cada par`)
+  console.log('Se alterna cual corre primero para no regalar todo el calentamiento a un lado.\n')
+
+  const activas = []
+  const inactivas = []
+  for (let i = 0; i < MUESTRAS; i++) {
+    const orden = i % 2 === 0 ? [true, false] : [false, true]
+    for (const activo of orden) {
+      const r = await renderMuestra(bundle, `ab-${i + 1}`, activo)
+      const destino = activo ? activas : inactivas
+      destino.push(r)
+      console.log(`PAR ${i + 1} ${activo ? 'ACTIVO   ' : 'INACTIVO '} ` +
+        `${r.wallMs.toFixed(1)} ms · ` +
+        `${(r.wallMs / (OPCIONES.duracion * OPCIONES.fps)).toFixed(3)} ms/frame` +
+        (activo ? ` · interno ${r.medicion.ms} ms` : ''))
+      // El segundo lado del par usa exactamente el mismo arbol y semilla; se borra el fichero
+      // para evitar que la cache convierta la comparacion en 1 ms contra un render real.
+      try { fs.rmSync(r.ruta, { force: true }) } catch (e) {}
+    }
+  }
+
+  console.log('\nTODAS LAS MUESTRAS (tiempo exterior, comparable con el observador apagado)')
+  const medActivo = resumenWall('ACTIVO  ', activas)
+  const medInactivo = resumenWall('INACTIVO', inactivas)
+  console.log(`DELTA ACTIVO-INACTIVO: ${(medActivo - medInactivo).toFixed(3)} ms/frame`)
+
+  console.log('\nREGIMEN ASENTADO — ultimos tres pares')
+  const asentadoActivo = resumenWall('ACTIVO  ', activas.slice(MUESTRAS_POR_FASE))
+  const asentadoInactivo = resumenWall('INACTIVO', inactivas.slice(MUESTRAS_POR_FASE))
+  console.log(`DELTA ASENTADO: ${(asentadoActivo - asentadoInactivo).toFixed(3)} ms/frame`)
+  console.log('Los intentos del lado inactivo son N/D por definicion: leerlos exigiria volver a observar.')
+}
+
 async function main (bundle) {
-  const mediciones = []
-  const dejarDeObservar = bundle.observarRendimientoGraficos(m => mediciones.push(m))
   const proyecto = await llamar('create-project', { name: MARCA })
 
   try {
-    console.log('BANCO DE RENDIMIENTO — cinco muestras medidas por el lazo real')
-    console.log(`Liston historico: ${BASE_MS_FRAME} ms/frame · ${BASE_INTENTOS_FRAME} intentos/frame`)
-    console.log('Cruzar el liston se informa; no convierte este banco en una suite de correccion.\n')
-
-    // Una muestra de calentamiento separada. No entra en mediana/p95 porque incluye la
-    // creacion de la ventana, pero se imprime: esconder el frio tambien seria mentir.
-    const antesFrio = mediciones.length
-    const frio = await bundle.renderGraphicClip(
-      { type: 'visual_mapa', value: 'rendimiento-frio', label: '', unit: '', emoji: '',
-        extra: { conceptos: ['medida', 'control', 'arranque'] } },
-      OPCIONES)
-    if (!frio || mediciones.length !== antesFrio + 1) {
-      throw new Error('el render frio no produjo fichero y UNA medicion')
-    }
-    const mFrio = mediciones.at(-1)
-    console.log(`FRIO  ${mFrio.ms} ms · ${(mFrio.ms / mFrio.totalFrames).toFixed(2)} ms/frame · ` +
-      `${mFrio.intentosPorFrame.toFixed(2)} intentos/frame · ${mFrio.framesEnElTope} en el tope`)
-
-    const medidas = []
-    for (let i = 0; i < MUESTRAS; i++) {
-      const antes = mediciones.length
-      const ruta = await bundle.renderGraphicClip(
-        { type: 'visual_mapa', value: `rendimiento-${i}`, label: '', unit: '', emoji: '',
-          extra: { conceptos: ['medida', 'control', `muestra-${i}`] } },
-        OPCIONES)
-      if (!ruta || mediciones.length !== antes + 1) {
-        throw new Error(`la muestra ${i + 1} no produjo fichero y UNA medicion`)
-      }
-      const m = mediciones.at(-1)
-      medidas.push(m)
-      console.log(`M${i + 1}    ${m.ms} ms · ${(m.ms / m.totalFrames).toFixed(2)} ms/frame · ` +
-        `${m.intentosPorFrame.toFixed(2)} intentos/frame · ${m.framesEnElTope} en el tope`)
-    }
-
-    const msFrame = medidas.map(m => m.ms / m.totalFrames)
-    const intentos = medidas.map(m => m.intentosPorFrame)
-    const medMs = mediana(msFrame)
-    const p95Ms = percentil(msFrame, 0.95)
-    const medInt = mediana(intentos)
-    const p95Int = percentil(intentos, 0.95)
-    const framesTope = medidas.reduce((n, m) => n + m.framesEnElTope, 0)
-
-    console.log('\nRESUMEN')
-    console.log(`ms/frame       mediana ${medMs.toFixed(2)} · p95 ${p95Ms.toFixed(2)} · ` +
-      `liston ${BASE_MS_FRAME.toFixed(2)}`)
-    console.log(`intentos/frame mediana ${medInt.toFixed(2)} · p95 ${p95Int.toFixed(2)} · ` +
-      `liston ${BASE_INTENTOS_FRAME.toFixed(2)}`)
-    console.log(`frames en MAX_INTENTOS_FRAME: ${framesTope}`)
-    console.log(`RELACION mediana/liston: ms x${(medMs / BASE_MS_FRAME).toFixed(2)} · ` +
-      `intentos x${(medInt / BASE_INTENTOS_FRAME).toFixed(2)}`)
+    if (COMPARAR_OBSERVADOR) await compararObservador(bundle)
+    else await ejecutarNormal(bundle)
   } finally {
-    dejarDeObservar()
     try { bundle.cerrarVentanaGraficos() } catch (e) {}
     try { await llamar('close-project', {}) } catch (e) {}
     // Se borra la ruta REAL devuelta por create-project. En un clon sin .env la raiz no es
