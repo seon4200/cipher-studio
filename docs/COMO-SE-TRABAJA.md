@@ -52,6 +52,13 @@ propia copia de una función. Los tres pasaron con el log en verde.
   56 que en realidad valía 500. Lo cazó el render, no la verificación.*
 - **Nunca aceptes una tabla sin mirar el artefacto.** Si el paso produce imagen,
   hay que mirar la imagen.
+- **Una medición sin sus condiciones registradas no es una medición: es un número
+  suelto que va a mentir la próxima vez que alguien lo compare.** Toda cifra de
+  rendimiento se anota con composición, duración, frames, sistema y número de
+  muestras.
+  *Precedente: se compararon 62,17 ms/frame de clips de 1 s / 30 frames contra un
+  listón de 50,30 medido a 3 s / 90 frames. Parecía una regresión del 24%; al
+  igualar las condiciones quedó en 51,51, un 2,4%.*
 - **Casos degenerados desde el principio**, no al final: cero elementos, uno,
   textos larguísimos, el camino que aborta, la ventana cerrada.
 
