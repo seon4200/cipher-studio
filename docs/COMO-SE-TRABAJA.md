@@ -136,6 +136,8 @@ duracion, fps, VERSION_PLANTILLAS, modo, codec, sistema`.
 
 ## 7 · Dónde está el contexto
 
+- **Nunca se referencia un documento, un fichero o una función sin comprobar que existe.**
+
 | documento | qué contiene |
 |---|---|
 | `plan-maestro.md` | las leyes, las fases, los riesgos |

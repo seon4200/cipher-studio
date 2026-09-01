@@ -1526,6 +1526,24 @@ algo del proyecto fuera de las suites, se ejecuta bajo `electron` contra
 
 ---
 
+## 🎲 EL RECUENTO DE INSTANCIAS ESTA INFLADO Y A LA VEZ OMITE VARIACION
+
+`dispersionX` declara `min: 1`, `max: 5` y `pasos: 5`, pero sobre un campo de 100 unidades
+solo cambia la amplitud maxima del desplazamiento entre 1 % y 5 % del ancho: los escalones
+contados pueden no distinguirse a simple vista. `dispersionY` tiene el mismo problema.
+
+Ademas, esos valores no son la posicion final. Cada amplitud alimenta otro sorteo,
+`entre(rnd, -dispersion, +dispersion)`, y esa variacion interna que si puede cambiar el dibujo
+no aparece en `pasos` ni entra en `combinacionesLegales()`. Por tanto, el numero provisional de
+instancias falla en las dos direcciones: **cuenta escalones que el ojo puede no distinguir y no
+cuenta el sorteo que produce la posicion visible**.
+
+No se corrige a ciegas. Se calibra con la hoja de contactos de la Fase 3: un rango solo compra
+instancias cuando sus escalones producen diferencias perceptibles, y el recuento debe representar
+la variacion efectiva de la pieza, no solo la forma de su configuracion.
+
+---
+
 ## 🎨 LO QUE LA FASE 1 DEJA FEO A PROPOSITO — para la Fase 4 y la Fase 8
 
 Anotado, NO arreglado: con una pieza por eje no tiene sentido pulir el aspecto. Pero se ve en el
