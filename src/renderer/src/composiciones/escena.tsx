@@ -195,15 +195,15 @@ const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
     const nomArista = puntos.map((_, i) => kf('arista' + i, 33, u => {
       const a = 0.10 + (i / puntos.length) * 0.24
       const p = Math.min(1, Math.max(0, (u - a) / 0.30))
-      return `stroke-dashoffset:${((1 - p) * 90).toFixed(2)};opacity:${(p * 0.8).toFixed(3)}`
+      return `stroke-dashoffset:${(1 - p).toFixed(4)};opacity:${(p * 0.8).toFixed(3)}`
     }))
     const aristas = (
       <svg className="es-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
         {puntos.map((p, i) => (
-          <path key={i}
+          <path key={i} pathLength={1}
             d={`M50,45 Q${((50 + p.x) / 2).toFixed(2)},${((45 + p.y) / 2 - curva).toFixed(2)} ${p.x.toFixed(2)},${p.y.toFixed(2)}`}
             fill="none" stroke="var(--acento)" strokeWidth=".5"
-            strokeDasharray="90" style={usa(nomArista[i])} />
+            strokeDasharray="1" style={usa(nomArista[i])} />
         ))}
       </svg>
     )
