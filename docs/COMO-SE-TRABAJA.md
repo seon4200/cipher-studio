@@ -142,7 +142,13 @@ duracion, fps, VERSION_PLANTILLAS, modo, codec, sistema`.
 | `avance.md` | qué está hecho y con qué evidencia |
 | `puntos-retorno.md` | las etiquetas y cómo volver |
 | `docs/deuda-graficos.md` | lo que se sabe roto y aún no se ha tocado |
-| `docs/motion/lab-*.html` | los ocho labs: el vocabulario visual aprobado |
+| `docs/motion/` | los ocho labs de la Fase 0: el vocabulario visual aprobado |
+
+Los ocho labs que definen el vocabulario aprobado son, exactamente:
+`lab-camara.html`, `lab-camara-2.html`, `lab-estructuras.html`,
+`lab-estructuras-2.html`, `lab-densidad-ritmo.html`, `lab-fondos.html`,
+`lab-fondos-2.html` y `lab-fondos-3.html`. Los otros seis `lab-*.html` son
+referencias anteriores; no son el vocabulario aprobado.
 
 Los comentarios del código llevan **el porqué escrito encima**. Cuando encuentres
 uno que documenta una trampa, léelo: probablemente estás a punto de caer en ella.

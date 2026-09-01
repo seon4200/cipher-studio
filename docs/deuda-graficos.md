@@ -1344,6 +1344,21 @@ El tercero compila **un solo modulo**, el preload. Que tarde milisegundos es exa
 debe pasar. Si alguien mira solo el final de la salida, ve el 19 ms y cree que no se construyo
 nada.
 
+### ~~El conteo de módulos subió sin cambios de aplicación~~ — ✅ CERRADO el 31/08/2026
+
+~~Entre dos verificaciones el renderer pasó de 1613 a 1614 módulos y main de 84 a 85, aunque en
+medio solo entraron documentación y pruebas. El número aislado parecía indicar un import o una
+dependencia nueva.~~
+
+**CERRADO en este mismo commit:** los artefactos desmienten un cambio de contenido.
+`dist-electron/main/index.js` mide **367037 bytes** en las dos mediciones, y
+`AnimatedGraphic-2o-fi4MF.js` conserva tanto el **mismo hash de contenido en el nombre** como sus
+**235416 bytes**. El módulo adicional es telemetría del recorrido de Vite, no contenido añadido al
+bundle.
+
+**Criterio para futuras verificaciones: EL HASH DE CONTENIDO MANDA SOBRE EL CONTEO DE MÓDULOS.**
+El conteo sirve como pista; un artefacto con el mismo hash y tamaño es la evidencia de contenido.
+
 **Como comprobarlo de verdad: no mires el tiempo, mira los ficheros.** Tras `rm -rf dist
 dist-electron && npm run build`, quedan **13 ficheros**, 645 KB en `dist/` y 1.1 MB en
 `dist-electron/`:

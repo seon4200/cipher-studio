@@ -15,7 +15,7 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 | **2** | Hacer visibles los fallos | ✅ 4/4 · `v-fase2-avisos` |
 | **puente** | El suelo de las pruebas | ✅ · `v-puente-suelo` (`4157e0c`) |
 | **3** | Las dos herramientas | ⬜ 0/7 — **siguiente** |
-| 4 | Vocabulario mínimo | ⬜ 0/5 |
+| 4 | Vocabulario mínimo | ⬜ 0/6 |
 | 5 | Densidad y ritmo | ⬜ 0/4 |
 | 6 | Resto del vocabulario | ⬜ 0/4 · **aquí se entrega la meta** |
 | 7 | La IA elige | ⬜ 0/7 |
@@ -92,7 +92,7 @@ bloqueante. Ver `puntos-retorno.md`.*
 ## Fases 4 a 10
 
 Ver `plan-maestro.md`.
-**4 (0/5)** las piezas · **5 (0/4)** densidad y ritmo · **6 (0/4) la meta** ·
+**4 (0/6)** las piezas · **5 (0/4)** densidad y ritmo · **6 (0/4) la meta** ·
 7 (0/7) la IA · 8 (0/4) moduladores · 9 (0/8) imágenes · 10 (0/4) YouTube.
 
 ---
