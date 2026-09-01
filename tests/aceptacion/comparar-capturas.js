@@ -43,18 +43,30 @@ const { execSync } = require('child_process')
 //   frame 77: 247.745 px distintos (11,9%)   delta max = 37   delta medio = 2,0
 //   reparto: el 99% de los pixeles cambiados en 1-4 niveles; CERO por encima de 64.
 //
+// EL PORCENTAJE NO DISCRIMINA NADA, y esta version existe para quitarlo. La anterior mandaba a
+// DISTINTO cualquier cosa que cambiara mas del 5% de la pantalla, y con eso el frame 77 de esa
+// anomalia -- 11,9% de pixeles cambiados y NI UNO por encima de delta 64, o sea ruido puro --
+// salia DISTINTO y habria puesto un merge en rojo. Un rasterizado medio nivel corrido afecta a
+// TODOS los bordes de la imagen a la vez: que cubra mucha pantalla es lo NORMAL en el caso
+// benigno, no una señal de alarma. Lo que separa las dos familias es la MAGNITUD del delta.
+//
 // DELTA_RUIDO = 64. La anomalia real no paso de 37, asi que 64 deja casi el doble de margen y
 // sigue MUY por debajo de lo que produce un desplazamiento: mover un elemento sobre un fondo
 // oscuro da deltas de 150-250. Es un hueco ancho, no una linea fina, y por eso el umbral no es
 // delicado.
 //
-// PCT_MAXIMO = 5. Aqui SI hay tension y conviene decirlo: la anomalia llego al 11,9% de pixeles
-// cambiados, o sea que POR ENCIMA de este umbral. Es a proposito. El 11,9% se acepta por el
-// OTRO criterio -- ningun pixel supera 64 -- y este segundo umbral existe para que un cambio que
-// afecte a media pantalla no se cuele por ser suave. Los dos criterios son Y, no O.
+// MEDIA_RUIDO = 8. Segundo criterio para el caso que DELTA_RUIDO solo no cubre: una desviacion
+// SISTEMATICA y suave -- toda la imagen cinco niveles mas clara, por ejemplo -- no dispararia
+// ningun pixel por encima de 64 y sin embargo es un cambio real. La anomalia benigna dio medias
+// de 1,6 y 2,0, asi que 8 esta a cuatro veces de lo medido: otro hueco ancho. La media se toma
+// SOBRE LOS PIXELES QUE CAMBIAN, no sobre la imagen entera; promediar sobre los 2 millones
+// diluiria cualquier cosa hasta cero y el criterio no serviria para nada.
+//
+// LOS DOS SON `O`: basta uno para DISTINTO. Cubren cambios distintos -- uno localizado y fuerte,
+// otro repartido y suave -- y ninguno de los dos implica al otro.
 const UMBRALES = {
   DELTA_RUIDO: 64,
-  PCT_MAXIMO: 5
+  MEDIA_RUIDO: 8
 }
 
 /** Compara dos buffers RGBA del mismo tamaño. El alfa NO entra: se comparan R, G y B. */
@@ -98,11 +110,13 @@ function comparar (bufA, bufB) {
 function veredicto (c) {
   if (c.error) return 'ERROR'
   if (c.pix === 0) return 'IGUAL'
-  // LOS DOS CRITERIOS SON `Y`: basta uno para caer a DISTINTO. Un solo pixel por encima del
-  // ruido ya dice que algo se movio, por pocos que sean; y una diferencia suave que cubra media
-  // pantalla es un cambio aunque ningun pixel destaque.
+  // UN SOLO PIXEL POR ENCIMA DEL RUIDO YA DICE QUE ALGO SE MOVIO, por pocos que sean: donde
+  // habia fondo hay figura. Es el criterio principal y el que decide casi siempre.
   if (c.hist['65+'] > 0) return 'DISTINTO'
-  if (c.pct >= UMBRALES.PCT_MAXIMO) return 'DISTINTO'
+  // Y una desviacion sistematica y suave, que no dispara ningun pixel pero corre la imagen
+  // entera. Cuantos pixeles cambien NO entra en la decision: un rasterizado medio nivel corrido
+  // toca todos los bordes a la vez, asi que cubrir mucha pantalla es lo normal en el caso benigno.
+  if (c.media > UMBRALES.MEDIA_RUIDO) return 'DISTINTO'
   return 'EQUIVALENTE'
 }
 
@@ -110,17 +124,20 @@ function informe (etiqueta, c) {
   const v = veredicto(c)
   if (c.error) return `  ${etiqueta}: ERROR — ${c.error}`
   if (v === 'IGUAL') return `  ${etiqueta}: IGUAL`
+  // LA CIFRA PRINCIPAL VA PRIMERA Y SOLA porque es la unica que decide. El resto -- cuantos
+  // pixeles cambian y en que tramos -- es contexto para entender QUE paso, no para el veredicto.
   return `  ${etiqueta}: ${v}\n` +
-    `      ${c.pix} px de ${c.total} (${c.pct.toFixed(3)}%)  ` +
-    `delta max=${c.maxD}  medio=${c.media.toFixed(1)}\n` +
+    `      px con delta > ${UMBRALES.DELTA_RUIDO}: ${c.hist['65+']}   <- la cifra que decide\n` +
+    `      ${c.pix} px cambiados de ${c.total}  delta max=${c.maxD}  medio=${c.media.toFixed(1)}\n` +
     `      reparto del delta -> 1-4:${c.hist['1-4']}  5-16:${c.hist['5-16']}  ` +
     `17-64:${c.hist['17-64']}  65+:${c.hist['65+']}` +
     (c.hist['65+'] > 0
       ? `\n      ${c.hist['65+']} pixel(es) por encima de ${UMBRALES.DELTA_RUIDO}: algo SE MOVIO.`
-      : (c.pct >= UMBRALES.PCT_MAXIMO
-          ? `\n      ningun pixel pasa de ${UMBRALES.DELTA_RUIDO}, pero cambia el ` +
-            `${c.pct.toFixed(1)}% de la pantalla (limite ${UMBRALES.PCT_MAXIMO}%).`
-          : `\n      ningun pixel pasa de ${UMBRALES.DELTA_RUIDO}: firma de RASTERIZADO, no de movimiento.`))
+      : (c.media > UMBRALES.MEDIA_RUIDO
+          ? `\n      ningun pixel pasa de ${UMBRALES.DELTA_RUIDO}, pero el delta medio es ` +
+            `${c.media.toFixed(1)} (limite ${UMBRALES.MEDIA_RUIDO}): desviacion SISTEMATICA.`
+          : `\n      ningun pixel pasa de ${UMBRALES.DELTA_RUIDO} y el delta medio es ` +
+            `${c.media.toFixed(1)}: firma de RASTERIZADO, no de movimiento.`))
 }
 
 /** Extrae un frame crudo RGBA de un video. Usa el ffmpeg del PATH, como el resto del proyecto. */

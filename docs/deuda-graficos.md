@@ -1646,10 +1646,14 @@ Esto convierte la comparacion de pixeles de inservible en fiable **con toleranci
 versionado en `tests/aceptacion/comparar-capturas.js`, con sus umbrales justificados. **Sustituye
 a la igualdad byte a byte** en el diff de comportamiento de los merges.
 
-> Con los umbrales de hoy, el frame 77 de esa anomalia sale **DISTINTO** por superar el 5% de
-> pixeles cambiados, pese a que ningun pixel pasa de 64. Es a proposito -- un cambio suave que
-> cubra media pantalla sigue siendo un cambio -- pero conviene saberlo: esa anomalia concreta
-> pondria un merge en rojo.
+> **EL PORCENTAJE NO DISCRIMINA, y se quito.** Una primera version mandaba a DISTINTO todo lo que
+> cambiara mas del 5% de la pantalla, y con eso el frame 77 de esta misma anomalia -- 11,9% de
+> pixeles cambiados y NI UNO por encima de delta 64, o sea ruido puro -- salia DISTINTO y habria
+> puesto un merge en rojo. Medido con un control positivo sintetico (el mismo frame corrido 4 px):
+> el caso MOVIDO cambia el 25,9% de la pantalla y el benigno el 11,9%, asi que el porcentaje los
+> ordena mal y los ordenaria mal con cualquier umbral. Lo que los separa limpiamente es 3.586
+> pixeles por encima de 64 contra CERO. Un rasterizado medio nivel corrido toca todos los bordes a
+> la vez: cubrir mucha pantalla es lo NORMAL en el caso benigno.
 
 ### Lo que esta DESCARTADO, con linea
 

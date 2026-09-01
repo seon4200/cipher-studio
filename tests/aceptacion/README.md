@@ -105,3 +105,48 @@ El bug de **orden** del punto 3 es de orden *dentro del handler*. Lo caza `25-ag
 una prueba **manual**: hay que acordarse de correrla. No hay ninguna suite de `npm test` que
 ejecute `generate-timeline-assets`, así que si alguien mueve esas líneas otra vez, el conjunto
 sigue verde. Está anotado en `docs/deuda-graficos.md`.
+
+---
+
+## `comparar-capturas.js` — comparar dos capturas con tolerancia
+
+**Sustituye a la igualdad byte a byte** en el diff de comportamiento de los merges.
+
+Comparar dos renders al byte parecía la prueba más dura que existe, y resultó inservible: de
+seis tiradas del mismo clip, cinco salieron idénticas y una no. Con igualdad estricta esa sexta
+pone cualquier merge en rojo y no dice **de qué**.
+
+El histograma de delta es el discriminador:
+
+```
+  pocos pixeles  + delta enorme              -> algo SE MOVIO. Cambio real.
+  muchos pixeles + delta pequeño, ninguno >64 -> RASTERIZADO. Ruido.
+```
+
+Un elemento desplazado deja pocos píxeles cambiados con delta de cientos —donde había fondo hay
+figura—; un rasterizado ligeramente distinto deja muchísimos con delta de uno o dos: los mismos
+bordes, medio nivel corridos. Son firmas opuestas.
+
+**El porcentaje de píxeles cambiados no entra en el veredicto**, y no por descuido: medido con un
+control positivo sintético, el caso movido cambia el 25,9% de la pantalla y el benigno el 11,9%.
+Ordena las dos familias al revés.
+
+| veredicto | criterio | exit |
+|---|---|---|
+| `IGUAL` | cero píxeles distintos | 0 |
+| `EQUIVALENTE` | el resto | 0 |
+| `DISTINTO` | algún píxel con delta > 64, **o** delta medio > 8 sobre los píxeles que cambian | 1 |
+
+```bash
+node tests/aceptacion/comparar-capturas.js a.raw b.raw
+```
+
+```bash
+node tests/aceptacion/comparar-capturas.js a.mp4 b.mp4 --frames 0,39,77
+```
+
+Con `.raw` compara directamente (RGBA crudo); con vídeos extrae los frames con `ffmpeg`. También
+se puede importar como módulo: `const { comparar, veredicto, UMBRALES } = require('./comparar-capturas')`.
+
+Los umbrales salen de la única anomalía medida (delta máx 37, medio 2,0, 99% ≤ 4, cero > 64) y su
+justificación está escrita junto a la constante. Si alguien los cambia, que tenga que decidirlo.
