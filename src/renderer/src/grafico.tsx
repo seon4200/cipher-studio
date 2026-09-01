@@ -7,6 +7,7 @@ import { createRoot, Root } from 'react-dom/client'
 import { flushSync } from 'react-dom'
 import { AnimatedGraphic } from './AnimatedGraphic'
 import { NombreSistema } from './sistemas'
+import { FUENTES_RENDER, MUESTRA_FUENTES, faltaLaFuentePorAncho } from './fuentes-render'
 import './styles/globals.css'
 
 // Franja de la SONDA, encima del lienzo. El proceso principal codifica ahi el indice de
@@ -203,13 +204,6 @@ function pintar(t?: number) {
 // rangos que el texto necesita, asi que `load()` con la cadena por defecto podria dejar fuera
 // las mayusculas acentuadas. Lleva las cinco vocales acentuadas, la enye en las dos cajas y
 // digitos: es lo que de verdad aparece en un guion en español.
-const MUESTRA = 'AÁÉÍÓÚÜÑ aáéíóúüñ 0123456789'
-const FUENTES = [
-  { familia: 'Outfit', peso: 700 },
-  { familia: 'Archivo', peso: 700 },
-  { familia: 'Anton', peso: 400 }
-]
-
 /**
  * ¿Esta esa familia REALMENTE disponible? Dos comprobaciones, y hacen falta las dos.
  *
@@ -228,23 +222,8 @@ const FUENTES = [
  * check().
  */
 function faltaLaFuente (familia: string, peso: number): string | null {
-  const mide = (fam: string): number => {
-    const s = document.createElement('span')
-    s.style.cssText = `position:absolute;left:-9999px;top:0;white-space:nowrap;` +
-      `font:${peso} 100px "${fam}", serif`
-    s.textContent = MUESTRA
-    document.body.appendChild(s)
-    const w = s.getBoundingClientRect().width
-    s.remove()
-    return w
-  }
-  // El nombre no puede existir ni por casualidad: si existiera, el cinturon compararia dos
-  // fuentes reales y diria que todo va bien.
-  const respaldo = mide('__cipher_no_existe_zz__')
-  const propia = mide(familia)
-  if (Math.abs(propia - respaldo) < 0.5) {
-    return `${familia}: el ancho es identico al respaldo (${propia.toFixed(1)}px), no esta cargada`
-  }
+  const porAncho = faltaLaFuentePorAncho(familia, peso)
+  if (porAncho) return porAncho
   if (!document.fonts.check(`${peso} 16px "${familia}"`)) {
     return `${familia}: declarada pero fonts.check dice que el peso ${peso} no esta cargado`
   }
@@ -263,14 +242,14 @@ function faltaLaFuente (familia: string, peso: number): string | null {
   // que se monta ningun grafico.
   const avisos: string[] = []
   try {
-    await Promise.all(FUENTES.map(f =>
-      (document as any).fonts.load(`${f.peso} 1em "${f.familia}"`, MUESTRA)))
+    await Promise.all(FUENTES_RENDER.map(f =>
+      (document as any).fonts.load(`${f.peso} 1em "${f.familia}"`, MUESTRA_FUENTES)))
   } catch (e) {
     avisos.push(`fonts.load lanzo: ${String(e)}`)
   }
   await document.fonts.ready
 
-  for (const f of FUENTES) {
+  for (const f of FUENTES_RENDER) {
     const fallo = faltaLaFuente(f.familia, f.peso)
     if (fallo) avisos.push(`FUENTE AUSENTE: ${fallo}`)
   }

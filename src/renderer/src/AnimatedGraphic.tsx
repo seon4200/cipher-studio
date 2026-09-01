@@ -10,7 +10,7 @@ import { composicion } from './composiciones'
    Renderiza los diferentes tipos de gráficos animados.
    -------------------------------------------------------------- */
 
-type GraphicType =
+export type GraphicType =
   | 'barra_horizontal'
   | 'barra_vertical'
   | 'barras_comparativas'
@@ -32,8 +32,10 @@ type GraphicType =
   // SOLO para modo pantalla. No aparece en el prompt de tarjetas, asi que el modelo no puede
   // producirlo por accidente: lo construye la generacion de Visuales.
   | 'visual_texto'
+  | 'visual_mapa'
+  | 'visual_escena'
 
-interface GraphicData {
+export interface GraphicData {
   type: GraphicType
   /** valores numéricos o texto que el gráfico mostrará */
   value?: number | string
