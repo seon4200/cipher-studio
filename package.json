@@ -7,6 +7,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
+    "banco": "vite --mode banco",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "node tests/todas.js",
