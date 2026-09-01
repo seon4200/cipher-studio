@@ -1770,9 +1770,11 @@ superior, no 9-12 ms/frame.
 Repetido en la condicion demostrable del liston --`visual_mapa`, voltaje, 1080x1920, 3 s, 90
 frames--, el regimen asentado dio **51,51 ms/frame de mediana y 52,31 de p95**: x1,02, no x1,24.
 Los intentos asentados dieron **1,63 de mediana y 1,69 de p95** contra el 1,30 historico, sin
-frames en el tope. **No se puede llamar regresion**: el `graphicData` exacto del arnes de 2026-08-08
-no quedo en Git, solo su composicion, duracion, frames y sistema. El numero actual queda escrito;
-la comparacion clip-a-clip historica no se puede reconstruir honestamente.
+frames en el tope. La posible regresion de intentos queda **ni confirmada ni descartada**: el
+`graphicData` exacto del arnes de 2026-08-08 no quedo en Git, solo su composicion, duracion,
+frames y sistema. El numero actual queda escrito, pero la comparacion clip-a-clip historica no
+se puede reconstruir honestamente. Desde ahora el benchmark versiona su fixture completo y la
+regla que sustituye `{id}` para evitar la cache.
 
 ### Lo que NO se ha demostrado, y no debe escribirse como si si
 

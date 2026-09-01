@@ -31,6 +31,21 @@ const OPCIONES = {
   sistema: 'voltaje'
 }
 
+// El fixture ES parte de la medicion y se versiona con ella. `{id}` es la unica variacion:
+// evita aciertos de cache sin cambiar el contrato de entrada ni esconder palabras aleatorias.
+// El benchmark historico de 2026-08-08 no conservo esto y por eso sus intentos/frame no se
+// pueden comparar clip a clip con los actuales.
+const FIXTURE_GRAPHIC_DATA = Object.freeze({
+  type: 'visual_mapa',
+  value: 'rendimiento-{id}',
+  label: '',
+  unit: '',
+  emoji: '',
+  extra: Object.freeze({
+    conceptos: Object.freeze(['medida', 'control', 'muestra-{id}'])
+  })
+})
+
 const llamar = (canal, arg) => {
   const h = ipcMain._invokeHandlers.get(canal)
   if (!h) throw new Error('sin handler: ' + canal)
@@ -50,13 +65,16 @@ const mediana = (valores) => {
     : (ordenados[mitad - 1] + ordenados[mitad]) / 2
 }
 
+const sustituirId = (texto, id) => texto.replace('{id}', String(id))
 const graphicDataDe = (id) => ({
-  type: 'visual_mapa',
-  value: `rendimiento-${id}`,
-  label: '',
-  unit: '',
-  emoji: '',
-  extra: { conceptos: ['medida', 'control', `muestra-${id}`] }
+  type: FIXTURE_GRAPHIC_DATA.type,
+  value: sustituirId(FIXTURE_GRAPHIC_DATA.value, id),
+  label: FIXTURE_GRAPHIC_DATA.label,
+  unit: FIXTURE_GRAPHIC_DATA.unit,
+  emoji: FIXTURE_GRAPHIC_DATA.emoji,
+  extra: {
+    conceptos: FIXTURE_GRAPHIC_DATA.extra.conceptos.map(c => sustituirId(c, id))
+  }
 })
 
 async function renderMuestra (bundle, id, conObservador) {
@@ -97,6 +115,7 @@ async function ejecutarNormal (bundle) {
   console.log('BANCO DE RENDIMIENTO — seis muestras medidas por el lazo real')
   console.log(`Condicion: visual_mapa · ${OPCIONES.duracion}s · ` +
     `${OPCIONES.duracion * OPCIONES.fps} frames · ${OPCIONES.sistema}`)
+  console.log('Fixture versionado: ' + JSON.stringify(FIXTURE_GRAPHIC_DATA))
   console.log('El liston usa esa composicion, duracion, frames y sistema; el graphicData historico no se versiono.')
   console.log(`Liston historico: ${BASE_MS_FRAME} ms/frame · ${BASE_INTENTOS_FRAME} intentos/frame`)
   console.log('Cruzar el liston se informa; no convierte este banco en una suite de correccion.\n')
