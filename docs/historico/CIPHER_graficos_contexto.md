@@ -1,3 +1,5 @@
+SUPERADO — afirma que los gráficos a pantalla completa no existen todavía, y es falso desde la Fase 1.
+
 # CIPHER Studio — Gráficos: contexto completo para continuar
 ### 3 agosto 2026 · Sube este documento al chat nuevo y di "sigo desde aquí"
 
