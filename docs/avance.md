@@ -61,13 +61,14 @@ producción.
 ## Los tres números del motor
 
 ```
-identidades          8
-instancias      60.320
+identidades         12
+instancias      60.450
 ```
 
-Dos estructuras reales y tres fondos reales elevan el repertorio a **ocho** identidades
+Tres estructuras reales y tres fondos reales elevan el repertorio a **doce** identidades
 legales después de aplicar la regla de energía. Corregir `ondas` retiró tres rangos que
-describían la geometría equivocada de anillos; por eso las instancias bajan a 60.320. Es una
+describían la geometría equivocada de anillos; portar `redNodos` sin inventarle rangos deja
+el recuento en 60.450 instancias. Es una
 corrección del dato, no una pérdida visual: **lo que multiplica son las piezas**.
 
 **Coste:** 1.60–1.73 intentos/frame contra el listón de 1.30. De ese +0.35, la

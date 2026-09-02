@@ -383,6 +383,23 @@ export const ESTRUCTURAS = {
       })), etiquetas, FRANJA_TEXTO_Y);
     }
   },
+  redNodos: {
+    id: 'redNodos',
+    descripcion: 'Esfera giratoria de veintidos puntos con profundidad, sin aristas.',
+    energia: 1,
+    formatos: ['9:16'],
+    // La esfera existe con independencia de las etiquetas. El lab enseña tres conceptos, pero
+    // eso es su caso de muestra, no un requisito geometrico de la pieza.
+    minConceptos: 1,
+    presupuestoTexto: FRANJA_TEXTO_Y,
+    // Fuente aprobada: docs/motion/lab-estructuras.html:314-331.
+    // `sem(23)` no altera la pieza del lab: sus nodos no consumen `rnd()`.
+    rangos: [],
+    puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
+      [{ x: 22, y: 24 }, { x: 78, y: 32 }, { x: 50, y: 74 }]
+        .slice(0, Math.min(CUANTOS_CONCEPTOS, etiquetas.length)),
+      etiquetas, FRANJA_TEXTO_Y)
+  },
   unaCaja: {
     id: 'unaCaja',
     descripcion: 'Un solo concepto en una caja centrada, sin lineas. Pieza de prueba.',
