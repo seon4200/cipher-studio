@@ -2063,8 +2063,13 @@ provisionales de capasApiladas; con piezas de prueba: 104 / 449.280. Interruptor
   test:ciclo falla en tres vectores (semillas 0, 1, 42) congelados contra master 3ea5c6d:
   "los cinco sorteos anteriores no cambian". Esa guardia de la introduccion de tipografia
   tambien fija el catalogo de fondos antiguo; al añadir tramaTejida cambian sus elecciones.
-  No se ha actualizado ni eliminado la guardia para dar verde. Pendiente antes del merge;
-  no confundir ampliacion de repertorio con desplazamiento del orden del generador.
+  ~~Pendiente antes del merge: sustituir los vectores congelados sin confundir ampliacion de
+  repertorio con desplazamiento del orden del generador.~~ CERRADO el 02/09/2026 en el commit
+  de la guardia de orden: `tests/ayudas/orden-direccion.js` ejecuta la funcion y sus helpers
+  del bundle, con generador controlado y catalogos sinteticos de 6 y 11 opciones por eje.
+  Comprueba seis consumos sobre un solo generador, en orden fondo/estructura/camara/densidad/
+  ritmo/tipografia; los 15 intercambios posibles se rechazan como controles negativos por
+  cada catalogo. Ni nueva entrada de prueba ni cambios en el codigo de produccion.
 - **`ANILLOS_FONDO` y `faseAnillo()` estan huerfanas.** No tienen consumidores bajo `src/` ni
   `tests/` desde que `ondas` dejo de ser anillos. No se borran en este paso: se incorporan al
   mismo inventario de deuda que las 1.154 lineas huerfanas ya conocidas.
@@ -2189,3 +2194,11 @@ impone dos lineas. La puerta responde de ese presupuesto; quitar la propiedad
 desconectaria la aritmetica del dibujo. Su advertencia queda junto al CSS.
 
 **Regla:** Cuando se cierra una deuda, se tacha en el MISMO commit que la cierra.
+
+### Excepcion al atomo compartido: heroe de constelacion (02/09/2026)
+
+Las cuatro estructuras de `src/renderer/src/composiciones/escena.tsx` llaman a `caja()`
+para las etiquetas: constelacion, capasApiladas, redNodos y unaCaja (pieza de prueba).
+El emoji grande de constelacion se inserta directamente en `.es-hero`, no mediante `caja()`.
+Es una excepcion EXISTENTE a la nueva regla, no una caja duplicada. Pendiente unificar el
+atomo cuando se cambie el heroe por icono/silueta: no se altera su geometria en este cierre.

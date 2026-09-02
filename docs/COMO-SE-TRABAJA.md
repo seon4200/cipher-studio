@@ -111,6 +111,14 @@ duracion, fps, VERSION_PLANTILLAS, modo, codec, sistema`.
   último frame **no** empatan, y es correcto. Lo que tiene que cerrar son las
   capas de iteración infinita.
 
+### El atomo visual compartido
+- **Toda pieza dibuja sus cajas y sus emojis llamando a la funcion compartida `caja()`.
+  Ninguna se dibuja la suya.** El atomo caja + emoji cambiara a silueta o icono; centralizarlo
+  permite cambiar una funcion, no recorrer las 65 piezas.
+- Excepcion existente, detectada el 02/09/2026 y pendiente, no un permiso para repetirla:
+  el heroe de `constelacion` dibuja su emoji directamente. Las cajas de las cuatro estructuras
+  actuales si llaman a `caja()`; este cierre no cambia la ranura del heroe ni sus pixeles.
+
 ### Los keyframes
 - **Todo lo que emita `@keyframes` va antes del `return`.** El `<style>` es el
   primer hijo del JSX; lo que se emita después no llega a la hoja, y el elemento

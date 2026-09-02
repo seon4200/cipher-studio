@@ -538,16 +538,10 @@ function conceptos (bundle) {
     'tipografia desconocida vuelve al sorteo')
   ok(!cabeEnElPie('ß'.repeat(13), 'anton'), 'la puerta cuenta DESPUES de pasar a versal')
   ok(bundle.MAX_CARACTERES_ETIQUETA === 56, 'las cajas conservan su limite 56')
-  // Resultados leidos del bundle de master 3ea5c6d, ANTES de añadir tipografia.
-  for (const [semilla, fondo, estructura, camara] of [
-    [0, 'ondas', 'constelacion', 'quieto'], [1, 'ondas', 'constelacion', 'quieto'],
-    [42, 'ondas', 'capasApiladas', 'quieto'], [123456, 'skyline', 'constelacion', 'deriva']
-  ]) {
-    const d = direccionDe(semilla)
-    ok(d.fondo === fondo && d.estructura === estructura && d.camara === camara &&
-      d.densidad === 'media' && d.ritmo === 'regular', 'los cinco sorteos anteriores no cambian: ' + semilla)
-    ok(Object.hasOwn(TIPOGRAFIAS, d.tipografia), 'el sexto sorteo pertenece al registro: ' + semilla)
-  }
+  // Congelar salidas del catalogo obligaba a editar esta prueba con cada pieza nueva.
+  // Una prueba que se edita para ponerse verde deja de probar. El invariante es el ORDEN
+  // de consumo y tipografia ultima, no que una semilla siga eligiendo el fondo de ayer.
+  require('./ayudas/orden-direccion')(bundle, path.join(RAIZ, 'dist-electron/main/index.js'), ok)
 
   // LAS INSTANCIAS NUNCA SON MENOS QUE LAS IDENTIDADES: cada identidad tiene al menos una.
   ok(REP.instancias >= REP.identidades, 'instancias >= identidades, siempre',
