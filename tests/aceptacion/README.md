@@ -1,5 +1,34 @@
 # Pruebas de aceptación
 
+## Tono claro y parejas por estructura (02/09/2026)
+
+`npm run banco`, abrir `http://127.0.0.1:5174/banco.html?vista=identidades&comparar=tonos`.
+`tono-oscuro-claro.png`: memoria, ondas/tramaTejida, constelacion/quieto/media/regular/Archivo,
+voltaje, t=1.5 s, ciclo 3 s, 1080x1920 a 0.45. El sistema mantiene su paleta original y
+selecciona tinta solo dentro de escena sobre un fondo claro.
+
+`trama-tejida-lab-pieza.png`: recortes de ese banco y de `docs/motion/lab-fondos-2.html:318-333`,
+con las fuentes Anton/Archivo locales en lugar de Google Fonts. t=1.503 s en ambos (paso del
+lab .0167); lab 282.25x501.77 ampliado a 486x864, banco 486x864. Grano fijo del lab frente a
+grano escalable del porte: diferencia de peso visible, indicada en imagen y deuda.
+
+Parejas: `http://127.0.0.1:5174/banco.html?vista=pareja&estructura=capasApiladas&rango=anchoPlano`.
+Cambiar `rango` por `inclinacion` o `flotacion` reproduce las otras dos capturas
+`capas-pareja-*.png`. Las condiciones y semillas se imprimen en la propia pagina.
+El selector enumera los rangos REALES de la estructura; sin rangos no se inventa una pareja.
+La base es liso/quieto/media/regular/Archivo, tiempo 1.5 s y escala 0.45. Cambian palabras,
+todos los parametros y semillas: no es una prueba aislada ni mide cuatro escalones.
+
+Regenerar deliberadamente ambos fixtures, sin instalar dependencias, desde la raiz:
+
+```powershell
+node -e "const e=require('esbuild'),p=require('path'),o=require('os');const f=p.join(o.tmpdir(),'cipher-generar-parejas.cjs');e.buildSync({entryPoints:['tests/aceptacion/generar-hoja-contactos.ts'],outfile:f,bundle:true,platform:'node',format:'cjs'});require(f)"
+```
+
+El bundle compila la funcion compartida `instanciaDe`, no una copia. El banco NO busca al
+abrirse; lee el fixture y verifica sus parametros mediante esa misma funcion, con useMemo.
+Si faltan extremos o cambia la derivacion, avisa y no muestra una pareja enganosa.
+
 ## Metrica reproducible de las tipografias del pie
 
 Tras `npm run build`, ejecutar `npx electron tests/aceptacion/medir-tipografias.js`.

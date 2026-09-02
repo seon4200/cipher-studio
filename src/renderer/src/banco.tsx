@@ -12,6 +12,7 @@ import {
 import type { Concepto } from '../../shared/conceptos'
 import { FUENTES_RENDER, MUESTRA_FUENTES, faltaLaFuentePorAncho } from './fuentes-render'
 import fixtureHoja from '../../../tests/aceptacion/fixtures/hoja-contactos-instancias.json'
+import fixtureParejas from '../../../tests/aceptacion/fixtures/parejas-estructuras.json'
 import './styles/globals.css'
 import './styles/banco.css'
 
@@ -22,7 +23,8 @@ const CICLO = 3
 type NombreBanco = 'mapa' | 'escena'
 type ModoTiempo = 'correr' | 'posicionar'
 type VistaBanco = 'individual' | 'hoja' | 'pareja' | 'identidades'
-type IdRangoPareja = 'dispersionX' | 'dispersionY' | 'curva' | 'escalaHero'
+type CasoPareja = { palabra: string; parametrosEstructura: Record<string, number> }
+type Pareja = { minimo: CasoPareja; maximo: CasoPareja }
 type FilaConcepto = { emoji: string; etiqueta: string }
 type RitmoRaf = { media: number; p95: number; max: number; mayores25: number }
 
@@ -33,9 +35,6 @@ const CONCEPTOS_INICIALES: FilaConcepto[] = [
 ]
 
 const DIRECCION_HOJA = fixtureHoja.identidad as Direccion
-const RANGOS_PAREJA: readonly IdRangoPareja[] = [
-  'dispersionX', 'dispersionY', 'curva', 'escalaHero'
-]
 const esPrueba = (p: object) => 'prueba' in p && p.prueba === true
 const FONDOS_IDENTIDADES = Object.values(FONDOS).filter(p => !esPrueba(p))
 const ESTRUCTURAS_IDENTIDADES = Object.values(ESTRUCTURAS).filter(p => !esPrueba(p))
@@ -61,24 +60,9 @@ const VISTA_INICIAL: VistaBanco = parametrosUrl.get('vista') === 'identidades'
   : parametrosUrl.get('vista') === 'pareja'
     ? 'pareja'
     : parametrosUrl.get('vista') === 'hoja' ? 'hoja' : 'individual'
-const RANGO_INICIAL: IdRangoPareja = RANGOS_PAREJA.includes(
-  parametrosUrl.get('rango') as IdRangoPareja)
-  ? parametrosUrl.get('rango') as IdRangoPareja
-  : 'dispersionX'
-
-const casoConRol = (rol: string) => {
-  const caso = fixtureHoja.casos.find(c => c.roles.includes(rol))
-  if (!caso) throw new Error(`El fixture no contiene ${rol}`)
-  return caso
-}
-
-const PAREJAS = Object.fromEntries(RANGOS_PAREJA.map(id => [id, {
-  minimo: casoConRol(`${id}:min-alcanzable`),
-  maximo: casoConRol(`${id}:max-alcanzable`)
-}])) as Record<IdRangoPareja, {
-  minimo: (typeof fixtureHoja.casos)[number]
-  maximo: (typeof fixtureHoja.casos)[number]
-}>
+const ESTRUCTURA_INICIAL = Object.values(ESTRUCTURAS).find(
+  e => e.id === parametrosUrl.get('estructura'))?.id ?? DIRECCION_HOJA.estructura
+const PAREJAS = fixtureParejas.estructuras as Record<string, Record<string, Pareja>>
 
 function graphicHoja(palabra: string, conceptos: Concepto[]): GraphicData {
   return {
@@ -121,27 +105,30 @@ function MiniaturaHoja({ caso, t, conceptos, zona, zonaVisible }: {
   )
 }
 
-function EscenaPareja({ caso, lado, rango, t, conceptos, zona, zonaVisible }: {
-  caso: (typeof fixtureHoja.casos)[number]
+function EscenaPareja({ caso, direccion, lado, rango, t, conceptos, zona, zonaVisible }: {
+  caso: CasoPareja
+  direccion: Direccion
   lado: 'MIN' | 'MAX'
-  rango: IdRangoPareja
+  rango: string
   t: number
   conceptos: Concepto[]
   zona: React.CSSProperties
   zonaVisible: boolean
 }) {
-  const instancia = instanciaDe(caso.palabra, DIRECCION_HOJA)
+  const instancia = instanciaDe(caso.palabra, direccion)
   return (
     <article className="pareja-celda" data-lado={lado.toLowerCase()} data-palabra={caso.palabra}>
       <header className="pareja-etiqueta">
         <strong>{lado} · {caso.palabra}</strong>
         <span>{rango} = {instancia.estructura[rango].toFixed(6)}</span>
         <code>{JSON.stringify(instancia.estructura)}</code>
+        <code>Semillas: {JSON.stringify(instancia.semillas)}</code>
       </header>
       <div className="pareja-marco">
         <div className="pareja-escala">
           <div className="flex" style={{ width: ANCHO, height: ALTO }}>
-            <AnimatedGraphic graphic={graphicHoja(caso.palabra, conceptos)} t={t}
+            <AnimatedGraphic graphic={{ type: 'visual_escena', value: caso.palabra,
+              extra: { conceptos, direccion } }} t={t}
               modo="pantalla" sistema="voltaje" ciclo={CICLO} />
           </div>
           {zonaVisible && <div className="banco-zona pareja-zona" style={zona} />}
@@ -184,12 +171,12 @@ function EscenaIdentidad({ direccion, t, conceptos, zona, zonaVisible, palabra =
 
 function Banco() {
   const [vista, setVista] = useState<VistaBanco>(VISTA_INICIAL)
-  const [rangoPareja, setRangoPareja] = useState<IdRangoPareja>(RANGO_INICIAL)
+  const [rangoPedido, setRangoPareja] = useState(parametrosUrl.get('rango') ?? '')
   const [nombre, setNombre] = useState<NombreBanco>('escena')
   const [palabra, setPalabra] = useState('memoria')
   const [filas, setFilas] = useState<FilaConcepto[]>(CONCEPTOS_INICIALES)
   const [fondo, setFondo] = useState<IdFondo>('ondas')
-  const [estructura, setEstructura] = useState<IdEstructura>('constelacion')
+  const [estructura, setEstructura] = useState<IdEstructura>(ESTRUCTURA_INICIAL)
   const [camara, setCamara] = useState<IdCamara>('deriva')
   const [tipografia, setTipografia] = useState<IdTipografia>('archivo')
   const [compararTipos, setCompararTipos] = useState(parametrosUrl.get('comparar') === 'tipografias')
@@ -307,6 +294,18 @@ function Banco() {
       ? [] : [`casilla ${caso.casilla}: ${caso.palabra}`]
   }), [])
 
+  const rangosPareja = ESTRUCTURAS[estructura].rangos
+  const rangoPareja = rangosPareja.find(r => r.id === rangoPedido)?.id ?? rangosPareja[0]?.id ?? ''
+  const pareja = PAREJAS[estructura]?.[rangoPareja]
+  const direccionPareja = useMemo(() => ({ ...fixtureParejas.identidadBase, estructura }) as Direccion,
+    [estructura])
+  const erroresPareja = useMemo(() => {
+    if (!pareja) return rangosPareja.length ? ['Faltan extremos: regenerar el fixture.'] : []
+    return [pareja.minimo, pareja.maximo].flatMap(c =>
+      JSON.stringify(instanciaDe(c.palabra, direccionPareja).estructura) === JSON.stringify(c.parametrosEstructura)
+        ? [] : [`Fixture desfasado: ${c.palabra}. Regenerar antes de juzgar.`])
+  }, [pareja, direccionPareja, rangosPareja])
+
   const direccionesVista: Direccion[] = compararTonos
     ? (['oscuro', 'claro'] as const).flatMap(tono => {
       const f = FONDOS_IDENTIDADES.find(x => x.tono === tono)
@@ -394,14 +393,15 @@ function Banco() {
   )
 
   if (vista === 'pareja') {
-    const pareja = PAREJAS[rangoPareja]
     return (
       <main className="banco-app hoja-app pareja-app">
         <section className="hoja-controles">
           <div>
-            <h1>Dos instancias reales · extremo alcanzado de {rangoPareja} en el corpus</h1>
-            <p className="hoja-control-aviso">Cambian los cuatro parametros; {rangoPareja}
-              {' '}solo decide que par se selecciona.</p>
+            <h1>{rangoPareja ? `Dos instancias reales · extremo alcanzado de ${rangoPareja} en el corpus`
+              : `${estructura} · sin rangos de instancia`}</h1>
+            <p className="hoja-control-aviso">Dos palabras reales: pueden cambiar TODOS los parametros
+              y las semillas. {rangoPareja || 'Sin rangos'} solo selecciona el par, no aisla un efecto.
+              Dos extremos no demuestran cuantos escalones intermedios se distinguen.</p>
             <p className="banco-nota">Dos AnimatedGraphic reales · escala 45 % · mismo instante</p>
           </div>
 
@@ -417,12 +417,19 @@ function Banco() {
           </div>
 
           <div className="banco-campo">
+            <label htmlFor="estructura-pareja">Estructura activa</label>
+            <select id="estructura-pareja" value={estructura}
+              onChange={e => { setEstructura(e.target.value as IdEstructura); setRangoPareja('') }}>
+              {Object.values(ESTRUCTURAS).map(e => <option key={e.id} value={e.id}>{e.id}</option>)}
+            </select>
             <label htmlFor="rango-pareja">Rango que selecciona el par</label>
             <select id="rango-pareja" value={rangoPareja}
-              onChange={e => setRangoPareja(e.target.value as IdRangoPareja)}>
-              {RANGOS_PAREJA.map(id => <option key={id} value={id}>{id}</option>)}
+              disabled={!rangosPareja.length} onChange={e => setRangoPareja(e.target.value)}>
+              {rangosPareja.map(r => <option key={r.id} value={r.id}>{r.id} · pasos declarados: {r.pasos}</option>)}
             </select>
           </div>
+          <p className="hoja-control-aviso">{!rangosPareja.length ? 'Esta estructura no declara rangos.'
+            : erroresPareja.length ? erroresPareja.join(' ') : 'Fixture verificado contra instanciaDe.'}</p>
 
           <div className="banco-campo hoja-tiempo">
             <label htmlFor="t-pareja">t = {t.toFixed(3)} s</label>
@@ -435,29 +442,29 @@ function Banco() {
 
           <pre className="banco-datos hoja-condiciones">{JSON.stringify({
             composicion: fixtureHoja.composicion,
-            identidad: fixtureHoja.identidad,
+            identidad: direccionPareja,
             rangoQueSelecciona: rangoPareja,
             t,
             escala: 0.45,
             minimo: {
-              palabra: pareja.minimo.palabra,
-              parametros: pareja.minimo.parametrosEstructura
+              palabra: pareja?.minimo.palabra,
+              parametros: pareja?.minimo.parametrosEstructura
             },
             maximo: {
-              palabra: pareja.maximo.palabra,
-              parametros: pareja.maximo.parametrosEstructura
+              palabra: pareja?.maximo.palabra,
+              parametros: pareja?.maximo.parametrosEstructura
             },
-            busqueda: fixtureHoja.busqueda
+            busqueda: fixtureParejas.busqueda
           }, null, 2)}</pre>
         </section>
 
-        <section className="pareja-rejilla" data-rango={rangoPareja}
+        {pareja && !erroresPareja.length && <section className="pareja-rejilla" data-rango={rangoPareja}
           data-tiempo={t.toFixed(3)}>
-          <EscenaPareja caso={pareja.minimo} lado="MIN" rango={rangoPareja} t={t}
+          <EscenaPareja caso={pareja.minimo} direccion={direccionPareja} lado="MIN" rango={rangoPareja} t={t}
             conceptos={conceptos} zona={zona} zonaVisible={zonaVisible} />
-          <EscenaPareja caso={pareja.maximo} lado="MAX" rango={rangoPareja} t={t}
+          <EscenaPareja caso={pareja.maximo} direccion={direccionPareja} lado="MAX" rango={rangoPareja} t={t}
             conceptos={conceptos} zona={zona} zonaVisible={zonaVisible} />
-        </section>
+        </section>}
       </main>
     )
   }

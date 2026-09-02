@@ -2041,10 +2041,30 @@ provisionales de capasApiladas; con piezas de prueba: 104 / 449.280. Interruptor
   por tanto las 22 alturas y fases son iguales en todos los videos. No se añade un rango sin
   mirar extremos: hacerlo ahora repetiria la inflacion de pasos que ya se encontro en
   `capasApiladas`.
-- **La vista PAREJA sigue acoplada a `constelacion`.** Sus selectores conocen solo
+- ~~**La vista PAREJA sigue acoplada a `constelacion`.** Sus selectores conocen solo
   `dispersionX / dispersionY / curva / escalaHero`. Desacoplarla es trabajo propio; hasta
   entonces los pasos 4 x 4 x 4 de `capasApiladas` siguen provisionales y el recuento de 60.450
-  los incluye.
+  los incluye.~~ CERRADO el 02/09/2026 en el commit de parejas por registro. El selector lee
+  los rangos de la estructura activa; los extremos viven en `parejas-estructuras.json`,
+  buscados deterministamente en las 136 palabras del generador, sin otra derivacion.
+  Esto cierra el acoplamiento, NO la calibracion de pasos.
+
+  Medicion visual de capasApiladas: `liso` (pieza de prueba), quieto/media/regular/Archivo,
+  voltaje, t=1.5 s, ciclo 3 s, 1080x1920 a 0.45. Capturas `capas-pareja-*.png`:
+  anchoPlano: decision/camara, 38.306130/47.924406 cqmin; inclinacion: montana/animal,
+  52.219284/63.978841 grados; flotacion: miedo/recuerdo, 0.506385/1.499809 cqmin.
+  Ancho e inclinacion se distinguen entre extremos. La flotacion no puede juzgarse aislada
+  en esta vista: tambien cambian los otros parametros y semillas. Dos extremos NO demuestran
+  cuatro escalones intermedios: no se pueden contar honestamente para ninguno de los tres.
+  Se mantienen 4/4/4 PROVISIONALES, sin afirmar que esten calibrados. El nuevo recuento
+  36 / 166.470 cambia por tramaTejida, no por esta tarea.
+
+  Verificacion del lote, 02/09/2026: tsc y build exit 0; npm test 8/9, exit 1.
+  test:ciclo falla en tres vectores (semillas 0, 1, 42) congelados contra master 3ea5c6d:
+  "los cinco sorteos anteriores no cambian". Esa guardia de la introduccion de tipografia
+  tambien fija el catalogo de fondos antiguo; al añadir tramaTejida cambian sus elecciones.
+  No se ha actualizado ni eliminado la guardia para dar verde. Pendiente antes del merge;
+  no confundir ampliacion de repertorio con desplazamiento del orden del generador.
 - **`ANILLOS_FONDO` y `faseAnillo()` estan huerfanas.** No tienen consumidores bajo `src/` ni
   `tests/` desde que `ondas` dejo de ser anillos. No se borran en este paso: se incorporan al
   mismo inventario de deuda que las 1.154 lineas huerfanas ya conocidas.
