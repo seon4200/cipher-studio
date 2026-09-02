@@ -1876,4 +1876,14 @@ pasado**. Si reaparece, se investiga como fallo, no como ruido.
 
 ---
 
+## Delta de HTML observado tras extraer `instanciaDe`
+
+Al extraer la derivación de instancia desde `escena.tsx` a la función pura compartida
+`instanciaDe`, el build de producción cambió `dist/index.html` de 613 a 601 bytes (**−12**) y
+`dist/grafico.html` de 750 a 737 bytes (**−13**). Se esperaba que cambiara el chunk de la
+composición; estos dos deltas de HTML están **observados y sin explicar**. No se atribuyen a una
+causa inventada y no se persiguen en el paso de la hoja de contactos.
+
+---
+
 **Regla:** Cuando se cierra una deuda, se tacha en el MISMO commit que la cierra.
