@@ -1,0 +1,260 @@
+{
+  "version": 1,
+  "composicion": "visual_escena",
+  "identidad": {
+    "fondo": "liso",
+    "estructura": "constelacion",
+    "camara": "quieto",
+    "densidad": "media",
+    "ritmo": "regular"
+  },
+  "tiempoSegundos": 0.5,
+  "miniatura": {
+    "ancho": 162,
+    "alto": 288,
+    "escala": 0.15
+  },
+  "busqueda": {
+    "fuente": "PALABRAS en tests/aceptacion/generar-hoja-contactos.ts",
+    "candidatas": 136,
+    "criterio": "argmin y argmax alcanzables por cada rango de constelacion; empates por orden del corpus",
+    "palabrasUnicas": 11
+  },
+  "control": {
+    "palabra": "memoria",
+    "casillas": [
+      9,
+      12
+    ]
+  },
+  "casos": [
+    {
+      "casilla": 1,
+      "palabra": "decision",
+      "roles": [
+        "dispersionX:min-alcanzable"
+      ],
+      "semillas": {
+        "principal": 1868934116,
+        "puntos": 761865294,
+        "decoradores": 514505688,
+        "parametros": 255550249
+      },
+      "parametrosEstructura": {
+        "dispersionX": 1.1224520486418401,
+        "dispersionY": 2.5386861425538947,
+        "curva": 3.395995806621386,
+        "escalaHero": 25.335362514171454
+      }
+    },
+    {
+      "casilla": 2,
+      "palabra": "camara",
+      "roles": [
+        "dispersionX:max-alcanzable"
+      ],
+      "semillas": {
+        "principal": 1531450971,
+        "puntos": 2042748581,
+        "decoradores": 2079280301,
+        "parametros": 85479284
+      },
+      "parametrosEstructura": {
+        "dispersionX": 4.969762461245881,
+        "dispersionY": 3.848264619637404,
+        "curva": 7.566924491695559,
+        "escalaHero": 29.066575903010822
+      }
+    },
+    {
+      "casilla": 3,
+      "palabra": "montana",
+      "roles": [
+        "dispersionY:min-alcanzable"
+      ],
+      "semillas": {
+        "principal": 522335354,
+        "puntos": 1148041402,
+        "decoradores": 169855884,
+        "parametros": 638794123
+      },
+      "parametrosEstructura": {
+        "dispersionX": 2.7547493957703697,
+        "dispersionY": 1.0548210344532603,
+        "curva": 2.754252111890471,
+        "escalaHero": 28.286992724187204
+      }
+    },
+    {
+      "casilla": 4,
+      "palabra": "animal",
+      "roles": [
+        "dispersionY:max-alcanzable"
+      ],
+      "semillas": {
+        "principal": 1111023712,
+        "puntos": 656954968,
+        "decoradores": 1779100418,
+        "parametros": 1460700265
+      },
+      "parametrosEstructura": {
+        "dispersionX": 4.918604923374302,
+        "dispersionY": 3.9947103639108645,
+        "curva": 4.194172499791799,
+        "escalaHero": 23.942938667695476
+      }
+    },
+    {
+      "casilla": 5,
+      "palabra": "miedo",
+      "roles": [
+        "curva:min-alcanzable"
+      ],
+      "semillas": {
+        "principal": 1911112858,
+        "puntos": 383987802,
+        "decoradores": 915426986,
+        "parametros": 72930733
+      },
+      "parametrosEstructura": {
+        "dispersionX": 4.131387274307845,
+        "dispersionY": 1.919439468960948,
+        "curva": 2.0383096533074556,
+        "escalaHero": 24.493790851204558
+      }
+    },
+    {
+      "casilla": 6,
+      "palabra": "recuerdo",
+      "roles": [
+        "curva:max-alcanzable"
+      ],
+      "semillas": {
+        "principal": 1051630625,
+        "puntos": 1710506371,
+        "decoradores": 1275005487,
+        "parametros": 2028061832
+      },
+      "parametrosEstructura": {
+        "dispersionX": 2.4431127167507602,
+        "dispersionY": 2.7965728225170507,
+        "curva": 7.998856088146034,
+        "escalaHero": 28.36569796053958
+      }
+    },
+    {
+      "casilla": 7,
+      "palabra": "empresa",
+      "roles": [
+        "escalaHero:min-alcanzable"
+      ],
+      "semillas": {
+        "principal": 1257171115,
+        "puntos": 1236211139,
+        "decoradores": 815221145,
+        "parametros": 82187880
+      },
+      "parametrosEstructura": {
+        "dispersionX": 1.930790117443907,
+        "dispersionY": 3.842127909810342,
+        "curva": 5.287560364831034,
+        "escalaHero": 22.0360689535905
+      }
+    },
+    {
+      "casilla": 8,
+      "palabra": "cambio",
+      "roles": [
+        "escalaHero:max-alcanzable"
+      ],
+      "semillas": {
+        "principal": 967536325,
+        "puntos": 1438029645,
+        "decoradores": 413657141,
+        "parametros": 255309690
+      },
+      "parametrosEstructura": {
+        "dispersionX": 1.5916377979291778,
+        "dispersionY": 3.7423523467696977,
+        "curva": 5.431784316632796,
+        "escalaHero": 29.998679529874902
+      }
+    },
+    {
+      "casilla": 9,
+      "palabra": "memoria",
+      "roles": [
+        "control"
+      ],
+      "semillas": {
+        "principal": 723466446,
+        "puntos": 934038504,
+        "decoradores": 1556943440,
+        "parametros": 2036558361
+      },
+      "parametrosEstructura": {
+        "dispersionX": 4.431006226423666,
+        "dispersionY": 1.691235626903938,
+        "curva": 5.1943627489704465,
+        "escalaHero": 29.53962926172634
+      }
+    },
+    {
+      "casilla": 10,
+      "palabra": "tiempo",
+      "roles": [
+        "relleno"
+      ],
+      "semillas": {
+        "principal": 1302510220,
+        "puntos": 1485729326,
+        "decoradores": 2003404604,
+        "parametros": 1077495943
+      },
+      "parametrosEstructura": {
+        "dispersionX": 4.524501804040979,
+        "dispersionY": 1.2263653875451375,
+        "curva": 3.046136942247924,
+        "escalaHero": 25.23145114780937
+      }
+    },
+    {
+      "casilla": 11,
+      "palabra": "ciudad",
+      "roles": [
+        "relleno"
+      ],
+      "semillas": {
+        "principal": 843962176,
+        "puntos": 479166392,
+        "decoradores": 1534058210,
+        "parametros": 1153565257
+      },
+      "parametrosEstructura": {
+        "dispersionX": 1.9106645048179964,
+        "dispersionY": 2.1537493570492368,
+        "curva": 6.130887853042636,
+        "escalaHero": 24.442861450110964
+      }
+    },
+    {
+      "casilla": 12,
+      "palabra": "memoria",
+      "roles": [
+        "control"
+      ],
+      "semillas": {
+        "principal": 723466446,
+        "puntos": 934038504,
+        "decoradores": 1556943440,
+        "parametros": 2036558361
+      },
+      "parametrosEstructura": {
+        "dispersionX": 4.431006226423666,
+        "dispersionY": 1.691235626903938,
+        "curva": 5.1943627489704465,
+        "escalaHero": 29.53962926172634
+      }
+    }
+  ]
+}

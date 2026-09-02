@@ -1886,4 +1886,67 @@ causa inventada y no se persiguen en el paso de la hoja de contactos.
 
 ---
 
+## Hoja de contactos: rasterizado subpixel y calibracion de los cuatro rangos
+
+**Condiciones de la medida (01/09/2026):** composicion `visual_escena`; identidad
+`liso / constelacion / quieto / media / regular`; tres conceptos (`recuerdo`, `archivo`,
+`conexion`); `t = 1.500 s`; lienzo nativo 1080x1920; miniatura 162x288 (`scale(.15)`);
+comparador `tests/aceptacion/comparar-capturas.js`. El fixture sale de un corpus cerrado de
+136 palabras reales en castellano y guarda los extremos alcanzados, no los limites declarados.
+
+### El control repetido es equivalente en miniatura por posicion, no por palabra
+
+`memoria` lleva exactamente las mismas cuatro semillas y los mismos parametros en las dos
+casillas. En 9/12 dio **EQUIVALENTE**: 15.825 px cambiados de 46.656, delta maximo 41,
+media 5,9 y **cero** por encima de 64. Se movieron temporalmente los casos completos a 10/11,
+regenerando el fixture para no desalinear palabra, semillas y parametros: volvio a dar
+**EQUIVALENTE**, 15.721 px cambiados, delta maximo 51, media 5,8 y **cero** por encima de 64.
+La diferencia sigue a la posicion de una escena escalada al 15 %. La misma palabra a tamano
+completo ya habia dado **IGUAL**. Diagnostico: rasterizado subpixel, no cambio del dibujo.
+
+La limitacion queda visible en el banco: la hoja sirve para comparar variedad a ojo; la igualdad
+exacta se comprueba a tamano completo. No se corrige ni se rebaja el comparador.
+
+### Cuanto mueven realmente los rangos alcanzados
+
+En vertical, `1cqmin = 10,8 px`; un punto porcentual horizontal son 10,8 px y uno vertical son
+19,2 px. Los cuatro parametros se aislaron temporalmente despues de consumir el generador en su
+orden real: misma palabra `memoria`, mismas semillas y mismos otros tres parametros. Se usaron
+los valores reales alcanzados por el fixture; la instrumentacion se retiro antes del commit.
+
+- **`dispersionX`**: 1,122452 (`decision`) -> 4,969762 (`camara`). En
+  `src/shared/escena.ts`, `p.x + entre(rnd, -dispersionX, dispersionX)` usa el parametro como
+  amplitud, no como posicion. La amplitud pasa de **12,12 px a 53,67 px**; con el mismo sorteo,
+  la diferencia maxima de centro es **41,55 px** (el ancho total del sobre crece 83,10 px).
+  Aislado a 1080x1920: **DISTINTO**; 71.625 px cambiados, 21.644 por encima de 64,
+  delta maximo 255, media 61,2.
+- **`dispersionY`**: 1,054821 (`montana`) -> 3,994710 (`animal`). En la misma funcion,
+  `p.y + entre(rnd, -dispersionY, dispersionY)`. La amplitud pasa de **20,25 px a 76,70 px**;
+  diferencia maxima de centro **56,45 px** (el sobre crece 112,89 px).
+  Aislado: **DISTINTO**; 86.821 px cambiados, 23.896 por encima de 64,
+  delta maximo 255, media 61,5.
+- **`curva`**: 2,038310 (`miedo`) -> 7,998856 (`recuerdo`). En
+  `src/renderer/src/composiciones/escena.tsx`, se resta al `y` del punto de control de cada
+  Bezier cuadratica. El control se desplaza **114,44 px**; por el peso maximo 0,5 del control
+  en una Bezier cuadratica, el trazo se separa como maximo **57,22 px** cerca del centro.
+  Aislado: **DISTINTO**; 34.425 px cambiados, 5.317 por encima de 64,
+  delta maximo 204, media 31,2.
+- **`escalaHero`**: 22,036069 (`empresa`) -> 29,998680 (`cambio`). En
+  `src/renderer/src/composiciones/escena.tsx` llega directamente a
+  `fontSize: escalaHero + 'cqmin'`. El `font-size` pasa de **237,99 px a 323,99 px**:
+  **86,00 px** de diferencia. En la hoja al 15 % son 12,90 px de `font-size`, antes de contar
+  que la tinta real del emoji ocupa solo una parte del em. Aislado: **DISTINTO**;
+  121.895 px cambiados, 29.898 por encima de 64, delta maximo 255, media 59,2.
+
+**Respuesta sobre `escalaHero`:** no es ninguna de las dos hipotesis planteadas. Los extremos
+alcanzados son practicamente los declarados **y** el parametro llega al dibujo sin que otra regla
+lo pise. Lo que fallo fue la lectura en una miniatura al 15 %: el parametro vive a tamano completo,
+pero esa hoja no permite juzgar honestamente su magnitud mirando solo el cerebro reducido.
+
+Los cuatro pares de palabras del fixture, comparados directamente, tambien dieron DISTINTO, pero
+esa pasada **no atribuye causalidad**: cambia el pie, las semillas de puntos y los otros tres
+parametros. Por eso los veredictos anteriores proceden del aislamiento con la misma palabra.
+
+---
+
 **Regla:** Cuando se cierra una deuda, se tacha en el MISMO commit que la cierra.
