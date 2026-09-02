@@ -164,8 +164,9 @@ referencias anteriores; no son el vocabulario aprobado.
   vocabulario aprobado deja de ser una especificacion verificable.
 - **Cuando la ficha y el lab discrepan, manda el lab.** La ficha se corrige en el MISMO commit;
   no se inventa geometria para hacer coincidir el codigo con un resumen posterior.
-- **Una pieza no se da por portada sin haberla mirado al lado de su lab.** Compilar demuestra el
-  contrato; la pareja visual demuestra que la traduccion conserva la identidad aprobada.
+- **Una pieza no se da por portada sin haberla mirado al lado de su lab: geometria Y peso.**
+  Compilar demuestra el contrato; la pareja visual comprueba tanto la silueta como que el fondo
+  conserve su jerarquia de saturacion, contraste y opacidad en vez de competir con el contenido.
 
 Los comentarios del código llevan **el porqué escrito encima**. Cuando encuentres
 uno que documenta una trampa, léelo: probablemente estás a punto de caer en ella.

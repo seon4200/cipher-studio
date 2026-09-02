@@ -193,8 +193,10 @@ const DIBUJO_FONDOS: Record<IdFondo, DibujoFondo> = {
         ...usa(nom), position: 'absolute', left: `${(i * ancho).toFixed(2)}%`,
         bottom: 0, width: `${(ancho * 0.86).toFixed(2)}%`,
         height: `${altura.toFixed(1)}%`, transformOrigin: '50% 100%',
-        background: 'linear-gradient(180deg,var(--acento),var(--sup))',
-        borderTop: '.2cqmin solid var(--apoyo)'
+        background: 'linear-gradient(180deg,' +
+          'color-mix(in srgb,var(--acento) 52%,var(--sup)),' +
+          'color-mix(in srgb,var(--acento) 12%,var(--fondo)))',
+        borderTop: '.2cqmin solid color-mix(in srgb,var(--apoyo) 45%,transparent)'
       }} />
     })
     return <>
