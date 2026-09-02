@@ -12,8 +12,12 @@ propia copia de una función. Los tres pasaron con el log en verde.
 
 ## 1 · El ritmo
 
-- **Un paso por turno. Informe y PARA.** No encadenes. No empieces la fase
-  siguiente "ya que estabas".
+- **Los pasos mecanicos van en lote, con UN COMMIT POR TAREA.** Bisecar y revertir
+  una tarea no debe llevarse las otras. Los pasos que DECIDEN algo siguen solos.
+  Informe y PARA: no empieces la fase siguiente "ya que estabas".
+- **Condicionales, no afirmaciones.** Si el arquitecto no ve el codigo, pide:
+  "Comprueba si X; di que encontraste, citado; si X, haz Y". La comprobacion se
+  reporta SIEMPRE, incluso negativa. Una premisa equivocada no debe gastar otra vuelta.
 - **Enseña el código antes de aplicarlo** cuando el paso lo pida.
 - **Fuera de alcance = se dice, no se hace.** Si un cambio pertenece a otra fase,
   señálalo y para. Aunque sepas hacerlo. Aunque sea una línea.
@@ -38,6 +42,10 @@ propia copia de una función. Los tres pasaron con el log en verde.
 
 ## 3 · Verificar
 
+- **La verificacion completa es de los MERGES:** clon limpio, `npm ci`, build
+  por ficheros y las nueve suites. Dentro del lote bastan `npx tsc` y `npm test`
+  sobre el bundle actualizado. En los merges es innegociable: descubrio 125
+  commits que no compilaban.
 - **Clon nuevo, no worktree.** `git clone` + `npm ci` en un directorio **sin
   `node_modules` padre**. Un worktree comparte `node_modules` y miente.
   *Precedente: esa confusión ocultó 125 commits que no compilaban, porque un
@@ -77,6 +85,12 @@ duracion, fps, VERSION_PLANTILLAS, modo, codec, sistema`.
 - Todo lo que decide píxeles está en la clave, **o** sube `VERSION_PLANTILLAS`.
 - `COMPOSICION_VISUAL` acaba dentro de `type`: cambiarlo **ya** cambia la clave.
   Subir `VERSION_PLANTILLAS` además invalida las tarjetas, que no han cambiado.
+- **El paso que mueve `COMPOSICION_VISUAL` va SOLO**, sin lote y con verificacion
+  completa: toca produccion y cache a la vez.
+- **Una pieza nueva entra como `prueba: true` cuando el interruptor ya este
+  movido.** `repertorio()` la excluye del sorteo: se mira en el banco y pasa las
+  suites sin salir en un video. Quitar la marca es otro commit, despues de mirarla.
+  Escribir se batea; aprobar se mira.
 - **Para `canonizar`, `null` NO es lo mismo que ausente.** Escribir un campo a
   `null` "por simetría" invalida la caché entera.
 - Antes de añadir un campo a cualquier objeto, **traza si ese objeto llega a
@@ -96,6 +110,14 @@ duracion, fps, VERSION_PLANTILLAS, modo, codec, sistema`.
 - **Las entradas no son cíclicas**: van de 0 a 1 y se quedan. El primer y el
   último frame **no** empatan, y es correcto. Lo que tiene que cerrar son las
   capas de iteración infinita.
+
+### El atomo visual compartido
+- **Toda pieza dibuja sus cajas y sus emojis llamando a la funcion compartida `caja()`.
+  Ninguna se dibuja la suya.** El atomo caja + emoji cambiara a silueta o icono; centralizarlo
+  permite cambiar una funcion, no recorrer las 65 piezas.
+- Excepcion existente, detectada el 02/09/2026 y pendiente, no un permiso para repetirla:
+  el heroe de `constelacion` dibuja su emoji directamente. Las cajas de las cuatro estructuras
+  actuales si llaman a `caja()`; este cierre no cambia la ranura del heroe ni sus pixeles.
 
 ### Los keyframes
 - **Todo lo que emita `@keyframes` va antes del `return`.** El `<style>` es el
@@ -130,6 +152,10 @@ duracion, fps, VERSION_PLANTILLAS, modo, codec, sistema`.
 
 ## 6 · Cómo se informa
 
+- **Informe corto, diff COMPLETO.** No se pierden hallazgos y decisiones, numeros
+  medidos, cualquier premisa rota del prompt ni el diff entero. Las capturas
+  siempre. Sobran la salida entera del build y el listado de suites: "9/9 verdes"
+  basta, sin ocultar ningun fallo.
 - **Evidencia, no afirmaciones.** Ruta y línea, hash del commit, la cadena medida.
   "Lo comprobé" no vale; "`index.ts:1124`, esta línea" sí.
 - **Mide, no razones.** Especialmente sobre el hash y sobre el coste.

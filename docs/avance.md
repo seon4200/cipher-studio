@@ -15,7 +15,7 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 | **2** | Hacer visibles los fallos | ✅ 4/4 · `v-fase2-avisos` |
 | **puente** | El suelo de las pruebas | ✅ · `v-puente-suelo` (`4157e0c`) |
 | **3** | Banco + hoja de contactos | ✅ 2/2 · `v-fase3-hoja` |
-| 4 | Vocabulario mínimo | 🟨 1/6 · `v-fase4a-primeras-piezas` |
+| 4 | Vocabulario mínimo | 🟨 1/6 · `v-fase4d-tono-claro` · interruptor pendiente |
 | 5 | Densidad y ritmo | ⬜ 0/4 |
 | 6 | Resto del vocabulario | ⬜ 0/4 · **aquí se entrega la meta** |
 | 7 | La IA elige | ⬜ 0/7 |
@@ -61,15 +61,22 @@ producción.
 ## Los tres números del motor
 
 ```
-identidades         12
-instancias      60.450
+identidades         36
+instancias     166.470
 ```
 
-Tres estructuras reales y tres fondos reales elevan el repertorio a **doce** identidades
-legales después de aplicar la regla de energía. Corregir `ondas` retiró tres rangos que
-describían la geometría equivocada de anillos; portar `redNodos` sin inventarle rangos deja
-el recuento en 60.450 instancias. Es una
-corrección del dato, no una pérdida visual: **lo que multiplica son las piezas**.
+Medido por `test:ciclo` sobre el bundle: tres estructuras reales, cuatro fondos reales,
+dos camaras, una densidad, un ritmo y dos tipografias; la regla de energia deja **36**
+identidades. Las **166.470** instancias incluyen los pasos 4/4/4 PROVISIONALES de
+`capasApiladas`; la vista de pareja no aisla flotacion ni acredita cuatro escalones.
+No se han recalibrado para cerrar el lote.
+
+`v-fase4d-tono-claro` incorpora tinta por sistema para fondos claros, `tramaTejida` y parejas
+por rangos del registro con extremos versionados. La guardia prueba el orden de los seis
+sorteos desde el bundle (tipografia ultima), no salidas congeladas del catalogo.
+Capturas: `tests/aceptacion/tono-oscuro-claro.png`, `trama-tejida-lab-pieza.png` y las tres
+`capas-pareja-*.png`. El grano mas marcado y la calibracion pendiente estan documentados.
+Siguen `COMPOSICION_VISUAL='visual_mapa'` y `VERSION_PLANTILLAS=8`.
 
 **Coste:** 1.60–1.73 intentos/frame contra el listón de 1.30. De ese +0.35, la
 cámara solo cuesta **0.11** → las 16 cámaras no están amenazadas. Falta medir **la

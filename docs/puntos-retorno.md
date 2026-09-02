@@ -4,6 +4,25 @@ Etiquetas a las que se puede volver, y qué está probado de cada una.
 
 ---
 
+## `v-fase4d-tono-claro`
+
+Merge `--no-ff` del lote de tono claro y parejas: tinta declarada por cada sistema,
+`tramaTejida` portada de `lab-fondos-2.html:318-333`, parejas desacopladas de constelacion
+y guardia del orden de sorteo sobre el bundle. Produccion sigue en `visual_mapa`, version 8.
+Repertorio medido: **36 identidades / 166.470 instancias**, con 4/4/4 de capasApiladas
+todavia provisionales. La excepcion del emoji del heroe fuera de `caja()` queda anotada.
+
+**Verificacion exigida para etiquetar:** clon nuevo de master, `npm ci`, typecheck,
+build por ficheros de renderer/main/preload y las nueve suites con `npm test`.
+La etiqueta es local: este cierre NO autoriza push.
+
+**Que queda despues de esta etiqueta:** calibrar los pasos pendientes, completar vocabulario
+y mover el interruptor EN EL MISMO PASO que incorpora la direccion resuelta al hash.
+Volver aqui conserva tono claro y parejas, pero NO activa `visual_escena` ni resuelve
+la tasa real de respaldo del pie. Ver la precondicion en `deuda-graficos.md`.
+
+---
+
 ## `v-fase4a-primeras-piezas`
 
 La primera estructura nueva (`capasApiladas`) y dos fondos nuevos (`tunel`, `skyline`) entran

@@ -6,7 +6,7 @@ import {
 } from '../../src/shared/escena'
 
 // Corpus cerrado y versionado: sustantivos y conceptos breves en castellano, del mismo tipo
-// que DeepSeek entrega como palabra de un Visual. No se descarga nada y el orden es parte de la
+// que puede llegar de la transcripcion como palabra de un Visual. No se descarga nada y el orden es parte de la
 // busqueda: los empates se resuelven por la primera aparicion.
 const PALABRAS = [
   'memoria', 'tiempo', 'ciudad', 'agua', 'libertad', 'historia', 'futuro', 'cambio',
@@ -99,3 +99,20 @@ const destino = resolve(process.cwd(), 'tests', 'aceptacion', 'fixtures', 'hoja-
 writeFileSync(destino, JSON.stringify(fixture, null, 2) + '\n', 'utf8')
 console.log(`Fixture escrito: ${destino}`)
 console.log(`${PALABRAS.length} candidatas -> ${casos.length} casillas; control ${primeraControl} y 12`)
+
+// Parejas por REGISTRO. Se buscan una vez, fuera del banco; se conserva el mismo corpus,
+// identidad base y derivacion compartida. Una estructura sin rangos genera un objeto vacio.
+const estructuras = Object.fromEntries(Object.values(ESTRUCTURAS).map(meta => {
+  const muestras = PALABRAS.map(palabra => ({ palabra,
+    parametrosEstructura: instanciaDe(palabra, { ...IDENTIDAD, estructura: meta.id }).estructura }))
+  return [meta.id, Object.fromEntries(meta.rangos.map(r => [r.id, {
+    minimo: muestras.reduce((a, b) => b.parametrosEstructura[r.id] < a.parametrosEstructura[r.id] ? b : a),
+    maximo: muestras.reduce((a, b) => b.parametrosEstructura[r.id] > a.parametrosEstructura[r.id] ? b : a)
+  }]))]
+}))
+const parejas = { version: 1, identidadBase: IDENTIDAD, tiempoSegundos: fixture.tiempoSegundos,
+  busqueda: { fuente: fixture.busqueda.fuente, candidatas: PALABRAS.length,
+    criterio: 'argmin/argmax por rango de cada estructura; empates por orden del corpus' }, estructuras }
+writeFileSync(resolve(process.cwd(), 'tests/aceptacion/fixtures/parejas-estructuras.json'),
+  JSON.stringify(parejas, null, 2) + '\n', 'utf8')
+console.log('Parejas escritas para todas las estructuras del registro')

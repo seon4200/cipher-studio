@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "identidadBase": {
+    "tipografia": "archivo",
+    "fondo": "liso",
+    "estructura": "constelacion",
+    "camara": "quieto",
+    "densidad": "media",
+    "ritmo": "regular"
+  },
+  "tiempoSegundos": 1.5,
+  "busqueda": {
+    "fuente": "PALABRAS en tests/aceptacion/generar-hoja-contactos.ts",
+    "candidatas": 136,
+    "criterio": "argmin/argmax por rango de cada estructura; empates por orden del corpus"
+  },
+  "estructuras": {
+    "constelacion": {
+      "dispersionX": {
+        "minimo": {
+          "palabra": "decision",
+          "parametrosEstructura": {
+            "dispersionX": 1.1224520486418401,
+            "dispersionY": 2.5386861425538947,
+            "curva": 3.395995806621386,
+            "escalaHero": 25.335362514171454
+          }
+        },
+        "maximo": {
+          "palabra": "camara",
+          "parametrosEstructura": {
+            "dispersionX": 4.969762461245881,
+            "dispersionY": 3.848264619637404,
+            "curva": 7.566924491695559,
+            "escalaHero": 29.066575903010822
+          }
+        }
+      },
+      "dispersionY": {
+        "minimo": {
+          "palabra": "montana",
+          "parametrosEstructura": {
+            "dispersionX": 2.7547493957703697,
+            "dispersionY": 1.0548210344532603,
+            "curva": 2.754252111890471,
+            "escalaHero": 28.286992724187204
+          }
+        },
+        "maximo": {
+          "palabra": "animal",
+          "parametrosEstructura": {
+            "dispersionX": 4.918604923374302,
+            "dispersionY": 3.9947103639108645,
+            "curva": 4.194172499791799,
+            "escalaHero": 23.942938667695476
+          }
+        }
+      },
+      "curva": {
+        "minimo": {
+          "palabra": "miedo",
+          "parametrosEstructura": {
+            "dispersionX": 4.131387274307845,
+            "dispersionY": 1.919439468960948,
+            "curva": 2.0383096533074556,
+            "escalaHero": 24.493790851204558
+          }
+        },
+        "maximo": {
+          "palabra": "recuerdo",
+          "parametrosEstructura": {
+            "dispersionX": 2.4431127167507602,
+            "dispersionY": 2.7965728225170507,
+            "curva": 7.998856088146034,
+            "escalaHero": 28.36569796053958
+          }
+        }
+      },
+      "escalaHero": {
+        "minimo": {
+          "palabra": "empresa",
+          "parametrosEstructura": {
+            "dispersionX": 1.930790117443907,
+            "dispersionY": 3.842127909810342,
+            "curva": 5.287560364831034,
+            "escalaHero": 22.0360689535905
+          }
+        },
+        "maximo": {
+          "palabra": "cambio",
+          "parametrosEstructura": {
+            "dispersionX": 1.5916377979291778,
+            "dispersionY": 3.7423523467696977,
+            "curva": 5.431784316632796,
+            "escalaHero": 29.998679529874902
+          }
+        }
+      }
+    },
+    "capasApiladas": {
+      "anchoPlano": {
+        "minimo": {
+          "palabra": "decision",
+          "parametrosEstructura": {
+            "anchoPlano": 38.3061301216046,
+            "inclinacion": 58.15474457021558,
+            "flotacion": 0.732665967770231
+          }
+        },
+        "maximo": {
+          "palabra": "camara",
+          "parametrosEstructura": {
+            "anchoPlano": 47.9244061531147,
+            "inclinacion": 63.39305847854962,
+            "flotacion": 1.4278207486159264
+          }
+        }
+      },
+      "inclinacion": {
+        "minimo": {
+          "palabra": "montana",
+          "parametrosEstructura": {
+            "anchoPlano": 42.38687348942592,
+            "inclinacion": 52.21928413781304,
+            "flotacion": 0.6257086853150784
+          }
+        },
+        "maximo": {
+          "palabra": "animal",
+          "parametrosEstructura": {
+            "anchoPlano": 47.79651230843575,
+            "inclinacion": 63.97884145564346,
+            "flotacion": 0.8656954166319666
+          }
+        }
+      },
+      "flotacion": {
+        "minimo": {
+          "palabra": "miedo",
+          "parametrosEstructura": {
+            "anchoPlano": 45.82846818576961,
+            "inclinacion": 55.677757875843795,
+            "flotacion": 0.5063849422179092
+          }
+        },
+        "maximo": {
+          "palabra": "recuerdo",
+          "parametrosEstructura": {
+            "anchoPlano": 41.6077817918769,
+            "inclinacion": 59.186291290068205,
+            "flotacion": 1.499809348024339
+          }
+        }
+      }
+    },
+    "redNodos": {},
+    "unaCaja": {
+      "desviacionY": {
+        "minimo": {
+          "palabra": "decision",
+          "parametrosEstructura": {
+            "desviacionY": 1.06122602432092
+          }
+        },
+        "maximo": {
+          "palabra": "camara",
+          "parametrosEstructura": {
+            "desviacionY": 2.9848812306229404
+          }
+        }
+      }
+    }
+  }
+}

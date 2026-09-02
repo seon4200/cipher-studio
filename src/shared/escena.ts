@@ -280,7 +280,7 @@ export const TIPOGRAFIAS = {
 export type IdTipografia = keyof typeof TIPOGRAFIAS;
 
 export type MetaFondo = PiezaBase & {
-  /** Sobre que se lee el texto. Lo necesitara la Fase 7 para no poner texto claro sobre claro. */
+  /** Sobre que se lee: escena selecciona la tinta del sistema para los fondos claros. */
   tono: 'oscuro' | 'claro';
 };
 
@@ -319,6 +319,15 @@ export type MetaCamara = PiezaBase & {
 // y ademas tsc comprueba que cada entrada cumple el contrato.
 
 export const FONDOS = {
+  tramaTejida: {
+    id: 'tramaTejida',
+    descripcion: 'Textil claro con hilos cruzados: textura tranquila que sostiene el contenido.',
+    energia: 0,
+    tono: 'claro',
+    formatos: ['9:16'],
+    // Fuente aprobada: docs/motion/lab-fondos-2.html:318-333. Sin rangos inventados.
+    rangos: []
+  },
   ondas: {
     id: 'ondas',
     descripcion: 'Once lineas sinusoidales oscuras que se desplazan con fases distintas.',

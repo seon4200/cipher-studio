@@ -2012,12 +2012,28 @@ ni el numero ni `tests/ciclo.js` por esta causa.
 
 ### Fondo claro: `tono` existe, pero todavia no gobierna la tinta
 
-`MetaFondo` declara `tono: 'oscuro' | 'claro'`, pero ninguna ruta de dibujo lo lee.
+~~`MetaFondo` declara `tono: 'oscuro' | 'claro'`, pero ninguna ruta de dibujo lo lee.
 `AnimatedGraphic.tsx:499-515` toma `--fondo`, `--sup`, `--texto`, `--acento` y `--apoyo`
 exclusivamente de `SISTEMAS[sistema]`. Por tanto, marcar un fondo como claro no cambia el texto
 a tinta. Tres fondos del catalogo dependen de resolver como conviven sistema y tono: trama
 tejida, amanecer y comida en familia. Se aplaza a un paso propio para no confundir la prueba de
-identidad del eje fondo con una decision de arquitectura de color.
+identidad del eje fondo con una decision de arquitectura de color.~~
+
+CERRADO el 02/09/2026, en el commit de tono claro y trama tejida: cada sistema declara su
+tinta; escena la aplica fuera de la cache del arbol cuando el fondo es claro. Cambian texto,
+superficie, acento, apoyo y sombra del pie. Los cinco colores originales quedan intactos;
+`clinico` y `calido` ya tenian texto oscuro. El tono no decide una paleta por su cuenta.
+
+Evidencia: `tests/aceptacion/tono-oscuro-claro.png`, palabra memoria, constelacion/quieto/media/
+regular/Archivo, voltaje, t=1.500 s, ciclo 3 s, lienzos 1080x1920 a escala 0.45.
+Cajas claras: fondo #FFFFFF, texto #1A1A1A; oscuras: rgba(9,12,20,.9), texto #FAFAFA.
+Fuentes verificadas por geometria. `trama-tejida-lab-pieza.png` enfrenta lab y banco a 1.503 s
+(el lab avanza en pasos de .0167 s), con las dimensiones escritas en la imagen.
+Porte de `lab-fondos-2.html:318-333`: el grano fijo de .7px se convierte a .294cqmin tomando
+el ancho minimo de 238px del lab. Se ve algo mas marcado en el banco; no se afirma igualdad
+de rasterizado entre esas escalas. Hilos, colores y desplazamiento conservan la referencia.
+Recuento importado del bundle: 36 identidades / 166.470 instancias, incluyendo los pasos
+provisionales de capasApiladas; con piezas de prueba: 104 / 449.280. Interruptor en mapa, version 8.
 
 ### Deudas observadas al portar el primer vecino del catalogo
 
@@ -2025,10 +2041,35 @@ identidad del eje fondo con una decision de arquitectura de color.
   por tanto las 22 alturas y fases son iguales en todos los videos. No se añade un rango sin
   mirar extremos: hacerlo ahora repetiria la inflacion de pasos que ya se encontro en
   `capasApiladas`.
-- **La vista PAREJA sigue acoplada a `constelacion`.** Sus selectores conocen solo
+- ~~**La vista PAREJA sigue acoplada a `constelacion`.** Sus selectores conocen solo
   `dispersionX / dispersionY / curva / escalaHero`. Desacoplarla es trabajo propio; hasta
   entonces los pasos 4 x 4 x 4 de `capasApiladas` siguen provisionales y el recuento de 60.450
-  los incluye.
+  los incluye.~~ CERRADO el 02/09/2026 en el commit de parejas por registro. El selector lee
+  los rangos de la estructura activa; los extremos viven en `parejas-estructuras.json`,
+  buscados deterministamente en las 136 palabras del generador, sin otra derivacion.
+  Esto cierra el acoplamiento, NO la calibracion de pasos.
+
+  Medicion visual de capasApiladas: `liso` (pieza de prueba), quieto/media/regular/Archivo,
+  voltaje, t=1.5 s, ciclo 3 s, 1080x1920 a 0.45. Capturas `capas-pareja-*.png`:
+  anchoPlano: decision/camara, 38.306130/47.924406 cqmin; inclinacion: montana/animal,
+  52.219284/63.978841 grados; flotacion: miedo/recuerdo, 0.506385/1.499809 cqmin.
+  Ancho e inclinacion se distinguen entre extremos. La flotacion no puede juzgarse aislada
+  en esta vista: tambien cambian los otros parametros y semillas. Dos extremos NO demuestran
+  cuatro escalones intermedios: no se pueden contar honestamente para ninguno de los tres.
+  Se mantienen 4/4/4 PROVISIONALES, sin afirmar que esten calibrados. El nuevo recuento
+  36 / 166.470 cambia por tramaTejida, no por esta tarea.
+
+  Verificacion del lote, 02/09/2026: tsc y build exit 0; npm test 8/9, exit 1.
+  test:ciclo falla en tres vectores (semillas 0, 1, 42) congelados contra master 3ea5c6d:
+  "los cinco sorteos anteriores no cambian". Esa guardia de la introduccion de tipografia
+  tambien fija el catalogo de fondos antiguo; al añadir tramaTejida cambian sus elecciones.
+  ~~Pendiente antes del merge: sustituir los vectores congelados sin confundir ampliacion de
+  repertorio con desplazamiento del orden del generador.~~ CERRADO el 02/09/2026 en el commit
+  de la guardia de orden: `tests/ayudas/orden-direccion.js` ejecuta la funcion y sus helpers
+  del bundle, con generador controlado y catalogos sinteticos de 6 y 11 opciones por eje.
+  Comprueba seis consumos sobre un solo generador, en orden fondo/estructura/camara/densidad/
+  ritmo/tipografia; los 15 intercambios posibles se rechazan como controles negativos por
+  cada catalogo. Ni nueva entrada de prueba ni cambios en el codigo de produccion.
 - **`ANILLOS_FONDO` y `faseAnillo()` estan huerfanas.** No tienen consumidores bajo `src/` ni
   `tests/` desde que `ondas` dejo de ser anillos. No se borran en este paso: se incorporan al
   mismo inventario de deuda que las 1.154 lineas huerfanas ya conocidas.
@@ -2153,3 +2194,11 @@ impone dos lineas. La puerta responde de ese presupuesto; quitar la propiedad
 desconectaria la aritmetica del dibujo. Su advertencia queda junto al CSS.
 
 **Regla:** Cuando se cierra una deuda, se tacha en el MISMO commit que la cierra.
+
+### Excepcion al atomo compartido: heroe de constelacion (02/09/2026)
+
+Las cuatro estructuras de `src/renderer/src/composiciones/escena.tsx` llaman a `caja()`
+para las etiquetas: constelacion, capasApiladas, redNodos y unaCaja (pieza de prueba).
+El emoji grande de constelacion se inserta directamente en `.es-hero`, no mediante `caja()`.
+Es una excepcion EXISTENTE a la nueva regla, no una caja duplicada. Pendiente unificar el
+atomo cuando se cambie el heroe por icono/silueta: no se altera su geometria en este cierre.

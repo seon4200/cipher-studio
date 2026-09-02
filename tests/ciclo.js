@@ -509,9 +509,11 @@ function conceptos (bundle) {
   ok(typeof REP === 'object' && 'identidades' in REP && 'instancias' in REP,
     'combinacionesLegales devuelve identidades E instancias, no un solo numero',
     JSON.stringify(REP))
-  ok(REP.identidades === 24, 'el repertorio da 24 IDENTIDADES en 9:16', String(REP.identidades))
-  ok(REP.instancias === 120900, 'y 120.900 INSTANCIAS', String(REP.instancias))
-  ok(PRU.identidades === 80, 'con las piezas de prueba, 80 identidades', String(PRU.identidades))
+  ok(REP.identidades === 36, 'el repertorio da 36 IDENTIDADES en 9:16', String(REP.identidades))
+  ok(REP.instancias === 166470, 'y 166.470 INSTANCIAS', String(REP.instancias))
+  ok(PRU.identidades === 104, 'con las piezas de prueba, 104 identidades', String(PRU.identidades))
+  ok(FONDOS_ESCENA.tramaTejida.tono === 'claro' && FONDOS_ESCENA.tramaTejida.rangos.length === 0,
+    'el tejido declara tono claro y no inventa escalones de instancia')
 
   const medidas = require('./aceptacion/fixtures/metricas-tipografias.json')
   for (const m of medidas.tipografias) {
@@ -536,16 +538,10 @@ function conceptos (bundle) {
     'tipografia desconocida vuelve al sorteo')
   ok(!cabeEnElPie('ß'.repeat(13), 'anton'), 'la puerta cuenta DESPUES de pasar a versal')
   ok(bundle.MAX_CARACTERES_ETIQUETA === 56, 'las cajas conservan su limite 56')
-  // Resultados leidos del bundle de master 3ea5c6d, ANTES de añadir tipografia.
-  for (const [semilla, fondo, estructura, camara] of [
-    [0, 'ondas', 'constelacion', 'quieto'], [1, 'ondas', 'constelacion', 'quieto'],
-    [42, 'ondas', 'capasApiladas', 'quieto'], [123456, 'skyline', 'constelacion', 'deriva']
-  ]) {
-    const d = direccionDe(semilla)
-    ok(d.fondo === fondo && d.estructura === estructura && d.camara === camara &&
-      d.densidad === 'media' && d.ritmo === 'regular', 'los cinco sorteos anteriores no cambian: ' + semilla)
-    ok(Object.hasOwn(TIPOGRAFIAS, d.tipografia), 'el sexto sorteo pertenece al registro: ' + semilla)
-  }
+  // Congelar salidas del catalogo obligaba a editar esta prueba con cada pieza nueva.
+  // Una prueba que se edita para ponerse verde deja de probar. El invariante es el ORDEN
+  // de consumo y tipografia ultima, no que una semilla siga eligiendo el fondo de ayer.
+  require('./ayudas/orden-direccion')(bundle, path.join(RAIZ, 'dist-electron/main/index.js'), ok)
 
   // LAS INSTANCIAS NUNCA SON MENOS QUE LAS IDENTIDADES: cada identidad tiene al menos una.
   ok(REP.instancias >= REP.identidades, 'instancias >= identidades, siempre',
