@@ -27,6 +27,7 @@ import { CUANTOS_CONCEPTOS, type Concepto } from '../../../shared/conceptos'
 import {
   ESTRUCTURAS, CAMARAS, direccionDesde, PROFUNDIDAD, retardosDecoradores,
   posicionDecorador, DENSIDAD_A_N, cabeEnElPie, cabeLaEtiqueta, instanciaDe,
+  TIPOGRAFIAS, type IdTipografia,
   type IdFondo, type IdEstructura, type IdCamara, type PuntoEscena, type Parametros
 } from '../../../shared/escena'
 import type { Composicion, PropsComposicion } from './index'
@@ -373,14 +374,16 @@ function decoradores(kf: Kf, n: number, retardos: number[], rndPos: () => number
 
 /** El pie vive DENTRO del arbol de la composicion -- no en AnimatedGraphic -- porque solo asi
  *  recibe el factor de camara 0.20: el pie de AnimatedGraphic es HERMANO de este arbol. */
-function textoPie(kf: Kf, palabra: string): React.ReactNode {
+function textoPie(kf: Kf, palabra: string, tipografia: IdTipografia): React.ReactNode {
+  const fuente = TIPOGRAFIAS[tipografia]
   const nom = kf('pie', 25, u => {
     const e = 1 - Math.pow(1 - Math.min(1, u / 0.22), 3)
     return `opacity:${e.toFixed(3)};transform:translateY(${((1 - e) * 3).toFixed(2)}cqmin)`
   })
   return (
     <div className="es-pie" style={usa(nom)}>
-      <p className="es-pie-tit">{palabra}</p>
+      <p className="es-pie-tit" style={{ fontFamily: `${fuente.familia},sans-serif`,
+        fontWeight: fuente.peso, textTransform: fuente.transformacion }}>{palabra}</p>
       <div className="es-pie-barra" />
     </div>
   )
@@ -473,7 +476,7 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown): React.Reac
   const capaEstructura = DIBUJO_ESTRUCTURAS[direccion.estructura](
     { kf, puntos, conceptos: cs, params: parEstructura })
   const capaDecoradores = decoradores(kf, nDeco, retardos, rndDeco)
-  const capaTexto = textoPie(kf, value)
+  const capaTexto = textoPie(kf, value, direccion.tipografia)
 
   const capas: React.ReactNode[] = [
     conCamara(kf, capaFondo, PROFUNDIDAD.fondo, 1, direccion.camara, parCamara),
@@ -542,7 +545,7 @@ export const escena: Composicion = {
     const dir = direccionDesde(d.direccion, semillaDe(d.texto ?? ''))
     if (buenos.length < ESTRUCTURAS[dir.estructura].minConceptos) return false
     if (!buenos.every(c => cabeLaEtiqueta(c.etiqueta))) return false
-    return cabeEnElPie(d.texto)
+    return cabeEnElPie(d.texto, dir.tipografia)
   },
   // TRUE: la composicion pinta su propio texto (capaTexto, con factor de camara 0.20). El pie de
   // AnimatedGraphic es HERMANO del arbol de render(), no hijo -- con `false` la palabra saldria

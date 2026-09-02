@@ -2069,4 +2069,50 @@ las etiquetas disponibles.
 
 ---
 
+### PRECONDICION del paso que mueve COMPOSICION_VISUAL: direccion en el hash
+
+El constructor del Visual en `src/main/index.ts` (bloque `extra`, alrededor de 4708) no escribe
+`direccion`: solo `pos` y `conceptos`. La escena deriva su direccion en el renderer desde la
+palabra; el hash de fichero NO ve esa direccion implicita. `direccionDe` sortea listas cuyo
+tamano cambia al incorporar piezas: una misma palabra ya puede producir otro dibujo con la
+misma clave. Inofensivo para el producto mientras `visual_escena` siga apagada; seria
+envenenamiento silencioso al encenderla.
+
+**La direccion resuelta debe viajar en extra y en el hash EN EL MISMO PASO que mueve el
+interruptor.** No se escribe antes sobre los mapas: cambiaria sus claves para nada.
+Cuando viaje, añadir una pieza invalidara los Visuales cuya direccion resuelta cambie.
+ESO ES LO QUE DEBE PASAR; no implica invalidar tarjetas ni palabras cuya direccion no cambie.
+Tambien siguen necesitando versionado los cambios de pixeles internos de una pieza con el
+mismo id: serializar su nombre no convierte el codigo en parte del hash.
+
+### Metrica del pie: estimacion sustituida por maximos medidos (02/09/2026)
+
+~~El estimador Archivo 800 de 0.58 em permitia garantizar 31 caracteres en dos lineas.~~
+CERRADO en el commit del modulador: `tests/aceptacion/medir-tipografias.js` carga las fuentes
+locales reales con la guarda de `grafico.__listo`, sin montar graficos ni acceder a la red.
+El fixture `tests/aceptacion/fixtures/metricas-tipografias.json` guarda cada caracter, los
+hashes de las fuentes y las condiciones: Electron 31.7.7, Chromium 126.0.6478.234, Windows,
+1000 px, A-Z, vocales acentuadas, dieresis, enye, digitos y minusculas para Archivo.
+
+Archivo 800: maximo **0.979 em (W)**, NO coincide con 0.58. Anton 400 en versal: maximo
+**0.74609375 em (M)**. `maxCaracteresPie` redondea POR LINEA antes de multiplicar por dos:
+**18 caracteres en Archivo y 24 en Anton**. Redondear la suma de dos lineas podia permitir
+un caracter que necesitara una tercera. Las cajas conservan Archivo, `anchoCaja`,
+`cabeLaEtiqueta` y el limite 56. Fuera del alfabeto medido no se afirma una garantia de ancho.
+
+Capturas `tests/aceptacion/tipografias-archivo-anton.png` y `tipografias-limites.png`:
+`visual_escena`, ondas/constelacion/quieto/media/regular, sistema voltaje, ciclo 3 s,
+t=1.500 s, lienzo 1080x1920 a escala 0.45 (486x864), navegador local. La pareja usa `memoria`
+en ambos lados; el degenerado usa W x 18 y M x 24. Conceptos: recuerdo/archivo/conexion.
+Las dos familias pasan la guarda geometrica; las seis cajas siguen en Archivo. Dos lineas
+por fuente, sin desbordamiento horizontal: anchos reales 856.44 y 870.25 px frente a 900.07
+disponibles. Bordes X 111.78..968.22 y 104.87..975.13 frente a zona 89.964..990.036.
+Los rectangulos tipograficos incluyen ascensos/descensos, no solo tinta: `scrollHeight`
+190/211 frente a caja de 185 px NO se presenta como prueba de recorte. Se inspeccionaron
+las imagenes: ambas lineas y la barra permanecen en la zona segura.
+
+El repertorio con tipografia pasa de 12/60.450 a **24 identidades / 120.900 instancias**;
+los pasos provisionales de `capasApiladas` siguen incluidos, no se han calibrado aqui.
+`COMPOSICION_VISUAL = 'visual_mapa'` y `VERSION_PLANTILLAS = 8` permanecen intactos.
+
 **Regla:** Cuando se cierra una deuda, se tacha en el MISMO commit que la cierra.

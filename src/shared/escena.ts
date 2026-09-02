@@ -45,14 +45,11 @@ export const CQMIN_EN_PCT_ALTO = 9 / 16;
 // (misma regla que shared/texto.ts) y truncar inventa una palabra que no se dijo. Parte en DOS
 // lineas, y las dos estan PRESUPUESTADAS siempre, no como excepcion.
 //
-// LOS NUMEROS SON UN ESTIMADOR, no una medida del DOM como la recta de `anchoCaja`:
-//   ancho util   ZONA_ANCHO_UTIL = 83.34 % del ancho
-//   fuente       9 cqmin, la de `.es-pie-tit`
-//   em/caracter  0.58, Archivo 800
-// => 83.34 / (9*0.58) = 15.97 caracteres por linea, y con dos lineas 31.93.
+// La metrica procede de medir CADA caracter con la fuente real, fuera de shared/.
+// TIPOGRAFIAS guarda el maximo, no el promedio: una palabra de puras W tambien debe caber.
+// El antiguo 0.58 para Archivo era una estimacion; medido, el maximo es 0.979.
 export const PIE_ANCHO_UTIL = ZONA_ANCHO_UTIL;
 export const PIE_FUENTE_CQMIN = 9;
-export const PIE_EM_POR_CARACTER = 0.58;
 export const PIE_LINEAS = 2;
 export const PIE_INTERLINEA = 0.95;
 export const PIE_BARRA_MARGEN_CQMIN = 2.6;
@@ -60,13 +57,17 @@ export const PIE_BARRA_ALTO_CQMIN = 0.9;
 /** Lo que el pie separa del borde inferior, en % del alto. Es el `bottom` de `.es-pie`. */
 export const PIE_BOTTOM_PCT = 16;
 
-export const PIE_CARACTERES_POR_LINEA = PIE_ANCHO_UTIL / (PIE_FUENTE_CQMIN * PIE_EM_POR_CARACTER);
-export const MAX_CARACTERES_PIE = Math.floor(PIE_LINEAS * PIE_CARACTERES_POR_LINEA);
+export function maxCaracteresPie(tipografia: IdTipografia): number {
+  // Redondear DESPUES de multiplicar por dos puede admitir un caracter de una tercera linea.
+  return PIE_LINEAS * Math.floor(PIE_ANCHO_UTIL /
+    (PIE_FUENTE_CQMIN * TIPOGRAFIAS[tipografia].emPorCaracter));
+}
 
 /** ¿Cabe este texto en el pie sin encoger ni truncar? */
-export function cabeEnElPie(texto: unknown): boolean {
-  const s = String(texto ?? '').trim();
-  return s.length > 0 && s.length <= MAX_CARACTERES_PIE;
+export function cabeEnElPie(texto: unknown, tipografia: IdTipografia): boolean {
+  const original = String(texto ?? '').trim();
+  const s = TIPOGRAFIAS[tipografia].transformacion === 'uppercase' ? original.toUpperCase() : original;
+  return s.length > 0 && s.length <= maxCaracteresPie(tipografia);
 }
 
 /** El alto del bloque del pie -- dos lineas mas la barra -- en cqmin. */
@@ -251,6 +252,32 @@ export type PiezaBase = {
    */
   prueba?: boolean;
 };
+
+/** Modula solo la palabra del pie. No tiene energia ni rangos de instancia. */
+export type MetaTipografia = Pick<PiezaBase, 'id' | 'descripcion' | 'formatos' | 'prueba'> & {
+  familia: string;
+  peso: number;
+  transformacion: 'none' | 'uppercase';
+  emPorCaracter: number;
+  caracterMasAncho: string;
+};
+
+// Medicion: tests/aceptacion/medir-tipografias.js y fixtures/metricas-tipografias.json.
+// Electron 31.7.7 / Chromium 126, 1000 px, alfabeto castellano + digitos, maximo individual.
+// Las cajas NO usan este registro: conservan Archivo y su aritmetica medida.
+export const TIPOGRAFIAS = {
+  archivo: {
+    id: 'archivo', descripcion: 'Palabra en Archivo negrita, conservando mayusculas y minusculas.',
+    formatos: ['9:16', '16:9'], familia: 'Archivo', peso: 800, transformacion: 'none',
+    emPorCaracter: 0.979, caracterMasAncho: 'W'
+  },
+  anton: {
+    id: 'anton', descripcion: 'Palabra en Anton condensada y en versal.',
+    formatos: ['9:16', '16:9'], familia: 'Anton', peso: 400, transformacion: 'uppercase',
+    emPorCaracter: 0.74609375, caracterMasAncho: 'M'
+  }
+} as const satisfies Record<string, MetaTipografia>;
+export type IdTipografia = keyof typeof TIPOGRAFIAS;
 
 export type MetaFondo = PiezaBase & {
   /** Sobre que se lee el texto. Lo necesitara la Fase 7 para no poner texto claro sobre claro. */
@@ -495,6 +522,7 @@ export type Direccion = {
   camara: IdCamara;
   densidad: Densidad;
   ritmo: Ritmo;
+  tipografia: IdTipografia;
 };
 
 function elige<X>(rnd: () => number, a: readonly X[]): X {
@@ -502,7 +530,7 @@ function elige<X>(rnd: () => number, a: readonly X[]): X {
 }
 
 /** Las claves de un registro, SIN las piezas de prueba. Es lo que se sortea de verdad. */
-function repertorio<T extends Record<string, PiezaBase>>(reg: T): (keyof T)[] {
+function repertorio<T extends Record<string, Pick<PiezaBase, 'id' | 'prueba'>>>(reg: T): (keyof T)[] {
   return (Object.keys(reg) as (keyof T)[]).filter(k => !reg[k as string].prueba);
 }
 
@@ -523,7 +551,9 @@ export function direccionDe(semilla: number): Direccion {
     estructura: elige(rnd, repertorio(ESTRUCTURAS)),
     camara: elige(rnd, repertorio(CAMARAS)),
     densidad: elige(rnd, DENSIDADES),
-    ritmo: elige(rnd, RITMOS)
+    ritmo: elige(rnd, RITMOS),
+    // SIEMPRE LA ULTIMA: los cinco consumos anteriores no se desplazan.
+    tipografia: elige(rnd, repertorio(TIPOGRAFIAS))
   };
 }
 
@@ -555,7 +585,8 @@ export function direccionDesde(crudo: unknown, semilla: number): Direccion {
     densidad: (DENSIDADES as readonly string[]).includes(String(c.densidad))
       ? (c.densidad as Densidad) : base.densidad,
     ritmo: (RITMOS as readonly string[]).includes(String(c.ritmo))
-      ? (c.ritmo as Ritmo) : base.ritmo
+      ? (c.ritmo as Ritmo) : base.ritmo,
+    tipografia: val<IdTipografia>(c.tipografia, TIPOGRAFIAS, base.tipografia)
   };
 }
 
@@ -610,7 +641,7 @@ export type EspacioDeEstilos = {
 export function combinacionesLegales(op: OpcionesCombinaciones = {}): EspacioDeEstilos {
   const conceptos = op.conceptos ?? CUANTOS_CONCEPTOS;
   const formato: Formato = op.formato ?? '9:16';
-  const vale = (p: PiezaBase) => (op.incluirPruebas ? true : !p.prueba) &&
+  const vale = (p: Pick<PiezaBase, 'formatos' | 'prueba'>) => (op.incluirPruebas ? true : !p.prueba) &&
     (p.formatos as readonly Formato[]).includes(formato);
 
   const fondos = (Object.values(FONDOS) as MetaFondo[]).filter(vale);
@@ -618,7 +649,7 @@ export function combinacionesLegales(op: OpcionesCombinaciones = {}): EspacioDeE
   const estructuras = (Object.values(ESTRUCTURAS) as MetaEstructura[])
     .filter(e => vale(e) && e.minConceptos <= conceptos);
 
-  const ejesSueltos = DENSIDADES.length * RITMOS.length;
+  const ejesSueltos = DENSIDADES.length * RITMOS.length * Object.values(TIPOGRAFIAS).filter(vale).length;
   let identidades = 0, instancias = 0;
   for (const f of fondos) for (const c of camaras) {
     if (f.energia + c.energia > 3) continue;        // LA REGLA DE LA ENERGIA

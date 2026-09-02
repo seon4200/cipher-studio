@@ -494,7 +494,8 @@ function conceptos (bundle) {
   // que verlas; ninguna se arregla cambiando el numero de aqui.
   console.log('')
   console.log('=== J) EL REGISTRO DE PIEZAS Y EL ESPACIO DE ESTILOS ===')
-  const { combinacionesLegales, FONDOS_ESCENA, ESTRUCTURAS_ESCENA, CAMARAS_ESCENA } = bundle
+  const { combinacionesLegales, FONDOS_ESCENA, ESTRUCTURAS_ESCENA, CAMARAS_ESCENA,
+    TIPOGRAFIAS, direccionDe, direccionDesde, maxCaracteresPie, cabeEnElPie } = bundle
   ok(typeof combinacionesLegales === 'function', 'combinacionesLegales se exporta del bundle')
   if (typeof combinacionesLegales !== 'function') return
 
@@ -508,9 +509,43 @@ function conceptos (bundle) {
   ok(typeof REP === 'object' && 'identidades' in REP && 'instancias' in REP,
     'combinacionesLegales devuelve identidades E instancias, no un solo numero',
     JSON.stringify(REP))
-  ok(REP.identidades === 12, 'el repertorio da 12 IDENTIDADES en 9:16', String(REP.identidades))
-  ok(REP.instancias === 60450, 'y 60.450 INSTANCIAS', String(REP.instancias))
-  ok(PRU.identidades === 40, 'con las piezas de prueba, 40 identidades', String(PRU.identidades))
+  ok(REP.identidades === 24, 'el repertorio da 24 IDENTIDADES en 9:16', String(REP.identidades))
+  ok(REP.instancias === 120900, 'y 120.900 INSTANCIAS', String(REP.instancias))
+  ok(PRU.identidades === 80, 'con las piezas de prueba, 80 identidades', String(PRU.identidades))
+
+  const medidas = require('./aceptacion/fixtures/metricas-tipografias.json')
+  for (const m of medidas.tipografias) {
+    const f = TIPOGRAFIAS[m.id]
+    const hashFuente = require('crypto').createHash('sha256').update(require('fs').readFileSync(
+      path.join(RAIZ, 'dist/fonts', m.fichero))).digest('hex')
+    ok(hashFuente === m.sha256, m.id + ': el asset sigue siendo el que se midio')
+    ok(f.id === m.id && !!f.descripcion && f.formatos.length > 0 &&
+      !('energia' in f) && !('rangos' in f), m.id + ': contrato sin energia ni rangos')
+    ok(f.familia === m.familia && f.peso === m.peso && f.transformacion === m.transformacion &&
+      f.emPorCaracter === Math.max(...Object.values(m.anchosEm)) &&
+      f.caracterMasAncho === m.caracterMasAncho, m.id + ': metrica igual al maximo MEDIDO')
+    const n = maxCaracteresPie(m.id)
+    ok(n === (m.id === 'archivo' ? 18 : 24), m.id + ': limite conservador de dos lineas', String(n))
+    ok(cabeEnElPie(f.caracterMasAncho.repeat(n), m.id) &&
+      !cabeEnElPie(f.caracterMasAncho.repeat(n + 1), m.id), m.id + ': acepta el limite y rechaza uno mas')
+    ok(!cabeEnElPie('', m.id) && !cabeEnElPie(null, m.id), m.id + ': el vacio cae al respaldo')
+    ok(direccionDesde({ tipografia: m.id }, 42).tipografia === m.id,
+      m.id + ': la direccion explicita gana al sorteo')
+  }
+  ok(direccionDesde({ tipografia: 'inventada' }, 42).tipografia === direccionDe(42).tipografia,
+    'tipografia desconocida vuelve al sorteo')
+  ok(!cabeEnElPie('ß'.repeat(13), 'anton'), 'la puerta cuenta DESPUES de pasar a versal')
+  ok(bundle.MAX_CARACTERES_ETIQUETA === 56, 'las cajas conservan su limite 56')
+  // Resultados leidos del bundle de master 3ea5c6d, ANTES de añadir tipografia.
+  for (const [semilla, fondo, estructura, camara] of [
+    [0, 'ondas', 'constelacion', 'quieto'], [1, 'ondas', 'constelacion', 'quieto'],
+    [42, 'ondas', 'capasApiladas', 'quieto'], [123456, 'skyline', 'constelacion', 'deriva']
+  ]) {
+    const d = direccionDe(semilla)
+    ok(d.fondo === fondo && d.estructura === estructura && d.camara === camara &&
+      d.densidad === 'media' && d.ritmo === 'regular', 'los cinco sorteos anteriores no cambian: ' + semilla)
+    ok(Object.hasOwn(TIPOGRAFIAS, d.tipografia), 'el sexto sorteo pertenece al registro: ' + semilla)
+  }
 
   // LAS INSTANCIAS NUNCA SON MENOS QUE LAS IDENTIDADES: cada identidad tiene al menos una.
   ok(REP.instancias >= REP.identidades, 'instancias >= identidades, siempre',
@@ -544,7 +579,7 @@ function conceptos (bundle) {
 
   // LA REGLA DE LA ENERGIA MUERDE. Sin esto, la regla podria estar escrita y no aplicarse.
   const sinRegla = Object.values(FONDOS_ESCENA).length * Object.values(CAMARAS_ESCENA).length *
-    Object.values(ESTRUCTURAS_ESCENA).length
+    Object.values(ESTRUCTURAS_ESCENA).length * Object.values(TIPOGRAFIAS).length
   ok(PRU.identidades <= sinRegla, 'la regla de energia nunca AMPLIA el espacio',
     PRU.identidades + ' <= ' + sinRegla)
 

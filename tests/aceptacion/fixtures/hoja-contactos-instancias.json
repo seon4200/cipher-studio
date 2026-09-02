@@ -2,6 +2,7 @@
   "version": 1,
   "composicion": "visual_escena",
   "identidad": {
+    "tipografia": "archivo",
     "fondo": "liso",
     "estructura": "constelacion",
     "camara": "quieto",

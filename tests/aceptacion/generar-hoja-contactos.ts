@@ -29,6 +29,7 @@ const PALABRAS = [
 ] as const
 
 const IDENTIDAD: Direccion = {
+  tipografia: 'archivo',
   fondo: 'liso', estructura: 'constelacion', camara: 'quieto',
   densidad: 'media', ritmo: 'regular'
 }

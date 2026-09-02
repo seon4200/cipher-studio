@@ -1,5 +1,25 @@
 # Pruebas de aceptación
 
+## Metrica reproducible de las tipografias del pie
+
+Tras `npm run build`, ejecutar `npx electron tests/aceptacion/medir-tipografias.js`.
+No monta composiciones, no captura video y bloquea la red. Usa `grafico.__listo` (incluida
+la comparacion geometrica de fuentes) y mide cada caracter del alfabeto declarado a 1000 px.
+El resultado completo se imprime; `--guardar` sustituye deliberadamente el fixture
+`fixtures/metricas-tipografias.json`. Revisar la medida antes de cambiar las constantes.
+`test:ciclo` exige que el registro coincida con el maximo individual del fixture y que los
+assets conserven su SHA-256. No se usa un promedio ni se mete DOM en shared/.
+
+Pareja: `npm run banco`, abrir
+`http://127.0.0.1:5174/banco.html?vista=identidades&comparar=tipografias`.
+Para los limites, añadir `&limite=1`. Tiempo inicial 1.5 s, ciclo 3 s, escala 45 %, sistema
+voltaje, ondas/constelacion/quieto/media/regular. Se guardaron las capturas a viewport
+1440x1120: `tipografias-archivo-anton.png` (memoria/memoria) y `tipografias-limites.png`
+(18 W / 24 M). Los datos y la puerta figuran en la pagina. No hay derivacion alternativa:
+cada lado monta AnimatedGraphic y usa el registro y `maxCaracteresPie` compartidos.
+
+---
+
 Dos arneses que ejecutan el **handler real** `generate-timeline-assets` de principio a fin, con
 las respuestas de DeepSeek interceptadas.
 
