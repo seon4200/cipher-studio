@@ -31,6 +31,41 @@ body { background: #080b12; color: #eef2ff; }
 .banco-sondas-fuente { position: fixed; left: -10000px; top: 0; white-space: nowrap; }
 .banco-nota { color: #8f9bb5; font-size: 12px; line-height: 1.4; }
 
+.hoja-app { display: grid; grid-template-columns: 330px minmax(760px, 1fr); gap: 20px; align-items: start; }
+.hoja-controles { position: sticky; top: 16px; display: grid; gap: 13px; padding: 18px; border: 1px solid #293044; border-radius: 16px; background: #111622; }
+.hoja-controles h1, .hoja-controles p { margin: 0; }
+.hoja-tiempo input { width: 100%; }
+.hoja-control-aviso { padding: 10px; border: 2px solid #62d7ff; border-radius: 10px; background: #102839; color: #c8f1ff; font-size: 12px; line-height: 1.4; }
+.hoja-condiciones { max-height: 220px; overflow: auto; font-size: 10px; }
+.hoja-fixture { padding: 9px; border-radius: 9px; font-size: 12px; font-weight: 700; }
+.hoja-fixture.ok { border: 1px solid #267a58; background: #102c22; color: #b9f6dc; }
+.hoja-fixture.miente { border: 2px solid #dc4c64; background: #3b1018; color: #ffd9df; }
+.hoja-rejilla { display: grid; grid-template-columns: repeat(4, 178px); gap: 12px; align-items: start; }
+.hoja-celda { display: grid; gap: 6px; padding: 7px; border: 1px solid #293044; border-radius: 10px; background: #111622; }
+.hoja-celda.es-control { border: 2px solid #62d7ff; box-shadow: 0 0 0 2px #102839; }
+.hoja-etiqueta { display: grid; gap: 1px; min-height: 92px; color: #dce5f8; font-size: 9px; line-height: 1.25; overflow-wrap: anywhere; }
+.hoja-etiqueta strong { color: #fff; font-size: 12px; }
+.hoja-etiqueta span { min-height: 22px; color: #7edfff; }
+.hoja-etiqueta code { color: #aeb8d0; font: 8px Consolas, monospace; }
+.hoja-marco { width: 162px; height: 288px; overflow: hidden; border: 1px solid #35415d; border-radius: 6px; background: #000; }
+.hoja-escala { position: relative; width: 1080px; height: 1920px; transform: scale(.15); transform-origin: top left; }
+.hoja-zona { border-width: 8px; }
+.hoja-zona::before { display: none; }
+
+.pareja-app { grid-template-columns: 330px minmax(1000px, 1fr); }
+.pareja-rejilla { display: grid; grid-template-columns: repeat(2, 500px); gap: 18px; align-items: start; }
+.pareja-celda { display: grid; gap: 8px; padding: 7px; border: 1px solid #293044; border-radius: 12px; background: #111622; }
+.pareja-etiqueta { display: grid; gap: 3px; min-height: 72px; color: #dce5f8; font-size: 11px; }
+.pareja-etiqueta strong { color: #fff; font-size: 17px; }
+.pareja-etiqueta span { color: #7edfff; font-weight: 700; }
+.pareja-etiqueta code { color: #aeb8d0; font: 9px Consolas, monospace; white-space: normal; overflow-wrap: anywhere; }
+.pareja-marco { width: 486px; height: 864px; overflow: hidden; border: 1px solid #35415d; border-radius: 8px; background: #000; }
+.pareja-escala { position: relative; width: 1080px; height: 1920px; transform: scale(.45); transform-origin: top left; }
+.pareja-zona { border-width: 4px; }
+.pareja-zona::before { display: none; }
+
 @media (max-width: 900px) {
   .banco-grid { grid-template-columns: 1fr; }
+  .hoja-app { grid-template-columns: 1fr; }
+  .pareja-rejilla { grid-template-columns: 500px; }
 }

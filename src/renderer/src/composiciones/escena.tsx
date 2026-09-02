@@ -25,8 +25,8 @@ import { ajustar, type DuracionUsada } from '../../../shared/ciclo'
 import { generador, semillaDe } from '../../../shared/semilla'
 import { CUANTOS_CONCEPTOS, type Concepto } from '../../../shared/conceptos'
 import {
-  FONDOS, ESTRUCTURAS, CAMARAS, direccionDesde, PROFUNDIDAD, retardosDecoradores,
-  posicionDecorador, DENSIDAD_A_N, faseAnillo, cabeEnElPie, cabeLaEtiqueta, parametrosDe,
+  ESTRUCTURAS, CAMARAS, direccionDesde, PROFUNDIDAD, retardosDecoradores,
+  posicionDecorador, DENSIDAD_A_N, faseAnillo, cabeEnElPie, cabeLaEtiqueta, instanciaDe,
   type IdFondo, type IdEstructura, type IdCamara, type PuntoEscena, type Parametros
 } from '../../../shared/escena'
 import type { Composicion, PropsComposicion } from './index'
@@ -318,17 +318,16 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown): React.Reac
   // Streams de aleatoriedad INDEPENDIENTES, mismo patron que mapa.tsx: si no se separan, anadir
   // una pieza a un registro desplazaria TAMBIEN el jitter de los puntos y las posiciones de los
   // decoradores para semillas que ya tenian un dibujo asignado.
-  const rndPts = generador(semillaDe(value + '#pts'))
-  const rndDeco = generador(semillaDe(value + '#deco'))
+  const instancia = instanciaDe(value, direccion)
+  const rndPts = generador(instancia.semillas.puntos)
+  const rndDeco = generador(instancia.semillas.decoradores)
 
   const pref = 'es' + (semilla >>> 0).toString(36)
   const { kf, reglas } = emisor(pref)
 
   // ═══ RESOLUCION POR REGISTRO: aqui esta el enchufe ══════════════════════════════════════
   // Ni un nombre de pieza escrito a mano. Anadir la estructura 18 no toca ninguna linea de aqui.
-  const metaFondo = FONDOS[direccion.fondo]
   const metaEstructura = ESTRUCTURAS[direccion.estructura]
-  const metaCamara = CAMARAS[direccion.camara]
 
   // LOS PARAMETROS DE INSTANCIA. Un stream propio, separado del de los puntos y del de los
   // decoradores: si compartieran generador, anadir un rango a una pieza desplazaria TAMBIEN la
@@ -336,10 +335,9 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown): React.Reac
   //
   // EL ORDEN -- fondo, estructura, camara -- ES PARTE DEL RESULTADO: cada `parametrosDe` avanza
   // el generador, asi que reordenar estas tres lineas cambia todos los dibujos.
-  const rndPar = generador(semillaDe(value + '#params'))
-  const parFondo = parametrosDe(metaFondo.rangos, rndPar)
-  const parEstructura = parametrosDe(metaEstructura.rangos, rndPar)
-  const parCamara = parametrosDe(metaCamara.rangos, rndPar)
+  const parFondo = instancia.fondo
+  const parEstructura = instancia.estructura
+  const parCamara = instancia.camara
 
   const puntos = metaEstructura.puntos(rndPts, cs.map(c => c.etiqueta), parEstructura)
   const nDeco = DENSIDAD_A_N[direccion.densidad]

@@ -15,7 +15,7 @@
 // mapa.ts NO SE TOCA. Se le toma prestado `acotar()`, `anchoCaja`, `altoCaja` y `cl`, que son
 // garantias ya medidas: no se reescribe una segunda version de algo asi.
 
-import { generador, entre } from './semilla';
+import { generador, entre, semillaDe } from './semilla';
 import { acotar, anchoCaja, altoCaja, cl, type Layout, type Punto } from './mapa';
 import { CUANTOS_CONCEPTOS } from './conceptos';
 
@@ -167,6 +167,43 @@ export function parametrosDe(rangos: readonly Rango[], rnd: () => number): Param
     out[r.id] = r.entero ? Math.round(v) : v;
   }
   return out;
+}
+
+export type SemillasInstancia = {
+  principal: number;
+  puntos: number;
+  decoradores: number;
+  parametros: number;
+};
+
+export type InstanciaEscena = {
+  semillas: SemillasInstancia;
+  fondo: Parametros;
+  estructura: Parametros;
+  camara: Parametros;
+};
+
+/**
+ * La derivacion completa de una instancia REAL a partir de la palabra.
+ *
+ * Vive aqui para que el render y las herramientas de inspeccion no puedan discrepar sobre los
+ * cuatro streams ni sobre el orden fondo -> estructura -> camara. No admite una semilla
+ * inventada: recibe la misma palabra que entra en `graphicData.value` y, por tanto, en el hash.
+ */
+export function instanciaDe(value: string, direccion: Direccion): InstanciaEscena {
+  const semillas: SemillasInstancia = {
+    principal: semillaDe(value),
+    puntos: semillaDe(value + '#pts'),
+    decoradores: semillaDe(value + '#deco'),
+    parametros: semillaDe(value + '#params')
+  };
+  const rnd = generador(semillas.parametros);
+  return {
+    semillas,
+    fondo: parametrosDe(FONDOS[direccion.fondo].rangos, rnd),
+    estructura: parametrosDe(ESTRUCTURAS[direccion.estructura].rangos, rnd),
+    camara: parametrosDe(CAMARAS[direccion.camara].rangos, rnd)
+  };
 }
 
 /** Cuantas instancias distinguibles produce una lista de rangos. Sin rangos, una. */
