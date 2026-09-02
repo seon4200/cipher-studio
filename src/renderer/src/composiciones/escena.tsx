@@ -108,6 +108,9 @@ const CSS_FIJO = `
 .es-anillo{position:absolute;left:50%;top:45%;border-radius:50%;
   border:.3cqmin solid var(--acento)}
 .es-pie{position:absolute;left:8.33%;right:8.33%;bottom:16%;text-align:center}
+/* overflow-wrap permite partir una palabra, pero NO limita el pie a dos lineas:
+   ese limite lo comprueba cabeEnElPie. Si se quita, la aritmetica de dos lineas
+   deja de describir el dibujo sin que TypeScript ni el CSS den error. */
 .es-pie-tit{font:800 9cqmin/0.95 Archivo,sans-serif;color:var(--texto);margin:0;
   min-height:17.1cqmin;overflow-wrap:anywhere;
   text-shadow:0 .3cqmin 2cqmin rgba(0,0,0,.85)}

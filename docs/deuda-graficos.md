@@ -2115,4 +2115,41 @@ El repertorio con tipografia pasa de 12/60.450 a **24 identidades / 120.900 inst
 los pasos provisionales de `capasApiladas` siguen incluidos, no se han calibrado aqui.
 `COMPOSICION_VISUAL = 'visual_mapa'` y `VERSION_PLANTILLAS = 8` permanecen intactos.
 
+### Cierre del modulador: maximo conservador y tasa real de respaldo pendiente (02/09/2026)
+
+Se conserva el maximo medido. El corpus pasa **136/136 en Archivo (tope 18)** y
+**136/136 en Anton (tope 24)**, pero no establece la tasa de produccion ni una
+garantia universal de composicion tipografica.
+
+Condiciones: corpus cerrado PALABRAS de `tests/aceptacion/generar-hoja-contactos.ts`,
+136 palabras reales, longitud maxima 11; comprobacion contra `cabeEnElPie` y
+`maxCaracteresPie` importadas del bundle de `4fc4782`, sin render ni llamadas a API.
+Ninguna palabra del corpus alcanza 12 caracteres. Por eso todas pasan: el dato no
+demuestra que la puerta nunca vaya a rechazar palabras de una transcripcion real.
+
+`value` NO procede de DeepSeek: `src/main/index.ts:4666` elige `palabraDelTramo`
+sobre las palabras temporizadas de la transcripcion y `:4701` aplica
+`recortarTexto`. `src/shared/texto.ts:15-28` corta a 90 y añade "…": puede devolver
+91 caracteres. No hay una cota de origen menor que los topes 18/24 que haga
+imposible el respaldo.
+
+**ABIERTO, primera medicion al mover el interruptor:** tasa real de respaldo con
+palabras de transcripciones reales. El respaldo ya se registra en el log
+(`src/renderer/src/AnimatedGraphic.tsx:543-554`); se medira sobre una generacion
+real, no inventando un corpus largo para anticiparla.
+
+Se descarta sumar anchos reales: no aporta una mejora medible sobre este corpus.
+Una herramienta se construye cuando el trabajo que ahorra ya duele. No se
+implemento la suma ni se alteraron los topes.
+
+Quedan sin medir el kerning de cadenas completas y los anchos del espacio y del
+guion; tampoco se amplio la medicion al efecto de `letter-spacing`. No se
+persiguen en este paso por falta de beneficio medido, y NO se afirma que solo
+puedan provocar rechazos de mas. En el CSS actual del pie no se declara
+`letter-spacing`; el `.01em` pertenece a `.es-etq`, las etiquetas, no al pie.
+
+`overflow-wrap:anywhere` permite partir la palabra de `.es-pie-tit`, pero NO
+impone dos lineas. La puerta responde de ese presupuesto; quitar la propiedad
+desconectaria la aritmetica del dibujo. Su advertencia queda junto al CSS.
+
 **Regla:** Cuando se cierra una deuda, se tacha en el MISMO commit que la cierra.
