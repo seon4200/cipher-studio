@@ -509,9 +509,11 @@ function conceptos (bundle) {
   ok(typeof REP === 'object' && 'identidades' in REP && 'instancias' in REP,
     'combinacionesLegales devuelve identidades E instancias, no un solo numero',
     JSON.stringify(REP))
-  ok(REP.identidades === 24, 'el repertorio da 24 IDENTIDADES en 9:16', String(REP.identidades))
-  ok(REP.instancias === 120900, 'y 120.900 INSTANCIAS', String(REP.instancias))
-  ok(PRU.identidades === 80, 'con las piezas de prueba, 80 identidades', String(PRU.identidades))
+  ok(REP.identidades === 36, 'el repertorio da 36 IDENTIDADES en 9:16', String(REP.identidades))
+  ok(REP.instancias === 166470, 'y 166.470 INSTANCIAS', String(REP.instancias))
+  ok(PRU.identidades === 104, 'con las piezas de prueba, 104 identidades', String(PRU.identidades))
+  ok(FONDOS_ESCENA.tramaTejida.tono === 'claro' && FONDOS_ESCENA.tramaTejida.rangos.length === 0,
+    'el tejido declara tono claro y no inventa escalones de instancia')
 
   const medidas = require('./aceptacion/fixtures/metricas-tipografias.json')
   for (const m of medidas.tipografias) {

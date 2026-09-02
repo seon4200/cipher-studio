@@ -21,6 +21,8 @@
 //     DIVISION y no multiplicacion: `/ n` no puede expresar una duracion ilegal, `* 0.333` si.
 
 import React from 'react'
+import { SISTEMAS } from '../sistemas'
+import { FONDOS } from '../../../shared/escena'
 import { ajustar, type DuracionUsada } from '../../../shared/ciclo'
 import { generador, semillaDe } from '../../../shared/semilla'
 import { CUANTOS_CONCEPTOS, type Concepto } from '../../../shared/conceptos'
@@ -97,7 +99,7 @@ const CSS_FIJO = `
 .es-svg{position:absolute;inset:0;width:100%;height:100%}
 .es-nodo{position:absolute;transform:translate(-50%,-50%);white-space:nowrap}
 .es-caja{display:flex;align-items:center;gap:1.3cqmin;padding:1.5cqmin 2.4cqmin;
-  border-radius:1.7cqmin;background:rgba(9,12,20,.9);border:.3cqmin solid var(--acento);
+  border-radius:1.7cqmin;background:var(--caja,rgba(9,12,20,.9));border:.3cqmin solid var(--acento);
   backdrop-filter:blur(.19cqmin)}
 .es-mini{font-size:4.4cqmin;line-height:1;flex:none}
 .es-etq{font:700 2.9cqmin Archivo,system-ui,sans-serif;letter-spacing:.01em;color:var(--texto)}
@@ -113,7 +115,7 @@ const CSS_FIJO = `
    deja de describir el dibujo sin que TypeScript ni el CSS den error. */
 .es-pie-tit{font:800 9cqmin/0.95 Archivo,sans-serif;color:var(--texto);margin:0;
   min-height:17.1cqmin;overflow-wrap:anywhere;
-  text-shadow:0 .3cqmin 2cqmin rgba(0,0,0,.85)}
+  text-shadow:0 .3cqmin 2cqmin var(--sombra-pie,rgba(0,0,0,.85))}
 .es-pie-barra{height:.9cqmin;width:14cqmin;margin:2.6cqmin auto 0;border-radius:99cqmin;
   background:var(--acento)}
 `
@@ -130,6 +132,24 @@ export type DibujoEstructura = (c: CtxEstructura) => React.ReactNode
 // ── EL REGISTRO DE DIBUJOS: FONDOS ──────────────────────────────────────────────────────────
 
 const DIBUJO_FONDOS: Record<IdFondo, DibujoFondo> = {
+  // Fuente aprobada: docs/motion/lab-fondos-2.html:318-333. Mismo tejido y desplazamiento.
+  tramaTejida: ({ kf }) => {
+    const nom = kf('tramaTejida', 21, u =>
+      `background-position:${(u * 6).toFixed(3)}cqmin ${(u * 6).toFixed(3)}cqmin`)
+    return <>
+      <div className="es-capa" style={{ background: '#F2ECE0' }} />
+      <div className="es-capa" style={{ ...usa(nom), background:
+        'repeating-linear-gradient(90deg,rgba(120,105,85,.16) 0 .5cqmin,transparent .5cqmin 3cqmin),' +
+        'repeating-linear-gradient(0deg,rgba(120,105,85,.13) 0 .5cqmin,transparent .5cqmin 3cqmin)',
+        backgroundSize: '6cqmin 6cqmin' }} />
+      {/* El grano de .7px del lab a su ancho minimo de 238px equivale a .294cqmin.
+          Aqui escala con el contenido, no con la pantalla de quien abre el banco. */}
+      <div className="es-capa" style={{
+        backgroundImage: 'radial-gradient(rgba(120,105,85,.30) .294cqmin,transparent .294cqmin)',
+        backgroundSize: '1.7cqmin 1.7cqmin', opacity: .6 }} />
+      <div className="es-capa" style={{ boxShadow: 'inset 0 0 16cqmin rgba(140,124,100,.35)' }} />
+    </>
+  },
   // Fuente aprobada: docs/motion/lab-fondos.html:90-108.
   ondas: ({ kf }) => {
     const lineas = Array.from({ length: 11 }, (_, i) => {
@@ -422,7 +442,7 @@ function conCamara(
 // la clave del hash del fichero. Y el arbol nunca hornea `ciclo` ni `sistema`: usa
 // `var(--ciclo)` y `var(--acento)` simbolicos. Asi que la clave no necesita nada mas.
 const CACHE_MAX = 4
-const cache = new Map<string, React.ReactNode>()
+const cache = new Map<string, React.ReactElement<{ style: React.CSSProperties }>>()
 
 /** Los separadores son caracteres de control, escritos con SECUENCIA DE ESCAPE y nunca
  *  literales: un caracter de control literal es invisible en el fuente, y el dia que un editor
@@ -436,7 +456,7 @@ function claveDe(value: string, cs: Concepto[], dir: unknown): string {
     '\u0004' + d
 }
 
-function construir(value: string, cs: Concepto[], dirCruda: unknown): React.ReactNode {
+function construir(value: string, cs: Concepto[], dirCruda: unknown) {
   const semilla = semillaDe(value)
   // La direccion que trajo el guion, validada contra los registros; lo que falte o no exista,
   // sorteado por semilla. Es la costura de la Fase 7 y hoy ya es el camino real.
@@ -506,18 +526,29 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown): React.Reac
   )
 }
 
-function render({ texto, conceptos, direccion }: PropsComposicion): React.ReactNode {
+function render({ texto, conceptos, direccion, sistema }: PropsComposicion): React.ReactNode {
   const value = texto ?? ''
   const cs: Concepto[] = Array.isArray(conceptos) ? conceptos.slice(0, CUANTOS_CONCEPTOS).filter(Boolean) : []
   const clave = claveDe(value, cs, direccion)
-  const visto = cache.get(clave)
-  if (visto !== undefined) return visto
-  const arbol = construir(value, cs, direccion)
-  if (cache.size >= CACHE_MAX) {
-    const primera = cache.keys().next().value
-    if (primera !== undefined) cache.delete(primera)
+  let arbol = cache.get(clave)
+  if (arbol === undefined) {
+    arbol = construir(value, cs, direccion)
+    if (cache.size >= CACHE_MAX) {
+      const primera = cache.keys().next().value
+      if (primera !== undefined) cache.delete(primera)
+    }
+    cache.set(clave, arbol)
   }
-  cache.set(clave, arbol)
+  // El color se aplica FUERA de la cache: cambiar sistema no puede servir tinta vieja.
+  // cloneElement conserva la misma raiz, sin introducir otro contenedor de unidades.
+  const dir = direccionDesde(direccion, semillaDe(value))
+  if (FONDOS[dir.fondo].tono === 'claro') {
+    const tinta = SISTEMAS[sistema].tinta
+    return React.cloneElement(arbol, { style: { ...arbol.props.style,
+      '--texto': tinta.texto, '--sup': tinta.sup, '--acento': tinta.acento,
+      '--apoyo': tinta.apoyo, '--caja': tinta.sup, '--sombra-pie': 'rgba(255,255,255,.8)'
+    } as React.CSSProperties })
+  }
   return arbol
 }
 

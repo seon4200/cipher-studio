@@ -193,6 +193,7 @@ function Banco() {
   const [camara, setCamara] = useState<IdCamara>('deriva')
   const [tipografia, setTipografia] = useState<IdTipografia>('archivo')
   const [compararTipos, setCompararTipos] = useState(parametrosUrl.get('comparar') === 'tipografias')
+  const [compararTonos, setCompararTonos] = useState(parametrosUrl.get('comparar') === 'tonos')
   const [limiteTipo, setLimiteTipo] = useState(parametrosUrl.get('limite') === '1')
   const [modoTiempo, setModoTiempo] = useState<ModoTiempo>(
     VISTA_INICIAL === 'individual' ? 'correr' : 'posicionar')
@@ -306,21 +307,28 @@ function Banco() {
       ? [] : [`casilla ${caso.casilla}: ${caso.palabra}`]
   }), [])
 
-  const direccionesVista: Direccion[] = compararTipos
+  const direccionesVista: Direccion[] = compararTonos
+    ? (['oscuro', 'claro'] as const).flatMap(tono => {
+      const f = FONDOS_IDENTIDADES.find(x => x.tono === tono)
+      return f ? [{ ...direccionPedida, fondo: f.id, camara: CAMARA_IDENTIDADES }] : []
+    })
+    : compararTipos
     ? Object.values(TIPOGRAFIAS).map(f => ({ ...direccionPedida,
       camara: CAMARA_IDENTIDADES, tipografia: f.id }))
     : DIRECCIONES_IDENTIDADES
   const palabraVista = (d: Direccion) => compararTipos && limiteTipo
     ? TIPOGRAFIAS[d.tipografia].caracterMasAncho.repeat(maxCaracteresPie(d.tipografia))
-    : compararTipos ? palabraRender : 'memoria'
+    : compararTipos || compararTonos ? palabraRender : 'memoria'
 
   if (vista === 'identidades') return (
     <main className="banco-app hoja-app pareja-app">
       <section className="hoja-controles">
         <div>
-          <h1>{compararTipos ? 'Identidades tipograficas · Archivo / Anton' : 'Hoja de identidades'}</h1>
+          <h1>{compararTonos ? 'Identidades · fondo oscuro / claro' : compararTipos
+            ? 'Identidades tipograficas · Archivo / Anton' : 'Hoja de identidades'}</h1>
           <p className="hoja-control-aviso">
-            {compararTipos ? limiteTipo
+            {compararTonos ? 'Misma palabra y estructura. El fondo decide el tono; el sistema decide la tinta.'
+              : compararTipos ? limiteTipo
               ? 'DEGENERADOS: caracter mas ancho al limite de cada fuente. Las palabras son distintas.'
               : 'Misma palabra y mismos cinco ejes; SOLO cambia la tipografia del pie. Cajas en Archivo.'
               : 'COTA SUPERIOR: piezas elegidas por ser opuestas, no prueba la distancia entre vecinas.'}
@@ -337,12 +345,16 @@ function Banco() {
           </select>
         </div>
         <label className="banco-check"><input type="checkbox" checked={compararTipos}
-          onChange={e => setCompararTipos(e.target.checked)} /> Comparar tipografias</label>
-        {compararTipos && <>
+          onChange={e => { setCompararTipos(e.target.checked); setCompararTonos(false) }} /> Comparar tipografias</label>
+        <label className="banco-check"><input type="checkbox" checked={compararTonos}
+          onChange={e => { setCompararTonos(e.target.checked); setCompararTipos(false) }} /> Comparar tonos</label>
+        {compararTonos && direccionesVista.length !== 2 &&
+          <p className="hoja-control-aviso">Falta un fondo real de cada tono: no hay pareja comparable.</p>}
+        {(compararTipos || compararTonos) && <>
           <label className="banco-check"><input type="checkbox" checked={limiteTipo}
             onChange={e => setLimiteTipo(e.target.checked)} /> Caracter mas ancho al limite</label>
           <div className="banco-campo"><label htmlFor="palabra-tipos">Palabra</label>
-            <input id="palabra-tipos" value={palabra} disabled={limiteTipo}
+            <input id="palabra-tipos" value={palabra} disabled={compararTipos && limiteTipo}
               onChange={e => setPalabra(e.target.value)} /></div>
           <div className="banco-sondas-fuente" aria-hidden="true">
             {FUENTES_RENDER.map(f => <span key={f.familia} style={{ fontFamily: f.familia,
@@ -370,7 +382,7 @@ function Banco() {
           escala: 0.45,
           direcciones: direccionesVista,
           sistema: 'voltaje', lienzo: [ANCHO, ALTO], ciclo: CICLO,
-          alcance: compararTipos ? 'tipografia solo en el pie' : 'cota superior'
+          alcance: compararTonos ? 'legibilidad sobre dos tonos' : compararTipos ? 'tipografia solo en el pie' : 'cota superior'
         }, null, 2)}</pre>
       </section>
       <section className="identidades-rejilla" data-tiempo={t.toFixed(3)}>

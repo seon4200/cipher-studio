@@ -2012,12 +2012,28 @@ ni el numero ni `tests/ciclo.js` por esta causa.
 
 ### Fondo claro: `tono` existe, pero todavia no gobierna la tinta
 
-`MetaFondo` declara `tono: 'oscuro' | 'claro'`, pero ninguna ruta de dibujo lo lee.
+~~`MetaFondo` declara `tono: 'oscuro' | 'claro'`, pero ninguna ruta de dibujo lo lee.
 `AnimatedGraphic.tsx:499-515` toma `--fondo`, `--sup`, `--texto`, `--acento` y `--apoyo`
 exclusivamente de `SISTEMAS[sistema]`. Por tanto, marcar un fondo como claro no cambia el texto
 a tinta. Tres fondos del catalogo dependen de resolver como conviven sistema y tono: trama
 tejida, amanecer y comida en familia. Se aplaza a un paso propio para no confundir la prueba de
-identidad del eje fondo con una decision de arquitectura de color.
+identidad del eje fondo con una decision de arquitectura de color.~~
+
+CERRADO el 02/09/2026, en el commit de tono claro y trama tejida: cada sistema declara su
+tinta; escena la aplica fuera de la cache del arbol cuando el fondo es claro. Cambian texto,
+superficie, acento, apoyo y sombra del pie. Los cinco colores originales quedan intactos;
+`clinico` y `calido` ya tenian texto oscuro. El tono no decide una paleta por su cuenta.
+
+Evidencia: `tests/aceptacion/tono-oscuro-claro.png`, palabra memoria, constelacion/quieto/media/
+regular/Archivo, voltaje, t=1.500 s, ciclo 3 s, lienzos 1080x1920 a escala 0.45.
+Cajas claras: fondo #FFFFFF, texto #1A1A1A; oscuras: rgba(9,12,20,.9), texto #FAFAFA.
+Fuentes verificadas por geometria. `trama-tejida-lab-pieza.png` enfrenta lab y banco a 1.503 s
+(el lab avanza en pasos de .0167 s), con las dimensiones escritas en la imagen.
+Porte de `lab-fondos-2.html:318-333`: el grano fijo de .7px se convierte a .294cqmin tomando
+el ancho minimo de 238px del lab. Se ve algo mas marcado en el banco; no se afirma igualdad
+de rasterizado entre esas escalas. Hilos, colores y desplazamiento conservan la referencia.
+Recuento importado del bundle: 36 identidades / 166.470 instancias, incluyendo los pasos
+provisionales de capasApiladas; con piezas de prueba: 104 / 449.280. Interruptor en mapa, version 8.
 
 ### Deudas observadas al portar el primer vecino del catalogo
 
