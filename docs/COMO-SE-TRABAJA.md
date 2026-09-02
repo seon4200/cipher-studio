@@ -162,6 +162,10 @@ referencias anteriores; no son el vocabulario aprobado.
 - **El commit de una pieza nueva nombra el lab y la linea de donde sale.** Quedan decenas de
   piezas por portar; sin esa cita una implementacion puede desviarse en silencio y el
   vocabulario aprobado deja de ser una especificacion verificable.
+- **Cuando la ficha y el lab discrepan, manda el lab.** La ficha se corrige en el MISMO commit;
+  no se inventa geometria para hacer coincidir el codigo con un resumen posterior.
+- **Una pieza no se da por portada sin haberla mirado al lado de su lab.** Compilar demuestra el
+  contrato; la pareja visual demuestra que la traduccion conserva la identidad aprobada.
 
 Los comentarios del código llevan **el porqué escrito encima**. Cuando encuentres
 uno que documenta una trampa, léelo: probablemente estás a punto de caer en ella.

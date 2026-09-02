@@ -2019,6 +2019,41 @@ a tinta. Tres fondos del catalogo dependen de resolver como conviven sistema y t
 tejida, amanecer y comida en familia. Se aplaza a un paso propio para no confundir la prueba de
 identidad del eje fondo con una decision de arquitectura de color.
 
+### Deudas observadas al portar el primer vecino del catalogo
+
+- **`skyline` tiene variacion fija, por decision consciente.** Su dibujo usa `generador(29)` y
+  por tanto las 22 alturas y fases son iguales en todos los videos. No se añade un rango sin
+  mirar extremos: hacerlo ahora repetiria la inflacion de pasos que ya se encontro en
+  `capasApiladas`.
+- **La vista PAREJA sigue acoplada a `constelacion`.** Sus selectores conocen solo
+  `dispersionX / dispersionY / curva / escalaHero`. Desacoplarla es trabajo propio; hasta
+  entonces los pasos 4 x 4 x 4 de `capasApiladas` siguen provisionales y el recuento de 60.450
+  los incluye.
+- **`ANILLOS_FONDO` y `faseAnillo()` estan huerfanas.** No tienen consumidores bajo `src/` ni
+  `tests/` desde que `ondas` dejo de ser anillos. No se borran en este paso: se incorporan al
+  mismo inventario de deuda que las 1.154 lineas huerfanas ya conocidas.
+- **`C:\\graphify\\fase4a-edit` es un clon consumido.** Contuvo borradores y no vuelve a usarse
+  para verificar nada. `calibracion-capaspiladas.patch` si se aplico: su nota esta en este
+  documento desde `17b89ce`.
+
+### Prueba visual de porte contra los labs aprobados
+
+**Condiciones (02/09/2026):** banco y labs servidos solo en local, sin red, APIs, render de video
+ni exportacion; sistema `voltaje`; palabra `memoria`; conceptos `recuerdo / archivo / conexion`.
+Los lienzos del banco miden 389x691 px y los de los labs 381x677 px. Para estructuras se uso
+camara `deriva`, fondo `liso` en el banco, `t = 1,498 s`; para `skyline`, camara `quieto`,
+estructura de prueba `unaCaja`, `t = 1,503 s`. Las seis capturas viven en:
+
+- `tests/aceptacion/porte-red-nodos-lab.png` y `porte-red-nodos-banco.png`;
+- `tests/aceptacion/porte-capas-apiladas-lab.png` y `porte-capas-apiladas-banco.png`;
+- `tests/aceptacion/porte-skyline-lab.png` y `porte-skyline-banco.png`.
+
+`redNodos` porta `docs/motion/lab-estructuras.html:314-331`: esfera giratoria, profundidad,
+22 nodos y **cero aristas**. `capasApiladas` se contrasta con el mismo lab, lineas 198-213, y
+`skyline` con `docs/motion/lab-fondos-2.html:237-251`. La ficha de `red de nodos` prometia
+aristas que el lab nunca dibujo; se corrigio en el mismo commit porque el lab es la fuente que
+manda.
+
 ---
 
 **Regla:** Cuando se cierra una deuda, se tacha en el MISMO commit que la cierra.

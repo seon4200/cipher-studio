@@ -301,6 +301,43 @@ const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
     )
   },
 
+  // Fuente aprobada: docs/motion/lab-estructuras.html:314-331.
+  redNodos: ({ kf, puntos, conceptos }) => {
+    const nodos = Array.from({ length: 22 }, (_, i) => {
+      const y = 1 - (i / 21) * 2
+      const radio = Math.sqrt(Math.max(0, 1 - y * y))
+      const theta = i * 2.399963
+      const nom = kf('redNodo' + i, 41, u => {
+        const a = theta + u * TAU
+        const x = Math.cos(a) * radio * 30
+        const z = Math.sin(a) * radio * 30
+        const yy = y * 20
+        const profundidad = (z + 30) / 60
+        return `transform:translate(-50%,-50%) translate(${x.toFixed(2)}cqmin,${yy.toFixed(2)}cqmin) ` +
+          `scale(${(0.5 + profundidad).toFixed(3)});opacity:${(0.25 + profundidad * 0.7).toFixed(3)};` +
+          `filter:blur(${((1 - profundidad) * 0.12).toFixed(3)}cqmin)`
+      })
+      return <div key={i} style={{
+        ...usa(nom), position: 'absolute', left: '50%', top: '44%',
+        width: '1.9cqmin', height: '1.9cqmin', borderRadius: '50%',
+        background: 'var(--acento)',
+        boxShadow: '0 0 1.8cqmin color-mix(in srgb,var(--acento) 67%,transparent)'
+      }} />
+    })
+    const nomCaja = puntos.map((_, i) => kf('redCaja' + i, 33, u => {
+      const a = 0.06 + (i / Math.max(1, puntos.length)) * 0.34
+      const p = Math.min(1, Math.max(0, (u - a) / 0.26))
+      const e = 1 - Math.pow(1 - p, 3)
+      return `opacity:${e.toFixed(3)};transform:translate(-50%,-50%) scale(${(0.72 + 0.28 * e).toFixed(3)})`
+    }))
+    const cajas = puntos.map((p, i) => (
+      <div key={i} className="es-nodo" style={{
+        ...usa(nomCaja[i]), left: `${p.x}%`, top: `${p.y}%`
+      }}>{caja(conceptos, i)}</div>
+    ))
+    return <>{nodos}{cajas}</>
+  },
+
   /** PIEZA DE PRUEBA. Una sola caja centrada, sin aristas ni heroe. */
   unaCaja: ({ kf, puntos, conceptos }) => {
     const nom = kf('caja0', 25, u => {
