@@ -5,9 +5,9 @@ import { composicion } from './composiciones'
 import { recortarTexto } from '../../shared/texto'
 import { semillaDe } from '../../shared/semilla'
 import {
-  FONDOS, ESTRUCTURAS, CAMARAS, DENSIDADES, RITMOS, direccionDesde, instanciaDe,
+  FONDOS, ESTRUCTURAS, CAMARAS, DENSIDADES, RITMOS, TIPOGRAFIAS, maxCaracteresPie, direccionDesde, instanciaDe,
   ZONA_X_MIN, ZONA_X_MAX, ZONA_Y_MIN,
-  type Direccion, type IdFondo, type IdEstructura, type IdCamara
+  type Direccion, type IdFondo, type IdEstructura, type IdCamara, type IdTipografia
 } from '../../shared/escena'
 import type { Concepto } from '../../shared/conceptos'
 import { FUENTES_RENDER, MUESTRA_FUENTES, faltaLaFuentePorAncho } from './fuentes-render'
@@ -51,7 +51,8 @@ const DIRECCIONES_IDENTIDADES: Direccion[] = FONDOS_IDENTIDADES.flatMap(f =>
     estructura: e.id,
     camara: CAMARA_IDENTIDADES,
     densidad: DENSIDADES[0],
-    ritmo: RITMOS[0]
+    ritmo: RITMOS[0],
+    tipografia: 'archivo'
   })))
 
 const parametrosUrl = new URLSearchParams(window.location.search)
@@ -150,18 +151,20 @@ function EscenaPareja({ caso, lado, rango, t, conceptos, zona, zonaVisible }: {
   )
 }
 
-function EscenaIdentidad({ direccion, t, conceptos, zona, zonaVisible }: {
+function EscenaIdentidad({ direccion, t, conceptos, zona, zonaVisible, palabra = 'memoria' }: {
   direccion: Direccion
+  palabra?: string
   t: number
   conceptos: Concepto[]
   zona: React.CSSProperties
   zonaVisible: boolean
 }) {
-  const palabra = 'memoria'
+  const puede = composicion('escena')?.puedeDibujar({ texto: palabra, conceptos, direccion }) ?? false
   return (
-    <article className="pareja-celda">
+    <article className="pareja-celda" data-tipografia={direccion.tipografia} data-palabra={palabra}>
       <header className="pareja-etiqueta">
-        <strong>{direccion.fondo} × {direccion.estructura}</strong>
+        <strong>{direccion.tipografia} · {palabra}</strong>
+        <span>puedeDibujar: {String(puede)} · {palabra.length} caracteres</span>
         <code>{JSON.stringify(direccion)}</code>
       </header>
       <div className="pareja-marco">
@@ -188,6 +191,9 @@ function Banco() {
   const [fondo, setFondo] = useState<IdFondo>('ondas')
   const [estructura, setEstructura] = useState<IdEstructura>('constelacion')
   const [camara, setCamara] = useState<IdCamara>('deriva')
+  const [tipografia, setTipografia] = useState<IdTipografia>('archivo')
+  const [compararTipos, setCompararTipos] = useState(parametrosUrl.get('comparar') === 'tipografias')
+  const [limiteTipo, setLimiteTipo] = useState(parametrosUrl.get('limite') === '1')
   const [modoTiempo, setModoTiempo] = useState<ModoTiempo>(
     VISTA_INICIAL === 'individual' ? 'correr' : 'posicionar')
   const [t, setT] = useState(
@@ -257,7 +263,7 @@ function Banco() {
   const palabraRender = recortarTexto(palabra)
   const semilla = semillaDe(palabraRender)
   const direccionPedida: Direccion = {
-    fondo, estructura, camara, densidad: DENSIDADES[0], ritmo: RITMOS[0]
+    fondo, estructura, camara, densidad: DENSIDADES[0], ritmo: RITMOS[0], tipografia
   }
   const direccionResuelta = direccionDesde(direccionPedida, semilla)
   const comp = composicion(nombre)
@@ -272,7 +278,7 @@ function Banco() {
     extra: nombre === 'escena'
       ? { conceptos, direccion: direccionPedida }
       : { conceptos }
-  }), [nombre, palabra, conceptos, fondo, estructura, camara])
+  }), [nombre, palabra, conceptos, fondo, estructura, camara, tipografia])
 
   const cambiaConcepto = (i: number, campo: keyof FilaConcepto, valor: string) => {
     setFilas(anteriores => anteriores.map((c, j) => j === i ? { ...c, [campo]: valor } : c))
@@ -300,14 +306,24 @@ function Banco() {
       ? [] : [`casilla ${caso.casilla}: ${caso.palabra}`]
   }), [])
 
+  const direccionesVista: Direccion[] = compararTipos
+    ? Object.values(TIPOGRAFIAS).map(f => ({ ...direccionPedida,
+      camara: CAMARA_IDENTIDADES, tipografia: f.id }))
+    : DIRECCIONES_IDENTIDADES
+  const palabraVista = (d: Direccion) => compararTipos && limiteTipo
+    ? TIPOGRAFIAS[d.tipografia].caracterMasAncho.repeat(maxCaracteresPie(d.tipografia))
+    : compararTipos ? palabraRender : 'memoria'
+
   if (vista === 'identidades') return (
     <main className="banco-app hoja-app pareja-app">
       <section className="hoja-controles">
         <div>
-          <h1>Hoja de identidades · tres fondos por dos estructuras</h1>
+          <h1>{compararTipos ? 'Identidades tipograficas · Archivo / Anton' : 'Hoja de identidades'}</h1>
           <p className="hoja-control-aviso">
-            COTA SUPERIOR: compara piezas elegidas por ser opuestas. Demuestra el techo,
-            no que dos piezas vecinas se distingan. La prueba dura sera constelacion contra red de nodos.
+            {compararTipos ? limiteTipo
+              ? 'DEGENERADOS: caracter mas ancho al limite de cada fuente. Las palabras son distintas.'
+              : 'Misma palabra y mismos cinco ejes; SOLO cambia la tipografia del pie. Cajas en Archivo.'
+              : 'COTA SUPERIOR: piezas elegidas por ser opuestas, no prueba la distancia entre vecinas.'}
           </p>
         </div>
         <div className="banco-campo">
@@ -320,6 +336,22 @@ function Banco() {
             <option value="identidades">Identidades</option>
           </select>
         </div>
+        <label className="banco-check"><input type="checkbox" checked={compararTipos}
+          onChange={e => setCompararTipos(e.target.checked)} /> Comparar tipografias</label>
+        {compararTipos && <>
+          <label className="banco-check"><input type="checkbox" checked={limiteTipo}
+            onChange={e => setLimiteTipo(e.target.checked)} /> Caracter mas ancho al limite</label>
+          <div className="banco-campo"><label htmlFor="palabra-tipos">Palabra</label>
+            <input id="palabra-tipos" value={palabra} disabled={limiteTipo}
+              onChange={e => setPalabra(e.target.value)} /></div>
+          <div className="banco-sondas-fuente" aria-hidden="true">
+            {FUENTES_RENDER.map(f => <span key={f.familia} style={{ fontFamily: f.familia,
+              fontWeight: f.peso }}>{MUESTRA_FUENTES}</span>)}
+          </div>
+          <p className={`banco-fuentes ${fallosFuente?.length === 0 ? 'ok' : 'miente'}`}>
+            {fallosFuente?.length === 0 ? 'Fuentes verificadas por geometria'
+              : `NO juzgar el texto: ${fallosFuente?.join(' · ') ?? 'comprobando fuentes'}`}</p>
+        </>}
         <div className="banco-campo hoja-tiempo">
           <label htmlFor="t-identidades">t = {t.toFixed(3)} s</label>
           <input id="t-identidades" type="range" min="0" max={CICLO} step="0.001"
@@ -329,22 +361,21 @@ function Banco() {
           onChange={e => setZonaVisible(e.target.checked)} /> Superponer zona segura</label>
         <pre className="banco-datos hoja-condiciones">{JSON.stringify({
           composicion: 'visual_escena',
-          palabra: 'memoria',
+          palabras: direccionesVista.map(palabraVista),
           conceptos,
           camara: CAMARA_IDENTIDADES,
           densidad: DENSIDADES[0],
           ritmo: RITMOS[0],
           t,
           escala: 0.45,
-          identidades: DIRECCIONES_IDENTIDADES.length,
-          fondos: FONDOS_IDENTIDADES.map(x => x.id),
-          estructuras: ESTRUCTURAS_IDENTIDADES.map(x => x.id),
-          alcance: 'cota superior: piezas deliberadamente opuestas'
+          direcciones: direccionesVista,
+          sistema: 'voltaje', lienzo: [ANCHO, ALTO], ciclo: CICLO,
+          alcance: compararTipos ? 'tipografia solo en el pie' : 'cota superior'
         }, null, 2)}</pre>
       </section>
       <section className="identidades-rejilla" data-tiempo={t.toFixed(3)}>
-        {DIRECCIONES_IDENTIDADES.map(d => <EscenaIdentidad
-          key={`${d.fondo}:${d.estructura}`} direccion={d} t={t}
+        {direccionesVista.map(d => <EscenaIdentidad
+          key={`${d.fondo}:${d.estructura}:${d.tipografia}`} direccion={d} t={t} palabra={palabraVista(d)}
           conceptos={conceptos} zona={zona} zonaVisible={zonaVisible} />)}
       </section>
     </main>
@@ -519,6 +550,7 @@ function Banco() {
           </div>
 
           <div className="banco-ejes">
+            <div className="banco-campo"><label htmlFor="tipografia">Tipografia del pie</label><select id="tipografia" value={tipografia} onChange={e => setTipografia(e.target.value as IdTipografia)}>{Object.values(TIPOGRAFIAS).map(x => <option key={x.id} value={x.id}>{x.id}</option>)}</select></div>
             <div className="banco-campo"><label htmlFor="fondo">Fondo</label><select id="fondo" value={fondo} onChange={e => setFondo(e.target.value as IdFondo)}>{Object.values(FONDOS).map(x => <option key={x.id} value={x.id}>{x.id}</option>)}</select></div>
             <div className="banco-campo"><label htmlFor="estructura">Estructura</label><select id="estructura" value={estructura} onChange={e => setEstructura(e.target.value as IdEstructura)}>{Object.values(ESTRUCTURAS).map(x => <option key={x.id} value={x.id}>{x.id}</option>)}</select></div>
             <div className="banco-campo"><label htmlFor="camara">Camara</label><select id="camara" value={camara} onChange={e => setCamara(e.target.value as IdCamara)}>{Object.values(CAMARAS).map(x => <option key={x.id} value={x.id}>{x.id}</option>)}</select></div>
