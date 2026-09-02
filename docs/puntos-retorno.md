@@ -4,6 +4,19 @@ Etiquetas a las que se puede volver, y qué está probado de cada una.
 
 ---
 
+## `v-fase4a-primeras-piezas`
+
+La primera estructura nueva (`capasApiladas`) y dos fondos nuevos (`tunel`, `skyline`) entran
+junto con `ondas` corregida contra su lab. La hoja de seis identidades demuestra que el eje
+fondo y el eje estructura producen geometrias distintas. `visual_escena` sigue registrada e
+inactiva: `COMPOSICION_VISUAL='visual_mapa'`, `VERSION_PLANTILLAS=8`.
+
+**Qué hay después de la etiqueta:** faltan las piezas restantes del vocabulario minimo, la
+conexion de fondos claros con tinta y el interruptor de la Fase 4. Volver aqui conserva el
+primer lote real y deja fuera todo eso.
+
+---
+
 ## Sobre la reproducibilidad del render — versión definitiva
 
 Esta sección se ha escrito tres veces. Las dos primeras estaban mal, y el motivo

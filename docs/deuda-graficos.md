@@ -1482,9 +1482,12 @@ se entera hasta verlo.
 
 ### En `escena` esta cerrado, en `mapa` NO
 
-`escena` lo cierra en `constelacionDe`: acota cada x a `[8.33 + semi, 91.67 - semi]` y, si ese
-intervalo queda vacio, centra en 50 y `MAX_CARACTERES_ETIQUETA = 56` hace que ese caso ni llegue
-a pintarse. Medido: 0 de 9000 bordes fuera de zona.
+`escena` lo cierra en la funcion generica `acotarPuntos`: acota cada x a
+`[8.33 + semi, 91.67 - semi]` y, si ese intervalo queda vacio, centra en 50;
+`MAX_CARACTERES_ETIQUETA = 56` hace que ese caso ni llegue a pintarse. Medido otra vez contra
+el bundle en la Fase 4a: la caja maxima mide 82,572 %; su centro pasa de 72 a 50,384 y el borde
+derecho queda exactamente en 91,67 % (990,036 px de 1080), desborde 0 px. Esta deuda es de
+`mapa`, no de `escena`.
 
 **`mapa` NO se ha tocado** —sigue vivo y etiquetado, y tocarlo pedia re-medir sus cuatro
 familias— asi que **conserva el agujero**. Cuando le toque, el arreglo NO es cambiar `acotar()`:
@@ -1893,6 +1896,8 @@ causa inventada y no se persiguen en el paso de la hoja de contactos.
 `conexion`); `t = 1.500 s`; lienzo nativo 1080x1920; miniatura 162x288 (`scale(.15)`);
 comparador `tests/aceptacion/comparar-capturas.js`. El fixture sale de un corpus cerrado de
 136 palabras reales en castellano y guarda los extremos alcanzados, no los limites declarados.
+**`liso` es una pieza de prueba:** `direccionDe` no la sortea. Aquella hoja midio instancias
+sobre un control deliberadamente neutro, no sobre un fondo que pueda salir por loteria.
 
 ### El control repetido es equivalente en miniatura por posicion, no por palabra
 
@@ -1947,6 +1952,11 @@ alcanzados son practicamente los declarados **y** el parametro llega al dibujo s
 lo pise. Lo que fallo fue la lectura en una miniatura al 15 %: el parametro vive a tamano completo,
 pero esa hoja no permite juzgar honestamente su magnitud mirando solo el cerebro reducido.
 
+**`curva`, en observacion:** declara cuatro pasos, pero en las parejas reales al 45 % no se
+distinguen a ojo ni los extremos 2,04 y 8,00: las lineas se leen rectas en ambos. Su aislamiento
+fue tambien la medicion mas debil de los cuatro rangos (34.425 px cambiados y solo 5.317 por
+encima de delta 64). No se toca ahora; se decide cuando se reescriba `constelacion`.
+
 Los cuatro pares de palabras del fixture, comparados directamente, tambien dieron DISTINTO, pero
 esa pasada **no atribuye causalidad**: cambia el pie, las semillas de puntos y los otros tres
 parametros. Por eso los veredictos anteriores proceden del aislamiento con la misma palabra.
@@ -1957,6 +1967,57 @@ aunque entrara correctamente en `hashGrafico` y en `claveDe`. Ese coste solo com
 diagnostico que ya no decide nada: la pregunta abierta es si un espectador distingue dos
 instancias REALES, y se responde con la vista de pareja del banco, usando dos palabras reales.
 Cuando repetir el aislamiento ahorre trabajo que ya duela, se construira entonces.
+
+---
+
+## Primera estructura y primer fondo nuevos: alcance de la hoja de identidades
+
+**Condiciones (01/09/2026):** banco local, composicion `visual_escena`, palabra `memoria`,
+conceptos `recuerdo / archivo / conexion`, camara `quieto`, densidad `media`, ritmo `regular`,
+`t = 1.500 s`. La primera captura tenia cuatro lienzos 1080x1920 a escala 0,45 y vive en
+`tests/aceptacion/hoja-identidades-extremos.png`.
+
+La hoja cruza los fondos reales `ondas / tunel` con las estructuras reales
+`constelacion / capasApiladas`. Es una **COTA SUPERIOR**: las piezas se eligieron por ser
+deliberadamente opuestas. Que las cuatro se distingan demuestra el techo del mecanismo, no que
+dos piezas vecinas se distingan. La prueba dura pendiente es `constelacion` contra `red de nodos`.
+
+Los casos degenerados se midieron con `tunel / capasApiladas / quieto` y el limite real de tres
+conceptos. Una etiqueta cabe dentro de la zona; etiqueta de 80 caracteres, cero conceptos, texto
+vacio y emoji ausente dan `puedeDibujar: false` y cero cajas. La primera pasada descubrio que
+`AnimatedGraphic` no pasaba `extra.direccion` a `puedeDibujar`: el banco decia `true`, pero la
+puerta derivaba otra estructura y caia a respaldo. Se corrigio pasando a la puerta la misma
+direccion que ya recibe el dibujo y que ya forma parte del hash.
+
+**Catorce no son conceptos.** `CUANTOS_CONCEPTOS = 3` es contrato de producto. Los catorce son
+decoradores del eje densidad y se prueban en la Fase 5; no se amplia aqui el contrato de conceptos.
+
+### Cierre de la Fase 4a: el eje fondo carga identidad
+
+La captura `tests/aceptacion/hoja-identidades-seis.png` cruza `ondas / tunel / skyline` con
+`constelacion / capasApiladas`: seis lienzos 1080x1920 a escala 0,45, misma palabra `memoria`,
+mismos conceptos, `quieto / media / regular`, sistema `voltaje` y `t = 1,500 s`.
+
+`ondas` se corrigio para portar las once lineas sinusoidales de
+`docs/motion/lab-fondos.html:90-108`; antes dibujaba anillos y contaminaba la comparacion con
+`tunel`. `skyline` porta las 22 barras de `docs/motion/lab-fondos-2.html:237-251`. Ninguna
+declara rangos sin haber mirado extremos, por lo que el recuento baja honestamente a 8
+identidades legales y 60.320 instancias.
+
+Los tres rangos de `capasApiladas` (`anchoPlano`, `inclinacion`, `flotacion`) siguen con cuatro
+pasos **provisionales**. Esta hoja muestra una sola instancia por identidad y no enfrenta los
+extremos de esos rangos, de modo que no permite contar escalones distinguibles sin adivinar. Se
+calibran cuando exista una pareja u hoja especifica de `capasApiladas`; hasta entonces no se toca
+ni el numero ni `tests/ciclo.js` por esta causa.
+
+### Fondo claro: `tono` existe, pero todavia no gobierna la tinta
+
+`MetaFondo` declara `tono: 'oscuro' | 'claro'`, pero ninguna ruta de dibujo lo lee.
+`AnimatedGraphic.tsx:499-515` toma `--fondo`, `--sup`, `--texto`, `--acento` y `--apoyo`
+exclusivamente de `SISTEMAS[sistema]`. Por tanto, marcar un fondo como claro no cambia el texto
+a tinta. Tres fondos del catalogo dependen de resolver como conviven sistema y tono: trama
+tejida, amanecer y comida en familia. Se aplaza a un paso propio para no confundir la prueba de
+identidad del eje fondo con una decision de arquitectura de color.
 
 ---
 

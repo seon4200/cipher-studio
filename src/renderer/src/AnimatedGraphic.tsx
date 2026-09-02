@@ -534,7 +534,7 @@ export const AnimatedGraphic: React.FC<{
     // `conceptos: null` encontraba su composicion igual y se pintaba a medias — sin aristas,
     // sin conceptos y sin emoji final. Con la puerta cerrada cae al Visual de texto de abajo,
     // que es el respaldo que ya existia y no hay que fabricar.
-    const puede = comp ? comp.puedeDibujar({ texto: palabra, conceptos }) : false
+    const puede = comp ? comp.puedeDibujar({ texto: palabra, conceptos, direccion }) : false
 
     // EL RESPALDO NO ES MUDO. Si el 30% de los Visuales cae a texto hay que verlo en el log, no
     // descubrirlo mirando videos. Va por el mismo canal que los avisos del candado y por la

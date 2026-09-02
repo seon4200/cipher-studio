@@ -64,8 +64,11 @@ body { background: #080b12; color: #eef2ff; }
 .pareja-zona { border-width: 4px; }
 .pareja-zona::before { display: none; }
 
+.identidades-rejilla { display: grid; grid-template-columns: repeat(2, 500px); gap: 18px; align-items: start; }
+
 @media (max-width: 900px) {
   .banco-grid { grid-template-columns: 1fr; }
   .hoja-app { grid-template-columns: 1fr; }
   .pareja-rejilla { grid-template-columns: 500px; }
+  .identidades-rejilla { grid-template-columns: 500px; }
 }
