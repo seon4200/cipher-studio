@@ -26,7 +26,7 @@ import { generador, semillaDe } from '../../../shared/semilla'
 import { CUANTOS_CONCEPTOS, type Concepto } from '../../../shared/conceptos'
 import {
   ESTRUCTURAS, CAMARAS, direccionDesde, PROFUNDIDAD, retardosDecoradores,
-  posicionDecorador, DENSIDAD_A_N, faseAnillo, cabeEnElPie, cabeLaEtiqueta, instanciaDe,
+  posicionDecorador, DENSIDAD_A_N, cabeEnElPie, cabeLaEtiqueta, instanciaDe,
   type IdFondo, type IdEstructura, type IdCamara, type PuntoEscena, type Parametros
 } from '../../../shared/escena'
 import type { Composicion, PropsComposicion } from './index'
@@ -126,38 +126,28 @@ export type DibujoEstructura = (c: CtxEstructura) => React.ReactNode
 // ── EL REGISTRO DE DIBUJOS: FONDOS ──────────────────────────────────────────────────────────
 
 const DIBUJO_FONDOS: Record<IdFondo, DibujoFondo> = {
-  /** UN KEYFRAME POR ANILLO, con su fase: compartir uno solo los hace respirar a la vez y los
-   *  tres se leen como un unico objeto que late. */
-  ondas: ({ kf, params }) => {
-    // Los tres rangos de la pieza. Sin ellos cae a los valores de antes: una pieza tiene que
-    // poder dibujarse aunque el sorteo de parametros falle.
-    const n = Math.max(1, Math.round(params.anillos ?? 3))
-    const amp = params.amplitud ?? 0.05
-    const sep = params.separacion ?? 18
-    const anillos: React.ReactNode[] = []
-    for (let i = 0; i < n; i++) {
-      const fase = faseAnillo(i, n)
+  // Fuente aprobada: docs/motion/lab-fondos.html:90-108.
+  ondas: ({ kf }) => {
+    const lineas = Array.from({ length: 11 }, (_, i) => {
+      const y0 = 12 + i * 13.5
+      const amp = 4 + (i % 3) * 1.6
       const nom = kf('ondas' + i, 33, u => {
-        const p = (u + fase) % 1
-        const s = 1 + amp * Math.sin(p * TAU)
-        const o = 0.20 + 0.10 * Math.sin(p * TAU)
-        return `transform:translate(-50%,-50%) scale(${s.toFixed(4)});opacity:${o.toFixed(3)}`
+        let d = `M0,${y0.toFixed(2)}`
+        for (let x = 0; x <= 90; x += 6) {
+          const y = y0 + Math.sin((x / 90) * TAU * 1.6 + u * TAU + i * 0.5) * amp
+          d += ` L${x},${y.toFixed(2)}`
+        }
+        return `d:path("${d}")`
       })
-      anillos.push(
-        <div key={i} className="es-anillo" style={{
-          ...usa(nom), width: `${(50 + i * sep).toFixed(2)}cqmin`, height: `${(50 + i * sep).toFixed(2)}cqmin`
-        }} />
-      )
-    }
-    return (
-      <>
-        <div className="es-capa" style={{
-          background: 'radial-gradient(ellipse 70% 50% at 50% 42%, var(--sup) 0%, transparent 62%),' +
-            'linear-gradient(170deg, var(--fondo), var(--fondo))'
-        }} />
-        {anillos}
-      </>
-    )
+      return <path key={i} style={usa(nom)} fill="none" stroke="var(--acento)"
+        strokeWidth=".34" opacity={(0.18 + 0.05 * (i % 4)).toFixed(2)} />
+    })
+    return <>
+      <div className="es-capa" style={{
+        background: 'linear-gradient(180deg,var(--fondo),var(--sup),var(--fondo))'
+      }} />
+      <svg className="es-svg" viewBox="0 0 90 160" preserveAspectRatio="none">{lineas}</svg>
+    </>
   },
 
   tunel: ({ kf, params }) => {
@@ -187,6 +177,32 @@ const DIBUJO_FONDOS: Record<IdFondo, DibujoFondo> = {
         {anillos}
       </>
     )
+  },
+
+  // Fuente aprobada: docs/motion/lab-fondos-2.html:237-251. `generador(29)` es el mismo
+  // Lehmer del lab; alturas y fases quedan deterministas sin abrir otro camino de dibujo.
+  skyline: ({ kf }) => {
+    const rnd = generador(29)
+    const ancho = 100 / 22
+    const barras = Array.from({ length: 22 }, (_, i) => {
+      const altura = 14 + rnd() * 44
+      const fase = rnd()
+      const nom = kf('skyline' + i, 25, u =>
+        `transform:scaleY(${(0.72 + 0.28 * Math.sin((u + fase) * TAU)).toFixed(3)})`)
+      return <div key={i} style={{
+        ...usa(nom), position: 'absolute', left: `${(i * ancho).toFixed(2)}%`,
+        bottom: 0, width: `${(ancho * 0.86).toFixed(2)}%`,
+        height: `${altura.toFixed(1)}%`, transformOrigin: '50% 100%',
+        background: 'linear-gradient(180deg,var(--acento),var(--sup))',
+        borderTop: '.2cqmin solid var(--apoyo)'
+      }} />
+    })
+    return <>
+      <div className="es-capa" style={{
+        background: 'linear-gradient(180deg,var(--fondo) 0%,var(--sup) 52%,var(--fondo))'
+      }} />
+      <div className="es-capa">{barras}</div>
+    </>
   },
 
   /** PIEZA DE PRUEBA. Fea a proposito: existe para demostrar que cambiar `direccion.fondo`

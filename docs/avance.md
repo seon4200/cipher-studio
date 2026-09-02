@@ -15,7 +15,7 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 | **2** | Hacer visibles los fallos | ✅ 4/4 · `v-fase2-avisos` |
 | **puente** | El suelo de las pruebas | ✅ · `v-puente-suelo` (`4157e0c`) |
 | **3** | Banco + hoja de contactos | ✅ 2/2 · `v-fase3-hoja` |
-| 4 | Vocabulario mínimo | ⬜ 0/6 |
+| 4 | Vocabulario mínimo | 🟨 1/6 · `v-fase4a-primeras-piezas` |
 | 5 | Densidad y ritmo | ⬜ 0/4 |
 | 6 | Resto del vocabulario | ⬜ 0/4 · **aquí se entrega la meta** |
 | 7 | La IA elige | ⬜ 0/7 |
@@ -61,14 +61,14 @@ producción.
 ## Los tres números del motor
 
 ```
-identidades          6
-instancias   1.401.280
+identidades          8
+instancias      60.320
 ```
 
-El primer fondo y la primera estructura nuevos elevan el repertorio de dos a **seis**
-identidades legales. **Lo que multiplica no son los parámetros: son las piezas.** Las
-parejas a tamaño 45 % confirmaron que los cuatro rangos viven; `curva` sigue en
-observación porque sus cuatro pasos declarados no se distinguen a ojo.
+Dos estructuras reales y tres fondos reales elevan el repertorio a **ocho** identidades
+legales después de aplicar la regla de energía. Corregir `ondas` retiró tres rangos que
+describían la geometría equivocada de anillos; por eso las instancias bajan a 60.320. Es una
+corrección del dato, no una pérdida visual: **lo que multiplica son las piezas**.
 
 **Coste:** 1.60–1.73 intentos/frame contra el listón de 1.30. De ese +0.35, la
 cámara solo cuesta **0.11** → las 16 cámaras no están amenazadas. Falta medir **la

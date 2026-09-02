@@ -304,7 +304,7 @@ function Banco() {
     <main className="banco-app hoja-app pareja-app">
       <section className="hoja-controles">
         <div>
-          <h1>Hoja de identidades · extremos del vocabulario actual</h1>
+          <h1>Hoja de identidades · tres fondos por dos estructuras</h1>
           <p className="hoja-control-aviso">
             COTA SUPERIOR: compara piezas elegidas por ser opuestas. Demuestra el techo,
             no que dos piezas vecinas se distingan. La prueba dura sera constelacion contra red de nodos.
@@ -337,6 +337,8 @@ function Banco() {
           t,
           escala: 0.45,
           identidades: DIRECCIONES_IDENTIDADES.length,
+          fondos: FONDOS_IDENTIDADES.map(x => x.id),
+          estructuras: ESTRUCTURAS_IDENTIDADES.map(x => x.id),
           alcance: 'cota superior: piezas deliberadamente opuestas'
         }, null, 2)}</pre>
       </section>

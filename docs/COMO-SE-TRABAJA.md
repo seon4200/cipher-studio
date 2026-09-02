@@ -159,5 +159,9 @@ Los ocho labs que definen el vocabulario aprobado son, exactamente:
 `lab-fondos-2.html` y `lab-fondos-3.html`. Los otros seis `lab-*.html` son
 referencias anteriores; no son el vocabulario aprobado.
 
+- **El commit de una pieza nueva nombra el lab y la linea de donde sale.** Quedan decenas de
+  piezas por portar; sin esa cita una implementacion puede desviarse en silencio y el
+  vocabulario aprobado deja de ser una especificacion verificable.
+
 Los comentarios del código llevan **el porqué escrito encima**. Cuando encuentres
 uno que documenta una trampa, léelo: probablemente estás a punto de caer en ella.

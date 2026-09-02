@@ -294,18 +294,13 @@ export type MetaCamara = PiezaBase & {
 export const FONDOS = {
   ondas: {
     id: 'ondas',
-    descripcion: 'Fondo oscuro y sereno con anillos concentricos que respiran despacio.',
+    descripcion: 'Once lineas sinusoidales oscuras que se desplazan con fases distintas.',
     energia: 1,
     tono: 'oscuro',
     formatos: ['9:16'],
-    // Los tres mueven CUANTO y COMO respira, nunca QUE es: sigan los valores que sigan, esto
-    // es "anillos concentricos sobre un degradado". El dia que un rango lo convierta en otra
-    // cosa, eso es un fondo nuevo.
-    rangos: [
-      { id: 'anillos', descripcion: 'Cuantos anillos concentricos hay.', min: 2, max: 4, pasos: 3, entero: true },
-      { id: 'amplitud', descripcion: 'Cuanto se ensanchan al respirar.', min: 0.03, max: 0.08, pasos: 4 },
-      { id: 'separacion', descripcion: 'Distancia entre anillos, en cqmin.', min: 14, max: 22, pasos: 5 }
-    ]
+    // Fuente aprobada: docs/motion/lab-fondos.html:90-108. Los rangos anteriores describian
+    // ANILLOS y pertenecian a otra geometria; conservarlos inflaria instancias que no existen.
+    rangos: []
   },
   tunel: {
     id: 'tunel',
@@ -318,6 +313,16 @@ export const FONDOS = {
       { id: 'profundidad', descripcion: 'Cuanto acelera el crecimiento hacia la camara.', min: 1.8, max: 2.4, pasos: 4 },
       { id: 'giro', descripcion: 'Cuanto gira cada anillo durante el avance, en grados.', min: 14, max: 26, pasos: 4 }
     ]
+  },
+  skyline: {
+    id: 'skyline',
+    descripcion: 'Barras verticales que crecen y bajan como un ecualizador urbano.',
+    energia: 2,
+    tono: 'oscuro',
+    formatos: ['9:16'],
+    // Fuente aprobada: docs/motion/lab-fondos-2.html:237-251. No declara pasos hasta que sus
+    // extremos se hayan mirado: inventarlos inflaria el numero que mide la variedad del motor.
+    rangos: []
   },
   liso: {
     id: 'liso',
