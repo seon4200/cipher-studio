@@ -1912,7 +1912,11 @@ exacta se comprueba a tamano completo. No se corrige ni se rebaja el comparador.
 En vertical, `1cqmin = 10,8 px`; un punto porcentual horizontal son 10,8 px y uno vertical son
 19,2 px. Los cuatro parametros se aislaron temporalmente despues de consumir el generador en su
 orden real: misma palabra `memoria`, mismas semillas y mismos otros tres parametros. Se usaron
-los valores reales alcanzados por el fixture; la instrumentacion se retiro antes del commit.
+los valores reales alcanzados por el fixture.
+
+**Limite de esta evidencia:** estos cuatro aislamientos se midieron UNA vez con instrumentacion
+no versionada, retirada antes del commit. Los numeros orientan y demostraron que los cuatro
+rangos viven, pero **no son reproducibles hoy** y no se presentan como una medicion establecida.
 
 - **`dispersionX`**: 1,122452 (`decision`) -> 4,969762 (`camara`). En
   `src/shared/escena.ts`, `p.x + entre(rnd, -dispersionX, dispersionX)` usa el parametro como
@@ -1946,6 +1950,13 @@ pero esa hoja no permite juzgar honestamente su magnitud mirando solo el cerebro
 Los cuatro pares de palabras del fixture, comparados directamente, tambien dieron DISTINTO, pero
 esa pasada **no atribuye causalidad**: cambia el pie, las semillas de puntos y los otros tres
 parametros. Por eso los veredictos anteriores proceden del aislamiento con la misma palabra.
+
+Se decidio NO construir un gancho permanente para repetir aquel aislamiento. El gancho habria
+metido una puerta de pruebas capaz de alterar pixeles dentro del camino de dibujo de produccion,
+aunque entrara correctamente en `hashGrafico` y en `claveDe`. Ese coste solo compraba repetir un
+diagnostico que ya no decide nada: la pregunta abierta es si un espectador distingue dos
+instancias REALES, y se responde con la vista de pareja del banco, usando dos palabras reales.
+Cuando repetir el aislamiento ahorre trabajo que ya duela, se construira entonces.
 
 ---
 

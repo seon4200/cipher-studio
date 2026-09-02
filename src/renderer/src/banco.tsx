@@ -21,7 +21,8 @@ const CICLO = 3
 
 type NombreBanco = 'mapa' | 'escena'
 type ModoTiempo = 'correr' | 'posicionar'
-type VistaBanco = 'individual' | 'hoja'
+type VistaBanco = 'individual' | 'hoja' | 'pareja'
+type IdRangoPareja = 'dispersionX' | 'dispersionY' | 'curva' | 'escalaHero'
 type FilaConcepto = { emoji: string; etiqueta: string }
 type RitmoRaf = { media: number; p95: number; max: number; mayores25: number }
 
@@ -32,6 +33,32 @@ const CONCEPTOS_INICIALES: FilaConcepto[] = [
 ]
 
 const DIRECCION_HOJA = fixtureHoja.identidad as Direccion
+const RANGOS_PAREJA: readonly IdRangoPareja[] = [
+  'dispersionX', 'dispersionY', 'curva', 'escalaHero'
+]
+
+const parametrosUrl = new URLSearchParams(window.location.search)
+const VISTA_INICIAL: VistaBanco = parametrosUrl.get('vista') === 'pareja'
+  ? 'pareja'
+  : parametrosUrl.get('vista') === 'hoja' ? 'hoja' : 'individual'
+const RANGO_INICIAL: IdRangoPareja = RANGOS_PAREJA.includes(
+  parametrosUrl.get('rango') as IdRangoPareja)
+  ? parametrosUrl.get('rango') as IdRangoPareja
+  : 'dispersionX'
+
+const casoConRol = (rol: string) => {
+  const caso = fixtureHoja.casos.find(c => c.roles.includes(rol))
+  if (!caso) throw new Error(`El fixture no contiene ${rol}`)
+  return caso
+}
+
+const PAREJAS = Object.fromEntries(RANGOS_PAREJA.map(id => [id, {
+  minimo: casoConRol(`${id}:min-alcanzable`),
+  maximo: casoConRol(`${id}:max-alcanzable`)
+}])) as Record<IdRangoPareja, {
+  minimo: (typeof fixtureHoja.casos)[number]
+  maximo: (typeof fixtureHoja.casos)[number]
+}>
 
 function graphicHoja(palabra: string, conceptos: Concepto[]): GraphicData {
   return {
@@ -74,16 +101,49 @@ function MiniaturaHoja({ caso, t, conceptos, zona, zonaVisible }: {
   )
 }
 
+function EscenaPareja({ caso, lado, rango, t, conceptos, zona, zonaVisible }: {
+  caso: (typeof fixtureHoja.casos)[number]
+  lado: 'MIN' | 'MAX'
+  rango: IdRangoPareja
+  t: number
+  conceptos: Concepto[]
+  zona: React.CSSProperties
+  zonaVisible: boolean
+}) {
+  const instancia = instanciaDe(caso.palabra, DIRECCION_HOJA)
+  return (
+    <article className="pareja-celda" data-lado={lado.toLowerCase()} data-palabra={caso.palabra}>
+      <header className="pareja-etiqueta">
+        <strong>{lado} · {caso.palabra}</strong>
+        <span>{rango} = {instancia.estructura[rango].toFixed(6)}</span>
+        <code>{JSON.stringify(instancia.estructura)}</code>
+      </header>
+      <div className="pareja-marco">
+        <div className="pareja-escala">
+          <div className="flex" style={{ width: ANCHO, height: ALTO }}>
+            <AnimatedGraphic graphic={graphicHoja(caso.palabra, conceptos)} t={t}
+              modo="pantalla" sistema="voltaje" ciclo={CICLO} />
+          </div>
+          {zonaVisible && <div className="banco-zona pareja-zona" style={zona} />}
+        </div>
+      </div>
+    </article>
+  )
+}
+
 function Banco() {
-  const [vista, setVista] = useState<VistaBanco>('individual')
+  const [vista, setVista] = useState<VistaBanco>(VISTA_INICIAL)
+  const [rangoPareja, setRangoPareja] = useState<IdRangoPareja>(RANGO_INICIAL)
   const [nombre, setNombre] = useState<NombreBanco>('escena')
   const [palabra, setPalabra] = useState('memoria')
   const [filas, setFilas] = useState<FilaConcepto[]>(CONCEPTOS_INICIALES)
   const [fondo, setFondo] = useState<IdFondo>('ondas')
   const [estructura, setEstructura] = useState<IdEstructura>('constelacion')
   const [camara, setCamara] = useState<IdCamara>('deriva')
-  const [modoTiempo, setModoTiempo] = useState<ModoTiempo>('correr')
-  const [t, setT] = useState(0)
+  const [modoTiempo, setModoTiempo] = useState<ModoTiempo>(
+    VISTA_INICIAL === 'individual' ? 'correr' : 'posicionar')
+  const [t, setT] = useState(
+    VISTA_INICIAL === 'individual' ? 0 : fixtureHoja.tiempoSegundos)
   const [zonaVisible, setZonaVisible] = useState(true)
   const [fallosFuente, setFallosFuente] = useState<string[] | null>(null)
   const [ritmoRaf, setRitmoRaf] = useState<RitmoRaf | null>(null)
@@ -179,18 +239,86 @@ function Banco() {
 
   const cambiaVista = (siguiente: VistaBanco) => {
     setVista(siguiente)
-    if (siguiente === 'hoja') {
+    if (siguiente !== 'individual') {
       setModoTiempo('posicionar')
       setT(fixtureHoja.tiempoSegundos)
     }
   }
 
-  const erroresFixture = fixtureHoja.casos.flatMap(caso => {
+  const erroresFixture = useMemo(() => fixtureHoja.casos.flatMap(caso => {
     const actual = instanciaDe(caso.palabra, DIRECCION_HOJA)
     return JSON.stringify(actual.semillas) === JSON.stringify(caso.semillas) &&
       JSON.stringify(actual.estructura) === JSON.stringify(caso.parametrosEstructura)
       ? [] : [`casilla ${caso.casilla}: ${caso.palabra}`]
-  })
+  }), [])
+
+  if (vista === 'pareja') {
+    const pareja = PAREJAS[rangoPareja]
+    return (
+      <main className="banco-app hoja-app pareja-app">
+        <section className="hoja-controles">
+          <div>
+            <h1>Dos instancias reales · extremo alcanzado de {rangoPareja} en el corpus</h1>
+            <p className="hoja-control-aviso">Cambian los cuatro parametros; {rangoPareja}
+              {' '}solo decide que par se selecciona.</p>
+            <p className="banco-nota">Dos AnimatedGraphic reales · escala 45 % · mismo instante</p>
+          </div>
+
+          <div className="banco-campo">
+            <label htmlFor="vista-banco-pareja">Vista</label>
+            <select id="vista-banco-pareja" value={vista}
+              onChange={e => cambiaVista(e.target.value as VistaBanco)}>
+              <option value="individual">Una combinacion</option>
+              <option value="hoja">Hoja de contactos</option>
+              <option value="pareja">Pareja min / max</option>
+            </select>
+          </div>
+
+          <div className="banco-campo">
+            <label htmlFor="rango-pareja">Rango que selecciona el par</label>
+            <select id="rango-pareja" value={rangoPareja}
+              onChange={e => setRangoPareja(e.target.value as IdRangoPareja)}>
+              {RANGOS_PAREJA.map(id => <option key={id} value={id}>{id}</option>)}
+            </select>
+          </div>
+
+          <div className="banco-campo hoja-tiempo">
+            <label htmlFor="t-pareja">t = {t.toFixed(3)} s</label>
+            <input id="t-pareja" type="range" min="0" max={CICLO} step="0.001" value={t}
+              onChange={e => setT(Number(e.target.value))} />
+          </div>
+
+          <label className="banco-check"><input type="checkbox" checked={zonaVisible}
+            onChange={e => setZonaVisible(e.target.checked)} /> Superponer zona segura</label>
+
+          <pre className="banco-datos hoja-condiciones">{JSON.stringify({
+            composicion: fixtureHoja.composicion,
+            identidad: fixtureHoja.identidad,
+            rangoQueSelecciona: rangoPareja,
+            t,
+            escala: 0.45,
+            minimo: {
+              palabra: pareja.minimo.palabra,
+              parametros: pareja.minimo.parametrosEstructura
+            },
+            maximo: {
+              palabra: pareja.maximo.palabra,
+              parametros: pareja.maximo.parametrosEstructura
+            },
+            busqueda: fixtureHoja.busqueda
+          }, null, 2)}</pre>
+        </section>
+
+        <section className="pareja-rejilla" data-rango={rangoPareja}
+          data-tiempo={t.toFixed(3)}>
+          <EscenaPareja caso={pareja.minimo} lado="MIN" rango={rangoPareja} t={t}
+            conceptos={conceptos} zona={zona} zonaVisible={zonaVisible} />
+          <EscenaPareja caso={pareja.maximo} lado="MAX" rango={rangoPareja} t={t}
+            conceptos={conceptos} zona={zona} zonaVisible={zonaVisible} />
+        </section>
+      </main>
+    )
+  }
 
   if (vista === 'hoja') return (
     <main className="banco-app hoja-app">
@@ -208,6 +336,7 @@ function Banco() {
           <select id="vista-banco-hoja" value={vista} onChange={e => cambiaVista(e.target.value as VistaBanco)}>
             <option value="individual">Una combinacion</option>
             <option value="hoja">Hoja de contactos</option>
+            <option value="pareja">Pareja min / max</option>
           </select>
         </div>
         <div className="banco-campo hoja-tiempo">
@@ -267,6 +396,7 @@ function Banco() {
             <select id="vista-banco" value={vista} onChange={e => cambiaVista(e.target.value as VistaBanco)}>
               <option value="individual">Una combinacion</option>
               <option value="hoja">Hoja de contactos</option>
+              <option value="pareja">Pareja min / max</option>
             </select>
           </div>
 

@@ -82,7 +82,7 @@ const fixture = {
   version: 1,
   composicion: 'visual_escena',
   identidad: IDENTIDAD,
-  tiempoSegundos: 0.5,
+  tiempoSegundos: 1.5,
   miniatura: { ancho: 162, alto: 288, escala: 0.15 },
   busqueda: {
     fuente: 'PALABRAS en tests/aceptacion/generar-hoja-contactos.ts',
