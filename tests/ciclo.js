@@ -508,9 +508,9 @@ function conceptos (bundle) {
   ok(typeof REP === 'object' && 'identidades' in REP && 'instancias' in REP,
     'combinacionesLegales devuelve identidades E instancias, no un solo numero',
     JSON.stringify(REP))
-  ok(REP.identidades === 2, 'el repertorio da 2 IDENTIDADES en 9:16', String(REP.identidades))
-  ok(REP.instancias === 1176000, 'y 1.176.000 INSTANCIAS', String(REP.instancias))
-  ok(PRU.identidades === 12, 'con las piezas de prueba, 12 identidades', String(PRU.identidades))
+  ok(REP.identidades === 6, 'el repertorio da 6 IDENTIDADES en 9:16', String(REP.identidades))
+  ok(REP.instancias === 1401280, 'y 1.401.280 INSTANCIAS', String(REP.instancias))
+  ok(PRU.identidades === 24, 'con las piezas de prueba, 24 identidades', String(PRU.identidades))
 
   // LAS INSTANCIAS NUNCA SON MENOS QUE LAS IDENTIDADES: cada identidad tiene al menos una.
   ok(REP.instancias >= REP.identidades, 'instancias >= identidades, siempre',

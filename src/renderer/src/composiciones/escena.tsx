@@ -160,6 +160,35 @@ const DIBUJO_FONDOS: Record<IdFondo, DibujoFondo> = {
     )
   },
 
+  tunel: ({ kf, params }) => {
+    const n = Math.max(1, Math.round(params.anillos ?? 10))
+    const profundidad = params.profundidad ?? 2.1
+    const giro = params.giro ?? 22
+    const anillos = Array.from({ length: n }, (_, i) => {
+      const nom = kf('tunel' + i, 41, u => {
+        const p = (i / n + u) % 1
+        const escala = Math.pow(p, profundidad) * 2.6 + 0.06
+        const opacidad = p < 0.08 ? p / 0.08 : (1 - p) * 0.85
+        return `transform:translate(-50%,-50%) scale(${escala.toFixed(4)}) ` +
+          `rotate(${(p * giro).toFixed(2)}deg);opacity:${opacidad.toFixed(3)}`
+      })
+      return <div key={i} style={{
+        ...usa(nom), position: 'absolute', left: '50%', top: '46%',
+        width: '70cqmin', height: '70cqmin',
+        border: '.55cqmin solid var(--acento)',
+        borderRadius: i % 2 ? '50%' : '14%'
+      }} />
+    })
+    return (
+      <>
+        <div className="es-capa" style={{
+          background: 'radial-gradient(circle at 50% 46%,var(--sup) 0%,var(--fondo) 62%,#010404)'
+        }} />
+        {anillos}
+      </>
+    )
+  },
+
   /** PIEZA DE PRUEBA. Fea a proposito: existe para demostrar que cambiar `direccion.fondo`
    *  cambia el fondo SIN tocar `render`. Si esto no bastara, el registro seria decorativo. */
   liso: () => <div className="es-capa" style={{ background: 'var(--sup)' }} />
@@ -217,6 +246,43 @@ const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
       </div>
     )
     return <>{aristas}{nodos}{hero}</>
+  },
+
+  capasApiladas: ({ kf, puntos, conceptos, params }) => {
+    const ancho = params.anchoPlano ?? 44
+    const inclinacion = params.inclinacion ?? 58
+    const flotacion = params.flotacion ?? 1.2
+
+    const nomPlano = puntos.map((_, i) => kf('capaPlano' + i, 33, u => {
+      const a = 0.05 + (i / Math.max(1, puntos.length)) * 0.24
+      const p = Math.min(1, Math.max(0, (u - a) / 0.30))
+      const e = 1 - Math.pow(1 - p, 3)
+      const fl = Math.sin(u * TAU + i * 0.9) * flotacion
+      return `opacity:${(e * 0.9).toFixed(3)};transform:translate(-50%,-50%) ` +
+        `rotateX(${inclinacion.toFixed(2)}deg) rotateZ(45deg) ` +
+        `translateZ(${((1 - e) * 10 + fl).toFixed(2)}cqmin)`
+    }))
+    const nomEtiqueta = puntos.map((_, i) => kf('capaEtiqueta' + i, 33, u => {
+      const a = 0.10 + (i / Math.max(1, puntos.length)) * 0.24
+      const p = Math.min(1, Math.max(0, (u - a) / 0.26))
+      const e = 1 - Math.pow(1 - p, 3)
+      return `opacity:${e.toFixed(3)};transform:translate(-50%,-50%) ` +
+        `translateX(${((1 - e) * 5).toFixed(2)}cqmin)`
+    }))
+
+    return (
+      <div className="es-capa" style={{ perspective: '120cqmin', transformStyle: 'preserve-3d' }}>
+        {puntos.map((p, i) => <div key={'plano' + i} style={{
+          ...usa(nomPlano[i]), position: 'absolute', left: '50%', top: `${p.y}%`,
+          width: `${ancho.toFixed(2)}cqmin`, height: `${ancho.toFixed(2)}cqmin`,
+          background: 'linear-gradient(135deg,var(--acento),transparent)',
+          border: '.25cqmin solid var(--acento)', transformStyle: 'preserve-3d'
+        }} />)}
+        {puntos.map((p, i) => <div key={'etiqueta' + i} className="es-nodo" style={{
+          ...usa(nomEtiqueta[i]), left: `${p.x}%`, top: `${p.y}%`
+        }}>{caja(conceptos, i)}</div>)}
+      </div>
+    )
   },
 
   /** PIEZA DE PRUEBA. Una sola caja centrada, sin aristas ni heroe. */

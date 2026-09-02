@@ -14,7 +14,7 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 | **1** | El esqueleto | ✅ 10/10 · `v-fase1-escena-inactiva` |
 | **2** | Hacer visibles los fallos | ✅ 4/4 · `v-fase2-avisos` |
 | **puente** | El suelo de las pruebas | ✅ · `v-puente-suelo` (`4157e0c`) |
-| **3** | Banco + hoja de contactos | 🟨 1/2 · `v-fase3-banco` |
+| **3** | Banco + hoja de contactos | ✅ 2/2 · `v-fase3-hoja` |
 | 4 | Vocabulario mínimo | ⬜ 0/6 |
 | 5 | Densidad y ritmo | ⬜ 0/4 |
 | 6 | Resto del vocabulario | ⬜ 0/4 · **aquí se entrega la meta** |
@@ -61,14 +61,14 @@ producción.
 ## Los tres números del motor
 
 ```
-identidades          2
-instancias   1.176.000     ← PROVISIONAL, inflado
+identidades          6
+instancias   1.401.280
 ```
 
-Un millón de dibujos sobre **dos** cosas distintas de ver. **Lo que multiplica no
-son los parámetros: son las piezas.** El millón está inflado porque dos instancias
-de la misma identidad *"se parecen demasiado"*: `pasos` declara escalones que el
-ojo no distingue. Se calibra contra la hoja de contactos de la Fase 3.
+El primer fondo y la primera estructura nuevos elevan el repertorio de dos a **seis**
+identidades legales. **Lo que multiplica no son los parámetros: son las piezas.** Las
+parejas a tamaño 45 % confirmaron que los cuatro rangos viven; `curva` sigue en
+observación porque sus cuatro pasos declarados no se distinguen a ojo.
 
 **Coste:** 1.60–1.73 intentos/frame contra el listón de 1.30. De ese +0.35, la
 cámara solo cuesta **0.11** → las 16 cámaras no están amenazadas. Falta medir **la
@@ -76,14 +76,14 @@ pendiente**, no el desnivel: cuánto sube el coste por elemento añadido.
 
 ---
 
-## FASE 3 · Banco + hoja de contactos — en curso
+## FASE 3 · Banco + hoja de contactos — cerrada
 
 *Escribir una pieza es barato; **mirarla** cuesta un render, y eso se repite 65
 veces.*
 
 - ✅ 3.5 **El banco de pruebas**: monta la composición **real**, sin lazo de
   captura ni FFmpeg. No un serializador, no un segundo emisor
-- ⬜ 3.6 **Hoja de contactos** + calibrar `pasos` contra ella
+- ✅ 3.6 **Hoja de contactos** + calibrar `pasos` contra ella
 
 > **Una herramienta se construye cuando el trabajo que ahorra ya duele, no cuando
 > se puede imaginar que dolerá.**
@@ -106,7 +106,7 @@ deja de mirar una por una: antes de la Fase 6, cuando entran 31 piezas por lotes
 *El antiguo punto 3.0 (determinismo del render) se retiró: resultó no ser
 bloqueante. Ver `puntos-retorno.md`.*
 
-**Siguiente:** 3.6, hoja de contactos y calibración perceptiva de `pasos`.
+**Siguiente:** Fase 4, vocabulario mínimo e interruptor todavía separado.
 
 ## Fases 4 a 10
 

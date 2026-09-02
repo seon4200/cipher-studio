@@ -21,7 +21,7 @@ const CICLO = 3
 
 type NombreBanco = 'mapa' | 'escena'
 type ModoTiempo = 'correr' | 'posicionar'
-type VistaBanco = 'individual' | 'hoja' | 'pareja'
+type VistaBanco = 'individual' | 'hoja' | 'pareja' | 'identidades'
 type IdRangoPareja = 'dispersionX' | 'dispersionY' | 'curva' | 'escalaHero'
 type FilaConcepto = { emoji: string; etiqueta: string }
 type RitmoRaf = { media: number; p95: number; max: number; mayores25: number }
@@ -36,11 +36,30 @@ const DIRECCION_HOJA = fixtureHoja.identidad as Direccion
 const RANGOS_PAREJA: readonly IdRangoPareja[] = [
   'dispersionX', 'dispersionY', 'curva', 'escalaHero'
 ]
+const esPrueba = (p: object) => 'prueba' in p && p.prueba === true
+const FONDOS_IDENTIDADES = Object.values(FONDOS).filter(p => !esPrueba(p))
+const ESTRUCTURAS_IDENTIDADES = Object.values(ESTRUCTURAS).filter(p => !esPrueba(p))
+const META_CAMARA_IDENTIDADES = Object.values(CAMARAS)
+  .find(p => !esPrueba(p) && p.energia === 0)
+if (!META_CAMARA_IDENTIDADES) {
+  throw new Error('La hoja de identidades necesita una camara real de energia 0')
+}
+const CAMARA_IDENTIDADES: IdCamara = META_CAMARA_IDENTIDADES.id
+const DIRECCIONES_IDENTIDADES: Direccion[] = FONDOS_IDENTIDADES.flatMap(f =>
+  ESTRUCTURAS_IDENTIDADES.map(e => ({
+    fondo: f.id,
+    estructura: e.id,
+    camara: CAMARA_IDENTIDADES,
+    densidad: DENSIDADES[0],
+    ritmo: RITMOS[0]
+  })))
 
 const parametrosUrl = new URLSearchParams(window.location.search)
-const VISTA_INICIAL: VistaBanco = parametrosUrl.get('vista') === 'pareja'
-  ? 'pareja'
-  : parametrosUrl.get('vista') === 'hoja' ? 'hoja' : 'individual'
+const VISTA_INICIAL: VistaBanco = parametrosUrl.get('vista') === 'identidades'
+  ? 'identidades'
+  : parametrosUrl.get('vista') === 'pareja'
+    ? 'pareja'
+    : parametrosUrl.get('vista') === 'hoja' ? 'hoja' : 'individual'
 const RANGO_INICIAL: IdRangoPareja = RANGOS_PAREJA.includes(
   parametrosUrl.get('rango') as IdRangoPareja)
   ? parametrosUrl.get('rango') as IdRangoPareja
@@ -123,6 +142,35 @@ function EscenaPareja({ caso, lado, rango, t, conceptos, zona, zonaVisible }: {
           <div className="flex" style={{ width: ANCHO, height: ALTO }}>
             <AnimatedGraphic graphic={graphicHoja(caso.palabra, conceptos)} t={t}
               modo="pantalla" sistema="voltaje" ciclo={CICLO} />
+          </div>
+          {zonaVisible && <div className="banco-zona pareja-zona" style={zona} />}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function EscenaIdentidad({ direccion, t, conceptos, zona, zonaVisible }: {
+  direccion: Direccion
+  t: number
+  conceptos: Concepto[]
+  zona: React.CSSProperties
+  zonaVisible: boolean
+}) {
+  const palabra = 'memoria'
+  return (
+    <article className="pareja-celda">
+      <header className="pareja-etiqueta">
+        <strong>{direccion.fondo} × {direccion.estructura}</strong>
+        <code>{JSON.stringify(direccion)}</code>
+      </header>
+      <div className="pareja-marco">
+        <div className="pareja-escala">
+          <div className="flex" style={{ width: ANCHO, height: ALTO }}>
+            <AnimatedGraphic graphic={{
+              type: 'visual_escena', value: palabra,
+              extra: { conceptos, direccion }
+            }} t={t} modo="pantalla" sistema="voltaje" ciclo={CICLO} />
           </div>
           {zonaVisible && <div className="banco-zona pareja-zona" style={zona} />}
         </div>
@@ -252,6 +300,54 @@ function Banco() {
       ? [] : [`casilla ${caso.casilla}: ${caso.palabra}`]
   }), [])
 
+  if (vista === 'identidades') return (
+    <main className="banco-app hoja-app pareja-app">
+      <section className="hoja-controles">
+        <div>
+          <h1>Hoja de identidades · extremos del vocabulario actual</h1>
+          <p className="hoja-control-aviso">
+            COTA SUPERIOR: compara piezas elegidas por ser opuestas. Demuestra el techo,
+            no que dos piezas vecinas se distingan. La prueba dura sera constelacion contra red de nodos.
+          </p>
+        </div>
+        <div className="banco-campo">
+          <label htmlFor="vista-banco-identidades">Vista</label>
+          <select id="vista-banco-identidades" value={vista}
+            onChange={e => cambiaVista(e.target.value as VistaBanco)}>
+            <option value="individual">Una combinacion</option>
+            <option value="hoja">Hoja de contactos</option>
+            <option value="pareja">Pareja min / max</option>
+            <option value="identidades">Identidades</option>
+          </select>
+        </div>
+        <div className="banco-campo hoja-tiempo">
+          <label htmlFor="t-identidades">t = {t.toFixed(3)} s</label>
+          <input id="t-identidades" type="range" min="0" max={CICLO} step="0.001"
+            value={t} onChange={e => setT(Number(e.target.value))} />
+        </div>
+        <label className="banco-check"><input type="checkbox" checked={zonaVisible}
+          onChange={e => setZonaVisible(e.target.checked)} /> Superponer zona segura</label>
+        <pre className="banco-datos hoja-condiciones">{JSON.stringify({
+          composicion: 'visual_escena',
+          palabra: 'memoria',
+          conceptos,
+          camara: CAMARA_IDENTIDADES,
+          densidad: DENSIDADES[0],
+          ritmo: RITMOS[0],
+          t,
+          escala: 0.45,
+          identidades: DIRECCIONES_IDENTIDADES.length,
+          alcance: 'cota superior: piezas deliberadamente opuestas'
+        }, null, 2)}</pre>
+      </section>
+      <section className="identidades-rejilla" data-tiempo={t.toFixed(3)}>
+        {DIRECCIONES_IDENTIDADES.map(d => <EscenaIdentidad
+          key={`${d.fondo}:${d.estructura}`} direccion={d} t={t}
+          conceptos={conceptos} zona={zona} zonaVisible={zonaVisible} />)}
+      </section>
+    </main>
+  )
+
   if (vista === 'pareja') {
     const pareja = PAREJAS[rangoPareja]
     return (
@@ -271,6 +367,7 @@ function Banco() {
               <option value="individual">Una combinacion</option>
               <option value="hoja">Hoja de contactos</option>
               <option value="pareja">Pareja min / max</option>
+              <option value="identidades">Identidades</option>
             </select>
           </div>
 
@@ -337,6 +434,7 @@ function Banco() {
             <option value="individual">Una combinacion</option>
             <option value="hoja">Hoja de contactos</option>
             <option value="pareja">Pareja min / max</option>
+            <option value="identidades">Identidades</option>
           </select>
         </div>
         <div className="banco-campo hoja-tiempo">
@@ -397,6 +495,7 @@ function Banco() {
               <option value="individual">Una combinacion</option>
               <option value="hoja">Hoja de contactos</option>
               <option value="pareja">Pareja min / max</option>
+              <option value="identidades">Identidades</option>
             </select>
           </div>
 

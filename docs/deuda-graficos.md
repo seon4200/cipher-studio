@@ -1893,6 +1893,8 @@ causa inventada y no se persiguen en el paso de la hoja de contactos.
 `conexion`); `t = 1.500 s`; lienzo nativo 1080x1920; miniatura 162x288 (`scale(.15)`);
 comparador `tests/aceptacion/comparar-capturas.js`. El fixture sale de un corpus cerrado de
 136 palabras reales en castellano y guarda los extremos alcanzados, no los limites declarados.
+**`liso` es una pieza de prueba:** `direccionDe` no la sortea. Aquella hoja midio instancias
+sobre un control deliberadamente neutro, no sobre un fondo que pueda salir por loteria.
 
 ### El control repetido es equivalente en miniatura por posicion, no por palabra
 
@@ -1947,6 +1949,11 @@ alcanzados son practicamente los declarados **y** el parametro llega al dibujo s
 lo pise. Lo que fallo fue la lectura en una miniatura al 15 %: el parametro vive a tamano completo,
 pero esa hoja no permite juzgar honestamente su magnitud mirando solo el cerebro reducido.
 
+**`curva`, en observacion:** declara cuatro pasos, pero en las parejas reales al 45 % no se
+distinguen a ojo ni los extremos 2,04 y 8,00: las lineas se leen rectas en ambos. Su aislamiento
+fue tambien la medicion mas debil de los cuatro rangos (34.425 px cambiados y solo 5.317 por
+encima de delta 64). No se toca ahora; se decide cuando se reescriba `constelacion`.
+
 Los cuatro pares de palabras del fixture, comparados directamente, tambien dieron DISTINTO, pero
 esa pasada **no atribuye causalidad**: cambia el pie, las semillas de puntos y los otros tres
 parametros. Por eso los veredictos anteriores proceden del aislamiento con la misma palabra.
@@ -1957,6 +1964,30 @@ aunque entrara correctamente en `hashGrafico` y en `claveDe`. Ese coste solo com
 diagnostico que ya no decide nada: la pregunta abierta es si un espectador distingue dos
 instancias REALES, y se responde con la vista de pareja del banco, usando dos palabras reales.
 Cuando repetir el aislamiento ahorre trabajo que ya duela, se construira entonces.
+
+---
+
+## Primera estructura y primer fondo nuevos: alcance de la hoja de identidades
+
+**Condiciones (01/09/2026):** banco local, composicion `visual_escena`, palabra `memoria`,
+conceptos `recuerdo / archivo / conexion`, camara `quieto`, densidad `media`, ritmo `regular`,
+`t = 1.500 s`, cuatro lienzos 1080x1920 mostrados a escala 0,45. La captura versionada es
+`tests/aceptacion/hoja-identidades-extremos.png`.
+
+La hoja cruza los fondos reales `ondas / tunel` con las estructuras reales
+`constelacion / capasApiladas`. Es una **COTA SUPERIOR**: las piezas se eligieron por ser
+deliberadamente opuestas. Que las cuatro se distingan demuestra el techo del mecanismo, no que
+dos piezas vecinas se distingan. La prueba dura pendiente es `constelacion` contra `red de nodos`.
+
+Los casos degenerados se midieron con `tunel / capasApiladas / quieto` y el limite real de tres
+conceptos. Una etiqueta cabe dentro de la zona; etiqueta de 80 caracteres, cero conceptos, texto
+vacio y emoji ausente dan `puedeDibujar: false` y cero cajas. La primera pasada descubrio que
+`AnimatedGraphic` no pasaba `extra.direccion` a `puedeDibujar`: el banco decia `true`, pero la
+puerta derivaba otra estructura y caia a respaldo. Se corrigio pasando a la puerta la misma
+direccion que ya recibe el dibujo y que ya forma parte del hash.
+
+**Catorce no son conceptos.** `CUANTOS_CONCEPTOS = 3` es contrato de producto. Los catorce son
+decoradores del eje densidad y se prueban en la Fase 5; no se amplia aqui el contrato de conceptos.
 
 ---
 

@@ -307,6 +307,18 @@ export const FONDOS = {
       { id: 'separacion', descripcion: 'Distancia entre anillos, en cqmin.', min: 14, max: 22, pasos: 5 }
     ]
   },
+  tunel: {
+    id: 'tunel',
+    descripcion: 'Tunel de anillos que avanza hacia la camara y crea profundidad frontal.',
+    energia: 2,
+    tono: 'oscuro',
+    formatos: ['9:16'],
+    rangos: [
+      { id: 'anillos', descripcion: 'Cuantos anillos atraviesan el tunel.', min: 8, max: 12, pasos: 5, entero: true },
+      { id: 'profundidad', descripcion: 'Cuanto acelera el crecimiento hacia la camara.', min: 1.8, max: 2.4, pasos: 4 },
+      { id: 'giro', descripcion: 'Cuanto gira cada anillo durante el avance, en grados.', min: 14, max: 26, pasos: 4 }
+    ]
+  },
   liso: {
     id: 'liso',
     descripcion: 'Fondo plano de un solo color, sin movimiento. Pieza de prueba.',
@@ -342,6 +354,29 @@ export const ESTRUCTURAS = {
         x: p.x + entre(rnd, -(pa.dispersionX ?? 3), pa.dispersionX ?? 3),
         y: p.y + entre(rnd, -(pa.dispersionY ?? 2.5), pa.dispersionY ?? 2.5)
       })), etiquetas, FRANJA_TEXTO_Y)
+  },
+  capasApiladas: {
+    id: 'capasApiladas',
+    descripcion: 'Tres planos isometricos etiquetados, suspendidos uno sobre otro.',
+    energia: 1,
+    formatos: ['9:16'],
+    minConceptos: 1,
+    presupuestoTexto: FRANJA_TEXTO_Y,
+    rangos: [
+      { id: 'anchoPlano', descripcion: 'Tamano de cada plano isometrico, en cqmin.', min: 38, max: 48, pasos: 4 },
+      { id: 'inclinacion', descripcion: 'Inclinacion vertical de los planos, en grados.', min: 52, max: 64, pasos: 4 },
+      { id: 'flotacion', descripcion: 'Amplitud de la flotacion entre planos, en cqmin.', min: 0.5, max: 1.5, pasos: 4 }
+    ],
+    puntos: (rnd: () => number, etiquetas: readonly string[]) => {
+      const n = Math.min(CUANTOS_CONCEPTOS, etiquetas.length);
+      if (n === 0) return [];
+      const inicio = n === 1 ? 43 : 29;
+      const paso = n === 1 ? 0 : 14;
+      return acotarPuntos(Array.from({ length: n }, (_, i) => ({
+        x: 72,
+        y: inicio + i * paso + entre(rnd, -0.8, 0.8)
+      })), etiquetas, FRANJA_TEXTO_Y);
+    }
   },
   unaCaja: {
     id: 'unaCaja',
