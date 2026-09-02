@@ -66,6 +66,22 @@ body { background: #080b12; color: #eef2ff; }
 
 .identidades-rejilla { display: grid; grid-template-columns: repeat(2, 500px); gap: 18px; align-items: start; }
 
+.tira-app { display: grid; grid-template-columns: 290px minmax(1100px, 1fr); gap: 18px; align-items: start; }
+.tira-controles { position: sticky; top: 16px; display: grid; gap: 13px; padding: 18px; border: 1px solid #293044; border-radius: 16px; background: #111622; }
+.tira-controles h1, .tira-controles p { margin: 0; }
+.tira-condiciones { max-height: 470px; overflow: auto; font-size: 9px; }
+.tira-contenido { display: grid; gap: 18px; }
+.tira-fila { display: grid; grid-template-columns: 72px repeat(5, 207px); gap: 10px; align-items: start; }
+.tira-fila > h2 { margin: 92px 0 0; color: #f8fafc; font-size: 16px; line-height: 1.1; }
+.tira-fila > h2 small { color: #8f9bb5; font-size: 10px; }
+.tira-celda { display: grid; gap: 6px; padding: 5px; border: 1px solid #293044; border-radius: 9px; background: #111622; }
+.tira-etiqueta { display: grid; gap: 2px; min-height: 78px; color: #dce5f8; font-size: 9px; overflow-wrap: anywhere; }
+.tira-etiqueta strong { color: #fff; font-size: 13px; }
+.tira-etiqueta span { color: #7edfff; }
+.tira-etiqueta code { color: #aeb8d0; font: 7px Consolas, monospace; }
+.tira-marco { width: 194px; height: 346px; overflow: hidden; border: 1px solid #35415d; border-radius: 6px; background: #000; }
+.tira-escala { position: relative; width: 1080px; height: 1920px; transform: scale(.18); transform-origin: top left; }
+
 @media (max-width: 900px) {
   .banco-grid { grid-template-columns: 1fr; }
   .hoja-app { grid-template-columns: 1fr; }

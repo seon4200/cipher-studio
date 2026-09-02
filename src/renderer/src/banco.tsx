@@ -22,16 +22,40 @@ const CICLO = 3
 
 type NombreBanco = 'mapa' | 'escena'
 type ModoTiempo = 'correr' | 'posicionar'
-type VistaBanco = 'individual' | 'hoja' | 'pareja' | 'identidades'
+type VistaBanco = 'individual' | 'hoja' | 'pareja' | 'identidades' | 'tira'
 type CasoPareja = { palabra: string; parametrosEstructura: Record<string, number> }
 type Pareja = { minimo: CasoPareja; maximo: CasoPareja }
 type FilaConcepto = { emoji: string; etiqueta: string }
+type CasoTira = { palabra: string; motivo: string; conceptos: Concepto[] }
 type RitmoRaf = { media: number; p95: number; max: number; mayores25: number }
 
 const CONCEPTOS_INICIALES: FilaConcepto[] = [
   { emoji: '🧠', etiqueta: 'recuerdo' },
   { emoji: '🗂️', etiqueta: 'archivo' },
   { emoji: '🔗', etiqueta: 'conexion' }
+]
+
+const CASOS_TIRA: CasoTira[] = [
+  { palabra: 'voz', motivo: 'corta', conceptos: [
+    { emoji: '🔊', etiqueta: 'sonido' }, { emoji: '🎙️', etiqueta: 'narración' },
+    { emoji: '👤', etiqueta: 'persona' }
+  ] },
+  { palabra: 'responsabilidades', motivo: 'larga', conceptos: [
+    { emoji: '⚖️', etiqueta: 'deber' }, { emoji: '🧭', etiqueta: 'decisión' },
+    { emoji: '🤝', etiqueta: 'compromiso' }
+  ] },
+  { palabra: 'vértigo', motivo: 'con acento', conceptos: [
+    { emoji: '🌀', etiqueta: 'giro' }, { emoji: '🧗', etiqueta: 'altura' },
+    { emoji: '⚡', etiqueta: 'impulso' }
+  ] },
+  { palabra: 'teórico-práctico', motivo: 'compuesta con guion', conceptos: [
+    { emoji: '📚', etiqueta: 'teoría' }, { emoji: '🛠️', etiqueta: 'práctica' },
+    { emoji: '🔗', etiqueta: 'conexión' }
+  ] },
+  { palabra: 'horizonte', motivo: 'longitud media', conceptos: [
+    { emoji: '🌅', etiqueta: 'futuro' }, { emoji: '🧭', etiqueta: 'rumbo' },
+    { emoji: '🌍', etiqueta: 'mundo' }
+  ] }
 ]
 
 const DIRECCION_HOJA = fixtureHoja.identidad as Direccion
@@ -55,7 +79,9 @@ const DIRECCIONES_IDENTIDADES: Direccion[] = FONDOS_IDENTIDADES.flatMap(f =>
   })))
 
 const parametrosUrl = new URLSearchParams(window.location.search)
-const VISTA_INICIAL: VistaBanco = parametrosUrl.get('vista') === 'identidades'
+const VISTA_INICIAL: VistaBanco = parametrosUrl.get('vista') === 'tira'
+  ? 'tira'
+  : parametrosUrl.get('vista') === 'identidades'
   ? 'identidades'
   : parametrosUrl.get('vista') === 'pareja'
     ? 'pareja'
@@ -163,6 +189,39 @@ function EscenaIdentidad({ direccion, t, conceptos, zona, zonaVisible, palabra =
             }} t={t} modo="pantalla" sistema="voltaje" ciclo={CICLO} />
           </div>
           {zonaVisible && <div className="banco-zona pareja-zona" style={zona} />}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function CeldaTira({ caso, composicion, t }: {
+  caso: CasoTira
+  composicion: 'mapa' | 'escena'
+  t: number
+}) {
+  const palabra = recortarTexto(caso.palabra)
+  const semilla = semillaDe(palabra)
+  // Sin direccion explicita: es el mismo respaldo determinista que usa el render real.
+  const direccion = composicion === 'escena' ? direccionDesde(undefined, semilla) : null
+  const graphic: GraphicData = {
+    type: composicion === 'escena' ? 'visual_escena' : 'visual_mapa',
+    value: caso.palabra,
+    extra: { conceptos: caso.conceptos }
+  }
+  return (
+    <article className="tira-celda" data-composicion={composicion} data-palabra={caso.palabra}>
+      <header className="tira-etiqueta">
+        <strong>{caso.palabra}</strong>
+        <span>{caso.motivo} · semilla {semilla}</span>
+        {direccion && <code>{JSON.stringify(direccion)}</code>}
+      </header>
+      <div className="tira-marco">
+        <div className="tira-escala">
+          <div style={{ display: 'flex', width: ANCHO, height: ALTO }}>
+            <AnimatedGraphic graphic={graphic} t={t} modo="pantalla"
+              sistema="voltaje" ciclo={CICLO} />
+          </div>
         </div>
       </div>
     </article>
@@ -319,6 +378,57 @@ function Banco() {
     ? TIPOGRAFIAS[d.tipografia].caracterMasAncho.repeat(maxCaracteresPie(d.tipografia))
     : compararTipos || compararTonos ? palabraRender : 'memoria'
 
+  if (vista === 'tira') return (
+    <main className="banco-app tira-app">
+      <section className="tira-controles">
+        <div>
+          <h1>Tira · mapa actual frente a escena</h1>
+          <p className="hoja-control-aviso">Cinco Visuales consecutivos. Las dos filas usan
+            palabras, conceptos y tiempo identicos. Escena sortea cada direccion desde la
+            palabra, sin identidad fijada.</p>
+        </div>
+        <div className="banco-campo">
+          <label htmlFor="vista-banco-tira">Vista</label>
+          <select id="vista-banco-tira" value={vista}
+            onChange={e => cambiaVista(e.target.value as VistaBanco)}>
+            <option value="individual">Una combinacion</option>
+            <option value="hoja">Hoja de contactos</option>
+            <option value="pareja">Pareja min / max</option>
+            <option value="identidades">Identidades</option>
+            <option value="tira">Tira mapa / escena</option>
+          </select>
+        </div>
+        <div className="banco-campo hoja-tiempo">
+          <label htmlFor="t-tira">t = {t.toFixed(3)} s</label>
+          <input id="t-tira" type="range" min="0" max={CICLO} step="0.001"
+            value={t} onChange={e => setT(Number(e.target.value))} />
+        </div>
+        <p className="banco-nota">
+          Lienzo 1080×1920 · escala 0.18 · sistema voltaje · ciclo 3 s
+        </p>
+        <pre className="banco-datos tira-condiciones">{JSON.stringify({
+          composiciones: ['visual_mapa', 'visual_escena'],
+          palabras: CASOS_TIRA.map(c => c.palabra),
+          conceptos: CASOS_TIRA.map(c => c.conceptos),
+          t, escala: 0.18, sistema: 'voltaje', lienzo: [ANCHO, ALTO], ciclo: CICLO,
+          direccionEscena: 'direccionDesde(undefined, semillaDe(recortarTexto(palabra)))'
+        }, null, 2)}</pre>
+      </section>
+      <section className="tira-contenido" data-tiempo={t.toFixed(3)}>
+        <div className="tira-fila">
+          <h2>MAPA<br /><small>actual</small></h2>
+          {CASOS_TIRA.map(c => <CeldaTira key={`mapa:${c.palabra}`}
+            caso={c} composicion="mapa" t={t} />)}
+        </div>
+        <div className="tira-fila">
+          <h2>ESCENA<br /><small>loteria real</small></h2>
+          {CASOS_TIRA.map(c => <CeldaTira key={`escena:${c.palabra}`}
+            caso={c} composicion="escena" t={t} />)}
+        </div>
+      </section>
+    </main>
+  )
+
   if (vista === 'identidades') return (
     <main className="banco-app hoja-app pareja-app">
       <section className="hoja-controles">
@@ -341,6 +451,7 @@ function Banco() {
             <option value="hoja">Hoja de contactos</option>
             <option value="pareja">Pareja min / max</option>
             <option value="identidades">Identidades</option>
+            <option value="tira">Tira mapa / escena</option>
           </select>
         </div>
         <label className="banco-check"><input type="checkbox" checked={compararTipos}
@@ -413,6 +524,7 @@ function Banco() {
               <option value="hoja">Hoja de contactos</option>
               <option value="pareja">Pareja min / max</option>
               <option value="identidades">Identidades</option>
+              <option value="tira">Tira mapa / escena</option>
             </select>
           </div>
 
@@ -487,6 +599,7 @@ function Banco() {
             <option value="hoja">Hoja de contactos</option>
             <option value="pareja">Pareja min / max</option>
             <option value="identidades">Identidades</option>
+            <option value="tira">Tira mapa / escena</option>
           </select>
         </div>
         <div className="banco-campo hoja-tiempo">
@@ -548,6 +661,7 @@ function Banco() {
               <option value="hoja">Hoja de contactos</option>
               <option value="pareja">Pareja min / max</option>
               <option value="identidades">Identidades</option>
+              <option value="tira">Tira mapa / escena</option>
             </select>
           </div>
 
