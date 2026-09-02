@@ -388,7 +388,9 @@ export const ESTRUCTURAS = {
     descripcion: 'Esfera giratoria de veintidos puntos con profundidad, sin aristas.',
     energia: 1,
     formatos: ['9:16'],
-    minConceptos: CUANTOS_CONCEPTOS,
+    // La esfera existe con independencia de las etiquetas. El lab enseña tres conceptos, pero
+    // eso es su caso de muestra, no un requisito geometrico de la pieza.
+    minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y,
     // Fuente aprobada: docs/motion/lab-estructuras.html:314-331.
     // `sem(23)` no altera la pieza del lab: sus nodos no consumen `rnd()`.

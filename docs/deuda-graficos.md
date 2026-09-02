@@ -2054,6 +2054,19 @@ estructura de prueba `unaCaja`, `t = 1,503 s`. Las seis capturas viven en:
 aristas que el lab nunca dibujo; se corrigio en el mismo commit porque el lab es la fuente que
 manda.
 
+**Recomprobacion de las capturas (02/09/2026):** los seis ficheros versionados son distintos
+por contenido y por SHA-256. Se inspeccionaron las tres parejas una al lado de otra: cada
+`-banco.png` contiene el pie minusculo, la barra roja y la paleta `voltaje` del banco; cada
+`-lab.png` contiene la ancla versal de Anton propia del lab. La captura de `skyline` del banco se
+rehizo desde `npm run banco`, a `t = 1,503 s`, y se sustituyo para eliminar cualquier ambiguedad
+del informe anterior.
+
+**`redNodos` admite un concepto.** El lab presenta siempre tres, pero la esfera de 22 nodos se
+dibuja con independencia de las etiquetas (`escena.tsx`, pieza `redNodos`); las cajas son una
+capa separada. No habia una decision registrada que justificara `minConceptos: 3`, asi que se
+corrigio a `1`: con cero conceptos cae al respaldo; con uno o mas conserva su identidad y pinta
+las etiquetas disponibles.
+
 ---
 
 **Regla:** Cuando se cierra una deuda, se tacha en el MISMO commit que la cierra.
