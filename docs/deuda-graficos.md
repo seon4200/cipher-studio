@@ -1743,6 +1743,30 @@ Esto **refuerza la pista**, no demuestra la causa: la tirada lenta tenia dos fac
 arranque de la ventana y una maquina ocupada por Vite y el banco. No separa cache fria de
 competencia de recursos, y no se persigue aqui.
 
+### Tercer montaje de `skyline`: anomalia por BrowserWindow, no por ruta (03/09/2026)
+
+**Condiciones:** `visual_escena`, palabra `cualitativamente`, fondo `skyline`, 1080x1920,
+30 fps, ciclo 3 s, sistema `voltaje`; frames 0, 39 y 77; misma hoja de estilos
+(`SHA-256 9a1a790970163dc8bbc9c0d546ab71b468d65c4aabbde9ac9158f5b24c449000`), fuentes
+verificadas por geometria, animaciones pausadas y posicionadas en tiempo absoluto. Se probaron
+las secuencias A-A-A, A-B-A-B y A-A-B-B, desmontando el arbol entre clips.
+
+El **tercer montaje** dentro de una ventana reutilizada cambia de forma reproducible solo la
+parte inferior de `skyline`; los montajes 1, 2 y 4 coinciden. Frame 39: **11.050 px**, filas
+1824-1919, delta maximo 7 y medio 1,705. Frame 77: **58.480 px**, filas 1772-1919, delta
+maximo 10 y medio 1,910. Cero pixeles superan delta 64. El frame 0 es identico.
+
+El control decisivo cerro la BrowserWindow sin reiniciar Electron y repitio los montajes 1 y 2:
+volvieron a coincidir al pixel. El estado es **por ventana, no por proceso**. Se descartan la
+ruta de direccion, el orden A/B, las fuentes —la palabra no cambia ningun pixel— y la colision
+de keyframes —un solo `<style>`, mismo hash y arbol desmontado—. La causa sigue desconocida;
+como hipotesis, no hecho, el compositor de Chromium cambia de estrategia tras varias montas de
+barras animadas por `scaleY` sobre degradado.
+
+Consecuencia: es subperceptual y no se persigue. Dos renders del mismo Visual pueden no ser
+identicos byte a byte, pero la cache no depende de los pixeles sino de su clave. El arnes
+`tests/aceptacion/interruptor-direccion.js` abre una ventana fresca por pareja y fija el ordinal.
+
 ~~`tests/graficos.js` mezcla correccion y rendimiento: `TOPE_MS = 5000` se aplica al primer~~
 ~~render y al segundo por separado; 4844 ms dejo una tirada descargada a 156 ms del rojo. Tambien~~
 ~~exige que un acierto de cache tarde menos de 100 ms y que la sonda no pase de cinco intentos.~~
@@ -2125,6 +2149,66 @@ Cuando viaje, añadir una pieza invalidara los Visuales cuya direccion resuelta 
 ESO ES LO QUE DEBE PASAR; no implica invalidar tarjetas ni palabras cuya direccion no cambie.
 Tambien siguen necesitando versionado los cambios de pixeles internos de una pieza con el
 mismo id: serializar su nombre no convierte el codigo en parte del hash.
+
+**CERRADA en `fase-4f-interruptor`.** El constructor calcula una sola vez el `value` recortado,
+resuelve `direccionDe(semillaDe(value))`, guarda el resultado en `extra.direccion` y activa
+`visual_escena` en el mismo cambio. Seis palabras, cada una renderizada con direccion explicita
+y con la derivacion del renderer, deben dar cero pixeles distintos. `VERSION_PLANTILLAS` sigue
+en 8: el cambio de `type` ya invalida los Visuales y no toca la cache de tarjetas.
+
+### El respaldo de composiciones no respaldaba (03/09/2026)
+
+**PREVIO al interruptor.** Medido sobre `master` `94685f2`, con `visual_mapa`, palabra
+`memoria`, cero conceptos, 1080x1920, 30 fps, 1 s y sistema `voltaje`: el render produjo MP4 y
+el aviso afirmo que caia a `visual_texto`, pero el DOM contenia literalmente
+`Tipo no soportado` y ninguna composicion. `AnimatedGraphic` calculaba `puedeDibujar=false`,
+pero despues llamaba `renderContent()` con el `type` original.
+
+El log conserva 1.774 lineas de respaldo de mapa, pero son avisos acumulados que se vuelven a
+escribir en cada clip, no 1.774 Visuales. Emparejando el ultimo aviso anterior a cada linea
+`RENDER`, tomando su hash y comprobando el fichero fisico, quedan **113 MP4 sospechosos en
+cuatro proyectos existentes**, correspondientes a **105 claves unicas**; ocho artefactos estan
+duplicados entre proyectos. Reparto: `gwcjmqfgjtkqfgj-1787387347117` 21,
+`hgfghfgh-1787528236727` 33, `kliulyh-1787527765340` 35 y
+`lklkl-1787678269969` 24. Son ficheros existentes que pueden contener el cartel; no se afirma
+que todos sigan colocados en un timeline exportable.
+
+**CERRADO en el primer commit de `fase-4f-interruptor`.** Cuando una composicion rechaza los
+datos, el tipo efectivo pasa a `visual_texto` antes de `renderContent`. Un tipo desconocido
+deposita un aviso y tambien cae al Visual de texto: el diagnostico nunca vuelve a pintarse en el
+video. `tests/graficos.js` protege las dos rutas. No se sube `VERSION_PLANTILLAS`: el arreglo se
+mergea junto al cambio de `type` a `visual_escena`, que hace inalcanzables las claves antiguas;
+si ambos cambios se separaran, esta decision dejaria de ser valida.
+
+### PREGUNTA DE PRODUCTO ABIERTA: regenerar no persiste la direccion
+
+Se acepta el re-sorteo actual. La estabilidad que importa al abrir o exportar ya existe: tras el
+render, `src/main/index.ts` sustituye `graphicData` por un clip de video con su ruta, y ese MP4 se
+guarda en `timelineVideoClips`. Regenerar el timeline vuelve a construir los Visuales —normalmente
+porque cambio el guion— y sortea otra direccion con el catalogo vigente.
+
+Si en el futuro se exige que una regeneracion reproduzca la direccion original, hay que
+persistir `direccion` junto al MP4. Hoy `graphicData` se descarta al sustituirlo por el clip.
+No se amplio el esquema del proyecto en el paso del interruptor: mezclar persistencia, hash y
+activacion en el mismo cambio habria aumentado el riesgo del paso mas delicado del motor.
+
+### El benchmark de graficos mide el respaldo, no `mapa`
+
+**ABIERTO.** `tests/rendimiento/graficos.js` declara `extra.conceptos` como tres cadenas en su
+fixture. `mapa.puedeDibujar` exige objetos con `emoji` y `etiqueta`, de modo que ese banco cae al
+Visual de texto: las cifras historicas atribuidas a `visual_mapa` no miden la composicion mapa.
+
+El control previo al interruptor uso tres conceptos validos, 1080x1920, 30 fps, 3 s/90 frames,
+sistema `voltaje`, seis muestras alternadas por composicion. En regimen asentado: mapa
+**4451 ms/clip, 49,46 ms/frame y 1,81 intentos/frame**; escena **3740 ms/clip, 41,56 ms/frame y
+1,59 intentos/frame**, sin frames en `MAX_INTENTOS_FRAME`. No se arregla el benchmark en este
+paso; queda separado porque el interruptor no debe arrastrar herramientas de rendimiento.
+
+### Particion tipografica pendiente
+
+`responsabilidades` puede partirse visualmente como `responsabilidade / s` por
+`overflow-wrap:anywhere`. La puerta garantiza el presupuesto de dos lineas, no una particion
+linguistica agradable. Se observa y no se corrige en el paso del interruptor.
 
 ### Metrica del pie: estimacion sustituida por maximos medidos (02/09/2026)
 

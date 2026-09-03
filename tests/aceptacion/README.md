@@ -157,6 +157,28 @@ sigue verde. Está anotado en `docs/deuda-graficos.md`.
 
 ---
 
+## `interruptor-direccion.js` — direccion implicita contra explicita
+
+```bash
+npx electron tests/aceptacion/interruptor-direccion.js
+```
+
+Demuestra que resolver la direccion en `main` y recibirla por `extra` produce exactamente los
+mismos pixeles que dejar que el renderer la derive desde la palabra. Compara los frames 0, 39 y
+77 de seis palabras y exige `IGUAL`, no `EQUIVALENTE`; al menos una debe usar `skyline`.
+
+La comparacion iguala el **ordinal de montaje**: cada palabra abre una BrowserWindow fresca,
+la ruta implicita ocupa el montaje 1 y la explicita el 2. Antes ejecuta dos controles con
+`cualitativamente`: montajes 1/2 de una ventana y, sin reiniciar Electron, montajes 1/2 de otra.
+Esto protege la medicion contra la anomalia reproducible del tercer montaje de `skyline`.
+
+El arnes bloquea `fetch`, usa la composicion real, importa `direccionDe`, `semillaDe` y el
+comparador del bundle compilado, elimina su proyecto temporal y deja los videos y el JSON de
+resultado en la carpeta temporal que imprime al terminar. No pertenece a `npm test`: renderiza
+16 clips de aceptacion y se ejecuta en el paso excepcional del interruptor.
+
+---
+
 ## `comparar-capturas.js` — comparar dos capturas con tolerancia
 
 **Sustituye a la igualdad byte a byte** en el diff de comportamiento de los merges.

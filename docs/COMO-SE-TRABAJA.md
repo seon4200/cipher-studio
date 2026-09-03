@@ -159,6 +159,10 @@ duracion, fps, VERSION_PLANTILLAS, modo, codec, sistema`.
 - **Evidencia, no afirmaciones.** Ruta y línea, hash del commit, la cadena medida.
   "Lo comprobé" no vale; "`index.ts:1124`, esta línea" sí.
 - **Mide, no razones.** Especialmente sobre el hash y sobre el coste.
+- **Una comparacion de renders solo vale entre montajes del MISMO ORDINAL.** La tercera monta
+  de `skyline` en una BrowserWindow reutilizada cambia el rasterizado de forma reproducible;
+  comparar un montaje 1 con un montaje 3 fabrica una diferencia que no pertenece al codigo.
+  Se abre una ventana fresca por pareja y se compara montaje 1 contra montaje 2.
 - **Di lo que no sabes.** Un hueco declarado vale más que un motivo inventado.
 - **Reconoce tus propios errores por delante**, antes de que se pregunten.
 - **Lleva la contraria cuando toque.** Si el prompt contiene un error de hecho, un
