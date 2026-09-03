@@ -199,8 +199,8 @@ export const AnimatedGraphic: React.FC<{
     }
   }
 
-  const renderContent = () => {
-    switch (type) {
+  const renderContent = (tipoEfectivo: string = String(type ?? '')) => {
+    switch (tipoEfectivo) {
       case 'barra_horizontal': {
         const size = Math.max(0, Math.min(100, internal))
         return (
@@ -491,8 +491,18 @@ export const AnimatedGraphic: React.FC<{
           </div>
         )
       }
-      default:
-        return <div className="text-sm text-slate-300">Tipo no soportado</div>
+      default: {
+        const tipoDesconocido = tipoEfectivo || '(vacio)'
+        if (typeof window !== 'undefined') {
+          const w = window as any
+          if (!Array.isArray(w.__avisosCiclo)) w.__avisosCiclo = []
+          const aviso =
+            `[AnimatedGraphic] TIPO NO SOPORTADO: "${tipoDesconocido}" ` +
+            `cae a visual_texto`
+          if (!w.__avisosCiclo.includes(aviso)) w.__avisosCiclo.push(aviso)
+        }
+        return renderContent('visual_texto')
+      }
     }
   }
 
@@ -535,6 +545,7 @@ export const AnimatedGraphic: React.FC<{
     // sin conceptos y sin emoji final. Con la puerta cerrada cae al Visual de texto de abajo,
     // que es el respaldo que ya existia y no hay que fabricar.
     const puede = comp ? comp.puedeDibujar({ texto: palabra, conceptos, direccion }) : false
+    const tipoEfectivo = comp && !puede ? 'visual_texto' : String(type ?? '')
 
     // EL RESPALDO NO ES MUDO. Si el 30% de los Visuales cae a texto hay que verlo en el log, no
     // descubrirlo mirando videos. Va por el mismo canal que los avisos del candado y por la
@@ -629,7 +640,7 @@ export const AnimatedGraphic: React.FC<{
                 {label}
               </span>
             )}
-            {renderContent()}
+            {renderContent(tipoEfectivo)}
           </div>
         </div>
       </div>

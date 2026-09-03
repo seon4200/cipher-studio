@@ -4,6 +4,22 @@ Etiquetas a las que se puede volver, y qué está probado de cada una.
 
 ---
 
+## `v-antes-del-interruptor`
+
+**`94685f2c9097d5afcb64342d4eff7b3210b4f7e7`** · ultimo `master` con
+`COMPOSICION_VISUAL='visual_mapa'` y `VERSION_PLANTILLAS=8`.
+
+Es el retorno inmediato si activar `visual_escena` degrada una generacion real. Conserva el
+motor combinatorio registrado, el tono claro y las 36 identidades verificadas, pero deja el
+motor nuevo apagado.
+
+**Que queda despues de esta etiqueta:** el paso `v-fase4f-interruptor` resuelve la direccion
+completa antes de renderizar, la incorpora a `graphicData.extra` —y por tanto al hash— y cambia
+el selector a `visual_escena`. No persiste la especificacion: reabrir conserva el MP4; regenerar
+el timeline vuelve a sortear con el catalogo vigente, por decision de producto.
+
+---
+
 ## `v-fase4d-tono-claro`
 
 Merge `--no-ff` del lote de tono claro y parejas: tinta declarada por cada sistema,

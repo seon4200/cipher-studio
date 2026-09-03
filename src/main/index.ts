@@ -4642,17 +4642,14 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     // otra cosa que una sobre un desierto (regla 12 del manual — solo palabras con imagen). Eso
     // es una decision de producto que no esta tomada, y meterla en el prompt de DeepSeek es lo
     // que ya colapso el reparto una vez. Mientras tanto, fija y en un solo sitio.
-    // ENCENDIDO. Hasta aqui el mapa estaba registrado y no se pintaba: el despacho es por
-    // `type`, asi que con esta constante en 'visual_extrusion' ninguna otra composicion podia
-    // salir por muchas que hubiera en el registro. Este es el interruptor.
-    //
-    // VERSION_PLANTILLAS ya esta en 7 por las cuatro constantes, asi que la cache no puede
-    // devolver un .mp4 de extrusion para un Visual de mapa: la clave lleva el `type` ademas
-    // de la version.
+    // ENCENDIDO. El despacho es por `type`: esta es la unica linea que decide que composicion
+    // de pantalla completa sale en una generacion normal. El cambio de `visual_mapa` a
+    // `visual_escena` ya invalida la cache de Visuales porque `type` entra en hashGrafico; NO se
+    // sube VERSION_PLANTILLAS, porque eso invalidaria tambien las tarjetas que no han cambiado.
     //
     // `puedeDibujar` protege el caso que falta: un Visual sin los tres conceptos -- 1 de 82 en
     // la ultima generacion -- cae al Visual de texto de siempre y lo dice en el log.
-    const COMPOSICION_VISUAL = 'visual_mapa';
+    const COMPOSICION_VISUAL = 'visual_escena';
     const visuales = clipsDecision.filter((c: any) => c.type === 'visual');
     if (visuales.length) {
       // La palabra se elige AQUI y no en el componente: entra en graphicData y por tanto en la
@@ -4680,8 +4677,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // segundo lo pisaria y el resumen contaria una caida de stock donde hubo una de Visual.
       //
       // ESTOS CAMPOS NO ENTRAN EN NINGUN HASH: `graphicData` se construye con claves EXPLICITAS
-      // y `extra` con dos, `pos` y `conceptos`. Nadie esparce el item. Verificado midiendo: la
-      // clave de un Visual real no cambia.
+      // y nadie esparce el item. `extra` se construye aparte con pos, conceptos y direccion.
       for (const x of sinPalabra) {
         x.item.origenPedido ??= x.item.type;
         x.item.motivoRespaldo ??= 'visual-sin-palabra';
@@ -4695,34 +4691,43 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       const aRenderizar = conPalabra.filter(x => !!x.palabra);
       if (aRenderizar.length) {
         const resVis = await renderGraphicClipsLote(
-          aRenderizar.map(x => ({
-            graphicData: {
-              type: COMPOSICION_VISUAL,
-              value: recortarTexto(x.palabra),
-              // LOS CONCEPTOS Y LA POSICION VIAJAN AQUI, DENTRO DE graphicData, y no por fuera.
-              // El motivo es la cache, no la comodidad: `canonizar` proyecta seis claves de
-              // graphicData —type, value, label, unit, emoji, extra— y `extra` es una de ellas.
-              // Lo que va por fuera NO entra en la clave, asi que dos Visuales con dibujos
-              // distintos compartirian .mov y la cache diria ACIERTO sobre un fichero que no es.
-              // Regla: lo que decide los pixeles tiene que estar en la clave.
-              extra: {
-                // LA POSICION, como PAR y no como suma. `phraseIndex + clipIndexInPhrase`
-                // colisiona —frase 3 clip 1 y frase 4 clip 0 dan los dos 4— y dos posiciones
-                // distintas acabarian con el mismo hash, que es justo lo que se quiere evitar.
-                // Y son phraseIndex/clipIndexInPhrase y no el indice global del timeline:
-                // insertar un clip al principio desplazaria el global y re-renderizaria el
-                // video entero.
-                pos: `${x.item.phraseIndex}:${x.item.clipIndexInPhrase}`,
-                // Ya vienen proyectados a {emoji, etiqueta} por `sanearConceptos`, que es el
-                // UNICO sitio donde vive esa regla. Volver a mapearlos aqui la pondria en dos
-                // lugares — el patron de las dos puertas, que ya ha mordido cuatro veces.
-                // `null` cuando DeepSeek no dio tres validos: la clave se mantiene siempre
-                // presente para que la forma del objeto no cambie segun el caso.
-                conceptos: x.item.conceptos ?? null
-              }
-            },
-            duracion: x.item.duration
-          })),
+          aRenderizar.map(x => {
+            // UNA SOLA CADENA gobierna dibujo, direccion y hash. Resolver la direccion desde el
+            // texto sin recortar y hashear el recortado permitiria dos dibujos bajo una clave.
+            const value = recortarTexto(x.palabra);
+            return {
+              graphicData: {
+                type: COMPOSICION_VISUAL,
+                value,
+                // LOS CONCEPTOS Y LA POSICION VIAJAN AQUI, DENTRO DE graphicData, y no por fuera.
+                // El motivo es la cache, no la comodidad: `canonizar` proyecta seis claves de
+                // graphicData —type, value, label, unit, emoji, extra— y `extra` es una de ellas.
+                // Lo que va por fuera NO entra en la clave, asi que dos Visuales con dibujos
+                // distintos compartirian .mov y la cache diria ACIERTO sobre un fichero que no es.
+                // Regla: lo que decide los pixeles tiene que estar en la clave.
+                extra: {
+                  // LA POSICION, como PAR y no como suma. `phraseIndex + clipIndexInPhrase`
+                  // colisiona —frase 3 clip 1 y frase 4 clip 0 dan los dos 4— y dos posiciones
+                  // distintas acabarian con el mismo hash, que es justo lo que se quiere evitar.
+                  // Y son phraseIndex/clipIndexInPhrase y no el indice global del timeline:
+                  // insertar un clip al principio desplazaria el global y re-renderizaria el
+                  // video entero.
+                  pos: `${x.item.phraseIndex}:${x.item.clipIndexInPhrase}`,
+                  // Ya vienen proyectados a {emoji, etiqueta} por `sanearConceptos`, que es el
+                  // UNICO sitio donde vive esa regla. Volver a mapearlos aqui la pondria en dos
+                  // lugares — el patron de las dos puertas, que ya ha mordido cuatro veces.
+                  // `null` cuando DeepSeek no dio tres validos: la clave se mantiene siempre
+                  // presente para que la forma del objeto no cambie segun el caso.
+                  conceptos: x.item.conceptos ?? null,
+                  // Se resuelve ANTES del render y viaja dentro de `extra`, que hashGrafico
+                  // canoniza completo. Al crecer los registros, una palabra cuya direccion
+                  // cambie obtiene otra clave en vez de recibir un MOV viejo con pixeles falsos.
+                  direccion: direccionDe(semillaDe(value))
+                }
+              },
+              duracion: x.item.duration
+            };
+          }),
           { aspectRatio, fps: 30, modo: 'pantalla', sistema: SISTEMA_VISUAL },
           (p) => event.sender.send('generation-progress',
             { index: p.index, total: p.total, paragraph: p.paragraph, type: 'Visual' })

@@ -289,8 +289,8 @@ async function main (bundle) {
 
     // ── G) fallo limpio ────────────────────────────────────────────────────────────
     console.log('\n=== G) CUANDO ALGO VA MAL ===')
-    // Un graphicData que el componente no conoce NO tiene por que fallar: AnimatedGraphic
-    // simplemente no pinta nada. Lo que se exige es que no reviente.
+    // Un tipo desconocido es un fallo del programa: avisa y cae a texto, nunca pinta el
+    // diagnostico dentro del video. El render sigue sin lanzar al llamador.
     let excepcion = null, raro = null
     try {
       raro = await renderGraphicClip({ type: 'tipo_que_no_existe', value: null },
@@ -298,6 +298,44 @@ async function main (bundle) {
     } catch (e) { excepcion = e.message }
     ok(excepcion === null, 'un graphicData desconocido no lanza excepcion',
       excepcion ? 'EXCEPCION: ' + excepcion : `devolvio ${raro ? 'una ruta' : 'null'}, sin reventar`)
+
+    // LA PUERTA TIENE QUE CAMBIAR EL TIPO EFECTIVO, no limitarse a anunciarlo. El defecto
+    // previo escribia "cae a visual_texto" y despues llamaba renderContent() con visual_mapa:
+    // log verde y un cartel "Tipo no soportado" dentro del video.
+    const ventana = offscreens()[0]
+    const estadoDesconocido = await ventana.webContents.executeJavaScript(`({
+      texto: document.body.innerText,
+      avisos: window.__avisosCiclo || []
+    })`)
+    ok(!estadoDesconocido.texto.includes('Tipo no soportado'),
+      'un tipo desconocido no pinta el diagnostico dentro del video')
+    ok(estadoDesconocido.avisos.some(a => a.includes('TIPO NO SOPORTADO:')),
+      'un tipo desconocido deja un aviso en el canal que recoge main')
+    const respaldo = {
+      type: 'visual_mapa',
+      value: 'memoria',
+      label: '',
+      unit: '',
+      emoji: '',
+      extra: { pos: 'test:respaldo', conceptos: [] }
+    }
+    await ventana.webContents.executeJavaScript(
+      `window.__montar(${JSON.stringify(respaldo)}, ${JSON.stringify({
+        ancho: ANCHO, alto: ALTO, modo: 'pantalla', sistema: 'voltaje', duracion: DUR
+      })})`)
+    const estadoRespaldo = await ventana.webContents.executeJavaScript(`({
+      texto: document.body.innerText,
+      tieneMapa: !!document.querySelector('[class*="cm-"]'),
+      avisos: window.__avisosCiclo || []
+    })`)
+    ok(estadoRespaldo.texto.includes('memoria') &&
+       !estadoRespaldo.texto.includes('Tipo no soportado'),
+      'puedeDibujar=false pinta el Visual de texto real, no un cartel de error',
+      estadoRespaldo.texto)
+    ok(!estadoRespaldo.tieneMapa,
+      'el respaldo no deja una composicion parcial debajo')
+    ok(estadoRespaldo.avisos.some(a => a.includes('[mapa] RESPALDO:')),
+      'y deposita el aviso de respaldo en el canal que recoge main')
 
     // Y un fallo forzado: ancho 0. Por donde sale el null lo dice la linea [GRAFICO] FALLO
     // del log, mas abajo — importa saber si lo caza la guarda del tamano o revienta antes.
