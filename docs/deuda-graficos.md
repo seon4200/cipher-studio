@@ -2783,3 +2783,12 @@ caducidad.
 **T8 — decisión cerrada:** mapa se conserva solo como referencia de regresión
 sin ruta de producción hasta Fase 6; allí se retira en un commit propio tras
 cerrar el catálogo y el verificador. No queda como respaldo implícito.
+
+### A.4 — reserva recorte–cámara aplicada (05/09/2026)
+
+La medición del 03/09 queda cerrada en el recorte común, no en cada pieza:
+`MARGEN_CAMARA_PIE_Y = 9.72 / 1920 × 100 = 0.50625%`. `acotarPuntos` resta ese
+margen del presupuesto antes de acotar el borde inferior de cada caja. Condición:
+deriva, estructura 0.50 / pie 0.20, 1080×1920, t=2.999 s; la deriva relativa
+máxima medida fue 9.72 px hacia abajo. La prueba de ciclo verifica la conversión
+y el borde reservado. No resuelve la vecindad entre cajas: queda para B.

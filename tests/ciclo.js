@@ -514,6 +514,8 @@ function conceptos (bundle) {
   ok(REP.identidades === 48, 'el repertorio da 48 IDENTIDADES en 9:16', String(REP.identidades))
   ok(REP.instancias === 3782310, 'y 3.782.310 INSTANCIAS nominales', String(REP.instancias))
   ok(PRU.identidades === 210, 'con las piezas de prueba, 210 identidades', String(PRU.identidades))
+  ok(Math.abs(bundle.MARGEN_CAMARA_PIE_Y - 9.72 / 1920 * 100) < 1e-12,
+    'A.4: la reserva de cámara conserva los 9.72 px medidos')
   // El lote se inspecciona en el banco, pero NO debe cambiar el repertorio del producto.
   const lote = require('./aceptacion/fixtures/lote-estructuras-1.json')
   const nuevas = lote.estructuras.slice(3)
@@ -531,8 +533,8 @@ function conceptos (bundle) {
         ok(pts.every(p => p.x - bundle.anchoCaja(etiquetas[0], true) / 2 >= bundle.ZONA_X_MIN &&
           p.x + bundle.anchoCaja(etiquetas[0], true) / 2 <= bundle.ZONA_X_MAX &&
           p.y - bundle.altoCaja(true) / 2 >= bundle.ZONA.yMin &&
-          p.y + bundle.altoCaja(true) / 2 <= e.presupuestoTexto),
-        `${id}: bordes dentro del modelo compartido, ${cantidad}/${longitud}`)
+          p.y + bundle.altoCaja(true) / 2 <= e.presupuestoTexto - bundle.MARGEN_CAMARA_PIE_Y),
+        `${id}: bordes dentro del modelo con reserva de cámara, ${cantidad}/${longitud}`)
       }
     }
   }

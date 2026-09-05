@@ -48,7 +48,7 @@ import * as escenaShared from '../shared/escena'
 export const {
   FONDOS: FONDOS_ESCENA, ESTRUCTURAS: ESTRUCTURAS_ESCENA, CAMARAS: CAMARAS_ESCENA,
   TIPOGRAFIAS, direccionDesde, combinacionesLegales, direccionDe, acotarPuntos, cabeEnElPie, cabeLaEtiqueta,
-  maxCaracteresPie, MAX_CARACTERES_ETIQUETA, FRANJA_TEXTO_Y, ZONA_X_MIN, ZONA_X_MAX,
+  maxCaracteresPie, MAX_CARACTERES_ETIQUETA, FRANJA_TEXTO_Y, MARGEN_CAMARA_PIE_Y, ZONA_X_MIN, ZONA_X_MAX,
   parametrosDe, instanciasDe
 } = escenaShared
 // SOLO RE-EXPORTACION, para que la suite ejercite el modulo sobre el BUNDLE COMPILADO en vez

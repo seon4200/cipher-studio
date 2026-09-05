@@ -86,6 +86,12 @@ export const PIE_ALTO_CQMIN =
  */
 export const FRANJA_TEXTO_Y = 100 - PIE_BOTTOM_PCT - PIE_ALTO_CQMIN * CQMIN_EN_PCT_ALTO;
 
+// A.4: `deriva` desplaza estructura y pie a profundidades 0.50 / 0.20.
+// La medicion a 1080x1920 dio 9.72 px de deriva RELATIVA hacia abajo; sin esta
+// reserva el recorte estatico puede aceptar una caja que la camara mete en el pie.
+// 9.72 / 1920 * 100 = 0.50625 % del alto. Se guarda en la misma unidad que los puntos.
+export const MARGEN_CAMARA_PIE_Y = 9.72 / 1920 * 100;
+
 // ── EL TOPE DE LA ETIQUETA DE UN CONCEPTO ────────────────────────────────────────────
 //
 // Simetrico al del pie: lo que no cabe no se encoge ni se trunca, se cae al respaldo. La
@@ -750,7 +756,7 @@ export function acotarPuntos(
     const semiX = anchoCaja(etq, true) / 2;
     const semiY = altoCaja(true) / 2;
     const loX = ZONA_X_MIN + semiX, hiX = ZONA_X_MAX - semiX;
-    const loY = ZONA_Y_MIN + semiY, hiY = presupuestoTexto - semiY;
+    const loY = ZONA_Y_MIN + semiY, hiY = presupuestoTexto - MARGEN_CAMARA_PIE_Y - semiY;
     return {
       x: loX <= hiX ? cl(p.x, loX, hiX) : 50,
       y: loY <= hiY ? cl(p.y, loY, hiY) : (loY + hiY) / 2
