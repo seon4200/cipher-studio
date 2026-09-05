@@ -26,8 +26,24 @@ Usa una ventana reutilizada, como el lote real. Los tres primeros clips se
 informan separados de los tres ultimos; no se promete que tres muestras basten
 para establecer un equilibrio termico de la maquina.
 
-Exit 0: todas las muestras cumplen 1,30 intentos/frame. Exit 2: M7 incumplido.
-Exit 1: fallo del arnes/render. Exit 124: watchdog de 120 s.
+Exit 0: seis clips completos, comprobados sin respaldo. Exit 1: fallo del
+arnes/render (incluido agotar cinco intentos sin frame valido). Exit 124:
+watchdog de 120 s. No se aprueba una tirada incompleta.
+
+M7a1: perdida real, parada dura. M7a2: frames aceptados en el quinto intento,
+objetivo cero como margen, NO perdidas. M7b: se informa si la mediana de regimen
+supera +25% de 40,84 ms/frame o 50,3; no para automaticamente. M7c: media de
+intentos/frame informativa, referencia 1,644. Son las correcciones del encargo
+del 04/09/2026; sustituyen al 1,30 que bloqueo indebidamente la primera tirada.
+
+Reevaluar evidencia existente SIN renderizar ni modificarla:
+
+```powershell
+node tests/rendimiento/criterios-m7.cjs tests/aceptacion/plan-a0-m7-20260904/resultado.json
+```
+
+Sin argumento, ese modulo ejecuta controles sinteticos: quinto intento valido
+no es perdida, una tirada incompleta falla y coste alto se informa sin abortar.
 No cambia ni el lazo ni MAX_INTENTOS_FRAME ni la suite de correccion.
 Los PNG no son una comparacion de reproducibilidad; son evidencia visual del
 contenido medido, capturada despues del intervalo cronometrado.
@@ -68,5 +84,6 @@ sin alterar y se commiteo aparte en plan-A-cajas (366b6bb).
 
 El plan aplicado es 1PLAN COMPLETO  Cipher.txt, SHA256
 AD3B0D85D0AE85B49C05C05C976CB81F9F2A73A1AD28A7FE4FF1CCF5C4F53472.
-La Fase A no se declara cerrada: la medicion posterior incumplio T6/M7.
+La Fase A no se declara cerrada. La medicion incumplio el T6/M7 de aquella
+version; el encargo del 04/09/2026 retiro ese criterio, no los datos medidos.
 Datos y PNG: ../aceptacion/plan-a0-m7-20260904/.

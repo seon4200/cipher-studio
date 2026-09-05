@@ -2,7 +2,8 @@
  * M7: seis renders locales del MISMO Visual, sin servicios externos.
  * Uso (tras build): npx electron tests/rendimiento/escena-m7.cjs [repo-compilado] [salida]
  * No pertenece a npm test: el coste no es una asercion de correccion.
- * Exit 0 cumple 1.30; 2 cruza M7; 1 error de arnes/render; 124 watchdog.
+ * Exit 0: seis clips completos; margenes y coste se informan, no se confunden con perdida.
+ * Exit 1: error de arnes/render (incluido agotar intentos); 124: watchdog.
  * Las tres primeras muestras y las tres ultimas se informan por separado.
  */
 const { app, ipcMain, session, BrowserWindow } = require('electron')
@@ -27,7 +28,7 @@ const BASE = {
     { emoji: '\uD83D\uDD17', etiqueta: 'conexion' }
   ] }
 }
-const LISTON = 1.30
+const { BASE_M7, evaluarM7 } = require('./criterios-m7.cjs')
 const bundlePath = path.join(RAIZ, 'dist-electron/main/index.js')
 const git = ref => execFileSync('git', ['-C', RAIZ, 'rev-parse', ref], { encoding: 'utf8' }).trim()
 const sha = archivo => crypto.createHash('sha256').update(fs.readFileSync(archivo)).digest('hex')
@@ -36,7 +37,7 @@ const resultado = {
   bundleSHA256: sha(bundlePath), arnesSHA256: sha(__filename),
   entorno: { plataforma: process.platform, release: os.release(), arquitectura: process.arch,
     cpu: os.cpus()[0].model, hilos: os.cpus().length, versiones: process.versions },
-  opciones: OPCIONES, graphicData: BASE, liston: LISTON, muestrasPrevistas: 6,
+  opciones: OPCIONES, graphicData: BASE, referenciasM7: BASE_M7, muestrasPrevistas: 6,
   metodo: 'Una ventana reutilizada; 3 muestras de arranque + 3 de regimen. Solo extra.pos cambia para evitar cache; no participa en el dibujo.',
   red: 'fetch y HTTP(S) bloqueados', runtime: TEMP, muestras: []
 }
@@ -107,11 +108,11 @@ app.whenReady().then(async () => {
     }
     resultado.arranque = resumen(resultado.muestras.slice(0, 3))
     resultado.regimen = resumen(resultado.muestras.slice(3))
-    resultado.cumpleM7 = resultado.muestras.every(m => m.intentosPorFrame <= LISTON)
-    codigo = resultado.cumpleM7 ? 0 : 2
+    resultado.criteriosM7 = evaluarM7(resultado)
+    codigo = 0
     console.log('ARRANQUE ' + JSON.stringify(resultado.arranque))
     console.log('REGIMEN ' + JSON.stringify(resultado.regimen))
-    console.log('M7 ' + (resultado.cumpleM7 ? 'CUMPLE' : 'NO CUMPLE'))
+    console.log('M7 ' + JSON.stringify(resultado.criteriosM7))
   } catch (e) {
     resultado.error = e.stack || String(e)
     console.error(resultado.error)

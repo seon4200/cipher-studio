@@ -2196,7 +2196,11 @@ activacion en el mismo cambio habria aumentado el riesgo del paso mas delicado d
 
 **ABIERTO.** `tests/rendimiento/graficos.js` declara `extra.conceptos` como tres cadenas en su
 fixture. `mapa.puedeDibujar` exige objetos con `emoji` y `etiqueta`, de modo que ese banco cae al
-Visual de texto: las cifras historicas atribuidas a `visual_mapa` no miden la composicion mapa.
+Visual de texto. ~~Las cifras historicas atribuidas a `visual_mapa` no miden la
+composicion mapa.~~ **CORREGIDO el 04/09/2026:** solo se ha demostrado eso para
+las ejecuciones de ESE arnes. 1,30 y 50,3 son referencias heredadas; el propio
+`tests/rendimiento/graficos.js` advierte que no conserva el graphicData historico.
+No hay evidencia para invalidar todo el historico de coste.
 
 El control previo al interruptor uso tres conceptos validos, 1080x1920, 30 fps, 3 s/90 frames,
 sistema `voltaje`, seis muestras alternadas por composicion. En regimen asentado: mapa
@@ -2322,9 +2326,11 @@ No se arregla aqui y no bloquea 3b ni Fase 4. Es relevante para quien abra Fase 
 
 ### M7 detiene la Fase A antes de cambiar produccion (04/09/2026)
 
-**MEDIDO, SIN ARREGLAR.** El plan actualizado exige parar al superar 1,30
-intentos/frame (T6/M7). La linea base YA lo supera: no es una regresion
-atribuible a `anchoCaja` ni a las piezas de A, que todavia no se han modificado.
+~~**MEDIDO, SIN ARREGLAR.** El plan actualizado exige parar al superar 1,30
+intentos/frame (T6/M7).~~ **CRITERIO RETIRADO el 04/09/2026 por el encargo:** la
+media no mide perdida. Se conserva la tirada y su exit 2 original para auditar
+por que se paro. No es una regresion atribuible a `anchoCaja` ni a las piezas de A,
+que todavia no se habian modificado.
 
 Condiciones: clon nuevo de `84062d7`, arbol
 `e69d531789d0d9ca73a220a8b78626df556de632`, identico al merge A.0 `d0dae0d`.
@@ -2356,6 +2362,17 @@ Electron no entrego salida a la herramienta y fue detenida; no aporto muestras.
 La tirada registrada uso el lanzador supervisado de Electron.
 
 Consecuencia: A.0 mergeado y deuda pendiente preservada; **Fase A NO cerrada**.
-No se retoca el lazo ni se relaja M7. No se continua con A.2-F mientras siga
-en pie este criterio de parada. El benchmark antiguo con conceptos en cadenas
-no se ha usado ni corregido aqui.
+~~No se continua con A.2-F mientras siga en pie este criterio de parada.~~
+**BLOQUEO CERRADO el 04/09/2026:** M7 corregido por el usuario e incorporado al
+arnes y a `tests/rendimiento/criterios-m7.cjs`. No se retoca el lazo. M7a1 exige
+cero perdidas por agotar cinco intentos SIN bitmap valido; M7a2 cuenta bitmaps
+ACEPTADOS al quinto intento, objetivo cero como margen, no como perdida.
+M7b usa 40,84 ms/frame de base: +25% o superar 50,3 obliga a informar y decidir,
+no a parar automaticamente. M7c informa intentos/frame, base 1,644.
+La tirada guardada completa seis clips y 540 frames, sin ningun quinto intento:
+no registra perdida ni roce del tope. No estima la tasa de otras identidades.
+
+No se afirma que 40,84 sea un 19% mejor que 50,3: no es un A/B equiparado. El
+control comparable es el documentado arriba: mapa 49,46 vs escena 41,56 ms/frame
+(~16%), con las condiciones de aquella tirada. El benchmark antiguo con
+conceptos en cadenas no se ha usado ni corregido aqui.
