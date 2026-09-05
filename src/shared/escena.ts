@@ -486,7 +486,9 @@ export const CAMARAS = {
   deriva: {
     id: 'deriva',
     descripcion: 'Panoramica lenta en diagonal, con un acercamiento minimo.',
-    energia: 2,
+    // A.1: lab-camara-2.html:90-91. Envolvente medida a 1080x1920: +/-43.2 px X,
+    // +/-32.4 px Y (fondo); escala CONSTANTE 1.02..1.06, sin rotacion. Energia baja.
+    energia: 1,
     formatos: ['9:16'],
     rangos: [
       { id: 'amplitudX', descripcion: 'Cuanto recorre en horizontal, en cqmin.', min: 2, max: 4, pasos: 4 },

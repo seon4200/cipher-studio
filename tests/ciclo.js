@@ -509,9 +509,11 @@ function conceptos (bundle) {
   ok(typeof REP === 'object' && 'identidades' in REP && 'instancias' in REP,
     'combinacionesLegales devuelve identidades E instancias, no un solo numero',
     JSON.stringify(REP))
-  ok(REP.identidades === 36, 'el repertorio da 36 IDENTIDADES en 9:16', String(REP.identidades))
-  ok(REP.instancias === 166470, 'y 166.470 INSTANCIAS', String(REP.instancias))
-  ok(PRU.identidades === 182, 'con las piezas de prueba, 182 identidades', String(PRU.identidades))
+  // A.1: deriva=1, medida contra lab-camara-2.html:90-91. Reclasifica pares,
+  // no cambia el sorteo ni crea dibujos nuevos. Los pasos siguen provisionales.
+  ok(REP.identidades === 48, 'el repertorio da 48 IDENTIDADES en 9:16', String(REP.identidades))
+  ok(REP.instancias === 3782310, 'y 3.782.310 INSTANCIAS nominales', String(REP.instancias))
+  ok(PRU.identidades === 210, 'con las piezas de prueba, 210 identidades', String(PRU.identidades))
   // El lote se inspecciona en el banco, pero NO debe cambiar el repertorio del producto.
   const lote = require('./aceptacion/fixtures/lote-estructuras-1.json')
   const nuevas = lote.estructuras.slice(3)

@@ -2376,3 +2376,30 @@ No se afirma que 40,84 sea un 19% mejor que 50,3: no es un A/B equiparado. El
 control comparable es el documentado arriba: mapa 49,46 vs escena 41,56 ms/frame
 (~16%), con las condiciones de aquella tirada. El benchmark antiguo con
 conceptos en cadenas no se ha usado ni corregido aqui.
+
+### A.1 — energia clasificada; contador no equivale a sorteo (04/09/2026)
+
+**MEDIDO.** La hoja de seis estructuras emite 154/154 keyframes esperados:
+24 + 23 + 42 + 21 + 23 + 21. Sin referencias ausentes ni colisiones de
+nombre con contenido distinto en ese fixture. Condiciones, fuentes, metodo y
+PNG completo en `tests/aceptacion/README-a1.md` y `plan-a1-20260904/`.
+
+`deriva` se clasifica como energia 1: limite medido a 1080x1920 de +/-43,2 px X
+y +/-32,4 px Y en el fondo; zoom constante 1,06 en el limite, sin rotacion.
+Referencia: `docs/motion/lab-camara-2.html:90-91`. Registro y plan coinciden.
+No se cambio su transformacion ni rangos. Proyeccion de cinco ejes completos:
+163 pares -> 69.275 identidades (con energia 2: 151 -> 64.175).
+
+**PENDIENTE C.4.** `combinacionesLegales` filtra energia, pero `direccionDe` no;
+`direccionDesde` valida campos y `escena.puedeDibujar` texto/conceptos, no
+compatibilidad energetica. Con energia 2, 40/136 palabras del corpus cerrado
+`generar-hoja-contactos.ts` sorteaban pares de energia 4. Con energia 1: 0/136.
+No es tasa de produccion. Hoy todas las parejas reales caben; cuando entre el
+resto del vocabulario debe comprobarse el SORTEO, no solo el contador.
+El contador pasa 36/166.470 -> 48/3.782.310 (instancias nominales). No se han
+creado dibujos: se reclasificaron pares que ya salian. Los pasos provisionales
+siguen provisionales. Se conserva el JSON anterior y el posterior.
+
+Verificacion intrarrama: tsc 0; build 0, renderer/main/preload presentes;
+npm test 9/9 a la primera, sin crash de exclusion. No es cierre de Fase A ni
+verificacion desde un nuevo clon; esa sigue reservada al cierre de fase.

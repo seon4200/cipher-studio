@@ -15,7 +15,7 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 | **2** | Hacer visibles los fallos | ✅ 4/4 · `v-fase2-avisos` |
 | **puente** | El suelo de las pruebas | ✅ · `v-puente-suelo` (`4157e0c`) |
 | **3** | Banco + hoja de contactos | ✅ 2/2 · `v-fase3-hoja` |
-| 4 | Vocabulario mínimo | 🟨 1/6 · `v-fase4d-tono-claro` · interruptor pendiente |
+| 4 | Vocabulario mínimo | 🟨 · interruptor activo desde `v-fase4f-interruptor` (`8f7004c`) |
 | 5 | Densidad y ritmo | ⬜ 0/4 |
 | 6 | Resto del vocabulario | ⬜ 0/4 · **aquí se entrega la meta** |
 | 7 | La IA elige | ⬜ 0/7 |
@@ -31,14 +31,16 @@ imágenes y formato horizontal: cosas distintas, no más variedad.
 
 ## Lo que ya está en `master`
 
-**El motor combinatorio, dentro y apagado.** Registro de piezas por eje con
+**El motor combinatorio, activo desde `8f7004c`.** Registro de piezas por eje con
 contrato tipado —añadir una pieza y olvidar su dibujo **no compila**—, cuatro
 capas con cámara, `direccionDe(semilla)`, ranura de héroe reservada, `cqmin` con
 `container-type: size`, duraciones en `calc(var(--ciclo) / n)`, `rangos` de
 instancia y `combinacionesLegales()` devolviendo **dos** números.
 
-El interruptor es `COMPOSICION_VISUAL` en `src/main/index.ts`, hoy `'visual_mapa'`,
-aislado en `261269d`. Se mueve en la Fase 4.
+El interruptor es `COMPOSICION_VISUAL` en `src/main/index.ts`, hoy `'visual_escena'`.
+La direccion entra en `extra` y en el hash desde `v-fase4f-interruptor`; version 8.
+A.0 incorporo el lote `84062d7` con merge `d0dae0d`: tres estructuras de prueba,
+fuera del sorteo. El plan A-F posterior se trabaja en `plan-A-cajas`; A no esta cerrada.
 
 **Los fallos se ven.** La app ya no puede decir *"éxito, 78 de 78"* mientras la
 mitad del vídeo se degrada: avisos tipados con código estable y contador, resumen
@@ -61,13 +63,15 @@ producción.
 ## Los tres números del motor
 
 ```
-identidades         36
-instancias     166.470
+identidades         48
+instancias   3.782.310
 ```
 
-Medido por `test:ciclo` sobre el bundle: tres estructuras reales, cuatro fondos reales,
-dos camaras, una densidad, un ritmo y dos tipografias; la regla de energia deja **36**
-identidades. Las **166.470** instancias incluyen los pasos 4/4/4 PROVISIONALES de
+A.1 en `plan-A-cajas`, medido sobre el bundle: tres estructuras reales, cuatro fondos reales,
+dos camaras, una densidad, un ritmo y dos tipografias; `deriva=1` deja **48**
+identidades. Antes, `deriva=2` contaba 36 / 166.470. Es una reclasificacion de
+pares legales, NO dibujos nuevos: el sorteo no consultaba energia. Las **3.782.310**
+instancias son nominales e incluyen los pasos 4/4/4 PROVISIONALES de
 `capasApiladas`; la vista de pareja no aisla flotacion ni acredita cuatro escalones.
 No se han recalibrado para cerrar el lote.
 
@@ -76,11 +80,15 @@ por rangos del registro con extremos versionados. La guardia prueba el orden de 
 sorteos desde el bundle (tipografia ultima), no salidas congeladas del catalogo.
 Capturas: `tests/aceptacion/tono-oscuro-claro.png`, `trama-tejida-lab-pieza.png` y las tres
 `capas-pareja-*.png`. El grano mas marcado y la calibracion pendiente estan documentados.
-Siguen `COMPOSICION_VISUAL='visual_mapa'` y `VERSION_PLANTILLAS=8`.
+Aquella etiqueta tenia `visual_mapa`; el interruptor se movio despues, en `8f7004c`.
+Hoy `COMPOSICION_VISUAL='visual_escena'` y `VERSION_PLANTILLAS=8`.
 
-**Coste:** 1.60–1.73 intentos/frame contra el listón de 1.30. De ese +0.35, la
-cámara solo cuesta **0.11** → las 16 cámaras no están amenazadas. Falta medir **la
-pendiente**, no el desnivel: cuánto sube el coste por elemento añadido.
+**Coste vigente (A.0, condiciones y JSON en `tests/rendimiento/README-m7.md`):**
+40,84 ms/frame y 1,644 intentos/frame en regimen; seis clips completos, 0/540
+frames aceptados en el quinto intento. M7a1: agotar intentos SIN bitmap valido
+para; M7a2: quinto intento valido mide margen, no perdida. M7b: +25% de 40,84
+o superar 50,3 obliga a informar/decidir; M7c es informativo. 1,30 no es umbral.
+No se compara 40,84 contra 50,3 como A/B. Sigue pendiente medir la pendiente por elemento.
 
 ---
 

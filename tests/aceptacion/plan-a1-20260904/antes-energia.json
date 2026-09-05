@@ -1,0 +1,432 @@
+{
+  "fechaUTC": "2026-09-05T04:33:58.821Z",
+  "url": "http://127.0.0.1:5174/banco.html?vista=lote",
+  "fixture": {
+    "composicion": "visual_escena",
+    "palabra": "memoria",
+    "conceptos": [
+      {
+        "emoji": "🧠",
+        "etiqueta": "recuerdo"
+      },
+      {
+        "emoji": "🗂️",
+        "etiqueta": "archivo"
+      },
+      {
+        "emoji": "🔗",
+        "etiqueta": "conexion"
+      }
+    ],
+    "identidadBase": {
+      "fondo": "ondas",
+      "camara": "quieto",
+      "densidad": "media",
+      "ritmo": "regular",
+      "tipografia": "archivo"
+    },
+    "estructuras": [
+      "constelacion",
+      "capasApiladas",
+      "redNodos",
+      "lineaTiempo",
+      "corteTransversal",
+      "partidoVertical"
+    ],
+    "tiempoSegundos": 2.7,
+    "cicloSegundos": 3,
+    "sistema": "voltaje",
+    "escala": 0.45,
+    "lienzo": {
+      "ancho": 1080,
+      "alto": 1920
+    },
+    "miniatura": {
+      "ancho": 486,
+      "alto": 864
+    }
+  },
+  "versiones": {
+    "node": "20.18.0",
+    "acorn": "8.12.1",
+    "ada": "2.9.0",
+    "ares": "1.33.1",
+    "base64": "0.5.2",
+    "brotli": "1.0.9",
+    "cjs_module_lexer": "1.4.1",
+    "cldr": "44.1",
+    "icu": "74.2",
+    "llhttp": "8.1.2",
+    "modules": "125",
+    "napi": "9",
+    "nghttp2": "1.61.0",
+    "openssl": "0.0.0",
+    "simdutf": "5.5.0",
+    "tz": "2024a",
+    "undici": "6.19.8",
+    "unicode": "15.1",
+    "uv": "1.46.0",
+    "uvwasi": "0.0.21",
+    "v8": "12.6.228.30-electron.0",
+    "zlib": "1.3.0.1-motley",
+    "electron": "31.7.7",
+    "chrome": "126.0.6478.234"
+  },
+  "plataforma": "win32",
+  "fuentesSHA256": {
+    "archivo-var.woff2": "8f704806dbedeaaeca334b11ec348bc3ac3a439d6431544b3afb54f534ee4967",
+    "anton-400.woff2": "d0fa07ff63dd60cbc0e2f58e29c802dca2a5ae0276c999f59c6111ab7bbaec3b",
+    "outfit-var.woff2": "6c18d579fd87c3776be068b762cbc83fde3acb543d49eabd3ade842eb987e887"
+  },
+  "esperadas": {
+    "constelacion": 24,
+    "capasApiladas": 23,
+    "redNodos": 42,
+    "lineaTiempo": 21,
+    "corteTransversal": 23,
+    "partidoVertical": 21
+  },
+  "esperadoTotal": 154,
+  "banco": {
+    "celdas": [
+      {
+        "estructura": "constelacion",
+        "reglas": 24,
+        "nombres": [
+          "esbyqea6-ondas0",
+          "esbyqea6-ondas1",
+          "esbyqea6-ondas2",
+          "esbyqea6-ondas3",
+          "esbyqea6-ondas4",
+          "esbyqea6-ondas5",
+          "esbyqea6-ondas6",
+          "esbyqea6-ondas7",
+          "esbyqea6-ondas8",
+          "esbyqea6-ondas9",
+          "esbyqea6-ondas10",
+          "esbyqea6-nodo0",
+          "esbyqea6-nodo1",
+          "esbyqea6-nodo2",
+          "esbyqea6-arista0",
+          "esbyqea6-arista1",
+          "esbyqea6-arista2",
+          "esbyqea6-hero",
+          "esbyqea6-deco0",
+          "esbyqea6-deco1",
+          "esbyqea6-deco2",
+          "esbyqea6-deco3",
+          "esbyqea6-deco4",
+          "esbyqea6-pie"
+        ],
+        "referenciasSinRegla": [],
+        "conceptos": [
+          "recuerdo",
+          "archivo",
+          "conexion"
+        ],
+        "pie": "memoria"
+      },
+      {
+        "estructura": "capasApiladas",
+        "reglas": 23,
+        "nombres": [
+          "esbyqea6-ondas0",
+          "esbyqea6-ondas1",
+          "esbyqea6-ondas2",
+          "esbyqea6-ondas3",
+          "esbyqea6-ondas4",
+          "esbyqea6-ondas5",
+          "esbyqea6-ondas6",
+          "esbyqea6-ondas7",
+          "esbyqea6-ondas8",
+          "esbyqea6-ondas9",
+          "esbyqea6-ondas10",
+          "esbyqea6-capaPlano0",
+          "esbyqea6-capaPlano1",
+          "esbyqea6-capaPlano2",
+          "esbyqea6-capaEtiqueta0",
+          "esbyqea6-capaEtiqueta1",
+          "esbyqea6-capaEtiqueta2",
+          "esbyqea6-deco0",
+          "esbyqea6-deco1",
+          "esbyqea6-deco2",
+          "esbyqea6-deco3",
+          "esbyqea6-deco4",
+          "esbyqea6-pie"
+        ],
+        "referenciasSinRegla": [],
+        "conceptos": [
+          "recuerdo",
+          "archivo",
+          "conexion"
+        ],
+        "pie": "memoria"
+      },
+      {
+        "estructura": "redNodos",
+        "reglas": 42,
+        "nombres": [
+          "esbyqea6-ondas0",
+          "esbyqea6-ondas1",
+          "esbyqea6-ondas2",
+          "esbyqea6-ondas3",
+          "esbyqea6-ondas4",
+          "esbyqea6-ondas5",
+          "esbyqea6-ondas6",
+          "esbyqea6-ondas7",
+          "esbyqea6-ondas8",
+          "esbyqea6-ondas9",
+          "esbyqea6-ondas10",
+          "esbyqea6-redNodo0",
+          "esbyqea6-redNodo1",
+          "esbyqea6-redNodo2",
+          "esbyqea6-redNodo3",
+          "esbyqea6-redNodo4",
+          "esbyqea6-redNodo5",
+          "esbyqea6-redNodo6",
+          "esbyqea6-redNodo7",
+          "esbyqea6-redNodo8",
+          "esbyqea6-redNodo9",
+          "esbyqea6-redNodo10",
+          "esbyqea6-redNodo11",
+          "esbyqea6-redNodo12",
+          "esbyqea6-redNodo13",
+          "esbyqea6-redNodo14",
+          "esbyqea6-redNodo15",
+          "esbyqea6-redNodo16",
+          "esbyqea6-redNodo17",
+          "esbyqea6-redNodo18",
+          "esbyqea6-redNodo19",
+          "esbyqea6-redNodo20",
+          "esbyqea6-redNodo21",
+          "esbyqea6-redCaja0",
+          "esbyqea6-redCaja1",
+          "esbyqea6-redCaja2",
+          "esbyqea6-deco0",
+          "esbyqea6-deco1",
+          "esbyqea6-deco2",
+          "esbyqea6-deco3",
+          "esbyqea6-deco4",
+          "esbyqea6-pie"
+        ],
+        "referenciasSinRegla": [],
+        "conceptos": [
+          "recuerdo",
+          "archivo",
+          "conexion"
+        ],
+        "pie": "memoria"
+      },
+      {
+        "estructura": "lineaTiempo",
+        "reglas": 21,
+        "nombres": [
+          "esbyqea6-ondas0",
+          "esbyqea6-ondas1",
+          "esbyqea6-ondas2",
+          "esbyqea6-ondas3",
+          "esbyqea6-ondas4",
+          "esbyqea6-ondas5",
+          "esbyqea6-ondas6",
+          "esbyqea6-ondas7",
+          "esbyqea6-ondas8",
+          "esbyqea6-ondas9",
+          "esbyqea6-ondas10",
+          "esbyqea6-lineaTiempo-eje",
+          "esbyqea6-lineaTiempo-caja0",
+          "esbyqea6-lineaTiempo-caja1",
+          "esbyqea6-lineaTiempo-caja2",
+          "esbyqea6-deco0",
+          "esbyqea6-deco1",
+          "esbyqea6-deco2",
+          "esbyqea6-deco3",
+          "esbyqea6-deco4",
+          "esbyqea6-pie"
+        ],
+        "referenciasSinRegla": [],
+        "conceptos": [
+          "recuerdo",
+          "archivo",
+          "conexion"
+        ],
+        "pie": "memoria"
+      },
+      {
+        "estructura": "corteTransversal",
+        "reglas": 23,
+        "nombres": [
+          "esbyqea6-ondas0",
+          "esbyqea6-ondas1",
+          "esbyqea6-ondas2",
+          "esbyqea6-ondas3",
+          "esbyqea6-ondas4",
+          "esbyqea6-ondas5",
+          "esbyqea6-ondas6",
+          "esbyqea6-ondas7",
+          "esbyqea6-ondas8",
+          "esbyqea6-ondas9",
+          "esbyqea6-ondas10",
+          "esbyqea6-corteTransversal-banda0",
+          "esbyqea6-corteTransversal-banda1",
+          "esbyqea6-corteTransversal-banda2",
+          "esbyqea6-corteTransversal-caja0",
+          "esbyqea6-corteTransversal-caja1",
+          "esbyqea6-corteTransversal-caja2",
+          "esbyqea6-deco0",
+          "esbyqea6-deco1",
+          "esbyqea6-deco2",
+          "esbyqea6-deco3",
+          "esbyqea6-deco4",
+          "esbyqea6-pie"
+        ],
+        "referenciasSinRegla": [],
+        "conceptos": [
+          "recuerdo",
+          "archivo",
+          "conexion"
+        ],
+        "pie": "memoria"
+      },
+      {
+        "estructura": "partidoVertical",
+        "reglas": 21,
+        "nombres": [
+          "esbyqea6-ondas0",
+          "esbyqea6-ondas1",
+          "esbyqea6-ondas2",
+          "esbyqea6-ondas3",
+          "esbyqea6-ondas4",
+          "esbyqea6-ondas5",
+          "esbyqea6-ondas6",
+          "esbyqea6-ondas7",
+          "esbyqea6-ondas8",
+          "esbyqea6-ondas9",
+          "esbyqea6-ondas10",
+          "esbyqea6-partidoVertical-corte",
+          "esbyqea6-partidoVertical-caja0",
+          "esbyqea6-partidoVertical-caja1",
+          "esbyqea6-partidoVertical-caja2",
+          "esbyqea6-deco0",
+          "esbyqea6-deco1",
+          "esbyqea6-deco2",
+          "esbyqea6-deco3",
+          "esbyqea6-deco4",
+          "esbyqea6-pie"
+        ],
+        "referenciasSinRegla": [],
+        "conceptos": [
+          "recuerdo",
+          "archivo",
+          "conexion"
+        ],
+        "pie": "memoria"
+      }
+    ],
+    "total": 154,
+    "colisionesConContenidoDistinto": [],
+    "fuentes": "Fuentes verificadas por anchura: Archivo, Anton y Outfit. Emoji del sistema.",
+    "viewport": {
+      "ancho": 1620,
+      "alto": 2400,
+      "dpr": 1
+    },
+    "titulo": "Lote de estructuras · 3 existentes + 3 pendientes de aprobar"
+  },
+  "bundleSHA256": "75dd67bd8b892501f00cfcd9cb3079367e61db1595409af3b2a895e62d26aacd",
+  "rendererFuenteSHA256": "90621d38ab767bb8731d9eaaa589064ee37458df3da65b5a97dc013c05584e59",
+  "commit": "dee2f1189913c102fd0e9df9821a99cdb653328b",
+  "repertorioActual": {
+    "identidades": 36,
+    "instancias": 166470
+  },
+  "alternativasEnergia": {
+    "1": {
+      "repertorio": {
+        "identidades": 48,
+        "instancias": 3782310
+      },
+      "conPruebas": {
+        "identidades": 210,
+        "instancias": 4114656
+      }
+    },
+    "2": {
+      "repertorio": {
+        "identidades": 36,
+        "instancias": 166470
+      },
+      "conPruebas": {
+        "identidades": 182,
+        "instancias": 452160
+      }
+    }
+  },
+  "deriva": {
+    "energia": 2,
+    "paramsLimite": {
+      "amplitudX": 4,
+      "amplitudY": 3,
+      "zoom": 0.06
+    },
+    "profundidad": 1,
+    "muestras": 401,
+    "xPx": [
+      -43.2,
+      43.2
+    ],
+    "yPx": [
+      -32.400000000000006,
+      32.400000000000006
+    ],
+    "escala": [
+      1.06,
+      1.06
+    ]
+  },
+  "sorteoEnergia": {
+    "corpus": "tests/aceptacion/generar-hoja-contactos.ts",
+    "corpusSHA256": "24928fdb30ba5e29b3427186bd5e5a2082a9fb4db51a7560529087ffdfc2260a",
+    "palabras": 136,
+    "excedenTres": 40,
+    "primeros": [
+      {
+        "palabra": "tiempo",
+        "semilla": 1302510220,
+        "direccion": {
+          "fondo": "skyline",
+          "estructura": "capasApiladas",
+          "camara": "deriva",
+          "densidad": "media",
+          "ritmo": "regular",
+          "tipografia": "anton"
+        }
+      },
+      {
+        "palabra": "energia",
+        "semilla": 544906063,
+        "direccion": {
+          "fondo": "tunel",
+          "estructura": "constelacion",
+          "camara": "deriva",
+          "densidad": "media",
+          "ritmo": "regular",
+          "tipografia": "archivo"
+        }
+      },
+      {
+        "palabra": "verdad",
+        "semilla": 991726746,
+        "direccion": {
+          "fondo": "tunel",
+          "estructura": "capasApiladas",
+          "camara": "deriva",
+          "densidad": "media",
+          "ritmo": "regular",
+          "tipografia": "archivo"
+        }
+      }
+    ],
+    "alcance": "Corpus corto cerrado; no estima la tasa de produccion"
+  },
+  "exitCode": 0
+}

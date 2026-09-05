@@ -173,6 +173,13 @@ export a 1080×1920.
 | 2 | malla, túnel, circuito, skyline, cuerdas, mosaico, multitud, orden espontáneo, marino, darwin, animal, vía láctea | acercamiento, alejamiento, picado, contrapicado, inclinación, órbita, barrido, rebote |
 | 3 | warp estelar, lluvia de datos, demolición | temblor, saltos, vértigo |
 
+A.1 (04/09/2026): `deriva` queda en energia 1 tambien en el registro; ver
+`tests/aceptacion/README-a1.md` para amplitudes y evidencia. Esta tabla da
+3x16 + 4x13 + 12x5 + 3x1 = 163 pares legales de fondo/camara; con 17 estructuras,
+5 densidades y 5 ritmos: **69.275 identidades de cinco ejes**, no variedad percibida.
+Si deriva fuese energia 2 serian 151 pares y 64.175. No incluye tipografia ni
+sus compatibilidades. Es proyeccion del catalogo completo, NO repertorio actual.
+
 **5.2 · Tono.** Cada fondo declara `oscuro` o `claro`. **El claro obliga a texto en
 tinta.** Claros: trama tejida, amanecer, comida en familia. **Son el contrapeso.**
 
