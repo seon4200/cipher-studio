@@ -1562,7 +1562,7 @@ function App() {
   // Timeline IA weights: [Original, Stock, IA]
   // Cuatro posiciones: [0] original, [1] stock, [2] IA, [3] Visuales. Visuales arranca en 0:
   // un proyecto nuevo reparte exactamente como antes hasta que el usuario mueva el slider.
-  const [timelineWeights, setTimelineWeights] = useState<number[]>([40, 30, 30, 0])
+  const [timelineWeights, setTimelineWeights] = useState<number[]>([...PESOS_POR_DEFECTO])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
 
   // Hub de IA — estados

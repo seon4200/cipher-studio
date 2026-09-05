@@ -58,7 +58,9 @@ export function repartoObjetivos(pesos: number[] | null | undefined, total: numb
  * Pura y exportada para poder probar "suma 100 siempre" sin montar React: el manejador del
  * slider solo la envuelve con setState.
  */
-export const PESOS_POR_DEFECTO: number[] = [40, 30, 30, 0];
+// MVP: 40% Visuales deja 60% de metraje; los otros pesos conservan la proporcion 4:3:3.
+// En el proyecto de aceptacion (114 sub-clips) pide 46 Visuales, con margen para 20 distintos.
+export const PESOS_POR_DEFECTO: number[] = [24, 18, 18, 40];
 
 /**
  * Deja SIEMPRE cuatro numeros finitos. Es la defensa que faltaba, y no es teorica: un proyecto

@@ -672,7 +672,7 @@ ipcMain.handle('create-project', async (_event, { name }) => {
       voiceSpeed: 1.0,
       voiceStability: 50,
       generatedVoices: [],
-      timelineWeights: [40, 30, 20, 10]
+      timelineWeights: [...PESOS_POR_DEFECTO]
     };
     
     const stateFile = path.join(projectPath, 'project-state.json');
