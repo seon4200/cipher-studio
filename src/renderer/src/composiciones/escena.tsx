@@ -574,7 +574,7 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown) {
   const parEstructura = instancia.estructura
   const parCamara = instancia.camara
 
-  const puntos = metaEstructura.puntos(rndPts, cs.map(c => c.etiqueta), parEstructura)
+  const puntos = metaEstructura.disposicion.puntos(rndPts, cs.map(c => c.etiqueta), parEstructura)
   const nDeco = DENSIDAD_A_N[direccion.densidad]
   const retardos = retardosDecoradores(nDeco, direccion.ritmo)
 

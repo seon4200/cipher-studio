@@ -526,9 +526,9 @@ function conceptos (bundle) {
     for (const cantidad of [0, 1, 3]) {
       for (const longitud of [1, 17, bundle.MAX_CARACTERES_ETIQUETA]) {
         const etiquetas = Array(cantidad).fill('x'.repeat(longitud))
-        const pts = e.puntos(bundle.generador(42), etiquetas, {})
+        const pts = e.disposicion.puntos(bundle.generador(42), etiquetas, {})
         ok(pts.length === cantidad && JSON.stringify(pts) ===
-          JSON.stringify(e.puntos(bundle.generador(42), etiquetas, {})),
+          JSON.stringify(e.disposicion.puntos(bundle.generador(42), etiquetas, {})),
         `${id}: ${cantidad} conceptos de ${longitud}, determinista`)
         ok(pts.every(p => p.x - bundle.anchoCaja(etiquetas[0], true) / 2 >= bundle.ZONA_X_MIN &&
           p.x + bundle.anchoCaja(etiquetas[0], true) / 2 <= bundle.ZONA_X_MAX &&
@@ -540,6 +540,16 @@ function conceptos (bundle) {
   }
   ok(Array.from({ length: 1000 }, (_, i) => direccionDe(i + 1))
     .every(d => !nuevas.includes(d.estructura)), '1000 semillas: el lote no sale en videos')
+  const etiquetasHuella = ['archivo', 'memoria', 'conexion']
+  const huellas = Object.values(ESTRUCTURAS_ESCENA).map(e => ({ id: e.id,
+    huella: JSON.stringify(e.disposicion.puntos(bundle.generador(42), etiquetasHuella, {})) }))
+  const repetidas = huellas.filter((a, i) => huellas.some((b, j) => i < j && a.huella === b.huella))
+  ok(repetidas.length === 0, 'ninguna estructura comparte disposicion de cajas con la misma entrada',
+    huellas.map(x => x.id + ':' + x.huella).join(' | '))
+  const densidadesInvalidas = Object.values(ESTRUCTURAS_ESCENA).flatMap(e =>
+    [1, 3, 5, 8, 14].filter(n => { const a = e.disposicion.adaptarDensidad(n); return a.elementos !== n || !(a.escala > 0) || !(a.separacion > 0) || a.opacidadSecundaria < 0 || a.opacidadSecundaria > 1 }).map(n => e.id + ':' + n))
+  ok(densidadesInvalidas.length === 0, 'las estructuras declaran adaptacion valida para las cinco densidades',
+    densidadesInvalidas.join(', '))
   ok(lote.estructuras.every(id => ESTRUCTURAS_ESCENA[id]) &&
     lote.composicion === 'visual_escena' && lote.sistema === 'voltaje' &&
     lote.escala === .45 && lote.miniatura.ancho === lote.lienzo.ancho * lote.escala &&

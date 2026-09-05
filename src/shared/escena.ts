@@ -263,11 +263,15 @@ export type PiezaBase = {
 /** Modula solo la palabra del pie. No tiene energia ni rangos de instancia. */
 export type MetaTipografia = Pick<PiezaBase, 'id' | 'descripcion' | 'formatos' | 'prueba'> & {
   familia: string;
+  rol: RolTipografico;
   peso: number;
   transformacion: 'none' | 'uppercase';
   emPorCaracter: number;
   caracterMasAncho: string;
 };
+
+/** Clasificar una fuente evita reabrir las 17 estructuras cuando entre una nueva familia. */
+export type RolTipografico = 'neutral' | 'condensada' | 'editorial' | 'tecnica' | 'manuscrita';
 
 // Medicion: tests/aceptacion/medir-tipografias.js y fixtures/metricas-tipografias.json.
 // Electron 31.7.7 / Chromium 126, 1000 px, alfabeto castellano + digitos, maximo individual.
@@ -275,12 +279,12 @@ export type MetaTipografia = Pick<PiezaBase, 'id' | 'descripcion' | 'formatos' |
 export const TIPOGRAFIAS = {
   archivo: {
     id: 'archivo', descripcion: 'Palabra en Archivo negrita, conservando mayusculas y minusculas.',
-    formatos: ['9:16', '16:9'], familia: 'Archivo', peso: 800, transformacion: 'none',
+    formatos: ['9:16', '16:9'], familia: 'Archivo', rol: 'neutral', peso: 800, transformacion: 'none',
     emPorCaracter: 0.979, caracterMasAncho: 'W'
   },
   anton: {
     id: 'anton', descripcion: 'Palabra en Anton condensada y en versal.',
-    formatos: ['9:16', '16:9'], familia: 'Anton', peso: 400, transformacion: 'uppercase',
+    formatos: ['9:16', '16:9'], familia: 'Anton', rol: 'condensada', peso: 400, transformacion: 'uppercase',
     emPorCaracter: 0.74609375, caracterMasAncho: 'M'
   }
 } as const satisfies Record<string, MetaTipografia>;
@@ -290,6 +294,28 @@ export type MetaFondo = PiezaBase & {
   /** Sobre que se lee: escena selecciona la tinta del sistema para los fondos claros. */
   tono: 'oscuro' | 'claro';
 };
+
+export type AjusteDensidadEstructura = {
+  elementos: number;
+  escala: number;
+  separacion: number;
+  opacidadSecundaria: number;
+};
+
+export type DisposicionCajas = {
+  lectura: 'radial' | 'apilada' | 'orbital' | 'cronologica' | 'estratos' | 'cruzada';
+  /** UNICA ruta de posiciones: la usan renderer y suite. */
+  puntos: (rnd: () => number, etiquetas: readonly string[], p: Parametros) => PuntoEscena[];
+  /** Preparada para 1..14; se consumira cuando entren las cinco densidades. */
+  adaptarDensidad: (elementos: number) => AjusteDensidadEstructura;
+};
+
+function ajusteDensidad(elementos: number, escalaBase: number, separacionBase: number): AjusteDensidadEstructura {
+  const n = Math.max(1, Math.min(14, Math.round(elementos)));
+  const presion = (n - 1) / 13;
+  return { elementos: n, escala: escalaBase * (1 - presion * 0.28),
+    separacion: separacionBase * (1 + presion * 0.35), opacidadSecundaria: 1 - presion * 0.42 };
+}
 
 export type MetaEstructura = PiezaBase & {
   /** Cuantos conceptos necesita para dibujarse. Por debajo, `puedeDibujar` cae al respaldo. */
@@ -301,8 +327,8 @@ export type MetaEstructura = PiezaBase & {
    * podria usar el cuadro entero. Hoy las dos declaran `FRANJA_TEXTO_Y`.
    */
   presupuestoTexto: number;
-  /** La geometria, PURA. Devuelve los centros ya acotados a zona y a presupuesto. */
-  puntos: (rnd: () => number, etiquetas: readonly string[], p: Parametros) => PuntoEscena[];
+  tipografias: readonly RolTipografico[];
+  disposicion: DisposicionCajas;
 };
 
 export type MetaCamara = PiezaBase & {
@@ -388,6 +414,7 @@ export const ESTRUCTURAS = {
     formatos: ['9:16'],
     minConceptos: CUANTOS_CONCEPTOS,
     presupuestoTexto: FRANJA_TEXTO_Y,
+    tipografias: ['neutral', 'condensada'],
     // NINGUNO de estos cambia lo que la estructura ES: sigan los valores que sigan, esto es
     // "tres conceptos alrededor de un centro". El numero de puntos NO es un rango -- lo fija
     // `minConceptos` y cambiarlo seria otra estructura.
@@ -397,11 +424,12 @@ export const ESTRUCTURAS = {
       { id: 'curva', descripcion: 'Cuanto se arquean las lineas hacia arriba.', min: 2, max: 8, pasos: 4 },
       { id: 'escalaHero', descripcion: 'Tamaño del elemento central, en cqmin.', min: 22, max: 30, pasos: 5 }
     ],
+    disposicion: { lectura: 'radial', adaptarDensidad: n => ajusteDensidad(n, 1, 1.12),
     puntos: (rnd: () => number, etiquetas: readonly string[], pa: Parametros) => acotarPuntos(
       [{ x: 28, y: 30 }, { x: 72, y: 32 }, { x: 50, y: 70 }].map(p => ({
         x: p.x + entre(rnd, -(pa.dispersionX ?? 3), pa.dispersionX ?? 3),
         y: p.y + entre(rnd, -(pa.dispersionY ?? 2.5), pa.dispersionY ?? 2.5)
-      })), etiquetas, FRANJA_TEXTO_Y)
+      })), etiquetas, FRANJA_TEXTO_Y) }
   },
   capasApiladas: {
     id: 'capasApiladas',
@@ -410,11 +438,13 @@ export const ESTRUCTURAS = {
     formatos: ['9:16'],
     minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y,
+    tipografias: ['neutral', 'editorial'],
     rangos: [
       { id: 'anchoPlano', descripcion: 'Tamano de cada plano isometrico, en cqmin.', min: 38, max: 48, pasos: 4 },
       { id: 'inclinacion', descripcion: 'Inclinacion vertical de los planos, en grados.', min: 52, max: 64, pasos: 4 },
       { id: 'flotacion', descripcion: 'Amplitud de la flotacion entre planos, en cqmin.', min: 0.5, max: 1.5, pasos: 4 }
     ],
+    disposicion: { lectura: 'apilada', adaptarDensidad: n => ajusteDensidad(n, 0.94, 1.28),
     puntos: (rnd: () => number, etiquetas: readonly string[]) => {
       const n = Math.min(CUANTOS_CONCEPTOS, etiquetas.length);
       if (n === 0) return [];
@@ -424,7 +454,7 @@ export const ESTRUCTURAS = {
         x: 72,
         y: inicio + i * paso + entre(rnd, -0.8, 0.8)
       })), etiquetas, FRANJA_TEXTO_Y);
-    }
+    } }
   },
   redNodos: {
     id: 'redNodos',
@@ -435,13 +465,15 @@ export const ESTRUCTURAS = {
     // eso es su caso de muestra, no un requisito geometrico de la pieza.
     minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y,
+    tipografias: ['neutral', 'condensada'],
     // Fuente aprobada: docs/motion/lab-estructuras.html:314-331.
     // `sem(23)` no altera la pieza del lab: sus nodos no consumen `rnd()`.
     rangos: [],
+    disposicion: { lectura: 'orbital', adaptarDensidad: n => ajusteDensidad(n, 0.90, 1.22),
     puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
       [{ x: 22, y: 24 }, { x: 78, y: 32 }, { x: 50, y: 74 }]
         .slice(0, Math.min(CUANTOS_CONCEPTOS, etiquetas.length)),
-      etiquetas, FRANJA_TEXTO_Y)
+      etiquetas, FRANJA_TEXTO_Y) }
   },
   // Lote pendiente de aprobacion visual: no participa en direccionDe ni en el recuento real.
   // Fuente: docs/motion/lab-estructuras.html:297-312.
@@ -449,28 +481,34 @@ export const ESTRUCTURAS = {
     id: 'lineaTiempo', descripcion: 'Conceptos sucesivos sobre un eje vertical: un evento sigue a otro.',
     energia: 1, formatos: ['9:16'], minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y, prueba: true, rangos: [],
+    tipografias: ['neutral', 'tecnica'],
+    disposicion: { lectura: 'cronologica', adaptarDensidad: n => ajusteDensidad(n, 0.88, 1.36),
     puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
       etiquetas.slice(0, CUANTOS_CONCEPTOS).map((etiqueta, i) => ({
         x: 27 + anchoCaja(etiqueta, true) / 2, y: 30 + i * 17
-      })), etiquetas, FRANJA_TEXTO_Y)
+      })), etiquetas, FRANJA_TEXTO_Y) }
   },
   // Fuente: docs/motion/lab-estructuras.html:284-295.
   corteTransversal: {
     id: 'corteTransversal', descripcion: 'Estratos horizontales etiquetados que componen un mismo conjunto.',
     energia: 1, formatos: ['9:16'], minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y, prueba: true, rangos: [],
+    tipografias: ['neutral', 'editorial'],
+    disposicion: { lectura: 'estratos', adaptarDensidad: n => ajusteDensidad(n, 0.91, 1.31),
     puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
       etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) => ({ x: 50, y: 30 + i * 16 })),
-      etiquetas, FRANJA_TEXTO_Y)
+      etiquetas, FRANJA_TEXTO_Y) }
   },
   // Fuente: docs/motion/lab-estructuras-2.html:145-163.
   partidoVertical: {
     id: 'partidoVertical', descripcion: 'Dos campos verticales contrastados: los conceptos cruzan su division.',
     energia: 1, formatos: ['9:16'], minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y, prueba: true, rangos: [],
+    tipografias: ['neutral', 'condensada'],
+    disposicion: { lectura: 'cruzada', adaptarDensidad: n => ajusteDensidad(n, 0.93, 1.24),
     puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
       etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) => ({ x: 50 + i * 2, y: 31 + i * 14 })),
-      etiquetas, FRANJA_TEXTO_Y)
+      etiquetas, FRANJA_TEXTO_Y) }
   },
   unaCaja: {
     id: 'unaCaja',
@@ -480,12 +518,14 @@ export const ESTRUCTURAS = {
     minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y,
     prueba: true,
+    tipografias: ['neutral', 'condensada', 'editorial', 'tecnica', 'manuscrita'],
     rangos: [
       { id: 'desviacionY', descripcion: 'Cuanto sube o baja la caja del centro.', min: 1, max: 3, pasos: 3 }
     ],
+    disposicion: { lectura: 'apilada', adaptarDensidad: n => ajusteDensidad(n, 1, 1),
     puntos: (rnd: () => number, etiquetas: readonly string[], pa: Parametros) => acotarPuntos(
       [{ x: 50, y: 40 + entre(rnd, -(pa.desviacionY ?? 2), pa.desviacionY ?? 2) }],
-      etiquetas, FRANJA_TEXTO_Y)
+      etiquetas, FRANJA_TEXTO_Y) }
   }
 } as const satisfies Record<string, MetaEstructura>;
 
