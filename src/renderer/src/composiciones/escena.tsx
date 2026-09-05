@@ -28,7 +28,7 @@ import { ajustar, type DuracionUsada } from '../../../shared/ciclo'
 import { generador, semillaDe } from '../../../shared/semilla'
 import { CUANTOS_CONCEPTOS, type Concepto } from '../../../shared/conceptos'
 import {
-  ESTRUCTURAS, CAMARAS, direccionDesde, PROFUNDIDAD, retardosDecoradores,
+  ESTRUCTURAS, CAMARAS, direccionDesde, PROFUNDIDAD, entradaRitmo, RITMOS,
   posicionDecorador, DENSIDAD_A_N, cabeEnElPie, cabeLaEtiqueta, instanciaDe,
   TIPOGRAFIAS, ZONA_X_MIN, ZONA_X_MAX, type IdTipografia,
   type IdFondo, type IdEstructura, type IdCamara, type PuntoEscena, type Parametros
@@ -52,6 +52,13 @@ function duracionesDe(ciclo: number): { usadas: DuracionUsada[]; avisos: string[
     const r = ajustar(ciclo, x.que, ciclo / x.n)
     usadas.push({ que: x.que, d: r.d })
     if (r.aviso) avisos.push(r.aviso)
+  }
+  // Cada ritmo solicita su entrada mediante `ciclo / n` y pasa por el mismo candado que el
+  // resto. Asi una futura edicion de un ritmo no puede introducir una duracion ilegal muda.
+  for (const ritmo of RITMOS) {
+    const entrada = entradaRitmo(14, ritmo, ciclo)
+    usadas.push({ que: `ritmo ${ritmo}`, d: entrada.duracion })
+    if (entrada.aviso) avisos.push(entrada.aviso)
   }
   return { usadas, avisos }
 }
@@ -600,13 +607,16 @@ const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
 
 // ── PIEZAS COMUNES A TODAS LAS ESCENAS ──────────────────────────────────────────────────────
 
-function decoradores(kf: Kf, n: number, retardos: number[], rndPos: () => number): React.ReactNode {
+function decoradores(kf: Kf, n: number, entrada: ReturnType<typeof entradaRitmo>, rndPos: () => number): React.ReactNode {
   const salida: React.ReactNode[] = []
   for (let i = 0; i < n; i++) {
     const p = posicionDecorador(rndPos)
-    const ret = retardos[i] ?? 0
+    const ret = entrada.retardos[i] ?? 0
     const nom = kf('deco' + i, 25, u => {
-      const e = Math.min(1, Math.max(0, (u - ret) / 0.20))
+      const bruto = Math.min(1, Math.max(0, (u - ret) / entrada.ventana))
+      const e = entrada.curva === 'acelerar' ? bruto * bruto
+        : entrada.curva === 'frenar' ? 1 - Math.pow(1 - bruto, 2)
+          : entrada.curva === 'golpe' ? 1 - Math.pow(1 - bruto, 4) : bruto
       return `opacity:${(e * 0.7).toFixed(3)};transform:translate(-50%,-50%) scale(${(0.5 + 0.5 * e).toFixed(3)})`
     })
     salida.push(<div key={i} className="es-deco" style={{ ...usa(nom), left: p.x + '%', top: p.y + '%' }} />)
@@ -679,7 +689,7 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown) {
   const semilla = semillaDe(value)
   // La direccion que trajo el guion, validada contra los registros; lo que falte o no exista,
   // sorteado por semilla. Es la costura de la Fase 7 y hoy ya es el camino real.
-  const direccion = direccionDesde(dirCruda, semilla)
+  const direccion = direccionDesde(dirCruda, semilla, { texto: value, conceptos: cs })
 
   // Streams de aleatoriedad INDEPENDIENTES, mismo patron que mapa.tsx: si no se separan, anadir
   // una pieza a un registro desplazaria TAMBIEN el jitter de los puntos y las posiciones de los
@@ -708,7 +718,9 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown) {
   const puntos = metaEstructura.disposicion.puntos(rndPts, cs.map(c => c.etiqueta), parEstructura)
   const nDeco = DENSIDAD_A_N[direccion.densidad]
   const densidadEstructura = metaEstructura.disposicion.adaptarDensidad(nDeco)
-  const retardos = retardosDecoradores(nDeco, direccion.ritmo)
+  // Un ciclo normalizado conserva las mismas fracciones que el ciclo real; la lista de
+  // duraciones de arriba vuelve a pasar estos cinco perfiles por `ajustar(ciclo, ...)`.
+  const entrada = entradaRitmo(nDeco, direccion.ritmo, 1)
 
   // ═══ TODO LO QUE EMITE @keyframes, ANTES DEL RETURN. LAS CAMARAS TAMBIEN. ═══════════════
   // Las cuatro `conCamara` estaban DENTRO del return en la primera version de este fichero, y
@@ -718,7 +730,7 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown) {
   const capaFondo = DIBUJO_FONDOS[direccion.fondo]({ kf, params: parFondo })
   const capaEstructura = DIBUJO_ESTRUCTURAS[direccion.estructura](
     { kf, puntos, conceptos: cs, params: parEstructura, densidad: densidadEstructura })
-  const capaDecoradores = decoradores(kf, nDeco, retardos, rndDeco)
+  const capaDecoradores = decoradores(kf, nDeco, entrada, rndDeco)
   const capaTexto = textoPie(kf, value, direccion.tipografia)
 
   const capas: React.ReactNode[] = [
@@ -761,7 +773,7 @@ function render({ texto, conceptos, direccion, sistema }: PropsComposicion): Rea
   }
   // El color se aplica FUERA de la cache: cambiar sistema no puede servir tinta vieja.
   // cloneElement conserva la misma raiz, sin introducir otro contenedor de unidades.
-  const dir = direccionDesde(direccion, semillaDe(value))
+  const dir = direccionDesde(direccion, semillaDe(value), { texto: value, conceptos: cs })
   if (FONDOS[dir.fondo].tono === 'claro') {
     const tinta = SISTEMAS[sistema].tinta
     return React.cloneElement(arbol, { style: { ...arbol.props.style,

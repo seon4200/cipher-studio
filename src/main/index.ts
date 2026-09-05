@@ -47,7 +47,8 @@ export const {
 import * as escenaShared from '../shared/escena'
 export const {
   FONDOS: FONDOS_ESCENA, ESTRUCTURAS: ESTRUCTURAS_ESCENA, CAMARAS: CAMARAS_ESCENA,
-  TIPOGRAFIAS, direccionDesde, combinacionesLegales, direccionDe, acotarPuntos, cabeEnElPie, cabeLaEtiqueta,
+  TIPOGRAFIAS, direccionDesde, combinacionesLegales, direccionDe, densidadDesdeContenido, entradaRitmo,
+  DENSIDAD_A_N, RITMOS, acotarPuntos, cabeEnElPie, cabeLaEtiqueta,
   maxCaracteresPie, MAX_CARACTERES_ETIQUETA, FRANJA_TEXTO_Y, MARGEN_CAMARA_PIE_Y, ZONA_X_MIN, ZONA_X_MAX,
   parametrosDe, instanciasDe
 } = escenaShared
@@ -4729,7 +4730,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
                   // Se resuelve ANTES del render y viaja dentro de `extra`, que hashGrafico
                   // canoniza completo. Al crecer los registros, una palabra cuya direccion
                   // cambie obtiene otra clave en vez de recibir un MOV viejo con pixeles falsos.
-                  direccion: direccionDe(semillaDe(value))
+                  // Densidad sale del contenido (no de otro sorteo): se resuelve aqui y viaja
+                  // dentro de la direccion hashable para que main y renderer no puedan divergir.
+                  direccion: direccionDe(semillaDe(value), { texto: value, conceptos: x.item.conceptos ?? [] })
                 }
               },
               duracion: x.item.duration

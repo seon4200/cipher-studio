@@ -7,7 +7,7 @@ Adendas: conversación de esta tarea — «ADENDA 1 AL ENCARGO» y «ancla contr
 - [x] 3 · las 43 piezas — implementadas y verificadas en este commit
 - [x] 4 · las 4 paletas por vídeo — selección estable por proyecto y hash encadenado
 - [x] 5 · las ~8 tipografías — 10 familias locales, métricas y SHA-256 versionados
-- [ ] 6 · densidades y ritmos —
+- [x] 6 · densidades y ritmos — densidad derivada del contenido; cinco perfiles legales del ciclo
 - [ ] 7 · dejarlo usable (a…g) —
 
 Notas de una línea (lo que vi mal y no toqué):

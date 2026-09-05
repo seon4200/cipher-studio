@@ -495,7 +495,8 @@ function conceptos (bundle) {
   console.log('')
   console.log('=== J) EL REGISTRO DE PIEZAS Y EL ESPACIO DE ESTILOS ===')
   const { combinacionesLegales, FONDOS_ESCENA, ESTRUCTURAS_ESCENA, CAMARAS_ESCENA,
-    TIPOGRAFIAS, direccionDe, direccionDesde, maxCaracteresPie, cabeEnElPie, sistemaDeGeneracion } = bundle
+    TIPOGRAFIAS, direccionDe, direccionDesde, densidadDesdeContenido, entradaRitmo,
+    DENSIDAD_A_N, RITMOS, esLegal, maxCaracteresPie, cabeEnElPie, sistemaDeGeneracion } = bundle
   ok(typeof combinacionesLegales === 'function', 'combinacionesLegales se exporta del bundle')
   if (typeof combinacionesLegales !== 'function') return
   const sistemasMvp = ['editorial', 'clinico', 'voltaje', 'calido']
@@ -514,10 +515,10 @@ function conceptos (bundle) {
   ok(typeof REP === 'object' && 'identidades' in REP && 'instancias' in REP,
     'combinacionesLegales devuelve identidades E instancias, no un solo numero',
     JSON.stringify(REP))
-  // MVP paso 3: 163 pares fondo×cámara legales por energía, 17 estructuras reales y
-  // dos tipografías. Densidad y ritmo siguen unitarios hasta el paso 6.
-  ok(REP.identidades === 163 * 17 * Object.values(TIPOGRAFIAS).length,
-    'el repertorio cuenta los roles tipográficos disponibles por estructura', String(REP.identidades))
+  // Paso 6: 163 pares fondo×cámara legales por energía, 17 estructuras reales, cinco estados
+  // de densidad derivados del contenido, cinco ritmos y las fuentes permitidas por cada rol.
+  ok(REP.identidades === 163 * 17 * 5 * 5 * Object.values(TIPOGRAFIAS).length,
+    'el repertorio cuenta densidad, ritmo y roles tipográficos disponibles', String(REP.identidades))
   ok(REP.instancias >= REP.identidades, 'las instancias nominales nunca reducen identidades', String(REP.instancias))
   ok(PRU.identidades > REP.identidades, 'las piezas de prueba solo amplían el espacio de inspección', String(PRU.identidades))
   ok(Math.abs(bundle.MARGEN_CAMARA_PIE_Y - 9.72 / 1920 * 100) < 1e-12,
@@ -546,6 +547,22 @@ function conceptos (bundle) {
   }
   ok(Array.from({ length: 1000 }, (_, i) => direccionDe(i + 1))
     .every(d => !ESTRUCTURAS_ESCENA[d.estructura].prueba), '1000 semillas: el sorteo excluye solo piezas de prueba')
+  const bajaDensidad = { texto: 'sol', conceptos: [] }
+  const altaDensidad = { texto: 'responsabilidades interconectadas',
+    conceptos: ['arquitectura distribuida', 'sistemas adaptativos', 'coordinacion asincrona'] }
+  const dBaja = direccionDe(1729, bajaDensidad)
+  const dAlta = direccionDe(1729, altaDensidad)
+  ok(densidadDesdeContenido(bajaDensidad) === 'minima' && densidadDesdeContenido(altaDensidad) === 'saturada',
+    'densidad deriva del contenido, de minima a saturada')
+  ok(['fondo', 'estructura', 'camara', 'ritmo', 'tipografia'].every(k => dBaja[k] === dAlta[k]) &&
+    dBaja.densidad !== dAlta.densidad, 'cambiar contenido no desplaza los cinco sorteos esteticos')
+  ok(JSON.stringify(DENSIDAD_A_N) === JSON.stringify({ minima: 1, baja: 3, media: 5, alta: 8, saturada: 14 }),
+    'las cinco densidades declaran 1, 3, 5, 8 y 14 elementos')
+  const ritmosInvalidos = RITMOS.filter(r => {
+    const entrada = entradaRitmo(14, r, 3)
+    return entrada.aviso !== null || !esLegal(3, entrada.duracion) || entrada.retardos.some(t => t < 0 || t > 1)
+  })
+  ok(ritmosInvalidos.length === 0, 'los cinco ritmos pasan por ajustar y quedan legales', ritmosInvalidos.join(', '))
   const distancia = (a, b) => {
     if (a.length !== b.length || a.length === 0) return 1
     const usados = new Set(); let suma = 0
@@ -681,7 +698,7 @@ function conceptos (bundle) {
 
   // LA REGLA DE LA ENERGIA MUERDE. Sin esto, la regla podria estar escrita y no aplicarse.
   const sinRegla = Object.values(FONDOS_ESCENA).length * Object.values(CAMARAS_ESCENA).length *
-    Object.values(ESTRUCTURAS_ESCENA).length * Object.values(TIPOGRAFIAS).length
+    Object.values(ESTRUCTURAS_ESCENA).length * Object.values(TIPOGRAFIAS).length * 5 * 5
   ok(PRU.identidades <= sinRegla, 'la regla de energia nunca AMPLIA el espacio',
     PRU.identidades + ' <= ' + sinRegla)
 

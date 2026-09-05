@@ -19,6 +19,7 @@ import { generador, entre, semillaDe } from './semilla';
 import { acotar, altoCaja, cl, type Layout, type Punto } from './mapa';
 import { anchoCaja } from './metricas-caja';
 import { CUANTOS_CONCEPTOS } from './conceptos';
+import { ajustar } from './ciclo';
 
 const TAU = 6.283185307;
 
@@ -896,21 +897,52 @@ export type IdEstructura = keyof typeof ESTRUCTURAS;
 export type IdCamara = keyof typeof CAMARAS;
 
 /** Por nombre y no por numero: vocabulario cerrado, no un slider. */
-export type Densidad = 'media';
-export const DENSIDADES: readonly Densidad[] = ['media'];
+export type Densidad = 'minima' | 'baja' | 'media' | 'alta' | 'saturada';
+export const DENSIDADES: readonly Densidad[] = ['minima', 'baja', 'media', 'alta', 'saturada'];
 
 /**
  * Cuantos decoradores por densidad.
  *
- * ⚠️ HOY LA DENSIDAD ESTA FIJA EN 'media', Y ESO ES DE LA FASE 1, NO EL DESTINO. LA FASE 5 ES
- * LA QUE TIENE QUE DERIVARLA DEL CONTENIDO: una frase densa pide mas elementos que una de una
- * sola idea, y esa decision no puede quedarse en 'media' por olvido. El cambio sera que
- * `densidad` deje de venir de `direccionDe` y venga del analisis del texto.
+ * La densidad NO es otro dado de estilo: sale de la carga del contenido. Dos Visuales del mismo
+ * texto reciben la misma densidad, y anadir una densidad no desplaza los cinco sorteos esteticos.
  */
-export const DENSIDAD_A_N: Record<Densidad, number> = { media: 5 };
+export const DENSIDAD_A_N: Record<Densidad, number> = {
+  minima: 1, baja: 3, media: 5, alta: 8, saturada: 14
+};
 
-export type Ritmo = 'regular';
-export const RITMOS: readonly Ritmo[] = ['regular'];
+export type Ritmo = 'simultaneo' | 'regular' | 'acelerando' | 'frenando' | 'golpeSeco';
+export const RITMOS: readonly Ritmo[] = ['simultaneo', 'regular', 'acelerando', 'frenando', 'golpeSeco'];
+
+/** La minima informacion de contenido que necesita el eje densidad; no depende de React ni DOM. */
+export type ContenidoDensidad = { texto?: unknown; conceptos?: readonly unknown[] };
+
+function textoConcepto(c: unknown): string {
+  if (typeof c === 'string') return c;
+  if (c && typeof c === 'object') {
+    const o = c as Record<string, unknown>;
+    return String(o.etiqueta ?? o.label ?? o.value ?? '');
+  }
+  return '';
+}
+
+/**
+ * El unico eje que responde al contenido y no a la semilla.
+ *
+ * Conceptos validos pesan primero; la longitud combinada de palabra y etiquetas separa las
+ * frases breves de las cargadas. Es deliberadamente una funcion pura para que main y renderer
+ * resuelvan el mismo resultado antes de que la direccion entre en la clave de cache.
+ */
+export function densidadDesdeContenido(contenido: ContenidoDensidad = {}): Densidad {
+  const texto = String(contenido.texto ?? '').trim();
+  const etiquetas = Array.isArray(contenido.conceptos)
+    ? contenido.conceptos.map(textoConcepto).map(x => x.trim()).filter(Boolean) : [];
+  const carga = Math.max(1, etiquetas.length * 2 + Math.ceil((texto.length + etiquetas.join('').length) / 18));
+  if (carga <= 2) return 'minima';
+  if (carga <= 4) return 'baja';
+  if (carga <= 6) return 'media';
+  if (carga <= 9) return 'alta';
+  return 'saturada';
+}
 
 // ── LA DIRECCION ──────────────────────────────────────────────────────────────────────
 //
@@ -950,18 +982,18 @@ export function tipografiasPara(estructura: IdEstructura): IdTipografia[] {
  * forma y `direccionDe` pasa a ser el RESPALDO, el mismo papel que `formaDe(semilla)` en
  * extrusion.tsx.
  */
-export function direccionDe(semilla: number): Direccion {
+export function direccionDe(semilla: number, contenido: ContenidoDensidad = {}): Direccion {
   const rnd = generador(semilla);
-  // `estructura` se conserva para que el sexto sorteo consulte sus roles, pero los SEIS
-  // consumos permanecen visibles y en orden dentro del return: la guardia de orden los muta.
+  // `estructura` se conserva para que el ULTIMO sorteo consulte sus roles. La densidad no
+  // consume este generador: sale solo del contenido y no puede desplazar ningun estilo.
   let estructura: IdEstructura;
   return {
     fondo: elige(rnd, repertorio(FONDOS)),
     estructura: estructura = elige(rnd, repertorio(ESTRUCTURAS)),
     camara: elige(rnd, repertorio(CAMARAS)),
-    densidad: elige(rnd, DENSIDADES),
+    densidad: densidadDesdeContenido(contenido),
     ritmo: elige(rnd, RITMOS),
-    // SIEMPRE LA ULTIMA: los cinco consumos anteriores no se desplazan.
+    // SIEMPRE EL ULTIMO SORTEO: fondo, estructura, camara y ritmo no se desplazan.
     tipografia: elige(rnd, tipografiasPara(estructura))
   };
 }
@@ -981,8 +1013,8 @@ export function direccionDe(semilla: number): Direccion {
  * distintas: pedir una pieza a mano es deliberado, y es lo que permite demostrar que el
  * registro es un enchufe de verdad. `direccionDe` solo reparte repertorio.
  */
-export function direccionDesde(crudo: unknown, semilla: number): Direccion {
-  const base = direccionDe(semilla);
+export function direccionDesde(crudo: unknown, semilla: number, contenido: ContenidoDensidad = {}): Direccion {
+  const base = direccionDe(semilla, contenido);
   if (!crudo || typeof crudo !== 'object') return base;
   const c = crudo as Record<string, unknown>;
   const val = <K extends string>(v: unknown, reg: Record<string, unknown>, porDefecto: K): K =>
@@ -1134,13 +1166,46 @@ export function acotarPuntos(
 }
 
 // ── DECORADORES ──────────────────────────────────────────────────────────────────────
-export function retardosDecoradores(n: number, ritmo: Ritmo): number[] {
+export type CurvaRitmo = 'lineal' | 'acelerar' | 'frenar' | 'golpe';
+export type EntradaRitmo = {
+  retardos: number[];
+  /** Fraccion del ciclo que ocupa UNA entrada, ya pasada por `ajustar`. */
+  ventana: number;
+  curva: CurvaRitmo;
+  duracion: number;
+  aviso: string | null;
+};
+
+/**
+ * Distribuye las entradas dentro de [0, 1]. Cada perfil pide una fraccion escrita como
+ * `ciclo / n` y pasa por `ajustar`: aunque alguien cambie su divisor, no puede dejar un
+ * ritmo con una duracion ilegal escondida fuera del emisor de keyframes.
+ */
+export function entradaRitmo(n: number, ritmo: Ritmo, ciclo: number): EntradaRitmo {
   const total = Math.max(0, Math.floor(n));
+  const reparto = (i: number) => total <= 1 ? 0 : i / (total - 1);
+  let divisor: number;
+  let curva: CurvaRitmo;
+  let retardo: (i: number) => number;
   switch (ritmo) {
+    case 'simultaneo':
+      divisor = 4; curva = 'lineal'; retardo = () => .10; break;
     case 'regular':
-    default:
-      return [...Array(total)].map((_, i) => 0.10 + (i / Math.max(1, total)) * 0.55);
+      divisor = 5; curva = 'lineal'; retardo = i => .10 + reparto(i) * .55; break;
+    case 'acelerando':
+      divisor = 6; curva = 'acelerar'; retardo = i => .10 + Math.pow(reparto(i), 2) * .55; break;
+    case 'frenando':
+      divisor = 6; curva = 'frenar'; retardo = i => .10 + Math.sqrt(reparto(i)) * .55; break;
+    case 'golpeSeco':
+      divisor = 8; curva = 'golpe'; retardo = i => .10 + reparto(i) * .24; break;
+    default: {
+      const imposible: never = ritmo;
+      throw new Error(`Ritmo desconocido: ${imposible}`);
+    }
   }
+  const legal = ajustar(ciclo, `ritmo ${ritmo}`, ciclo / divisor);
+  return { retardos: [...Array(total)].map((_, i) => retardo(i)), ventana: legal.d / ciclo,
+    curva, duracion: legal.d, aviso: legal.aviso };
 }
 
 export function posicionDecorador(rnd: () => number): PuntoEscena {
