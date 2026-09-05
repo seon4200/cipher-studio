@@ -48,5 +48,8 @@ archivo, sistema voltaje. Se cruzan sus centros DOM registrados con los interval
 de la cota. Se llama a acotarPuntos por ambos extremos para comprobar el recorte
 real. Es diagnostico del x=50, no nueva prueba de completitud ni de separacion.
 
-No se mide +20/+35/+50 ni se modifica produccion. A.3 queda pendiente de resolver
-la poblacion historica; las 321 etiquetas no se presentan como las 828 palabras.
+Este arnes A.2 no mide +20/+35/+50 ni modifica produccion.
+~~A.3 queda pendiente de resolver la poblacion historica.~~ Retirada por decision
+explicita del 05/09/2026: no se busca mas. Procedencia historica: mensaje de
+10000a9, palabras de mapa. La nueva base A.3 es la de 321 etiquetas versionada
+en 4c3c060, no las 828; reproduccion y condiciones en README-a3.md.

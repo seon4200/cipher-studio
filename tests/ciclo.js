@@ -571,7 +571,12 @@ function conceptos (bundle) {
   // A.2: 56 era un ajuste medio que admitia 1845 px en 900 px disponibles.
   // No se congela un nuevo tope: se comprueba el borde usando la funcion del bundle.
   const limiteCaja = bundle.MAX_CARACTERES_ETIQUETA
-  const cajasMedidas = require('./aceptacion/plan-a2-20260905/medidas.json')
+  // A.3 aumenta SOLO el tamano. No se reescribe la evidencia historica de A.2.
+  // Se ata el registro a la medicion del CSS aplicado y a SU asset, sin DOM en la suite.
+  const medicionA3 = require('./aceptacion/plan-a3-mas20-20260905/medidas.json')
+  const filaA3 = medicionA3.filas[0]
+  const cajasMedidas = { modelo: filaA3, casos: filaA3.casos, barrido: [],
+    fuenteSHA256: medicionA3.condiciones.fuenteSHA256 }
   ok(limiteCaja === cajasMedidas.modelo.limite && bundle.cabeLaEtiqueta('@'.repeat(limiteCaja)) &&
     !bundle.cabeLaEtiqueta('@'.repeat(limiteCaja + 1)), 'cota de Archivo 700: limite y siguiente')
   ok(!bundle.cabeLaEtiqueta('W'.repeat(56)) &&
@@ -592,6 +597,11 @@ function conceptos (bundle) {
     .filter(c => c.modeloPx !== null)
   ok(acotadas.every(c => bundle.anchoCaja(c.texto, true) * 10.8 >= c.ancho),
     'la cota del bundle cubre las cajas DOM guardadas, incluido el barrido de 111 caracteres')
+  ok(bundle.cabeLaEtiqueta('responsabilidades') && filaA3.referencia.intervaloPx > 0,
+    'A.3: conserva la referencia real de 17 caracteres con margen positivo')
+  ok(filaA3.rechazos === 0 && filaA3.vacios === 0 && filaA3.limiteDom === limiteCaja &&
+    filaA3.casos.every(c => bundle.cabeLaEtiqueta(c.texto) === c.admitida),
+    'A.3: puerta del bundle coincide con muestra real y frontera DOM versionadas')
   // Congelar salidas del catalogo obligaba a editar esta prueba con cada pieza nueva.
   // Una prueba que se edita para ponerse verde deja de probar. El invariante es el ORDEN
   // de consumo y tipografia ultima, no que una semilla siga eligiendo el fondo de ayer.

@@ -67,6 +67,14 @@ propia copia de una función. Los tres pasaron con el log en verde.
   *Precedente: se compararon 62,17 ms/frame de clips de 1 s / 30 frames contra un
   listón de 50,30 medido a 3 s / 90 frames. Parecía una regresión del 24%; al
   igualar las condiciones quedó en 51,51, un 2,4%.*
+- **Toda cifra citada lleva su procedencia pegada:** qué la midió, sobre qué
+  composición y en qué commit. Sin procedencia, no se cita como resultado.
+  Si el código aún no está commiteado, se declara el commit de partida MÁS el
+  cambio pendiente y su hash; nunca se atribuye la medición a un árbol distinto.
+  También rige al reutilizar cifras antiguas. Si la fuente no permite reproducir
+  la cifra, queda marcada como histórica/no reproducible, no como garantía.
+  *Precedente: el mensaje de 10000a9 medía palabras de mapa; se transmitió como
+  cajas de escena. Errata y localizaciones en deuda-graficos.md, A.3, 05/09/2026.*
 - **Casos degenerados desde el principio**, no al final: cero elementos, uno,
   textos larguísimos, el camino que aborta, la ventana cerrada.
 

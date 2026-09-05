@@ -2555,5 +2555,180 @@ La medición era de mapa (radial/malla/capas/cascada), no de acotarPuntos de esc
 Sus 509/847 cajas fuera de zona no tienen como denominador 828 cajas. El commit
 no versionó ese corpus y la suite usa semillas sintéticas; no se ha localizado
 el fixture exacto en el repo ni en los artefactos revisados. No se inventa ni
-se traslada a otra composición. A.3 queda SIN APLICAR hasta resolver qué muestra
-se recuenta. Las 321 etiquetas de esta medición son evidencia nueva, no histórica.
+se traslada a otra composición. ~~A.3 queda SIN APLICAR hasta resolver qué muestra
+se recuenta.~~ Espera cerrada el 05/09/2026 por decisión del dueño: retirar las
+828 y no buscarlas más. Las 321 etiquetas de esta medición son evidencia nueva,
+no histórica; quedan aprobadas como base explícita para A.3.
+
+### A.3 — retirada de las 828 y procedencia de las citas (05/09/2026)
+
+**Qué eran, hasta donde la fuente permite afirmarlo.** Mensaje del commit
+`10000a980d6f89431eb1141d3ac262622744fe80`, 20/08/2026: «828 valores» y
+«828 palabras reales», ensayadas con etiquetas medias/largas en las familias
+radial/malla/capas/cascada de **mapa**. No eran 828 cajas de conceptos de escena.
+No consta el número total de cajas ensayadas ni un corpus/arnés versionado que
+permita reconstruirlo. No se recuperará la muestra: aun recuperada mediría otro
+recorte, por centro, no acotarPuntos por borde.
+
+~~509 de 828 cajas de escena invadían la zona segura.~~ **Atribución retirada.**
+La fuente histórica anterior declaró 509 cajas fuera de zona (máximo 2,53%)
+con etiquetas medias y 847 (máximo 8,18%) con largas, sobre palabras de mapa.
+No permite dividir esos recuentos por 828 cajas ni generalizarlos a escena.
+Son cifras históricas NO REPRODUCIBLES con el material versionado; no establecen
+la base nueva ni un porcentaje de fallo del motor actual.
+
+**Dónde se transmitió, inventario de citas — no búsqueda del corpus:**
+
+- CIPHER  EJAR EL MOTOR DE V.txt:407, en
+  C:/Users/John Benites/OneDrive/Documents/: A.3 dice «828 cajas».
+- 1PLAN COMPLETO  Cipher.txt:372, en la misma carpeta: misma atribución.
+- PLAN COMPLETO — DEJAR EL MOTOR DE V.txt:352, en la misma carpeta: misma atribución.
+- C:/Users/John Benites/Downloads/PLAN-MOTOR-COMPLETO-astra.txt:282: misma atribución.
+- C:/Users/John Benites/.codex/attachments/a95a8bfb-e739-41fc-a4ec-f58a80d92388/pasted-text.txt:84:
+  material enviado a revisión, «509 de 828 cajas de concepto».
+- El prompt del sistema de cajas de esta conversación heredó esa lectura.
+  Esta errata no reescribe mensajes ni adjuntos históricos.
+- En el árbol de partida `4c3c060`: shared/mapa.ts:308 conserva «828 valores» y
+  :391 «la suite cubre 828 casos». Son comentarios históricos del camino mapa,
+  no evidencia de cobertura de la suite actual ni del recorte de escena.
+- avance.md:169-175, deuda-graficos.md:2534,2552-2559 y
+  README-impacto-cota-a2.md:3-6,52 ya registraban la duda. Se corrige ahora su
+  estado: RETIRADO, no «pendiente de encontrar».
+- plan-maestro.md del repo no contenía el número: recibe la errata del plan
+  externo. CORRECCIÓN 05/09/2026: con autorización explícita se antepuso la errata
+  a las cuatro copias externas Y al material de revisión. Los originales quedan
+  íntegros debajo. La revisión debe releerse donde sus conclusiones se apoyaran
+  en «509 de 828»; así lo dice su propia errata.
+
+### A.3 — tamaños sobre las 321 reales; bloqueo de mapa (05/09/2026)
+
+**Condiciones/procedencia comunes a TODOS los números siguientes.**
+Instrumento: tests/aceptacion/medir-tamanos-a3.cjs, funciones del bundle real.
+Código: `4c3c060` MÁS el cambio pendiente de fuenteCqmin 2.9 a 3.915 en
+metricas-caja.ts; sin commit nuevo al quedar roja la verificación.
+SHA-256 del código de métrica:
+dcfce4ed488b17a52afc27ed652fa45bb44b318aad095d240cfa570c8ab20f93.
+Bundle: 681693ebb7faad3ee3f684577be250fed877329b027b1d0ab66651c475600c46.
+Composición visual_escena, 1080×1920, Archivo 700 local, voltaje, memoria,
+ondas/constelacion/quieto/media/regular/archivo, t=2,999 s de ciclo 3 s.
+Electron 31.7.7 / Chromium 126.0.6478.234, Windows x64. Fuente, fixture, arnés
+y runtime identificados por hash/versiones en plan-a3-20260905/*.json.
+
+Base: fixture de `4c3c060`, generación de 03/09/2026 ya identificada en A.2.
+321 etiquetas de 107 grupos válidos, un superconjunto de los Visuales.
+Distribución nearest-rank con repeticiones: mediana 6, p90 10, p99 12, máximo 15.
+No es el techo del idioma. Referencia adicional: responsabilidades, 17 caracteres.
+
+| subida | etiqueta px | límite puerta / DOM | rechazo /321 | grupos /107 | intervalo mínimo px | vacíos /321 | intervalo de 17 px |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| base | 31,320 | 24 / 24 | 0 | 0 | 286,394400 | 0 | 223,002720 |
+| +20% | 37,584 | 20 / 20 | 0 | 0 | 191,306880 | 0 | 115,236864 |
+| +35% | 42,282 | 17 / 17 | 0 | 0 | 119,991240 | 0 | 34,412472 |
+| +50% | 46,980 | 16 / 16 | 0 | 0 | 48,675600 | 0 | -46,411920 |
+
+El límite se BARRIÓ con la puerta del bundle y se contrastó con cajas DOM de
+caracteres reales, no se obtuvo redondeando una estimación inversa. Por eso
+17,8 no es un límite admisible de caracteres: admite 17 y rechaza 18.
+La fuente más espaciado, ranura de emoji, bordes y relleno siguen presentes.
+Los intervalos son el espacio de colocación que deja la cota del layout, no
+una distancia observada entre vecinos. Ninguno vacío en esta población.
+
+~~Decisión: +35%.~~ RETIRADA el 05/09/2026 por el sondeo de pares de abajo.
+Dato histórico del ensayo +35: queda margen positivo para 17, aunque NO para otro
+carácter entero. La caja de 17 @ mide 864,390625 px; reserva 865,659528 px en
+900,072 px. La de 18 @ mide 907,140625 px: la puerta la rechaza y el render real
+muestra texto de respaldo con aviso. +50% conserva 0/321, pero rechaza la
+referencia de 17: eso basta para descartarlo. Cero rechazos incrementales aquí
+NO estima otras generaciones ni modifica el 3/55 histórico por falta de palabra.
+
+Escala tipográfica observada al aplicar +35 sin sustitución de CSS:
+etiqueta 3,915 cqmin = 42,282 px = 2,2021875% del alto, ratio 0,435 frente al pie;
+pie 9 cqmin = 97,2 px = 5,0625%, ratio 1; otra línea usa esa misma fuente.
+Emoji de caja (no texto de apoyo): 4,4 cqmin = 47,52 px, sin cambio.
+La altura de caja observada sigue en 85,890625 px. No se corrigió su modelo
+vertical ni se resolvieron vecinos. La hoja al 45% deja ambos solapes visibles.
+
+**Verificación ROJA, no cerrada.** Tsc y build exit 0, artefactos de renderer,
+main y preload existentes. En el clon CONSUMIDO
+C:/graphify/cipher-a2-pruebas-20260905, bundle con el mismo cambio:
+npm test = 8/9, exit 1 por test:mapa; ninguna aserción se rebajó.
+No es verificación de cierre de fase. El cierre de A requerirá clon NUEVO.
+
+**Causa citada:** shared/mapa.ts:271-272 importa/reexporta la cota común;
+cajasDe:283-287 la usa; separados:344-345 decide por semisuma de anchos.
+Pero composiciones/mapa.tsx:204 sigue pintando etiquetas a 2.9cqw.
+Al subir la métrica de escena, mapa reserva más sin cambiar su CSS.
+tests/mapa.js:272-290 prueba infraestructura/contradiccion/reconstruccion,
+ancla reconstruccion, cuatro familias, 200 semillas por familia y hasta
+50 intentos. Resultado +35: radial 2/200, malla 0/200, capas 200/200,
+cascada 0/200 agotaron intentos. NO son las 828 retiradas ni datos de escena.
+
+Control causal: el mismo bundle y LA MISMA suite, solo restaurando 2.9 en
+memoria, dan exit 0. Instrumento control-mapa-a3.cjs; logs en plan-a3-20260905.
+No se modificó mapa ni se cambió la aserción. El aumento queda aplicado solo
+en la rama, SIN COMMIT y pendiente de resolver este acoplamiento antes de cerrar.
+
+**Instrumento y límite conocidos:** sondeo = métrica en memoria + font-size DOM;
+aplicado = árbol compilado sin sustituciones. Ambas ejecuciones del arnés, antes
+y después de llevarlo al repo, repitieron exactamente filas, límites e intervalos.
+El primer intento sobre el clon sin el fixture quedó abierto: proceso terminado.
+La guarda nueva ante ese error se probó: exit 1 en 0,43 s, sin proceso colgado.
+El sondeo avisó GPU state invalid al desmontar, exit 0; no se oculta.
+Dos rAF + invalidación + 150 ms y mirar el PNG NO prueban completitud (L9).
+Sin vídeo, FFmpeg ni API; perfiles temporales, no caché de producción.
+Master intacto, versión 8; no se pasa a A.4 ni se cierra A con esta suite roja.
+
+### A.3 — techo por vecinos; T8 desacoplada (05/09/2026)
+
+**Condición y procedencia.** 4c3c060 más A.3/T8 pendiente, identificados por
+SHA de bundle/código/arnés en tests/aceptacion/plan-a3-pares-20260905 y
+plan-a3-mas20-20260905. Instrumentos preparar-solapes-a3.cjs y
+medir-solapes-a3.cjs, importando/ejecutando el código del bundle, no sus copias.
+Las 114 frases de log coinciden con 47 segmentos guardados de video-3-1788402898964.
+Se versionó solo texto/timestamps; 107 grupos válidos, 321 etiquetas, antes del
+reparto, NO 107 Visuales históricos. La palabra se recupera con el callback
+conPalabra real; lotería actual: redNodos 43, capasApiladas 36, constelacion 28.
+
+**Medición.** visual_escena, 1080x1920, voltaje, ciclo 3 s; 90 frames a 30 fps
+más t=2.999: 91 instantes/grupo/tamaño. Electron 31.7.7, Chromium 126.0.6478.234,
+Windows x64. Misma palabra/conceptos/dirección por grupo a base/+20/+35.
+Las copias temporales del bundle cambian SOLO fuenteCqmin, no solo el CSS:
+la posición y el ancho siguen calculándose por la composición real.
+
+| tamaño | grupos con pares AABB intersectados /107 | máximo área / caja menor | grupos cuyo texto intersecta |
+|---|---:|---:|---:|
+| base (31.320 px) | 0 | 0 | 0 |
+| +20% (37.584 px) | 0 | 0 | 0 |
+| +35% (42.282 px) | 1 | 0.0966851% | 0 |
+
+Peor par: «regular», corazón/estetoscopio, tunel/constelacion/deriva/media/
+regular/anton, t=2.999: 0.597153 x 44.012390 = 26.282118 px². No llega al texto.
+Repetido tras aplicar T8: mismos tres resultados y misma área. PNG inspeccionado.
+AABB mide rectángulos, no la máscara de esquinas redondeadas; texto se comprueba
+contra el rectángulo del span, no contando tinta. No se afirma continuidad entre
+frames. El campo vacío de pares en cada frame significa intersección cero.
+
+**Decisión: +20%, no +35%.** El segundo añade un par respecto a base; se elige
+el mayor escalón medido que no lo hace. La puerta real y DOM admiten 20 @;
+0/321 rechazos, intervalo mínimo 191.306880 px y referencia de 17 con 115.236864 px.
+Fuente medida, condiciones y tabla: plan-a3-mas20-20260905/medidas.json.
+La hoja conserva el control de 17 y el límite, al 45%: SIGUEN mostrando vecinos
+solapados fuera de esta muestra. No se declara resuelta la legibilidad global,
+ni M3 completo: no ampliar el 0/107 a otras palabras/direcciones. Vecindad sigue abierta.
+
+**T8: conservar mapa desacoplada, no retirarla ahora.** Se restaura shared/mapa.ts
+exactamente al master d0dae0d: ajuste histórico 1.257*c+12.18/6.48, CSS 2.9cqw
+intacto. No se convierte ese ajuste en cota segura ni se oculta su fallo histórico.
+Escena importa su propia cota desde metricas-caja. Se evita cambiar píxeles de
+mapa como efecto lateral de ampliar escena; no se sube su CSS para poner verde.
+La prueba de capas conserva su aserción y se añade independencia ante mutación
+temporal de la métrica de escena. Retirar mapa queda fuera de A.3.
+
+**Alcance del cierre.** A.3 no equivale a cerrar A: A.4 y A.5 siguen pendientes.
+La verificación desde clon NUEVO sigue siendo obligatoria para el cierre de A.
+No merge a master; VERSION_PLANTILLAS 8 y cachés de trabajo aisladas.
+
+~~Bloqueo por test:mapa (8/9)~~ cerrado con T8 en este cambio: tsc exit 0 y
+npm test 9/9, exit 0, sobre el clon CONSUMIDO cipher-a2-pruebas-20260905 con
+los artefactos actuales. Capas conserva la aserción; no se repitió para buscar verde.
+El resultado no sustituye al clon nuevo del cierre de fase.

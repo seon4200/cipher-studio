@@ -1,0 +1,2379 @@
+{
+  "fechaUTC": "2026-09-05T16:59:52.042Z",
+  "procedencia": {
+    "commitPartida": "4c3c060e8b2842524888d4cba51b6a971a26f7a7",
+    "metricaFuenteSHA256": "cb5ab7c0312aff708a15ac347297797b6a690120900fa60294533aa3425feb9e",
+    "arnesSHA256": "5d114d93fdbce794170a0007965ac49430a8122fd38feae2755ebdd7c30432f3"
+  },
+  "condiciones": {
+    "composicion": "visual_escena",
+    "ancho": 1080,
+    "alto": 1920,
+    "t": 2.999,
+    "ciclo": 3,
+    "sistema": "voltaje",
+    "direccion": {
+      "fondo": "ondas",
+      "estructura": "constelacion",
+      "camara": "quieto",
+      "densidad": "media",
+      "ritmo": "regular",
+      "tipografia": "archivo"
+    },
+    "modo": "render aplicado sin override",
+    "versiones": {
+      "node": "20.18.0",
+      "acorn": "8.12.1",
+      "ada": "2.9.0",
+      "ares": "1.33.1",
+      "base64": "0.5.2",
+      "brotli": "1.0.9",
+      "cjs_module_lexer": "1.4.1",
+      "cldr": "44.1",
+      "icu": "74.2",
+      "llhttp": "8.1.2",
+      "modules": "125",
+      "napi": "9",
+      "nghttp2": "1.61.0",
+      "openssl": "0.0.0",
+      "simdutf": "5.5.0",
+      "tz": "2024a",
+      "undici": "6.19.8",
+      "unicode": "15.1",
+      "uv": "1.46.0",
+      "uvwasi": "0.0.21",
+      "v8": "12.6.228.30-electron.0",
+      "zlib": "1.3.0.1-motley",
+      "electron": "31.7.7",
+      "chrome": "126.0.6478.234"
+    },
+    "fuenteSHA256": "8f704806dbedeaaeca334b11ec348bc3ac3a439d6431544b3afb54f534ee4967",
+    "fixtureSHA256": "87d19ab7e74efa205e946950e68794f734f6c1ae1131044453ce158635886bc7",
+    "bundleSHA256": "3effbd72ebd56373c9259655d162344a8a6c5c512c5d372aef24cc5d3980917e"
+  },
+  "distribucion": {
+    "n": 321,
+    "mediana": 6,
+    "p90": 10,
+    "p99": 12,
+    "maximo": 15,
+    "metodo": "nearest-rank, incluyendo repeticiones"
+  },
+  "histograma": {
+    "3": 6,
+    "4": 29,
+    "5": 78,
+    "6": 56,
+    "7": 48,
+    "8": 38,
+    "9": 33,
+    "10": 16,
+    "11": 10,
+    "12": 4,
+    "13": 1,
+    "14": 1,
+    "15": 1
+  },
+  "filas": [
+    {
+      "subida": null,
+      "fuenteCqmin": 3.48,
+      "fuentePx": 37.584,
+      "limite": 20,
+      "rechazos": 0,
+      "gruposRechazados": 0,
+      "vacios": 0,
+      "intervaloMinimoPx": 191.30688,
+      "referencia": {
+        "texto": "responsabilidades",
+        "caracteres": 17,
+        "admitida": true,
+        "intervaloPx": 115.236864
+      },
+      "maximoExportado": 20,
+      "metricas": {
+        "archivo700": {
+          "familia": "Archivo",
+          "peso": 700,
+          "fuenteCqmin": 3.48,
+          "alfabeto": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ÁÉÍÓÚÜÑáéíóúüñ¡¿",
+          "emMaximoMedido": 1.001015625,
+          "emPorCaracter": 1.002,
+          "espaciadoEm": 0.01,
+          "fichero": "archivo-var.woff2"
+        }
+      },
+      "geometria": {
+        "paddingXCqmin": 2.4,
+        "bordeCqmin": 0.3,
+        "gapCqmin": 1.3,
+        "emojiAnchoCqmin": 6.1
+      },
+      "limiteDom": 20,
+      "css": {
+        "familia": "Archivo, system-ui, sans-serif",
+        "peso": "700",
+        "fuentePx": "37.584px",
+        "interlinea": "normal",
+        "espaciado": "0.37584px",
+        "kerning": "none",
+        "ligaduras": "none"
+      },
+      "casos": [
+        {
+          "texto": "juguete",
+          "ancho": 275,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "libro",
+          "ancho": 219.84375,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "ropa",
+          "ancho": 221.1875,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "bolígrafo",
+          "ancho": 301.203125,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "papel",
+          "ancho": 239.078125,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "taza",
+          "ancho": 215.171875,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "coche",
+          "ancho": 250.28125,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "semáforo",
+          "ancho": 311.421875,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "carretera",
+          "ancho": 305.828125,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "cesta",
+          "ancho": 238.625,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "manzana",
+          "ancho": 303.984375,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "puesto",
+          "ancho": 264.140625,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "hoja",
+          "ancho": 216.609375,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "viento",
+          "ancho": 251.03125,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "árbol",
+          "ancho": 231.59375,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "cronómetro",
+          "ancho": 351.59375,
+          "alto": 85.890625,
+          "modeloPx": 518.59008,
+          "admitida": true
+        },
+        {
+          "texto": "madera",
+          "ancho": 276.140625,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "tornillo",
+          "ancho": 266.65625,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "control",
+          "ancho": 267.75,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "altavoz",
+          "ancho": 269.9375,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "regla",
+          "ancho": 230.46875,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "reloj",
+          "ancho": 218.828125,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "engranaje",
+          "ancho": 320.859375,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "cadena",
+          "ancho": 272.53125,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "luna",
+          "ancho": 216.265625,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "planeta",
+          "ancho": 274.25,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "telescopio",
+          "ancho": 329.640625,
+          "alto": 85.890625,
+          "modeloPx": 518.59008,
+          "admitida": true
+        },
+        {
+          "texto": "insecto",
+          "ancho": 273.28125,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "pino",
+          "ancho": 217.765625,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "linterna",
+          "ancho": 276.921875,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "corazón",
+          "ancho": 286.171875,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "monitor",
+          "ancho": 279.703125,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "batería",
+          "ancho": 265.90625,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "estetoscopio",
+          "ancho": 377.15625,
+          "alto": 85.890625,
+          "modeloPx": 594.660096,
+          "admitida": true
+        },
+        {
+          "texto": "pastilla",
+          "ancho": 271.015625,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "archivador",
+          "ancho": 334.265625,
+          "alto": 85.890625,
+          "modeloPx": 518.59008,
+          "admitida": true
+        },
+        {
+          "texto": "puente",
+          "ancho": 264.78125,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "lazo",
+          "ancho": 213.59375,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "confeti",
+          "ancho": 264.59375,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "barco",
+          "ancho": 243.09375,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "agua",
+          "ancho": 228.21875,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "edificio",
+          "ancho": 272.40625,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "zapato",
+          "ancho": 261.8125,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "abrigo",
+          "ancho": 254.78125,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "cámara",
+          "ancho": 274.671875,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "bastón",
+          "ancho": 264.03125,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "mochila",
+          "ancho": 282.890625,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "barrera",
+          "ancho": 271.59375,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "patrulla",
+          "ancho": 276.953125,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "letrero",
+          "ancho": 258.734375,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "señal",
+          "ancho": 236.90625,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "candado",
+          "ancho": 296.84375,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "puerta",
+          "ancho": 256.296875,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "persona",
+          "ancho": 287.78125,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "boleto",
+          "ancho": 253.734375,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "silla",
+          "ancho": 212.390625,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "vibración",
+          "ancho": 307.84375,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "llave",
+          "ancho": 223.96875,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "billete",
+          "ancho": 250.046875,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "moneda",
+          "ancho": 285.71875,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "banco",
+          "ancho": 251.4375,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "grúa",
+          "ancho": 220.703125,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "ladrillo",
+          "ancho": 262.828125,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "escalera",
+          "ancho": 294.96875,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "calendario",
+          "ancho": 331.421875,
+          "alto": 85.890625,
+          "modeloPx": 518.59008,
+          "admitida": true
+        },
+        {
+          "texto": "plano",
+          "ancho": 239.9375,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "lupa",
+          "ancho": 216.5,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "destornillador",
+          "ancho": 393.53125,
+          "alto": 85.890625,
+          "modeloPx": 670.730112,
+          "admitida": true
+        },
+        {
+          "texto": "bota",
+          "ancho": 219.765625,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "medalla",
+          "ancho": 282.296875,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "casco",
+          "ancho": 248.40625,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "explosión",
+          "ancho": 317.0625,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "periódico",
+          "ancho": 310.703125,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "pluma",
+          "ancho": 250.359375,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "vela",
+          "ancho": 213.5625,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "bota militar",
+          "ancho": 342.65625,
+          "alto": 85.890625,
+          "modeloPx": 594.660096,
+          "admitida": true
+        },
+        {
+          "texto": "puente colgante",
+          "ancho": 432.171875,
+          "alto": 85.890625,
+          "modeloPx": 708.7651200000001,
+          "admitida": true
+        },
+        {
+          "texto": "marcha",
+          "ancho": 275.5,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "río",
+          "ancho": 186.203125,
+          "alto": 85.890625,
+          "modeloPx": 252.345024,
+          "admitida": true
+        },
+        {
+          "texto": "colapso",
+          "ancho": 283.53125,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "rescate",
+          "ancho": 275.609375,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "vendaje",
+          "ancho": 282,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "hueso",
+          "ancho": 250.6875,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "hospital",
+          "ancho": 284.859375,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "medicina",
+          "ancho": 305.03125,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "ambulancia",
+          "ancho": 350.015625,
+          "alto": 85.890625,
+          "modeloPx": 518.59008,
+          "admitida": true
+        },
+        {
+          "texto": "orden",
+          "ancho": 244.34375,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "cuartel",
+          "ancho": 265.390625,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "fila",
+          "ancho": 193.3125,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "alto",
+          "ancho": 206.953125,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "peatón",
+          "ancho": 265.078125,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "ciudad",
+          "ancho": 261.625,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "zapatilla",
+          "ancho": 291.8125,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "multitud",
+          "ancho": 288.015625,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "caminata",
+          "ancho": 306.65625,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "ritmo",
+          "ancho": 233.296875,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "bolso",
+          "ancho": 239.453125,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "prohibido",
+          "ancho": 312.703125,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "grupo",
+          "ancho": 245.171875,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "construcción",
+          "ancho": 378.796875,
+          "alto": 85.890625,
+          "modeloPx": 594.660096,
+          "admitida": true
+        },
+        {
+          "texto": "medida",
+          "ancho": 272.9375,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "estructura",
+          "ancho": 327.09375,
+          "alto": 85.890625,
+          "modeloPx": 518.59008,
+          "admitida": true
+        },
+        {
+          "texto": "advertencia",
+          "ancho": 354.078125,
+          "alto": 85.890625,
+          "modeloPx": 556.625088,
+          "admitida": true
+        },
+        {
+          "texto": "pergamino",
+          "ancho": 333.96875,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "reloj antiguo",
+          "ancho": 364.9375,
+          "alto": 85.890625,
+          "modeloPx": 632.6951040000001,
+          "admitida": true
+        },
+        {
+          "texto": "castillo",
+          "ancho": 270.953125,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "científico",
+          "ancho": 307.328125,
+          "alto": 85.890625,
+          "modeloPx": 518.59008,
+          "admitida": true
+        },
+        {
+          "texto": "documento",
+          "ancho": 345.0625,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "péndulo",
+          "ancho": 286.28125,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "velero",
+          "ancho": 251.78125,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "brújula",
+          "ancho": 264.40625,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "mapa",
+          "ancho": 239.15625,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "sol",
+          "ancho": 192.8125,
+          "alto": 85.890625,
+          "modeloPx": 252.345024,
+          "admitida": true
+        },
+        {
+          "texto": "estrella",
+          "ancho": 274.515625,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "sextante",
+          "ancho": 297.140625,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "mar",
+          "ancho": 208.421875,
+          "alto": 85.890625,
+          "modeloPx": 252.345024,
+          "admitida": true
+        },
+        {
+          "texto": "puerto",
+          "ancho": 257.53125,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "ancla",
+          "ancho": 237.390625,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "retraso",
+          "ancho": 269.4375,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "precisión",
+          "ancho": 308.34375,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "cuerda",
+          "ancho": 264.96875,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "pesa",
+          "ancho": 226.71875,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "gancho",
+          "ancho": 274.40625,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "olas",
+          "ancho": 214.984375,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "caja",
+          "ancho": 214.28125,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "tormenta",
+          "ancho": 303.609375,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "cama",
+          "ancho": 237.84375,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "termómetro",
+          "ancho": 352.6875,
+          "alto": 85.890625,
+          "modeloPx": 518.59008,
+          "admitida": true
+        },
+        {
+          "texto": "herramienta",
+          "ancho": 359.53125,
+          "alto": 85.890625,
+          "modeloPx": 556.625088,
+          "admitida": true
+        },
+        {
+          "texto": "bombilla",
+          "ancho": 294.84375,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "cuaderno",
+          "ancho": 311.390625,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "vara",
+          "ancho": 217.65625,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "observación",
+          "ancho": 364.453125,
+          "alto": 85.890625,
+          "modeloPx": 556.625088,
+          "admitida": true
+        },
+        {
+          "texto": "hora",
+          "ancho": 220.96875,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "gráfico",
+          "ancho": 266.0625,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "sincronía",
+          "ancho": 307.96875,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "oscilación",
+          "ancho": 326.046875,
+          "alto": 85.890625,
+          "modeloPx": 518.59008,
+          "admitida": true
+        },
+        {
+          "texto": "balanza",
+          "ancho": 280.75,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "sonido",
+          "ancho": 262.453125,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "martillo",
+          "ancho": 276.28125,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "ruptura",
+          "ancho": 271.59375,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "desincronía",
+          "ancho": 353.515625,
+          "alto": 85.890625,
+          "modeloPx": 556.625088,
+          "admitida": true
+        },
+        {
+          "texto": "corriente",
+          "ancho": 303.640625,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "tabla",
+          "ancho": 228.9375,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "aire",
+          "ancho": 207.28125,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "escuadra",
+          "ancho": 308.421875,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "onda",
+          "ancho": 229.53125,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "microscopio",
+          "ancho": 365.609375,
+          "alto": 85.890625,
+          "modeloPx": 556.625088,
+          "admitida": true
+        },
+        {
+          "texto": "tubo",
+          "ancho": 220.546875,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "computadora",
+          "ancho": 381.953125,
+          "alto": 85.890625,
+          "modeloPx": 556.625088,
+          "admitida": true
+        },
+        {
+          "texto": "ábaco",
+          "ancho": 250.609375,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "metrónomo",
+          "ancho": 348.890625,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "destello",
+          "ancho": 284.328125,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "responsabilidades",
+          "ancho": 475.71875,
+          "alto": 85.890625,
+          "modeloPx": 784.8351360000001,
+          "admitida": true
+        },
+        {
+          "texto": "@",
+          "ancho": 175.71875,
+          "alto": 85.890625,
+          "modeloPx": 176.27500799999999,
+          "admitida": true
+        },
+        {
+          "texto": "@@",
+          "ancho": 213.71875,
+          "alto": 85.890625,
+          "modeloPx": 214.310016,
+          "admitida": true
+        },
+        {
+          "texto": "@@@",
+          "ancho": 251.703125,
+          "alto": 85.890625,
+          "modeloPx": 252.345024,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@",
+          "ancho": 289.703125,
+          "alto": 85.890625,
+          "modeloPx": 290.380032,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@",
+          "ancho": 327.6875,
+          "alto": 85.890625,
+          "modeloPx": 328.41504000000003,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@",
+          "ancho": 365.6875,
+          "alto": 85.890625,
+          "modeloPx": 366.45004800000004,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@",
+          "ancho": 403.6875,
+          "alto": 85.890625,
+          "modeloPx": 404.48505600000004,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@@",
+          "ancho": 441.671875,
+          "alto": 85.890625,
+          "modeloPx": 442.52006400000005,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@@@",
+          "ancho": 479.671875,
+          "alto": 85.890625,
+          "modeloPx": 480.55507200000005,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@@@@",
+          "ancho": 517.65625,
+          "alto": 85.890625,
+          "modeloPx": 518.59008,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@@@@@",
+          "ancho": 555.65625,
+          "alto": 85.890625,
+          "modeloPx": 556.625088,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@@@@@@",
+          "ancho": 593.640625,
+          "alto": 85.890625,
+          "modeloPx": 594.660096,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@@@@@@@",
+          "ancho": 631.640625,
+          "alto": 85.890625,
+          "modeloPx": 632.6951040000001,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@",
+          "ancho": 669.640625,
+          "alto": 85.890625,
+          "modeloPx": 670.730112,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@@",
+          "ancho": 707.625,
+          "alto": 85.890625,
+          "modeloPx": 708.7651200000001,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@@@",
+          "ancho": 745.625,
+          "alto": 85.890625,
+          "modeloPx": 746.8001280000001,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@@@@",
+          "ancho": 783.609375,
+          "alto": 85.890625,
+          "modeloPx": 784.8351360000001,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@@@@@",
+          "ancho": 821.609375,
+          "alto": 85.890625,
+          "modeloPx": 822.8701440000001,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@@@@@@",
+          "ancho": 859.59375,
+          "alto": 85.890625,
+          "modeloPx": 860.9051520000002,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@@@@@@@",
+          "ancho": 897.59375,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@@@@@@@@",
+          "ancho": 935.59375,
+          "alto": 85.890625,
+          "modeloPx": 936.9751679999999,
+          "admitida": false
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@@@@@@@@@",
+          "ancho": 973.578125,
+          "alto": 85.890625,
+          "modeloPx": 975.0101760000001,
+          "admitida": false
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@@@@@@@@@@",
+          "ancho": 1011.578125,
+          "alto": 85.890625,
+          "modeloPx": 1013.0451840000002,
+          "admitida": false
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@@@@@@@@@@@",
+          "ancho": 1049.5625,
+          "alto": 85.890625,
+          "modeloPx": 1051.080192,
+          "admitida": false
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@@@@@@@@@@@@",
+          "ancho": 1087.5625,
+          "alto": 85.890625,
+          "modeloPx": 1089.1152,
+          "admitida": false
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@@@@@@@@@@@@@",
+          "ancho": 1125.5625,
+          "alto": 85.890625,
+          "modeloPx": 1127.1502080000002,
+          "admitida": false
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@@@@@@@@@@@@@@",
+          "ancho": 1163.546875,
+          "alto": 85.890625,
+          "modeloPx": 1165.185216,
+          "admitida": false
+        },
+        {
+          "texto": "@@@@@@@@@@@@@@@@@@@@@@@@@@@@",
+          "ancho": 1201.546875,
+          "alto": 85.890625,
+          "modeloPx": 1203.220224,
+          "admitida": false
+        },
+        {
+          "texto": "                    ",
+          "ancho": 137.71875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "!!!!!!!!!!!!!!!!!!!!",
+          "ancho": 371.46875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"",
+          "ancho": 487.96875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "####################",
+          "ancho": 596.203125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "$$$$$$$$$$$$$$$$$$$$",
+          "ancho": 563.125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "%%%%%%%%%%%%%%%%%%%%",
+          "ancho": 876.546875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "&&&&&&&&&&&&&&&&&&&&",
+          "ancho": 719.46875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "''''''''''''''''''''",
+          "ancho": 335.390625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "((((((((((((((((((((",
+          "ancho": 418.828125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "))))))))))))))))))))",
+          "ancho": 418.828125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "********************",
+          "ancho": 451.140625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "++++++++++++++++++++",
+          "ancho": 627.015625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": ",,,,,,,,,,,,,,,,,,,,",
+          "ancho": 375.984375,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "--------------------",
+          "ancho": 395.53125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "....................",
+          "ancho": 375.984375,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "////////////////////",
+          "ancho": 370.71875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "00000000000000000000",
+          "ancho": 592.453125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "11111111111111111111",
+          "ancho": 593.203125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "22222222222222222222",
+          "ancho": 593.203125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "33333333333333333333",
+          "ancho": 593.203125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "44444444444444444444",
+          "ancho": 593.953125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "55555555555555555555",
+          "ancho": 592.453125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "66666666666666666666",
+          "ancho": 593.203125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "77777777777777777777",
+          "ancho": 593.203125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "88888888888888888888",
+          "ancho": 593.203125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "99999999999999999999",
+          "ancho": 592.453125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "::::::::::::::::::::",
+          "ancho": 397.03125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": ";;;;;;;;;;;;;;;;;;;;",
+          "ancho": 397.03125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "<<<<<<<<<<<<<<<<<<<<",
+          "ancho": 627.015625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "====================",
+          "ancho": 627.015625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": ">>>>>>>>>>>>>>>>>>>>",
+          "ancho": 627.015625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "????????????????????",
+          "ancho": 605.96875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "AAAAAAAAAAAAAAAAAAAA",
+          "ancho": 689.40625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "BBBBBBBBBBBBBBBBBBBB",
+          "ancho": 687.890625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "CCCCCCCCCCCCCCCCCCCC",
+          "ancho": 696.171875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "DDDDDDDDDDDDDDDDDDDD",
+          "ancho": 700.671875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "EEEEEEEEEEEEEEEEEEEE",
+          "ancho": 658.578125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "FFFFFFFFFFFFFFFFFFFF",
+          "ancho": 612.734375,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "GGGGGGGGGGGGGGGGGGGG",
+          "ancho": 748.03125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "HHHHHHHHHHHHHHHHHHHH",
+          "ancho": 711.953125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "IIIIIIIIIIIIIIIIIIII",
+          "ancho": 371.46875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "JJJJJJJJJJJJJJJJJJJJ",
+          "ancho": 598.453125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "KKKKKKKKKKKKKKKKKKKK",
+          "ancho": 690.15625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "LLLLLLLLLLLLLLLLLLLL",
+          "ancho": 589.4375,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "MMMMMMMMMMMMMMMMMMMM",
+          "ancho": 800.640625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "NNNNNNNNNNNNNNNNNNNN",
+          "ancho": 711.953125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "OOOOOOOOOOOOOOOOOOOO",
+          "ancho": 741.265625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "PPPPPPPPPPPPPPPPPPPP",
+          "ancho": 657.078125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "QQQQQQQQQQQQQQQQQQQQ",
+          "ancho": 741.265625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "RRRRRRRRRRRRRRRRRRRR",
+          "ancho": 693.90625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "SSSSSSSSSSSSSSSSSSSS",
+          "ancho": 655.578125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "TTTTTTTTTTTTTTTTTTTT",
+          "ancho": 627.015625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "UUUUUUUUUUUUUUUUUUUU",
+          "ancho": 707.4375,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "VVVVVVVVVVVVVVVVVVVV",
+          "ancho": 666.859375,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "WWWWWWWWWWWWWWWWWWWW",
+          "ancho": 869.78125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "XXXXXXXXXXXXXXXXXXXX",
+          "ancho": 675.875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "YYYYYYYYYYYYYYYYYYYY",
+          "ancho": 670.609375,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "ZZZZZZZZZZZZZZZZZZZZ",
+          "ancho": 636.03125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "[[[[[[[[[[[[[[[[[[[[",
+          "ancho": 408.296875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\",
+          "ancho": 370.71875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "]]]]]]]]]]]]]]]]]]]]",
+          "ancho": 408.296875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "^^^^^^^^^^^^^^^^^^^^",
+          "ancho": 627.015625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "____________________",
+          "ancho": 534.578125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "````````````````````",
+          "ancho": 320.359375,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "aaaaaaaaaaaaaaaaaaaa",
+          "ancho": 581.171875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "bbbbbbbbbbbbbbbbbbbb",
+          "ancho": 602.21875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "cccccccccccccccccccc",
+          "ancho": 575.90625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "dddddddddddddddddddd",
+          "ancho": 602.21875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "eeeeeeeeeeeeeeeeeeee",
+          "ancho": 584.171875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "ffffffffffffffffffff",
+          "ancho": 389.515625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "gggggggggggggggggggg",
+          "ancho": 601.46875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "hhhhhhhhhhhhhhhhhhhh",
+          "ancho": 597.703125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "iiiiiiiiiiiiiiiiiiii",
+          "ancho": 345.921875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "jjjjjjjjjjjjjjjjjjjj",
+          "ancho": 343.671875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "kkkkkkkkkkkkkkkkkkkk",
+          "ancho": 573.65625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "llllllllllllllllllll",
+          "ancho": 345.921875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "mmmmmmmmmmmmmmmmmmmm",
+          "ancho": 814.921875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "nnnnnnnnnnnnnnnnnnnn",
+          "ancho": 597.703125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "oooooooooooooooooooo",
+          "ancho": 605.96875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "pppppppppppppppppppp",
+          "ancho": 602.21875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "qqqqqqqqqqqqqqqqqqqq",
+          "ancho": 602.21875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "rrrrrrrrrrrrrrrrrrrr",
+          "ancho": 430.84375,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "ssssssssssssssssssss",
+          "ancho": 563.125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "tttttttttttttttttttt",
+          "ancho": 402.296875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "uuuuuuuuuuuuuuuuuuuu",
+          "ancho": 596.953125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "vvvvvvvvvvvvvvvvvvvv",
+          "ancho": 556.375,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "wwwwwwwwwwwwwwwwwwww",
+          "ancho": 745.015625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "xxxxxxxxxxxxxxxxxxxx",
+          "ancho": 575.15625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "yyyyyyyyyyyyyyyyyyyy",
+          "ancho": 556.375,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "zzzzzzzzzzzzzzzzzzzz",
+          "ancho": 535.328125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "{{{{{{{{{{{{{{{{{{{{",
+          "ancho": 440.625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "||||||||||||||||||||",
+          "ancho": 335.390625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "}}}}}}}}}}}}}}}}}}}}",
+          "ancho": 440.625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "~~~~~~~~~~~~~~~~~~~~",
+          "ancho": 627.015625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "ÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁ",
+          "ancho": 689.40625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "ÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉ",
+          "ancho": 658.578125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ",
+          "ancho": 371.46875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓ",
+          "ancho": 741.265625,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "ÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚ",
+          "ancho": 707.4375,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ",
+          "ancho": 707.4375,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "ÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑ",
+          "ancho": 711.953125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "áááááááááááááááááááá",
+          "ancho": 581.171875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "éééééééééééééééééééé",
+          "ancho": 584.171875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "íííííííííííííííííííí",
+          "ancho": 345.921875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "óóóóóóóóóóóóóóóóóóóó",
+          "ancho": 605.96875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "úúúúúúúúúúúúúúúúúúúú",
+          "ancho": 596.953125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "üüüüüüüüüüüüüüüüüüüü",
+          "ancho": 596.953125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "ññññññññññññññññññññ",
+          "ancho": 597.703125,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡",
+          "ancho": 371.46875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        },
+        {
+          "texto": "¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿",
+          "ancho": 605.96875,
+          "alto": 85.890625,
+          "modeloPx": 898.94016,
+          "admitida": true
+        }
+      ]
+    }
+  ],
+  "capturas": [
+    {
+      "id": "referencia-17",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "direccion": {
+            "fondo": "ondas",
+            "estructura": "constelacion",
+            "camara": "quieto",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "conceptos": [
+            {
+              "emoji": "🧠",
+              "etiqueta": "responsabilidades"
+            },
+            {
+              "emoji": "📁",
+              "etiqueta": "archivo"
+            },
+            {
+              "emoji": "🔗",
+              "etiqueta": "conexion"
+            }
+          ]
+        }
+      },
+      "dom": {
+        "etiquetas": [
+          "responsabilidades",
+          "archivo",
+          "conexion"
+        ],
+        "tipografia": {
+          ".es-etq": {
+            "fuentePx": "37.584px",
+            "altoLinea": "normal",
+            "espaciado": "0.37584px"
+          },
+          ".es-pie-tit": {
+            "fuentePx": "97.2px",
+            "altoLinea": "92.34px",
+            "espaciado": "normal"
+          },
+          ".es-mini": {
+            "fuentePx": "47.52px",
+            "altoLinea": "47.52px",
+            "espaciado": "normal"
+          }
+        },
+        "cajas": [
+          {
+            "x": 244.515625,
+            "y": 564.2109375,
+            "ancho": 475.71875,
+            "alto": 85.890625
+          },
+          {
+            "x": 650.671875,
+            "y": 552.2421875,
+            "ancho": 274.21875,
+            "alto": 85.890625
+          },
+          {
+            "x": 378.109375,
+            "y": 1312.4609375,
+            "ancho": 307.0625,
+            "alto": 85.890625
+          }
+        ],
+        "avisos": [],
+        "texto": "🧠\nresponsabilidades\n📁\narchivo\n🔗\nconexion\n🧠\n\nmemoria"
+      }
+    },
+    {
+      "id": "limite",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "direccion": {
+            "fondo": "ondas",
+            "estructura": "constelacion",
+            "camara": "quieto",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "conceptos": [
+            {
+              "emoji": "🧠",
+              "etiqueta": "@@@@@@@@@@@@@@@@@@@@"
+            },
+            {
+              "emoji": "📁",
+              "etiqueta": "archivo"
+            },
+            {
+              "emoji": "🔗",
+              "etiqueta": "conexion"
+            }
+          ]
+        }
+      },
+      "dom": {
+        "etiquetas": [
+          "@@@@@@@@@@@@@@@@@@@@",
+          "archivo",
+          "conexion"
+        ],
+        "tipografia": {
+          ".es-etq": {
+            "fuentePx": "37.584px",
+            "altoLinea": "normal",
+            "espaciado": "0.37584px"
+          },
+          ".es-pie-tit": {
+            "fuentePx": "97.2px",
+            "altoLinea": "92.34px",
+            "espaciado": "normal"
+          },
+          ".es-mini": {
+            "fuentePx": "47.52px",
+            "altoLinea": "47.52px",
+            "espaciado": "normal"
+          }
+        },
+        "cajas": [
+          {
+            "x": 90.625,
+            "y": 564.2109375,
+            "ancho": 897.59375,
+            "alto": 85.890625
+          },
+          {
+            "x": 650.671875,
+            "y": 552.2421875,
+            "ancho": 274.21875,
+            "alto": 85.890625
+          },
+          {
+            "x": 378.109375,
+            "y": 1312.4609375,
+            "ancho": 307.0625,
+            "alto": 85.890625
+          }
+        ],
+        "avisos": [],
+        "texto": "🧠\n@@@@@@@@@@@@@@@@@@@@\n📁\narchivo\n🔗\nconexion\n🧠\n\nmemoria"
+      }
+    },
+    {
+      "id": "limite-mas-uno",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "direccion": {
+            "fondo": "ondas",
+            "estructura": "constelacion",
+            "camara": "quieto",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "conceptos": [
+            {
+              "emoji": "🧠",
+              "etiqueta": "@@@@@@@@@@@@@@@@@@@@@"
+            },
+            {
+              "emoji": "📁",
+              "etiqueta": "archivo"
+            },
+            {
+              "emoji": "🔗",
+              "etiqueta": "conexion"
+            }
+          ]
+        }
+      },
+      "dom": {
+        "etiquetas": [],
+        "tipografia": {
+          ".es-etq": null,
+          ".es-pie-tit": null,
+          ".es-mini": null
+        },
+        "cajas": [],
+        "avisos": [
+          "[escena] RESPALDO: \"memoria\" cae a visual_texto — la composicion no puede dibujar con estos datos (conceptos=3)"
+        ],
+        "texto": "memoria"
+      }
+    }
+  ]
+}

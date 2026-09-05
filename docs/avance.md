@@ -60,20 +60,14 @@ producción.
 
 ---
 
-## Los tres números del motor
+## Recuento operativo
 
-```
-identidades         48
-instancias   3.782.310
-```
-
-A.1 en `plan-A-cajas`, medido sobre el bundle: tres estructuras reales, cuatro fondos reales,
-dos camaras, una densidad, un ritmo y dos tipografias; `deriva=1` deja **48**
-identidades. Antes, `deriva=2` contaba 36 / 166.470. Es una reclasificacion de
-pares legales, NO dibujos nuevos: el sorteo no consultaba energia. Las **3.782.310**
-instancias son nominales e incluyen los pasos 4/4/4 PROVISIONALES de
-`capasApiladas`; la vista de pareja no aisla flotacion ni acredita cuatro escalones.
-No se han recalibrado para cerrar el lote.
+**48 identidades legales.** Procedencia: contador del bundle en A.1,
+`825b8d3`, repertorio de escena con energía de deriva=1.
+No se cita el nominal de instancias como cabecera: su reparto por par y el
+instrumento están en deuda-graficos.md y en desglosar-instancias-a2.cjs,
+incorporados por `ea741c3`. La cifra nominal no acredita variedad perceptible
+ni calibra los rangos provisionales de capasApiladas.
 
 `v-fase4d-tono-claro` incorpora tinta por sistema para fondos claros, `tramaTejida` y parejas
 por rangos del registro con extremos versionados. La guardia prueba el orden de los seis
@@ -166,9 +160,28 @@ Persisten solapes ENTRE cajas con etiquetas extremas; no se declara M3 completo.
 Política A–E: cachés temporales, sin merge; una subida 8→9 en el merge final.
 El cierre de A sigue pendiente y exigirá un clon NUEVO.
 
-A.3, 05/09/2026: detenido ANTES de subir tamaños. A.2 añade 0 rechazos en las
-321 etiquetas de la última generación (107 grupos válidos; máximo 15 caracteres).
-La muestra histórica citada como 828 cajas era de 828 palabras de mapa; falta
-identificar el fixture exacto, no se sustituye por la muestra nueva sin decirlo.
-La foto de 24 @ no pasó por la rama x=50. Evidencia en deuda-graficos.md y
-tests/aceptacion/plan-a2-impacto-20260905/. Sin merge, versión 8.
+~~A.3 detenido hasta identificar el fixture de las 828.~~ Cerrada esa espera
+el 05/09/2026 por decisión explícita: muestra RETIRADA, no se busca ni sustituye
+en silencio. Procedencia histórica: mensaje de `10000a9`, palabras de mapa.
+Nueva base: fixture `4c3c060`, 321 etiquetas/107 grupos de la generación real
+del 03/09/2026; no son 107 Visuales.
+
+~~A.3 aplicado provisionalmente: +35%.~~ Retirado por el sondeo de pares de abajo.
+Historia del primer ensayo: límite entero 17, sin rechazos
+en la muestra y margen de 34,412472 px para la cota de 17 caracteres.
+Procedencia: medir-tamanos-a3.cjs / plan-a3-20260905, visual_escena,
+`4c3c060` MÁS el cambio pendiente fuenteCqmin=3.915; SHA de código y bundle
+en los JSON. NO CERRADO: npm test dio 8/9, test:mapa exit 1. La métrica también
+alimenta mapa aunque su CSS conserva 2.9; documentado en deuda-graficos.md.
+No se cambió esa suite ni se resolvió el acoplamiento. Sin commit nuevo,
+sin merge, versión 8. A sigue pendiente de cierre con clon NUEVO.
+
+A.3, corrección 05/09/2026: +20% (37.584 px), límite 20, 0/321 rechazos.
+Pares: base 0/107, +20 0/107, +35 1/107; no alcanza texto. Se midieron 91
+instantes de cada grupo; no es una garantía fuera de la muestra. Fuente:
+README-solapes-a3.md / plan-a3-pares-20260905, 4c3c060 + cambios A.3/T8,
+hashes de bundle y arneses en los JSON. T8 conserva mapa con SU modelo de master.
+A.4/A.5 y cierre completo de A siguen pendientes. No se declara M3 global verde:
+el control extremo de la hoja aún muestra vecindad sin resolver.
+Verificación A.3/T8: tsc exit 0, build por ficheros y 9/9 en clon consumido;
+bloqueo de mapa cerrado sin rebajar capas. Cierre de A aún NO declarado.

@@ -3,6 +3,30 @@
 Punto de partida verificado: **`v-paso9-mapa-sin-palabra`** (`757b6cc`).
 Estado y etiquetas al día: ver `avance.md` y `puntos-retorno.md`.
 
+**Errata de procedencia, 05/09/2026 — A.3 del plan A–F externo.**
+La muestra citada allí como «828 cajas» se RETIRA: el mensaje de
+`10000a980d6f89431eb1141d3ac262622744fe80` habla de palabras/valores sobre
+`mapa`, con etiquetas medias/largas; no de cajas de `escena`.
+Los 509/847 fuera de zona son recuentos históricos sin denominador de cajas
+recuperable ni arnés versionado. No son una tasa sobre 828 cajas.
+A.3 usa, por decisión explícita, 321 etiquetas de 107 sub-clips: fixture de
+`4c3c060`, generación del 03/09/2026, pruebas en `visual_escena`.
+El inventario de las copias externas y la medición nueva están en
+`deuda-graficos.md`. Este archivo del repo no contenía la instrucción de las 828.
+
+**Procedencia obligatoria también para cifras heredadas:** qué instrumento,
+composición y commit las midieron, pegados a cada cita. Si no consta, no se usa
+como resultado verificable. Se conserva la historia tachada y su corrección.
+
+**T8 del plan A–F, decisión 05/09/2026.** Mapa se CONSERVA desacoplada: su
+modelo y CSS históricos quedan como en master d0dae0d; la cota por fuente de
+escena deja de importarse por mapa. No se retira mapa ni se amplía su texto
+para reparar una suite. Evidencia del acoplamiento y del sondeo: deuda-graficos.md,
+A.3; instrumentos y corpus en tests/aceptacion/README-solapes-a3.md.
+Tamaño elegido de escena: +20%, porque +35 añade un solape entre cajas en los
+107 grupos reales ensayados. Procedencia: 4c3c060 + A.3/T8, SHA en los JSON.
+Esta decisión no cierra A.4/A.5 ni certifica legibilidad fuera de la muestra.
+
 ---
 
 # 0 · EL PROBLEMA Y LA SOLUCIÓN

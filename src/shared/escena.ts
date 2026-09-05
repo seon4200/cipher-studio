@@ -12,11 +12,12 @@
 // `Record<IdFondo, DibujoFondo>`. Anadir una pieza aqui y olvidar su dibujo NO COMPILA. Es la
 // misma eleccion que `puedeDibujar`: fallar ruidoso -- tsc -- en vez de mudo.
 //
-// mapa.ts NO SE TOCA. Se le toma prestado `acotar()`, `anchoCaja`, `altoCaja` y `cl`, que son
-// garantias ya medidas: no se reescribe una segunda version de algo asi.
+// T8: solo se comparten acotar/altoCaja/cl con mapa. El ancho de escena procede de
+// SU cota por fuente; el ajuste historico de mapa no gobierna esta composicion.
 
 import { generador, entre, semillaDe } from './semilla';
-import { acotar, anchoCaja, altoCaja, cl, type Layout, type Punto } from './mapa';
+import { acotar, altoCaja, cl, type Layout, type Punto } from './mapa';
+import { anchoCaja } from './metricas-caja';
 import { CUANTOS_CONCEPTOS } from './conceptos';
 
 const TAU = 6.283185307;

@@ -3,7 +3,9 @@
 // Añadir una familia exige SU metrica: no hereda la de Archivo ni un promedio.
 export const METRICAS_ETIQUETA = {
   archivo700: {
-    familia: 'Archivo', peso: 700, fuenteCqmin: 2.9,
+    // A.3: +20%; +35% introduce un solape en los 107 grupos reales medidos.
+    // Admite 20 caracteres; evidencia y condiciones en plan-a3-pares-20260905/.
+    familia: 'Archivo', peso: 700, fuenteCqmin: 3.48,
     alfabeto: Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i)).join('') +
       'ÁÉÍÓÚÜÑáéíóúüñ¡¿',
     emMaximoMedido: 1.001015625,

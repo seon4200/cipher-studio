@@ -258,18 +258,36 @@ export const FAMILIAS: readonly Familia[] = ['radial', 'malla', 'capas', 'cascad
 
 // -- EL TAMANO DE UNA CAJA ----------------------------------------------------------
 //
-// A.2: el ajuste medio de ancho se retiro al medir 56 W: 1845 px frente a 892
-// previstos. El ancho ahora procede de metricas-caja.ts, compartido con escena.
-// Los ALTOS historicos se conservan aqui; A.2 corrige el ancho, no la reserva vertical.
+// MEDIDO EN EL DOM REAL, a 1080 px y con Archivo YA CARGADA (paso 5). No es una estimacion:
+// se midio `.cm-caja` con etiquetas de 3, 5, 7, 9, 12 y 15 caracteres y se ajusto una recta.
+//
+//   concepto (minusculas + emoji)   1.257 * c + 12.18    alto 4.47 % del ALTO
+//   ancla    (minusculas sin emoji) 1.257 * c +  6.48    alto 3.77 % del ALTO
+//
+// LA PENDIENTE ES LA MISMA en los dos: el emoji y su gap son 5.70 puntos de intercepto y nada
+// mas, que es lo que dice el CSS -- `.cm-mini` 5cqw mas `gap` 1.3cqw.
+//
+// MINUSCULAS, y esta medido por que: de 3.670 palabras candidatas del ultimo guion, el 92.3%
+// vienen en minusculas, el 6.4% con inicial mayuscula -- que mide igual, 1.245 * c + 6.88 -- y
+// el 1.2% en mayusculas, que son siglas de tres letras. La fila de MAYUSCULAS enteras, que
+// seria 1.817 * c, es teorica y no se usa.
+//
+// SI CAMBIA LA FUENTE HAY QUE VOLVER A MEDIR ESTO. El modelo anterior -- 1.44 * c + 12.7 --
+// estaba medido contra la sans del sistema, y calibrar con el habria dado cajas un 15% mas
+// anchas de lo que son. Ver el paso 5 en docs/deuda-graficos.md.
 const CAJA = {
+  porCaracter: 1.257,
+  baseConEmoji: 12.18,
+  baseSinEmoji: 6.48,
   altoConEmoji: 4.47,
   altoSinEmoji: 3.77
 } as const;
 
 /** El ancho de la caja, en % del ANCHO del marco. */
-// A.2 sustituye el ajuste medio por una cota por fuente; no se conserva una copia.
-export { anchoCaja } from './metricas-caja';
-import { anchoCaja } from './metricas-caja';
+export function anchoCaja (etiqueta: unknown, conEmoji: boolean): number {
+  const c = String(etiqueta === null || etiqueta === undefined ? '' : etiqueta).length;
+  return (conEmoji ? CAJA.baseConEmoji : CAJA.baseSinEmoji) + CAJA.porCaracter * c;
+}
 
 /** El alto de la caja, en % del ALTO del marco. No depende del texto: es una sola linea. */
 export function altoCaja (conEmoji: boolean): number {
