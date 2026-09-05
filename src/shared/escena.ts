@@ -393,6 +393,96 @@ export const FONDOS = {
     // extremos se hayan mirado: inventarlos inflaria el numero que mide la variedad del motor.
     rangos: []
   },
+  amanecer: {
+    id: 'amanecer', descripcion: 'Bandas de luz cálida que se desplazan sobre un cielo pálido.',
+    energia: 0, tono: 'claro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos-2.html:301-315.
+  },
+  causticas: {
+    id: 'causticas', descripcion: 'Reflejos líquidos que ondulan como luz bajo el agua.',
+    energia: 0, tono: 'claro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos-2.html:271-298.
+  },
+  cristales: {
+    id: 'cristales', descripcion: 'Facetas poligonales cuyo brillo gira por turnos.',
+    energia: 1, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos-2.html:144-159.
+  },
+  panal: {
+    id: 'panal', descripcion: 'Hexágonos que se encienden por una oleada diagonal.',
+    energia: 1, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos-2.html:217-233.
+  },
+  mallaDeformada: {
+    id: 'mallaDeformada', descripcion: 'Rejilla que se hunde alrededor de un pozo que viaja.',
+    energia: 2, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos.html:159-201.
+  },
+  circuito: {
+    id: 'circuito', descripcion: 'Pistas de placa con pulsos que avanzan a velocidades distintas.',
+    energia: 2, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos.html:204-228.
+  },
+  cuerdas: {
+    id: 'cuerdas', descripcion: 'Hilos verticales que vibran como un instrumento tensado.',
+    energia: 2, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos-2.html:196-214.
+  },
+  mosaico: {
+    id: 'mosaico', descripcion: 'Teselas que giran una por una y dan textura sin ruido.',
+    energia: 2, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos.html:254-274.
+  },
+  warpEstelar: {
+    id: 'warpEstelar', descripcion: 'Estrellas que se estiran desde el centro como un salto al hiperespacio.',
+    energia: 3, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos.html:277-292.
+  },
+  lluviaDatos: {
+    id: 'lluviaDatos', descripcion: 'Columnas de caracteres que caen con una cabeza brillante.',
+    energia: 3, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos-2.html:162-193.
+  },
+  multitud: {
+    id: 'multitud', descripcion: 'Multitud de figuras que pulsa como una masa urbana.',
+    energia: 2, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos-3.html:154-177.
+  },
+  ordenEspontaneo: {
+    id: 'ordenEspontaneo', descripcion: 'Partículas que encuentran orden sin una cuadrícula impuesta.',
+    energia: 2, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos-3.html:178-205.
+  },
+  demolicion: {
+    id: 'demolicion', descripcion: 'Fragmentos que se desprenden y caen de una estructura.',
+    energia: 3, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos-3.html:206-224.
+  },
+  comidaFamilia: {
+    id: 'comidaFamilia', descripcion: 'Platos alrededor de una mesa cálida vistos desde arriba.',
+    energia: 1, tono: 'claro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos-3.html:226-245.
+  },
+  viaLactea: {
+    id: 'viaLactea', descripcion: 'Una banda galáctica y estrellas que laten en profundidad.',
+    energia: 2, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos-3.html:247-260.
+  },
+  reinoAnimal: {
+    id: 'reinoAnimal', descripcion: 'Manchas orgánicas y trama de piel animal que respiran.',
+    energia: 2, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos-3.html:261-273.
+  },
+  leyDarwin: {
+    id: 'leyDarwin', descripcion: 'Ramas evolutivas que crecen desde una raíz común.',
+    energia: 2, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos-3.html:274-286.
+  },
+  ecosistemaMarino: {
+    id: 'ecosistemaMarino', descripcion: 'Corrientes azules y capas profundas de un ecosistema marino.',
+    energia: 2, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    // Fuente aprobada: docs/motion/lab-fondos-3.html:287-301.
+  },
   liso: {
     id: 'liso',
     descripcion: 'Fondo plano de un solo color, sin movimiento. Pieza de prueba.',
@@ -475,12 +565,11 @@ export const ESTRUCTURAS = {
         .slice(0, Math.min(CUANTOS_CONCEPTOS, etiquetas.length)),
       etiquetas, FRANJA_TEXTO_Y) }
   },
-  // Lote pendiente de aprobacion visual: no participa en direccionDe ni en el recuento real.
   // Fuente: docs/motion/lab-estructuras.html:297-312.
   lineaTiempo: {
     id: 'lineaTiempo', descripcion: 'Conceptos sucesivos sobre un eje vertical: un evento sigue a otro.',
     energia: 1, formatos: ['9:16'], minConceptos: 1,
-    presupuestoTexto: FRANJA_TEXTO_Y, prueba: true, rangos: [],
+    presupuestoTexto: FRANJA_TEXTO_Y, rangos: [],
     tipografias: ['neutral', 'condensada'],
     disposicion: { lectura: 'cronologica', adaptarDensidad: n => ajusteDensidad(n, 0.88, 1.36),
     puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
@@ -492,7 +581,7 @@ export const ESTRUCTURAS = {
   corteTransversal: {
     id: 'corteTransversal', descripcion: 'Estratos horizontales etiquetados que componen un mismo conjunto.',
     energia: 1, formatos: ['9:16'], minConceptos: 1,
-    presupuestoTexto: FRANJA_TEXTO_Y, prueba: true, rangos: [],
+    presupuestoTexto: FRANJA_TEXTO_Y, rangos: [],
     tipografias: ['neutral', 'condensada'],
     disposicion: { lectura: 'estratos', adaptarDensidad: n => ajusteDensidad(n, 0.91, 1.31),
     puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
@@ -503,12 +592,112 @@ export const ESTRUCTURAS = {
   partidoVertical: {
     id: 'partidoVertical', descripcion: 'Dos campos verticales contrastados: los conceptos cruzan su division.',
     energia: 1, formatos: ['9:16'], minConceptos: 1,
-    presupuestoTexto: FRANJA_TEXTO_Y, prueba: true, rangos: [],
+    presupuestoTexto: FRANJA_TEXTO_Y, rangos: [],
     tipografias: ['neutral', 'condensada'],
     disposicion: { lectura: 'cruzada', adaptarDensidad: n => ajusteDensidad(n, 0.93, 1.24),
     puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
       etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) => ({ x: 50 + i * 2, y: [20, 42, 60][i] })),
       etiquetas, FRANJA_TEXTO_Y) }
+  },
+  cintaDiagonal: {
+    id: 'cintaDiagonal', descripcion: 'Una banda inclinada cruza el cuadro y los conceptos cuelgan de ella.',
+    energia: 2, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
+    tipografias: ['neutral', 'condensada'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-estructuras-2.html:99-120.
+    disposicion: { lectura: 'cruzada', adaptarDensidad: n => ajusteDensidad(n, .91, 1.30),
+    puntos: (_rnd, etiquetas) => acotarPuntos(etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) =>
+      ([{x:15,y:65},{x:35,y:48},{x:60,y:32}][i])), etiquetas, FRANJA_TEXTO_Y) }
+  },
+  marcoPoster: {
+    id: 'marcoPoster', descripcion: 'Marco grueso de cartel serigrafiado con contenido que respira dentro.',
+    energia: 0, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
+    tipografias: ['neutral', 'condensada'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-estructuras-2.html:122-143.
+    disposicion: { lectura: 'estratos', adaptarDensidad: n => ajusteDensidad(n, .93, 1.26),
+    puntos: (_rnd, etiquetas) => acotarPuntos(etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) =>
+      ([{x:85,y:65},{x:75,y:45},{x:65,y:25}][i])), etiquetas, FRANJA_TEXTO_Y) }
+  },
+  anillosConcentricos: {
+    id: 'anillosConcentricos', descripcion: 'Círculos que se abren desde el centro y sostienen los conceptos.',
+    energia: 1, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
+    tipografias: ['neutral', 'condensada'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-estructuras-2.html:166-191.
+    disposicion: { lectura: 'radial', adaptarDensidad: n => ajusteDensidad(n, .92, 1.22),
+    puntos: (_rnd, etiquetas) => acotarPuntos([{x:15,y:50},{x:30,y:25},{x:70,y:55}]
+      .slice(0, Math.min(CUANTOS_CONCEPTOS, etiquetas.length)), etiquetas, FRANJA_TEXTO_Y) }
+  },
+  abanicoTarjetas: {
+    id: 'abanicoTarjetas', descripcion: 'Tarjetas desplegadas como una mano de cartas desde el centro.',
+    energia: 1, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
+    tipografias: ['neutral', 'condensada'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-estructuras-2.html:194-217.
+    disposicion: { lectura: 'radial', adaptarDensidad: n => ajusteDensidad(n, .90, 1.20),
+    puntos: (_rnd, etiquetas) => acotarPuntos([{x:85,y:50},{x:50,y:62},{x:20,y:42}]
+      .slice(0, Math.min(CUANTOS_CONCEPTOS, etiquetas.length)), etiquetas, FRANJA_TEXTO_Y) }
+  },
+  rayosImpacto: {
+    id: 'rayosImpacto', descripcion: 'Rayos que estallan desde el centro y reciben los conceptos.',
+    energia: 3, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
+    tipografias: ['neutral', 'condensada'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-estructuras-2.html:341-368.
+    disposicion: { lectura: 'radial', adaptarDensidad: n => ajusteDensidad(n, .88, 1.18),
+    puntos: (_rnd, etiquetas) => acotarPuntos([{x:15,y:35},{x:80,y:64},{x:50,y:16}]
+      .slice(0, Math.min(CUANTOS_CONCEPTOS, etiquetas.length)), etiquetas, FRANJA_TEXTO_Y) }
+  },
+  engranajes: {
+    id: 'engranajes', descripcion: 'Ruedas dentadas encajadas que giran como un mecanismo.',
+    energia: 2, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
+    tipografias: ['neutral', 'condensada'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-estructuras-2.html:371-398.
+    disposicion: { lectura: 'orbital', adaptarDensidad: n => ajusteDensidad(n, .89, 1.24),
+    puntos: (_rnd, etiquetas) => acotarPuntos([{x:85,y:35},{x:65,y:58},{x:35,y:45}]
+      .slice(0, Math.min(CUANTOS_CONCEPTOS, etiquetas.length)), etiquetas, FRANJA_TEXTO_Y) }
+  },
+  cuaderno: {
+    id: 'cuaderno', descripcion: 'Página de cuaderno con renglones, anotaciones y subrayado.',
+    energia: 0, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
+    tipografias: ['neutral', 'condensada'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-estructuras-2.html:401-425.
+    disposicion: { lectura: 'cronologica', adaptarDensidad: n => ajusteDensidad(n, .94, 1.33),
+    puntos: (_rnd, etiquetas) => acotarPuntos(etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) =>
+      ([{x:35,y:65},{x:72,y:50},{x:82,y:28}][i])), etiquetas, FRANJA_TEXTO_Y) }
+  },
+  cascada: {
+    id: 'cascada', descripcion: 'Cajas que caen en escalones, una detrás de otra.',
+    energia: 1, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
+    tipografias: ['neutral', 'condensada'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-estructuras.html:215-224.
+    disposicion: { lectura: 'cronologica', adaptarDensidad: n => ajusteDensidad(n, .91, 1.29),
+    puntos: (_rnd, etiquetas) => acotarPuntos(etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) =>
+      ([{x:85,y:20},{x:55,y:52},{x:22,y:64}][i])), etiquetas, FRANJA_TEXTO_Y) }
+  },
+  editorial: {
+    id: 'editorial', descripcion: 'Bloque pesado a la izquierda con conceptos alineados a la derecha.',
+    energia: 0, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
+    tipografias: ['neutral', 'condensada'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-estructuras.html:240-249.
+    disposicion: { lectura: 'estratos', adaptarDensidad: n => ajusteDensidad(n, .92, 1.35),
+    puntos: (_rnd, etiquetas) => acotarPuntos(etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) =>
+      ({ x: [{x:65,y:65},{x:72,y:42},{x:68,y:20}][i].x,
+        y: [{x:65,y:65},{x:72,y:42},{x:68,y:20}][i].y })), etiquetas, FRANJA_TEXTO_Y) }
+  },
+  mundoIsometrico: {
+    id: 'mundoIsometrico', descripcion: 'Mundo de tiles isométricos que se construye paso a paso.',
+    energia: 1, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
+    tipografias: ['neutral', 'condensada'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-estructuras.html:251-283.
+    disposicion: { lectura: 'estratos', adaptarDensidad: n => ajusteDensidad(n, .90, 1.24),
+    puntos: (_rnd, etiquetas) => acotarPuntos([{x:50,y:65},{x:20,y:20},{x:80,y:45}]
+      .slice(0, Math.min(CUANTOS_CONCEPTOS, etiquetas.length)), etiquetas, FRANJA_TEXTO_Y) }
+  },
+  pilaVertical: {
+    id: 'pilaVertical', descripcion: 'Bloques que descienden y se apilan formando una torre.',
+    energia: 1, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
+    tipografias: ['neutral', 'condensada'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-estructuras.html:334-351.
+    disposicion: { lectura: 'apilada', adaptarDensidad: n => ajusteDensidad(n, .93, 1.32),
+    puntos: (_rnd, etiquetas) => acotarPuntos(etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) =>
+      ([{x:35,y:50},{x:52,y:40},{x:70,y:65}][i])), etiquetas, FRANJA_TEXTO_Y) }
   },
   unaCaja: {
     id: 'unaCaja',
@@ -563,6 +752,90 @@ export const CAMARAS = {
     // instancias es exactamente 1, y eso es correcto.
     rangos: [],
     transform: null
+  },
+  acercamiento: {
+    id: 'acercamiento', descripcion: 'Zoom hacia dentro que concentra la atención.', energia: 2,
+    formatos: ['9:16'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-camara-2.html:93-95.
+    transform: (u, f) => { const k = .5 - .5 * Math.cos(u * TAU); return `transform:translateY(${(-2.2 * f * k).toFixed(3)}cqmin) scale(${(1 + .17 * f * k).toFixed(4)})`; }
+  },
+  alejamiento: {
+    id: 'alejamiento', descripcion: 'Empieza cerca y abre el plano como un revelado.', energia: 2,
+    formatos: ['9:16'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-camara-2.html:96-98.
+    transform: (u, f) => { const k = .5 - .5 * Math.cos(u * TAU); return `transform:translateY(${(1.6 * f * k).toFixed(3)}cqmin) scale(${(1 + .18 * f * (1 - k)).toFixed(4)})`; }
+  },
+  rebote: {
+    id: 'rebote', descripcion: 'Sube, planea y aterriza como si la escena tuviera masa.', energia: 2,
+    formatos: ['9:16'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-camara-2.html:99-101.
+    transform: (u, f) => { const e = Math.sin(u * TAU); return `transform:translateY(${(-e * 3.4 * f).toFixed(3)}cqmin) scale(${(1 + .10 * f * Math.abs(e)).toFixed(4)})`; }
+  },
+  orbita: {
+    id: 'orbita', descripcion: 'Gira alrededor del sujeto y muestra profundidad por paralaje.', energia: 2,
+    formatos: ['9:16'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-camara-2.html:102-104.
+    transform: (u, f) => { const a = u * TAU; return `transform:translate(${(Math.cos(a) * 4 * f).toFixed(3)}cqmin,${(Math.sin(a) * 2.4 * f).toFixed(3)}cqmin) rotate(${(Math.sin(a) * 1.6 * f).toFixed(3)}deg) scale(${(1 + .06 * f).toFixed(4)})`; }
+  },
+  barrido: {
+    id: 'barrido', descripcion: 'El mundo rota bajo el sujeto en un barrido lento.', energia: 2,
+    formatos: ['9:16'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-camara-2.html:105-107.
+    transform: (u, f) => `transform:translateX(${(Math.sin(u * TAU) * 2.2 * f).toFixed(3)}cqmin) rotate(${(Math.sin(u * TAU) * 3.4 * f).toFixed(3)}deg) scale(${(1 + .05 * f).toFixed(4)})`
+  },
+  travelling: {
+    id: 'travelling', descripcion: 'Desplazamiento lateral puro como una vía de tren.', energia: 1,
+    formatos: ['9:16'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-camara-2.html:108-110.
+    transform: (u, f) => `transform:translateX(${(Math.sin(u * TAU) * 6.5 * f).toFixed(3)}cqmin) scale(${(1 + .03 * f).toFixed(4)})`
+  },
+  grua: {
+    id: 'grua', descripcion: 'Desplazamiento vertical que recorre las estructuras ascendentes.', energia: 1,
+    formatos: ['9:16'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-camara-2.html:111-113.
+    transform: (u, f) => `transform:translateY(${(Math.sin(u * TAU) * 6 * f).toFixed(3)}cqmin) scale(${(1 + .03 * f).toFixed(4)})`
+  },
+  picado: {
+    id: 'picado', descripcion: 'Inclinación hacia abajo que empequeñece la escena.', energia: 2,
+    formatos: ['9:16'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-camara-2.html:114-117.
+    transform: (u, f) => { const k = .5 - .5 * Math.cos(u * TAU); return `transform:perspective(120cqmin) rotateX(${(9 * f * k).toFixed(3)}deg) translateY(${(-2.4 * f * k).toFixed(3)}cqmin) scale(${(1 + .07 * f * k).toFixed(4)})`; }
+  },
+  contrapicado: {
+    id: 'contrapicado', descripcion: 'Inclinación hacia arriba que engrandece la escena.', energia: 2,
+    formatos: ['9:16'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-camara-2.html:118-121.
+    transform: (u, f) => { const k = .5 - .5 * Math.cos(u * TAU); return `transform:perspective(120cqmin) rotateX(${(-9 * f * k).toFixed(3)}deg) translateY(${(2.2 * f * k).toFixed(3)}cqmin) scale(${(1 + .07 * f * k).toFixed(4)})`; }
+  },
+  temblor: {
+    id: 'temblor', descripcion: 'Sacudida de impacto que se amortigua.', energia: 3,
+    formatos: ['9:16'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-camara-2.html:122-127.
+    transform: (u, f) => { const a = Math.exp(-u * 5.2); return `transform:translate(${(Math.sin(u * TAU * 7) * 3.2 * f * a).toFixed(3)}cqmin,${(Math.cos(u * TAU * 9) * 2.4 * f * a).toFixed(3)}cqmin) rotate(${(Math.sin(u * TAU * 11) * .9 * f * a).toFixed(3)}deg) scale(${(1 + .02 * f * a).toFixed(4)})`; }
+  },
+  mano: {
+    id: 'mano', descripcion: 'Deriva irregular de dos frecuencias, como cámara sostenida a mano.', energia: 1,
+    formatos: ['9:16'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-camara-2.html:128-133.
+    transform: (u, f) => { const x = (Math.sin(u * TAU) * 1.5 + Math.sin(u * TAU * 3 + 1.2) * .8) * f; const y = (Math.cos(u * TAU * 2 + .4) * 1.1 + Math.sin(u * TAU) * .9) * f; return `transform:translate(${x.toFixed(3)}cqmin,${y.toFixed(3)}cqmin) rotate(${(Math.sin(u * TAU * 2 + .7) * .5 * f).toFixed(3)}deg) scale(${(1 + .02 * f).toFixed(4)})`; }
+  },
+  vertigo: {
+    id: 'vertigo', descripcion: 'Deformación de espacio que acerca fondo y aleja primer plano.', energia: 3,
+    formatos: ['9:16'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-camara-2.html:134-136.
+    transform: (u, f) => { const k = .5 - .5 * Math.cos(u * TAU); return `transform:scale(${(1 + .26 * k * (f - .55) * 2).toFixed(4)})`; }
+  },
+  inclinacion: {
+    id: 'inclinacion', descripcion: 'Entra torcida y se endereza con inquietud controlada.', energia: 2,
+    formatos: ['9:16'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-camara-2.html:137-139.
+    transform: (u, f) => { const k = .5 + .5 * Math.cos(u * TAU); return `transform:rotate(${(5.5 * f * k).toFixed(3)}deg) scale(${(1 + .05 * f * k).toFixed(4)})`; }
+  },
+  saltos: {
+    id: 'saltos', descripcion: 'Zoom escalonado que marca golpes secos de ritmo.', energia: 3,
+    formatos: ['9:16'], rangos: [],
+    // Fuente aprobada: docs/motion/lab-camara-2.html:140-142.
+    transform: (u, f) => { const paso = Math.floor(u * 4) / 4; return `transform:translateY(${(-1.6 * f * paso).toFixed(3)}cqmin) scale(${(1 + .15 * f * paso).toFixed(4)})`; }
   },
   derivaMinima: {
     id: 'derivaMinima',

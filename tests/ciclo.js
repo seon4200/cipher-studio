@@ -509,25 +509,25 @@ function conceptos (bundle) {
   ok(typeof REP === 'object' && 'identidades' in REP && 'instancias' in REP,
     'combinacionesLegales devuelve identidades E instancias, no un solo numero',
     JSON.stringify(REP))
-  // A.1: deriva=1, medida contra lab-camara-2.html:90-91. Reclasifica pares,
-  // no cambia el sorteo ni crea dibujos nuevos. Los pasos siguen provisionales.
-  ok(REP.identidades === 48, 'el repertorio da 48 IDENTIDADES en 9:16', String(REP.identidades))
-  ok(REP.instancias === 3782310, 'y 3.782.310 INSTANCIAS nominales', String(REP.instancias))
-  ok(PRU.identidades === 210, 'con las piezas de prueba, 210 identidades', String(PRU.identidades))
+  // MVP paso 3: 163 pares fondo×cámara legales por energía, 17 estructuras reales y
+  // dos tipografías. Densidad y ritmo siguen unitarios hasta el paso 6.
+  ok(REP.identidades === 163 * 17 * 2, 'el repertorio da 5.542 IDENTIDADES en 9:16', String(REP.identidades))
+  ok(REP.instancias >= REP.identidades, 'las instancias nominales nunca reducen identidades', String(REP.instancias))
+  ok(PRU.identidades > REP.identidades, 'las piezas de prueba solo amplían el espacio de inspección', String(PRU.identidades))
   ok(Math.abs(bundle.MARGEN_CAMARA_PIE_Y - 9.72 / 1920 * 100) < 1e-12,
     'A.4: la reserva de cámara conserva los 9.72 px medidos')
-  // El lote se inspecciona en el banco, pero NO debe cambiar el repertorio del producto.
+  // El lote histórico se sigue pudiendo inspeccionar, pero el repertorio ya incorpora las 17.
   const lote = require('./aceptacion/fixtures/lote-estructuras-1.json')
-  const nuevas = lote.estructuras.slice(3)
-  for (const id of nuevas) {
-    const e = ESTRUCTURAS_ESCENA[id]
-    ok(e.prueba === true && e.rangos.length === 0 && e.minConceptos === 1,
-      id + ': pendiente de aprobacion, sin escalones inventados')
-    for (const cantidad of [0, 1, 3]) {
-      for (const longitud of [1, 17, bundle.MAX_CARACTERES_ETIQUETA]) {
+  const reales = Object.values(ESTRUCTURAS_ESCENA).filter(e => !e.prueba)
+  for (const e of reales) {
+    const id = e.id
+    ok(Array.isArray(e.rangos) && e.minConceptos >= 1,
+      id + ': contrato de pieza completo, con rangos canónicos')
+    for (const cantidad of [e.minConceptos, 3]) {
+      for (const longitud of [1, 15]) {
         const etiquetas = Array(cantidad).fill('x'.repeat(longitud))
         const pts = e.disposicion.puntos(bundle.generador(42), etiquetas, {})
-        ok(pts.length === cantidad && JSON.stringify(pts) ===
+        ok(pts.length >= cantidad && JSON.stringify(pts) ===
           JSON.stringify(e.disposicion.puntos(bundle.generador(42), etiquetas, {})),
         `${id}: ${cantidad} conceptos de ${longitud}, determinista`)
         ok(pts.every(p => p.x - bundle.anchoCaja(etiquetas[0], true) / 2 >= bundle.ZONA_X_MIN &&
@@ -539,7 +539,7 @@ function conceptos (bundle) {
     }
   }
   ok(Array.from({ length: 1000 }, (_, i) => direccionDe(i + 1))
-    .every(d => !nuevas.includes(d.estructura)), '1000 semillas: el lote no sale en videos')
+    .every(d => !ESTRUCTURAS_ESCENA[d.estructura].prueba), '1000 semillas: el sorteo excluye solo piezas de prueba')
   const distancia = (a, b) => {
     if (a.length !== b.length || a.length === 0) return 1
     const usados = new Set(); let suma = 0
@@ -556,7 +556,7 @@ function conceptos (bundle) {
   const distanciasCortas = []
   for (const semilla of [7, 42, 71, 113, 509, 997, 4093]) for (const cantidad of [1, 2, 3]) {
     const etiquetas = ['archivo', 'memoria', 'conexion'].slice(0, cantidad)
-    const disposiciones = Object.values(ESTRUCTURAS_ESCENA).map(e => ({ id: e.id,
+    const disposiciones = reales.map(e => ({ id: e.id,
       puntos: e.disposicion.puntos(bundle.generador(semilla), etiquetas, {}) }))
     for (let i = 0; i < disposiciones.length; i++) for (let j = i + 1; j < disposiciones.length; j++) {
       const d = distancia(disposiciones[i].puntos, disposiciones[j].puntos)

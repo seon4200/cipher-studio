@@ -237,6 +237,68 @@ const DIBUJO_FONDOS: Record<IdFondo, DibujoFondo> = {
       <div className="es-capa">{barras}</div>
     </>
   },
+  amanecer: ({ kf }) => {
+    const bandas = Array.from({ length: 6 }, (_, i) => {
+      const nom = kf('amanecer' + i, 25, u => `transform:translateX(${(Math.sin(u * TAU + i) * 7).toFixed(2)}cqmin);opacity:${(.16 + i * .045).toFixed(3)}`)
+      return <div key={i} style={{ ...usa(nom), position: 'absolute', left: '-12%', right: '-12%', top: `${16 + i * 12}%`, height: '11%', background: 'rgba(255,255,240,.52)', filter: 'blur(2cqmin)' }} />
+    })
+    return <><div className="es-capa" style={{ background: 'linear-gradient(180deg,#FFE7C2,#FFD1A8 42%,#FFBE95 72%,#F7A98A)' }} />{bandas}</>
+  },
+  causticas: ({ kf }) => {
+    const nom = kf('causticas', 33, u => `background-position:${(u * 18).toFixed(2)}cqmin ${(Math.sin(u * TAU) * 7).toFixed(2)}cqmin`)
+    return <><div className="es-capa" style={{ background: 'linear-gradient(160deg,#d6f5ed,#9bdcd4)' }} /><div className="es-capa" style={{ ...usa(nom), opacity: .46, backgroundImage: 'repeating-radial-gradient(ellipse at 30% 40%,rgba(255,255,255,.8) 0 .35cqmin,transparent .45cqmin 4.5cqmin)', backgroundSize: '18cqmin 13cqmin' }} /></>
+  },
+  cristales: ({ kf }) => {
+    const poligonos = Array.from({ length: 13 }, (_, i) => { const nom = kf('cristal' + i, 25, u => `opacity:${(.16 + .42 * Math.max(0, Math.sin(u * TAU + i * .73))).toFixed(3)}`); return <polygon key={i} style={usa(nom)} points={`${(i * 17) % 100},${(i * 31) % 100} ${((i * 17 + 30) % 110)},${((i * 31 + 18) % 100)} ${((i * 17 + 12) % 100)},${((i * 31 + 47) % 105)}`} fill="var(--acento)" /> })
+    return <><div className="es-capa" style={{ background: 'linear-gradient(150deg,#0d1226,#04060f)' }} /><svg className="es-svg" viewBox="0 0 100 100" preserveAspectRatio="none">{poligonos}</svg></>
+  },
+  panal: ({ kf }) => {
+    const hex = Array.from({ length: 48 }, (_, i) => { const x = (i % 7) * 16 + (Math.floor(i / 7) % 2) * 8; const y = Math.floor(i / 7) * 13; const nom = kf('panal' + i, 25, u => `opacity:${(.10 + .55 * Math.max(0, Math.sin(u * TAU - (x + y) * .045))).toFixed(3)}`); return <polygon key={i} style={usa(nom)} points={`${x},${y-5} ${x+6},${y-2} ${x+6},${y+5} ${x},${y+8} ${x-6},${y+5} ${x-6},${y-2}`} fill="none" stroke="var(--acento)" strokeWidth=".45"/> })
+    return <><div className="es-capa" style={{ background: '#0d0a02' }} /><svg className="es-svg" viewBox="0 0 100 100" preserveAspectRatio="none">{hex}</svg></>
+  },
+  mallaDeformada: ({ kf }) => {
+    const lineas = Array.from({ length: 13 }, (_, i) => { const nom = kf('mallaFila' + i, 33, u => { const cx = 50 + Math.sin(u * TAU) * 18; const y = 8 + i * 7; return `d:path(\"M0,${y} Q${cx},${(y + 15 * Math.exp(-Math.pow((i - 6) / 2.3, 2))).toFixed(2)} 100,${y}\")` }); return <path key={i} style={usa(nom)} fill="none" stroke="var(--acento)" strokeWidth=".32" opacity=".42"/> })
+    return <><div className="es-capa" style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 44%,#1a0b30,#07040f 66%)' }} /><svg className="es-svg" viewBox="0 0 100 100" preserveAspectRatio="none">{lineas}</svg></>
+  },
+  circuito: ({ kf }) => {
+    const pistas = Array.from({ length: 9 }, (_, i) => { const nom = kf('circuito' + i, 33, u => `background-position:${((u * 100 + i * 17) % 100).toFixed(2)}% 0`); return <div key={i} style={{ ...usa(nom), position: 'absolute', left: `${7 + i * 11}%`, top: `${12 + (i % 3) * 22}%`, width: `${38 + (i % 4) * 9}%`, height: '.55cqmin', background: 'linear-gradient(90deg,transparent 0 35%,var(--acento) 42% 51%,transparent 58%)', borderRadius: '9cqmin' }} /> })
+    return <><div className="es-capa" style={{ background: 'linear-gradient(150deg,#04140b,#020705)' }} />{pistas}</>
+  },
+  cuerdas: ({ kf }) => {
+    const hilos = Array.from({ length: 14 }, (_, i) => { const nom = kf('cuerda' + i, 33, u => `transform:translateX(${(Math.sin(u * TAU * (1 + i % 3) + i) * 1.2).toFixed(2)}cqmin)`); return <div key={i} style={{ ...usa(nom), position: 'absolute', left: `${5 + i * 7}%`, top: 0, bottom: 0, width: '.34cqmin', background: 'linear-gradient(var(--acento),transparent 78%)', opacity: .22 + (i % 4) * .11 }} /> })
+    return <><div className="es-capa" style={{ background: 'linear-gradient(180deg,#140a1e,#050208)' }} />{hilos}</>
+  },
+  mosaico: ({ kf }) => {
+    const tiles = Array.from({ length: 60 }, (_, i) => { const nom = kf('mosaico' + i, 25, u => `transform:rotateY(${(Math.sin(u * TAU + i * .41) * 25).toFixed(2)}deg);opacity:${(.12 + .35 * Math.max(0, Math.sin(u * TAU + i))).toFixed(3)}`); return <div key={i} style={{ ...usa(nom), position: 'absolute', left: `${(i % 6) * 17}%`, top: `${Math.floor(i / 6) * 11}%`, width: '15%', height: '10%', border: '.17cqmin solid var(--acento)', transformStyle: 'preserve-3d' }} /> })
+    return <><div className="es-capa" style={{ background: '#170804' }} />{tiles}</>
+  },
+  warpEstelar: ({ kf }) => {
+    const rayos = Array.from({ length: 38 }, (_, i) => { const nom = kf('warp' + i, 25, u => `transform:translate(-50%,-50%) rotate(${(i * 9.47).toFixed(2)}deg) scaleY(${(.2 + ((u + i / 38) % 1) * 1.4).toFixed(3)});opacity:${(.12 + ((u + i / 38) % 1) * .6).toFixed(3)}`); return <div key={i} style={{ ...usa(nom), position: 'absolute', left: '50%', top: '46%', width: '.28cqmin', height: '70cqmin', background: 'linear-gradient(var(--apoyo),transparent)', transformOrigin: '50% 0' }} /> })
+    return <><div className="es-capa" style={{ background: 'radial-gradient(circle at 50% 46%,#0b1430,#03050e 60%,#010208)' }} />{rayos}</>
+  },
+  lluviaDatos: ({ kf }) => {
+    const cols = Array.from({ length: 18 }, (_, i) => { const nom = kf('datos' + i, 33, u => `transform:translateY(${(((u + i / 18) % 1) * 120 - 20).toFixed(2)}%);opacity:${(.2 + .65 * ((u + i / 18) % 1)).toFixed(3)}`); return <div key={i} style={{ ...usa(nom), position: 'absolute', left: `${i * 5.8}%`, top: '-25%', color: 'var(--acento)', font: '2.2cqmin monospace', writingMode: 'vertical-rl' }}>01·10·01·11·</div> })
+    return <><div className="es-capa" style={{ background: '#020604' }} />{cols}</>
+  },
+  multitud: ({ kf }) => {
+    const gente = Array.from({ length: 91 }, (_, i) => { const x = (i % 13) * 8 + 3; const y = 20 + Math.floor(i / 13) * 10; const nom = kf('gente' + i, 25, u => `transform:translate(-50%,-50%) scale(${(.65 + .25 * Math.sin(u * TAU + i)).toFixed(3)});opacity:${(.16 + .45 * Math.max(0, Math.sin(u * TAU + i * .31))).toFixed(3)}`); return <div key={i} style={{ ...usa(nom), position: 'absolute', left: `${x}%`, top: `${y}%`, width: '2.2cqmin', height: '2.2cqmin', borderRadius: '50% 50% 42% 42%', background: 'var(--acento)' }} /> })
+    return <><div className="es-capa" style={{ background: 'linear-gradient(180deg,#171b28,#080a10)' }} />{gente}</>
+  },
+  ordenEspontaneo: ({ kf }) => {
+    const puntos = Array.from({ length: 44 }, (_, i) => { const a = i * 2.399; const r = 6 + (i % 11) * 3.6; const nom = kf('orden' + i, 33, u => `transform:translate(-50%,-50%) rotate(${(u * 360).toFixed(2)}deg) translateX(${r.toFixed(2)}cqmin);opacity:${(.18 + .55 * Math.max(0, Math.sin(u * TAU + i))).toFixed(3)}`); return <div key={i} style={{ ...usa(nom), position: 'absolute', left: '50%', top: '45%', width: '.85cqmin', height: '.85cqmin', borderRadius: '50%', background: 'var(--acento)', transform: `rotate(${a}deg)` }} /> })
+    return <><div className="es-capa" style={{ background: 'radial-gradient(circle at 50% 45%,var(--sup),var(--fondo))' }} />{puntos}</>
+  },
+  demolicion: ({ kf }) => {
+    const trozos = Array.from({ length: 26 }, (_, i) => { const nom = kf('demolicion' + i, 25, u => { const p = (u + i / 26) % 1; return `transform:translate(${((i % 7 - 3) * p * 6).toFixed(2)}cqmin,${(p * p * 58).toFixed(2)}cqmin) rotate(${(p * (i * 31)).toFixed(2)}deg);opacity:${(1-p).toFixed(3)}` }); return <div key={i} style={{ ...usa(nom), position: 'absolute', left: `${10 + (i * 19) % 78}%`, top: `${20 + (i * 13) % 32}%`, width: `${2 + i % 4}cqmin`, height: `${1 + i % 3}cqmin`, background: 'color-mix(in srgb,var(--acento) 45%,var(--sup))' }} /> })
+    return <><div className="es-capa" style={{ background: 'linear-gradient(180deg,#2a2520,#0d0b09)' }} />{trozos}</>
+  },
+  comidaFamilia: ({ kf }) => {
+    const platos = [[50,46,26],[24,30,15],[76,32,15],[27,66,14],[73,68,14],[50,80,13]]; return <><div className="es-capa" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 50%,#F7E2C2,#D9A96E 74%,#A9743F)' }} />{platos.map(([x,y,d],i) => { const nom=kf('plato'+i,25,u=>`transform:translate(-50%,-50%) scale(${(1+.02*Math.sin(u*TAU+i)).toFixed(3)})`); return <div key={i} style={{...usa(nom),position:'absolute',left:x+'%',top:y+'%',width:d+'cqmin',height:d+'cqmin',borderRadius:'50%',border:'.65cqmin solid rgba(255,255,255,.66)'}}/> })}</>
+  },
+  viaLactea: ({ kf }) => { const estrellas=Array.from({length:36},(_,i)=>{const nom=kf('estrella'+i,25,u=>`opacity:${(.22+.7*Math.max(0,Math.sin(u*TAU+i))).toFixed(3)}`);return <div key={i} style={{...usa(nom),position:'absolute',left:`${(i*37)%100}%`,top:`${(i*59)%90}%`,width:'.55cqmin',height:'.55cqmin',borderRadius:'50%',background:'#EAF0FF'}}/>});return <><div className="es-capa" style={{background:'radial-gradient(ellipse 120% 60% at 30% 30%,#131a3d,#04060f 62%,#010206)'}}/><div className="es-capa" style={{background:'linear-gradient(62deg,transparent 30%,rgba(180,190,255,.28) 50%,transparent 70%)',filter:'blur(5cqmin)'}}/>{estrellas}</> },
+  reinoAnimal: ({ kf }) => { const manchas=Array.from({length:34},(_,i)=>{const nom=kf('animal'+i,33,u=>`opacity:${(.25+.45*Math.max(0,Math.cos(u*TAU+i))).toFixed(3)}`);return <div key={i} style={{...usa(nom),position:'absolute',left:`${(i*23)%100}%`,top:`${(i*41)%100}%`,width:`${5+i%7}cqmin`,height:`${5+i%7}cqmin`,borderRadius:'50%',background:'#C9862E'}}/>});return <><div className="es-capa" style={{background:'#2a1c0c'}}/>{manchas}</> },
+  leyDarwin: ({ kf }) => { const ramas=Array.from({length:24},(_,i)=>{const nom=kf('darwin'+i,25,u=>`transform:rotate(${((i-12)*7).toFixed(2)}deg) scaleY(${Math.min(1,u/.45).toFixed(3)});opacity:${(.18+.48*Math.min(1,u/.45)).toFixed(3)}`);return <div key={i} style={{...usa(nom),position:'absolute',left:'50%',top:'78%',width:'.38cqmin',height:`${12+i%5*7}cqmin`,transformOrigin:'50% 100%',background:'linear-gradient(var(--acento),transparent)'}}/>});return <><div className="es-capa" style={{background:'radial-gradient(ellipse 80% 60% at 50% 86%,#0d2018,#03080a 70%)'}}/>{ramas}</> },
+  ecosistemaMarino: ({ kf }) => { const corrientes=Array.from({length:6},(_,i)=>{const nom=kf('marino'+i,33,u=>`transform:translateX(${(Math.sin(u*TAU+i*.8)*5).toFixed(2)}cqmin) skewX(-12deg);opacity:${(.1+.1*Math.sin(u*TAU+i*1.3)).toFixed(3)}`);return <div key={i} style={{...usa(nom),position:'absolute',left:`${i*18-10}%`,top:'15%',height:'70%',width:'28%',background:'linear-gradient(90deg,transparent,color-mix(in srgb,var(--apoyo) 40%,transparent),transparent)',filter:'blur(2cqmin)'}}/>});return <><div className="es-capa" style={{background:'linear-gradient(180deg,#0d5f7a,#084357 34%,#03202d 68%,#010c12)'}}/>{corrientes}</> },
 
   /** PIEZA DE PRUEBA. Fea a proposito: existe para demostrar que cambiar `direccion.fondo`
    *  cambia el fondo SIN tocar `render`. Si esto no bastara, el registro seria decorativo. */
@@ -253,6 +315,17 @@ function caja(cs: Concepto[], i: number): React.ReactNode {
       <span className="es-etq">{cs[i]?.etiqueta ?? ''}</span>
     </div>
   )
+}
+
+/** Entrada comun de cajas: ninguna estructura dibuja su propio átomo caja+emoji. */
+function cajasConEntrada(kf: Kf, prefijo: string, puntos: PuntoEscena[], conceptos: Concepto[],
+  densidad: CtxEstructura['densidad'], desde = .08): React.ReactNode {
+  const nombres = puntos.map((_, i) => kf(prefijo + '-caja' + i, 33, u => {
+    const p = Math.min(1, Math.max(0, (u - desde - i * .11) / .25))
+    const e = 1 - Math.pow(1 - p, 3)
+    return `opacity:${(e * densidad.opacidadSecundaria).toFixed(3)};transform:translate(-50%,-50%) scale(${((.78 + .22 * e) * densidad.escala).toFixed(3)})`
+  }))
+  return puntos.map((p, i) => <div key={i} className="es-nodo" style={{ ...usa(nombres[i]), left: `${p.x}%`, top: `${p.y}%` }}>{caja(conceptos, i)}</div>)
 }
 
 const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
@@ -285,6 +358,18 @@ const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
         ))}
       </svg>
     )
+    // B.1 se valida sobre esta pieza: los CUATRO campos de adaptarDensidad llegan al dibujo.
+    // A 14 elementos aparecen más puntos secundarios, más separados y menos opacos; las tres
+    // cajas siguen siendo conceptos, no decoradores inventados.
+    const secundarios = Array.from({ length: densidad.elementos }, (_, i) => {
+      const a = i * TAU / Math.max(1, densidad.elementos)
+      const r = 10 + densidad.separacion * 7
+      const nom = kf('constelacionSecundario' + i, 25, u =>
+        `transform:translate(-50%,-50%) rotate(${(u * 360 + i * 19).toFixed(2)}deg) translateX(${r.toFixed(2)}cqmin);opacity:${(densidad.opacidadSecundaria * .42).toFixed(3)}`)
+      return <div key={i} style={{ ...usa(nom), position: 'absolute', left: '50%', top: '45%',
+        width: `${(.7 * densidad.escala).toFixed(2)}cqmin`, height: `${(.7 * densidad.escala).toFixed(2)}cqmin`,
+        borderRadius: '50%', background: 'var(--apoyo)', transform: `rotate(${a}rad)` }} />
+    })
     const nomHero = kf('hero', 41, u =>
       `transform:translate(-50%,-50%) translateY(${(Math.sin(u * TAU) * 1.3).toFixed(3)}cqmin)`)
     // LA RANURA DEL HEROE: hoy un emoji, mañana un `<img>` recortado en el MISMO sitio y con el
@@ -294,7 +379,7 @@ const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
         {conceptos[0]?.emoji ?? ''}
       </div>
     )
-    return <>{aristas}{nodos}{hero}</>
+    return <>{aristas}{secundarios}{nodos}{hero}</>
   },
 
   capasApiladas: ({ kf, puntos, conceptos, params }) => {
@@ -451,6 +536,51 @@ const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
       {puntos.map((p, i) => <div key={i} className="es-nodo"
         style={{ ...usa(entradas[i]), left: `${p.x}%`, top: `${p.y}%` }}>{caja(conceptos, i)}</div>)}
     </>
+  },
+
+  cintaDiagonal: ({ kf, puntos, conceptos, densidad }) => {
+    const cinta = kf('cintaDiagonal', 25, u => { const p = Math.min(1, u / .32); return `transform:translateY(${((1-p)*-18).toFixed(2)}cqmin) rotate(-13deg);opacity:${p.toFixed(3)}` })
+    return <><div style={{ ...usa(cinta), position: 'absolute', left: '-14%', right: '-14%', top: '38%', height: '20cqmin', background: 'var(--acento)', boxShadow: '0 2cqmin 4cqmin rgba(0,0,0,.55)' }} />{cajasConEntrada(kf, 'cintaDiagonal', puntos, conceptos, densidad, .24)}</>
+  },
+  marcoPoster: ({ kf, puntos, conceptos, densidad }) => {
+    const marco = kf('marcoPoster', 25, u => `transform:scale(${Math.min(1,u/.3).toFixed(3)});opacity:${Math.min(1,u/.3).toFixed(3)}`)
+    return <><div style={{ ...usa(marco), position:'absolute',left:'12%',right:'12%',top:'13%',bottom:'30%',border:'1.2cqmin solid var(--acento)',boxShadow:'inset 0 0 0 .45cqmin var(--sup)' }}/>{cajasConEntrada(kf, 'marcoPoster', puntos, conceptos, densidad, .18)}</>
+  },
+  anillosConcentricos: ({ kf, puntos, conceptos, densidad }) => {
+    const anillos = [16,31,47].map((d,i)=>{const nom=kf('anilloEstructura'+i,33,u=>`transform:translate(-50%,-50%) scale(${(1+.08*Math.sin(u*TAU+i)).toFixed(3)});opacity:${(.25+i*.13).toFixed(3)}`);return <div key={i} style={{...usa(nom),position:'absolute',left:'50%',top:'43%',width:d+'cqmin',height:d+'cqmin',borderRadius:'50%',border:'.42cqmin solid var(--acento)'}}/>})
+    return <>{anillos}{cajasConEntrada(kf,'anillosConcentricos',puntos,conceptos,densidad,.15)}</>
+  },
+  abanicoTarjetas: ({ kf, puntos, conceptos, densidad }) => {
+    const cartas=puntos.map((_,i)=>{const nom=kf('abanicoCarta'+i,25,u=>{const e=Math.min(1,Math.max(0,(u-.08-i*.1)/.3));return `transform:translate(-50%,-50%) rotate(${((-1+i)*17*e).toFixed(2)}deg) translateY(${((1-e)*12).toFixed(2)}cqmin);opacity:${e.toFixed(3)}`});return <div key={i} style={{...usa(nom),position:'absolute',left:'50%',top:'44%',width:'34cqmin',height:'18cqmin',border:'.3cqmin solid var(--acento)',background:'color-mix(in srgb,var(--sup) 88%,transparent)',borderRadius:'2cqmin'}}/>})
+    return <>{cartas}{cajasConEntrada(kf,'abanicoTarjetas',puntos,conceptos,densidad,.2)}</>
+  },
+  rayosImpacto: ({ kf, puntos, conceptos, densidad }) => {
+    const rayos=Array.from({length:18},(_,i)=>{const nom=kf('rayoImpacto'+i,25,u=>{const e=Math.min(1,u/.28);return `transform:rotate(${i*20}deg) scaleY(${e.toFixed(3)});opacity:${(.25+.55*e).toFixed(3)}`});return <div key={i} style={{...usa(nom),position:'absolute',left:'50%',top:'44%',width:`${3+i%3}cqmin`,height:'85cqmin',transformOrigin:'50% 0',background:'linear-gradient(var(--acento),transparent 70%)'}}/>})
+    return <>{rayos}{cajasConEntrada(kf,'rayosImpacto',puntos,conceptos,densidad,.18)}</>
+  },
+  engranajes: ({ kf, puntos, conceptos, densidad }) => {
+    const ruedas=[[33,43,19],[67,42,16],[50,58,14]].map(([x,y,d],i)=>{const nom=kf('engranaje'+i,33,u=>`transform:translate(-50%,-50%) rotate(${(u*360*(i%2?1:-1)).toFixed(2)}deg)`);return <div key={i} style={{...usa(nom),position:'absolute',left:x+'%',top:y+'%',width:d+'cqmin',height:d+'cqmin',borderRadius:'50%',border:'1.7cqmin dotted var(--acento)',boxShadow:'0 0 0 .35cqmin var(--sup)'}}/>})
+    return <>{ruedas}{cajasConEntrada(kf,'engranajes',puntos,conceptos,densidad,.16)}</>
+  },
+  cuaderno: ({ kf, puntos, conceptos, densidad }) => {
+    const subrayado=kf('cuadernoSubrayado',25,u=>`transform:scaleX(${Math.min(1,u/.35).toFixed(3)})`)
+    return <><div className="es-capa" style={{left:'13%',right:'13%',top:'15%',bottom:'29%',background:'repeating-linear-gradient(180deg,transparent 0 7cqmin,color-mix(in srgb,var(--acento) 25%,transparent) 7cqmin 7.3cqmin)',borderLeft:'.5cqmin solid var(--acento)'}}/><div style={{...usa(subrayado),position:'absolute',left:'20%',right:'20%',top:'56%',height:'.5cqmin',background:'var(--acento)',transformOrigin:'0 50%'}}/>{cajasConEntrada(kf,'cuaderno',puntos,conceptos,densidad,.15)}</>
+  },
+  cascada: ({ kf, puntos, conceptos, densidad }) => {
+    const escalones=puntos.map((p,i)=>{const nom=kf('cascadaEscalon'+i,25,u=>{const e=Math.min(1,Math.max(0,(u-i*.1)/.3));return `transform:translate(${((1-e)*-14).toFixed(2)}cqmin,${((1-e)*-8).toFixed(2)}cqmin);opacity:${e.toFixed(3)}`});return <div key={i} style={{...usa(nom),position:'absolute',left:`${p.x-10}%`,top:`${p.y-5}%`,width:'29cqmin',height:'13cqmin',background:'linear-gradient(135deg,color-mix(in srgb,var(--acento) 38%,transparent),transparent)',borderLeft:'.4cqmin solid var(--acento)'}}/>})
+    return <>{escalones}{cajasConEntrada(kf,'cascada',puntos,conceptos,densidad,.22)}</>
+  },
+  editorial: ({ kf, puntos, conceptos, densidad }) => {
+    const bloque=kf('editorialBloque',25,u=>`transform:translateX(${((1-Math.min(1,u/.3))*-9).toFixed(2)}cqmin);opacity:${Math.min(1,u/.3).toFixed(3)}`)
+    return <><div style={{...usa(bloque),position:'absolute',left:'15%',top:'24%',width:'27%',height:'36%',borderTop:'1cqmin solid var(--acento)',borderBottom:'.28cqmin solid var(--acento)'}}><span style={{font:'800 14cqmin/1 Archivo,sans-serif',color:'var(--apoyo)'}}>+</span></div>{cajasConEntrada(kf,'editorial',puntos,conceptos,densidad,.16)}</>
+  },
+  mundoIsometrico: ({ kf, puntos, conceptos, densidad }) => {
+    const tiles=Array.from({length:15},(_,i)=>{const nom=kf('tileIso'+i,25,u=>{const e=Math.min(1,Math.max(0,(u-i*.035)/.28));return `transform:rotateX(58deg) rotateZ(45deg) scale(${e.toFixed(3)});opacity:${e.toFixed(3)}`});return <div key={i} style={{...usa(nom),position:'absolute',left:`${31+(i%5)*9}%`,top:`${31+Math.floor(i/5)*9}%`,width:'11cqmin',height:'11cqmin',background:'color-mix(in srgb,var(--acento) 30%,transparent)',border:'.22cqmin solid var(--acento)'}}/>})
+    return <div className="es-capa" style={{perspective:'120cqmin',transformStyle:'preserve-3d'}}>{tiles}{cajasConEntrada(kf,'mundoIsometrico',puntos,conceptos,densidad,.22)}</div>
+  },
+  pilaVertical: ({ kf, puntos, conceptos, densidad }) => {
+    const bloques=puntos.map((p,i)=>{const nom=kf('pilaBloque'+i,25,u=>{const e=Math.min(1,Math.max(0,(u-i*.12)/.28));return `transform:translate(-50%,${((1-e)*-18).toFixed(2)}cqmin);opacity:${e.toFixed(3)}`});return <div key={i} style={{...usa(nom),position:'absolute',left:'50%',top:`${p.y}%`,width:'38cqmin',height:'12cqmin',marginTop:'-6cqmin',background:'color-mix(in srgb,var(--acento) 24%,var(--sup))',border:'.3cqmin solid var(--acento)'}}/>})
+    return <>{bloques}{cajasConEntrada(kf,'pilaVertical',puntos,conceptos,densidad,.18)}</>
   },
 
   /** PIEZA DE PRUEBA. Una sola caja centrada, sin aristas ni heroe. */

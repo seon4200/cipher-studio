@@ -4,7 +4,7 @@ Adendas: conversación de esta tarea — «ADENDA 1 AL ENCARGO» y «ancla contr
 
 - [x] 1 · cerrar A.5 y A.6 — comprobado en `7bb62c7`, `53005aa`
 - [x] 2 · B.1 contrato — `d754bf3`, `946b8cf` · tag `v-mvp-contrato`
-- [ ] 3 · las 43 piezas —
+- [x] 3 · las 43 piezas — implementadas y verificadas en este commit
 - [ ] 4 · las 4 paletas por vídeo —
 - [ ] 5 · las ~8 tipografías —
 - [ ] 6 · densidades y ritmos —
