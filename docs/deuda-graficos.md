@@ -2286,3 +2286,36 @@ para las etiquetas: constelacion, capasApiladas, redNodos y unaCaja (pieza de pr
 El emoji grande de constelacion se inserta directamente en `.es-hero`, no mediante `caja()`.
 Es una excepcion EXISTENTE a la nueva regla, no una caja duplicada. Pendiente unificar el
 atomo cuando se cambie el heroe por icono/silueta: no se altera su geometria en este cierre.
+
+### Solape recorte-camara: estructura contra pie (03/09/2026)
+
+**ANOTADO, SIN URGENCIA.** `acotarPuntos` (`src/shared/escena.ts:713-730`) recorta el borde
+inferior de cada caja contra la posicion ESTATICA del pie (`presupuestoTexto`), pero la camara
+mueve estructura y pie a profundidades distintas: 0.50 y 0.20 respectivamente
+(`PROFUNDIDAD`, `src/shared/escena.ts:674-680`). El recorte no reserva margen para esa deriva
+relativa.
+
+Condiciones de la medicion: camara `deriva`, ciclo de 3 s, `t = 2.999 s`, lienzo 1080x1920,
+estructura frente a texto. La estructura puede derivar 16.2 px y el pie 6.48 px; la deriva
+relativa maxima hacia abajo es **9.72 px**. Se reprodujo en el banco con zona segura visible,
+en `constelacion` y `redNodos`. Por ello el alcance es la interaccion generica recorte-camara,
+no las coordenadas crudas de una pieza concreta.
+
+No se arregla aqui y no bloquea 3b. Antes de cerrar una Fase 4 que anada camaras de energia
+mayor o igual que 2, revisar este margen: justo entonces puede crecer la deriva.
+
+### Sin `generationId` estable en `generate-timeline-assets` (03/09/2026)
+
+**ANOTADO, SIN URGENCIA.** Existe un identificador de proyecto, creado como
+`slugify(nombre)-Date.now()` (`src/main/index.ts:649`) y capturado por los lotes mediante
+`activeProjectPath` (`src/main/index.ts:1552`). Sin embargo,
+`generate-timeline-assets` (`src/main/index.ts:3783`) no recibe ni `projectId` ni un
+`generationId` estable.
+
+Esto bloquea la regla decidida para `texto.acento` y, a futuro, para la paleta de Fase 8:
+fijarlos POR VIDEO y no por subclip exige que los subclips del mismo video compartan una
+identidad estable de generacion. Condicion confirmada: `sistema` si entra hoy en
+`hashGrafico` (`src/main/index.ts:1136`), asi que una paleta distinta invalida correctamente
+los Visuales de ese video.
+
+No se arregla aqui y no bloquea 3b ni Fase 4. Es relevante para quien abra Fase 8.
