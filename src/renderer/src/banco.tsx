@@ -13,6 +13,7 @@ import type { Concepto } from '../../shared/conceptos'
 import { FUENTES_RENDER, MUESTRA_FUENTES, faltaLaFuentePorAncho } from './fuentes-render'
 import fixtureHoja from '../../../tests/aceptacion/fixtures/hoja-contactos-instancias.json'
 import fixtureParejas from '../../../tests/aceptacion/fixtures/parejas-estructuras.json'
+import fixtureLote from '../../../tests/aceptacion/fixtures/lote-estructuras-1.json'
 import './styles/globals.css'
 import './styles/banco.css'
 
@@ -22,7 +23,7 @@ const CICLO = 3
 
 type NombreBanco = 'mapa' | 'escena'
 type ModoTiempo = 'correr' | 'posicionar'
-type VistaBanco = 'individual' | 'hoja' | 'pareja' | 'identidades'
+type VistaBanco = 'individual' | 'hoja' | 'pareja' | 'identidades' | 'lote'
 type CasoPareja = { palabra: string; parametrosEstructura: Record<string, number> }
 type Pareja = { minimo: CasoPareja; maximo: CasoPareja }
 type FilaConcepto = { emoji: string; etiqueta: string }
@@ -55,7 +56,8 @@ const DIRECCIONES_IDENTIDADES: Direccion[] = FONDOS_IDENTIDADES.flatMap(f =>
   })))
 
 const parametrosUrl = new URLSearchParams(window.location.search)
-const VISTA_INICIAL: VistaBanco = parametrosUrl.get('vista') === 'identidades'
+const VISTA_INICIAL: VistaBanco = parametrosUrl.get('vista') === 'lote' ? 'lote'
+  : parametrosUrl.get('vista') === 'identidades'
   ? 'identidades'
   : parametrosUrl.get('vista') === 'pareja'
     ? 'pareja'
@@ -138,9 +140,10 @@ function EscenaPareja({ caso, direccion, lado, rango, t, conceptos, zona, zonaVi
   )
 }
 
-function EscenaIdentidad({ direccion, t, conceptos, zona, zonaVisible, palabra = 'memoria' }: {
+function EscenaIdentidad({ direccion, t, conceptos, zona, zonaVisible, palabra = 'memoria', destacarEstructura = false }: {
   direccion: Direccion
   palabra?: string
+  destacarEstructura?: boolean
   t: number
   conceptos: Concepto[]
   zona: React.CSSProperties
@@ -148,9 +151,10 @@ function EscenaIdentidad({ direccion, t, conceptos, zona, zonaVisible, palabra =
 }) {
   const puede = composicion('escena')?.puedeDibujar({ texto: palabra, conceptos, direccion }) ?? false
   return (
-    <article className="pareja-celda" data-tipografia={direccion.tipografia} data-palabra={palabra}>
+    <article className="pareja-celda" data-estructura={direccion.estructura}
+      data-tipografia={direccion.tipografia} data-palabra={palabra}>
       <header className="pareja-etiqueta">
-        <strong>{direccion.tipografia} · {palabra}</strong>
+        <strong>{destacarEstructura ? direccion.estructura : direccion.tipografia} · {palabra}</strong>
         <span>puedeDibujar: {String(puede)} · {palabra.length} caracteres</span>
         <code>{JSON.stringify(direccion)}</code>
       </header>
@@ -185,7 +189,8 @@ function Banco() {
   const [modoTiempo, setModoTiempo] = useState<ModoTiempo>(
     VISTA_INICIAL === 'individual' ? 'correr' : 'posicionar')
   const [t, setT] = useState(
-    VISTA_INICIAL === 'individual' ? 0 : fixtureHoja.tiempoSegundos)
+    VISTA_INICIAL === 'individual' ? 0 : VISTA_INICIAL === 'lote'
+      ? fixtureLote.tiempoSegundos : fixtureHoja.tiempoSegundos)
   const [zonaVisible, setZonaVisible] = useState(true)
   const [fallosFuente, setFallosFuente] = useState<string[] | null>(null)
   const [ritmoRaf, setRitmoRaf] = useState<RitmoRaf | null>(null)
@@ -283,7 +288,7 @@ function Banco() {
     setVista(siguiente)
     if (siguiente !== 'individual') {
       setModoTiempo('posicionar')
-      setT(fixtureHoja.tiempoSegundos)
+      setT(siguiente === 'lote' ? fixtureLote.tiempoSegundos : fixtureHoja.tiempoSegundos)
     }
   }
 
@@ -319,6 +324,40 @@ function Banco() {
     ? TIPOGRAFIAS[d.tipografia].caracterMasAncho.repeat(maxCaracteresPie(d.tipografia))
     : compararTipos || compararTonos ? palabraRender : 'memoria'
 
+  if (vista === 'lote') return (
+    <main className="banco-app lote-app">
+      <header className="lote-cabecera">
+        <h1>Lote de estructuras · 3 existentes + 3 pendientes de aprobar</h1>
+        <p>Escala 45% · cada escena 486 × 864 px, lienzo real 1080 × 1920 · visual_escena</p>
+        <p>Palabra: {fixtureLote.palabra} · conceptos: {fixtureLote.conceptos.map(c => `${c.emoji} ${c.etiqueta}`).join(' / ')}</p>
+        <p>{JSON.stringify(fixtureLote.identidadBase)} · ciclo {CICLO} s · t dirigido = {t.toFixed(3)} s</p>
+        <p>Fila superior: repertorio. Fila inferior: prueba=true, NO salen en vídeos. Solo cambia la estructura.</p>
+        <div className="banco-campo"><label htmlFor="vista-lote">Vista</label>
+          <select id="vista-lote" value={vista} onChange={e => cambiaVista(e.target.value as VistaBanco)}>
+            <option value="individual">Una combinacion</option><option value="hoja">Hoja de contactos</option>
+            <option value="pareja">Pareja min / max</option><option value="identidades">Identidades</option>
+            <option value="lote">Lote de estructuras</option>
+          </select>
+        </div>
+        <label htmlFor="t-lote">t = {t.toFixed(3)} s</label>
+        <input id="t-lote" type="range" min="0" max={CICLO} step="0.001" value={t}
+          onChange={e => setT(Number(e.target.value))} />
+        <label className="banco-check"><input type="checkbox" checked={zonaVisible}
+          onChange={e => setZonaVisible(e.target.checked)} /> Superponer zona segura</label>
+        <p className={`banco-fuentes ${fallosFuente === null ? 'comprobando' : fallosFuente.length ? 'miente' : 'ok'}`}>
+          {fallosFuente === null ? 'Comprobando fuentes…' : fallosFuente.length
+            ? `NO JUZGAR: faltan fuentes: ${fallosFuente.join(', ')}`
+            : 'Fuentes verificadas por anchura: Archivo, Anton y Outfit. Emoji del sistema.'}</p>
+      </header>
+      <section className="lote-rejilla" aria-label="Seis estructuras al 45%">
+        {fixtureLote.estructuras.map(id => <EscenaIdentidad key={id} destacarEstructura
+          direccion={{ ...fixtureLote.identidadBase, estructura: id } as Direccion}
+          palabra={fixtureLote.palabra} conceptos={fixtureLote.conceptos}
+          t={t} zona={zona} zonaVisible={zonaVisible} />)}
+      </section>
+    </main>
+  )
+
   if (vista === 'identidades') return (
     <main className="banco-app hoja-app pareja-app">
       <section className="hoja-controles">
@@ -341,6 +380,7 @@ function Banco() {
             <option value="hoja">Hoja de contactos</option>
             <option value="pareja">Pareja min / max</option>
             <option value="identidades">Identidades</option>
+            <option value="lote">Lote de estructuras</option>
           </select>
         </div>
         <label className="banco-check"><input type="checkbox" checked={compararTipos}
@@ -413,6 +453,7 @@ function Banco() {
               <option value="hoja">Hoja de contactos</option>
               <option value="pareja">Pareja min / max</option>
               <option value="identidades">Identidades</option>
+              <option value="lote">Lote de estructuras</option>
             </select>
           </div>
 
@@ -487,6 +528,7 @@ function Banco() {
             <option value="hoja">Hoja de contactos</option>
             <option value="pareja">Pareja min / max</option>
             <option value="identidades">Identidades</option>
+            <option value="lote">Lote de estructuras</option>
           </select>
         </div>
         <div className="banco-campo hoja-tiempo">
@@ -548,6 +590,7 @@ function Banco() {
               <option value="hoja">Hoja de contactos</option>
               <option value="pareja">Pareja min / max</option>
               <option value="identidades">Identidades</option>
+              <option value="lote">Lote de estructuras</option>
             </select>
           </div>
 

@@ -23,13 +23,14 @@
 import React from 'react'
 import { SISTEMAS } from '../sistemas'
 import { FONDOS } from '../../../shared/escena'
+import { anchoCaja } from '../../../shared/mapa'
 import { ajustar, type DuracionUsada } from '../../../shared/ciclo'
 import { generador, semillaDe } from '../../../shared/semilla'
 import { CUANTOS_CONCEPTOS, type Concepto } from '../../../shared/conceptos'
 import {
   ESTRUCTURAS, CAMARAS, direccionDesde, PROFUNDIDAD, retardosDecoradores,
   posicionDecorador, DENSIDAD_A_N, cabeEnElPie, cabeLaEtiqueta, instanciaDe,
-  TIPOGRAFIAS, type IdTipografia,
+  TIPOGRAFIAS, ZONA_X_MIN, ZONA_X_MAX, type IdTipografia,
   type IdFondo, type IdEstructura, type IdCamara, type PuntoEscena, type Parametros
 } from '../../../shared/escena'
 import type { Composicion, PropsComposicion } from './index'
@@ -362,6 +363,88 @@ const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
       }}>{caja(conceptos, i)}</div>
     ))
     return <>{nodos}{cajas}</>
+  },
+
+  // Fuente: docs/motion/lab-estructuras.html:297-312. Eje, hitos y entrada lateral.
+  // El pie y las cajas son los compartidos; el eje termina antes de su franja reservada.
+  lineaTiempo: ({ kf, puntos, conceptos }) => {
+    const eje = kf('lineaTiempo-eje', 25, u => {
+      const e = 1 - Math.pow(1 - Math.min(1, u / .34), 3)
+      return `transform:scaleY(${e.toFixed(3)})`
+    })
+    const entradas = puntos.map((p, i) => {
+      // Margen de entrada segun el modelo compartido; no es una medicion de glifos.
+      const margen = Math.min(6, Math.max(0,
+        p.x - anchoCaja(conceptos[i].etiqueta, true) / 2 - ZONA_X_MIN))
+      return kf('lineaTiempo-caja' + i, 33, u => {
+        const a = .14 + i / puntos.length * .40
+        const e = 1 - Math.pow(1 - Math.min(1, Math.max(0, (u - a) / .26)), 3)
+        return `opacity:${e.toFixed(3)};transform:translate(-50%,-50%) translateX(${(-(1 - e) * margen).toFixed(3)}cqmin)`
+      })
+    })
+    return <>
+      <div style={{ ...usa(eje), position: 'absolute', left: '22%', top: '22%',
+        height: '45%', width: '.5cqmin', transformOrigin: '50% 0',
+        background: 'linear-gradient(180deg,var(--acento),color-mix(in srgb,var(--acento) 20%,transparent))' }} />
+      {puntos.map((p, i) => <React.Fragment key={i}>
+        <div style={{ position: 'absolute', left: '22%', top: `${p.y}%`,
+          width: '1.7cqmin', height: '1.7cqmin', borderRadius: '50%',
+          transform: 'translate(-50%,-50%)', background: 'var(--acento)' }} />
+        <div className="es-nodo" style={{ ...usa(entradas[i]), left: `${p.x}%`, top: `${p.y}%` }}>
+          {caja(conceptos, i)}
+        </div>
+      </React.Fragment>)}
+    </>
+  },
+
+  // Fuente: docs/motion/lab-estructuras.html:284-295. Estratos frontales, no planos isometricos.
+  corteTransversal: ({ kf, puntos, conceptos }) => {
+    const bandas = puntos.map((_, i) => kf('corteTransversal-banda' + i, 33, u => {
+      const a = .05 + i / puntos.length * .44
+      const e = 1 - Math.pow(1 - Math.min(1, Math.max(0, (u - a) / .26)), 3)
+      return `transform:scaleX(${e.toFixed(3)});opacity:${(.30 + e * .5).toFixed(3)}`
+    }))
+    const entradas = puntos.map((_, i) => kf('corteTransversal-caja' + i, 33, u => {
+      const a = .06 + i / puntos.length * .30
+      const e = 1 - Math.pow(1 - Math.min(1, Math.max(0, (u - a) / .26)), 3)
+      return `opacity:${e.toFixed(3)};transform:translate(-50%,-50%) scale(${(.8 + .2 * e).toFixed(3)})`
+    }))
+    return <>
+      {puntos.map((p, i) => <React.Fragment key={i}>
+        <div style={{ ...usa(bandas[i]), position: 'absolute', left: `${ZONA_X_MIN}%`,
+          right: `${100 - ZONA_X_MAX}%`, top: `${p.y - 6.5}%`, height: '13%',
+          transformOrigin: '0 50%', background: 'linear-gradient(90deg,' +
+            'color-mix(in srgb,var(--acento) 40%,transparent),' +
+            'color-mix(in srgb,var(--acento) 6%,transparent))' }} />
+        <div className="es-nodo" style={{ ...usa(entradas[i]), left: `${p.x}%`, top: `${p.y}%` }}>
+          {caja(conceptos, i)}
+        </div>
+      </React.Fragment>)}
+    </>
+  },
+
+  // Fuente: docs/motion/lab-estructuras-2.html:145-163. Dos mitades y corte animado al 52%.
+  // El campo es LOCAL a la estructura: no tapa el pie ni reemplaza la paleta/tipografia.
+  partidoVertical: ({ kf, puntos, conceptos }) => {
+    const corte = kf('partidoVertical-corte', 25, u => {
+      const e = 1 - Math.pow(1 - Math.min(1, u / .34), 3)
+      return `clip-path:inset(0 ${(100 - e * 52).toFixed(3)}% 0 0)`
+    })
+    const entradas = puntos.map((_, i) => kf('partidoVertical-caja' + i, 33, u => {
+      const a = .36 + i / puntos.length * .28
+      const e = 1 - Math.pow(1 - Math.min(1, Math.max(0, (u - a) / .26)), 3)
+      return `opacity:${e.toFixed(3)};transform:translate(-50%,-50%) scale(${(.8 + .2 * e).toFixed(3)})`
+    }))
+    return <>
+      <div style={{ position: 'absolute', left: `${ZONA_X_MIN}%`, right: `${100 - ZONA_X_MAX}%`,
+        top: '18%', height: '49%', background: 'var(--sup)' }}>
+        <div className="es-capa" style={{ ...usa(corte), background: 'var(--acento)' }} />
+        <div className="es-capa" style={{ background:
+          'repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0 .3cqmin,transparent .3cqmin 3cqmin)' }} />
+      </div>
+      {puntos.map((p, i) => <div key={i} className="es-nodo"
+        style={{ ...usa(entradas[i]), left: `${p.x}%`, top: `${p.y}%` }}>{caja(conceptos, i)}</div>)}
+    </>
   },
 
   /** PIEZA DE PRUEBA. Una sola caja centrada, sin aristas ni heroe. */

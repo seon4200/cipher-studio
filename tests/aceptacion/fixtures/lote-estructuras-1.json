@@ -1,0 +1,23 @@
+{
+  "composicion": "visual_escena",
+  "palabra": "memoria",
+  "conceptos": [
+    { "emoji": "🧠", "etiqueta": "recuerdo" },
+    { "emoji": "🗂️", "etiqueta": "archivo" },
+    { "emoji": "🔗", "etiqueta": "conexion" }
+  ],
+  "identidadBase": {
+    "fondo": "ondas", "camara": "quieto", "densidad": "media",
+    "ritmo": "regular", "tipografia": "archivo"
+  },
+  "estructuras": [
+    "constelacion", "capasApiladas", "redNodos",
+    "lineaTiempo", "corteTransversal", "partidoVertical"
+  ],
+  "tiempoSegundos": 2.7,
+  "cicloSegundos": 3,
+  "sistema": "voltaje",
+  "escala": 0.45,
+  "lienzo": { "ancho": 1080, "alto": 1920 },
+  "miniatura": { "ancho": 486, "alto": 864 }
+}
