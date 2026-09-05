@@ -2773,6 +2773,12 @@ de la caja menor, y 21.687,465112 px² llegan al rectángulo de texto. PNG y JSO
 versionados: `tests/aceptacion/plan-a3-peor-par-20260905`; Electron 31.7.7,
 Chromium 126.0.6478.234.
 
+El mismo corpus adversarial a **+0%** (cota A.2, 2.9 cqmin) repite 1/1 par,
+texto intersecado y **95,169543%** de la caja menor: la puerta admite hoy
+etiquetas que tapan a su vecina casi por completo. Procedencia:
+`tests/aceptacion/plan-a3-peor-par-cero-20260905/solapes.json`, mismo arnés,
+1080×1920, voltaje, ciclo 3 s y 91 instantes. El +7 no origina ese solape.
+
 No se reduce el tamaño por tanteo: A.3 queda **aplazada a Fase B** y se restaura
 la métrica A.2 (2.9 cqmin). **Disparador obligatorio:** al cerrar B.1–B.3 —la
 estructura declara su disposición y B.3 demuestra separación— repetir este
