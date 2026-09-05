@@ -436,6 +436,35 @@ export const ESTRUCTURAS = {
         .slice(0, Math.min(CUANTOS_CONCEPTOS, etiquetas.length)),
       etiquetas, FRANJA_TEXTO_Y)
   },
+  // Lote pendiente de aprobacion visual: no participa en direccionDe ni en el recuento real.
+  // Fuente: docs/motion/lab-estructuras.html:297-312.
+  lineaTiempo: {
+    id: 'lineaTiempo', descripcion: 'Conceptos sucesivos sobre un eje vertical: un evento sigue a otro.',
+    energia: 1, formatos: ['9:16'], minConceptos: 1,
+    presupuestoTexto: FRANJA_TEXTO_Y, prueba: true, rangos: [],
+    puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
+      etiquetas.slice(0, CUANTOS_CONCEPTOS).map((etiqueta, i) => ({
+        x: 27 + anchoCaja(etiqueta, true) / 2, y: 30 + i * 17
+      })), etiquetas, FRANJA_TEXTO_Y)
+  },
+  // Fuente: docs/motion/lab-estructuras.html:284-295.
+  corteTransversal: {
+    id: 'corteTransversal', descripcion: 'Estratos horizontales etiquetados que componen un mismo conjunto.',
+    energia: 1, formatos: ['9:16'], minConceptos: 1,
+    presupuestoTexto: FRANJA_TEXTO_Y, prueba: true, rangos: [],
+    puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
+      etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) => ({ x: 50, y: 30 + i * 16 })),
+      etiquetas, FRANJA_TEXTO_Y)
+  },
+  // Fuente: docs/motion/lab-estructuras-2.html:145-163.
+  partidoVertical: {
+    id: 'partidoVertical', descripcion: 'Dos campos verticales contrastados: los conceptos cruzan su division.',
+    energia: 1, formatos: ['9:16'], minConceptos: 1,
+    presupuestoTexto: FRANJA_TEXTO_Y, prueba: true, rangos: [],
+    puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
+      etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) => ({ x: 50 + i * 2, y: 31 + i * 14 })),
+      etiquetas, FRANJA_TEXTO_Y)
+  },
   unaCaja: {
     id: 'unaCaja',
     descripcion: 'Un solo concepto en una caja centrada, sin lineas. Pieza de prueba.',

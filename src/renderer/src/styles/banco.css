@@ -66,6 +66,13 @@ body { background: #080b12; color: #eef2ff; }
 
 .identidades-rejilla { display: grid; grid-template-columns: repeat(2, 500px); gap: 18px; align-items: start; }
 
+/* Escala fija: nunca encoger la hoja para hacerla caber y falsear la inspeccion. */
+.lote-app { width: max-content; min-width: 100%; }
+.lote-cabecera { max-width: 1536px; display: grid; gap: 6px; margin-bottom: 18px; }
+.lote-cabecera h1, .lote-cabecera p { margin: 0; }
+.lote-cabecera .banco-campo { max-width: 300px; }
+.lote-rejilla { display: grid; grid-template-columns: repeat(3, 500px); gap: 18px; }
+
 @media (max-width: 900px) {
   .banco-grid { grid-template-columns: 1fr; }
   .hoja-app { grid-template-columns: 1fr; }
