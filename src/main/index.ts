@@ -1131,6 +1131,12 @@ const TIMESCALE = 30000;
 const SISTEMAS_VALIDOS = ['editorial', 'clinico', 'voltaje', 'calido'] as const;
 type NombreSistema = typeof SISTEMAS_VALIDOS[number];
 
+/** Una paleta por vídeo/proyecto: se resuelve una vez antes del lote, nunca por sub-clip. */
+export function sistemaDeGeneracion(idEstable: string): NombreSistema {
+  const digest = createHash('sha256').update(String(idEstable)).digest();
+  return SISTEMAS_VALIDOS[digest[0] % SISTEMAS_VALIDOS.length];
+}
+
 // Se EXPORTA para que la prueba pueda comprobar la clave directamente, sin renderizar. Las
 // propiedades que importan de un hash —que dos entradas distintas den claves distintas, que
 // sea estable— se verifican mejor sobre la funcion que a traves del nombre de un fichero.
@@ -1342,7 +1348,7 @@ export async function renderGraphicClip(
     // no cambia la cache ni invalida nada de lo renderizado.
     await v.webContents.executeJavaScript(
       `window.__montar(${JSON.stringify(graphicData)}, ` +
-      `${JSON.stringify({ ancho, alto, modo, duracion })})`);
+      `${JSON.stringify({ ancho, alto, modo, duracion, sistema })})`);
 
     // EL CANDADO DEL CICLO, recogido AQUI y no en la consola de la pagina. Esta ventana es
     // offscreen y su consola no la abre nadie: un console.warn ahi seria un aviso que nadie
@@ -1588,9 +1594,8 @@ export async function renderGraphicClipsLote(
         // dirDeModo y no dirCache: un lote en modo pantalla buscaria los .mp4 en cache y
         // diria "renderizando" en TODOS aunque fueran aciertos. Solo es el texto del progreso
         // —la autoridad es renderGraphicClip— pero seria un mensaje que miente.
-        // PENDIENTE V4: el lote no recibe `sistema`, asi que la vista previa del hash usa el
-        // defecto. Hoy es consistente porque renderGraphicClip tambien cae al defecto cuando
-        // nadie lo pasa; deja de serlo el dia que el lote sirva Visuales con sistema propio.
+        // `sistema` forma parte de esta misma vista previa y del render real: una paleta por
+        // vídeo no puede reutilizar un MOV de otra aunque texto, dirección y duración coincidan.
         const st = await fs.promises.stat(
           path.join(dirDeModo(proyectoDelLote!, modo), hash + FORMATO_POR_MODO[modo].ext));
         cacheado = st.size > 0;
@@ -4629,10 +4634,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     // Visuales a la vez chocarian con esa guarda y dos de cada tres fallarian.
     // Va ANTES del pool para que un fallo se vea antes de descargar stock y gastar IA.
     //
-    // TEMPORAL: el sistema de color va fijo a 'voltaje'. Vendra del frontend cuando exista su
-    // selector, por el mismo camino que iaStyle: estado en main.tsx -> parametro de
-    // generateTimelineAssets -> aqui. Esto es fontaneria; el selector va con la interfaz.
-    const SISTEMA_VISUAL = 'voltaje';
+    // Una paleta POR VÍDEO. `activeProjectPath` identifica establemente al proyecto que se
+    // está generando y se captura antes del lote; todos sus sub-clips reciben el mismo sistema.
+    // Va al hash mediante el parámetro `sistema` de renderGraphicClipsLote, así que una paleta
+    // distinta nunca puede reutilizar un MP4 coloreado para otro vídeo.
+    const SISTEMA_VISUAL = sistemaDeGeneracion(activeProjectPath ?? scriptText ?? 'sin-proyecto');
     // TEMPORAL, igual que el de arriba: la composicion va fija. El tipo decide QUE se pinta
     // —AnimatedGraphic busca en el registro quitandole el prefijo `visual_`— y hasta ahora
     // estaba cableado a 'visual_texto', asi que por muchas composiciones que se registraran

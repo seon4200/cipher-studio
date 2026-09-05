@@ -495,9 +495,14 @@ function conceptos (bundle) {
   console.log('')
   console.log('=== J) EL REGISTRO DE PIEZAS Y EL ESPACIO DE ESTILOS ===')
   const { combinacionesLegales, FONDOS_ESCENA, ESTRUCTURAS_ESCENA, CAMARAS_ESCENA,
-    TIPOGRAFIAS, direccionDe, direccionDesde, maxCaracteresPie, cabeEnElPie } = bundle
+    TIPOGRAFIAS, direccionDe, direccionDesde, maxCaracteresPie, cabeEnElPie, sistemaDeGeneracion } = bundle
   ok(typeof combinacionesLegales === 'function', 'combinacionesLegales se exporta del bundle')
   if (typeof combinacionesLegales !== 'function') return
+  const sistemasMvp = ['editorial', 'clinico', 'voltaje', 'calido']
+  ok(typeof sistemaDeGeneracion === 'function' && sistemaDeGeneracion('proyecto-a') === sistemaDeGeneracion('proyecto-a'),
+    'una generación recibe siempre la misma paleta')
+  ok(Array.from({ length: 80 }, (_, i) => sistemaDeGeneracion('proyecto-' + i)).every(s => sistemasMvp.includes(s)),
+    'la paleta derivada siempre pertenece al registro')
 
   // DOS NUMEROS, Y NO SE MEZCLAN.
   //   identidades = combinaciones de EJES. Impide que dos Visuales SE VEAN IGUAL.
