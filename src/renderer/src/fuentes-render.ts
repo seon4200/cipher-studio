@@ -14,7 +14,15 @@ export const MUESTRA_FUENTES = 'AÁÉÍÓÚÜÑ aáéíóúüñ 0123456789'
 export const FUENTES_RENDER = [
   { familia: 'Outfit', peso: 700 },
   { familia: 'Archivo', peso: 700 },
-  { familia: 'Anton', peso: 400 }
+  { familia: 'Anton', peso: 400 },
+  { familia: 'Archivo Black', peso: 400 },
+  { familia: 'Barlow Condensed', peso: 700 },
+  { familia: 'Bebas Neue', peso: 400 },
+  { familia: 'Caveat', peso: 700 },
+  { familia: 'DM Serif Display', peso: 400 },
+  { familia: 'IBM Plex Sans Condensed', peso: 700 },
+  { familia: 'Playfair Display', peso: 800 },
+  { familia: 'Space Mono', peso: 700 }
 ] as const
 
 function anchoConFuente(familia: string, peso: number): number {

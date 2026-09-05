@@ -64,7 +64,9 @@ module.exports = function comprobarOrdenDireccion (bundle, archivo, ok) {
     nombres.forEach((nombre, i) => {
       const ids = Array.from({ length: n }, (_, j) => ejes[i] + '-' + j)
       contexto[binding(nombre)] = i === 3 || i === 4 ? ids :
-        Object.fromEntries(ids.map(id => [id, { id }]))
+        Object.fromEntries(ids.map(id => [id, nombre === 'ESTRUCTURAS'
+          ? { id, tipografias: ['neutral', 'condensada'] }
+          : nombre === 'TIPOGRAFIAS' ? { id, rol: 'neutral' } : { id }]))
     })
     const d = vm.runInNewContext(helpers.join('\n') + '\n' + codigo + '\n' +
       raiz.name.text + '(1729)', contexto, { timeout: 1000 })

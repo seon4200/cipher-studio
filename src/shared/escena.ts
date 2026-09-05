@@ -286,6 +286,46 @@ export const TIPOGRAFIAS = {
     id: 'anton', descripcion: 'Palabra en Anton condensada y en versal.',
     formatos: ['9:16', '16:9'], familia: 'Anton', rol: 'condensada', peso: 400, transformacion: 'uppercase',
     emPorCaracter: 0.74609375, caracterMasAncho: 'M'
+  },
+  archivoBlack: {
+    id: 'archivoBlack', descripcion: 'Titular macizo en Archivo Black para énfasis frontal.',
+    formatos: ['9:16', '16:9'], familia: 'Archivo Black', rol: 'neutral', peso: 400, transformacion: 'uppercase',
+    emPorCaracter: 1, caracterMasAncho: 'W'
+  },
+  barlowCondensed: {
+    id: 'barlowCondensed', descripcion: 'Titular estrecho en Barlow Condensed.',
+    formatos: ['9:16', '16:9'], familia: 'Barlow Condensed', rol: 'condensada', peso: 700, transformacion: 'uppercase',
+    emPorCaracter: 0.689, caracterMasAncho: 'W'
+  },
+  bebasNeue: {
+    id: 'bebasNeue', descripcion: 'Titular alto y estrecho en Bebas Neue.',
+    formatos: ['9:16', '16:9'], familia: 'Bebas Neue', rol: 'condensada', peso: 400, transformacion: 'uppercase',
+    emPorCaracter: 0.557, caracterMasAncho: 'W'
+  },
+  caveat: {
+    id: 'caveat', descripcion: 'Palabra manuscrita en Caveat.',
+    formatos: ['9:16', '16:9'], familia: 'Caveat', rol: 'neutral', peso: 700, transformacion: 'none',
+    emPorCaracter: 0.729, caracterMasAncho: 'M'
+  },
+  dmSerifDisplay: {
+    id: 'dmSerifDisplay', descripcion: 'Palabra editorial de alto contraste en DM Serif Display.',
+    formatos: ['9:16', '16:9'], familia: 'DM Serif Display', rol: 'neutral', peso: 400, transformacion: 'none',
+    emPorCaracter: 0.921, caracterMasAncho: 'W'
+  },
+  ibmPlexCondensed: {
+    id: 'ibmPlexCondensed', descripcion: 'Titular técnico compacto en IBM Plex Sans Condensed.',
+    formatos: ['9:16', '16:9'], familia: 'IBM Plex Sans Condensed', rol: 'condensada', peso: 700, transformacion: 'uppercase',
+    emPorCaracter: 0.884, caracterMasAncho: 'W'
+  },
+  playfairDisplay: {
+    id: 'playfairDisplay', descripcion: 'Palabra editorial serif en Playfair Display.',
+    formatos: ['9:16', '16:9'], familia: 'Playfair Display', rol: 'neutral', peso: 800, transformacion: 'none',
+    emPorCaracter: 0.989, caracterMasAncho: 'W'
+  },
+  spaceMono: {
+    id: 'spaceMono', descripcion: 'Palabra monoespaciada técnica en Space Mono.',
+    formatos: ['9:16', '16:9'], familia: 'Space Mono', rol: 'condensada', peso: 700, transformacion: 'uppercase',
+    emPorCaracter: 0.612, caracterMasAncho: 'A'
   }
 } as const satisfies Record<string, MetaTipografia>;
 export type IdTipografia = keyof typeof TIPOGRAFIAS;
@@ -894,6 +934,12 @@ function repertorio<T extends Record<string, Pick<PiezaBase, 'id' | 'prueba'>>>(
   return (Object.keys(reg) as (keyof T)[]).filter(k => !reg[k as string].prueba);
 }
 
+/** El contrato de roles decide qué familias puede sortear cada estructura, sin nombres de fuentes. */
+export function tipografiasPara(estructura: IdEstructura): IdTipografia[] {
+  const roles = ESTRUCTURAS[estructura]?.tipografias ?? [];
+  return repertorio(TIPOGRAFIAS).filter(id => roles.includes(TIPOGRAFIAS[id].rol)) as IdTipografia[];
+}
+
 /**
  * TODO LO QUE LA SEMILLA DECIDE, en un solo sitio -- el mismo contrato que `receta()`.
  *
@@ -906,14 +952,17 @@ function repertorio<T extends Record<string, Pick<PiezaBase, 'id' | 'prueba'>>>(
  */
 export function direccionDe(semilla: number): Direccion {
   const rnd = generador(semilla);
+  // `estructura` se conserva para que el sexto sorteo consulte sus roles, pero los SEIS
+  // consumos permanecen visibles y en orden dentro del return: la guardia de orden los muta.
+  let estructura: IdEstructura;
   return {
     fondo: elige(rnd, repertorio(FONDOS)),
-    estructura: elige(rnd, repertorio(ESTRUCTURAS)),
+    estructura: estructura = elige(rnd, repertorio(ESTRUCTURAS)),
     camara: elige(rnd, repertorio(CAMARAS)),
     densidad: elige(rnd, DENSIDADES),
     ritmo: elige(rnd, RITMOS),
     // SIEMPRE LA ULTIMA: los cinco consumos anteriores no se desplazan.
-    tipografia: elige(rnd, repertorio(TIPOGRAFIAS))
+    tipografia: elige(rnd, tipografiasPara(estructura))
   };
 }
 
@@ -938,15 +987,18 @@ export function direccionDesde(crudo: unknown, semilla: number): Direccion {
   const c = crudo as Record<string, unknown>;
   const val = <K extends string>(v: unknown, reg: Record<string, unknown>, porDefecto: K): K =>
     (typeof v === 'string' && Object.prototype.hasOwnProperty.call(reg, v)) ? (v as K) : porDefecto;
+  const estructura = val<IdEstructura>(c.estructura, ESTRUCTURAS, base.estructura);
+  const tipografias = tipografiasPara(estructura);
   return {
     fondo: val<IdFondo>(c.fondo, FONDOS, base.fondo),
-    estructura: val<IdEstructura>(c.estructura, ESTRUCTURAS, base.estructura),
+    estructura,
     camara: val<IdCamara>(c.camara, CAMARAS, base.camara),
     densidad: (DENSIDADES as readonly string[]).includes(String(c.densidad))
       ? (c.densidad as Densidad) : base.densidad,
     ritmo: (RITMOS as readonly string[]).includes(String(c.ritmo))
       ? (c.ritmo as Ritmo) : base.ritmo,
-    tipografia: val<IdTipografia>(c.tipografia, TIPOGRAFIAS, base.tipografia)
+    tipografia: (typeof c.tipografia === 'string' && tipografias.includes(c.tipografia as IdTipografia))
+      ? c.tipografia as IdTipografia : base.tipografia
   };
 }
 
@@ -1009,11 +1061,12 @@ export function combinacionesLegales(op: OpcionesCombinaciones = {}): EspacioDeE
   const estructuras = (Object.values(ESTRUCTURAS) as MetaEstructura[])
     .filter(e => vale(e) && e.minConceptos <= conceptos);
 
-  const ejesSueltos = DENSIDADES.length * RITMOS.length * Object.values(TIPOGRAFIAS).filter(vale).length;
   let identidades = 0, instancias = 0;
   for (const f of fondos) for (const c of camaras) {
     if (f.energia + c.energia > 3) continue;        // LA REGLA DE LA ENERGIA
     for (const e of estructuras) {
+      const fuentes = tipografiasPara(e.id as IdEstructura).filter(id => vale(TIPOGRAFIAS[id]));
+      const ejesSueltos = DENSIDADES.length * RITMOS.length * fuentes.length;
       identidades += ejesSueltos;
       instancias += ejesSueltos *
         instanciasDe(f.rangos) * instanciasDe(e.rangos) * instanciasDe(c.rangos);

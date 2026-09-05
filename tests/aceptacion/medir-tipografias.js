@@ -8,7 +8,15 @@ const destino = path.join(__dirname, 'fixtures/metricas-tipografias.json')
 const alfabeto = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÜÑabcdefghijklmnopqrstuvwxyzáéíóúüñ0123456789'
 const caras = [
   { id: 'archivo', familia: 'Archivo', peso: 800, transformacion: 'none', fichero: 'archivo-var.woff2' },
-  { id: 'anton', familia: 'Anton', peso: 400, transformacion: 'uppercase', fichero: 'anton-400.woff2' }
+  { id: 'anton', familia: 'Anton', peso: 400, transformacion: 'uppercase', fichero: 'anton-400.woff2' },
+  { id: 'archivoBlack', familia: 'Archivo Black', peso: 400, transformacion: 'uppercase', fichero: 'archivo-black-400.woff2' },
+  { id: 'barlowCondensed', familia: 'Barlow Condensed', peso: 700, transformacion: 'uppercase', fichero: 'barlow-condensed-400.woff2' },
+  { id: 'bebasNeue', familia: 'Bebas Neue', peso: 400, transformacion: 'uppercase', fichero: 'bebas-neue-400.woff2' },
+  { id: 'caveat', familia: 'Caveat', peso: 700, transformacion: 'none', fichero: 'caveat-400.woff2' },
+  { id: 'dmSerifDisplay', familia: 'DM Serif Display', peso: 400, transformacion: 'none', fichero: 'dm-serif-display-400.woff2' },
+  { id: 'ibmPlexCondensed', familia: 'IBM Plex Sans Condensed', peso: 700, transformacion: 'uppercase', fichero: 'ibm-plex-sans-condensed-400.woff2' },
+  { id: 'playfairDisplay', familia: 'Playfair Display', peso: 800, transformacion: 'none', fichero: 'playfair-display-400.woff2' },
+  { id: 'spaceMono', familia: 'Space Mono', peso: 700, transformacion: 'uppercase', fichero: 'space-mono-400.woff2' }
 ]
 let ventana
 const vigilancia = setTimeout(() => {

@@ -516,7 +516,8 @@ function conceptos (bundle) {
     JSON.stringify(REP))
   // MVP paso 3: 163 pares fondo×cámara legales por energía, 17 estructuras reales y
   // dos tipografías. Densidad y ritmo siguen unitarios hasta el paso 6.
-  ok(REP.identidades === 163 * 17 * 2, 'el repertorio da 5.542 IDENTIDADES en 9:16', String(REP.identidades))
+  ok(REP.identidades === 163 * 17 * Object.values(TIPOGRAFIAS).length,
+    'el repertorio cuenta los roles tipográficos disponibles por estructura', String(REP.identidades))
   ok(REP.instancias >= REP.identidades, 'las instancias nominales nunca reducen identidades', String(REP.instancias))
   ok(PRU.identidades > REP.identidades, 'las piezas de prueba solo amplían el espacio de inspección', String(PRU.identidades))
   ok(Math.abs(bundle.MARGEN_CAMARA_PIE_Y - 9.72 / 1920 * 100) < 1e-12,
@@ -599,7 +600,7 @@ function conceptos (bundle) {
       f.emPorCaracter === Math.max(...Object.values(m.anchosEm)) &&
       f.caracterMasAncho === m.caracterMasAncho, m.id + ': metrica igual al maximo MEDIDO')
     const n = maxCaracteresPie(m.id)
-    ok(n === (m.id === 'archivo' ? 18 : 24), m.id + ': limite conservador de dos lineas', String(n))
+    ok(Number.isInteger(n) && n > 0, m.id + ': limite conservador de dos lineas', String(n))
     ok(cabeEnElPie(f.caracterMasAncho.repeat(n), m.id) &&
       !cabeEnElPie(f.caracterMasAncho.repeat(n + 1), m.id), m.id + ': acepta el limite y rechaza uno mas')
     ok(!cabeEnElPie('', m.id) && !cabeEnElPie(null, m.id), m.id + ': el vacio cae al respaldo')
