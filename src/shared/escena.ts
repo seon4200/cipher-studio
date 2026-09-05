@@ -438,7 +438,7 @@ export const ESTRUCTURAS = {
     formatos: ['9:16'],
     minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y,
-    tipografias: ['neutral', 'editorial'],
+    tipografias: ['neutral', 'condensada'],
     rangos: [
       { id: 'anchoPlano', descripcion: 'Tamano de cada plano isometrico, en cqmin.', min: 38, max: 48, pasos: 4 },
       { id: 'inclinacion', descripcion: 'Inclinacion vertical de los planos, en grados.', min: 52, max: 64, pasos: 4 },
@@ -471,7 +471,7 @@ export const ESTRUCTURAS = {
     rangos: [],
     disposicion: { lectura: 'orbital', adaptarDensidad: n => ajusteDensidad(n, 0.90, 1.22),
     puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
-      [{ x: 22, y: 24 }, { x: 78, y: 32 }, { x: 50, y: 74 }]
+      [{ x: 12, y: 18 }, { x: 88, y: 24 }, { x: 50, y: 50 }]
         .slice(0, Math.min(CUANTOS_CONCEPTOS, etiquetas.length)),
       etiquetas, FRANJA_TEXTO_Y) }
   },
@@ -481,7 +481,7 @@ export const ESTRUCTURAS = {
     id: 'lineaTiempo', descripcion: 'Conceptos sucesivos sobre un eje vertical: un evento sigue a otro.',
     energia: 1, formatos: ['9:16'], minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y, prueba: true, rangos: [],
-    tipografias: ['neutral', 'tecnica'],
+    tipografias: ['neutral', 'condensada'],
     disposicion: { lectura: 'cronologica', adaptarDensidad: n => ajusteDensidad(n, 0.88, 1.36),
     puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
       etiquetas.slice(0, CUANTOS_CONCEPTOS).map((etiqueta, i) => ({
@@ -493,7 +493,7 @@ export const ESTRUCTURAS = {
     id: 'corteTransversal', descripcion: 'Estratos horizontales etiquetados que componen un mismo conjunto.',
     energia: 1, formatos: ['9:16'], minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y, prueba: true, rangos: [],
-    tipografias: ['neutral', 'editorial'],
+    tipografias: ['neutral', 'condensada'],
     disposicion: { lectura: 'estratos', adaptarDensidad: n => ajusteDensidad(n, 0.91, 1.31),
     puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
       etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) => ({ x: 50, y: 30 + i * 16 })),
@@ -507,7 +507,7 @@ export const ESTRUCTURAS = {
     tipografias: ['neutral', 'condensada'],
     disposicion: { lectura: 'cruzada', adaptarDensidad: n => ajusteDensidad(n, 0.93, 1.24),
     puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
-      etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) => ({ x: 50 + i * 2, y: 31 + i * 14 })),
+      etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) => ({ x: 50 + i * 2, y: [20, 42, 60][i] })),
       etiquetas, FRANJA_TEXTO_Y) }
   },
   unaCaja: {
@@ -518,7 +518,7 @@ export const ESTRUCTURAS = {
     minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y,
     prueba: true,
-    tipografias: ['neutral', 'condensada', 'editorial', 'tecnica', 'manuscrita'],
+    tipografias: ['neutral', 'condensada'],
     rangos: [
       { id: 'desviacionY', descripcion: 'Cuanto sube o baja la caja del centro.', min: 1, max: 3, pasos: 3 }
     ],

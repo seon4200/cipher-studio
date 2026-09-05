@@ -130,7 +130,8 @@ const CSS_FIJO = `
 // `params` sale de los RANGOS de la pieza mas la semilla: es su instancia. Va en el contexto y
 // no como argumento suelto para que anadir un dato mas tarde no cambie la firma de las 17.
 export type CtxFondo = { kf: Kf; params: Parametros }
-export type CtxEstructura = { kf: Kf; puntos: PuntoEscena[]; conceptos: Concepto[]; params: Parametros }
+export type CtxEstructura = { kf: Kf; puntos: PuntoEscena[]; conceptos: Concepto[]; params: Parametros;
+  densidad: { elementos: number; escala: number; separacion: number; opacidadSecundaria: number } }
 
 export type DibujoFondo = (c: CtxFondo) => React.ReactNode
 export type DibujoEstructura = (c: CtxEstructura) => React.ReactNode
@@ -255,14 +256,14 @@ function caja(cs: Concepto[], i: number): React.ReactNode {
 }
 
 const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
-  constelacion: ({ kf, puntos, conceptos, params }) => {
+  constelacion: ({ kf, puntos, conceptos, params, densidad }) => {
     const curva = params.curva ?? 4
     const escalaHero = params.escalaHero ?? 26
     const nomEntrada = puntos.map((_, i) => kf('nodo' + i, 33, u => {
       const a = 0.06 + (i / puntos.length) * 0.30
       const p = Math.min(1, Math.max(0, (u - a) / 0.26))
       const e = 1 - Math.pow(1 - p, 3)
-      return `opacity:${e.toFixed(3)};transform:translate(-50%,-50%) scale(${(0.7 + 0.3 * e).toFixed(3)})`
+      return `opacity:${(e * densidad.opacidadSecundaria).toFixed(3)};transform:translate(-50%,-50%) scale(${((0.7 + 0.3 * e) * densidad.escala).toFixed(3)})`
     }))
     const nodos = puntos.map((p, i) => (
       <div key={i} className="es-nodo" style={{ ...usa(nomEntrada[i]), left: p.x + '%', top: p.y + '%' }}>
@@ -576,6 +577,7 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown) {
 
   const puntos = metaEstructura.disposicion.puntos(rndPts, cs.map(c => c.etiqueta), parEstructura)
   const nDeco = DENSIDAD_A_N[direccion.densidad]
+  const densidadEstructura = metaEstructura.disposicion.adaptarDensidad(nDeco)
   const retardos = retardosDecoradores(nDeco, direccion.ritmo)
 
   // ═══ TODO LO QUE EMITE @keyframes, ANTES DEL RETURN. LAS CAMARAS TAMBIEN. ═══════════════
@@ -585,7 +587,7 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown) {
   // nada que emita. Solo consume constantes ya construidas.
   const capaFondo = DIBUJO_FONDOS[direccion.fondo]({ kf, params: parFondo })
   const capaEstructura = DIBUJO_ESTRUCTURAS[direccion.estructura](
-    { kf, puntos, conceptos: cs, params: parEstructura })
+    { kf, puntos, conceptos: cs, params: parEstructura, densidad: densidadEstructura })
   const capaDecoradores = decoradores(kf, nDeco, retardos, rndDeco)
   const capaTexto = textoPie(kf, value, direccion.tipografia)
 

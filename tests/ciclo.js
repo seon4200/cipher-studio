@@ -540,16 +540,40 @@ function conceptos (bundle) {
   }
   ok(Array.from({ length: 1000 }, (_, i) => direccionDe(i + 1))
     .every(d => !nuevas.includes(d.estructura)), '1000 semillas: el lote no sale en videos')
-  const etiquetasHuella = ['archivo', 'memoria', 'conexion']
-  const huellas = Object.values(ESTRUCTURAS_ESCENA).map(e => ({ id: e.id,
-    huella: JSON.stringify(e.disposicion.puntos(bundle.generador(42), etiquetasHuella, {})) }))
-  const repetidas = huellas.filter((a, i) => huellas.some((b, j) => i < j && a.huella === b.huella))
-  ok(repetidas.length === 0, 'ninguna estructura comparte disposicion de cajas con la misma entrada',
-    huellas.map(x => x.id + ':' + x.huella).join(' | '))
+  const distancia = (a, b) => {
+    if (a.length !== b.length || a.length === 0) return 1
+    const usados = new Set(); let suma = 0
+    for (const p of a) {
+      let mejor = Infinity, indice = -1
+      for (let j = 0; j < b.length; j++) if (!usados.has(j)) {
+        const d = Math.hypot(p.x - b[j].x, p.y - b[j].y)
+        if (d < mejor) { mejor = d; indice = j }
+      }
+      usados.add(indice); suma += mejor
+    }
+    return suma / a.length / Math.hypot(100, 100)
+  }
+  const distanciasCortas = []
+  for (const semilla of [7, 42, 71, 113, 509, 997, 4093]) for (const cantidad of [1, 2, 3]) {
+    const etiquetas = ['archivo', 'memoria', 'conexion'].slice(0, cantidad)
+    const disposiciones = Object.values(ESTRUCTURAS_ESCENA).map(e => ({ id: e.id,
+      puntos: e.disposicion.puntos(bundle.generador(semilla), etiquetas, {}) }))
+    for (let i = 0; i < disposiciones.length; i++) for (let j = i + 1; j < disposiciones.length; j++) {
+      const d = distancia(disposiciones[i].puntos, disposiciones[j].puntos)
+      if (d < .04) distanciasCortas.push(`${semilla}/${cantidad}:${disposiciones[i].id}-${disposiciones[j].id}=${d.toFixed(4)}`)
+    }
+  }
+  ok(distanciasCortas.length === 0, 'disposiciones separadas al menos 4% de la diagonal, 7 semillas x 3 recuentos',
+    distanciasCortas.join(', '))
   const densidadesInvalidas = Object.values(ESTRUCTURAS_ESCENA).flatMap(e =>
     [1, 3, 5, 8, 14].filter(n => { const a = e.disposicion.adaptarDensidad(n); return a.elementos !== n || !(a.escala > 0) || !(a.separacion > 0) || a.opacidadSecundaria < 0 || a.opacidadSecundaria > 1 }).map(n => e.id + ':' + n))
   ok(densidadesInvalidas.length === 0, 'las estructuras declaran adaptacion valida para las cinco densidades',
     densidadesInvalidas.join(', '))
+  const rolesDeclarados = new Set(Object.values(ESTRUCTURAS_ESCENA).flatMap(e => e.tipografias))
+  const rolesCubiertos = new Set(Object.values(TIPOGRAFIAS).map(t => t.rol))
+  ok([...rolesDeclarados].every(rol => rolesCubiertos.has(rol)),
+    'todo rol tipografico declarado tiene al menos una fuente empaquetada',
+    [...rolesDeclarados].join(', '))
   ok(lote.estructuras.every(id => ESTRUCTURAS_ESCENA[id]) &&
     lote.composicion === 'visual_escena' && lote.sistema === 'voltaje' &&
     lote.escala === .45 && lote.miniatura.ancho === lote.lienzo.ancho * lote.escala &&
