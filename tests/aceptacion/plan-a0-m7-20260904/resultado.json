@@ -1,0 +1,447 @@
+{
+  "fechaUTC": "2026-09-05T03:54:39.769Z",
+  "commit": "84062d76c5b878c8a7766ea4c17e16b9dcd461e3",
+  "arbol": "e69d531789d0d9ca73a220a8b78626df556de632",
+  "bundleSHA256": "75dd67bd8b892501f00cfcd9cb3079367e61db1595409af3b2a895e62d26aacd",
+  "arnesSHA256": "de3a2e103be378c7f2df52981062af315ecf3e0bfb1ed11843aff3a865599362",
+  "entorno": {
+    "plataforma": "win32",
+    "release": "10.0.26200",
+    "arquitectura": "x64",
+    "cpu": "AMD Ryzen AI 9 365 w/ Radeon 880M              ",
+    "hilos": 20,
+    "versiones": {
+      "node": "20.18.0",
+      "acorn": "8.12.1",
+      "ada": "2.9.0",
+      "ares": "1.33.1",
+      "base64": "0.5.2",
+      "brotli": "1.0.9",
+      "cjs_module_lexer": "1.4.1",
+      "cldr": "44.1",
+      "icu": "74.2",
+      "llhttp": "8.1.2",
+      "modules": "125",
+      "napi": "9",
+      "nghttp2": "1.61.0",
+      "openssl": "0.0.0",
+      "simdutf": "5.5.0",
+      "tz": "2024a",
+      "undici": "6.19.8",
+      "unicode": "15.1",
+      "uv": "1.46.0",
+      "uvwasi": "0.0.21",
+      "v8": "12.6.228.30-electron.0",
+      "zlib": "1.3.0.1-motley",
+      "electron": "31.7.7",
+      "chrome": "126.0.6478.234"
+    }
+  },
+  "opciones": {
+    "ancho": 1080,
+    "alto": 1920,
+    "fps": 30,
+    "duracion": 3,
+    "modo": "pantalla",
+    "sistema": "voltaje"
+  },
+  "graphicData": {
+    "type": "visual_escena",
+    "value": "memoria",
+    "label": "",
+    "unit": "",
+    "emoji": "",
+    "extra": {
+      "conceptos": [
+        {
+          "emoji": "🧠",
+          "etiqueta": "recuerdo"
+        },
+        {
+          "emoji": "📁",
+          "etiqueta": "archivo"
+        },
+        {
+          "emoji": "🔗",
+          "etiqueta": "conexion"
+        }
+      ]
+    }
+  },
+  "liston": 1.3,
+  "muestrasPrevistas": 6,
+  "metodo": "Una ventana reutilizada; 3 muestras de arranque + 3 de regimen. Solo extra.pos cambia para evitar cache; no participa en el dibujo.",
+  "red": "fetch y HTTP(S) bloqueados",
+  "runtime": "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-vCsH8E",
+  "muestras": [
+    {
+      "muestra": 1,
+      "fase": "arranque",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "conceptos": [
+            {
+              "emoji": "🧠",
+              "etiqueta": "recuerdo"
+            },
+            {
+              "emoji": "📁",
+              "etiqueta": "archivo"
+            },
+            {
+              "emoji": "🔗",
+              "etiqueta": "conexion"
+            }
+          ],
+          "direccion": {
+            "fondo": "tramaTejida",
+            "estructura": "constelacion",
+            "camara": "deriva",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "pos": "m7:0"
+        }
+      },
+      "hash": "4c939c0a2ef0",
+      "type": "visual_escena",
+      "totalFrames": 90,
+      "ancho": 1080,
+      "alto": 1920,
+      "ms": 3934,
+      "intentosTotales": 147,
+      "intentosPorFrame": 1.6333333333333333,
+      "framesEnElTope": 0,
+      "maxIntentosFrame": 5,
+      "bytes": 4765538,
+      "ruta": "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-vCsH8E\\cipher-studio\\proyectos\\zz-m7-local-1788580481449\\materiales\\visual\\4c939c0a2ef0.mp4",
+      "dibujo": {
+        "pie": "memoria",
+        "conceptos": [
+          "recuerdo",
+          "archivo",
+          "conexion"
+        ],
+        "avisos": []
+      }
+    },
+    {
+      "muestra": 2,
+      "fase": "arranque",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "conceptos": [
+            {
+              "emoji": "🧠",
+              "etiqueta": "recuerdo"
+            },
+            {
+              "emoji": "📁",
+              "etiqueta": "archivo"
+            },
+            {
+              "emoji": "🔗",
+              "etiqueta": "conexion"
+            }
+          ],
+          "direccion": {
+            "fondo": "tramaTejida",
+            "estructura": "constelacion",
+            "camara": "deriva",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "pos": "m7:1"
+        }
+      },
+      "hash": "3251bcba0f4a",
+      "type": "visual_escena",
+      "totalFrames": 90,
+      "ancho": 1080,
+      "alto": 1920,
+      "ms": 3647,
+      "intentosTotales": 146,
+      "intentosPorFrame": 1.6222222222222222,
+      "framesEnElTope": 0,
+      "maxIntentosFrame": 5,
+      "bytes": 4765538,
+      "ruta": "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-vCsH8E\\cipher-studio\\proyectos\\zz-m7-local-1788580481449\\materiales\\visual\\3251bcba0f4a.mp4",
+      "dibujo": {
+        "pie": "memoria",
+        "conceptos": [
+          "recuerdo",
+          "archivo",
+          "conexion"
+        ],
+        "avisos": []
+      }
+    },
+    {
+      "muestra": 3,
+      "fase": "arranque",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "conceptos": [
+            {
+              "emoji": "🧠",
+              "etiqueta": "recuerdo"
+            },
+            {
+              "emoji": "📁",
+              "etiqueta": "archivo"
+            },
+            {
+              "emoji": "🔗",
+              "etiqueta": "conexion"
+            }
+          ],
+          "direccion": {
+            "fondo": "tramaTejida",
+            "estructura": "constelacion",
+            "camara": "deriva",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "pos": "m7:2"
+        }
+      },
+      "hash": "9b692b648a2a",
+      "type": "visual_escena",
+      "totalFrames": 90,
+      "ancho": 1080,
+      "alto": 1920,
+      "ms": 3756,
+      "intentosTotales": 147,
+      "intentosPorFrame": 1.6333333333333333,
+      "framesEnElTope": 0,
+      "maxIntentosFrame": 5,
+      "bytes": 4765538,
+      "ruta": "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-vCsH8E\\cipher-studio\\proyectos\\zz-m7-local-1788580481449\\materiales\\visual\\9b692b648a2a.mp4",
+      "dibujo": {
+        "pie": "memoria",
+        "conceptos": [
+          "recuerdo",
+          "archivo",
+          "conexion"
+        ],
+        "avisos": []
+      }
+    },
+    {
+      "muestra": 4,
+      "fase": "regimen",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "conceptos": [
+            {
+              "emoji": "🧠",
+              "etiqueta": "recuerdo"
+            },
+            {
+              "emoji": "📁",
+              "etiqueta": "archivo"
+            },
+            {
+              "emoji": "🔗",
+              "etiqueta": "conexion"
+            }
+          ],
+          "direccion": {
+            "fondo": "tramaTejida",
+            "estructura": "constelacion",
+            "camara": "deriva",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "pos": "m7:3"
+        }
+      },
+      "hash": "e245604afa1d",
+      "type": "visual_escena",
+      "totalFrames": 90,
+      "ancho": 1080,
+      "alto": 1920,
+      "ms": 3415,
+      "intentosTotales": 135,
+      "intentosPorFrame": 1.5,
+      "framesEnElTope": 0,
+      "maxIntentosFrame": 5,
+      "bytes": 4765538,
+      "ruta": "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-vCsH8E\\cipher-studio\\proyectos\\zz-m7-local-1788580481449\\materiales\\visual\\e245604afa1d.mp4",
+      "dibujo": {
+        "pie": "memoria",
+        "conceptos": [
+          "recuerdo",
+          "archivo",
+          "conexion"
+        ],
+        "avisos": []
+      }
+    },
+    {
+      "muestra": 5,
+      "fase": "regimen",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "conceptos": [
+            {
+              "emoji": "🧠",
+              "etiqueta": "recuerdo"
+            },
+            {
+              "emoji": "📁",
+              "etiqueta": "archivo"
+            },
+            {
+              "emoji": "🔗",
+              "etiqueta": "conexion"
+            }
+          ],
+          "direccion": {
+            "fondo": "tramaTejida",
+            "estructura": "constelacion",
+            "camara": "deriva",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "pos": "m7:4"
+        }
+      },
+      "hash": "ce44eb655e9e",
+      "type": "visual_escena",
+      "totalFrames": 90,
+      "ancho": 1080,
+      "alto": 1920,
+      "ms": 3738,
+      "intentosTotales": 148,
+      "intentosPorFrame": 1.6444444444444444,
+      "framesEnElTope": 0,
+      "maxIntentosFrame": 5,
+      "bytes": 4765538,
+      "ruta": "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-vCsH8E\\cipher-studio\\proyectos\\zz-m7-local-1788580481449\\materiales\\visual\\ce44eb655e9e.mp4",
+      "dibujo": {
+        "pie": "memoria",
+        "conceptos": [
+          "recuerdo",
+          "archivo",
+          "conexion"
+        ],
+        "avisos": []
+      }
+    },
+    {
+      "muestra": 6,
+      "fase": "regimen",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "conceptos": [
+            {
+              "emoji": "🧠",
+              "etiqueta": "recuerdo"
+            },
+            {
+              "emoji": "📁",
+              "etiqueta": "archivo"
+            },
+            {
+              "emoji": "🔗",
+              "etiqueta": "conexion"
+            }
+          ],
+          "direccion": {
+            "fondo": "tramaTejida",
+            "estructura": "constelacion",
+            "camara": "deriva",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "pos": "m7:5"
+        }
+      },
+      "hash": "65babe1bfca8",
+      "type": "visual_escena",
+      "totalFrames": 90,
+      "ancho": 1080,
+      "alto": 1920,
+      "ms": 3676,
+      "intentosTotales": 149,
+      "intentosPorFrame": 1.6555555555555554,
+      "framesEnElTope": 0,
+      "maxIntentosFrame": 5,
+      "bytes": 4765538,
+      "ruta": "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-vCsH8E\\cipher-studio\\proyectos\\zz-m7-local-1788580481449\\materiales\\visual\\65babe1bfca8.mp4",
+      "dibujo": {
+        "pie": "memoria",
+        "conceptos": [
+          "recuerdo",
+          "archivo",
+          "conexion"
+        ],
+        "avisos": []
+      }
+    }
+  ],
+  "proyecto": "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-vCsH8E\\cipher-studio\\proyectos\\zz-m7-local-1788580481449",
+  "direccion": {
+    "fondo": "tramaTejida",
+    "estructura": "constelacion",
+    "camara": "deriva",
+    "densidad": "media",
+    "ritmo": "regular",
+    "tipografia": "archivo"
+  },
+  "arranque": {
+    "medianaMsClip": 3756,
+    "medianaMsFrame": 41.733333333333334,
+    "medianaIntentosFrame": 1.6333333333333333,
+    "intentos": 440,
+    "frames": 270,
+    "framesEnElTope": 0
+  },
+  "regimen": {
+    "medianaMsClip": 3676,
+    "medianaMsFrame": 40.84444444444444,
+    "medianaIntentosFrame": 1.6444444444444444,
+    "intentos": 432,
+    "frames": 270,
+    "framesEnElTope": 0
+  },
+  "cumpleM7": false,
+  "exitCode": 2
+}

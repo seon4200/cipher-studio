@@ -2319,3 +2319,43 @@ identidad estable de generacion. Condicion confirmada: `sistema` si entra hoy en
 los Visuales de ese video.
 
 No se arregla aqui y no bloquea 3b ni Fase 4. Es relevante para quien abra Fase 8.
+
+### M7 detiene la Fase A antes de cambiar produccion (04/09/2026)
+
+**MEDIDO, SIN ARREGLAR.** El plan actualizado exige parar al superar 1,30
+intentos/frame (T6/M7). La linea base YA lo supera: no es una regresion
+atribuible a `anchoCaja` ni a las piezas de A, que todavia no se han modificado.
+
+Condiciones: clon nuevo de `84062d7`, arbol
+`e69d531789d0d9ca73a220a8b78626df556de632`, identico al merge A.0 `d0dae0d`.
+Windows 11 (10.0.26200), x64, Ryzen AI 9 365, Electron 31.7.7 / Chromium
+126.0.6478.234. Seis clips de 3 s / 90 frames / 1080x1920 / 30 fps,
+`visual_escena`, sistema `voltaje`, palabra `memoria`, conceptos
+recuerdo/archivo/conexion con sus emojis. Direccion resuelta por el bundle:
+tramaTejida + constelacion + deriva + media + regular + archivo.
+Una ventana reutilizada, misma escena; solo cambia `extra.pos` para evitar
+aciertos de cache. Red bloqueada, perfil y proyecto temporales aislados;
+ninguna llamada de generacion ni API. Tres muestras de arranque y tres de regimen.
+
+Resultados por muestra (ms/clip; intentos totales/90):
+3934;147 · 3647;146 · 3756;147 · 3415;135 · 3738;148 · 3676;149.
+Arranque: mediana 3756 ms/clip, 41,73 ms/frame, 1,633 intentos/frame.
+Regimen: mediana 3676 ms/clip, 40,84 ms/frame, **1,644 intentos/frame**
+(+26,5 % sobre 1,30); agregado de regimen 432/270 = 1,600.
+Los seis clips se completaron; **0/540 frames en MAX_INTENTOS_FRAME=5**.
+Superar el liston medio NO demuestra que se pierdan clips: en esta medicion
+no se perdio ninguno. Tampoco establece una tasa para todas las identidades.
+
+Evidencia reproducible: `tests/rendimiento/escena-m7.cjs` importa el render y
+sus contadores del bundle; comprueba el DOM real de escena y los tres conceptos
+para no medir un respaldo rotulado como composicion. Se guardan condiciones,
+hashes y medidas crudas en `tests/aceptacion/plan-a0-m7-20260904/resultado.json`,
+mas `escena-memoria-frame89.png`, inspeccionada. El arnes termino con exit 2
+(M7 incumplido), no con un error de render. La primera invocacion directa de
+Electron no entrego salida a la herramienta y fue detenida; no aporto muestras.
+La tirada registrada uso el lanzador supervisado de Electron.
+
+Consecuencia: A.0 mergeado y deuda pendiente preservada; **Fase A NO cerrada**.
+No se retoca el lazo ni se relaja M7. No se continua con A.2-F mientras siga
+en pie este criterio de parada. El benchmark antiguo con conceptos en cadenas
+no se ha usado ni corregido aqui.
