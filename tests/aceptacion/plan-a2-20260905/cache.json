@@ -1,0 +1,55 @@
+{
+  "fechaUTC": "2026-09-05T05:14:34.843Z",
+  "repo": "C:\\Proyectos\\mi-app\\cipher-studio",
+  "proyectos": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos",
+  "codigo": 0,
+  "signal": null,
+  "antes": {
+    "entradas": 1029,
+    "bytes": 1745942332,
+    "sha256Inventario": "df9a151db5e1471b2fd2582ec32d4e95957df6e6afecd62bac9a579858cfb830"
+  },
+  "despues": {
+    "entradas": 1029,
+    "bytes": 1745942332,
+    "sha256Inventario": "df9a151db5e1471b2fd2582ec32d4e95957df6e6afecd62bac9a579858cfb830"
+  },
+  "eventos": [],
+  "temporal": true,
+  "sinCambios": true,
+  "runtime": "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-Aoia9D",
+  "proyecto": "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-Aoia9D\\cipher-studio\\proyectos\\zz-m7-local-1788585248075",
+  "destinos": [
+    "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-Aoia9D\\cipher-studio\\proyectos\\zz-m7-local-1788585248075\\materiales\\visual\\4c939c0a2ef0.mp4",
+    "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-Aoia9D\\cipher-studio\\proyectos\\zz-m7-local-1788585248075\\materiales\\visual\\3251bcba0f4a.mp4",
+    "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-Aoia9D\\cipher-studio\\proyectos\\zz-m7-local-1788585248075\\materiales\\visual\\9b692b648a2a.mp4",
+    "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-Aoia9D\\cipher-studio\\proyectos\\zz-m7-local-1788585248075\\materiales\\visual\\e245604afa1d.mp4",
+    "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-Aoia9D\\cipher-studio\\proyectos\\zz-m7-local-1788585248075\\materiales\\visual\\ce44eb655e9e.mp4",
+    "C:\\Users\\JOHNBE~1\\AppData\\Local\\Temp\\cipher-m7-runtime-Aoia9D\\cipher-studio\\proyectos\\zz-m7-local-1788585248075\\materiales\\visual\\65babe1bfca8.mp4"
+  ],
+  "criteriosM7": {
+    "M7a1": {
+      "clipsCompletados": 6,
+      "framesValidos": 540,
+      "perdidasDetectadas": 0,
+      "alcance": "Solo los seis clips completados por renderGraphicClip, no una tasa universal"
+    },
+    "M7a2": {
+      "framesAceptadosEnElTope": 0,
+      "objetivoCero": true,
+      "esPerdida": false
+    },
+    "M7b": {
+      "msFrame": 40.32222222222222,
+      "base": 40.84,
+      "variacionPorcentaje": -1.2678202198280641,
+      "requiereDecision": false
+    },
+    "M7c": {
+      "intentosFrame": 1.6222222222222222,
+      "base": 1.644,
+      "informativo": true
+    }
+  },
+  "pasa": true
+}

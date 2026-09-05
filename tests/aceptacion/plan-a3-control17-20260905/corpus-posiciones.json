@@ -1,0 +1,34 @@
+{
+  "procedencia": {
+    "tipo": "control-fuera-de-muestra",
+    "origen": "plan-a3-20260905/aplicado.json: referencia-17; NO forma parte de las 321"
+  },
+  "casos": [
+    {
+      "linea": "referencia-17",
+      "value": "memoria",
+      "conceptos": [
+        {
+          "emoji": "🧠",
+          "etiqueta": "responsabilidades"
+        },
+        {
+          "emoji": "📁",
+          "etiqueta": "archivo"
+        },
+        {
+          "emoji": "🔗",
+          "etiqueta": "conexion"
+        }
+      ],
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    }
+  ]
+}

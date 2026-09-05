@@ -39,7 +39,12 @@ module.exports = function comprobarOrdenDireccion (bundle, archivo, ok) {
     return encontrados[0]
   }
   const ejes = ['fondo', 'estructura', 'camara', 'densidad', 'ritmo', 'tipografia']
-  const nombres = ['FONDOS', 'ESTRUCTURAS', 'CAMARAS', 'DENSIDADES', 'RITMOS', 'TIPOGRAFIAS']
+  // Densidad no es un sorteo: procede del contenido. La guardia protege exactamente los cinco
+  // consumos de semilla que quedan y falla si alguien vuelve a convertirla en un sexto dado.
+  const sorteos = [
+    ['fondo', 'FONDOS'], ['estructura', 'ESTRUCTURAS'], ['camara', 'CAMARAS'],
+    ['ritmo', 'RITMOS'], ['tipografia', 'TIPOGRAFIAS']
+  ]
   const retorno = raiz.body.statements.find(ts.isReturnStatement)
   assert(retorno && ts.isObjectLiteralExpression(retorno.expression))
   const objeto = retorno.expression
@@ -56,29 +61,32 @@ module.exports = function comprobarOrdenDireccion (bundle, archivo, ok) {
     contexto[binding('generador')] = semilla => {
       llamadas.push(semilla)
       return () => {
-        assert(consumos < ejes.length, 'No puede haber un septimo sorteo')
-        // Seis entradas conocidas: el sorteo i cae en la casilla i del catalogo de prueba.
+        assert(consumos < sorteos.length, 'No puede haber un sexto sorteo')
+        // Cinco entradas conocidas: el sorteo i cae en la casilla i del catalogo de prueba.
         return (consumos++ + 0.5) / n
       }
     }
-    nombres.forEach((nombre, i) => {
-      const ids = Array.from({ length: n }, (_, j) => ejes[i] + '-' + j)
-      contexto[binding(nombre)] = i === 3 || i === 4 ? ids :
-        Object.fromEntries(ids.map(id => [id, { id }]))
+    sorteos.forEach(([eje, nombre], i) => {
+      const ids = Array.from({ length: n }, (_, j) => eje + '-' + j)
+      contexto[binding(nombre)] = nombre === 'RITMOS' ? ids :
+        Object.fromEntries(ids.map(id => [id, nombre === 'ESTRUCTURAS'
+          ? { id, tipografias: ['neutral', 'condensada'] }
+          : nombre === 'TIPOGRAFIAS' ? { id, rol: 'neutral' } : { id }]))
     })
     const d = vm.runInNewContext(helpers.join('\n') + '\n' + codigo + '\n' +
       raiz.name.text + '(1729)', contexto, { timeout: 1000 })
     assert.deepEqual(llamadas, [1729], 'Un solo generador con la semilla recibida')
-    assert.equal(consumos, 6, 'Exactamente seis sorteos sobre ese generador')
-    return ejes.every((eje, i) => d[eje] === eje + '-' + i)
+    assert.equal(consumos, 5, 'Exactamente cinco sorteos sobre ese generador')
+    return sorteos.every(([eje], i) => d[eje] === eje + '-' + i) && d.densidad === 'minima'
   }
 
-  // Catalogos sinteticos con varias opciones TAMBIEN en densidad/ritmo: sus registros
-  // actuales tienen una sola y ocultarian un intercambio. No dependen de piezas futuras.
+  // Catalogos sinteticos con varias opciones en los cinco sorteos: no dependen de piezas futuras.
   for (const n of [6, 11]) {
-    ok(ejecutar(n), 'orden de los seis sorteos, catalogos de ' + n + ' opciones')
+    ok(ejecutar(n), 'orden de los cinco sorteos, catalogos de ' + n + ' opciones')
     let detectados = 0
-    for (let a = 0; a < ejes.length; a++) for (let b = a + 1; b < ejes.length; b++) {
+    const indicesSorteo = [0, 1, 2, 4, 5]
+    for (let ia = 0; ia < indicesSorteo.length; ia++) for (let ib = ia + 1; ib < indicesSorteo.length; ib++) {
+      const a = indicesSorteo[ia], b = indicesSorteo[ib]
       const invertidas = propiedades.map(p => p.getText(ast))
       ;[invertidas[a], invertidas[b]] = [invertidas[b], invertidas[a]]
       // Mutacion SOLO en memoria, sobre limites del AST. Ningun fichero se modifica.
@@ -87,7 +95,7 @@ module.exports = function comprobarOrdenDireccion (bundle, archivo, ok) {
       const rota = fuente.slice(0, inicio) + '{' + invertidas.join(',\n') + '}' + fuente.slice(fin)
       if (!ejecutar(n, rota)) detectados++
     }
-    ok(detectados === 15, 'control negativo: detecta los 15 intercambios de ejes (' + n + ' opciones)',
-      detectados + '/15; incluye densidad/ritmo y tipografia contra cada eje')
+    ok(detectados === 10, 'control negativo: detecta los 10 intercambios de sorteos (' + n + ' opciones)',
+      detectados + '/10; densidad queda fuera porque procede del contenido')
   }
 }

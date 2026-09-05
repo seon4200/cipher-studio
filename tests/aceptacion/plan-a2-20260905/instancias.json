@@ -1,0 +1,198 @@
+{
+  "actual": {
+    "identidades": 48,
+    "instancias": 3782310
+  },
+  "pesos": {
+    "fondos": [
+      {
+        "id": "tramaTejida",
+        "pasos": [],
+        "instancias": 1
+      },
+      {
+        "id": "ondas",
+        "pasos": [],
+        "instancias": 1
+      },
+      {
+        "id": "tunel",
+        "pasos": [
+          5,
+          4,
+          4
+        ],
+        "instancias": 80
+      },
+      {
+        "id": "skyline",
+        "pasos": [],
+        "instancias": 1
+      }
+    ],
+    "camaras": [
+      {
+        "id": "deriva",
+        "pasos": [
+          4,
+          4,
+          3
+        ],
+        "instancias": 48
+      },
+      {
+        "id": "quieto",
+        "pasos": [],
+        "instancias": 1
+      }
+    ],
+    "estructuras": [
+      {
+        "id": "constelacion",
+        "pasos": [
+          5,
+          4,
+          4,
+          5
+        ],
+        "instancias": 400
+      },
+      {
+        "id": "capasApiladas",
+        "pasos": [
+          4,
+          4,
+          4
+        ],
+        "instancias": 64
+      },
+      {
+        "id": "redNodos",
+        "pasos": [],
+        "instancias": 1
+      }
+    ]
+  },
+  "filas": [
+    {
+      "energia": 2,
+      "fondo": "tramaTejida",
+      "camara": "deriva",
+      "identidades": 6,
+      "instancias": 44640
+    },
+    {
+      "energia": 2,
+      "fondo": "tramaTejida",
+      "camara": "quieto",
+      "identidades": 6,
+      "instancias": 930
+    },
+    {
+      "energia": 2,
+      "fondo": "ondas",
+      "camara": "deriva",
+      "identidades": 6,
+      "instancias": 44640
+    },
+    {
+      "energia": 2,
+      "fondo": "ondas",
+      "camara": "quieto",
+      "identidades": 6,
+      "instancias": 930
+    },
+    {
+      "energia": 2,
+      "fondo": "tunel",
+      "camara": "deriva",
+      "identidades": 0,
+      "instancias": 0
+    },
+    {
+      "energia": 2,
+      "fondo": "tunel",
+      "camara": "quieto",
+      "identidades": 6,
+      "instancias": 74400
+    },
+    {
+      "energia": 2,
+      "fondo": "skyline",
+      "camara": "deriva",
+      "identidades": 0,
+      "instancias": 0
+    },
+    {
+      "energia": 2,
+      "fondo": "skyline",
+      "camara": "quieto",
+      "identidades": 6,
+      "instancias": 930
+    },
+    {
+      "energia": 1,
+      "fondo": "tramaTejida",
+      "camara": "deriva",
+      "identidades": 6,
+      "instancias": 44640
+    },
+    {
+      "energia": 1,
+      "fondo": "tramaTejida",
+      "camara": "quieto",
+      "identidades": 6,
+      "instancias": 930
+    },
+    {
+      "energia": 1,
+      "fondo": "ondas",
+      "camara": "deriva",
+      "identidades": 6,
+      "instancias": 44640
+    },
+    {
+      "energia": 1,
+      "fondo": "ondas",
+      "camara": "quieto",
+      "identidades": 6,
+      "instancias": 930
+    },
+    {
+      "energia": 1,
+      "fondo": "tunel",
+      "camara": "deriva",
+      "identidades": 6,
+      "instancias": 3571200
+    },
+    {
+      "energia": 1,
+      "fondo": "tunel",
+      "camara": "quieto",
+      "identidades": 6,
+      "instancias": 74400
+    },
+    {
+      "energia": 1,
+      "fondo": "skyline",
+      "camara": "deriva",
+      "identidades": 6,
+      "instancias": 44640
+    },
+    {
+      "energia": 1,
+      "fondo": "skyline",
+      "camara": "quieto",
+      "identidades": 6,
+      "instancias": 930
+    }
+  ],
+  "energia2": {
+    "identidades": 36,
+    "instancias": 166470
+  },
+  "energia1": {
+    "identidades": 48,
+    "instancias": 3782310
+  }
+}

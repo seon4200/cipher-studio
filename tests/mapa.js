@@ -28,7 +28,19 @@ const ok = (cond, titulo, detalle) => {
 }
 
 function main (bundle) {
-  const M = bundle
+  const M = { ...bundle, anchoCaja: bundle.anchoCajaMapa }
+  // T8: cambiar la fuente de escena no puede mover el layout historico de mapa.
+  // Importamos ambas funciones reales: ni copia de la formula ni umbral rebajado.
+  const metrica = bundle.METRICAS_ETIQUETA[bundle.METRICA_ETIQUETA]
+  const original = metrica.fuenteCqmin
+  const antes = JSON.stringify(M.cajasDe(['infraestructura', 'archivo'], 'memoria'))
+  try {
+    metrica.fuenteCqmin = original * 2
+    ok(JSON.stringify(M.cajasDe(['infraestructura', 'archivo'], 'memoria')) === antes,
+      'T8: mapa no depende del tamano de escena')
+    ok(M.anchoCaja('archivo', true) !== bundle.anchoCaja('archivo', true),
+      'T8: las dos composiciones ejercen su propio modelo de ancho')
+  } finally { metrica.fuenteCqmin = original }
 
   // Las cajas de un layout de 3 conceptos con etiquetas tipicas. `separados` y `layoutSeguro`
   // las necesitan desde que el umbral sale del TAMANO REAL de la caja y no de un 33 fijo.

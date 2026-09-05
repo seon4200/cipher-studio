@@ -32,12 +32,13 @@ export { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA }
 // el paso 3 sera quien la use. Sin estas dos lineas la octava suite no tendria como alcanzarlo
 // —el bundler no incluye lo que nadie importa— y la unica alternativa seria copiar la logica
 // dentro de la prueba, que es exactamente lo que las otras siete evitan.
+export { anchoCaja, METRICAS_ETIQUETA, METRICA_ETIQUETA, GEOMETRIA_CAJA } from '../shared/metricas-caja'
 import * as mapa from '../shared/mapa'
 export const {
   SY, FOCO, ZONA, T, cl, ent, elige, jit, PALETAS, LAYOUTS, FAMILIAS,
   separados, acotar, layoutSeguro, retardos, RETARDO_ANCLA, retardoArista,
   TRANSICIONES, ORDENES, receta, nSeguro, N_MAX,
-  anchoCaja, altoCaja, cajasDe, recorteCaja, recortesArista, MARGEN_H, MARGEN_V,
+  anchoCaja: anchoCajaMapa, altoCaja, cajasDe, recorteCaja, recortesArista, MARGEN_H, MARGEN_V,
   FRACCION_MAXIMA_RECORTE
 } = mapa
 // SOLO RE-EXPORTACION, para que la suite ejercite el registro de piezas sobre el BUNDLE
@@ -46,8 +47,9 @@ export const {
 import * as escenaShared from '../shared/escena'
 export const {
   FONDOS: FONDOS_ESCENA, ESTRUCTURAS: ESTRUCTURAS_ESCENA, CAMARAS: CAMARAS_ESCENA,
-  TIPOGRAFIAS, direccionDesde, combinacionesLegales, direccionDe, acotarPuntos, cabeEnElPie, cabeLaEtiqueta,
-  maxCaracteresPie, MAX_CARACTERES_ETIQUETA, FRANJA_TEXTO_Y, ZONA_X_MIN, ZONA_X_MAX,
+  TIPOGRAFIAS, direccionDesde, combinacionesLegales, direccionDe, densidadDesdeContenido, entradaRitmo,
+  DENSIDAD_A_N, RITMOS, acotarPuntos, cabeEnElPie, cabeLaEtiqueta,
+  maxCaracteresPie, MAX_CARACTERES_ETIQUETA, FRANJA_TEXTO_Y, MARGEN_CAMARA_PIE_Y, ZONA_X_MIN, ZONA_X_MAX,
   parametrosDe, instanciasDe
 } = escenaShared
 // SOLO RE-EXPORTACION, para que la suite ejercite el modulo sobre el BUNDLE COMPILADO en vez
@@ -1062,7 +1064,9 @@ const canonizar = (v: any): string => {
 // fichero viejo diciendo ACIERTO: se veria exactamente lo mismo y pareceria que la composicion
 // no funciona. Es el modo de fallo que esta constante existe para evitar, y cuesta re-renderizar
 // lo que haya en cache (~2.7 s por grafico).
-const VERSION_PLANTILLAS = 8;
+// MVP: la geometria, las fuentes y la direccion nuevas entran junto con esta invalidacion.
+// Tambien invalida tarjetas sin cambios: coste aceptado de la version global compartida.
+const VERSION_PLANTILLAS = 9;
 
 // EL FORMATO LO DECIDE EL MODO, y se dice AQUI una sola vez. Las tres cosas —codec, pix_fmt y
 // extension— tienen que ir juntas o el fichero sale mintiendo sobre si mismo: un .mp4 con
@@ -1129,6 +1133,12 @@ const TIMESCALE = 30000;
 
 const SISTEMAS_VALIDOS = ['editorial', 'clinico', 'voltaje', 'calido'] as const;
 type NombreSistema = typeof SISTEMAS_VALIDOS[number];
+
+/** Una paleta por vídeo/proyecto: se resuelve una vez antes del lote, nunca por sub-clip. */
+export function sistemaDeGeneracion(idEstable: string): NombreSistema {
+  const digest = createHash('sha256').update(String(idEstable)).digest();
+  return SISTEMAS_VALIDOS[digest[0] % SISTEMAS_VALIDOS.length];
+}
 
 // Se EXPORTA para que la prueba pueda comprobar la clave directamente, sin renderizar. Las
 // propiedades que importan de un hash —que dos entradas distintas den claves distintas, que
@@ -1341,7 +1351,7 @@ export async function renderGraphicClip(
     // no cambia la cache ni invalida nada de lo renderizado.
     await v.webContents.executeJavaScript(
       `window.__montar(${JSON.stringify(graphicData)}, ` +
-      `${JSON.stringify({ ancho, alto, modo, duracion })})`);
+      `${JSON.stringify({ ancho, alto, modo, duracion, sistema })})`);
 
     // EL CANDADO DEL CICLO, recogido AQUI y no en la consola de la pagina. Esta ventana es
     // offscreen y su consola no la abre nadie: un console.warn ahi seria un aviso que nadie
@@ -1587,9 +1597,8 @@ export async function renderGraphicClipsLote(
         // dirDeModo y no dirCache: un lote en modo pantalla buscaria los .mp4 en cache y
         // diria "renderizando" en TODOS aunque fueran aciertos. Solo es el texto del progreso
         // —la autoridad es renderGraphicClip— pero seria un mensaje que miente.
-        // PENDIENTE V4: el lote no recibe `sistema`, asi que la vista previa del hash usa el
-        // defecto. Hoy es consistente porque renderGraphicClip tambien cae al defecto cuando
-        // nadie lo pasa; deja de serlo el dia que el lote sirva Visuales con sistema propio.
+        // `sistema` forma parte de esta misma vista previa y del render real: una paleta por
+        // vídeo no puede reutilizar un MOV de otra aunque texto, dirección y duración coincidan.
         const st = await fs.promises.stat(
           path.join(dirDeModo(proyectoDelLote!, modo), hash + FORMATO_POR_MODO[modo].ext));
         cacheado = st.size > 0;
@@ -4628,10 +4637,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     // Visuales a la vez chocarian con esa guarda y dos de cada tres fallarian.
     // Va ANTES del pool para que un fallo se vea antes de descargar stock y gastar IA.
     //
-    // TEMPORAL: el sistema de color va fijo a 'voltaje'. Vendra del frontend cuando exista su
-    // selector, por el mismo camino que iaStyle: estado en main.tsx -> parametro de
-    // generateTimelineAssets -> aqui. Esto es fontaneria; el selector va con la interfaz.
-    const SISTEMA_VISUAL = 'voltaje';
+    // Una paleta POR VÍDEO. `activeProjectPath` identifica establemente al proyecto que se
+    // está generando y se captura antes del lote; todos sus sub-clips reciben el mismo sistema.
+    // Va al hash mediante el parámetro `sistema` de renderGraphicClipsLote, así que una paleta
+    // distinta nunca puede reutilizar un MP4 coloreado para otro vídeo.
+    const SISTEMA_VISUAL = sistemaDeGeneracion(activeProjectPath ?? scriptText ?? 'sin-proyecto');
     // TEMPORAL, igual que el de arriba: la composicion va fija. El tipo decide QUE se pinta
     // —AnimatedGraphic busca en el registro quitandole el prefijo `visual_`— y hasta ahora
     // estaba cableado a 'visual_texto', asi que por muchas composiciones que se registraran
@@ -4722,7 +4732,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
                   // Se resuelve ANTES del render y viaja dentro de `extra`, que hashGrafico
                   // canoniza completo. Al crecer los registros, una palabra cuya direccion
                   // cambie obtiene otra clave en vez de recibir un MOV viejo con pixeles falsos.
-                  direccion: direccionDe(semillaDe(value))
+                  // Densidad sale del contenido (no de otro sorteo): se resuelve aqui y viaja
+                  // dentro de la direccion hashable para que main y renderer no puedan divergir.
+                  direccion: direccionDe(semillaDe(value), { texto: value, conceptos: x.item.conceptos ?? [] })
                 }
               },
               duracion: x.item.duration

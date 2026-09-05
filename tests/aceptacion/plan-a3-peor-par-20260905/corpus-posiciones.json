@@ -1,0 +1,45 @@
+{
+  "procedencia": {
+    "tipo": "peor-par-admisible-a3",
+    "origen": "MAX_CARACTERES_ETIQUETA y cabeLaEtiqueta del bundle compilado",
+    "etiqueta": "@@@@@@@@@@@@@@@@@@@@@@",
+    "longitud": 22,
+    "puerta": 22,
+    "direccion": {
+      "fondo": "ondas",
+      "estructura": "constelacion",
+      "camara": "quieto",
+      "densidad": "media",
+      "ritmo": "regular",
+      "tipografia": "archivo"
+    }
+  },
+  "casos": [
+    {
+      "linea": "peor-par-admisible",
+      "value": "memoria",
+      "conceptos": [
+        {
+          "emoji": "🧠",
+          "etiqueta": "@@@@@@@@@@@@@@@@@@@@@@"
+        },
+        {
+          "emoji": "📁",
+          "etiqueta": "@@@@@@@@@@@@@@@@@@@@@@"
+        },
+        {
+          "emoji": "🔗",
+          "etiqueta": "@@@@@@@@@@@@@@@@@@@@@@"
+        }
+      ],
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    }
+  ]
+}

@@ -1727,6 +1727,17 @@ pintados por DOM directo y sincrono, fuera de React. Que la sonda llegue al comp
 que hubo un frame nuevo; no demuestra que una capa promovida a GPU haya terminado de repintarse.
 Encaja con que el frame 0 sea siempre identico y la diferencia crezca con el tiempo del clip.
 
+**L9 — hueco de completitud confirmado por otro instrumento (05/09/2026).**
+Lo que este proyecto no sabe comprobar todavía es que un fotograma esté completo.
+La sonda acredita su franja de 8 px y el tiempo, no el contenido. En A.2 ocurrió
+por otro camino: una captura conservó las 56 W del sondeo anterior cuando el DOM
+ya decía 24 @. Condiciones: Electron 31.7.7 / Chromium 126, ventana offscreen,
+1080×1920, t=2,999 s/ciclo 3 s, memoria, ondas/constelacion/quieto, voltaje.
+Se retiró la imagen incorrecta. Esperar dos rAF y 100 ms e invalidar la superficie
+es un método de inspección, NO una prueba de completitud. Dos fallos de la misma
+clase: estado/tiempo correcto no implica contenido completamente repintado.
+No arreglado; no se construye el verificador de completitud dentro de Fase A.
+
 ### La pista de cuando pasa — DOS observaciones, todavia no una causa
 
 La tirada anomala fue **el primer render en un clon recien instalado con `npm ci`**: Electron
@@ -2196,7 +2207,11 @@ activacion en el mismo cambio habria aumentado el riesgo del paso mas delicado d
 
 **ABIERTO.** `tests/rendimiento/graficos.js` declara `extra.conceptos` como tres cadenas en su
 fixture. `mapa.puedeDibujar` exige objetos con `emoji` y `etiqueta`, de modo que ese banco cae al
-Visual de texto: las cifras historicas atribuidas a `visual_mapa` no miden la composicion mapa.
+Visual de texto. ~~Las cifras historicas atribuidas a `visual_mapa` no miden la
+composicion mapa.~~ **CORREGIDO el 04/09/2026:** solo se ha demostrado eso para
+las ejecuciones de ESE arnes. 1,30 y 50,3 son referencias heredadas; el propio
+`tests/rendimiento/graficos.js` advierte que no conserva el graphicData historico.
+No hay evidencia para invalidar todo el historico de coste.
 
 El control previo al interruptor uso tres conceptos validos, 1080x1920, 30 fps, 3 s/90 frames,
 sistema `voltaje`, seis muestras alternadas por composicion. En regimen asentado: mapa
@@ -2286,3 +2301,500 @@ para las etiquetas: constelacion, capasApiladas, redNodos y unaCaja (pieza de pr
 El emoji grande de constelacion se inserta directamente en `.es-hero`, no mediante `caja()`.
 Es una excepcion EXISTENTE a la nueva regla, no una caja duplicada. Pendiente unificar el
 atomo cuando se cambie el heroe por icono/silueta: no se altera su geometria en este cierre.
+
+### Solape recorte-camara: estructura contra pie (03/09/2026)
+
+**ANOTADO, SIN URGENCIA.** `acotarPuntos` (`src/shared/escena.ts:713-730`) recorta el borde
+inferior de cada caja contra la posicion ESTATICA del pie (`presupuestoTexto`), pero la camara
+mueve estructura y pie a profundidades distintas: 0.50 y 0.20 respectivamente
+(`PROFUNDIDAD`, `src/shared/escena.ts:674-680`). El recorte no reserva margen para esa deriva
+relativa.
+
+Condiciones de la medicion: camara `deriva`, ciclo de 3 s, `t = 2.999 s`, lienzo 1080x1920,
+estructura frente a texto. La estructura puede derivar 16.2 px y el pie 6.48 px; la deriva
+relativa maxima hacia abajo es **9.72 px**. Se reprodujo en el banco con zona segura visible,
+en `constelacion` y `redNodos`. Por ello el alcance es la interaccion generica recorte-camara,
+no las coordenadas crudas de una pieza concreta.
+
+No se arregla aqui y no bloquea 3b. Antes de cerrar una Fase 4 que anada camaras de energia
+mayor o igual que 2, revisar este margen: justo entonces puede crecer la deriva.
+
+### Sin `generationId` estable en `generate-timeline-assets` (03/09/2026)
+
+**ANOTADO, SIN URGENCIA.** Existe un identificador de proyecto, creado como
+`slugify(nombre)-Date.now()` (`src/main/index.ts:649`) y capturado por los lotes mediante
+`activeProjectPath` (`src/main/index.ts:1552`). Sin embargo,
+`generate-timeline-assets` (`src/main/index.ts:3783`) no recibe ni `projectId` ni un
+`generationId` estable.
+
+Esto bloquea la regla decidida para `texto.acento` y, a futuro, para la paleta de Fase 8:
+fijarlos POR VIDEO y no por subclip exige que los subclips del mismo video compartan una
+identidad estable de generacion. Condicion confirmada: `sistema` si entra hoy en
+`hashGrafico` (`src/main/index.ts:1136`), asi que una paleta distinta invalida correctamente
+los Visuales de ese video.
+
+No se arregla aqui y no bloquea 3b ni Fase 4. Es relevante para quien abra Fase 8.
+
+### M7 detiene la Fase A antes de cambiar produccion (04/09/2026)
+
+~~**MEDIDO, SIN ARREGLAR.** El plan actualizado exige parar al superar 1,30
+intentos/frame (T6/M7).~~ **CRITERIO RETIRADO el 04/09/2026 por el encargo:** la
+media no mide perdida. Se conserva la tirada y su exit 2 original para auditar
+por que se paro. No es una regresion atribuible a `anchoCaja` ni a las piezas de A,
+que todavia no se habian modificado.
+
+Condiciones: clon nuevo de `84062d7`, arbol
+`e69d531789d0d9ca73a220a8b78626df556de632`, identico al merge A.0 `d0dae0d`.
+Windows 11 (10.0.26200), x64, Ryzen AI 9 365, Electron 31.7.7 / Chromium
+126.0.6478.234. Seis clips de 3 s / 90 frames / 1080x1920 / 30 fps,
+`visual_escena`, sistema `voltaje`, palabra `memoria`, conceptos
+recuerdo/archivo/conexion con sus emojis. Direccion resuelta por el bundle:
+tramaTejida + constelacion + deriva + media + regular + archivo.
+Una ventana reutilizada, misma escena; solo cambia `extra.pos` para evitar
+aciertos de cache. Red bloqueada, perfil y proyecto temporales aislados;
+ninguna llamada de generacion ni API. Tres muestras de arranque y tres de regimen.
+
+Resultados por muestra (ms/clip; intentos totales/90):
+3934;147 · 3647;146 · 3756;147 · 3415;135 · 3738;148 · 3676;149.
+Arranque: mediana 3756 ms/clip, 41,73 ms/frame, 1,633 intentos/frame.
+Regimen: mediana 3676 ms/clip, 40,84 ms/frame, **1,644 intentos/frame**
+(+26,5 % sobre 1,30); agregado de regimen 432/270 = 1,600.
+Los seis clips se completaron; **0/540 frames en MAX_INTENTOS_FRAME=5**.
+Superar el liston medio NO demuestra que se pierdan clips: en esta medicion
+no se perdio ninguno. Tampoco establece una tasa para todas las identidades.
+
+Evidencia reproducible: `tests/rendimiento/escena-m7.cjs` importa el render y
+sus contadores del bundle; comprueba el DOM real de escena y los tres conceptos
+para no medir un respaldo rotulado como composicion. Se guardan condiciones,
+hashes y medidas crudas en `tests/aceptacion/plan-a0-m7-20260904/resultado.json`,
+mas `escena-memoria-frame89.png`, inspeccionada. El arnes termino con exit 2
+(M7 incumplido), no con un error de render. La primera invocacion directa de
+Electron no entrego salida a la herramienta y fue detenida; no aporto muestras.
+La tirada registrada uso el lanzador supervisado de Electron.
+
+Consecuencia: A.0 mergeado y deuda pendiente preservada; **Fase A NO cerrada**.
+~~No se continua con A.2-F mientras siga en pie este criterio de parada.~~
+**BLOQUEO CERRADO el 04/09/2026:** M7 corregido por el usuario e incorporado al
+arnes y a `tests/rendimiento/criterios-m7.cjs`. No se retoca el lazo. M7a1 exige
+cero perdidas por agotar cinco intentos SIN bitmap valido; M7a2 cuenta bitmaps
+ACEPTADOS al quinto intento, objetivo cero como margen, no como perdida.
+M7b usa 40,84 ms/frame de base: +25% o superar 50,3 obliga a informar y decidir,
+no a parar automaticamente. M7c informa intentos/frame, base 1,644.
+La tirada guardada completa seis clips y 540 frames, sin ningun quinto intento:
+no registra perdida ni roce del tope. No estima la tasa de otras identidades.
+
+No se afirma que 40,84 sea un 19% mejor que 50,3: no es un A/B equiparado. El
+control comparable es el documentado arriba: mapa 49,46 vs escena 41,56 ms/frame
+(~16%), con las condiciones de aquella tirada. El benchmark antiguo con
+conceptos en cadenas no se ha usado ni corregido aqui.
+
+### A.1 — energia clasificada; contador no equivale a sorteo (04/09/2026)
+
+**MEDIDO.** La hoja de seis estructuras emite 154/154 keyframes esperados:
+24 + 23 + 42 + 21 + 23 + 21. Sin referencias ausentes ni colisiones de
+nombre con contenido distinto en ese fixture. Condiciones, fuentes, metodo y
+PNG completo en `tests/aceptacion/README-a1.md` y `plan-a1-20260904/`.
+
+`deriva` se clasifica como energia 1: limite medido a 1080x1920 de +/-43,2 px X
+y +/-32,4 px Y en el fondo; zoom constante 1,06 en el limite, sin rotacion.
+Referencia: `docs/motion/lab-camara-2.html:90-91`. Registro y plan coinciden.
+No se cambio su transformacion ni rangos. Proyeccion de cinco ejes completos:
+163 pares -> 69.275 identidades (con energia 2: 151 -> 64.175).
+
+**PENDIENTE C.4.** `combinacionesLegales` filtra energia, pero `direccionDe` no;
+`direccionDesde` valida campos y `escena.puedeDibujar` texto/conceptos, no
+compatibilidad energetica. Con energia 2, 40/136 palabras del corpus cerrado
+`generar-hoja-contactos.ts` sorteaban pares de energia 4. Con energia 1: 0/136.
+No es tasa de produccion. Hoy todas las parejas reales caben; cuando entre el
+resto del vocabulario debe comprobarse el SORTEO, no solo el contador.
+El contador pasa 36/166.470 -> 48/3.782.310 (instancias nominales). No se han
+creado dibujos: se reclasificaron pares que ya salian. Los pasos provisionales
+siguen provisionales. Se conserva el JSON anterior y el posterior.
+
+Verificacion intrarrama: tsc 0; build 0, renderer/main/preload presentes;
+npm test 9/9 a la primera, sin crash de exclusion. No es cierre de Fase A ni
+verificacion desde un nuevo clon; esa sigue reservada al cierre de fase.
+
+## A.2 — cota de cajas, desglose nominal y aislamiento (05/09/2026)
+
+**Política T2 confirmada por Jairo:** A–E permanecen SIN MERGE a producción.
+Los renders de trabajo usan proyectos/cachés temporales aislados. VERSION_PLANTILLAS
+sigue en 8; subirá UNA vez a 9 en el MISMO merge que incorpore los cambios de
+píxeles, inmediatamente antes de producir con ellos. También invalida las tarjetas:
+coste aceptado, aunque sus dibujos no hayan cambiado. El cierre de A requiere
+OTRO clon nuevo + npm ci + tsc + build por ficheros + las nueve suites.
+
+**El salto no es proporcional al número de identidades.** Medido importando el
+bundle, filtrando cada par en memoria y llamando al contador real:
+166.470 + 3.571.200 (tunel × deriva) + 44.640 (skyline × deriva) = 3.782.310.
+Pesos: tunel=80, deriva=48, estructuras=400+64+1 y tipografías=2.
+El primer par aporta 80×48×465×2; el segundo, 1×48×465×2.
+Son 48 identidades legales. Los pasos siguen NOMINALES: esta cuenta no calibra su
+distinguibilidad. No se ha demostrado que existan 3.782.310 dibujos perceptibles.
+Arnés: tests/aceptacion/desglosar-instancias-a2.cjs.
+
+**Regla desde 05/09/2026:** la cabecera cita IDENTIDADES LEGALES, no el total
+nominal de instancias. Si hace falta ese nominal, siempre acompaña el reparto
+por par fondo×cámara. No mide variedad percibida: depende de la discretización
+de parámetros. tunel×deriva concentra el 94,4185% del nominal actual; añadir un
+rango a una sola pieza puede inflar el total sin añadir una identidad.
+
+Reparto actual (energía de deriva=1; mismos registros de A.1/A.2):
+
+| fondo | quieto | deriva |
+|---|---:|---:|
+| tramaTejida | 930 | 44.640 |
+| ondas | 930 | 44.640 |
+| tunel | 74.400 | 3.571.200 |
+| skyline | 930 | 44.640 |
+
+Total nominal con su reparto: 3.782.310; identidades legales: 48.
+
+**Aislamiento medido:** tests/aceptacion/auditar-cache-a2.cjs inventaría con SHA-256,
+tamaño y mtime tanto cache/graficos como materiales/visual de TODOS los proyectos.
+Vigila esos destinos mientras ejecuta el arnés M7, que bloquea fetch/HTTP y cambia
+cwd y userData ANTES de importar el bundle. Evidencia en plan-a2-20260905/cache.json;
+el manifiesto completo queda en la carpeta de salida indicada por el arnés.
+Las suites de A.2 se ejecutaron en C:/graphify/cipher-a2-pruebas-20260905:
+clon desechable con el parche aplicado, CONSUMIDO, no válido para cerrar A.
+No se renderizó en un proyecto de producción.
+
+**CERRADO para la puerta de escena, no para la separación entre cajas:**
+~~el ajuste medio 1,257×caracteres+12,18 basta para admitir 56 caracteres.~~
+Archivo 700 local, Electron 31.7.7 / Chromium 126, Windows x64, 1080×1920,
+t=2,999 s de 3 s, ondas / constelacion / quieto / media / regular / archivo,
+sistema voltaje. Las 56 W medían 1.845,421875 px y el modelo 891,7776 px.
+La nueva cota por fuente cuenta espaciado, bordes, relleno y ranura explícita del
+emoji. @=1,001015625 em es el máximo de 111 caracteres; se redondea a 1,002 em.
+Se desactivan kerning y ligaduras en las etiquetas para conservar avances
+individuales. Los caracteres no medidos se rechazan, no se presumen estrechos.
+Eso incluye otras escrituras: es una limitación explícita, no soporte universal.
+
+Límite actual: 24 caracteres. 24 @: caja 897,671875 px, cota 898,94016 px,
+ancho útil 900,072 px. 25 @ y 56 W: respaldo real, con aviso. Barrido de 111
+caracteres repetidos 24 veces: cero subestimaciones. Se verificaron también uno,
+cero conceptos y caracteres no medidos. El negativo (cota 0,58 SOLO en memoria)
+falla con exit 1. Medidas, condiciones y PNG: tests/aceptacion/plan-a2-20260905.
+El arnés importa las funciones del bundle; no las copia. El atlas no se vuelve a
+medir en la suite: se contrasta con el registro y con el SHA-256 de la fuente.
+
+**Decisión de A.2:** B, cota POR FUENTE. A (tabla por carácter) exige gestionar
+shaping y más datos para ahorrar ancho; D solo cambia el umbral de una estimación
+que seguiría siendo falsa; C introduce medida de DOM en cada render. No se añade
+DOM a shared. El registro admite nuevas métricas; cada futura familia necesita
+medición propia, no hereda Archivo. No hay diez familias todavía y no se inventa
+un desperdicio global para ellas. Con Archivo y 24 i la cota reserva 898,94 px
+frente a 345,94 px reales: 553,00 px de conservadurismo horizontal. No es una
+optimización del espacio ni establece la tasa de respaldo en producción.
+
+**Hallazgo visible pendiente de A:** con [24 @, archivo, conexion], a cámara
+quieto, las dos primeras cajas SE SOLAPAN aunque sus bordes estén dentro de X.
+La hoja lo muestra deliberadamente. Acotar un rectángulo al encuadre NO garantiza
+separarlo de sus vecinos. A.2 no se presenta como solución de todos los solapes;
+M3 con cámara y la revisión de distribución siguen pendientes del cierre de A.
+
+**Incidentes del instrumento, no ocultados por el verde:** el primer vigilante
+también cubría la lectura del propio inventario: obtuvo dos eventos (uno sin
+nombre), con los 1.029 hashes y mtimes idénticos. No se atribuyeron al render.
+Se separó la lectura de la ventana vigilada y se repitió. La primera importación
+del bundle DESPUÉS de app.ready abrió la app e inició una consulta de voces:
+se detuvo; ahora las funciones puras se importan en un proceso que termina antes
+de ready, y fetch también está bloqueado. Dos capturas CDP agotaron el watchdog;
+el arnés usa ahora la ventana offscreen. Una captura inmediata conservaba las
+56 W del sondeo anterior pese a que el DOM ya decía 24 @: se retiró. Ahora espera
+dos rAF y 100 ms con t fijo, invalida la superficie, y se miran los PNG. Esa espera
+es un método de inspección estática, NO una prueba universal de completitud.
+
+### A.2 — impacto real, sobre-reserva y base histórica de A.3 (05/09/2026)
+
+**Medición, sin subir tamaño:** rama plan-A-cajas, código ea741c3, Archivo 700,
+2,9 cqmin = 31,32 px a 1080×1920. Funciones importadas de los bundles de la base
+84062d7 y A.2; las funciones de ancho/puerta de la base no cambiaron hasta A.1.
+Arnés versionado: tests/aceptacion/impacto-cota-a2.cjs. Fixture, hashes, líneas de
+origen y resultados: tests/aceptacion/plan-a2-impacto-20260905/.
+
+**Etiquetas reales:** generación del 03/09/2026 02:37:47.705–02:43:02.489 UTC,
+generation-debug.log:148726-149384. El resumen registra 55 Visuales pedidos,
+52 realizados y 3 sin palabra con significado (5,4545%). Hay 114 sub-clips:
+107 con conceptos válidos y 7 sin conceptos; 321 etiquetas, máximo 15 caracteres.
+El log recorta etiquetas con slice(0,24) (index.ts:4118), pero ninguna alcanza
+24: no hay censura en esta muestra. La extracción se contrasta con su contador.
+Antes (tope 56): 0/321 etiquetas rechazadas, 0/107 grupos afectados.
+Después (tope 24 y alfabeto medido): 0/321 y 0/107. Impacto incremental de A.2
+por etiqueta: CERO en esta generación; no añade rechazos a los 3/55 sin palabra.
+Los 107 grupos son un SUPERCONJUNTO de los Visuales, no 107 Visuales. No se
+regeneró el vídeo ni se afirma que esta tasa describa otros guiones. Tampoco se
+confunde un MP4 realizado con la garantía de que no haya otros tipos de respaldo.
+
+**La cota entra en la puerta Y en el layout:** cabeLaEtiqueta (escena.ts:104)
+y acotarPuntos (escena.ts:744-757) consumen anchoCaja. Depende de la longitud:
+24 i y 24 @ reservan lo mismo; siete caracteres no reservan el máximo de 24.
+En estas 321 etiquetas reales: intervalos vacíos antes 0/321, después 0/321.
+El intervalo más estrecho baja de 564,894 a 286,3944 px: A.2 sí reduce espacio
+de colocación aunque todavía no active x=50 en esta muestra. NO son las 828
+entradas históricas; esta cuenta no se usa para sustituirlas sin declararlo.
+
+**El solape fotografiado NO es la rama degenerada:** foto ya versionada
+plan-a2-20260905/limite-24-arrobas.png, t=2,999 s/ciclo 3 s, memoria,
+ondas/constelacion/quieto/media/regular/archivo, voltaje, 1080×1920.
+24 @: loX=49,9476%, hiX=50,0524%; intervalo VÁLIDO de 1,13184 px.
+archivo: loX=25,0018%, hiX=74,9982%; intervalo de 539,96112 px.
+conexion: loX=26,4692%, hiX=73,5308%; intervalo de 508,26528 px.
+Se ejercitó acotarPuntos desde ambos extremos: coincide con esos intervalos.
+Centros DOM registrados: 539,421875 / 802,234375 / 531,640625 px; las dos
+primeras cajas no fueron enviadas ambas al centro por un intervalo vacío.
+La primera caja mide 897,671875 px frente a 898,94016 px reservados: en ESTE
+solape, solo 1,268285 px son sobre-reserva. Es una caja realmente ancha cruzando
+a su vecina sin una restricción entre ambas. La sobre-reserva de 24 i sigue
+siendo otra limitación real (553,00 px), pero no explica esta foto de 24 @.
+No se ha arreglado ninguna de las dos cosas.
+
+**Premisa de A.3 corregida antes de aplicar +20/+35/+50:** el commit histórico
+10000a980d6f89431eb1141d3ac262622744fe80 dice «828 palabras reales», no «828 cajas».
+La medición era de mapa (radial/malla/capas/cascada), no de acotarPuntos de escena.
+Sus 509/847 cajas fuera de zona no tienen como denominador 828 cajas. El commit
+no versionó ese corpus y la suite usa semillas sintéticas; no se ha localizado
+el fixture exacto en el repo ni en los artefactos revisados. No se inventa ni
+se traslada a otra composición. ~~A.3 queda SIN APLICAR hasta resolver qué muestra
+se recuenta.~~ Espera cerrada el 05/09/2026 por decisión del dueño: retirar las
+828 y no buscarlas más. Las 321 etiquetas de esta medición son evidencia nueva,
+no histórica; quedan aprobadas como base explícita para A.3.
+
+### A.3 — retirada de las 828 y procedencia de las citas (05/09/2026)
+
+**Qué eran, hasta donde la fuente permite afirmarlo.** Mensaje del commit
+`10000a980d6f89431eb1141d3ac262622744fe80`, 20/08/2026: «828 valores» y
+«828 palabras reales», ensayadas con etiquetas medias/largas en las familias
+radial/malla/capas/cascada de **mapa**. No eran 828 cajas de conceptos de escena.
+No consta el número total de cajas ensayadas ni un corpus/arnés versionado que
+permita reconstruirlo. No se recuperará la muestra: aun recuperada mediría otro
+recorte, por centro, no acotarPuntos por borde.
+
+~~509 de 828 cajas de escena invadían la zona segura.~~ **Atribución retirada.**
+La fuente histórica anterior declaró 509 cajas fuera de zona (máximo 2,53%)
+con etiquetas medias y 847 (máximo 8,18%) con largas, sobre palabras de mapa.
+No permite dividir esos recuentos por 828 cajas ni generalizarlos a escena.
+Son cifras históricas NO REPRODUCIBLES con el material versionado; no establecen
+la base nueva ni un porcentaje de fallo del motor actual.
+
+**Dónde se transmitió, inventario de citas — no búsqueda del corpus:**
+
+- CIPHER  EJAR EL MOTOR DE V.txt:407, en
+  C:/Users/John Benites/OneDrive/Documents/: A.3 dice «828 cajas».
+- 1PLAN COMPLETO  Cipher.txt:372, en la misma carpeta: misma atribución.
+- PLAN COMPLETO — DEJAR EL MOTOR DE V.txt:352, en la misma carpeta: misma atribución.
+- C:/Users/John Benites/Downloads/PLAN-MOTOR-COMPLETO-astra.txt:282: misma atribución.
+- C:/Users/John Benites/.codex/attachments/a95a8bfb-e739-41fc-a4ec-f58a80d92388/pasted-text.txt:84:
+  material enviado a revisión, «509 de 828 cajas de concepto».
+- El prompt del sistema de cajas de esta conversación heredó esa lectura.
+  Esta errata no reescribe mensajes ni adjuntos históricos.
+- En el árbol de partida `4c3c060`: shared/mapa.ts:308 conserva «828 valores» y
+  :391 «la suite cubre 828 casos». Son comentarios históricos del camino mapa,
+  no evidencia de cobertura de la suite actual ni del recorte de escena.
+- avance.md:169-175, deuda-graficos.md:2534,2552-2559 y
+  README-impacto-cota-a2.md:3-6,52 ya registraban la duda. Se corrige ahora su
+  estado: RETIRADO, no «pendiente de encontrar».
+- plan-maestro.md del repo no contenía el número: recibe la errata del plan
+  externo. CORRECCIÓN 05/09/2026: con autorización explícita se antepuso la errata
+  a las cuatro copias externas Y al material de revisión. Los originales quedan
+  íntegros debajo. La revisión debe releerse donde sus conclusiones se apoyaran
+  en «509 de 828»; así lo dice su propia errata.
+
+### A.3 — tamaños sobre las 321 reales; bloqueo de mapa (05/09/2026)
+
+**Condiciones/procedencia comunes a TODOS los números siguientes.**
+Instrumento: tests/aceptacion/medir-tamanos-a3.cjs, funciones del bundle real.
+Código: `4c3c060` MÁS el cambio pendiente de fuenteCqmin 2.9 a 3.915 en
+metricas-caja.ts; sin commit nuevo al quedar roja la verificación.
+SHA-256 del código de métrica:
+dcfce4ed488b17a52afc27ed652fa45bb44b318aad095d240cfa570c8ab20f93.
+Bundle: 681693ebb7faad3ee3f684577be250fed877329b027b1d0ab66651c475600c46.
+Composición visual_escena, 1080×1920, Archivo 700 local, voltaje, memoria,
+ondas/constelacion/quieto/media/regular/archivo, t=2,999 s de ciclo 3 s.
+Electron 31.7.7 / Chromium 126.0.6478.234, Windows x64. Fuente, fixture, arnés
+y runtime identificados por hash/versiones en plan-a3-20260905/*.json.
+
+Base: fixture de `4c3c060`, generación de 03/09/2026 ya identificada en A.2.
+321 etiquetas de 107 grupos válidos, un superconjunto de los Visuales.
+Distribución nearest-rank con repeticiones: mediana 6, p90 10, p99 12, máximo 15.
+No es el techo del idioma. Referencia adicional: responsabilidades, 17 caracteres.
+
+| subida | etiqueta px | límite puerta / DOM | rechazo /321 | grupos /107 | intervalo mínimo px | vacíos /321 | intervalo de 17 px |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| base | 31,320 | 24 / 24 | 0 | 0 | 286,394400 | 0 | 223,002720 |
+| +20% | 37,584 | 20 / 20 | 0 | 0 | 191,306880 | 0 | 115,236864 |
+| +35% | 42,282 | 17 / 17 | 0 | 0 | 119,991240 | 0 | 34,412472 |
+| +50% | 46,980 | 16 / 16 | 0 | 0 | 48,675600 | 0 | -46,411920 |
+
+El límite se BARRIÓ con la puerta del bundle y se contrastó con cajas DOM de
+caracteres reales, no se obtuvo redondeando una estimación inversa. Por eso
+17,8 no es un límite admisible de caracteres: admite 17 y rechaza 18.
+La fuente más espaciado, ranura de emoji, bordes y relleno siguen presentes.
+Los intervalos son el espacio de colocación que deja la cota del layout, no
+una distancia observada entre vecinos. Ninguno vacío en esta población.
+
+~~Decisión: +35%.~~ RETIRADA el 05/09/2026 por el sondeo de pares de abajo.
+Dato histórico del ensayo +35: queda margen positivo para 17, aunque NO para otro
+carácter entero. La caja de 17 @ mide 864,390625 px; reserva 865,659528 px en
+900,072 px. La de 18 @ mide 907,140625 px: la puerta la rechaza y el render real
+muestra texto de respaldo con aviso. +50% conserva 0/321, pero rechaza la
+referencia de 17: eso basta para descartarlo. Cero rechazos incrementales aquí
+NO estima otras generaciones ni modifica el 3/55 histórico por falta de palabra.
+
+Escala tipográfica observada al aplicar +35 sin sustitución de CSS:
+etiqueta 3,915 cqmin = 42,282 px = 2,2021875% del alto, ratio 0,435 frente al pie;
+pie 9 cqmin = 97,2 px = 5,0625%, ratio 1; otra línea usa esa misma fuente.
+Emoji de caja (no texto de apoyo): 4,4 cqmin = 47,52 px, sin cambio.
+La altura de caja observada sigue en 85,890625 px. No se corrigió su modelo
+vertical ni se resolvieron vecinos. La hoja al 45% deja ambos solapes visibles.
+
+**Verificación ROJA, no cerrada.** Tsc y build exit 0, artefactos de renderer,
+main y preload existentes. En el clon CONSUMIDO
+C:/graphify/cipher-a2-pruebas-20260905, bundle con el mismo cambio:
+npm test = 8/9, exit 1 por test:mapa; ninguna aserción se rebajó.
+No es verificación de cierre de fase. El cierre de A requerirá clon NUEVO.
+
+**Causa citada:** shared/mapa.ts:271-272 importa/reexporta la cota común;
+cajasDe:283-287 la usa; separados:344-345 decide por semisuma de anchos.
+Pero composiciones/mapa.tsx:204 sigue pintando etiquetas a 2.9cqw.
+Al subir la métrica de escena, mapa reserva más sin cambiar su CSS.
+tests/mapa.js:272-290 prueba infraestructura/contradiccion/reconstruccion,
+ancla reconstruccion, cuatro familias, 200 semillas por familia y hasta
+50 intentos. Resultado +35: radial 2/200, malla 0/200, capas 200/200,
+cascada 0/200 agotaron intentos. NO son las 828 retiradas ni datos de escena.
+
+Control causal: el mismo bundle y LA MISMA suite, solo restaurando 2.9 en
+memoria, dan exit 0. Instrumento control-mapa-a3.cjs; logs en plan-a3-20260905.
+No se modificó mapa ni se cambió la aserción. El aumento queda aplicado solo
+en la rama, SIN COMMIT y pendiente de resolver este acoplamiento antes de cerrar.
+
+**Instrumento y límite conocidos:** sondeo = métrica en memoria + font-size DOM;
+aplicado = árbol compilado sin sustituciones. Ambas ejecuciones del arnés, antes
+y después de llevarlo al repo, repitieron exactamente filas, límites e intervalos.
+El primer intento sobre el clon sin el fixture quedó abierto: proceso terminado.
+La guarda nueva ante ese error se probó: exit 1 en 0,43 s, sin proceso colgado.
+El sondeo avisó GPU state invalid al desmontar, exit 0; no se oculta.
+Dos rAF + invalidación + 150 ms y mirar el PNG NO prueban completitud (L9).
+Sin vídeo, FFmpeg ni API; perfiles temporales, no caché de producción.
+Master intacto, versión 8; no se pasa a A.4 ni se cierra A con esta suite roja.
+
+### A.3 — techo por vecinos; T8 desacoplada (05/09/2026)
+
+**Condición y procedencia.** 4c3c060 más A.3/T8 pendiente, identificados por
+SHA de bundle/código/arnés en tests/aceptacion/plan-a3-pares-20260905 y
+plan-a3-mas20-20260905. Instrumentos preparar-solapes-a3.cjs y
+medir-solapes-a3.cjs, importando/ejecutando el código del bundle, no sus copias.
+Las 114 frases de log coinciden con 47 segmentos guardados de video-3-1788402898964.
+Se versionó solo texto/timestamps; 107 grupos válidos, 321 etiquetas, antes del
+reparto, NO 107 Visuales históricos. La palabra se recupera con el callback
+conPalabra real; lotería actual: redNodos 43, capasApiladas 36, constelacion 28.
+
+**Medición.** visual_escena, 1080x1920, voltaje, ciclo 3 s; 90 frames a 30 fps
+más t=2.999: 91 instantes/grupo/tamaño. Electron 31.7.7, Chromium 126.0.6478.234,
+Windows x64. Misma palabra/conceptos/dirección por grupo a base/+20/+35.
+Las copias temporales del bundle cambian SOLO fuenteCqmin, no solo el CSS:
+la posición y el ancho siguen calculándose por la composición real.
+
+| tamaño | grupos con pares AABB intersectados /107 | máximo área / caja menor | grupos cuyo texto intersecta |
+|---|---:|---:|---:|
+| base (31.320 px) | 0 | 0 | 0 |
+| +20% (37.584 px) | 0 | 0 | 0 |
+| +35% (42.282 px) | 1 | 0.0966851% | 0 |
+
+Peor par: «regular», corazón/estetoscopio, tunel/constelacion/deriva/media/
+regular/anton, t=2.999: 0.597153 x 44.012390 = 26.282118 px². No llega al texto.
+Repetido tras aplicar T8: mismos tres resultados y misma área. PNG inspeccionado.
+AABB mide rectángulos, no la máscara de esquinas redondeadas; texto se comprueba
+contra el rectángulo del span, no contando tinta. No se afirma continuidad entre
+frames. El campo vacío de pares en cada frame significa intersección cero.
+
+**Decisión: +20%, no +35%.** El segundo añade un par respecto a base; se elige
+el mayor escalón medido que no lo hace. La puerta real y DOM admiten 20 @;
+0/321 rechazos, intervalo mínimo 191.306880 px y referencia de 17 con 115.236864 px.
+Fuente medida, condiciones y tabla: plan-a3-mas20-20260905/medidas.json.
+La hoja conserva el control de 17 y el límite, al 45%: SIGUEN mostrando vecinos
+solapados fuera de esta muestra. No se declara resuelta la legibilidad global,
+ni M3 completo: no ampliar el 0/107 a otras palabras/direcciones. Vecindad sigue abierta.
+
+**T8: conservar mapa desacoplada, no retirarla ahora.** Se restaura shared/mapa.ts
+exactamente al master d0dae0d: ajuste histórico 1.257*c+12.18/6.48, CSS 2.9cqw
+intacto. No se convierte ese ajuste en cota segura ni se oculta su fallo histórico.
+Escena importa su propia cota desde metricas-caja. Se evita cambiar píxeles de
+mapa como efecto lateral de ampliar escena; no se sube su CSS para poner verde.
+La prueba de capas conserva su aserción y se añade independencia ante mutación
+temporal de la métrica de escena. Retirar mapa queda fuera de A.3.
+
+**Alcance del cierre.** A.3 no equivale a cerrar A: A.4 y A.5 siguen pendientes.
+La verificación desde clon NUEVO sigue siendo obligatoria para el cierre de A.
+No merge a master; VERSION_PLANTILLAS 8 y cachés de trabajo aisladas.
+
+~~Bloqueo por test:mapa (8/9)~~ cerrado con T8 en este cambio: tsc exit 0 y
+npm test 9/9, exit 0, sobre el clon CONSUMIDO cipher-a2-pruebas-20260905 con
+los artefactos actuales. Capas conserva la aserción; no se repitió para buscar verde.
+El resultado no sustituye al clon nuevo del cierre de fase.
+
+### A.3 — rectificación del +20 por el control de 17 (05/09/2026)
+
+~~+20 era el tamaño definitivo~~: el ejecutor lo registró en 35a9ca8 tras 9/9,
+pero se había apoyado solo en los 107 grupos. La hoja de 17 seguía tapando texto.
+Se midió ese control contra SU base, sin sumarlo a las 321. No se oculta el error.
+Condiciones: memoria, responsabilidades/archivo/conexion, ondas/constelacion/
+quieto/media/regular/archivo, voltaje, 1080x1920, 91 instantes del ciclo 3 s,
+Archivo 700 local. Código 35a9ca8, arnés medir-solapes-a3.cjs con corpus control;
+SHA en plan-a3-control17-20260905. AABB: base cero; +10 3.852517%, +15 13.026209%,
++20 21.832589%, +35 47.584879% del área de la caja menor. Desde +15 intersecta
+el rectángulo de texto. +20 se inspeccionó: tapa letras, no solo el borde.
+
+Barrido de cierre: +5/+7 cero; +8 0.0619322%, +9 1.9527554%. Se elige +7 como
+máximo entero comprobado. Los 107 grupos a +7: cero pares en todos los frames
+muestreados; fuente plan-a3-pares7-20260905. La reserva de 17 deja 185.2846704 px,
+el mínimo de las 321 es 253.113768 px; puerta y DOM admiten 22, cero rechazos.
+Medición aplicada en plan-a3-mas7-20260905, literal 3.103, hashes de fuente y bundle.
+
+Es un incremento pequeño: NO equivale a dar por resuelta la legibilidad general.
+El panel de 22 @ sigue mostrando vecindad pendiente. La separación es el límite
+antes que el encuadre; no se manda esta consecuencia a B sin escribirla aquí.
+El control de 17 sí queda completo y separado en la hoja nueva, al 45%.
+El primer ensamblado +7 salió parcial aunque sus PNG de origen estaban completos;
+se conservó fuera del repo y se repitió la captura. Inspección L9, no certificación
+automática de completitud. La copia correcta se miró antes de versionarla.
+La coincidencia con el log de las 114 frases solo cubre sus prefijos de 80
+caracteres y sus índices: el log no conserva el resto. Es reconstrucción declarada.
+
+### A.3 — peor par admisible; +7% retirado y disparador para B (05/09/2026)
+
+~~+7% era el tamaño aplicado~~. El control de 17 que lo autorizó era una sola
+pareja; no cubría la banda 16–22 que la puerta de +7 permite. Se midió el peor
+par admisible con `preparar-peor-par-a3.cjs`, que importa la puerta del bundle
+compilado: tres etiquetas de 22 `@`, memoria, ondas/constelacion/quieto/media/
+regular/archivo, visual_escena, 1080×1920, voltaje, ciclo 3 s y 91 instantes.
+En +7% (3.103 cqmin) el par 0/1 solapa a t=0.5 38.290,897676 px²: 95,169543%
+de la caja menor, y 21.687,465112 px² llegan al rectángulo de texto. PNG y JSON
+versionados: `tests/aceptacion/plan-a3-peor-par-20260905`; Electron 31.7.7,
+Chromium 126.0.6478.234.
+
+El mismo corpus adversarial a **+0%** (cota A.2, 2.9 cqmin) repite 1/1 par,
+texto intersecado y **95,169543%** de la caja menor: la puerta admite hoy
+etiquetas que tapan a su vecina casi por completo. Procedencia:
+`tests/aceptacion/plan-a3-peor-par-cero-20260905/solapes.json`, mismo arnés,
+1080×1920, voltaje, ciclo 3 s y 91 instantes. El +7 no origina ese solape.
+
+No se reduce el tamaño por tanteo: A.3 queda **aplazada a Fase B** y se restaura
+la métrica A.2 (2.9 cqmin). **Disparador obligatorio:** al cerrar B.1–B.3 —la
+estructura declara su disposición y B.3 demuestra separación— repetir este
+peor par y el corpus de 321 antes de elegir de nuevo el tamaño. El techo de +7
+lo imponía la vecindad que B va a cambiar; no se conserva como número sin esa
+caducidad.
+
+**T8 — decisión cerrada:** mapa se conserva solo como referencia de regresión
+sin ruta de producción hasta Fase 6; allí se retira en un commit propio tras
+cerrar el catálogo y el verificador. No queda como respaldo implícito.
+
+### A.4 — reserva recorte–cámara aplicada (05/09/2026)
+
+La medición del 03/09 queda cerrada en el recorte común, no en cada pieza:
+`MARGEN_CAMARA_PIE_Y = 9.72 / 1920 × 100 = 0.50625%`. `acotarPuntos` resta ese
+margen del presupuesto antes de acotar el borde inferior de cada caja. Condición:
+deriva, estructura 0.50 / pie 0.20, 1080×1920, t=2.999 s; la deriva relativa
+máxima medida fue 9.72 px hacia abajo. La prueba de ciclo verifica la conversión
+y el borde reservado. No resuelve la vecindad entre cajas: queda para B.

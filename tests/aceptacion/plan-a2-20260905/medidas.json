@@ -1,0 +1,1312 @@
+{
+  "fechaUTC": "2026-09-05T05:19:34.210Z",
+  "repo": "C:\\Proyectos\\mi-app\\cipher-studio",
+  "versiones": {
+    "node": "20.18.0",
+    "acorn": "8.12.1",
+    "ada": "2.9.0",
+    "ares": "1.33.1",
+    "base64": "0.5.2",
+    "brotli": "1.0.9",
+    "cjs_module_lexer": "1.4.1",
+    "cldr": "44.1",
+    "icu": "74.2",
+    "llhttp": "8.1.2",
+    "modules": "125",
+    "napi": "9",
+    "nghttp2": "1.61.0",
+    "openssl": "0.0.0",
+    "simdutf": "5.5.0",
+    "tz": "2024a",
+    "undici": "6.19.8",
+    "unicode": "15.1",
+    "uv": "1.46.0",
+    "uvwasi": "0.0.21",
+    "v8": "12.6.228.30-electron.0",
+    "zlib": "1.3.0.1-motley",
+    "electron": "31.7.7",
+    "chrome": "126.0.6478.234"
+  },
+  "op": {
+    "ancho": 1080,
+    "alto": 1920,
+    "modo": "pantalla",
+    "sistema": "voltaje",
+    "duracion": 3
+  },
+  "graphic": {
+    "type": "visual_escena",
+    "value": "memoria",
+    "label": "",
+    "unit": "",
+    "emoji": "",
+    "extra": {
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      },
+      "conceptos": [
+        {
+          "emoji": "🧠",
+          "etiqueta": "recuerdo"
+        },
+        {
+          "emoji": "📁",
+          "etiqueta": "archivo"
+        },
+        {
+          "emoji": "🔗",
+          "etiqueta": "conexion"
+        }
+      ]
+    }
+  },
+  "t": 2.999,
+  "alfabeto": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ÁÉÍÓÚÜÑáéíóúüñ¡¿",
+  "arnesSHA256": "054b0cc18a3f83d0e83e6f54b64f342b2dd9cb34d54de5d6c06c091251297bdf",
+  "modelo": {
+    "metricas": {
+      "archivo700": {
+        "familia": "Archivo",
+        "peso": 700,
+        "fuenteCqmin": 2.9,
+        "alfabeto": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ÁÉÍÓÚÜÑáéíóúüñ¡¿",
+        "emMaximoMedido": 1.001015625,
+        "emPorCaracter": 1.002,
+        "espaciadoEm": 0.01,
+        "fichero": "archivo-var.woff2"
+      }
+    },
+    "geometria": {
+      "paddingXCqmin": 2.4,
+      "bordeCqmin": 0.3,
+      "gapCqmin": 1.3,
+      "emojiAnchoCqmin": 6.1
+    },
+    "limite": 24
+  },
+  "fuenteSHA256": "8f704806dbedeaaeca334b11ec348bc3ac3a439d6431544b3afb54f534ee4967",
+  "listo": {
+    "w": 1080,
+    "h": 1928,
+    "fuentes": "loaded",
+    "avisosFuentes": [],
+    "sondaAlto": 8
+  },
+  "css": {
+    "familia": "Archivo, system-ui, sans-serif",
+    "peso": "700",
+    "fuentePx": "31.32px",
+    "interlinea": "normal",
+    "kerning": "none",
+    "ligaduras": "none",
+    "espaciado": "0.3132px",
+    "paddingX": "25.92px",
+    "borde": "3px",
+    "gap": "14.04px",
+    "emojiPx": "47.52px",
+    "emojiAncho": 65.875,
+    "emojiAlto": 47.515625
+  },
+  "anchosEm": {
+    "0": 0.595,
+    "1": 0.596,
+    "2": 0.596,
+    "3": 0.596,
+    "4": 0.597,
+    "5": 0.595,
+    "6": 0.596,
+    "7": 0.596,
+    "8": 0.596,
+    "9": 0.595,
+    " ": 0.196,
+    "!": 0.301,
+    "\"": 0.456,
+    "#": 0.6,
+    "$": 0.556,
+    "%": 0.973,
+    "&": 0.764,
+    "'": 0.253,
+    "(": 0.364,
+    ")": 0.364,
+    "*": 0.407,
+    "+": 0.641,
+    ",": 0.307,
+    "-": 0.333,
+    ".": 0.307,
+    "/": 0.3,
+    ":": 0.335,
+    ";": 0.335,
+    "<": 0.641,
+    "=": 0.641,
+    ">": 0.641,
+    "?": 0.613,
+    "@": 1.001015625,
+    "A": 0.724,
+    "B": 0.722,
+    "C": 0.733,
+    "D": 0.739,
+    "E": 0.683,
+    "F": 0.622,
+    "G": 0.802,
+    "H": 0.754,
+    "I": 0.301,
+    "J": 0.603,
+    "K": 0.725,
+    "L": 0.591,
+    "M": 0.872,
+    "N": 0.754,
+    "O": 0.793,
+    "P": 0.681,
+    "Q": 0.793,
+    "R": 0.73,
+    "S": 0.679,
+    "T": 0.641,
+    "U": 0.748,
+    "V": 0.694,
+    "W": 0.964,
+    "X": 0.706,
+    "Y": 0.699,
+    "Z": 0.653,
+    "[": 0.35,
+    "\\": 0.3,
+    "]": 0.35,
+    "^": 0.641,
+    "_": 0.518,
+    "`": 0.228,
+    "a": 0.58,
+    "b": 0.608,
+    "c": 0.573,
+    "d": 0.608,
+    "e": 0.584,
+    "f": 0.325,
+    "g": 0.607,
+    "h": 0.602,
+    "i": 0.267,
+    "j": 0.264,
+    "k": 0.57,
+    "l": 0.267,
+    "m": 0.891,
+    "n": 0.602,
+    "o": 0.613,
+    "p": 0.608,
+    "q": 0.608,
+    "r": 0.38,
+    "s": 0.556,
+    "t": 0.342,
+    "u": 0.601,
+    "v": 0.547,
+    "w": 0.798,
+    "x": 0.572,
+    "y": 0.547,
+    "z": 0.519,
+    "{": 0.393,
+    "|": 0.253,
+    "}": 0.393,
+    "~": 0.641,
+    "Á": 0.724,
+    "É": 0.683,
+    "Í": 0.301,
+    "Ó": 0.793,
+    "Ú": 0.748,
+    "Ü": 0.748,
+    "Ñ": 0.754,
+    "á": 0.58,
+    "é": 0.584,
+    "í": 0.267,
+    "ó": 0.613,
+    "ú": 0.601,
+    "ü": 0.601,
+    "ñ": 0.602,
+    "¡": 0.301,
+    "¿": 0.613
+  },
+  "maximo": 1.001015625,
+  "casos": [
+    {
+      "texto": "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+      "ancho": 1846.046875,
+      "alto": 85.890625,
+      "textoAncho": 1708.328125,
+      "modeloPx": 1913.2070400000005,
+      "admitida": false
+    },
+    {
+      "texto": "WWWWWWWWWWWWWWWWWWWWWWWW",
+      "ancho": 869.859375,
+      "alto": 85.890625,
+      "textoAncho": 732.140625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "@@@@@@@@@@@@@@@@@@@@@@@@",
+      "ancho": 897.671875,
+      "alto": 85.890625,
+      "textoAncho": 759.953125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "@@@@@@@@@@@@@@@@@@@@@@@@@",
+      "ancho": 929.34375,
+      "alto": 85.890625,
+      "textoAncho": 791.625,
+      "modeloPx": 930.6360000000001,
+      "admitida": false
+    },
+    {
+      "texto": "MMMMMMMMMMMMMMMMMMMMMMMM",
+      "ancho": 800.703125,
+      "alto": 85.890625,
+      "textoAncho": 662.984375,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "iiiiiiiiiiiiiiiiiiiiiiii",
+      "ancho": 345.9375,
+      "alto": 85.890625,
+      "textoAncho": 208.21875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "responsabilidades",
+      "ancho": 419.421875,
+      "alto": 85.890625,
+      "textoAncho": 281.703125,
+      "modeloPx": 677.0692799999999,
+      "admitida": true
+    },
+    {
+      "texto": "transcripcion",
+      "ancho": 340.453125,
+      "alto": 85.890625,
+      "textoAncho": 202.734375,
+      "modeloPx": 550.2859199999999,
+      "admitida": true
+    },
+    {
+      "texto": "ÁÉÍÓÚÜÑ",
+      "ancho": 288.71875,
+      "alto": 85.890625,
+      "textoAncho": 151,
+      "modeloPx": 360.11088000000007,
+      "admitida": true
+    },
+    {
+      "texto": "WWW WWW",
+      "ancho": 327.21875,
+      "alto": 85.890625,
+      "textoAncho": 189.5,
+      "modeloPx": 360.11088000000007,
+      "admitida": true
+    },
+    {
+      "texto": "W-W",
+      "ancho": 209.484375,
+      "alto": 85.890625,
+      "textoAncho": 71.765625,
+      "modeloPx": 233.32752,
+      "admitida": true
+    },
+    {
+      "texto": "O'Hara",
+      "ancho": 244.21875,
+      "alto": 85.890625,
+      "textoAncho": 106.5,
+      "modeloPx": 328.41504000000003,
+      "admitida": true
+    },
+    {
+      "texto": "AVATAR",
+      "ancho": 272.3125,
+      "alto": 85.890625,
+      "textoAncho": 134.59375,
+      "modeloPx": 328.41504000000003,
+      "admitida": true
+    },
+    {
+      "texto": "漢字",
+      "ancho": 201,
+      "alto": 85.890625,
+      "textoAncho": 63.28125,
+      "modeloPx": null,
+      "admitida": false
+    },
+    {
+      "texto": "👨‍👩‍👧‍👦",
+      "ancho": 177.28125,
+      "alto": 85.890625,
+      "textoAncho": 39.5625,
+      "modeloPx": null,
+      "admitida": false
+    }
+  ],
+  "barrido": [
+    {
+      "texto": "                        ",
+      "ancho": 137.71875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "!!!!!!!!!!!!!!!!!!!!!!!!",
+      "ancho": 371.5,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"",
+      "ancho": 488.015625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "########################",
+      "ancho": 596.25,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "$$$$$$$$$$$$$$$$$$$$$$$$",
+      "ancho": 563.171875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "%%%%%%%%%%%%%%%%%%%%%%%%",
+      "ancho": 876.625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "&&&&&&&&&&&&&&&&&&&&&&&&",
+      "ancho": 719.53125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "''''''''''''''''''''''''",
+      "ancho": 335.421875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "((((((((((((((((((((((((",
+      "ancho": 418.859375,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "))))))))))))))))))))))))",
+      "ancho": 418.859375,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "************************",
+      "ancho": 451.171875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "++++++++++++++++++++++++",
+      "ancho": 627.0625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": ",,,,,,,,,,,,,,,,,,,,,,,,",
+      "ancho": 376.015625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "------------------------",
+      "ancho": 395.546875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "........................",
+      "ancho": 376.015625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "////////////////////////",
+      "ancho": 370.75,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "000000000000000000000000",
+      "ancho": 592.5,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "111111111111111111111111",
+      "ancho": 593.25,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "222222222222222222222222",
+      "ancho": 593.25,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "333333333333333333333333",
+      "ancho": 593.25,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "444444444444444444444444",
+      "ancho": 594,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "555555555555555555555555",
+      "ancho": 592.5,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "666666666666666666666666",
+      "ancho": 593.25,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "777777777777777777777777",
+      "ancho": 593.25,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "888888888888888888888888",
+      "ancho": 593.25,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "999999999999999999999999",
+      "ancho": 592.5,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "::::::::::::::::::::::::",
+      "ancho": 397.0625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": ";;;;;;;;;;;;;;;;;;;;;;;;",
+      "ancho": 397.0625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "<<<<<<<<<<<<<<<<<<<<<<<<",
+      "ancho": 627.0625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "========================",
+      "ancho": 627.0625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": ">>>>>>>>>>>>>>>>>>>>>>>>",
+      "ancho": 627.0625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "????????????????????????",
+      "ancho": 606.015625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "@@@@@@@@@@@@@@@@@@@@@@@@",
+      "ancho": 897.671875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "AAAAAAAAAAAAAAAAAAAAAAAA",
+      "ancho": 689.453125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "BBBBBBBBBBBBBBBBBBBBBBBB",
+      "ancho": 687.953125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "CCCCCCCCCCCCCCCCCCCCCCCC",
+      "ancho": 696.21875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "DDDDDDDDDDDDDDDDDDDDDDDD",
+      "ancho": 700.734375,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "EEEEEEEEEEEEEEEEEEEEEEEE",
+      "ancho": 658.640625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "FFFFFFFFFFFFFFFFFFFFFFFF",
+      "ancho": 612.78125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "GGGGGGGGGGGGGGGGGGGGGGGG",
+      "ancho": 748.09375,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "HHHHHHHHHHHHHHHHHHHHHHHH",
+      "ancho": 712.015625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "IIIIIIIIIIIIIIIIIIIIIIII",
+      "ancho": 371.5,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "JJJJJJJJJJJJJJJJJJJJJJJJ",
+      "ancho": 598.5,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "KKKKKKKKKKKKKKKKKKKKKKKK",
+      "ancho": 690.21875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "LLLLLLLLLLLLLLLLLLLLLLLL",
+      "ancho": 589.484375,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "MMMMMMMMMMMMMMMMMMMMMMMM",
+      "ancho": 800.703125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "NNNNNNNNNNNNNNNNNNNNNNNN",
+      "ancho": 712.015625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "OOOOOOOOOOOOOOOOOOOOOOOO",
+      "ancho": 741.328125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "PPPPPPPPPPPPPPPPPPPPPPPP",
+      "ancho": 657.140625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "QQQQQQQQQQQQQQQQQQQQQQQQ",
+      "ancho": 741.328125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "RRRRRRRRRRRRRRRRRRRRRRRR",
+      "ancho": 693.96875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "SSSSSSSSSSSSSSSSSSSSSSSS",
+      "ancho": 655.640625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "TTTTTTTTTTTTTTTTTTTTTTTT",
+      "ancho": 627.0625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "UUUUUUUUUUUUUUUUUUUUUUUU",
+      "ancho": 707.5,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "VVVVVVVVVVVVVVVVVVVVVVVV",
+      "ancho": 666.90625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "WWWWWWWWWWWWWWWWWWWWWWWW",
+      "ancho": 869.859375,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "XXXXXXXXXXXXXXXXXXXXXXXX",
+      "ancho": 675.921875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "YYYYYYYYYYYYYYYYYYYYYYYY",
+      "ancho": 670.671875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "ZZZZZZZZZZZZZZZZZZZZZZZZ",
+      "ancho": 636.09375,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "[[[[[[[[[[[[[[[[[[[[[[[[",
+      "ancho": 408.328125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\",
+      "ancho": 370.75,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "]]]]]]]]]]]]]]]]]]]]]]]]",
+      "ancho": 408.328125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "^^^^^^^^^^^^^^^^^^^^^^^^",
+      "ancho": 627.0625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "________________________",
+      "ancho": 534.609375,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "````````````````````````",
+      "ancho": 320.390625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "aaaaaaaaaaaaaaaaaaaaaaaa",
+      "ancho": 581.21875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "bbbbbbbbbbbbbbbbbbbbbbbb",
+      "ancho": 602.265625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "cccccccccccccccccccccccc",
+      "ancho": 575.953125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "dddddddddddddddddddddddd",
+      "ancho": 602.265625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "eeeeeeeeeeeeeeeeeeeeeeee",
+      "ancho": 584.21875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "ffffffffffffffffffffffff",
+      "ancho": 389.53125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "gggggggggggggggggggggggg",
+      "ancho": 601.515625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "hhhhhhhhhhhhhhhhhhhhhhhh",
+      "ancho": 597.75,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "iiiiiiiiiiiiiiiiiiiiiiii",
+      "ancho": 345.9375,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "jjjjjjjjjjjjjjjjjjjjjjjj",
+      "ancho": 343.6875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "kkkkkkkkkkkkkkkkkkkkkkkk",
+      "ancho": 573.703125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "llllllllllllllllllllllll",
+      "ancho": 345.9375,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "mmmmmmmmmmmmmmmmmmmmmmmm",
+      "ancho": 814.984375,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "nnnnnnnnnnnnnnnnnnnnnnnn",
+      "ancho": 597.75,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "oooooooooooooooooooooooo",
+      "ancho": 606.015625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "pppppppppppppppppppppppp",
+      "ancho": 602.265625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "qqqqqqqqqqqqqqqqqqqqqqqq",
+      "ancho": 602.265625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "rrrrrrrrrrrrrrrrrrrrrrrr",
+      "ancho": 430.875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "ssssssssssssssssssssssss",
+      "ancho": 563.171875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "tttttttttttttttttttttttt",
+      "ancho": 402.3125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "uuuuuuuuuuuuuuuuuuuuuuuu",
+      "ancho": 597,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "vvvvvvvvvvvvvvvvvvvvvvvv",
+      "ancho": 556.40625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "wwwwwwwwwwwwwwwwwwwwwwww",
+      "ancho": 745.078125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "xxxxxxxxxxxxxxxxxxxxxxxx",
+      "ancho": 575.203125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "yyyyyyyyyyyyyyyyyyyyyyyy",
+      "ancho": 556.40625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "zzzzzzzzzzzzzzzzzzzzzzzz",
+      "ancho": 535.359375,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "{{{{{{{{{{{{{{{{{{{{{{{{",
+      "ancho": 440.65625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "||||||||||||||||||||||||",
+      "ancho": 335.421875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "}}}}}}}}}}}}}}}}}}}}}}}}",
+      "ancho": 440.65625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "~~~~~~~~~~~~~~~~~~~~~~~~",
+      "ancho": 627.0625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "ÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁ",
+      "ancho": 689.453125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "ÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉ",
+      "ancho": 658.640625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ",
+      "ancho": 371.5,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓ",
+      "ancho": 741.328125,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "ÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚ",
+      "ancho": 707.5,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ",
+      "ancho": 707.5,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "ÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑ",
+      "ancho": 712.015625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "áááááááááááááááááááááááá",
+      "ancho": 581.21875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "éééééééééééééééééééééééé",
+      "ancho": 584.21875,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "íííííííííííííííííííííííí",
+      "ancho": 345.9375,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "óóóóóóóóóóóóóóóóóóóóóóóó",
+      "ancho": 606.015625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "úúúúúúúúúúúúúúúúúúúúúúúú",
+      "ancho": 597,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "üüüüüüüüüüüüüüüüüüüüüüüü",
+      "ancho": 597,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "ññññññññññññññññññññññññ",
+      "ancho": 597.75,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡",
+      "ancho": 371.5,
+      "modeloPx": 898.94016,
+      "admitida": true
+    },
+    {
+      "texto": "¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿",
+      "ancho": 606.015625,
+      "modeloPx": 898.94016,
+      "admitida": true
+    }
+  ],
+  "degenerados": [
+    {
+      "id": "limite-24-arrobas",
+      "etiquetas": [
+        "@@@@@@@@@@@@@@@@@@@@@@@@",
+        "archivo",
+        "conexion"
+      ],
+      "estructura": "constelacion",
+      "espera": 3,
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "direccion": {
+            "fondo": "ondas",
+            "estructura": "constelacion",
+            "camara": "quieto",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "conceptos": [
+            {
+              "emoji": "🧠",
+              "etiqueta": "@@@@@@@@@@@@@@@@@@@@@@@@"
+            },
+            {
+              "emoji": "📁",
+              "etiqueta": "archivo"
+            },
+            {
+              "emoji": "🔗",
+              "etiqueta": "conexion"
+            }
+          ]
+        }
+      },
+      "dom": {
+        "etiquetas": [
+          "@@@@@@@@@@@@@@@@@@@@@@@@",
+          "archivo",
+          "conexion"
+        ],
+        "cajas": [
+          {
+            "izquierda": 90.5859375,
+            "derecha": 988.2578125,
+            "ancho": 897.671875
+          },
+          {
+            "izquierda": 676.4921875,
+            "derecha": 927.9765625,
+            "ancho": 251.484375
+          },
+          {
+            "izquierda": 392.2109375,
+            "derecha": 671.0703125,
+            "ancho": 278.859375
+          }
+        ],
+        "texto": "🧠\n@@@@@@@@@@@@@@@@@@@@@@@@\n📁\narchivo\n🔗\nconexion\n🧠\n\nmemoria",
+        "avisos": []
+      }
+    },
+    {
+      "id": "56w-respaldo",
+      "etiquetas": [
+        "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+        "archivo",
+        "conexion"
+      ],
+      "estructura": "constelacion",
+      "espera": 0,
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "direccion": {
+            "fondo": "ondas",
+            "estructura": "constelacion",
+            "camara": "quieto",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "conceptos": [
+            {
+              "emoji": "🧠",
+              "etiqueta": "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"
+            },
+            {
+              "emoji": "📁",
+              "etiqueta": "archivo"
+            },
+            {
+              "emoji": "🔗",
+              "etiqueta": "conexion"
+            }
+          ]
+        }
+      },
+      "dom": {
+        "etiquetas": [],
+        "cajas": [],
+        "texto": "memoria",
+        "avisos": [
+          "[escena] RESPALDO: \"memoria\" cae a visual_texto — la composicion no puede dibujar con estos datos (conceptos=3)"
+        ]
+      }
+    },
+    {
+      "id": "25-arrobas-respaldo",
+      "etiquetas": [
+        "@@@@@@@@@@@@@@@@@@@@@@@@@",
+        "archivo",
+        "conexion"
+      ],
+      "estructura": "constelacion",
+      "espera": 0,
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "direccion": {
+            "fondo": "ondas",
+            "estructura": "constelacion",
+            "camara": "quieto",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "conceptos": [
+            {
+              "emoji": "🧠",
+              "etiqueta": "@@@@@@@@@@@@@@@@@@@@@@@@@"
+            },
+            {
+              "emoji": "📁",
+              "etiqueta": "archivo"
+            },
+            {
+              "emoji": "🔗",
+              "etiqueta": "conexion"
+            }
+          ]
+        }
+      },
+      "dom": {
+        "etiquetas": [],
+        "cajas": [],
+        "texto": "memoria",
+        "avisos": [
+          "[escena] RESPALDO: \"memoria\" cae a visual_texto — la composicion no puede dibujar con estos datos (conceptos=3)"
+        ]
+      }
+    },
+    {
+      "id": "cero-conceptos",
+      "etiquetas": [],
+      "estructura": "constelacion",
+      "espera": 0,
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "direccion": {
+            "fondo": "ondas",
+            "estructura": "constelacion",
+            "camara": "quieto",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "conceptos": []
+        }
+      },
+      "dom": {
+        "etiquetas": [],
+        "cajas": [],
+        "texto": "memoria",
+        "avisos": [
+          "[escena] RESPALDO: \"memoria\" cae a visual_texto — la composicion no puede dibujar con estos datos (conceptos=0)"
+        ]
+      }
+    },
+    {
+      "id": "uno-capaspiladas",
+      "etiquetas": [
+        "responsabilidades"
+      ],
+      "estructura": "capasApiladas",
+      "espera": 1,
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "direccion": {
+            "fondo": "ondas",
+            "estructura": "capasApiladas",
+            "camara": "quieto",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "conceptos": [
+            {
+              "emoji": "🧠",
+              "etiqueta": "responsabilidades"
+            }
+          ]
+        }
+      },
+      "dom": {
+        "etiquetas": [
+          "responsabilidades"
+        ],
+        "cajas": [
+          {
+            "izquierda": 441.7890625,
+            "derecha": 861.2109375,
+            "ancho": 419.421875
+          }
+        ],
+        "texto": "🧠\nresponsabilidades\n\nmemoria",
+        "avisos": []
+      }
+    },
+    {
+      "id": "texto-no-medido",
+      "etiquetas": [
+        "漢字",
+        "archivo",
+        "conexion"
+      ],
+      "estructura": "constelacion",
+      "espera": 0,
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "memoria",
+        "label": "",
+        "unit": "",
+        "emoji": "",
+        "extra": {
+          "direccion": {
+            "fondo": "ondas",
+            "estructura": "constelacion",
+            "camara": "quieto",
+            "densidad": "media",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          },
+          "conceptos": [
+            {
+              "emoji": "🧠",
+              "etiqueta": "漢字"
+            },
+            {
+              "emoji": "📁",
+              "etiqueta": "archivo"
+            },
+            {
+              "emoji": "🔗",
+              "etiqueta": "conexion"
+            }
+          ]
+        }
+      },
+      "dom": {
+        "etiquetas": [],
+        "cajas": [],
+        "texto": "memoria",
+        "avisos": [
+          "[escena] RESPALDO: \"memoria\" cae a visual_texto — la composicion no puede dibujar con estos datos (conceptos=3)"
+        ]
+      }
+    }
+  ]
+}

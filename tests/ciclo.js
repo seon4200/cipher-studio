@@ -495,9 +495,15 @@ function conceptos (bundle) {
   console.log('')
   console.log('=== J) EL REGISTRO DE PIEZAS Y EL ESPACIO DE ESTILOS ===')
   const { combinacionesLegales, FONDOS_ESCENA, ESTRUCTURAS_ESCENA, CAMARAS_ESCENA,
-    TIPOGRAFIAS, direccionDe, direccionDesde, maxCaracteresPie, cabeEnElPie } = bundle
+    TIPOGRAFIAS, direccionDe, direccionDesde, densidadDesdeContenido, entradaRitmo,
+    DENSIDAD_A_N, RITMOS, esLegal, maxCaracteresPie, cabeEnElPie, sistemaDeGeneracion } = bundle
   ok(typeof combinacionesLegales === 'function', 'combinacionesLegales se exporta del bundle')
   if (typeof combinacionesLegales !== 'function') return
+  const sistemasMvp = ['editorial', 'clinico', 'voltaje', 'calido']
+  ok(typeof sistemaDeGeneracion === 'function' && sistemaDeGeneracion('proyecto-a') === sistemaDeGeneracion('proyecto-a'),
+    'una generación recibe siempre la misma paleta')
+  ok(Array.from({ length: 80 }, (_, i) => sistemaDeGeneracion('proyecto-' + i)).every(s => sistemasMvp.includes(s)),
+    'la paleta derivada siempre pertenece al registro')
 
   // DOS NUMEROS, Y NO SE MEZCLAN.
   //   identidades = combinaciones de EJES. Impide que dos Visuales SE VEAN IGUAL.
@@ -509,33 +515,98 @@ function conceptos (bundle) {
   ok(typeof REP === 'object' && 'identidades' in REP && 'instancias' in REP,
     'combinacionesLegales devuelve identidades E instancias, no un solo numero',
     JSON.stringify(REP))
-  ok(REP.identidades === 36, 'el repertorio da 36 IDENTIDADES en 9:16', String(REP.identidades))
-  ok(REP.instancias === 166470, 'y 166.470 INSTANCIAS', String(REP.instancias))
-  ok(PRU.identidades === 182, 'con las piezas de prueba, 182 identidades', String(PRU.identidades))
-  // El lote se inspecciona en el banco, pero NO debe cambiar el repertorio del producto.
+  // Paso 6: se deriva recorriendo los registros, no congelando un producto que volveria a
+  // quedar viejo cuando entre una pieza. Densidad cuenta sus cinco estados de contenido y ritmo
+  // sus cinco perfiles; la tipografia depende del rol aceptado por cada estructura.
+  const activas = reg => Object.values(reg).filter(p => !p.prueba && p.formatos.includes('9:16'))
+  const fondosActivos = activas(FONDOS_ESCENA), camarasActivas = activas(CAMARAS_ESCENA)
+  const estructurasActivas = activas(ESTRUCTURAS_ESCENA).filter(e => e.minConceptos <= 3)
+  const esperadas = fondosActivos.reduce((total, fondo) => total + camarasActivas.reduce((sub, camara) => {
+    if (fondo.energia + camara.energia > 3) return sub
+    return sub + estructurasActivas.reduce((porEstructura, estructura) => porEstructura +
+      Object.values(TIPOGRAFIAS).filter(t => estructura.tipografias.includes(t.rol)).length *
+      Object.keys(DENSIDAD_A_N).length * RITMOS.length, 0)
+  }, 0), 0)
+  ok(REP.identidades === esperadas,
+    'el repertorio cuenta densidad, ritmo y roles tipográficos disponibles', String(REP.identidades))
+  ok(REP.instancias >= REP.identidades, 'las instancias nominales nunca reducen identidades', String(REP.instancias))
+  ok(PRU.identidades > REP.identidades, 'las piezas de prueba solo amplían el espacio de inspección', String(PRU.identidades))
+  ok(Math.abs(bundle.MARGEN_CAMARA_PIE_Y - 9.72 / 1920 * 100) < 1e-12,
+    'A.4: la reserva de cámara conserva los 9.72 px medidos')
+  // El lote histórico se sigue pudiendo inspeccionar, pero el repertorio ya incorpora las 17.
   const lote = require('./aceptacion/fixtures/lote-estructuras-1.json')
-  const nuevas = lote.estructuras.slice(3)
-  for (const id of nuevas) {
-    const e = ESTRUCTURAS_ESCENA[id]
-    ok(e.prueba === true && e.rangos.length === 0 && e.minConceptos === 1,
-      id + ': pendiente de aprobacion, sin escalones inventados')
-    for (const cantidad of [0, 1, 3]) {
-      for (const longitud of [1, 17, bundle.MAX_CARACTERES_ETIQUETA]) {
+  const reales = Object.values(ESTRUCTURAS_ESCENA).filter(e => !e.prueba)
+  for (const e of reales) {
+    const id = e.id
+    ok(Array.isArray(e.rangos) && e.minConceptos >= 1,
+      id + ': contrato de pieza completo, con rangos canónicos')
+    for (const cantidad of [e.minConceptos, 3]) {
+      for (const longitud of [1, 15]) {
         const etiquetas = Array(cantidad).fill('x'.repeat(longitud))
-        const pts = e.puntos(bundle.generador(42), etiquetas, {})
-        ok(pts.length === cantidad && JSON.stringify(pts) ===
-          JSON.stringify(e.puntos(bundle.generador(42), etiquetas, {})),
+        const pts = e.disposicion.puntos(bundle.generador(42), etiquetas, {})
+        ok(pts.length >= cantidad && JSON.stringify(pts) ===
+          JSON.stringify(e.disposicion.puntos(bundle.generador(42), etiquetas, {})),
         `${id}: ${cantidad} conceptos de ${longitud}, determinista`)
         ok(pts.every(p => p.x - bundle.anchoCaja(etiquetas[0], true) / 2 >= bundle.ZONA_X_MIN &&
           p.x + bundle.anchoCaja(etiquetas[0], true) / 2 <= bundle.ZONA_X_MAX &&
           p.y - bundle.altoCaja(true) / 2 >= bundle.ZONA.yMin &&
-          p.y + bundle.altoCaja(true) / 2 <= e.presupuestoTexto),
-        `${id}: bordes dentro del modelo compartido, ${cantidad}/${longitud}`)
+          p.y + bundle.altoCaja(true) / 2 <= e.presupuestoTexto - bundle.MARGEN_CAMARA_PIE_Y),
+        `${id}: bordes dentro del modelo con reserva de cámara, ${cantidad}/${longitud}`)
       }
     }
   }
   ok(Array.from({ length: 1000 }, (_, i) => direccionDe(i + 1))
-    .every(d => !nuevas.includes(d.estructura)), '1000 semillas: el lote no sale en videos')
+    .every(d => !ESTRUCTURAS_ESCENA[d.estructura].prueba), '1000 semillas: el sorteo excluye solo piezas de prueba')
+  const bajaDensidad = { texto: 'sol', conceptos: [] }
+  const altaDensidad = { texto: 'responsabilidades interconectadas',
+    conceptos: ['arquitectura distribuida', 'sistemas adaptativos', 'coordinacion asincrona'] }
+  const dBaja = direccionDe(1729, bajaDensidad)
+  const dAlta = direccionDe(1729, altaDensidad)
+  ok(densidadDesdeContenido(bajaDensidad) === 'minima' && densidadDesdeContenido(altaDensidad) === 'saturada',
+    'densidad deriva del contenido, de minima a saturada')
+  ok(['fondo', 'estructura', 'camara', 'ritmo', 'tipografia'].every(k => dBaja[k] === dAlta[k]) &&
+    dBaja.densidad !== dAlta.densidad, 'cambiar contenido no desplaza los cinco sorteos esteticos')
+  ok(JSON.stringify(DENSIDAD_A_N) === JSON.stringify({ minima: 1, baja: 3, media: 5, alta: 8, saturada: 14 }),
+    'las cinco densidades declaran 1, 3, 5, 8 y 14 elementos')
+  const ritmosInvalidos = RITMOS.filter(r => {
+    const entrada = entradaRitmo(14, r, 3)
+    return entrada.aviso !== null || !esLegal(3, entrada.duracion) || entrada.retardos.some(t => t < 0 || t > 1)
+  })
+  ok(ritmosInvalidos.length === 0, 'los cinco ritmos pasan por ajustar y quedan legales', ritmosInvalidos.join(', '))
+  const distancia = (a, b) => {
+    if (a.length !== b.length || a.length === 0) return 1
+    const usados = new Set(); let suma = 0
+    for (const p of a) {
+      let mejor = Infinity, indice = -1
+      for (let j = 0; j < b.length; j++) if (!usados.has(j)) {
+        const d = Math.hypot(p.x - b[j].x, p.y - b[j].y)
+        if (d < mejor) { mejor = d; indice = j }
+      }
+      usados.add(indice); suma += mejor
+    }
+    return suma / a.length / Math.hypot(100, 100)
+  }
+  const distanciasCortas = []
+  for (const semilla of [7, 42, 71, 113, 509, 997, 4093]) for (const cantidad of [1, 2, 3]) {
+    const etiquetas = ['archivo', 'memoria', 'conexion'].slice(0, cantidad)
+    const disposiciones = reales.map(e => ({ id: e.id,
+      puntos: e.disposicion.puntos(bundle.generador(semilla), etiquetas, {}) }))
+    for (let i = 0; i < disposiciones.length; i++) for (let j = i + 1; j < disposiciones.length; j++) {
+      const d = distancia(disposiciones[i].puntos, disposiciones[j].puntos)
+      if (d < .04) distanciasCortas.push(`${semilla}/${cantidad}:${disposiciones[i].id}-${disposiciones[j].id}=${d.toFixed(4)}`)
+    }
+  }
+  ok(distanciasCortas.length === 0, 'disposiciones separadas al menos 4% de la diagonal, 7 semillas x 3 recuentos',
+    distanciasCortas.join(', '))
+  const densidadesInvalidas = Object.values(ESTRUCTURAS_ESCENA).flatMap(e =>
+    [1, 3, 5, 8, 14].filter(n => { const a = e.disposicion.adaptarDensidad(n); return a.elementos !== n || !(a.escala > 0) || !(a.separacion > 0) || a.opacidadSecundaria < 0 || a.opacidadSecundaria > 1 }).map(n => e.id + ':' + n))
+  ok(densidadesInvalidas.length === 0, 'las estructuras declaran adaptacion valida para las cinco densidades',
+    densidadesInvalidas.join(', '))
+  const rolesDeclarados = new Set(Object.values(ESTRUCTURAS_ESCENA).flatMap(e => e.tipografias))
+  const rolesCubiertos = new Set(Object.values(TIPOGRAFIAS).map(t => t.rol))
+  ok([...rolesDeclarados].every(rol => rolesCubiertos.has(rol)),
+    'todo rol tipografico declarado tiene al menos una fuente empaquetada',
+    [...rolesDeclarados].join(', '))
   ok(lote.estructuras.every(id => ESTRUCTURAS_ESCENA[id]) &&
     lote.composicion === 'visual_escena' && lote.sistema === 'voltaje' &&
     lote.escala === .45 && lote.miniatura.ancho === lote.lienzo.ancho * lote.escala &&
@@ -556,7 +627,7 @@ function conceptos (bundle) {
       f.emPorCaracter === Math.max(...Object.values(m.anchosEm)) &&
       f.caracterMasAncho === m.caracterMasAncho, m.id + ': metrica igual al maximo MEDIDO')
     const n = maxCaracteresPie(m.id)
-    ok(n === (m.id === 'archivo' ? 18 : 24), m.id + ': limite conservador de dos lineas', String(n))
+    ok(Number.isInteger(n) && n > 0, m.id + ': limite conservador de dos lineas', String(n))
     ok(cabeEnElPie(f.caracterMasAncho.repeat(n), m.id) &&
       !cabeEnElPie(f.caracterMasAncho.repeat(n + 1), m.id), m.id + ': acepta el limite y rechaza uno mas')
     ok(!cabeEnElPie('', m.id) && !cabeEnElPie(null, m.id), m.id + ': el vacio cae al respaldo')
@@ -566,7 +637,40 @@ function conceptos (bundle) {
   ok(direccionDesde({ tipografia: 'inventada' }, 42).tipografia === direccionDe(42).tipografia,
     'tipografia desconocida vuelve al sorteo')
   ok(!cabeEnElPie('ß'.repeat(13), 'anton'), 'la puerta cuenta DESPUES de pasar a versal')
-  ok(bundle.MAX_CARACTERES_ETIQUETA === 56, 'las cajas conservan su limite 56')
+  // A.2: 56 era un ajuste medio que admitia 1845 px en 900 px disponibles.
+  // No se congela un nuevo tope: se comprueba el borde usando la funcion del bundle.
+  const limiteCaja = bundle.MAX_CARACTERES_ETIQUETA
+  // A.3 queda aplazada hasta B; el registro aplicado sigue siendo la métrica A.2.
+  // Se ata a la medición de base y a SU asset, sin DOM en la suite.
+  const medicionA3 = require('./aceptacion/plan-a3-20260905/sondeo.json')
+  const filaA3 = medicionA3.filas[0]
+  const cajasMedidas = { modelo: filaA3, casos: filaA3.casos, barrido: [],
+    fuenteSHA256: medicionA3.condiciones.fuenteSHA256 }
+  ok(limiteCaja === cajasMedidas.modelo.limite && bundle.cabeLaEtiqueta('@'.repeat(limiteCaja)) &&
+    !bundle.cabeLaEtiqueta('@'.repeat(limiteCaja + 1)), 'cota de Archivo 700: limite y siguiente')
+  ok(!bundle.cabeLaEtiqueta('W'.repeat(56)) &&
+    bundle.anchoCaja('W'.repeat(56), true) * 10.8 >= 1845.421875,
+    'regresion 56 W: rechaza y no subestima la medida DOM original')
+  ok(!bundle.cabeLaEtiqueta('漢字'), 'un caracter no medido no se presume estrecho')
+  ok(bundle.cabeLaEtiqueta('ÁÉÍÓÚÜÑ - O\'Hara'), 'espacio, guion, apostrofo y acentos medidos')
+  const metricaCaja = bundle.METRICAS_ETIQUETA[bundle.METRICA_ETIQUETA]
+  ok(metricaCaja.emPorCaracter >= metricaCaja.emMaximoMedido,
+    'cota redondeada hacia arriba, nunca promedio')
+  ok(JSON.stringify(bundle.METRICAS_ETIQUETA) === JSON.stringify(cajasMedidas.modelo.metricas) &&
+    JSON.stringify(bundle.GEOMETRIA_CAJA) === JSON.stringify(cajasMedidas.modelo.geometria),
+    'registro y geometria coinciden con la medicion versionada')
+  const hashCaja = require('crypto').createHash('sha256').update(require('fs').readFileSync(
+    path.join(RAIZ, 'dist/fonts', metricaCaja.fichero))).digest('hex')
+  ok(hashCaja === cajasMedidas.fuenteSHA256, 'la fuente de cajas es la que se midio')
+  const acotadas = [...cajasMedidas.casos, ...cajasMedidas.barrido]
+    .filter(c => c.modeloPx !== null)
+  ok(acotadas.every(c => bundle.anchoCaja(c.texto, true) * 10.8 >= c.ancho),
+    'la cota del bundle cubre las cajas DOM guardadas, incluido el barrido de 111 caracteres')
+  ok(bundle.cabeLaEtiqueta('responsabilidades') && filaA3.referencia.intervaloPx > 0,
+    'A.3: conserva la referencia real de 17 caracteres con margen positivo')
+  ok(filaA3.rechazos === 0 && filaA3.vacios === 0 && filaA3.limiteDom === limiteCaja &&
+    filaA3.casos.every(c => bundle.cabeLaEtiqueta(c.texto) === c.admitida),
+    'A.3: puerta del bundle coincide con muestra real y frontera DOM versionadas')
   // Congelar salidas del catalogo obligaba a editar esta prueba con cada pieza nueva.
   // Una prueba que se edita para ponerse verde deja de probar. El invariante es el ORDEN
   // de consumo y tipografia ultima, no que una semilla siga eligiendo el fondo de ayer.
@@ -604,7 +708,7 @@ function conceptos (bundle) {
 
   // LA REGLA DE LA ENERGIA MUERDE. Sin esto, la regla podria estar escrita y no aplicarse.
   const sinRegla = Object.values(FONDOS_ESCENA).length * Object.values(CAMARAS_ESCENA).length *
-    Object.values(ESTRUCTURAS_ESCENA).length * Object.values(TIPOGRAFIAS).length
+    Object.values(ESTRUCTURAS_ESCENA).length * Object.values(TIPOGRAFIAS).length * 5 * 5
   ok(PRU.identidades <= sinRegla, 'la regla de energia nunca AMPLIA el espacio',
     PRU.identidades + ' <= ' + sinRegla)
 

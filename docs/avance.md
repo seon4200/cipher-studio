@@ -15,7 +15,7 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 | **2** | Hacer visibles los fallos | ✅ 4/4 · `v-fase2-avisos` |
 | **puente** | El suelo de las pruebas | ✅ · `v-puente-suelo` (`4157e0c`) |
 | **3** | Banco + hoja de contactos | ✅ 2/2 · `v-fase3-hoja` |
-| 4 | Vocabulario mínimo | 🟨 1/6 · `v-fase4d-tono-claro` · interruptor pendiente |
+| 4 | Vocabulario mínimo | 🟨 · interruptor activo desde `v-fase4f-interruptor` (`8f7004c`) |
 | 5 | Densidad y ritmo | ⬜ 0/4 |
 | 6 | Resto del vocabulario | ⬜ 0/4 · **aquí se entrega la meta** |
 | 7 | La IA elige | ⬜ 0/7 |
@@ -31,14 +31,16 @@ imágenes y formato horizontal: cosas distintas, no más variedad.
 
 ## Lo que ya está en `master`
 
-**El motor combinatorio, dentro y apagado.** Registro de piezas por eje con
+**El motor combinatorio, activo desde `8f7004c`.** Registro de piezas por eje con
 contrato tipado —añadir una pieza y olvidar su dibujo **no compila**—, cuatro
 capas con cámara, `direccionDe(semilla)`, ranura de héroe reservada, `cqmin` con
 `container-type: size`, duraciones en `calc(var(--ciclo) / n)`, `rangos` de
 instancia y `combinacionesLegales()` devolviendo **dos** números.
 
-El interruptor es `COMPOSICION_VISUAL` en `src/main/index.ts`, hoy `'visual_mapa'`,
-aislado en `261269d`. Se mueve en la Fase 4.
+El interruptor es `COMPOSICION_VISUAL` en `src/main/index.ts`, hoy `'visual_escena'`.
+La direccion entra en `extra` y en el hash desde `v-fase4f-interruptor`; version 8.
+A.0 incorporo el lote `84062d7` con merge `d0dae0d`: tres estructuras de prueba,
+fuera del sorteo. El plan A-F posterior se trabaja en `plan-A-cajas`; A no esta cerrada.
 
 **Los fallos se ven.** La app ya no puede decir *"éxito, 78 de 78"* mientras la
 mitad del vídeo se degrada: avisos tipados con código estable y contador, resumen
@@ -58,29 +60,29 @@ producción.
 
 ---
 
-## Los tres números del motor
+## Recuento operativo
 
-```
-identidades         36
-instancias     166.470
-```
-
-Medido por `test:ciclo` sobre el bundle: tres estructuras reales, cuatro fondos reales,
-dos camaras, una densidad, un ritmo y dos tipografias; la regla de energia deja **36**
-identidades. Las **166.470** instancias incluyen los pasos 4/4/4 PROVISIONALES de
-`capasApiladas`; la vista de pareja no aisla flotacion ni acredita cuatro escalones.
-No se han recalibrado para cerrar el lote.
+**48 identidades legales.** Procedencia: contador del bundle en A.1,
+`825b8d3`, repertorio de escena con energía de deriva=1.
+No se cita el nominal de instancias como cabecera: su reparto por par y el
+instrumento están en deuda-graficos.md y en desglosar-instancias-a2.cjs,
+incorporados por `ea741c3`. La cifra nominal no acredita variedad perceptible
+ni calibra los rangos provisionales de capasApiladas.
 
 `v-fase4d-tono-claro` incorpora tinta por sistema para fondos claros, `tramaTejida` y parejas
 por rangos del registro con extremos versionados. La guardia prueba el orden de los seis
 sorteos desde el bundle (tipografia ultima), no salidas congeladas del catalogo.
 Capturas: `tests/aceptacion/tono-oscuro-claro.png`, `trama-tejida-lab-pieza.png` y las tres
 `capas-pareja-*.png`. El grano mas marcado y la calibracion pendiente estan documentados.
-Siguen `COMPOSICION_VISUAL='visual_mapa'` y `VERSION_PLANTILLAS=8`.
+Aquella etiqueta tenia `visual_mapa`; el interruptor se movio despues, en `8f7004c`.
+Hoy `COMPOSICION_VISUAL='visual_escena'` y `VERSION_PLANTILLAS=8`.
 
-**Coste:** 1.60–1.73 intentos/frame contra el listón de 1.30. De ese +0.35, la
-cámara solo cuesta **0.11** → las 16 cámaras no están amenazadas. Falta medir **la
-pendiente**, no el desnivel: cuánto sube el coste por elemento añadido.
+**Coste vigente (A.0, condiciones y JSON en `tests/rendimiento/README-m7.md`):**
+40,84 ms/frame y 1,644 intentos/frame en regimen; seis clips completos, 0/540
+frames aceptados en el quinto intento. M7a1: agotar intentos SIN bitmap valido
+para; M7a2: quinto intento valido mide margen, no perdida. M7b: +25% de 40,84
+o superar 50,3 obliga a informar/decidir; M7c es informativo. 1,30 no es umbral.
+No se compara 40,84 contra 50,3 como A/B. Sigue pendiente medir la pendiente por elemento.
 
 ---
 
@@ -147,3 +149,57 @@ Ver `plan-maestro.md`.
 Las **tarjetas de gráficos solo salen si se piden a mano**, desde junio y por
 diseño (`fc4313a` movió esa vía a `regenerate-graphics`). ¿Se quiere que vuelvan a
 salir solas durante la generación? Sería una fase propia.
+
+### Plan A.2 — ancho de cajas (05/09/2026, sin merge)
+
+Cota por fuente y ranura de emoji compartidas por CSS y aritmética. Archivo 700:
+24 @ reales = 897,67 px; presupuesto = 898,94 px; zona = 900,07 px.
+56 W/25 @ se rechazan con respaldo visible y aviso. Barrido 111 caracteres sin
+subestimación y control negativo rojo. Evidencia: tests/aceptacion/plan-a2-20260905.
+Persisten solapes ENTRE cajas con etiquetas extremas; no se declara M3 completo.
+Política A–E: cachés temporales, sin merge; una subida 8→9 en el merge final.
+El cierre de A sigue pendiente y exigirá un clon NUEVO.
+
+~~A.3 detenido hasta identificar el fixture de las 828.~~ Cerrada esa espera
+el 05/09/2026 por decisión explícita: muestra RETIRADA, no se busca ni sustituye
+en silencio. Procedencia histórica: mensaje de `10000a9`, palabras de mapa.
+Nueva base: fixture `4c3c060`, 321 etiquetas/107 grupos de la generación real
+del 03/09/2026; no son 107 Visuales.
+
+~~A.3 aplicado provisionalmente: +35%.~~ Retirado por el sondeo de pares de abajo.
+Historia del primer ensayo: límite entero 17, sin rechazos
+en la muestra y margen de 34,412472 px para la cota de 17 caracteres.
+Procedencia: medir-tamanos-a3.cjs / plan-a3-20260905, visual_escena,
+`4c3c060` MÁS el cambio pendiente fuenteCqmin=3.915; SHA de código y bundle
+en los JSON. NO CERRADO: npm test dio 8/9, test:mapa exit 1. La métrica también
+alimenta mapa aunque su CSS conserva 2.9; documentado en deuda-graficos.md.
+No se cambió esa suite ni se resolvió el acoplamiento. Sin commit nuevo,
+sin merge, versión 8. A sigue pendiente de cierre con clon NUEVO.
+
+A.3, corrección 05/09/2026: +20% (37.584 px), límite 20, 0/321 rechazos.
+Pares: base 0/107, +20 0/107, +35 1/107; no alcanza texto. Se midieron 91
+instantes de cada grupo; no es una garantía fuera de la muestra. Fuente:
+README-solapes-a3.md / plan-a3-pares-20260905, 4c3c060 + cambios A.3/T8,
+hashes de bundle y arneses en los JSON. T8 conserva mapa con SU modelo de master.
+A.4/A.5 y cierre completo de A siguen pendientes. No se declara M3 global verde:
+el control extremo de la hoja aún muestra vecindad sin resolver.
+Verificación A.3/T8: tsc exit 0, build por ficheros y 9/9 en clon consumido;
+bloqueo de mapa cerrado sin rebajar capas. Cierre de A aún NO declarado.
+
+**Rectificación del propio ejecutor, 05/09/2026:** +20% tampoco es el tamaño
+definitivo: el control responsabilidades/archivo pasa de cero solape en base
+a 21.83% de la caja menor, alcanzando texto. Era incorrecto elegir usando SOLO
+las 321 (máximo 15). El commit 35a9ca8 se conserva como decisión retirada.
++7% no solapa ni ese control ni los 107 grupos, en los 91 instantes; +8% ya
+intersecta el control. Queda +7% (33.5124 px), no +20. Es un aumento pequeño,
+no una declaración de legibilidad resuelta. Evidencia en README-solapes-a3.md,
+plan-a3-control17-20260905 y plan-a3-pares7-20260905; código 35a9ca8 + arnés
+y literal fuenteCqmin=3.103, con SHA de bundle en plan-a3-mas7-20260905.
+
+**Rectificación final de A.3, 05/09/2026:** ~~+7% queda aplicado~~. El peor
+par que la puerta de +7 admite (tres etiquetas de 22 `@`) solapa texto a t=0.5:
+38.290,897676 px² / 95,169543% de la caja menor, en visual_escena 1080×1920,
+voltaje, 91 instantes. No se reduce el porcentaje a ojo: se restaura 2.9 cqmin y
+A.3 se aplaza a Fase B. Disparador: tras B.1–B.3, repetir peor par y corpus de
+321 antes de elegir tamaño. Evidencia versionada:
+plan-a3-peor-par-20260905 y README-solapes-a3.md.

@@ -3,6 +3,35 @@
 Punto de partida verificado: **`v-paso9-mapa-sin-palabra`** (`757b6cc`).
 Estado y etiquetas al día: ver `avance.md` y `puntos-retorno.md`.
 
+**Errata de procedencia, 05/09/2026 — A.3 del plan A–F externo.**
+La muestra citada allí como «828 cajas» se RETIRA: el mensaje de
+`10000a980d6f89431eb1141d3ac262622744fe80` habla de palabras/valores sobre
+`mapa`, con etiquetas medias/largas; no de cajas de `escena`.
+Los 509/847 fuera de zona son recuentos históricos sin denominador de cajas
+recuperable ni arnés versionado. No son una tasa sobre 828 cajas.
+A.3 usa, por decisión explícita, 321 etiquetas de 107 sub-clips: fixture de
+`4c3c060`, generación del 03/09/2026, pruebas en `visual_escena`.
+El inventario de las copias externas y la medición nueva están en
+`deuda-graficos.md`. Este archivo del repo no contenía la instrucción de las 828.
+
+**Procedencia obligatoria también para cifras heredadas:** qué instrumento,
+composición y commit las midieron, pegados a cada cita. Si no consta, no se usa
+como resultado verificable. Se conserva la historia tachada y su corrección.
+
+**T8 del plan A–F, decisión 05/09/2026.** Mapa se conserva desacoplada solo
+como referencia de regresión, sin ruta de producción, hasta Fase 6; allí se
+retira en un commit propio al cerrar catálogo y verificador. Su modelo y CSS
+históricos quedan como en master d0dae0d; la cota por fuente de escena deja de
+importarse por mapa. No se amplía su texto para reparar una suite. Evidencia del
+acoplamiento y del sondeo: deuda-graficos.md, A.3; instrumentos y corpus en
+tests/aceptacion/README-solapes-a3.md.
+~~Tamaño elegido: +20%, luego +7%.~~ Retirados el 05/09/2026: +7% pasó un
+control de 17 y las 321, pero el peor par que su puerta admite (tres 22 `@`)
+solapa texto en 95,169543% de la caja menor. A.3 queda aplazada a Fase B y
+vuelve a 2.9 cqmin; al cerrar B.1–B.3 se repiten peor par y corpus antes de
+decidir. Procedencia: README-solapes-a3.md y JSON con SHA.
+Esta decisión no cierra A.4/A.5 ni certifica legibilidad fuera de la muestra.
+
 ---
 
 # 0 · EL PROBLEMA Y LA SOLUCIÓN
@@ -172,6 +201,13 @@ export a 1080×1920.
 | 1 | ondas, cristales, panal, comida en familia | deriva, travelling, grúa, cámara en mano |
 | 2 | malla, túnel, circuito, skyline, cuerdas, mosaico, multitud, orden espontáneo, marino, darwin, animal, vía láctea | acercamiento, alejamiento, picado, contrapicado, inclinación, órbita, barrido, rebote |
 | 3 | warp estelar, lluvia de datos, demolición | temblor, saltos, vértigo |
+
+A.1 (04/09/2026): `deriva` queda en energia 1 tambien en el registro; ver
+`tests/aceptacion/README-a1.md` para amplitudes y evidencia. Esta tabla da
+3x16 + 4x13 + 12x5 + 3x1 = 163 pares legales de fondo/camara; con 17 estructuras,
+5 densidades y 5 ritmos: **69.275 identidades de cinco ejes**, no variedad percibida.
+Si deriva fuese energia 2 serian 151 pares y 64.175. No incluye tipografia ni
+sus compatibilidades. Es proyeccion del catalogo completo, NO repertorio actual.
 
 **5.2 · Tono.** Cada fondo declara `oscuro` o `claro`. **El claro obliga a texto en
 tinta.** Claros: trama tejida, amanecer, comida en familia. **Son el contrapeso.**
