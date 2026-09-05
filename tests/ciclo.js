@@ -515,9 +515,19 @@ function conceptos (bundle) {
   ok(typeof REP === 'object' && 'identidades' in REP && 'instancias' in REP,
     'combinacionesLegales devuelve identidades E instancias, no un solo numero',
     JSON.stringify(REP))
-  // Paso 6: 163 pares fondo×cámara legales por energía, 17 estructuras reales, cinco estados
-  // de densidad derivados del contenido, cinco ritmos y las fuentes permitidas por cada rol.
-  ok(REP.identidades === 163 * 17 * 5 * 5 * Object.values(TIPOGRAFIAS).length,
+  // Paso 6: se deriva recorriendo los registros, no congelando un producto que volveria a
+  // quedar viejo cuando entre una pieza. Densidad cuenta sus cinco estados de contenido y ritmo
+  // sus cinco perfiles; la tipografia depende del rol aceptado por cada estructura.
+  const activas = reg => Object.values(reg).filter(p => !p.prueba && p.formatos.includes('9:16'))
+  const fondosActivos = activas(FONDOS_ESCENA), camarasActivas = activas(CAMARAS_ESCENA)
+  const estructurasActivas = activas(ESTRUCTURAS_ESCENA).filter(e => e.minConceptos <= 3)
+  const esperadas = fondosActivos.reduce((total, fondo) => total + camarasActivas.reduce((sub, camara) => {
+    if (fondo.energia + camara.energia > 3) return sub
+    return sub + estructurasActivas.reduce((porEstructura, estructura) => porEstructura +
+      Object.values(TIPOGRAFIAS).filter(t => estructura.tipografias.includes(t.rol)).length *
+      Object.keys(DENSIDAD_A_N).length * RITMOS.length, 0)
+  }, 0), 0)
+  ok(REP.identidades === esperadas,
     'el repertorio cuenta densidad, ritmo y roles tipográficos disponibles', String(REP.identidades))
   ok(REP.instancias >= REP.identidades, 'las instancias nominales nunca reducen identidades', String(REP.instancias))
   ok(PRU.identidades > REP.identidades, 'las piezas de prueba solo amplían el espacio de inspección', String(PRU.identidades))
