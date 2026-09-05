@@ -165,3 +165,10 @@ subestimación y control negativo rojo. Evidencia: tests/aceptacion/plan-a2-2026
 Persisten solapes ENTRE cajas con etiquetas extremas; no se declara M3 completo.
 Política A–E: cachés temporales, sin merge; una subida 8→9 en el merge final.
 El cierre de A sigue pendiente y exigirá un clon NUEVO.
+
+A.3, 05/09/2026: detenido ANTES de subir tamaños. A.2 añade 0 rechazos en las
+321 etiquetas de la última generación (107 grupos válidos; máximo 15 caracteres).
+La muestra histórica citada como 828 cajas era de 828 palabras de mapa; falta
+identificar el fixture exacto, no se sustituye por la muestra nueva sin decirlo.
+La foto de 24 @ no pasó por la rama x=50. Evidencia en deuda-graficos.md y
+tests/aceptacion/plan-a2-impacto-20260905/. Sin merge, versión 8.

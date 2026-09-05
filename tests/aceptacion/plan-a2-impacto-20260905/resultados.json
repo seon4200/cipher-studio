@@ -1,0 +1,120 @@
+{
+  "condiciones": {
+    "versionElectron": "31.7.7",
+    "ancho": 1080,
+    "alto": 1920,
+    "fuenteCqmin": 2.9,
+    "fixtureSHA256": "87d19ab7e74efa205e946950e68794f734f6c1ae1131044453ce158635886bc7",
+    "bundleAntesSHA256": "75dd67bd8b892501f00cfcd9cb3079367e61db1595409af3b2a895e62d26aacd",
+    "bundleActualSHA256": "5455fd6dae1900219bf5adf5a35d889b945084678b41a820e16870836af666f6",
+    "pngPreexistente": "plan-a2-20260905/limite-24-arrobas.png",
+    "t": 2.999,
+    "graphicData": {
+      "type": "visual_escena",
+      "value": "memoria",
+      "label": "",
+      "unit": "",
+      "emoji": "",
+      "extra": {
+        "direccion": {
+          "fondo": "ondas",
+          "estructura": "constelacion",
+          "camara": "quieto",
+          "densidad": "media",
+          "ritmo": "regular",
+          "tipografia": "archivo"
+        },
+        "conceptos": [
+          {
+            "emoji": "🧠",
+            "etiqueta": "@@@@@@@@@@@@@@@@@@@@@@@@"
+          },
+          {
+            "emoji": "📁",
+            "etiqueta": "archivo"
+          },
+          {
+            "emoji": "🔗",
+            "etiqueta": "conexion"
+          }
+        ]
+      }
+    },
+    "sinRender": true
+  },
+  "resumen": {
+    "muestras": {
+      "subclips": 114,
+      "conConceptos": 107,
+      "sinConceptos": 7,
+      "etiquetas": 321,
+      "maxCaracteres": 15,
+      "censuradas": 0
+    },
+    "antes": {
+      "limite": 56,
+      "etiquetasRechazadas": 0,
+      "subclipsConEtiquetaRechazada": 0,
+      "intervalosVacios": 0,
+      "menorIntervaloPx": 564.8940000000001
+    },
+    "despues": {
+      "limite": 24,
+      "etiquetasRechazadas": 0,
+      "subclipsConEtiquetaRechazada": 0,
+      "intervalosVacios": 0,
+      "menorIntervaloPx": 286.3944000000001
+    },
+    "alcance": "Los 107 sub-clips son un SUPERCONJUNTO de los Visuales, no 107 Visuales. Cero rechazos en el conjunto implica cero rechazos nuevos por etiqueta en cualquier subconjunto.",
+    "lineaBase": {
+      "pedidos": 55,
+      "realizados": 52,
+      "sinPalabra": 3,
+      "porcentaje": 5.454545454545454
+    },
+    "solape": [
+      {
+        "etiqueta": "@@@@@@@@@@@@@@@@@@@@@@@@",
+        "cotaPx": 898.94016,
+        "loX": 49.947599999999994,
+        "hiX": 50.052400000000006,
+        "intervaloPx": 1.1318400000001247,
+        "ramaDegenerada": false,
+        "extremosReales": [
+          49.947599999999994,
+          50.052400000000006
+        ],
+        "centroDomPx": 539.421875,
+        "anchoDomPx": 897.671875
+      },
+      {
+        "etiqueta": "archivo",
+        "cotaPx": 360.11088000000007,
+        "loX": 25.001800000000003,
+        "hiX": 74.9982,
+        "intervaloPx": 539.9611199999999,
+        "ramaDegenerada": false,
+        "extremosReales": [
+          25.001800000000003,
+          74.9982
+        ],
+        "centroDomPx": 802.234375,
+        "anchoDomPx": 251.484375
+      },
+      {
+        "etiqueta": "conexion",
+        "cotaPx": 391.80672,
+        "loX": 26.4692,
+        "hiX": 73.5308,
+        "intervaloPx": 508.26528,
+        "ramaDegenerada": false,
+        "extremosReales": [
+          26.4692,
+          73.5308
+        ],
+        "centroDomPx": 531.640625,
+        "anchoDomPx": 278.859375
+      }
+    ]
+  }
+}

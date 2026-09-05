@@ -169,6 +169,9 @@ duracion, fps, VERSION_PLANTILLAS, modo, codec, sistema`.
   comparar un montaje 1 con un montaje 3 fabrica una diferencia que no pertenece al codigo.
   Se abre una ventana fresca por pareja y se compara montaje 1 contra montaje 2.
 - **Di lo que no sabes.** Un hueco declarado vale más que un motivo inventado.
+- **La cabecera cita identidades legales, nunca el nominal de instancias suelto.**
+  Si hace falta el nominal, lleva su reparto por par fondo×cámara: mide la
+  discretización de parámetros, no variedad percibida (94,4% en un solo par en A.2).
 - **Reconoce tus propios errores por delante**, antes de que se pregunten.
 - **Lleva la contraria cuando toque.** Si el prompt contiene un error de hecho, un
   razonamiento inválido o una instrucción contradictoria, **dilo y para**. Este

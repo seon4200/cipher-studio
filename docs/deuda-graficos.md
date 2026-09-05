@@ -1727,6 +1727,17 @@ pintados por DOM directo y sincrono, fuera de React. Que la sonda llegue al comp
 que hubo un frame nuevo; no demuestra que una capa promovida a GPU haya terminado de repintarse.
 Encaja con que el frame 0 sea siempre identico y la diferencia crezca con el tiempo del clip.
 
+**L9 — hueco de completitud confirmado por otro instrumento (05/09/2026).**
+Lo que este proyecto no sabe comprobar todavía es que un fotograma esté completo.
+La sonda acredita su franja de 8 px y el tiempo, no el contenido. En A.2 ocurrió
+por otro camino: una captura conservó las 56 W del sondeo anterior cuando el DOM
+ya decía 24 @. Condiciones: Electron 31.7.7 / Chromium 126, ventana offscreen,
+1080×1920, t=2,999 s/ciclo 3 s, memoria, ondas/constelacion/quieto, voltaje.
+Se retiró la imagen incorrecta. Esperar dos rAF y 100 ms e invalidar la superficie
+es un método de inspección, NO una prueba de completitud. Dos fallos de la misma
+clase: estado/tiempo correcto no implica contenido completamente repintado.
+No arreglado; no se construye el verificador de completitud dentro de Fase A.
+
 ### La pista de cuando pasa — DOS observaciones, todavia no una causa
 
 La tirada anomala fue **el primer render en un clon recien instalado con `npm ci`**: Electron
@@ -2422,6 +2433,23 @@ Son 48 identidades legales. Los pasos siguen NOMINALES: esta cuenta no calibra s
 distinguibilidad. No se ha demostrado que existan 3.782.310 dibujos perceptibles.
 Arnés: tests/aceptacion/desglosar-instancias-a2.cjs.
 
+**Regla desde 05/09/2026:** la cabecera cita IDENTIDADES LEGALES, no el total
+nominal de instancias. Si hace falta ese nominal, siempre acompaña el reparto
+por par fondo×cámara. No mide variedad percibida: depende de la discretización
+de parámetros. tunel×deriva concentra el 94,4185% del nominal actual; añadir un
+rango a una sola pieza puede inflar el total sin añadir una identidad.
+
+Reparto actual (energía de deriva=1; mismos registros de A.1/A.2):
+
+| fondo | quieto | deriva |
+|---|---:|---:|
+| tramaTejida | 930 | 44.640 |
+| ondas | 930 | 44.640 |
+| tunel | 74.400 | 3.571.200 |
+| skyline | 930 | 44.640 |
+
+Total nominal con su reparto: 3.782.310; identidades legales: 48.
+
 **Aislamiento medido:** tests/aceptacion/auditar-cache-a2.cjs inventaría con SHA-256,
 tamaño y mtime tanto cache/graficos como materiales/visual de TODOS los proyectos.
 Vigila esos destinos mientras ejecuta el arnés M7, que bloquea fetch/HTTP y cambia
@@ -2476,3 +2504,56 @@ el arnés usa ahora la ventana offscreen. Una captura inmediata conservaba las
 56 W del sondeo anterior pese a que el DOM ya decía 24 @: se retiró. Ahora espera
 dos rAF y 100 ms con t fijo, invalida la superficie, y se miran los PNG. Esa espera
 es un método de inspección estática, NO una prueba universal de completitud.
+
+### A.2 — impacto real, sobre-reserva y base histórica de A.3 (05/09/2026)
+
+**Medición, sin subir tamaño:** rama plan-A-cajas, código ea741c3, Archivo 700,
+2,9 cqmin = 31,32 px a 1080×1920. Funciones importadas de los bundles de la base
+84062d7 y A.2; las funciones de ancho/puerta de la base no cambiaron hasta A.1.
+Arnés versionado: tests/aceptacion/impacto-cota-a2.cjs. Fixture, hashes, líneas de
+origen y resultados: tests/aceptacion/plan-a2-impacto-20260905/.
+
+**Etiquetas reales:** generación del 03/09/2026 02:37:47.705–02:43:02.489 UTC,
+generation-debug.log:148726-149384. El resumen registra 55 Visuales pedidos,
+52 realizados y 3 sin palabra con significado (5,4545%). Hay 114 sub-clips:
+107 con conceptos válidos y 7 sin conceptos; 321 etiquetas, máximo 15 caracteres.
+El log recorta etiquetas con slice(0,24) (index.ts:4118), pero ninguna alcanza
+24: no hay censura en esta muestra. La extracción se contrasta con su contador.
+Antes (tope 56): 0/321 etiquetas rechazadas, 0/107 grupos afectados.
+Después (tope 24 y alfabeto medido): 0/321 y 0/107. Impacto incremental de A.2
+por etiqueta: CERO en esta generación; no añade rechazos a los 3/55 sin palabra.
+Los 107 grupos son un SUPERCONJUNTO de los Visuales, no 107 Visuales. No se
+regeneró el vídeo ni se afirma que esta tasa describa otros guiones. Tampoco se
+confunde un MP4 realizado con la garantía de que no haya otros tipos de respaldo.
+
+**La cota entra en la puerta Y en el layout:** cabeLaEtiqueta (escena.ts:104)
+y acotarPuntos (escena.ts:744-757) consumen anchoCaja. Depende de la longitud:
+24 i y 24 @ reservan lo mismo; siete caracteres no reservan el máximo de 24.
+En estas 321 etiquetas reales: intervalos vacíos antes 0/321, después 0/321.
+El intervalo más estrecho baja de 564,894 a 286,3944 px: A.2 sí reduce espacio
+de colocación aunque todavía no active x=50 en esta muestra. NO son las 828
+entradas históricas; esta cuenta no se usa para sustituirlas sin declararlo.
+
+**El solape fotografiado NO es la rama degenerada:** foto ya versionada
+plan-a2-20260905/limite-24-arrobas.png, t=2,999 s/ciclo 3 s, memoria,
+ondas/constelacion/quieto/media/regular/archivo, voltaje, 1080×1920.
+24 @: loX=49,9476%, hiX=50,0524%; intervalo VÁLIDO de 1,13184 px.
+archivo: loX=25,0018%, hiX=74,9982%; intervalo de 539,96112 px.
+conexion: loX=26,4692%, hiX=73,5308%; intervalo de 508,26528 px.
+Se ejercitó acotarPuntos desde ambos extremos: coincide con esos intervalos.
+Centros DOM registrados: 539,421875 / 802,234375 / 531,640625 px; las dos
+primeras cajas no fueron enviadas ambas al centro por un intervalo vacío.
+La primera caja mide 897,671875 px frente a 898,94016 px reservados: en ESTE
+solape, solo 1,268285 px son sobre-reserva. Es una caja realmente ancha cruzando
+a su vecina sin una restricción entre ambas. La sobre-reserva de 24 i sigue
+siendo otra limitación real (553,00 px), pero no explica esta foto de 24 @.
+No se ha arreglado ninguna de las dos cosas.
+
+**Premisa de A.3 corregida antes de aplicar +20/+35/+50:** el commit histórico
+10000a980d6f89431eb1141d3ac262622744fe80 dice «828 palabras reales», no «828 cajas».
+La medición era de mapa (radial/malla/capas/cascada), no de acotarPuntos de escena.
+Sus 509/847 cajas fuera de zona no tienen como denominador 828 cajas. El commit
+no versionó ese corpus y la suite usa semillas sintéticas; no se ha localizado
+el fixture exacto en el repo ni en los artefactos revisados. No se inventa ni
+se traslada a otra composición. A.3 queda SIN APLICAR hasta resolver qué muestra
+se recuenta. Las 321 etiquetas de esta medición son evidencia nueva, no histórica.

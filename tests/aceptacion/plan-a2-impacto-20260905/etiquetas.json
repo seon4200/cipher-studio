@@ -1,0 +1,504 @@
+{
+  "origen": "generation-debug.log",
+  "sha256": "c29cae1fc6806ed29a1e22620eb4ea32475f6d6974926f42f877f8cd35a1bad8",
+  "inicio": 148726,
+  "fin": 149384,
+  "lineas": [
+    {
+      "linea": 148734,
+      "texto": "[2026-09-03T02:39:43.217Z] [FASE 2] CONCEPTOS lote=1 pos=0:0 kw=messy room crudo=3 saneado=OK  🧸 juguete | 📚 libro | 👕 ropa  frase=\"La segunda ley de la termodinámica nos dice que en el universo todo tiende al de\""
+    },
+    {
+      "linea": 148735,
+      "texto": "[2026-09-03T02:39:43.222Z] [FASE 2] CONCEPTOS lote=1 pos=0:1 kw=cluttered desk crudo=3 saneado=OK  🖊️ bolígrafo | 📄 papel | ☕ taza  frase=\"La segunda ley de la termodinámica nos dice que en el universo todo tiende al de\""
+    },
+    {
+      "linea": 148736,
+      "texto": "[2026-09-03T02:39:43.223Z] [FASE 2] CONCEPTOS lote=1 pos=1:0 kw=traffic jam crudo=3 saneado=OK  🚗 coche | 🚦 semáforo | 🛣️ carretera  frase=\"sistemas complejos el caos es la norma así que naturalmente es desperarse que el\""
+    },
+    {
+      "linea": 148737,
+      "texto": "[2026-09-03T02:39:43.224Z] [FASE 2] CONCEPTOS lote=1 pos=1:1 kw=crowded market crudo=3 saneado=OK  🧺 cesta | 🍎 manzana | 🏪 puesto  frase=\"sistemas complejos el caos es la norma así que naturalmente es desperarse que el\""
+    },
+    {
+      "linea": 148738,
+      "texto": "[2026-09-03T02:39:43.225Z] [FASE 2] CONCEPTOS lote=1 pos=1:2 kw=swirling leaves crudo=3 saneado=OK  🍂 hoja | 🌬️ viento | 🌳 árbol  frase=\"sistemas complejos el caos es la norma así que naturalmente es desperarse que el\""
+    },
+    {
+      "linea": 148739,
+      "texto": "[2026-09-03T02:39:43.225Z] [FASE 2] CONCEPTOS lote=1 pos=2:0 kw=metronomes on table crudo=3 saneado=OK  ⏱️ cronómetro | 🪵 madera | 🔩 tornillo  frase=\"desordenado pero aún así podemos ver ocasiones de orden espontáneo, la sincroniz\""
+    },
+    {
+      "linea": 148740,
+      "texto": "[2026-09-03T02:39:43.226Z] [FASE 2] CONCEPTOS lote=1 pos=2:1 kw=synchronized metronomes crudo=3 saneado=OK  🎚️ control | 🔊 altavoz | 📐 regla  frase=\"desordenado pero aún así podemos ver ocasiones de orden espontáneo, la sincroniz\""
+    },
+    {
+      "linea": 148741,
+      "texto": "[2026-09-03T02:39:43.227Z] [FASE 2] CONCEPTOS lote=1 pos=2:2 kw=pendulum swinging crudo=3 saneado=OK  🕰️ reloj | ⚙️ engranaje | 🔗 cadena  frase=\"desordenado pero aún así podemos ver ocasiones de orden espontáneo, la sincroniz\""
+    },
+    {
+      "linea": 148742,
+      "texto": "[2026-09-03T02:39:43.228Z] [FASE 2] CONCEPTOS lote=1 pos=3:0 kw=moon orbit animation crudo=3 saneado=OK  🌕 luna | 🪐 planeta | 🔭 telescopio  frase=\"las órbitas perfectamente a tiempo de las lunes, los destellos simultáneos de la\""
+    },
+    {
+      "linea": 148743,
+      "texto": "[2026-09-03T02:39:43.229Z] [FASE 2] CONCEPTOS lote=1 pos=3:1 kw=fireflies in forest crudo=3 saneado=OK  🐝 insecto | 🌲 pino | 🏮 linterna  frase=\"las órbitas perfectamente a tiempo de las lunes, los destellos simultáneos de la\""
+    },
+    {
+      "linea": 148744,
+      "texto": "[2026-09-03T02:39:43.230Z] [FASE 2] CONCEPTOS lote=1 pos=3:2 kw=heartbeat monitor crudo=3 saneado=OK  🫀 corazón | 📟 monitor | 🔋 batería  frase=\"las órbitas perfectamente a tiempo de las lunes, los destellos simultáneos de la\""
+    },
+    {
+      "linea": 148745,
+      "texto": "[2026-09-03T02:39:43.231Z] [FASE 2] CONCEPTOS lote=1 pos=4:0 kw=heart beating crudo=3 saneado=OK  🫀 corazón | 🩺 estetoscopio | 💊 pastilla  frase=\"latido regular de tu corazón. ¿Qué es lo que pone a estas cosas en orden a pesar\""
+    },
+    {
+      "linea": 148746,
+      "texto": "[2026-09-03T02:39:43.231Z] [FASE 2] CONCEPTOS lote=1 pos=4:1 kw=orderly bookshelf crudo=3 saneado=OK  📚 libro | 🗄️ archivador | 📏 regla  frase=\"latido regular de tu corazón. ¿Qué es lo que pone a estas cosas en orden a pesar\""
+    },
+    {
+      "linea": 148747,
+      "texto": "[2026-09-03T02:39:43.232Z] [FASE 2] CONCEPTOS lote=1 pos=5:0 kw=millennium bridge opening crudo=3 saneado=OK  🌉 puente | 🎀 lazo | 🎉 confeti  frase=\"la naturaleza al desorden? El 10 de junio del 2000 se inauguró el puente Milleni\""
+    },
+    {
+      "linea": 148748,
+      "texto": "[2026-09-03T02:39:43.233Z] [FASE 2] CONCEPTOS lote=1 pos=5:1 kw=river thames crudo=3 saneado=OK  🚤 barco | 🌊 agua | 🏙️ edificio  frase=\"la naturaleza al desorden? El 10 de junio del 2000 se inauguró el puente Milleni\""
+    },
+    {
+      "linea": 148749,
+      "texto": "[2026-09-03T02:39:43.237Z] [FASE 2] CONCEPTOS lote=1 pos=5:2 kw=crowd on bridge crudo=3 saneado=OK  👟 zapato | 🧥 abrigo | 📸 cámara  frase=\"la naturaleza al desorden? El 10 de junio del 2000 se inauguró el puente Milleni\""
+    },
+    {
+      "linea": 148750,
+      "texto": "[2026-09-03T02:39:43.238Z] [FASE 2] CONCEPTOS lote=1 pos=6:0 kw=people walking on bridge crudo=3 saneado=OK  👟 zapato | 🦯 bastón | 🎒 mochila  frase=\"el río Tamesis y generó un gran entusiasmo pero a medida que la gente se acumula\""
+    },
+    {
+      "linea": 148751,
+      "texto": "[2026-09-03T02:39:43.239Z] [FASE 2] CONCEPTOS lote=1 pos=6:1 kw=bridge swaying crudo=3 saneado=OK  🌉 puente | 🌬️ viento | 🔩 tornillo  frase=\"el río Tamesis y generó un gran entusiasmo pero a medida que la gente se acumula\""
+    },
+    {
+      "linea": 148752,
+      "texto": "[2026-09-03T02:39:43.240Z] [FASE 2] CONCEPTOS lote=1 pos=7:0 kw=police barrier crudo=3 saneado=OK  🚧 barrera | 🚓 patrulla | 🪧 letrero  frase=\"empezó a tanbaliarse hacia un lado y hacia el otro. La policía decidió restringi\""
+    },
+    {
+      "linea": 148753,
+      "texto": "[2026-09-03T02:39:43.240Z] [FASE 2] CONCEPTOS lote=1 pos=7:1 kw=bridge closed sign crudo=3 saneado=OK  ⛔ señal | 🔒 candado | 🚪 puerta  frase=\"empezó a tanbaliarse hacia un lado y hacia el otro. La policía decidió restringi\""
+    },
+    {
+      "linea": 148754,
+      "texto": "[2026-09-03T02:39:43.241Z] [FASE 2] CONCEPTOS lote=1 pos=8:0 kw=long queue crudo=3 saneado=OK  🧍 persona | 🎫 boleto | 🪑 silla  frase=\"puente pero eso solo resultó en largas filas para acceder a él y el tambaleo no \""
+    },
+    {
+      "linea": 148755,
+      "texto": "[2026-09-03T02:39:43.242Z] [FASE 2] CONCEPTOS lote=1 pos=8:1 kw=bridge still swaying crudo=3 saneado=OK  🌉 puente | 📳 vibración | 🔧 llave  frase=\"puente pero eso solo resultó en largas filas para acceder a él y el tambaleo no \""
+    },
+    {
+      "linea": 148756,
+      "texto": "[2026-09-03T02:39:43.243Z] [FASE 2] CONCEPTOS lote=1 pos=8:2 kw=broll crudo=SIN-CAMPO saneado=NULL  (sin conceptos)  frase=\"puente pero eso solo resultó en largas filas para acceder a él y el tambaleo no \""
+    },
+    {
+      "linea": 148757,
+      "texto": "[2026-09-03T02:39:43.243Z] [FASE 2] CONCEPTOS lote=1 pos=9:0 kw=bridge closed sign crudo=3 saneado=OK  ⛔ señal | 🔒 candado | 🚧 barrera  frase=\"Dos días después el puente que había costado 18 millones de libras fue clausurad\""
+    },
+    {
+      "linea": 148758,
+      "texto": "[2026-09-03T02:39:43.244Z] [FASE 2] CONCEPTOS lote=1 pos=9:1 kw=money stack crudo=3 saneado=OK  💷 billete | 🪙 moneda | 🏦 banco  frase=\"Dos días después el puente que había costado 18 millones de libras fue clausurad\""
+    },
+    {
+      "linea": 148759,
+      "texto": "[2026-09-03T02:39:43.245Z] [FASE 2] CONCEPTOS lote=1 pos=9:2 kw=construction site crudo=3 saneado=OK  🏗️ grúa | 🧱 ladrillo | 🪜 escalera  frase=\"Dos días después el puente que había costado 18 millones de libras fue clausurad\""
+    },
+    {
+      "linea": 148760,
+      "texto": "[2026-09-03T02:39:43.246Z] [FASE 2] CONCEPTOS lote=1 pos=10:0 kw=bridge closed sign crudo=3 saneado=OK  ⛔ señal | 🔒 candado | 📅 calendario  frase=\"volvería abrir hasta dentro de dos años. Pero ¿qué fue lo que falló? Bueno, se s\""
+    },
+    {
+      "linea": 148761,
+      "texto": "[2026-09-03T02:39:43.246Z] [FASE 2] CONCEPTOS lote=1 pos=10:1 kw=engineer inspecting crudo=3 saneado=OK  📐 plano | 🔍 lupa | 🪛 destornillador  frase=\"volvería abrir hasta dentro de dos años. Pero ¿qué fue lo que falló? Bueno, se s\""
+    },
+    {
+      "linea": 148762,
+      "texto": "[2026-09-03T02:39:43.247Z] [FASE 2] CONCEPTOS lote=1 pos=11:0 kw=soldiers marching crudo=3 saneado=OK  🥾 bota | 🎖️ medalla | 🪖 casco  frase=\"que los ejércitos deben romper filas al cruzar puentes. Se supo a partir de un a\""
+    },
+    {
+      "linea": 148763,
+      "texto": "[2026-09-03T02:39:43.248Z] [FASE 2] CONCEPTOS lote=1 pos=11:1 kw=bridge collapse crudo=3 saneado=OK  🌉 puente | 🧱 ladrillo | 💥 explosión  frase=\"que los ejércitos deben romper filas al cruzar puentes. Se supo a partir de un a\""
+    },
+    {
+      "linea": 148764,
+      "texto": "[2026-09-03T02:39:43.249Z] [FASE 2] CONCEPTOS lote=1 pos=11:2 kw=old newspaper crudo=3 saneado=OK  📰 periódico | 🖋️ pluma | 🕯️ vela  frase=\"que los ejércitos deben romper filas al cruzar puentes. Se supo a partir de un a\""
+    },
+    {
+      "linea": 148765,
+      "texto": "[2026-09-03T02:39:43.249Z] [FASE 2] CONCEPTOS lote=2 pos=12:0 kw=soldiers marching crudo=3 saneado=OK  🥾 bota militar | 🌉 puente colgante | 🎖️ medalla  frase=\"cuando 74 hombres del Riffle Corp 60 marcharon a través del puente colgante de V\""
+    },
+    {
+      "linea": 148766,
+      "texto": "[2026-09-03T02:39:43.250Z] [FASE 2] CONCEPTOS lote=2 pos=12:1 kw=bridge crossing crudo=3 saneado=OK  🌉 puente | 🚶 marcha | 🏞️ río  frase=\"cuando 74 hombres del Riffle Corp 60 marcharon a través del puente colgante de V\""
+    },
+    {
+      "linea": 148767,
+      "texto": "[2026-09-03T02:39:43.252Z] [FASE 2] CONCEPTOS lote=2 pos=13:0 kw=bridge collapse crudo=3 saneado=OK  🌉 puente | 💥 colapso | 🌊 río  frase=\"norte de Inglaterra. El puente colapsó bajo sus pasos sincronizados, 60 hombres \""
+    },
+    {
+      "linea": 148768,
+      "texto": "[2026-09-03T02:39:43.253Z] [FASE 2] CONCEPTOS lote=2 pos=13:1 kw=men falling crudo=3 saneado=OK  🪖 casco | 🌊 agua | 🆘 rescate  frase=\"norte de Inglaterra. El puente colapsó bajo sus pasos sincronizados, 60 hombres \""
+    },
+    {
+      "linea": 148769,
+      "texto": "[2026-09-03T02:39:43.254Z] [FASE 2] CONCEPTOS lote=2 pos=14:0 kw=injured soldiers crudo=3 saneado=OK  🩹 vendaje | 🦴 hueso | 🏥 hospital  frase=\"20 de los cuales sufrieron heridas como roturas de huesos o contusiones, afortun\""
+    },
+    {
+      "linea": 148770,
+      "texto": "[2026-09-03T02:39:43.255Z] [FASE 2] CONCEPTOS lote=2 pos=14:1 kw=medical aid crudo=3 saneado=OK  💊 medicina | 🩺 estetoscopio | 🚑 ambulancia  frase=\"20 de los cuales sufrieron heridas como roturas de huesos o contusiones, afortun\""
+    },
+    {
+      "linea": 148771,
+      "texto": "[2026-09-03T02:39:43.256Z] [FASE 2] CONCEPTOS lote=2 pos=15:0 kw=military order crudo=3 saneado=OK  📜 orden | 🪖 casco | 🏰 cuartel  frase=\"fallecidos. Pero luego de este incidente la armada británica ordenó a todas las \""
+    },
+    {
+      "linea": 148772,
+      "texto": "[2026-09-03T02:39:43.256Z] [FASE 2] CONCEPTOS lote=2 pos=15:1 kw=breaking ranks crudo=3 saneado=OK  🚶 fila | 🌉 puente | 🛑 alto  frase=\"fallecidos. Pero luego de este incidente la armada británica ordenó a todas las \""
+    },
+    {
+      "linea": 148773,
+      "texto": "[2026-09-03T02:39:43.257Z] [FASE 2] CONCEPTOS lote=2 pos=16:0 kw=millennium bridge crudo=3 saneado=OK  🌉 puente | 🚶 peatón | 🏙️ ciudad  frase=\"filas a la hora de cruzar puentes. Ahora observa a la gente cruzando el puente M\""
+    },
+    {
+      "linea": 148774,
+      "texto": "[2026-09-03T02:39:43.258Z] [FASE 2] CONCEPTOS lote=2 pos=16:1 kw=crowd walking crudo=3 saneado=OK  👟 zapatilla | 🚶 multitud | 🌉 puente  frase=\"filas a la hora de cruzar puentes. Ahora observa a la gente cruzando el puente M\""
+    },
+    {
+      "linea": 148775,
+      "texto": "[2026-09-03T02:39:43.259Z] [FASE 2] CONCEPTOS lote=2 pos=17:0 kw=synchronized walking crudo=3 saneado=OK  👟 zapatilla | 🚶 caminata | 🎵 ritmo  frase=\"está caminando de manera sincronizada con los demás. Pero no son parte de un ejé\""
+    },
+    {
+      "linea": 148776,
+      "texto": "[2026-09-03T02:39:43.260Z] [FASE 2] CONCEPTOS lote=2 pos=17:1 kw=ordinary people crudo=3 saneado=OK  🧥 abrigo | 👜 bolso | 🚶 peatón  frase=\"está caminando de manera sincronizada con los demás. Pero no son parte de un ejé\""
+    },
+    {
+      "linea": 148777,
+      "texto": "[2026-09-03T02:39:43.260Z] [FASE 2] CONCEPTOS lote=2 pos=17:2 kw=not an army crudo=3 saneado=OK  🪖 casco | 🚫 prohibido | 👥 grupo  frase=\"está caminando de manera sincronizada con los demás. Pero no son parte de un ejé\""
+    },
+    {
+      "linea": 148778,
+      "texto": "[2026-09-03T02:39:43.261Z] [FASE 2] CONCEPTOS lote=2 pos=18:0 kw=random society crudo=3 saneado=OK  🏙️ ciudad | 🚶 peatón | 🧍 persona  frase=\"aleatorios de la sociedad entonces ¿por qué caminan juntos? Y ¿por qué un puente\""
+    },
+    {
+      "linea": 148779,
+      "texto": "[2026-09-03T02:39:43.262Z] [FASE 2] CONCEPTOS lote=2 pos=18:1 kw=walking together crudo=3 saneado=OK  👟 zapatilla | 🚶 caminata | 🌉 puente  frase=\"aleatorios de la sociedad entonces ¿por qué caminan juntos? Y ¿por qué un puente\""
+    },
+    {
+      "linea": 148780,
+      "texto": "[2026-09-03T02:39:43.262Z] [FASE 2] CONCEPTOS lote=2 pos=18:2 kw=modern bridge crudo=3 saneado=OK  🌉 puente | 🏗️ construcción | 📐 plano  frase=\"aleatorios de la sociedad entonces ¿por qué caminan juntos? Y ¿por qué un puente\""
+    },
+    {
+      "linea": 148781,
+      "texto": "[2026-09-03T02:39:43.263Z] [FASE 2] CONCEPTOS lote=2 pos=19:0 kw=heavy traffic crudo=3 saneado=OK  🚶 multitud | 🌉 puente | 🚦 semáforo  frase=\"para tráfico pesado de transeuntes no puede tolerarlo? Bien, para entenderlo deb\""
+    },
+    {
+      "linea": 148782,
+      "texto": "[2026-09-03T02:39:43.264Z] [FASE 2] CONCEPTOS lote=2 pos=19:1 kw=bridge tolerance crudo=3 saneado=OK  📏 medida | 🏗️ estructura | ⚠️ advertencia  frase=\"para tráfico pesado de transeuntes no puede tolerarlo? Bien, para entenderlo deb\""
+    },
+    {
+      "linea": 148783,
+      "texto": "[2026-09-03T02:39:43.264Z] [FASE 2] CONCEPTOS lote=2 pos=19:2 kw=350 years ago crudo=3 saneado=OK  📜 pergamino | 🕰️ reloj antiguo | 🏰 castillo  frase=\"para tráfico pesado de transeuntes no puede tolerarlo? Bien, para entenderlo deb\""
+    },
+    {
+      "linea": 148784,
+      "texto": "[2026-09-03T02:39:43.265Z] [FASE 2] CONCEPTOS lote=2 pos=19:3 kw=broll crudo=SIN-CAMPO saneado=NULL  (sin conceptos)  frase=\"para tráfico pesado de transeuntes no puede tolerarlo? Bien, para entenderlo deb\""
+    },
+    {
+      "linea": 148785,
+      "texto": "[2026-09-03T02:39:43.266Z] [FASE 2] CONCEPTOS lote=2 pos=20:0 kw=christiaan huygens crudo=3 saneado=OK  👨‍🔬 científico | 📜 documento | 🕰️ reloj  frase=\"En 1656 el famoso físico holandés Cristian Hoygens creó el primer reloj con Pénd\""
+    },
+    {
+      "linea": 148786,
+      "texto": "[2026-09-03T02:39:43.267Z] [FASE 2] CONCEPTOS lote=2 pos=20:1 kw=pendulum clock crudo=3 saneado=OK  🕰️ reloj | ⚖️ péndulo | 🔩 tornillo  frase=\"En 1656 el famoso físico holandés Cristian Hoygens creó el primer reloj con Pénd\""
+    },
+    {
+      "linea": 148787,
+      "texto": "[2026-09-03T02:39:43.268Z] [FASE 2] CONCEPTOS lote=2 pos=20:2 kw=functional pendulum crudo=3 saneado=OK  ⚙️ engranaje | 🕰️ reloj | ⏱️ cronómetro  frase=\"En 1656 el famoso físico holandés Cristian Hoygens creó el primer reloj con Pénd\""
+    },
+    {
+      "linea": 148788,
+      "texto": "[2026-09-03T02:39:43.270Z] [FASE 2] CONCEPTOS lote=2 pos=21:0 kw=sailors navigation crudo=3 saneado=OK  ⛵ velero | 🧭 brújula | 🗺️ mapa  frase=\"Su objetivo era ayudar a los marinos a saber en qué parte del mundo se hallaban.\""
+    },
+    {
+      "linea": 148789,
+      "texto": "[2026-09-03T02:39:43.272Z] [FASE 2] CONCEPTOS lote=2 pos=21:1 kw=latitude measurement crudo=3 saneado=OK  🌞 sol | ⭐ estrella | 📐 sextante  frase=\"Su objetivo era ayudar a los marinos a saber en qué parte del mundo se hallaban.\""
+    },
+    {
+      "linea": 148790,
+      "texto": "[2026-09-03T02:39:43.272Z] [FASE 2] CONCEPTOS lote=2 pos=22:0 kw=measuring sun crudo=3 saneado=OK  🌞 sol | 📐 sextante | 🌊 mar  frase=\"ser determinada al medir la posición del solo las estrellas, pero para la longit\""
+    },
+    {
+      "linea": 148791,
+      "texto": "[2026-09-03T02:39:43.273Z] [FASE 2] CONCEPTOS lote=2 pos=22:1 kw=longitude problem crudo=3 saneado=OK  🗺️ mapa | 🧭 brújula | ⏱️ cronómetro  frase=\"ser determinada al medir la posición del solo las estrellas, pero para la longit\""
+    },
+    {
+      "linea": 148792,
+      "texto": "[2026-09-03T02:39:43.274Z] [FASE 2] CONCEPTOS lote=2 pos=23:0 kw=fixed location time crudo=3 saneado=OK  🕰️ reloj | 🏠 puerto | 🗺️ mapa  frase=\"necesita saber el horario en la locación fija, por ejemplo tu puerto de origen. \""
+    },
+    {
+      "linea": 148793,
+      "texto": "[2026-09-03T02:39:43.275Z] [FASE 2] CONCEPTOS lote=2 pos=23:1 kw=port of origin crudo=3 saneado=OK  ⚓ ancla | ⛵ barco | 🏙️ ciudad  frase=\"necesita saber el horario en la locación fija, por ejemplo tu puerto de origen. \""
+    },
+    {
+      "linea": 148794,
+      "texto": "[2026-09-03T02:39:43.276Z] [FASE 2] CONCEPTOS lote=3 pos=24:0 kw=old clock face crudo=3 saneado=OK  🕰️ reloj | 📅 calendario | ⏳ retraso  frase=\"de ese momento se retrasaban hasta 15 minutos cada día, por lo que eran inútiles\""
+    },
+    {
+      "linea": 148795,
+      "texto": "[2026-09-03T02:39:43.277Z] [FASE 2] CONCEPTOS lote=3 pos=24:1 kw=pendulum clock crudo=3 saneado=OK  🕰️ péndulo | ⚙️ engranaje | ⏱️ cronómetro  frase=\"de ese momento se retrasaban hasta 15 minutos cada día, por lo que eran inútiles\""
+    },
+    {
+      "linea": 148796,
+      "texto": "[2026-09-03T02:39:43.278Z] [FASE 2] CONCEPTOS lote=3 pos=25:0 kw=pendulum swinging crudo=3 saneado=OK  🕰️ péndulo | ⏱️ cronómetro | 📐 precisión  frase=\"precisión de los relojes de Péndulo de Hoygens era de entre 10 y 15 segundos por\""
+    },
+    {
+      "linea": 148797,
+      "texto": "[2026-09-03T02:39:43.278Z] [FASE 2] CONCEPTOS lote=3 pos=25:1 kw=clock mechanism crudo=3 saneado=OK  ⚙️ engranaje | 🔩 tornillo | 🕰️ reloj  frase=\"precisión de los relojes de Péndulo de Hoygens era de entre 10 y 15 segundos por\""
+    },
+    {
+      "linea": 148798,
+      "texto": "[2026-09-03T02:39:43.279Z] [FASE 2] CONCEPTOS lote=3 pos=25:2 kw=ship deck crudo=3 saneado=OK  ⛵ barco | 🌊 mar | 🪢 cuerda  frase=\"precisión de los relojes de Péndulo de Hoygens era de entre 10 y 15 segundos por\""
+    },
+    {
+      "linea": 148799,
+      "texto": "[2026-09-03T02:39:43.280Z] [FASE 2] CONCEPTOS lote=3 pos=26:0 kw=heavy weight hanging crudo=3 saneado=OK  🏋️ pesa | 🪝 gancho | ⛵ barco  frase=\"Hoygens era atar sus relojes a una más apesada colgada en la embarcación para qu\""
+    },
+    {
+      "linea": 148800,
+      "texto": "[2026-09-03T02:39:43.280Z] [FASE 2] CONCEPTOS lote=3 pos=26:1 kw=clock on ship crudo=3 saneado=OK  🕰️ reloj | 🌊 olas | ⚓ ancla  frase=\"Hoygens era atar sus relojes a una más apesada colgada en la embarcación para qu\""
+    },
+    {
+      "linea": 148801,
+      "texto": "[2026-09-03T02:39:43.281Z] [FASE 2] CONCEPTOS lote=3 pos=27:0 kw=two clocks side by side crudo=3 saneado=OK  🕰️ reloj | 🕰️ reloj | 📦 caja  frase=\"sacudidos por las fuertes mareas. Su plan requería de dos relojes en caso de que\""
+    },
+    {
+      "linea": 148802,
+      "texto": "[2026-09-03T02:39:43.282Z] [FASE 2] CONCEPTOS lote=3 pos=27:1 kw=broken clock crudo=3 saneado=OK  🔧 llave | ⚙️ engranaje | 🕰️ reloj  frase=\"sacudidos por las fuertes mareas. Su plan requería de dos relojes en caso de que\""
+    },
+    {
+      "linea": 148803,
+      "texto": "[2026-09-03T02:39:43.283Z] [FASE 2] CONCEPTOS lote=3 pos=27:2 kw=stormy sea crudo=3 saneado=OK  🌊 olas | ⛈️ tormenta | ⛵ barco  frase=\"sacudidos por las fuertes mareas. Su plan requería de dos relojes en caso de que\""
+    },
+    {
+      "linea": 148804,
+      "texto": "[2026-09-03T02:39:43.284Z] [FASE 2] CONCEPTOS lote=3 pos=28:0 kw=sick person in bed crudo=3 saneado=OK  🛏️ cama | 🤒 termómetro | 💊 medicina  frase=\"se dañara, pero al probar este mecanismo, estando enfermo en su casa en febrero \""
+    },
+    {
+      "linea": 148805,
+      "texto": "[2026-09-03T02:39:43.285Z] [FASE 2] CONCEPTOS lote=3 pos=28:1 kw=clock mechanism testing crudo=3 saneado=OK  🕰️ reloj | 🔧 herramienta | ⚙️ engranaje  frase=\"se dañara, pero al probar este mecanismo, estando enfermo en su casa en febrero \""
+    },
+    {
+      "linea": 148806,
+      "texto": "[2026-09-03T02:39:43.286Z] [FASE 2] CONCEPTOS lote=3 pos=28:2 kw=discovery moment crudo=3 saneado=OK  💡 bombilla | 📝 cuaderno | 🔍 lupa  frase=\"se dañara, pero al probar este mecanismo, estando enfermo en su casa en febrero \""
+    },
+    {
+      "linea": 148807,
+      "texto": "[2026-09-03T02:39:43.287Z] [FASE 2] CONCEPTOS lote=3 pos=29:0 kw=wooden stick on chairs crudo=3 saneado=OK  🪵 vara | 🪑 silla | 🕰️ reloj  frase=\"algo revelador. Dos de sus relojes colgaban de una vara de madera cruzada sobre \""
+    },
+    {
+      "linea": 148808,
+      "texto": "[2026-09-03T02:39:43.288Z] [FASE 2] CONCEPTOS lote=3 pos=29:1 kw=two clocks hanging crudo=3 saneado=OK  🕰️ reloj | 🕰️ reloj | 🪢 cuerda  frase=\"algo revelador. Dos de sus relojes colgaban de una vara de madera cruzada sobre \""
+    },
+    {
+      "linea": 148809,
+      "texto": "[2026-09-03T02:39:43.289Z] [FASE 2] CONCEPTOS lote=3 pos=29:2 kw=broll crudo=SIN-CAMPO saneado=NULL  (sin conceptos)  frase=\"algo revelador. Dos de sus relojes colgaban de una vara de madera cruzada sobre \""
+    },
+    {
+      "linea": 148810,
+      "texto": "[2026-09-03T02:39:43.290Z] [FASE 2] CONCEPTOS lote=3 pos=30:0 kw=pendulum swinging crudo=3 saneado=OK  🕰️ péndulo | ⏱️ cronómetro | 👀 observación  frase=\"observando cómo los Péndulos socilaban durante horas, descubrió que luego de la \""
+    },
+    {
+      "linea": 148811,
+      "texto": "[2026-09-03T02:39:43.290Z] [FASE 2] CONCEPTOS lote=3 pos=30:1 kw=clock hands moving crudo=3 saneado=OK  🕰️ reloj | 🕐 hora | 📊 gráfico  frase=\"observando cómo los Péndulos socilaban durante horas, descubrió que luego de la \""
+    },
+    {
+      "linea": 148812,
+      "texto": "[2026-09-03T02:39:43.291Z] [FASE 2] CONCEPTOS lote=3 pos=31:0 kw=synchronized pendulums crudo=3 saneado=OK  🕰️ péndulo | 🕰️ péndulo | 🔗 sincronía  frase=\"hora se sincronizaron de forma espontánea. Cuando un relojo sílaba hacia un lado\""
+    },
+    {
+      "linea": 148813,
+      "texto": "[2026-09-03T02:39:43.292Z] [FASE 2] CONCEPTOS lote=3 pos=31:1 kw=pendulum opposite swing crudo=3 saneado=OK  🕰️ péndulo | ↔️ oscilación | ⚖️ balanza  frase=\"hora se sincronizaron de forma espontánea. Cuando un relojo sílaba hacia un lado\""
+    },
+    {
+      "linea": 148814,
+      "texto": "[2026-09-03T02:39:43.293Z] [FASE 2] CONCEPTOS lote=3 pos=32:0 kw=tick tock sound crudo=3 saneado=OK  🕰️ reloj | 🔊 sonido | 🎵 ritmo  frase=\"o sílaba hacia el lado opuesto. Cuando uno hacía tic, el otro se atoc. Así que i\""
+    },
+    {
+      "linea": 148815,
+      "texto": "[2026-09-03T02:39:43.293Z] [FASE 2] CONCEPTOS lote=3 pos=32:1 kw=breaking synchronization crudo=3 saneado=OK  🔨 martillo | 🕰️ reloj | 💥 ruptura  frase=\"o sílaba hacia el lado opuesto. Cuando uno hacía tic, el otro se atoc. Así que i\""
+    },
+    {
+      "linea": 148816,
+      "texto": "[2026-09-03T02:39:43.294Z] [FASE 2] CONCEPTOS lote=3 pos=33:0 kw=desynchronized clocks crudo=3 saneado=OK  🕰️ reloj | 🕰️ reloj | ↔️ desincronía  frase=\"esa sincronización. Los configuró de modo desincronizado, pero una vez más, lueg\""
+    },
+    {
+      "linea": 148817,
+      "texto": "[2026-09-03T02:39:43.295Z] [FASE 2] CONCEPTOS lote=3 pos=33:1 kw=clock adjustment crudo=3 saneado=OK  🔧 herramienta | ⚙️ engranaje | 🕰️ reloj  frase=\"esa sincronización. Los configuró de modo desincronizado, pero una vez más, lueg\""
+    },
+    {
+      "linea": 148818,
+      "texto": "[2026-09-03T02:39:43.296Z] [FASE 2] CONCEPTOS lote=3 pos=34:0 kw=clocks resynchronizing crudo=3 saneado=OK  🕰️ reloj | 🕰️ reloj | 🔗 sincronía  frase=\"media hora, volvieron a su dinámica sincronizada. Hoygens creyó que esta extraña\""
+    },
+    {
+      "linea": 148819,
+      "texto": "[2026-09-03T02:39:43.296Z] [FASE 2] CONCEPTOS lote=3 pos=34:1 kw=air current between pendulum crudo=3 saneado=OK  🌬️ viento | 🕰️ péndulo | 💨 corriente  frase=\"media hora, volvieron a su dinámica sincronizada. Hoygens creyó que esta extraña\""
+    },
+    {
+      "linea": 148820,
+      "texto": "[2026-09-03T02:39:43.297Z] [FASE 2] CONCEPTOS lote=3 pos=35:0 kw=placing wooden board crudo=3 saneado=OK  🪵 tabla | 🪑 silla | 🕰️ reloj  frase=\"relojes fue generada por corrientes de aire entre los Péndulos, por lo que coloc\""
+    },
+    {
+      "linea": 148821,
+      "texto": "[2026-09-03T02:39:43.298Z] [FASE 2] CONCEPTOS lote=3 pos=35:1 kw=pendulums separated crudo=3 saneado=OK  🕰️ péndulo | 🕰️ péndulo | 🧱 barrera  frase=\"relojes fue generada por corrientes de aire entre los Péndulos, por lo que coloc\""
+    },
+    {
+      "linea": 148822,
+      "texto": "[2026-09-03T02:39:43.298Z] [FASE 2] CONCEPTOS lote=4 pos=36:0 kw=synchronized pendulum clocks crudo=3 saneado=OK  🕰️ reloj | 🌬️ aire | 🪵 madera  frase=\"ellos. Sin embargo, los relojes siguieron sincronizándose. No eran las corriente\""
+    },
+    {
+      "linea": 148823,
+      "texto": "[2026-09-03T02:39:43.299Z] [FASE 2] CONCEPTOS lote=4 pos=36:1 kw=clock hands moving together crudo=3 saneado=OK  🕰️ reloj | ⚙️ engranaje | 🪵 madera  frase=\"ellos. Sin embargo, los relojes siguieron sincronizándose. No eran las corriente\""
+    },
+    {
+      "linea": 148824,
+      "texto": "[2026-09-03T02:39:43.300Z] [FASE 2] CONCEPTOS lote=4 pos=36:2 kw=broll crudo=SIN-CAMPO saneado=NULL  (sin conceptos)  frase=\"ellos. Sin embargo, los relojes siguieron sincronizándose. No eran las corriente\""
+    },
+    {
+      "linea": 148825,
+      "texto": "[2026-09-03T02:39:43.301Z] [FASE 2] CONCEPTOS lote=4 pos=37:0 kw=separating two clocks crudo=3 saneado=OK  🕰️ reloj | 📏 regla | 🪵 madera  frase=\"Al separar los relojes, la sincronización desaparecía y sus tiempos se distancia\""
+    },
+    {
+      "linea": 148826,
+      "texto": "[2026-09-03T02:39:43.302Z] [FASE 2] CONCEPTOS lote=4 pos=37:1 kw=clock hands drifting apart crudo=3 saneado=OK  🕰️ reloj | ⏱️ cronómetro | 📐 escuadra  frase=\"Al separar los relojes, la sincronización desaparecía y sus tiempos se distancia\""
+    },
+    {
+      "linea": 148827,
+      "texto": "[2026-09-03T02:39:43.303Z] [FASE 2] CONCEPTOS lote=4 pos=38:0 kw=bringing clocks closer toget crudo=3 saneado=OK  🕰️ reloj | 🪵 madera | 🔩 tornillo  frase=\"pero al volver a acercarlos, la sincronización regresaba. Hoygens se dio cuenta \""
+    },
+    {
+      "linea": 148828,
+      "texto": "[2026-09-03T02:39:43.304Z] [FASE 2] CONCEPTOS lote=4 pos=38:1 kw=pendulums swinging in sync crudo=3 saneado=OK  🕰️ reloj | ⚙️ engranaje | 🪵 madera  frase=\"pero al volver a acercarlos, la sincronización regresaba. Hoygens se dio cuenta \""
+    },
+    {
+      "linea": 148829,
+      "texto": "[2026-09-03T02:39:43.305Z] [FASE 2] CONCEPTOS lote=4 pos=39:0 kw=wooden bar connecting clocks crudo=3 saneado=OK  🪵 madera | 🕰️ reloj | 🔩 tornillo  frase=\"estaban sincronizándose porque estaban pulgados de la misma vara de madera. Esta\""
+    },
+    {
+      "linea": 148830,
+      "texto": "[2026-09-03T02:39:43.306Z] [FASE 2] CONCEPTOS lote=4 pos=39:1 kw=vibration traveling through  crudo=3 saneado=OK  🪵 madera | 〰️ onda | 🔊 altavoz  frase=\"estaban sincronizándose porque estaban pulgados de la misma vara de madera. Esta\""
+    },
+    {
+      "linea": 148831,
+      "texto": "[2026-09-03T02:39:43.307Z] [FASE 2] CONCEPTOS lote=4 pos=40:0 kw=mechanical vibration transfe crudo=3 saneado=OK  ⚙️ engranaje | 🪵 madera | 🕰️ reloj  frase=\"vibraciones mecánicas de un reloja a otro, logrando que los dos osciladores se e\""
+    },
+    {
+      "linea": 148832,
+      "texto": "[2026-09-03T02:39:43.307Z] [FASE 2] CONCEPTOS lote=4 pos=40:1 kw=oscillators matching rhythm crudo=3 saneado=OK  🕰️ reloj | 🔊 altavoz | 〰️ onda  frase=\"vibraciones mecánicas de un reloja a otro, logrando que los dos osciladores se e\""
+    },
+    {
+      "linea": 148833,
+      "texto": "[2026-09-03T02:39:43.308Z] [FASE 2] CONCEPTOS lote=4 pos=41:0 kw=scientist observing clocks crudo=3 saneado=OK  🔬 microscopio | 🕰️ reloj | 📓 cuaderno  frase=\"El fue el primero en observar este tipo de sincronizaciones pontáneas en objetos\""
+    },
+    {
+      "linea": 148834,
+      "texto": "[2026-09-03T02:39:43.309Z] [FASE 2] CONCEPTOS lote=4 pos=41:1 kw=inanimate objects synchroniz crudo=3 saneado=OK  🕰️ reloj | ⚙️ engranaje | 🪵 madera  frase=\"El fue el primero en observar este tipo de sincronizaciones pontáneas en objetos\""
+    },
+    {
+      "linea": 148835,
+      "texto": "[2026-09-03T02:39:43.310Z] [FASE 2] CONCEPTOS lote=4 pos=42:0 kw=old scientific notes crudo=3 saneado=OK  📓 cuaderno | 🖋️ pluma | 🔬 microscopio  frase=\"y a pesar de haber descripto cualitativamente lo que estaba sucediendo, fue hace\""
+    },
+    {
+      "linea": 148836,
+      "texto": "[2026-09-03T02:39:43.310Z] [FASE 2] CONCEPTOS lote=4 pos=42:1 kw=modern laboratory equipment crudo=3 saneado=OK  🔬 microscopio | 🧪 tubo | 💻 computadora  frase=\"y a pesar de haber descripto cualitativamente lo que estaba sucediendo, fue hace\""
+    },
+    {
+      "linea": 148837,
+      "texto": "[2026-09-03T02:39:43.311Z] [FASE 2] CONCEPTOS lote=4 pos=43:0 kw=scientists building theory crudo=3 saneado=OK  📚 libro | 🔬 microscopio | 📝 papel  frase=\"décadas que los científicos comenzaron a construir una teoría rigurosa acerca de\""
+    },
+    {
+      "linea": 148838,
+      "texto": "[2026-09-03T02:39:43.312Z] [FASE 2] CONCEPTOS lote=4 pos=43:1 kw=mathematical equations on bo crudo=3 saneado=OK  🧮 ábaco | 📐 escuadra | 🖊️ bolígrafo  frase=\"décadas que los científicos comenzaron a construir una teoría rigurosa acerca de\""
+    },
+    {
+      "linea": 148839,
+      "texto": "[2026-09-03T02:39:43.313Z] [FASE 2] CONCEPTOS lote=4 pos=43:2 kw=broll crudo=SIN-CAMPO saneado=NULL  (sin conceptos)  frase=\"décadas que los científicos comenzaron a construir una teoría rigurosa acerca de\""
+    },
+    {
+      "linea": 148840,
+      "texto": "[2026-09-03T02:39:43.314Z] [FASE 2] CONCEPTOS lote=4 pos=44:0 kw=metronomes on platform crudo=3 saneado=OK  🎚️ metrónomo | 🪵 madera | 🔩 tornillo  frase=\"Tal vez vieron esta demostración, con varios metrónomos en una plataforma leveme\""
+    },
+    {
+      "linea": 148841,
+      "texto": "[2026-09-03T02:39:43.314Z] [FASE 2] CONCEPTOS lote=4 pos=44:1 kw=platform slightly tilted crudo=3 saneado=OK  🪵 madera | 📐 escuadra | 🎚️ metrónomo  frase=\"Tal vez vieron esta demostración, con varios metrónomos en una plataforma leveme\""
+    },
+    {
+      "linea": 148842,
+      "texto": "[2026-09-03T02:39:43.315Z] [FASE 2] CONCEPTOS lote=4 pos=45:0 kw=metronomes starting out of s crudo=3 saneado=OK  🎚️ metrónomo | 🪵 madera | 🔊 altavoz  frase=\"tan valiante que comienzan de sincronizadamente.\""
+    },
+    {
+      "linea": 148843,
+      "texto": "[2026-09-03T02:39:43.316Z] [FASE 2] CONCEPTOS lote=4 pos=45:1 kw=broll crudo=SIN-CAMPO saneado=NULL  (sin conceptos)  frase=\"tan valiante que comienzan de sincronizadamente.\""
+    },
+    {
+      "linea": 148844,
+      "texto": "[2026-09-03T02:39:43.316Z] [FASE 2] CONCEPTOS lote=4 pos=45:2 kw=broll crudo=SIN-CAMPO saneado=NULL  (sin conceptos)  frase=\"tan valiante que comienzan de sincronizadamente.\""
+    },
+    {
+      "linea": 148845,
+      "texto": "[2026-09-03T02:39:43.317Z] [FASE 2] CONCEPTOS lote=4 pos=46:0 kw=complex mechanism close-up crudo=3 saneado=OK  ⚙️ engranaje | 🔩 tornillo | 🪵 madera  frase=\"Es más complicado de lo que parece. De todas maneras, cuando logras que funcione\""
+    },
+    {
+      "linea": 148846,
+      "texto": "[2026-09-03T02:39:43.318Z] [FASE 2] CONCEPTOS lote=4 pos=46:1 kw=metronomes achieving sync crudo=3 saneado=OK  🎚️ metrónomo | 🪵 madera | 🔊 altavoz  frase=\"Es más complicado de lo que parece. De todas maneras, cuando logras que funcione\""
+    },
+    {
+      "linea": 148847,
+      "texto": "[2026-09-03T02:39:43.319Z] [FASE 2] CONCEPTOS lote=4 pos=46:2 kw=magical synchronized motion crudo=3 saneado=OK  🎚️ metrónomo | ✨ destello | 🪵 madera  frase=\"Es más complicado de lo que parece. De todas maneras, cuando logras que funcione\""
+    },
+    {
+      "linea": 148848,
+      "texto": "[2026-09-03T02:39:43.320Z] [FASE 2] CONCEPTOS: 114 sub-clips | 107 con 3 validos | 7 NULL causa (a): el campo \"conceptos\" no venia | 0 NULL causa (b): venia con <3 validos tras saneo"
+    },
+    {
+      "linea": 148853,
+      "texto": "[2026-09-03T02:39:43.327Z] [FASE 3] 3 de 55 Visuales sin palabra con significado en su tramo: pasan a original."
+    },
+    {
+      "linea": 149377,
+      "texto": "[2026-09-03T02:43:02.489Z] [RESUMEN]   IA: se pidieron 0 y salieron 0"
+    },
+    {
+      "linea": 149378,
+      "texto": "[2026-09-03T02:43:02.489Z] [RESUMEN] Resumen de la generación: 114 clips."
+    },
+    {
+      "linea": 149379,
+      "texto": "[2026-09-03T02:43:02.489Z] [RESUMEN]   Visual: se pidieron 55 y salieron 52  (-3)"
+    },
+    {
+      "linea": 149380,
+      "texto": "[2026-09-03T02:43:02.489Z] [RESUMEN]   stock: se pidieron 34 y salieron 34"
+    },
+    {
+      "linea": 149381,
+      "texto": "[2026-09-03T02:43:02.489Z] [RESUMEN]   original: se pidieron 25 y salieron 25"
+    },
+    {
+      "linea": 149382,
+      "texto": "[2026-09-03T02:43:02.489Z] [RESUMEN] 3 clips no salieron como se pidió y se rellenaron con otra cosa:"
+    },
+    {
+      "linea": 149383,
+      "texto": "[2026-09-03T02:43:02.489Z] [RESUMEN] El vídeo NO salió como se pidió. Revisa los avisos de arriba antes de exportar."
+    },
+    {
+      "linea": 149384,
+      "texto": "[2026-09-03T02:43:02.489Z] [RESUMEN]   3 — Visuales sin ninguna palabra con significado en su tramo de audio"
+    }
+  ]
+}
