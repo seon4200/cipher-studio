@@ -23,8 +23,10 @@ modelo y CSS históricos quedan como en master d0dae0d; la cota por fuente de
 escena deja de importarse por mapa. No se retira mapa ni se amplía su texto
 para reparar una suite. Evidencia del acoplamiento y del sondeo: deuda-graficos.md,
 A.3; instrumentos y corpus en tests/aceptacion/README-solapes-a3.md.
-Tamaño elegido de escena: +20%, porque +35 añade un solape entre cajas en los
-107 grupos reales ensayados. Procedencia: 4c3c060 + A.3/T8, SHA en los JSON.
+~~Tamaño elegido: +20%.~~ Retirado el 05/09/2026: el control real de 17 se
+solapa a +20 aunque las 321 no. Se elige +7%, sin pares en control ni muestra;
++8% ya intersecta el control. No se confunde aumento pequeño con legibilidad
+resuelta. Procedencia: 35a9ca8 + corrección, README-solapes-a3.md y JSON con SHA.
 Esta decisión no cierra A.4/A.5 ni certifica legibilidad fuera de la muestra.
 
 ---

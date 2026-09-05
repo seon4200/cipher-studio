@@ -185,3 +185,13 @@ A.4/A.5 y cierre completo de A siguen pendientes. No se declara M3 global verde:
 el control extremo de la hoja aún muestra vecindad sin resolver.
 Verificación A.3/T8: tsc exit 0, build por ficheros y 9/9 en clon consumido;
 bloqueo de mapa cerrado sin rebajar capas. Cierre de A aún NO declarado.
+
+**Rectificación del propio ejecutor, 05/09/2026:** +20% tampoco es el tamaño
+definitivo: el control responsabilidades/archivo pasa de cero solape en base
+a 21.83% de la caja menor, alcanzando texto. Era incorrecto elegir usando SOLO
+las 321 (máximo 15). El commit 35a9ca8 se conserva como decisión retirada.
++7% no solapa ni ese control ni los 107 grupos, en los 91 instantes; +8% ya
+intersecta el control. Queda +7% (33.5124 px), no +20. Es un aumento pequeño,
+no una declaración de legibilidad resuelta. Evidencia en README-solapes-a3.md,
+plan-a3-control17-20260905 y plan-a3-pares7-20260905; código 35a9ca8 + arnés
+y literal fuenteCqmin=3.103, con SHA de bundle en plan-a3-mas7-20260905.

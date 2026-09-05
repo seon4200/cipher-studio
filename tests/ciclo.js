@@ -573,7 +573,7 @@ function conceptos (bundle) {
   const limiteCaja = bundle.MAX_CARACTERES_ETIQUETA
   // A.3 aumenta SOLO el tamano. No se reescribe la evidencia historica de A.2.
   // Se ata el registro a la medicion del CSS aplicado y a SU asset, sin DOM en la suite.
-  const medicionA3 = require('./aceptacion/plan-a3-mas20-20260905/medidas.json')
+  const medicionA3 = require('./aceptacion/plan-a3-mas7-20260905/medidas.json')
   const filaA3 = medicionA3.filas[0]
   const cajasMedidas = { modelo: filaA3, casos: filaA3.casos, barrido: [],
     fuenteSHA256: medicionA3.condiciones.fuenteSHA256 }

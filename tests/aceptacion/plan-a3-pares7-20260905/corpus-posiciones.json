@@ -1,0 +1,7126 @@
+{
+  "procedencia": {
+    "proyecto": "proyectos\\video-3-1788402898964\\project-state.json",
+    "proyectoSHA256": "cb2b4088692c6c08afb69e9e145ff87297726d4ee5d62f5afecaac76addb4948",
+    "origenLectura": "proyecto original",
+    "fixtureSHA256": "87d19ab7e74efa205e946950e68794f734f6c1ae1131044453ce158635886bc7",
+    "bundleSHA256": "3effbd72ebd56373c9259655d162344a8a6c5c512c5d372aef24cc5d3980917e",
+    "seleccionCompilada": "visuales.map((item) => {\n        const seg = newAudioSegments[item.phraseIndex];\n        const dur = seg ? seg.end - seg.start : 0;\n        const n = dur > 4 ? Math.ceil(dur / 3) : 1;\n        const ini = seg ? seg.start + dur * item.clipIndexInPhrase / n : 0;\n        const fin = seg ? seg.start + dur * (item.clipIndexInPhrase + 1) / n : 0;\n        return { item, palabra: seg ? palabraDelTramo(seg.words, ini, fin) : null };\n      })",
+    "recorteCompilado": "function recortarTexto(t, max = MAX_CARACTERES_VISUAL) {\n  const s = String(t ?? \"\").trim().replace(/\\s+/g, \" \");\n  if (s.length <= max) return s;\n  const corte = s.slice(0, max);\n  const ultimoEspacio = corte.lastIndexOf(\" \");\n  const base = ultimoEspacio > 0 ? corte.slice(0, ultimoEspacio) : corte;\n  return base.replace(/[\\s,;:.·—–-]+$/, \"\") + \"…\";\n}",
+    "maximoCompilado": "90"
+  },
+  "segmentos": [
+    {
+      "text": " La segunda ley de la termodinámica nos dice que en el universo todo tiende al desorden y en",
+      "start": 0,
+      "end": 5.96,
+      "words": [
+        {
+          "word": " La",
+          "start": 0,
+          "end": 0.36
+        },
+        {
+          "word": " segunda",
+          "start": 0.36,
+          "end": 0.62
+        },
+        {
+          "word": " ley",
+          "start": 0.62,
+          "end": 0.88
+        },
+        {
+          "word": " de",
+          "start": 0.88,
+          "end": 1
+        },
+        {
+          "word": " la",
+          "start": 1,
+          "end": 1.1
+        },
+        {
+          "word": " termodinámica",
+          "start": 1.1,
+          "end": 1.82
+        },
+        {
+          "word": " nos",
+          "start": 1.82,
+          "end": 2.04
+        },
+        {
+          "word": " dice",
+          "start": 2.04,
+          "end": 2.22
+        },
+        {
+          "word": " que",
+          "start": 2.22,
+          "end": 2.46
+        },
+        {
+          "word": " en",
+          "start": 2.46,
+          "end": 2.56
+        },
+        {
+          "word": " el",
+          "start": 2.56,
+          "end": 2.66
+        },
+        {
+          "word": " universo",
+          "start": 2.66,
+          "end": 2.94
+        },
+        {
+          "word": " todo",
+          "start": 2.94,
+          "end": 3.46
+        },
+        {
+          "word": " tiende",
+          "start": 3.46,
+          "end": 3.88
+        },
+        {
+          "word": " al",
+          "start": 3.88,
+          "end": 4.08
+        },
+        {
+          "word": " desorden",
+          "start": 4.08,
+          "end": 4.46
+        },
+        {
+          "word": " y",
+          "start": 4.46,
+          "end": 5.84
+        },
+        {
+          "word": " en",
+          "start": 5.84,
+          "end": 5.96
+        }
+      ]
+    },
+    {
+      "text": " sistemas complejos el caos es la norma así que naturalmente es desperarse que el universo sea",
+      "start": 5.96,
+      "end": 12.06,
+      "words": [
+        {
+          "word": " sistemas",
+          "start": 5.96,
+          "end": 6.22
+        },
+        {
+          "word": " complejos",
+          "start": 6.22,
+          "end": 6.96
+        },
+        {
+          "word": " el",
+          "start": 6.96,
+          "end": 7.32
+        },
+        {
+          "word": " caos",
+          "start": 7.32,
+          "end": 7.74
+        },
+        {
+          "word": " es",
+          "start": 7.74,
+          "end": 7.98
+        },
+        {
+          "word": " la",
+          "start": 7.98,
+          "end": 8.12
+        },
+        {
+          "word": " norma",
+          "start": 8.12,
+          "end": 8.66
+        },
+        {
+          "word": " así",
+          "start": 8.66,
+          "end": 9.18
+        },
+        {
+          "word": " que",
+          "start": 9.18,
+          "end": 9.36
+        },
+        {
+          "word": " naturalmente",
+          "start": 9.36,
+          "end": 10.16
+        },
+        {
+          "word": " es",
+          "start": 10.16,
+          "end": 10.54
+        },
+        {
+          "word": " desperarse",
+          "start": 10.54,
+          "end": 11.1
+        },
+        {
+          "word": " que",
+          "start": 11.1,
+          "end": 11.32
+        },
+        {
+          "word": " el",
+          "start": 11.32,
+          "end": 11.44
+        },
+        {
+          "word": " universo",
+          "start": 11.44,
+          "end": 11.72
+        },
+        {
+          "word": " sea",
+          "start": 11.72,
+          "end": 12.06
+        }
+      ]
+    },
+    {
+      "text": " desordenado pero aún así podemos ver ocasiones de orden espontáneo, la sincronización de los metrónomos,",
+      "start": 12.06,
+      "end": 18.68,
+      "words": [
+        {
+          "word": " desordenado",
+          "start": 12.06,
+          "end": 12.72
+        },
+        {
+          "word": " pero",
+          "start": 12.72,
+          "end": 13.28
+        },
+        {
+          "word": " aún",
+          "start": 13.28,
+          "end": 13.48
+        },
+        {
+          "word": " así",
+          "start": 13.48,
+          "end": 13.86
+        },
+        {
+          "word": " podemos",
+          "start": 13.86,
+          "end": 14.26
+        },
+        {
+          "word": " ver",
+          "start": 14.26,
+          "end": 14.52
+        },
+        {
+          "word": " ocasiones",
+          "start": 14.52,
+          "end": 15.02
+        },
+        {
+          "word": " de",
+          "start": 15.02,
+          "end": 15.24
+        },
+        {
+          "word": " orden",
+          "start": 15.24,
+          "end": 15.5
+        },
+        {
+          "word": " espontáneo,",
+          "start": 15.5,
+          "end": 16.22
+        },
+        {
+          "word": " la",
+          "start": 16.78,
+          "end": 17.08
+        },
+        {
+          "word": " sincronización",
+          "start": 17.08,
+          "end": 17.7
+        },
+        {
+          "word": " de",
+          "start": 17.7,
+          "end": 17.94
+        },
+        {
+          "word": " los",
+          "start": 17.94,
+          "end": 18.06
+        },
+        {
+          "word": " metrónomos,",
+          "start": 18.06,
+          "end": 18.68
+        }
+      ]
+    },
+    {
+      "text": " las órbitas perfectamente a tiempo de las lunes, los destellos simultáneos de las luciérnagas e incluso el",
+      "start": 19.12,
+      "end": 25.28,
+      "words": [
+        {
+          "word": " las",
+          "start": 19.12,
+          "end": 19.26
+        },
+        {
+          "word": " órbitas",
+          "start": 19.26,
+          "end": 19.66
+        },
+        {
+          "word": " perfectamente",
+          "start": 19.66,
+          "end": 20.32
+        },
+        {
+          "word": " a",
+          "start": 20.32,
+          "end": 20.5
+        },
+        {
+          "word": " tiempo",
+          "start": 20.5,
+          "end": 20.82
+        },
+        {
+          "word": " de",
+          "start": 20.82,
+          "end": 20.96
+        },
+        {
+          "word": " las",
+          "start": 20.96,
+          "end": 21.12
+        },
+        {
+          "word": " lunes,",
+          "start": 21.12,
+          "end": 21.46
+        },
+        {
+          "word": " los",
+          "start": 21.92,
+          "end": 22.02
+        },
+        {
+          "word": " destellos",
+          "start": 22.02,
+          "end": 22.5
+        },
+        {
+          "word": " simultáneos",
+          "start": 22.5,
+          "end": 23.18
+        },
+        {
+          "word": " de",
+          "start": 23.18,
+          "end": 23.32
+        },
+        {
+          "word": " las",
+          "start": 23.32,
+          "end": 23.46
+        },
+        {
+          "word": " luciérnagas",
+          "start": 23.46,
+          "end": 24.32
+        },
+        {
+          "word": " e",
+          "start": 24.32,
+          "end": 24.6
+        },
+        {
+          "word": " incluso",
+          "start": 24.6,
+          "end": 24.98
+        },
+        {
+          "word": " el",
+          "start": 24.98,
+          "end": 25.3
+        }
+      ]
+    },
+    {
+      "text": " latido regular de tu corazón. ¿Qué es lo que pone a estas cosas en orden a pesar de la tendencia de",
+      "start": 25.3,
+      "end": 31,
+      "words": [
+        {
+          "word": " latido",
+          "start": 25.3,
+          "end": 25.62
+        },
+        {
+          "word": " regular",
+          "start": 25.62,
+          "end": 26
+        },
+        {
+          "word": " de",
+          "start": 26,
+          "end": 26.18
+        },
+        {
+          "word": " tu",
+          "start": 26.18,
+          "end": 26.3
+        },
+        {
+          "word": " corazón.",
+          "start": 26.3,
+          "end": 26.64
+        },
+        {
+          "word": " ¿Qué",
+          "start": 27.44,
+          "end": 27.7
+        },
+        {
+          "word": " es",
+          "start": 27.7,
+          "end": 27.82
+        },
+        {
+          "word": " lo",
+          "start": 27.82,
+          "end": 27.92
+        },
+        {
+          "word": " que",
+          "start": 27.92,
+          "end": 28.06
+        },
+        {
+          "word": " pone",
+          "start": 28.06,
+          "end": 28.3
+        },
+        {
+          "word": " a",
+          "start": 28.3,
+          "end": 28.46
+        },
+        {
+          "word": " estas",
+          "start": 28.46,
+          "end": 28.68
+        },
+        {
+          "word": " cosas",
+          "start": 28.68,
+          "end": 29
+        },
+        {
+          "word": " en",
+          "start": 29,
+          "end": 29.28
+        },
+        {
+          "word": " orden",
+          "start": 29.28,
+          "end": 29.52
+        },
+        {
+          "word": " a",
+          "start": 29.52,
+          "end": 29.84
+        },
+        {
+          "word": " pesar",
+          "start": 29.84,
+          "end": 30.04
+        },
+        {
+          "word": " de",
+          "start": 30.04,
+          "end": 30.22
+        },
+        {
+          "word": " la",
+          "start": 30.22,
+          "end": 30.3
+        },
+        {
+          "word": " tendencia",
+          "start": 30.3,
+          "end": 30.86
+        },
+        {
+          "word": " de",
+          "start": 30.86,
+          "end": 31
+        }
+      ]
+    },
+    {
+      "text": " la naturaleza al desorden? El 10 de junio del 2000 se inauguró el puente Millenium Bridge que atraviesa",
+      "start": 31,
+      "end": 38.88,
+      "words": [
+        {
+          "word": " la",
+          "start": 31,
+          "end": 31.1
+        },
+        {
+          "word": " naturaleza",
+          "start": 31.1,
+          "end": 31.72
+        },
+        {
+          "word": " al",
+          "start": 31.72,
+          "end": 31.88
+        },
+        {
+          "word": " desorden?",
+          "start": 31.88,
+          "end": 32.28
+        },
+        {
+          "word": " El",
+          "start": 33.96,
+          "end": 34.16
+        },
+        {
+          "word": " 10",
+          "start": 34.16,
+          "end": 34.32
+        },
+        {
+          "word": " de",
+          "start": 34.32,
+          "end": 34.54
+        },
+        {
+          "word": " junio",
+          "start": 34.54,
+          "end": 34.86
+        },
+        {
+          "word": " del",
+          "start": 34.86,
+          "end": 35.04
+        },
+        {
+          "word": " 2000",
+          "start": 35.04,
+          "end": 35.4
+        },
+        {
+          "word": " se",
+          "start": 35.4,
+          "end": 35.92
+        },
+        {
+          "word": " inauguró",
+          "start": 35.92,
+          "end": 36.38
+        },
+        {
+          "word": " el",
+          "start": 36.38,
+          "end": 36.54
+        },
+        {
+          "word": " puente",
+          "start": 36.54,
+          "end": 36.88
+        },
+        {
+          "word": " Millenium",
+          "start": 36.88,
+          "end": 37.64
+        },
+        {
+          "word": " Bridge",
+          "start": 37.64,
+          "end": 37.9
+        },
+        {
+          "word": " que",
+          "start": 37.9,
+          "end": 38.42
+        },
+        {
+          "word": " atraviesa",
+          "start": 38.42,
+          "end": 38.88
+        }
+      ]
+    },
+    {
+      "text": " el río Tamesis y generó un gran entusiasmo pero a medida que la gente se acumulaba en el puente",
+      "start": 38.88,
+      "end": 44.74,
+      "words": [
+        {
+          "word": " el",
+          "start": 38.88,
+          "end": 38.98
+        },
+        {
+          "word": " río",
+          "start": 38.98,
+          "end": 39.16
+        },
+        {
+          "word": " Tamesis",
+          "start": 39.16,
+          "end": 39.72
+        },
+        {
+          "word": " y",
+          "start": 39.72,
+          "end": 40.08
+        },
+        {
+          "word": " generó",
+          "start": 40.08,
+          "end": 40.46
+        },
+        {
+          "word": " un",
+          "start": 40.46,
+          "end": 40.66
+        },
+        {
+          "word": " gran",
+          "start": 40.66,
+          "end": 40.86
+        },
+        {
+          "word": " entusiasmo",
+          "start": 40.86,
+          "end": 41.54
+        },
+        {
+          "word": " pero",
+          "start": 41.54,
+          "end": 42.34
+        },
+        {
+          "word": " a",
+          "start": 42.34,
+          "end": 42.48
+        },
+        {
+          "word": " medida",
+          "start": 42.48,
+          "end": 42.66
+        },
+        {
+          "word": " que",
+          "start": 42.66,
+          "end": 42.94
+        },
+        {
+          "word": " la",
+          "start": 42.94,
+          "end": 43.04
+        },
+        {
+          "word": " gente",
+          "start": 43.04,
+          "end": 43.32
+        },
+        {
+          "word": " se",
+          "start": 43.32,
+          "end": 43.52
+        },
+        {
+          "word": " acumulaba",
+          "start": 43.52,
+          "end": 44.02
+        },
+        {
+          "word": " en",
+          "start": 44.02,
+          "end": 44.22
+        },
+        {
+          "word": " el",
+          "start": 44.22,
+          "end": 44.34
+        },
+        {
+          "word": " puente",
+          "start": 44.34,
+          "end": 44.74
+        }
+      ]
+    },
+    {
+      "text": " empezó a tanbaliarse hacia un lado y hacia el otro. La policía decidió restringir el acceso al",
+      "start": 44.74,
+      "end": 50.34,
+      "words": [
+        {
+          "word": " empezó",
+          "start": 44.74,
+          "end": 45.46
+        },
+        {
+          "word": " a",
+          "start": 45.46,
+          "end": 45.6
+        },
+        {
+          "word": " tanbaliarse",
+          "start": 45.6,
+          "end": 46.2
+        },
+        {
+          "word": " hacia",
+          "start": 46.2,
+          "end": 46.42
+        },
+        {
+          "word": " un",
+          "start": 46.42,
+          "end": 46.56
+        },
+        {
+          "word": " lado",
+          "start": 46.56,
+          "end": 46.76
+        },
+        {
+          "word": " y",
+          "start": 46.76,
+          "end": 47.04
+        },
+        {
+          "word": " hacia",
+          "start": 47.04,
+          "end": 47.2
+        },
+        {
+          "word": " el",
+          "start": 47.2,
+          "end": 47.38
+        },
+        {
+          "word": " otro.",
+          "start": 47.38,
+          "end": 47.62
+        },
+        {
+          "word": " La",
+          "start": 48.08,
+          "end": 48.26
+        },
+        {
+          "word": " policía",
+          "start": 48.26,
+          "end": 48.72
+        },
+        {
+          "word": " decidió",
+          "start": 48.72,
+          "end": 49.16
+        },
+        {
+          "word": " restringir",
+          "start": 49.16,
+          "end": 49.74
+        },
+        {
+          "word": " el",
+          "start": 49.74,
+          "end": 49.9
+        },
+        {
+          "word": " acceso",
+          "start": 49.9,
+          "end": 50.14
+        },
+        {
+          "word": " al",
+          "start": 50.14,
+          "end": 50.34
+        }
+      ]
+    },
+    {
+      "text": " puente pero eso solo resultó en largas filas para acceder a él y el tambaleo no se vio afectado.",
+      "start": 50.34,
+      "end": 56.1,
+      "words": [
+        {
+          "word": " puente",
+          "start": 50.34,
+          "end": 50.74
+        },
+        {
+          "word": " pero",
+          "start": 50.74,
+          "end": 51.12
+        },
+        {
+          "word": " eso",
+          "start": 51.12,
+          "end": 51.42
+        },
+        {
+          "word": " solo",
+          "start": 51.42,
+          "end": 51.82
+        },
+        {
+          "word": " resultó",
+          "start": 51.82,
+          "end": 52.32
+        },
+        {
+          "word": " en",
+          "start": 52.32,
+          "end": 52.44
+        },
+        {
+          "word": " largas",
+          "start": 52.44,
+          "end": 52.72
+        },
+        {
+          "word": " filas",
+          "start": 52.72,
+          "end": 53.08
+        },
+        {
+          "word": " para",
+          "start": 53.08,
+          "end": 53.3
+        },
+        {
+          "word": " acceder",
+          "start": 53.3,
+          "end": 53.68
+        },
+        {
+          "word": " a",
+          "start": 53.68,
+          "end": 53.78
+        },
+        {
+          "word": " él",
+          "start": 53.78,
+          "end": 54
+        },
+        {
+          "word": " y",
+          "start": 54,
+          "end": 54.22
+        },
+        {
+          "word": " el",
+          "start": 54.22,
+          "end": 54.34
+        },
+        {
+          "word": " tambaleo",
+          "start": 54.34,
+          "end": 54.9
+        },
+        {
+          "word": " no",
+          "start": 54.9,
+          "end": 55.18
+        },
+        {
+          "word": " se",
+          "start": 55.18,
+          "end": 55.36
+        },
+        {
+          "word": " vio",
+          "start": 55.36,
+          "end": 55.54
+        },
+        {
+          "word": " afectado.",
+          "start": 55.54,
+          "end": 56.1
+        }
+      ]
+    },
+    {
+      "text": " Dos días después el puente que había costado 18 millones de libras fue clausurado y no se",
+      "start": 56.38,
+      "end": 62.82,
+      "words": [
+        {
+          "word": " Dos",
+          "start": 56.38,
+          "end": 56.64
+        },
+        {
+          "word": " días",
+          "start": 56.64,
+          "end": 56.84
+        },
+        {
+          "word": " después",
+          "start": 56.84,
+          "end": 57.28
+        },
+        {
+          "word": " el",
+          "start": 57.28,
+          "end": 57.74
+        },
+        {
+          "word": " puente",
+          "start": 57.74,
+          "end": 58.12
+        },
+        {
+          "word": " que",
+          "start": 58.12,
+          "end": 58.3
+        },
+        {
+          "word": " había",
+          "start": 58.3,
+          "end": 58.5
+        },
+        {
+          "word": " costado",
+          "start": 58.5,
+          "end": 58.94
+        },
+        {
+          "word": " 18",
+          "start": 58.94,
+          "end": 59.5
+        },
+        {
+          "word": " millones",
+          "start": 59.5,
+          "end": 59.98
+        },
+        {
+          "word": " de",
+          "start": 59.98,
+          "end": 60.34
+        },
+        {
+          "word": " libras",
+          "start": 60.34,
+          "end": 60.86
+        },
+        {
+          "word": " fue",
+          "start": 60.86,
+          "end": 61.22
+        },
+        {
+          "word": " clausurado",
+          "start": 61.22,
+          "end": 61.94
+        },
+        {
+          "word": " y",
+          "start": 61.94,
+          "end": 62.52
+        },
+        {
+          "word": " no",
+          "start": 62.52,
+          "end": 62.68
+        },
+        {
+          "word": " se",
+          "start": 62.68,
+          "end": 62.82
+        }
+      ]
+    },
+    {
+      "text": " volvería abrir hasta dentro de dos años. Pero ¿qué fue lo que falló? Bueno, se sabe hace tiempo",
+      "start": 62.82,
+      "end": 68.44,
+      "words": [
+        {
+          "word": " volvería",
+          "start": 62.82,
+          "end": 63.24
+        },
+        {
+          "word": " abrir",
+          "start": 63.24,
+          "end": 63.5
+        },
+        {
+          "word": " hasta",
+          "start": 63.5,
+          "end": 63.78
+        },
+        {
+          "word": " dentro",
+          "start": 63.78,
+          "end": 64.08
+        },
+        {
+          "word": " de",
+          "start": 64.08,
+          "end": 64.24
+        },
+        {
+          "word": " dos",
+          "start": 64.24,
+          "end": 64.46
+        },
+        {
+          "word": " años.",
+          "start": 64.46,
+          "end": 64.86
+        },
+        {
+          "word": " Pero",
+          "start": 65.34,
+          "end": 65.5
+        },
+        {
+          "word": " ¿qué",
+          "start": 65.5,
+          "end": 65.74
+        },
+        {
+          "word": " fue",
+          "start": 65.74,
+          "end": 65.94
+        },
+        {
+          "word": " lo",
+          "start": 65.94,
+          "end": 66.06
+        },
+        {
+          "word": " que",
+          "start": 66.06,
+          "end": 66.18
+        },
+        {
+          "word": " falló?",
+          "start": 66.18,
+          "end": 66.48
+        },
+        {
+          "word": " Bueno,",
+          "start": 67.02,
+          "end": 67.22
+        },
+        {
+          "word": " se",
+          "start": 67.36,
+          "end": 67.52
+        },
+        {
+          "word": " sabe",
+          "start": 67.52,
+          "end": 67.82
+        },
+        {
+          "word": " hace",
+          "start": 67.82,
+          "end": 68.06
+        },
+        {
+          "word": " tiempo",
+          "start": 68.06,
+          "end": 68.44
+        }
+      ]
+    },
+    {
+      "text": " que los ejércitos deben romper filas al cruzar puentes. Se supo a partir de un accidente en 1831",
+      "start": 68.44,
+      "end": 74.92,
+      "words": [
+        {
+          "word": " que",
+          "start": 68.44,
+          "end": 68.64
+        },
+        {
+          "word": " los",
+          "start": 68.64,
+          "end": 68.8
+        },
+        {
+          "word": " ejércitos",
+          "start": 68.8,
+          "end": 69.34
+        },
+        {
+          "word": " deben",
+          "start": 69.34,
+          "end": 69.62
+        },
+        {
+          "word": " romper",
+          "start": 69.62,
+          "end": 70
+        },
+        {
+          "word": " filas",
+          "start": 70,
+          "end": 70.44
+        },
+        {
+          "word": " al",
+          "start": 70.44,
+          "end": 70.58
+        },
+        {
+          "word": " cruzar",
+          "start": 70.58,
+          "end": 70.9
+        },
+        {
+          "word": " puentes.",
+          "start": 70.9,
+          "end": 71.42
+        },
+        {
+          "word": " Se",
+          "start": 71.82,
+          "end": 72
+        },
+        {
+          "word": " supo",
+          "start": 72,
+          "end": 72.26
+        },
+        {
+          "word": " a",
+          "start": 72.26,
+          "end": 72.3
+        },
+        {
+          "word": " partir",
+          "start": 72.3,
+          "end": 72.56
+        },
+        {
+          "word": " de",
+          "start": 72.56,
+          "end": 72.74
+        },
+        {
+          "word": " un",
+          "start": 72.74,
+          "end": 72.92
+        },
+        {
+          "word": " accidente",
+          "start": 72.92,
+          "end": 73.5
+        },
+        {
+          "word": " en",
+          "start": 73.5,
+          "end": 73.62
+        },
+        {
+          "word": " 1831",
+          "start": 73.62,
+          "end": 74.92
+        }
+      ]
+    },
+    {
+      "text": " cuando 74 hombres del Riffle Corp 60 marcharon a través del puente colgante de Vrogton en el",
+      "start": 74.92,
+      "end": 80.48,
+      "words": [
+        {
+          "word": " cuando",
+          "start": 74.92,
+          "end": 75.34
+        },
+        {
+          "word": " 74",
+          "start": 75.34,
+          "end": 75.9
+        },
+        {
+          "word": " hombres",
+          "start": 75.9,
+          "end": 76.38
+        },
+        {
+          "word": " del",
+          "start": 76.38,
+          "end": 76.62
+        },
+        {
+          "word": " Riffle",
+          "start": 76.62,
+          "end": 76.92
+        },
+        {
+          "word": " Corp",
+          "start": 76.92,
+          "end": 77.16
+        },
+        {
+          "word": " 60",
+          "start": 77.16,
+          "end": 77.5
+        },
+        {
+          "word": " marcharon",
+          "start": 77.5,
+          "end": 78.22
+        },
+        {
+          "word": " a",
+          "start": 78.22,
+          "end": 78.34
+        },
+        {
+          "word": " través",
+          "start": 78.34,
+          "end": 78.54
+        },
+        {
+          "word": " del",
+          "start": 78.54,
+          "end": 78.76
+        },
+        {
+          "word": " puente",
+          "start": 78.76,
+          "end": 79.06
+        },
+        {
+          "word": " colgante",
+          "start": 79.06,
+          "end": 79.5
+        },
+        {
+          "word": " de",
+          "start": 79.5,
+          "end": 79.68
+        },
+        {
+          "word": " Vrogton",
+          "start": 79.68,
+          "end": 80.06
+        },
+        {
+          "word": " en",
+          "start": 80.06,
+          "end": 80.36
+        },
+        {
+          "word": " el",
+          "start": 80.36,
+          "end": 80.48
+        }
+      ]
+    },
+    {
+      "text": " norte de Inglaterra. El puente colapsó bajo sus pasos sincronizados, 60 hombres que allieron al río,",
+      "start": 80.48,
+      "end": 86.1,
+      "words": [
+        {
+          "word": " norte",
+          "start": 80.48,
+          "end": 80.66
+        },
+        {
+          "word": " de",
+          "start": 80.66,
+          "end": 80.86
+        },
+        {
+          "word": " Inglaterra.",
+          "start": 80.86,
+          "end": 81.4
+        },
+        {
+          "word": " El",
+          "start": 81.68,
+          "end": 82.04
+        },
+        {
+          "word": " puente",
+          "start": 82.04,
+          "end": 82.32
+        },
+        {
+          "word": " colapsó",
+          "start": 82.32,
+          "end": 82.74
+        },
+        {
+          "word": " bajo",
+          "start": 82.74,
+          "end": 82.96
+        },
+        {
+          "word": " sus",
+          "start": 82.96,
+          "end": 83.22
+        },
+        {
+          "word": " pasos",
+          "start": 83.22,
+          "end": 83.48
+        },
+        {
+          "word": " sincronizados,",
+          "start": 83.48,
+          "end": 84.26
+        },
+        {
+          "word": " 60",
+          "start": 84.56,
+          "end": 84.86
+        },
+        {
+          "word": " hombres",
+          "start": 84.86,
+          "end": 85.2
+        },
+        {
+          "word": " que",
+          "start": 85.2,
+          "end": 85.38
+        },
+        {
+          "word": " allieron",
+          "start": 85.38,
+          "end": 85.66
+        },
+        {
+          "word": " al",
+          "start": 85.66,
+          "end": 85.84
+        },
+        {
+          "word": " río,",
+          "start": 85.84,
+          "end": 86.1
+        }
+      ]
+    },
+    {
+      "text": " 20 de los cuales sufrieron heridas como roturas de huesos o contusiones, afortunadamente no hubo",
+      "start": 86.38,
+      "end": 91.4,
+      "words": [
+        {
+          "word": " 20",
+          "start": 86.38,
+          "end": 86.56
+        },
+        {
+          "word": " de",
+          "start": 86.56,
+          "end": 86.74
+        },
+        {
+          "word": " los",
+          "start": 86.74,
+          "end": 86.84
+        },
+        {
+          "word": " cuales",
+          "start": 86.84,
+          "end": 87.08
+        },
+        {
+          "word": " sufrieron",
+          "start": 87.08,
+          "end": 87.6
+        },
+        {
+          "word": " heridas",
+          "start": 87.6,
+          "end": 87.92
+        },
+        {
+          "word": " como",
+          "start": 87.92,
+          "end": 88.2
+        },
+        {
+          "word": " roturas",
+          "start": 88.2,
+          "end": 88.6
+        },
+        {
+          "word": " de",
+          "start": 88.6,
+          "end": 88.76
+        },
+        {
+          "word": " huesos",
+          "start": 88.76,
+          "end": 89.1
+        },
+        {
+          "word": " o",
+          "start": 89.1,
+          "end": 89.24
+        },
+        {
+          "word": " contusiones,",
+          "start": 89.24,
+          "end": 89.84
+        },
+        {
+          "word": " afortunadamente",
+          "start": 90.22,
+          "end": 90.9
+        },
+        {
+          "word": " no",
+          "start": 90.9,
+          "end": 91.22
+        },
+        {
+          "word": " hubo",
+          "start": 91.22,
+          "end": 91.4
+        }
+      ]
+    },
+    {
+      "text": " fallecidos. Pero luego de este incidente la armada británica ordenó a todas las tropas romper",
+      "start": 91.4,
+      "end": 97.14,
+      "words": [
+        {
+          "word": " fallecidos.",
+          "start": 91.4,
+          "end": 92
+        },
+        {
+          "word": " Pero",
+          "start": 92.52,
+          "end": 92.68
+        },
+        {
+          "word": " luego",
+          "start": 92.68,
+          "end": 92.96
+        },
+        {
+          "word": " de",
+          "start": 92.96,
+          "end": 93.18
+        },
+        {
+          "word": " este",
+          "start": 93.18,
+          "end": 93.4
+        },
+        {
+          "word": " incidente",
+          "start": 93.4,
+          "end": 94.16
+        },
+        {
+          "word": " la",
+          "start": 94.16,
+          "end": 94.44
+        },
+        {
+          "word": " armada",
+          "start": 94.44,
+          "end": 94.72
+        },
+        {
+          "word": " británica",
+          "start": 94.72,
+          "end": 95.24
+        },
+        {
+          "word": " ordenó",
+          "start": 95.24,
+          "end": 95.76
+        },
+        {
+          "word": " a",
+          "start": 95.76,
+          "end": 95.88
+        },
+        {
+          "word": " todas",
+          "start": 95.88,
+          "end": 96.1
+        },
+        {
+          "word": " las",
+          "start": 96.1,
+          "end": 96.36
+        },
+        {
+          "word": " tropas",
+          "start": 96.36,
+          "end": 96.76
+        },
+        {
+          "word": " romper",
+          "start": 96.76,
+          "end": 97.14
+        }
+      ]
+    },
+    {
+      "text": " filas a la hora de cruzar puentes. Ahora observa a la gente cruzando el puente Millenium. La mayoría",
+      "start": 97.14,
+      "end": 102.98,
+      "words": [
+        {
+          "word": " filas",
+          "start": 97.14,
+          "end": 97.56
+        },
+        {
+          "word": " a",
+          "start": 97.56,
+          "end": 97.7
+        },
+        {
+          "word": " la",
+          "start": 97.7,
+          "end": 97.76
+        },
+        {
+          "word": " hora",
+          "start": 97.76,
+          "end": 97.88
+        },
+        {
+          "word": " de",
+          "start": 97.88,
+          "end": 98.02
+        },
+        {
+          "word": " cruzar",
+          "start": 98.02,
+          "end": 98.3
+        },
+        {
+          "word": " puentes.",
+          "start": 98.3,
+          "end": 98.8
+        },
+        {
+          "word": " Ahora",
+          "start": 99.26,
+          "end": 99.54
+        },
+        {
+          "word": " observa",
+          "start": 99.54,
+          "end": 100.08
+        },
+        {
+          "word": " a",
+          "start": 100.08,
+          "end": 100.16
+        },
+        {
+          "word": " la",
+          "start": 100.16,
+          "end": 100.22
+        },
+        {
+          "word": " gente",
+          "start": 100.22,
+          "end": 100.42
+        },
+        {
+          "word": " cruzando",
+          "start": 100.42,
+          "end": 100.98
+        },
+        {
+          "word": " el",
+          "start": 100.98,
+          "end": 101.1
+        },
+        {
+          "word": " puente",
+          "start": 101.1,
+          "end": 101.36
+        },
+        {
+          "word": " Millenium.",
+          "start": 101.36,
+          "end": 101.86
+        },
+        {
+          "word": " La",
+          "start": 102.46,
+          "end": 102.62
+        },
+        {
+          "word": " mayoría",
+          "start": 102.62,
+          "end": 102.98
+        }
+      ]
+    },
+    {
+      "text": " está caminando de manera sincronizada con los demás. Pero no son parte de un ejército. Son miembros",
+      "start": 102.98,
+      "end": 109.8,
+      "words": [
+        {
+          "word": " está",
+          "start": 102.98,
+          "end": 103.32
+        },
+        {
+          "word": " caminando",
+          "start": 103.32,
+          "end": 103.8
+        },
+        {
+          "word": " de",
+          "start": 103.8,
+          "end": 103.94
+        },
+        {
+          "word": " manera",
+          "start": 103.94,
+          "end": 104.18
+        },
+        {
+          "word": " sincronizada",
+          "start": 104.18,
+          "end": 104.88
+        },
+        {
+          "word": " con",
+          "start": 104.88,
+          "end": 105.16
+        },
+        {
+          "word": " los",
+          "start": 105.16,
+          "end": 105.28
+        },
+        {
+          "word": " demás.",
+          "start": 105.28,
+          "end": 105.48
+        },
+        {
+          "word": " Pero",
+          "start": 106.68,
+          "end": 107.04
+        },
+        {
+          "word": " no",
+          "start": 107.04,
+          "end": 107.38
+        },
+        {
+          "word": " son",
+          "start": 107.38,
+          "end": 107.56
+        },
+        {
+          "word": " parte",
+          "start": 107.56,
+          "end": 107.84
+        },
+        {
+          "word": " de",
+          "start": 107.84,
+          "end": 108
+        },
+        {
+          "word": " un",
+          "start": 108,
+          "end": 108.14
+        },
+        {
+          "word": " ejército.",
+          "start": 108.14,
+          "end": 108.62
+        },
+        {
+          "word": " Son",
+          "start": 109.22,
+          "end": 109.38
+        },
+        {
+          "word": " miembros",
+          "start": 109.38,
+          "end": 109.8
+        }
+      ]
+    },
+    {
+      "text": " aleatorios de la sociedad entonces ¿por qué caminan juntos? Y ¿por qué un puente moderno diseñado",
+      "start": 109.8,
+      "end": 116.08,
+      "words": [
+        {
+          "word": " aleatorios",
+          "start": 109.8,
+          "end": 110.44
+        },
+        {
+          "word": " de",
+          "start": 110.44,
+          "end": 110.6
+        },
+        {
+          "word": " la",
+          "start": 110.6,
+          "end": 110.7
+        },
+        {
+          "word": " sociedad",
+          "start": 110.7,
+          "end": 111.02
+        },
+        {
+          "word": " entonces",
+          "start": 111.02,
+          "end": 111.6
+        },
+        {
+          "word": " ¿por",
+          "start": 111.6,
+          "end": 112.1
+        },
+        {
+          "word": " qué",
+          "start": 112.1,
+          "end": 112.26
+        },
+        {
+          "word": " caminan",
+          "start": 112.26,
+          "end": 112.6
+        },
+        {
+          "word": " juntos?",
+          "start": 112.6,
+          "end": 112.98
+        },
+        {
+          "word": " Y",
+          "start": 114.12,
+          "end": 114.22
+        },
+        {
+          "word": " ¿por",
+          "start": 114.22,
+          "end": 114.38
+        },
+        {
+          "word": " qué",
+          "start": 114.38,
+          "end": 114.6
+        },
+        {
+          "word": " un",
+          "start": 114.6,
+          "end": 114.8
+        },
+        {
+          "word": " puente",
+          "start": 114.8,
+          "end": 115.04
+        },
+        {
+          "word": " moderno",
+          "start": 115.04,
+          "end": 115.56
+        },
+        {
+          "word": " diseñado",
+          "start": 115.56,
+          "end": 116.08
+        }
+      ]
+    },
+    {
+      "text": " para tráfico pesado de transeuntes no puede tolerarlo? Bien, para entenderlo debemos retroceder 350 años.",
+      "start": 116.08,
+      "end": 123.52,
+      "words": [
+        {
+          "word": " para",
+          "start": 116.08,
+          "end": 116.26
+        },
+        {
+          "word": " tráfico",
+          "start": 116.26,
+          "end": 116.72
+        },
+        {
+          "word": " pesado",
+          "start": 116.72,
+          "end": 117.1
+        },
+        {
+          "word": " de",
+          "start": 117.1,
+          "end": 117.26
+        },
+        {
+          "word": " transeuntes",
+          "start": 117.26,
+          "end": 118.1
+        },
+        {
+          "word": " no",
+          "start": 118.1,
+          "end": 118.34
+        },
+        {
+          "word": " puede",
+          "start": 118.34,
+          "end": 118.58
+        },
+        {
+          "word": " tolerarlo?",
+          "start": 118.58,
+          "end": 119.14
+        },
+        {
+          "word": " Bien,",
+          "start": 119.98,
+          "end": 120.18
+        },
+        {
+          "word": " para",
+          "start": 120.44,
+          "end": 120.58
+        },
+        {
+          "word": " entenderlo",
+          "start": 120.58,
+          "end": 121.1
+        },
+        {
+          "word": " debemos",
+          "start": 121.1,
+          "end": 121.58
+        },
+        {
+          "word": " retroceder",
+          "start": 121.58,
+          "end": 122.14
+        },
+        {
+          "word": " 350",
+          "start": 122.14,
+          "end": 122.78
+        },
+        {
+          "word": " años.",
+          "start": 122.78,
+          "end": 123.52
+        }
+      ]
+    },
+    {
+      "text": " En 1656 el famoso físico holandés Cristian Hoygens creó el primer reloj con Péndulo Funcional.",
+      "start": 125.92,
+      "end": 132.44,
+      "words": [
+        {
+          "word": " En",
+          "start": 125.92,
+          "end": 126.64
+        },
+        {
+          "word": " 1656",
+          "start": 126.64,
+          "end": 127.36
+        },
+        {
+          "word": " el",
+          "start": 127.36,
+          "end": 127.68
+        },
+        {
+          "word": " famoso",
+          "start": 127.68,
+          "end": 127.92
+        },
+        {
+          "word": " físico",
+          "start": 127.92,
+          "end": 128.5
+        },
+        {
+          "word": " holandés",
+          "start": 128.5,
+          "end": 128.92
+        },
+        {
+          "word": " Cristian",
+          "start": 128.92,
+          "end": 129.38
+        },
+        {
+          "word": " Hoygens",
+          "start": 129.38,
+          "end": 129.92
+        },
+        {
+          "word": " creó",
+          "start": 129.92,
+          "end": 130.44
+        },
+        {
+          "word": " el",
+          "start": 130.44,
+          "end": 130.56
+        },
+        {
+          "word": " primer",
+          "start": 130.56,
+          "end": 130.84
+        },
+        {
+          "word": " reloj",
+          "start": 130.84,
+          "end": 131.34
+        },
+        {
+          "word": " con",
+          "start": 131.34,
+          "end": 131.58
+        },
+        {
+          "word": " Péndulo",
+          "start": 131.58,
+          "end": 131.94
+        },
+        {
+          "word": " Funcional.",
+          "start": 131.94,
+          "end": 132.44
+        }
+      ]
+    },
+    {
+      "text": " Su objetivo era ayudar a los marinos a saber en qué parte del mundo se hallaban. La latitud puede",
+      "start": 132.98,
+      "end": 138.46,
+      "words": [
+        {
+          "word": " Su",
+          "start": 132.98,
+          "end": 133.12
+        },
+        {
+          "word": " objetivo",
+          "start": 133.12,
+          "end": 133.54
+        },
+        {
+          "word": " era",
+          "start": 133.54,
+          "end": 133.84
+        },
+        {
+          "word": " ayudar",
+          "start": 133.84,
+          "end": 134.08
+        },
+        {
+          "word": " a",
+          "start": 134.08,
+          "end": 134.2
+        },
+        {
+          "word": " los",
+          "start": 134.2,
+          "end": 134.4
+        },
+        {
+          "word": " marinos",
+          "start": 134.4,
+          "end": 134.72
+        },
+        {
+          "word": " a",
+          "start": 134.72,
+          "end": 134.92
+        },
+        {
+          "word": " saber",
+          "start": 134.92,
+          "end": 135.12
+        },
+        {
+          "word": " en",
+          "start": 135.12,
+          "end": 135.28
+        },
+        {
+          "word": " qué",
+          "start": 135.28,
+          "end": 135.4
+        },
+        {
+          "word": " parte",
+          "start": 135.4,
+          "end": 135.64
+        },
+        {
+          "word": " del",
+          "start": 135.64,
+          "end": 135.84
+        },
+        {
+          "word": " mundo",
+          "start": 135.84,
+          "end": 136.02
+        },
+        {
+          "word": " se",
+          "start": 136.02,
+          "end": 136.22
+        },
+        {
+          "word": " hallaban.",
+          "start": 136.22,
+          "end": 136.56
+        },
+        {
+          "word": " La",
+          "start": 137.16,
+          "end": 137.68
+        },
+        {
+          "word": " latitud",
+          "start": 137.68,
+          "end": 138.08
+        },
+        {
+          "word": " puede",
+          "start": 138.08,
+          "end": 138.46
+        }
+      ]
+    },
+    {
+      "text": " ser determinada al medir la posición del solo las estrellas, pero para la longitud también",
+      "start": 138.46,
+      "end": 143.54,
+      "words": [
+        {
+          "word": " ser",
+          "start": 138.46,
+          "end": 138.7
+        },
+        {
+          "word": " determinada",
+          "start": 138.7,
+          "end": 139.26
+        },
+        {
+          "word": " al",
+          "start": 139.26,
+          "end": 139.4
+        },
+        {
+          "word": " medir",
+          "start": 139.4,
+          "end": 139.66
+        },
+        {
+          "word": " la",
+          "start": 139.66,
+          "end": 139.82
+        },
+        {
+          "word": " posición",
+          "start": 139.82,
+          "end": 140.2
+        },
+        {
+          "word": " del",
+          "start": 140.2,
+          "end": 140.54
+        },
+        {
+          "word": " solo",
+          "start": 140.54,
+          "end": 140.74
+        },
+        {
+          "word": " las",
+          "start": 140.74,
+          "end": 141
+        },
+        {
+          "word": " estrellas,",
+          "start": 141,
+          "end": 141.54
+        },
+        {
+          "word": " pero",
+          "start": 141.84,
+          "end": 142.1
+        },
+        {
+          "word": " para",
+          "start": 142.1,
+          "end": 142.32
+        },
+        {
+          "word": " la",
+          "start": 142.32,
+          "end": 142.5
+        },
+        {
+          "word": " longitud",
+          "start": 142.5,
+          "end": 142.86
+        },
+        {
+          "word": " también",
+          "start": 142.86,
+          "end": 143.54
+        }
+      ]
+    },
+    {
+      "text": " necesita saber el horario en la locación fija, por ejemplo tu puerto de origen. Pero los relojes",
+      "start": 143.54,
+      "end": 148.82,
+      "words": [
+        {
+          "word": " necesita",
+          "start": 143.54,
+          "end": 143.86
+        },
+        {
+          "word": " saber",
+          "start": 143.86,
+          "end": 144.32
+        },
+        {
+          "word": " el",
+          "start": 144.32,
+          "end": 144.5
+        },
+        {
+          "word": " horario",
+          "start": 144.5,
+          "end": 144.8
+        },
+        {
+          "word": " en",
+          "start": 144.8,
+          "end": 144.92
+        },
+        {
+          "word": " la",
+          "start": 144.92,
+          "end": 145.02
+        },
+        {
+          "word": " locación",
+          "start": 145.02,
+          "end": 145.44
+        },
+        {
+          "word": " fija,",
+          "start": 145.44,
+          "end": 145.88
+        },
+        {
+          "word": " por",
+          "start": 146.1,
+          "end": 146.22
+        },
+        {
+          "word": " ejemplo",
+          "start": 146.22,
+          "end": 146.48
+        },
+        {
+          "word": " tu",
+          "start": 146.48,
+          "end": 146.76
+        },
+        {
+          "word": " puerto",
+          "start": 146.76,
+          "end": 147.06
+        },
+        {
+          "word": " de",
+          "start": 147.06,
+          "end": 147.22
+        },
+        {
+          "word": " origen.",
+          "start": 147.22,
+          "end": 147.6
+        },
+        {
+          "word": " Pero",
+          "start": 148.14,
+          "end": 148.3
+        },
+        {
+          "word": " los",
+          "start": 148.3,
+          "end": 148.48
+        },
+        {
+          "word": " relojes",
+          "start": 148.48,
+          "end": 148.82
+        }
+      ]
+    },
+    {
+      "text": " de ese momento se retrasaban hasta 15 minutos cada día, por lo que eran inútiles. En contraste la",
+      "start": 148.82,
+      "end": 154.68,
+      "words": [
+        {
+          "word": " de",
+          "start": 148.82,
+          "end": 149
+        },
+        {
+          "word": " ese",
+          "start": 149,
+          "end": 149.14
+        },
+        {
+          "word": " momento",
+          "start": 149.14,
+          "end": 149.48
+        },
+        {
+          "word": " se",
+          "start": 149.48,
+          "end": 149.82
+        },
+        {
+          "word": " retrasaban",
+          "start": 149.82,
+          "end": 150.3
+        },
+        {
+          "word": " hasta",
+          "start": 150.3,
+          "end": 150.56
+        },
+        {
+          "word": " 15",
+          "start": 150.56,
+          "end": 150.9
+        },
+        {
+          "word": " minutos",
+          "start": 150.9,
+          "end": 151.22
+        },
+        {
+          "word": " cada",
+          "start": 151.22,
+          "end": 151.54
+        },
+        {
+          "word": " día,",
+          "start": 151.54,
+          "end": 151.88
+        },
+        {
+          "word": " por",
+          "start": 152.08,
+          "end": 152.18
+        },
+        {
+          "word": " lo",
+          "start": 152.18,
+          "end": 152.28
+        },
+        {
+          "word": " que",
+          "start": 152.28,
+          "end": 152.42
+        },
+        {
+          "word": " eran",
+          "start": 152.42,
+          "end": 152.6
+        },
+        {
+          "word": " inútiles.",
+          "start": 152.6,
+          "end": 153.08
+        },
+        {
+          "word": " En",
+          "start": 153.66,
+          "end": 154.02
+        },
+        {
+          "word": " contraste",
+          "start": 154.02,
+          "end": 154.56
+        },
+        {
+          "word": " la",
+          "start": 154.56,
+          "end": 154.68
+        }
+      ]
+    },
+    {
+      "text": " precisión de los relojes de Péndulo de Hoygens era de entre 10 y 15 segundos por día. El plan de",
+      "start": 154.68,
+      "end": 160.76,
+      "words": [
+        {
+          "word": " precisión",
+          "start": 154.68,
+          "end": 155.12
+        },
+        {
+          "word": " de",
+          "start": 155.12,
+          "end": 155.24
+        },
+        {
+          "word": " los",
+          "start": 155.24,
+          "end": 155.38
+        },
+        {
+          "word": " relojes",
+          "start": 155.38,
+          "end": 155.7
+        },
+        {
+          "word": " de",
+          "start": 155.7,
+          "end": 155.9
+        },
+        {
+          "word": " Péndulo",
+          "start": 155.9,
+          "end": 156.2
+        },
+        {
+          "word": " de",
+          "start": 156.2,
+          "end": 156.4
+        },
+        {
+          "word": " Hoygens",
+          "start": 156.4,
+          "end": 156.78
+        },
+        {
+          "word": " era",
+          "start": 156.78,
+          "end": 157.12
+        },
+        {
+          "word": " de",
+          "start": 157.12,
+          "end": 157.28
+        },
+        {
+          "word": " entre",
+          "start": 157.28,
+          "end": 157.54
+        },
+        {
+          "word": " 10",
+          "start": 157.54,
+          "end": 157.8
+        },
+        {
+          "word": " y",
+          "start": 157.8,
+          "end": 158.02
+        },
+        {
+          "word": " 15",
+          "start": 158.02,
+          "end": 158.34
+        },
+        {
+          "word": " segundos",
+          "start": 158.34,
+          "end": 158.68
+        },
+        {
+          "word": " por",
+          "start": 158.68,
+          "end": 158.96
+        },
+        {
+          "word": " día.",
+          "start": 158.96,
+          "end": 159.2
+        },
+        {
+          "word": " El",
+          "start": 160.12,
+          "end": 160.36
+        },
+        {
+          "word": " plan",
+          "start": 160.36,
+          "end": 160.56
+        },
+        {
+          "word": " de",
+          "start": 160.56,
+          "end": 160.76
+        }
+      ]
+    },
+    {
+      "text": " Hoygens era atar sus relojes a una más apesada colgada en la embarcación para que no pudieran ser",
+      "start": 160.76,
+      "end": 166.04,
+      "words": [
+        {
+          "word": " Hoygens",
+          "start": 160.76,
+          "end": 161.16
+        },
+        {
+          "word": " era",
+          "start": 161.16,
+          "end": 161.44
+        },
+        {
+          "word": " atar",
+          "start": 161.44,
+          "end": 161.68
+        },
+        {
+          "word": " sus",
+          "start": 161.68,
+          "end": 161.9
+        },
+        {
+          "word": " relojes",
+          "start": 161.9,
+          "end": 162.28
+        },
+        {
+          "word": " a",
+          "start": 162.28,
+          "end": 162.46
+        },
+        {
+          "word": " una",
+          "start": 162.46,
+          "end": 162.62
+        },
+        {
+          "word": " más",
+          "start": 162.62,
+          "end": 162.94
+        },
+        {
+          "word": " apesada",
+          "start": 162.94,
+          "end": 163.38
+        },
+        {
+          "word": " colgada",
+          "start": 163.38,
+          "end": 163.86
+        },
+        {
+          "word": " en",
+          "start": 163.86,
+          "end": 164
+        },
+        {
+          "word": " la",
+          "start": 164,
+          "end": 164.08
+        },
+        {
+          "word": " embarcación",
+          "start": 164.08,
+          "end": 164.62
+        },
+        {
+          "word": " para",
+          "start": 164.62,
+          "end": 165.12
+        },
+        {
+          "word": " que",
+          "start": 165.12,
+          "end": 165.28
+        },
+        {
+          "word": " no",
+          "start": 165.28,
+          "end": 165.42
+        },
+        {
+          "word": " pudieran",
+          "start": 165.42,
+          "end": 165.8
+        },
+        {
+          "word": " ser",
+          "start": 165.8,
+          "end": 166.04
+        }
+      ]
+    },
+    {
+      "text": " sacudidos por las fuertes mareas. Su plan requería de dos relojes en caso de que uno se detuviera o",
+      "start": 166.04,
+      "end": 172.48,
+      "words": [
+        {
+          "word": " sacudidos",
+          "start": 166.04,
+          "end": 166.56
+        },
+        {
+          "word": " por",
+          "start": 166.56,
+          "end": 166.8
+        },
+        {
+          "word": " las",
+          "start": 166.8,
+          "end": 166.96
+        },
+        {
+          "word": " fuertes",
+          "start": 166.96,
+          "end": 167.36
+        },
+        {
+          "word": " mareas.",
+          "start": 167.36,
+          "end": 167.82
+        },
+        {
+          "word": " Su",
+          "start": 168.54,
+          "end": 169.06
+        },
+        {
+          "word": " plan",
+          "start": 169.06,
+          "end": 169.3
+        },
+        {
+          "word": " requería",
+          "start": 169.3,
+          "end": 169.8
+        },
+        {
+          "word": " de",
+          "start": 169.8,
+          "end": 169.92
+        },
+        {
+          "word": " dos",
+          "start": 169.92,
+          "end": 170.18
+        },
+        {
+          "word": " relojes",
+          "start": 170.18,
+          "end": 170.62
+        },
+        {
+          "word": " en",
+          "start": 170.62,
+          "end": 170.84
+        },
+        {
+          "word": " caso",
+          "start": 170.84,
+          "end": 171.08
+        },
+        {
+          "word": " de",
+          "start": 171.08,
+          "end": 171.24
+        },
+        {
+          "word": " que",
+          "start": 171.24,
+          "end": 171.4
+        },
+        {
+          "word": " uno",
+          "start": 171.4,
+          "end": 171.62
+        },
+        {
+          "word": " se",
+          "start": 171.62,
+          "end": 171.82
+        },
+        {
+          "word": " detuviera",
+          "start": 171.82,
+          "end": 172.28
+        },
+        {
+          "word": " o",
+          "start": 172.28,
+          "end": 172.48
+        }
+      ]
+    },
+    {
+      "text": " se dañara, pero al probar este mecanismo, estando enfermo en su casa en febrero de 1665, descubrió",
+      "start": 172.48,
+      "end": 178.9,
+      "words": [
+        {
+          "word": " se",
+          "start": 172.48,
+          "end": 172.64
+        },
+        {
+          "word": " dañara,",
+          "start": 172.64,
+          "end": 173.02
+        },
+        {
+          "word": " pero",
+          "start": 173.32,
+          "end": 173.54
+        },
+        {
+          "word": " al",
+          "start": 173.54,
+          "end": 173.7
+        },
+        {
+          "word": " probar",
+          "start": 173.7,
+          "end": 173.96
+        },
+        {
+          "word": " este",
+          "start": 173.96,
+          "end": 174.16
+        },
+        {
+          "word": " mecanismo,",
+          "start": 174.16,
+          "end": 174.74
+        },
+        {
+          "word": " estando",
+          "start": 174.9,
+          "end": 175.2
+        },
+        {
+          "word": " enfermo",
+          "start": 175.2,
+          "end": 175.64
+        },
+        {
+          "word": " en",
+          "start": 175.64,
+          "end": 175.72
+        },
+        {
+          "word": " su",
+          "start": 175.72,
+          "end": 175.86
+        },
+        {
+          "word": " casa",
+          "start": 175.86,
+          "end": 176.02
+        },
+        {
+          "word": " en",
+          "start": 176.02,
+          "end": 176.26
+        },
+        {
+          "word": " febrero",
+          "start": 176.26,
+          "end": 176.62
+        },
+        {
+          "word": " de",
+          "start": 176.62,
+          "end": 176.78
+        },
+        {
+          "word": " 1665,",
+          "start": 176.78,
+          "end": 178.18
+        },
+        {
+          "word": " descubrió",
+          "start": 178.5,
+          "end": 178.9
+        }
+      ]
+    },
+    {
+      "text": " algo revelador. Dos de sus relojes colgaban de una vara de madera cruzada sobre dos sillas,",
+      "start": 178.9,
+      "end": 184.74,
+      "words": [
+        {
+          "word": " algo",
+          "start": 178.9,
+          "end": 179.2
+        },
+        {
+          "word": " revelador.",
+          "start": 179.2,
+          "end": 179.88
+        },
+        {
+          "word": " Dos",
+          "start": 180.56,
+          "end": 180.86
+        },
+        {
+          "word": " de",
+          "start": 180.86,
+          "end": 181.04
+        },
+        {
+          "word": " sus",
+          "start": 181.04,
+          "end": 181.18
+        },
+        {
+          "word": " relojes",
+          "start": 181.18,
+          "end": 181.68
+        },
+        {
+          "word": " colgaban",
+          "start": 181.68,
+          "end": 182.2
+        },
+        {
+          "word": " de",
+          "start": 182.2,
+          "end": 182.38
+        },
+        {
+          "word": " una",
+          "start": 182.38,
+          "end": 182.62
+        },
+        {
+          "word": " vara",
+          "start": 182.62,
+          "end": 182.78
+        },
+        {
+          "word": " de",
+          "start": 182.78,
+          "end": 182.98
+        },
+        {
+          "word": " madera",
+          "start": 182.98,
+          "end": 183.26
+        },
+        {
+          "word": " cruzada",
+          "start": 183.26,
+          "end": 183.76
+        },
+        {
+          "word": " sobre",
+          "start": 183.76,
+          "end": 184.04
+        },
+        {
+          "word": " dos",
+          "start": 184.04,
+          "end": 184.24
+        },
+        {
+          "word": " sillas,",
+          "start": 184.24,
+          "end": 184.74
+        }
+      ]
+    },
+    {
+      "text": " observando cómo los Péndulos socilaban durante horas, descubrió que luego de la primera media",
+      "start": 185.22,
+      "end": 190.44,
+      "words": [
+        {
+          "word": " observando",
+          "start": 185.22,
+          "end": 185.74
+        },
+        {
+          "word": " cómo",
+          "start": 185.74,
+          "end": 185.98
+        },
+        {
+          "word": " los",
+          "start": 185.98,
+          "end": 186.16
+        },
+        {
+          "word": " Péndulos",
+          "start": 186.16,
+          "end": 186.56
+        },
+        {
+          "word": " socilaban",
+          "start": 186.56,
+          "end": 187.12
+        },
+        {
+          "word": " durante",
+          "start": 187.12,
+          "end": 187.52
+        },
+        {
+          "word": " horas,",
+          "start": 187.52,
+          "end": 187.92
+        },
+        {
+          "word": " descubrió",
+          "start": 188.68,
+          "end": 189.1
+        },
+        {
+          "word": " que",
+          "start": 189.1,
+          "end": 189.28
+        },
+        {
+          "word": " luego",
+          "start": 189.28,
+          "end": 189.5
+        },
+        {
+          "word": " de",
+          "start": 189.5,
+          "end": 189.68
+        },
+        {
+          "word": " la",
+          "start": 189.68,
+          "end": 189.8
+        },
+        {
+          "word": " primera",
+          "start": 189.8,
+          "end": 190.06
+        },
+        {
+          "word": " media",
+          "start": 190.06,
+          "end": 190.44
+        }
+      ]
+    },
+    {
+      "text": " hora se sincronizaron de forma espontánea. Cuando un relojo sílaba hacia un lado, el restante",
+      "start": 190.44,
+      "end": 196.18,
+      "words": [
+        {
+          "word": " hora",
+          "start": 190.44,
+          "end": 190.72
+        },
+        {
+          "word": " se",
+          "start": 190.72,
+          "end": 190.96
+        },
+        {
+          "word": " sincronizaron",
+          "start": 190.96,
+          "end": 191.72
+        },
+        {
+          "word": " de",
+          "start": 191.72,
+          "end": 191.88
+        },
+        {
+          "word": " forma",
+          "start": 191.88,
+          "end": 192.22
+        },
+        {
+          "word": " espontánea.",
+          "start": 192.22,
+          "end": 192.92
+        },
+        {
+          "word": " Cuando",
+          "start": 193.34,
+          "end": 193.54
+        },
+        {
+          "word": " un",
+          "start": 193.54,
+          "end": 193.72
+        },
+        {
+          "word": " relojo",
+          "start": 193.72,
+          "end": 194.1
+        },
+        {
+          "word": " sílaba",
+          "start": 194.1,
+          "end": 194.44
+        },
+        {
+          "word": " hacia",
+          "start": 194.44,
+          "end": 194.74
+        },
+        {
+          "word": " un",
+          "start": 194.74,
+          "end": 194.92
+        },
+        {
+          "word": " lado,",
+          "start": 194.92,
+          "end": 195.2
+        },
+        {
+          "word": " el",
+          "start": 195.56,
+          "end": 195.66
+        },
+        {
+          "word": " restante",
+          "start": 195.66,
+          "end": 196.18
+        }
+      ]
+    },
+    {
+      "text": " o sílaba hacia el lado opuesto. Cuando uno hacía tic, el otro se atoc. Así que intentó romper",
+      "start": 196.18,
+      "end": 201.74,
+      "words": [
+        {
+          "word": " o",
+          "start": 196.18,
+          "end": 196.32
+        },
+        {
+          "word": " sílaba",
+          "start": 196.32,
+          "end": 196.62
+        },
+        {
+          "word": " hacia",
+          "start": 196.62,
+          "end": 196.9
+        },
+        {
+          "word": " el",
+          "start": 196.9,
+          "end": 197.06
+        },
+        {
+          "word": " lado",
+          "start": 197.06,
+          "end": 197.26
+        },
+        {
+          "word": " opuesto.",
+          "start": 197.26,
+          "end": 197.66
+        },
+        {
+          "word": " Cuando",
+          "start": 198.12,
+          "end": 198.34
+        },
+        {
+          "word": " uno",
+          "start": 198.34,
+          "end": 198.56
+        },
+        {
+          "word": " hacía",
+          "start": 198.56,
+          "end": 198.78
+        },
+        {
+          "word": " tic,",
+          "start": 198.78,
+          "end": 199.04
+        },
+        {
+          "word": " el",
+          "start": 199.36,
+          "end": 199.48
+        },
+        {
+          "word": " otro",
+          "start": 199.48,
+          "end": 199.66
+        },
+        {
+          "word": " se",
+          "start": 199.66,
+          "end": 199.86
+        },
+        {
+          "word": " atoc.",
+          "start": 199.86,
+          "end": 200.1
+        },
+        {
+          "word": " Así",
+          "start": 200.52,
+          "end": 200.76
+        },
+        {
+          "word": " que",
+          "start": 200.76,
+          "end": 200.9
+        },
+        {
+          "word": " intentó",
+          "start": 200.9,
+          "end": 201.32
+        },
+        {
+          "word": " romper",
+          "start": 201.32,
+          "end": 201.74
+        }
+      ]
+    },
+    {
+      "text": " esa sincronización. Los configuró de modo desincronizado, pero una vez más, luego de cerca de",
+      "start": 201.74,
+      "end": 207,
+      "words": [
+        {
+          "word": " esa",
+          "start": 201.74,
+          "end": 202.02
+        },
+        {
+          "word": " sincronización.",
+          "start": 202.02,
+          "end": 202.7
+        },
+        {
+          "word": " Los",
+          "start": 203.02,
+          "end": 203.16
+        },
+        {
+          "word": " configuró",
+          "start": 203.16,
+          "end": 203.66
+        },
+        {
+          "word": " de",
+          "start": 203.66,
+          "end": 203.8
+        },
+        {
+          "word": " modo",
+          "start": 203.8,
+          "end": 204
+        },
+        {
+          "word": " desincronizado,",
+          "start": 204,
+          "end": 204.86
+        },
+        {
+          "word": " pero",
+          "start": 205.16,
+          "end": 205.28
+        },
+        {
+          "word": " una",
+          "start": 205.28,
+          "end": 205.52
+        },
+        {
+          "word": " vez",
+          "start": 205.52,
+          "end": 205.66
+        },
+        {
+          "word": " más,",
+          "start": 205.66,
+          "end": 206
+        },
+        {
+          "word": " luego",
+          "start": 206.2,
+          "end": 206.34
+        },
+        {
+          "word": " de",
+          "start": 206.34,
+          "end": 206.52
+        },
+        {
+          "word": " cerca",
+          "start": 206.52,
+          "end": 206.8
+        },
+        {
+          "word": " de",
+          "start": 206.8,
+          "end": 207
+        }
+      ]
+    },
+    {
+      "text": " media hora, volvieron a su dinámica sincronizada. Hoygens creyó que esta extraña simpatía entre los",
+      "start": 207,
+      "end": 212.74,
+      "words": [
+        {
+          "word": " media",
+          "start": 207,
+          "end": 207.26
+        },
+        {
+          "word": " hora,",
+          "start": 207.26,
+          "end": 207.6
+        },
+        {
+          "word": " volvieron",
+          "start": 207.86,
+          "end": 208.24
+        },
+        {
+          "word": " a",
+          "start": 208.24,
+          "end": 208.36
+        },
+        {
+          "word": " su",
+          "start": 208.36,
+          "end": 208.52
+        },
+        {
+          "word": " dinámica",
+          "start": 208.52,
+          "end": 208.96
+        },
+        {
+          "word": " sincronizada.",
+          "start": 208.96,
+          "end": 209.6
+        },
+        {
+          "word": " Hoygens",
+          "start": 210.16,
+          "end": 210.56
+        },
+        {
+          "word": " creyó",
+          "start": 210.56,
+          "end": 210.9
+        },
+        {
+          "word": " que",
+          "start": 210.9,
+          "end": 211.06
+        },
+        {
+          "word": " esta",
+          "start": 211.06,
+          "end": 211.28
+        },
+        {
+          "word": " extraña",
+          "start": 211.28,
+          "end": 211.8
+        },
+        {
+          "word": " simpatía",
+          "start": 211.8,
+          "end": 212.34
+        },
+        {
+          "word": " entre",
+          "start": 212.34,
+          "end": 212.54
+        },
+        {
+          "word": " los",
+          "start": 212.54,
+          "end": 212.74
+        }
+      ]
+    },
+    {
+      "text": " relojes fue generada por corrientes de aire entre los Péndulos, por lo que colocó un atable entre",
+      "start": 212.74,
+      "end": 217.78,
+      "words": [
+        {
+          "word": " relojes",
+          "start": 212.74,
+          "end": 213.12
+        },
+        {
+          "word": " fue",
+          "start": 213.12,
+          "end": 213.4
+        },
+        {
+          "word": " generada",
+          "start": 213.4,
+          "end": 213.8
+        },
+        {
+          "word": " por",
+          "start": 213.8,
+          "end": 214.02
+        },
+        {
+          "word": " corrientes",
+          "start": 214.02,
+          "end": 214.46
+        },
+        {
+          "word": " de",
+          "start": 214.46,
+          "end": 214.66
+        },
+        {
+          "word": " aire",
+          "start": 214.66,
+          "end": 214.8
+        },
+        {
+          "word": " entre",
+          "start": 214.8,
+          "end": 215.06
+        },
+        {
+          "word": " los",
+          "start": 215.06,
+          "end": 215.26
+        },
+        {
+          "word": " Péndulos,",
+          "start": 215.26,
+          "end": 215.66
+        },
+        {
+          "word": " por",
+          "start": 216.2,
+          "end": 216.42
+        },
+        {
+          "word": " lo",
+          "start": 216.42,
+          "end": 216.54
+        },
+        {
+          "word": " que",
+          "start": 216.54,
+          "end": 216.68
+        },
+        {
+          "word": " colocó",
+          "start": 216.68,
+          "end": 217.06
+        },
+        {
+          "word": " un",
+          "start": 217.06,
+          "end": 217.24
+        },
+        {
+          "word": " atable",
+          "start": 217.24,
+          "end": 217.56
+        },
+        {
+          "word": " entre",
+          "start": 217.56,
+          "end": 217.78
+        }
+      ]
+    },
+    {
+      "text": " ellos. Sin embargo, los relojes siguieron sincronizándose. No eran las corrientes de aire.",
+      "start": 217.78,
+      "end": 223.02,
+      "words": [
+        {
+          "word": " ellos.",
+          "start": 217.78,
+          "end": 218.12
+        },
+        {
+          "word": " Sin",
+          "start": 218.68,
+          "end": 218.92
+        },
+        {
+          "word": " embargo,",
+          "start": 218.92,
+          "end": 219.12
+        },
+        {
+          "word": " los",
+          "start": 219.4,
+          "end": 219.54
+        },
+        {
+          "word": " relojes",
+          "start": 219.54,
+          "end": 219.9
+        },
+        {
+          "word": " siguieron",
+          "start": 219.9,
+          "end": 220.36
+        },
+        {
+          "word": " sincronizándose.",
+          "start": 220.36,
+          "end": 221.28
+        },
+        {
+          "word": " No",
+          "start": 221.78,
+          "end": 221.98
+        },
+        {
+          "word": " eran",
+          "start": 221.98,
+          "end": 222.14
+        },
+        {
+          "word": " las",
+          "start": 222.14,
+          "end": 222.32
+        },
+        {
+          "word": " corrientes",
+          "start": 222.32,
+          "end": 222.64
+        },
+        {
+          "word": " de",
+          "start": 222.64,
+          "end": 222.84
+        },
+        {
+          "word": " aire.",
+          "start": 222.84,
+          "end": 223.02
+        }
+      ]
+    },
+    {
+      "text": " Al separar los relojes, la sincronización desaparecía y sus tiempos se distanciaban,",
+      "start": 224.08,
+      "end": 228.62,
+      "words": [
+        {
+          "word": " Al",
+          "start": 224.08,
+          "end": 224.24
+        },
+        {
+          "word": " separar",
+          "start": 224.24,
+          "end": 224.64
+        },
+        {
+          "word": " los",
+          "start": 224.64,
+          "end": 224.84
+        },
+        {
+          "word": " relojes,",
+          "start": 224.84,
+          "end": 225.32
+        },
+        {
+          "word": " la",
+          "start": 225.56,
+          "end": 225.62
+        },
+        {
+          "word": " sincronización",
+          "start": 225.62,
+          "end": 226.26
+        },
+        {
+          "word": " desaparecía",
+          "start": 226.26,
+          "end": 227.04
+        },
+        {
+          "word": " y",
+          "start": 227.04,
+          "end": 227.32
+        },
+        {
+          "word": " sus",
+          "start": 227.32,
+          "end": 227.54
+        },
+        {
+          "word": " tiempos",
+          "start": 227.54,
+          "end": 227.88
+        },
+        {
+          "word": " se",
+          "start": 227.88,
+          "end": 228
+        },
+        {
+          "word": " distanciaban,",
+          "start": 228,
+          "end": 228.62
+        }
+      ]
+    },
+    {
+      "text": " pero al volver a acercarlos, la sincronización regresaba. Hoygens se dio cuenta de que los relojes",
+      "start": 229.2,
+      "end": 234.42,
+      "words": [
+        {
+          "word": " pero",
+          "start": 229.2,
+          "end": 229.42
+        },
+        {
+          "word": " al",
+          "start": 229.42,
+          "end": 229.54
+        },
+        {
+          "word": " volver",
+          "start": 229.54,
+          "end": 229.76
+        },
+        {
+          "word": " a",
+          "start": 229.76,
+          "end": 229.9
+        },
+        {
+          "word": " acercarlos,",
+          "start": 229.9,
+          "end": 230.48
+        },
+        {
+          "word": " la",
+          "start": 230.78,
+          "end": 230.82
+        },
+        {
+          "word": " sincronización",
+          "start": 230.82,
+          "end": 231.5
+        },
+        {
+          "word": " regresaba.",
+          "start": 231.5,
+          "end": 232.22
+        },
+        {
+          "word": " Hoygens",
+          "start": 232.7,
+          "end": 233.02
+        },
+        {
+          "word": " se",
+          "start": 233.02,
+          "end": 233.18
+        },
+        {
+          "word": " dio",
+          "start": 233.18,
+          "end": 233.32
+        },
+        {
+          "word": " cuenta",
+          "start": 233.32,
+          "end": 233.66
+        },
+        {
+          "word": " de",
+          "start": 233.66,
+          "end": 233.8
+        },
+        {
+          "word": " que",
+          "start": 233.8,
+          "end": 233.92
+        },
+        {
+          "word": " los",
+          "start": 233.92,
+          "end": 234.08
+        },
+        {
+          "word": " relojes",
+          "start": 234.08,
+          "end": 234.42
+        }
+      ]
+    },
+    {
+      "text": " estaban sincronizándose porque estaban pulgados de la misma vara de madera. Esta vara transfería",
+      "start": 234.42,
+      "end": 239.56,
+      "words": [
+        {
+          "word": " estaban",
+          "start": 234.42,
+          "end": 234.8
+        },
+        {
+          "word": " sincronizándose",
+          "start": 234.8,
+          "end": 235.8
+        },
+        {
+          "word": " porque",
+          "start": 235.8,
+          "end": 236.08
+        },
+        {
+          "word": " estaban",
+          "start": 236.08,
+          "end": 236.38
+        },
+        {
+          "word": " pulgados",
+          "start": 236.38,
+          "end": 236.84
+        },
+        {
+          "word": " de",
+          "start": 236.84,
+          "end": 237.04
+        },
+        {
+          "word": " la",
+          "start": 237.04,
+          "end": 237.16
+        },
+        {
+          "word": " misma",
+          "start": 237.16,
+          "end": 237.48
+        },
+        {
+          "word": " vara",
+          "start": 237.48,
+          "end": 237.7
+        },
+        {
+          "word": " de",
+          "start": 237.7,
+          "end": 237.9
+        },
+        {
+          "word": " madera.",
+          "start": 237.9,
+          "end": 238.22
+        },
+        {
+          "word": " Esta",
+          "start": 238.7,
+          "end": 238.86
+        },
+        {
+          "word": " vara",
+          "start": 238.86,
+          "end": 239.02
+        },
+        {
+          "word": " transfería",
+          "start": 239.02,
+          "end": 239.56
+        }
+      ]
+    },
+    {
+      "text": " vibraciones mecánicas de un reloja a otro, logrando que los dos osciladores se emparejen.",
+      "start": 239.56,
+      "end": 244.46,
+      "words": [
+        {
+          "word": " vibraciones",
+          "start": 239.56,
+          "end": 240.06
+        },
+        {
+          "word": " mecánicas",
+          "start": 240.06,
+          "end": 240.64
+        },
+        {
+          "word": " de",
+          "start": 240.64,
+          "end": 240.84
+        },
+        {
+          "word": " un",
+          "start": 240.84,
+          "end": 240.98
+        },
+        {
+          "word": " reloja",
+          "start": 240.98,
+          "end": 241.32
+        },
+        {
+          "word": " a",
+          "start": 241.32,
+          "end": 241.44
+        },
+        {
+          "word": " otro,",
+          "start": 241.44,
+          "end": 241.7
+        },
+        {
+          "word": " logrando",
+          "start": 242.08,
+          "end": 242.34
+        },
+        {
+          "word": " que",
+          "start": 242.34,
+          "end": 242.56
+        },
+        {
+          "word": " los",
+          "start": 242.56,
+          "end": 242.74
+        },
+        {
+          "word": " dos",
+          "start": 242.74,
+          "end": 242.9
+        },
+        {
+          "word": " osciladores",
+          "start": 242.9,
+          "end": 243.52
+        },
+        {
+          "word": " se",
+          "start": 243.52,
+          "end": 243.96
+        },
+        {
+          "word": " emparejen.",
+          "start": 243.96,
+          "end": 244.46
+        }
+      ]
+    },
+    {
+      "text": " El fue el primero en observar este tipo de sincronizaciones pontáneas en objetos inanimados,",
+      "start": 245.06,
+      "end": 249.78,
+      "words": [
+        {
+          "word": " El",
+          "start": 245.04,
+          "end": 245.34
+        },
+        {
+          "word": " fue",
+          "start": 245.34,
+          "end": 245.56
+        },
+        {
+          "word": " el",
+          "start": 245.56,
+          "end": 245.68
+        },
+        {
+          "word": " primero",
+          "start": 245.68,
+          "end": 246
+        },
+        {
+          "word": " en",
+          "start": 246,
+          "end": 246.14
+        },
+        {
+          "word": " observar",
+          "start": 246.14,
+          "end": 246.54
+        },
+        {
+          "word": " este",
+          "start": 246.54,
+          "end": 246.74
+        },
+        {
+          "word": " tipo",
+          "start": 246.74,
+          "end": 247.02
+        },
+        {
+          "word": " de",
+          "start": 247.02,
+          "end": 247.22
+        },
+        {
+          "word": " sincronizaciones",
+          "start": 247.22,
+          "end": 247.94
+        },
+        {
+          "word": " pontáneas",
+          "start": 247.94,
+          "end": 248.5
+        },
+        {
+          "word": " en",
+          "start": 248.5,
+          "end": 248.72
+        },
+        {
+          "word": " objetos",
+          "start": 248.72,
+          "end": 249.02
+        },
+        {
+          "word": " inanimados,",
+          "start": 249.02,
+          "end": 249.78
+        }
+      ]
+    },
+    {
+      "text": " y a pesar de haber descripto cualitativamente lo que estaba sucediendo, fue hace apenas algunas",
+      "start": 250.3,
+      "end": 255.44,
+      "words": [
+        {
+          "word": " y",
+          "start": 250.3,
+          "end": 250.56
+        },
+        {
+          "word": " a",
+          "start": 250.56,
+          "end": 250.64
+        },
+        {
+          "word": " pesar",
+          "start": 250.64,
+          "end": 250.88
+        },
+        {
+          "word": " de",
+          "start": 250.88,
+          "end": 251.1
+        },
+        {
+          "word": " haber",
+          "start": 251.1,
+          "end": 251.26
+        },
+        {
+          "word": " descripto",
+          "start": 251.26,
+          "end": 251.82
+        },
+        {
+          "word": " cualitativamente",
+          "start": 251.82,
+          "end": 252.56
+        },
+        {
+          "word": " lo",
+          "start": 252.56,
+          "end": 252.86
+        },
+        {
+          "word": " que",
+          "start": 252.86,
+          "end": 253
+        },
+        {
+          "word": " estaba",
+          "start": 253,
+          "end": 253.24
+        },
+        {
+          "word": " sucediendo,",
+          "start": 253.24,
+          "end": 253.88
+        },
+        {
+          "word": " fue",
+          "start": 254.28,
+          "end": 254.38
+        },
+        {
+          "word": " hace",
+          "start": 254.38,
+          "end": 254.62
+        },
+        {
+          "word": " apenas",
+          "start": 254.62,
+          "end": 255
+        },
+        {
+          "word": " algunas",
+          "start": 255,
+          "end": 255.44
+        }
+      ]
+    },
+    {
+      "text": " décadas que los científicos comenzaron a construir una teoría rigurosa acerca de la sincronización.",
+      "start": 255.44,
+      "end": 260.5,
+      "words": [
+        {
+          "word": " décadas",
+          "start": 255.44,
+          "end": 255.88
+        },
+        {
+          "word": " que",
+          "start": 255.88,
+          "end": 256.06
+        },
+        {
+          "word": " los",
+          "start": 256.06,
+          "end": 256.18
+        },
+        {
+          "word": " científicos",
+          "start": 256.18,
+          "end": 256.78
+        },
+        {
+          "word": " comenzaron",
+          "start": 256.78,
+          "end": 257.28
+        },
+        {
+          "word": " a",
+          "start": 257.28,
+          "end": 257.4
+        },
+        {
+          "word": " construir",
+          "start": 257.4,
+          "end": 257.82
+        },
+        {
+          "word": " una",
+          "start": 257.82,
+          "end": 258.06
+        },
+        {
+          "word": " teoría",
+          "start": 258.06,
+          "end": 258.48
+        },
+        {
+          "word": " rigurosa",
+          "start": 258.48,
+          "end": 259.06
+        },
+        {
+          "word": " acerca",
+          "start": 259.06,
+          "end": 259.48
+        },
+        {
+          "word": " de",
+          "start": 259.48,
+          "end": 259.72
+        },
+        {
+          "word": " la",
+          "start": 259.72,
+          "end": 259.8
+        },
+        {
+          "word": " sincronización.",
+          "start": 259.8,
+          "end": 260.5
+        }
+      ]
+    },
+    {
+      "text": " Tal vez vieron esta demostración, con varios metrónomos en una plataforma levemente",
+      "start": 263.02,
+      "end": 267.54,
+      "words": [
+        {
+          "word": " Tal",
+          "start": 263.02,
+          "end": 263.62
+        },
+        {
+          "word": " vez",
+          "start": 263.62,
+          "end": 263.76
+        },
+        {
+          "word": " vieron",
+          "start": 263.76,
+          "end": 264.06
+        },
+        {
+          "word": " esta",
+          "start": 264.06,
+          "end": 264.34
+        },
+        {
+          "word": " demostración,",
+          "start": 264.34,
+          "end": 264.92
+        },
+        {
+          "word": " con",
+          "start": 265.18,
+          "end": 265.26
+        },
+        {
+          "word": " varios",
+          "start": 265.26,
+          "end": 265.52
+        },
+        {
+          "word": " metrónomos",
+          "start": 265.52,
+          "end": 266.08
+        },
+        {
+          "word": " en",
+          "start": 266.08,
+          "end": 266.3
+        },
+        {
+          "word": " una",
+          "start": 266.3,
+          "end": 266.46
+        },
+        {
+          "word": " plataforma",
+          "start": 266.46,
+          "end": 266.86
+        },
+        {
+          "word": " levemente",
+          "start": 266.86,
+          "end": 267.54
+        }
+      ]
+    },
+    {
+      "text": " tan valiante que comienzan de sincronizadamente.",
+      "start": 267.54,
+      "end": 270.02,
+      "words": [
+        {
+          "word": " tan",
+          "start": 267.54,
+          "end": 267.76
+        },
+        {
+          "word": " valiante",
+          "start": 267.76,
+          "end": 268.16
+        },
+        {
+          "word": " que",
+          "start": 268.16,
+          "end": 268.36
+        },
+        {
+          "word": " comienzan",
+          "start": 268.36,
+          "end": 268.88
+        },
+        {
+          "word": " de",
+          "start": 268.88,
+          "end": 269.06
+        },
+        {
+          "word": " sincronizadamente.",
+          "start": 269.06,
+          "end": 270.02
+        }
+      ]
+    },
+    {
+      "text": " Es más complicado de lo que parece. De todas maneras, cuando logras que funcione, es algo mágico.",
+      "start": 274.49999999999994,
+      "end": 282.56,
+      "words": [
+        {
+          "word": " Es",
+          "start": 274.49999999999994,
+          "end": 275.15999999999997
+        },
+        {
+          "word": " más",
+          "start": 275.15999999999997,
+          "end": 275.82
+        },
+        {
+          "word": " complicado",
+          "start": 275.82,
+          "end": 276.36
+        },
+        {
+          "word": " de",
+          "start": 276.36,
+          "end": 276.62
+        },
+        {
+          "word": " lo",
+          "start": 276.62,
+          "end": 276.72
+        },
+        {
+          "word": " que",
+          "start": 276.72,
+          "end": 276.84
+        },
+        {
+          "word": " parece.",
+          "start": 276.84,
+          "end": 277.24
+        },
+        {
+          "word": " De",
+          "start": 279.14,
+          "end": 279.42
+        },
+        {
+          "word": " todas",
+          "start": 279.42,
+          "end": 279.6
+        },
+        {
+          "word": " maneras,",
+          "start": 279.6,
+          "end": 280.12
+        },
+        {
+          "word": " cuando",
+          "start": 280.3,
+          "end": 280.42
+        },
+        {
+          "word": " logras",
+          "start": 280.42,
+          "end": 280.8
+        },
+        {
+          "word": " que",
+          "start": 280.8,
+          "end": 280.92
+        },
+        {
+          "word": " funcione,",
+          "start": 280.92,
+          "end": 281.4
+        },
+        {
+          "word": " es",
+          "start": 281.64,
+          "end": 281.78
+        },
+        {
+          "word": " algo",
+          "start": 281.78,
+          "end": 281.98
+        },
+        {
+          "word": " mágico.",
+          "start": 281.98,
+          "end": 282.56
+        }
+      ]
+    }
+  ],
+  "casos": [
+    {
+      "phraseIndex": 0,
+      "clipIndexInPhrase": 0,
+      "linea": 148734,
+      "conceptos": [
+        {
+          "emoji": "🧸",
+          "etiqueta": "juguete"
+        },
+        {
+          "emoji": "📚",
+          "etiqueta": "libro"
+        },
+        {
+          "emoji": "👕",
+          "etiqueta": "ropa"
+        }
+      ],
+      "value": "termodinámica",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 0,
+      "clipIndexInPhrase": 1,
+      "linea": 148735,
+      "conceptos": [
+        {
+          "emoji": "🖊️",
+          "etiqueta": "bolígrafo"
+        },
+        {
+          "emoji": "📄",
+          "etiqueta": "papel"
+        },
+        {
+          "emoji": "☕",
+          "etiqueta": "taza"
+        }
+      ],
+      "value": "desorden",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 1,
+      "clipIndexInPhrase": 0,
+      "linea": 148736,
+      "conceptos": [
+        {
+          "emoji": "🚗",
+          "etiqueta": "coche"
+        },
+        {
+          "emoji": "🚦",
+          "etiqueta": "semáforo"
+        },
+        {
+          "emoji": "🛣️",
+          "etiqueta": "carretera"
+        }
+      ],
+      "value": "complejos",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 1,
+      "clipIndexInPhrase": 1,
+      "linea": 148737,
+      "conceptos": [
+        {
+          "emoji": "🧺",
+          "etiqueta": "cesta"
+        },
+        {
+          "emoji": "🍎",
+          "etiqueta": "manzana"
+        },
+        {
+          "emoji": "🏪",
+          "etiqueta": "puesto"
+        }
+      ],
+      "value": "naturalmente",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 1,
+      "clipIndexInPhrase": 2,
+      "linea": 148738,
+      "conceptos": [
+        {
+          "emoji": "🍂",
+          "etiqueta": "hoja"
+        },
+        {
+          "emoji": "🌬️",
+          "etiqueta": "viento"
+        },
+        {
+          "emoji": "🌳",
+          "etiqueta": "árbol"
+        }
+      ],
+      "value": "naturalmente",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 2,
+      "clipIndexInPhrase": 0,
+      "linea": 148739,
+      "conceptos": [
+        {
+          "emoji": "⏱️",
+          "etiqueta": "cronómetro"
+        },
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        },
+        {
+          "emoji": "🔩",
+          "etiqueta": "tornillo"
+        }
+      ],
+      "value": "desordenado",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 2,
+      "clipIndexInPhrase": 1,
+      "linea": 148740,
+      "conceptos": [
+        {
+          "emoji": "🎚️",
+          "etiqueta": "control"
+        },
+        {
+          "emoji": "🔊",
+          "etiqueta": "altavoz"
+        },
+        {
+          "emoji": "📐",
+          "etiqueta": "regla"
+        }
+      ],
+      "value": "espontáneo",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 2,
+      "clipIndexInPhrase": 2,
+      "linea": 148741,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "⚙️",
+          "etiqueta": "engranaje"
+        },
+        {
+          "emoji": "🔗",
+          "etiqueta": "cadena"
+        }
+      ],
+      "value": "sincronización",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 3,
+      "clipIndexInPhrase": 0,
+      "linea": 148742,
+      "conceptos": [
+        {
+          "emoji": "🌕",
+          "etiqueta": "luna"
+        },
+        {
+          "emoji": "🪐",
+          "etiqueta": "planeta"
+        },
+        {
+          "emoji": "🔭",
+          "etiqueta": "telescopio"
+        }
+      ],
+      "value": "perfectamente",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 3,
+      "clipIndexInPhrase": 1,
+      "linea": 148743,
+      "conceptos": [
+        {
+          "emoji": "🐝",
+          "etiqueta": "insecto"
+        },
+        {
+          "emoji": "🌲",
+          "etiqueta": "pino"
+        },
+        {
+          "emoji": "🏮",
+          "etiqueta": "linterna"
+        }
+      ],
+      "value": "simultáneos",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 3,
+      "clipIndexInPhrase": 2,
+      "linea": 148744,
+      "conceptos": [
+        {
+          "emoji": "🫀",
+          "etiqueta": "corazón"
+        },
+        {
+          "emoji": "📟",
+          "etiqueta": "monitor"
+        },
+        {
+          "emoji": "🔋",
+          "etiqueta": "batería"
+        }
+      ],
+      "value": "luciérnagas",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 4,
+      "clipIndexInPhrase": 0,
+      "linea": 148745,
+      "conceptos": [
+        {
+          "emoji": "🫀",
+          "etiqueta": "corazón"
+        },
+        {
+          "emoji": "🩺",
+          "etiqueta": "estetoscopio"
+        },
+        {
+          "emoji": "💊",
+          "etiqueta": "pastilla"
+        }
+      ],
+      "value": "regular",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 4,
+      "clipIndexInPhrase": 1,
+      "linea": 148746,
+      "conceptos": [
+        {
+          "emoji": "📚",
+          "etiqueta": "libro"
+        },
+        {
+          "emoji": "🗄️",
+          "etiqueta": "archivador"
+        },
+        {
+          "emoji": "📏",
+          "etiqueta": "regla"
+        }
+      ],
+      "value": "tendencia",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 5,
+      "clipIndexInPhrase": 0,
+      "linea": 148747,
+      "conceptos": [
+        {
+          "emoji": "🌉",
+          "etiqueta": "puente"
+        },
+        {
+          "emoji": "🎀",
+          "etiqueta": "lazo"
+        },
+        {
+          "emoji": "🎉",
+          "etiqueta": "confeti"
+        }
+      ],
+      "value": "naturaleza",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 5,
+      "clipIndexInPhrase": 1,
+      "linea": 148748,
+      "conceptos": [
+        {
+          "emoji": "🚤",
+          "etiqueta": "barco"
+        },
+        {
+          "emoji": "🌊",
+          "etiqueta": "agua"
+        },
+        {
+          "emoji": "🏙️",
+          "etiqueta": "edificio"
+        }
+      ],
+      "value": "inauguró",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 5,
+      "clipIndexInPhrase": 2,
+      "linea": 148749,
+      "conceptos": [
+        {
+          "emoji": "👟",
+          "etiqueta": "zapato"
+        },
+        {
+          "emoji": "🧥",
+          "etiqueta": "abrigo"
+        },
+        {
+          "emoji": "📸",
+          "etiqueta": "cámara"
+        }
+      ],
+      "value": "Millenium",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 6,
+      "clipIndexInPhrase": 0,
+      "linea": 148750,
+      "conceptos": [
+        {
+          "emoji": "👟",
+          "etiqueta": "zapato"
+        },
+        {
+          "emoji": "🦯",
+          "etiqueta": "bastón"
+        },
+        {
+          "emoji": "🎒",
+          "etiqueta": "mochila"
+        }
+      ],
+      "value": "entusiasmo",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 6,
+      "clipIndexInPhrase": 1,
+      "linea": 148751,
+      "conceptos": [
+        {
+          "emoji": "🌉",
+          "etiqueta": "puente"
+        },
+        {
+          "emoji": "🌬️",
+          "etiqueta": "viento"
+        },
+        {
+          "emoji": "🔩",
+          "etiqueta": "tornillo"
+        }
+      ],
+      "value": "acumulaba",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 7,
+      "clipIndexInPhrase": 0,
+      "linea": 148752,
+      "conceptos": [
+        {
+          "emoji": "🚧",
+          "etiqueta": "barrera"
+        },
+        {
+          "emoji": "🚓",
+          "etiqueta": "patrulla"
+        },
+        {
+          "emoji": "🪧",
+          "etiqueta": "letrero"
+        }
+      ],
+      "value": "tanbaliarse",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 7,
+      "clipIndexInPhrase": 1,
+      "linea": 148753,
+      "conceptos": [
+        {
+          "emoji": "⛔",
+          "etiqueta": "señal"
+        },
+        {
+          "emoji": "🔒",
+          "etiqueta": "candado"
+        },
+        {
+          "emoji": "🚪",
+          "etiqueta": "puerta"
+        }
+      ],
+      "value": "restringir",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 8,
+      "clipIndexInPhrase": 0,
+      "linea": 148754,
+      "conceptos": [
+        {
+          "emoji": "🧍",
+          "etiqueta": "persona"
+        },
+        {
+          "emoji": "🎫",
+          "etiqueta": "boleto"
+        },
+        {
+          "emoji": "🪑",
+          "etiqueta": "silla"
+        }
+      ],
+      "value": "resultó",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 8,
+      "clipIndexInPhrase": 1,
+      "linea": 148755,
+      "conceptos": [
+        {
+          "emoji": "🌉",
+          "etiqueta": "puente"
+        },
+        {
+          "emoji": "📳",
+          "etiqueta": "vibración"
+        },
+        {
+          "emoji": "🔧",
+          "etiqueta": "llave"
+        }
+      ],
+      "value": "tambaleo",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 9,
+      "clipIndexInPhrase": 0,
+      "linea": 148757,
+      "conceptos": [
+        {
+          "emoji": "⛔",
+          "etiqueta": "señal"
+        },
+        {
+          "emoji": "🔒",
+          "etiqueta": "candado"
+        },
+        {
+          "emoji": "🚧",
+          "etiqueta": "barrera"
+        }
+      ],
+      "value": "después",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 9,
+      "clipIndexInPhrase": 1,
+      "linea": 148758,
+      "conceptos": [
+        {
+          "emoji": "💷",
+          "etiqueta": "billete"
+        },
+        {
+          "emoji": "🪙",
+          "etiqueta": "moneda"
+        },
+        {
+          "emoji": "🏦",
+          "etiqueta": "banco"
+        }
+      ],
+      "value": "millones",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 9,
+      "clipIndexInPhrase": 2,
+      "linea": 148759,
+      "conceptos": [
+        {
+          "emoji": "🏗️",
+          "etiqueta": "grúa"
+        },
+        {
+          "emoji": "🧱",
+          "etiqueta": "ladrillo"
+        },
+        {
+          "emoji": "🪜",
+          "etiqueta": "escalera"
+        }
+      ],
+      "value": "clausurado",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 10,
+      "clipIndexInPhrase": 0,
+      "linea": 148760,
+      "conceptos": [
+        {
+          "emoji": "⛔",
+          "etiqueta": "señal"
+        },
+        {
+          "emoji": "🔒",
+          "etiqueta": "candado"
+        },
+        {
+          "emoji": "📅",
+          "etiqueta": "calendario"
+        }
+      ],
+      "value": "volvería",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 10,
+      "clipIndexInPhrase": 1,
+      "linea": 148761,
+      "conceptos": [
+        {
+          "emoji": "📐",
+          "etiqueta": "plano"
+        },
+        {
+          "emoji": "🔍",
+          "etiqueta": "lupa"
+        },
+        {
+          "emoji": "🪛",
+          "etiqueta": "destornillador"
+        }
+      ],
+      "value": "tiempo",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 11,
+      "clipIndexInPhrase": 0,
+      "linea": 148762,
+      "conceptos": [
+        {
+          "emoji": "🥾",
+          "etiqueta": "bota"
+        },
+        {
+          "emoji": "🎖️",
+          "etiqueta": "medalla"
+        },
+        {
+          "emoji": "🪖",
+          "etiqueta": "casco"
+        }
+      ],
+      "value": "ejércitos",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 11,
+      "clipIndexInPhrase": 1,
+      "linea": 148763,
+      "conceptos": [
+        {
+          "emoji": "🌉",
+          "etiqueta": "puente"
+        },
+        {
+          "emoji": "🧱",
+          "etiqueta": "ladrillo"
+        },
+        {
+          "emoji": "💥",
+          "etiqueta": "explosión"
+        }
+      ],
+      "value": "puentes",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 11,
+      "clipIndexInPhrase": 2,
+      "linea": 148764,
+      "conceptos": [
+        {
+          "emoji": "📰",
+          "etiqueta": "periódico"
+        },
+        {
+          "emoji": "🖋️",
+          "etiqueta": "pluma"
+        },
+        {
+          "emoji": "🕯️",
+          "etiqueta": "vela"
+        }
+      ],
+      "value": "accidente",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 12,
+      "clipIndexInPhrase": 0,
+      "linea": 148765,
+      "conceptos": [
+        {
+          "emoji": "🥾",
+          "etiqueta": "bota militar"
+        },
+        {
+          "emoji": "🌉",
+          "etiqueta": "puente colgante"
+        },
+        {
+          "emoji": "🎖️",
+          "etiqueta": "medalla"
+        }
+      ],
+      "value": "marcharon",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 12,
+      "clipIndexInPhrase": 1,
+      "linea": 148766,
+      "conceptos": [
+        {
+          "emoji": "🌉",
+          "etiqueta": "puente"
+        },
+        {
+          "emoji": "🚶",
+          "etiqueta": "marcha"
+        },
+        {
+          "emoji": "🏞️",
+          "etiqueta": "río"
+        }
+      ],
+      "value": "marcharon",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 13,
+      "clipIndexInPhrase": 0,
+      "linea": 148767,
+      "conceptos": [
+        {
+          "emoji": "🌉",
+          "etiqueta": "puente"
+        },
+        {
+          "emoji": "💥",
+          "etiqueta": "colapso"
+        },
+        {
+          "emoji": "🌊",
+          "etiqueta": "río"
+        }
+      ],
+      "value": "Inglaterra",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 13,
+      "clipIndexInPhrase": 1,
+      "linea": 148768,
+      "conceptos": [
+        {
+          "emoji": "🪖",
+          "etiqueta": "casco"
+        },
+        {
+          "emoji": "🌊",
+          "etiqueta": "agua"
+        },
+        {
+          "emoji": "🆘",
+          "etiqueta": "rescate"
+        }
+      ],
+      "value": "sincronizados",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 14,
+      "clipIndexInPhrase": 0,
+      "linea": 148769,
+      "conceptos": [
+        {
+          "emoji": "🩹",
+          "etiqueta": "vendaje"
+        },
+        {
+          "emoji": "🦴",
+          "etiqueta": "hueso"
+        },
+        {
+          "emoji": "🏥",
+          "etiqueta": "hospital"
+        }
+      ],
+      "value": "sufrieron",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 14,
+      "clipIndexInPhrase": 1,
+      "linea": 148770,
+      "conceptos": [
+        {
+          "emoji": "💊",
+          "etiqueta": "medicina"
+        },
+        {
+          "emoji": "🩺",
+          "etiqueta": "estetoscopio"
+        },
+        {
+          "emoji": "🚑",
+          "etiqueta": "ambulancia"
+        }
+      ],
+      "value": "afortunadamente",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 15,
+      "clipIndexInPhrase": 0,
+      "linea": 148771,
+      "conceptos": [
+        {
+          "emoji": "📜",
+          "etiqueta": "orden"
+        },
+        {
+          "emoji": "🪖",
+          "etiqueta": "casco"
+        },
+        {
+          "emoji": "🏰",
+          "etiqueta": "cuartel"
+        }
+      ],
+      "value": "fallecidos",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 15,
+      "clipIndexInPhrase": 1,
+      "linea": 148772,
+      "conceptos": [
+        {
+          "emoji": "🚶",
+          "etiqueta": "fila"
+        },
+        {
+          "emoji": "🌉",
+          "etiqueta": "puente"
+        },
+        {
+          "emoji": "🛑",
+          "etiqueta": "alto"
+        }
+      ],
+      "value": "británica",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 16,
+      "clipIndexInPhrase": 0,
+      "linea": 148773,
+      "conceptos": [
+        {
+          "emoji": "🌉",
+          "etiqueta": "puente"
+        },
+        {
+          "emoji": "🚶",
+          "etiqueta": "peatón"
+        },
+        {
+          "emoji": "🏙️",
+          "etiqueta": "ciudad"
+        }
+      ],
+      "value": "puentes",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 16,
+      "clipIndexInPhrase": 1,
+      "linea": 148774,
+      "conceptos": [
+        {
+          "emoji": "👟",
+          "etiqueta": "zapatilla"
+        },
+        {
+          "emoji": "🚶",
+          "etiqueta": "multitud"
+        },
+        {
+          "emoji": "🌉",
+          "etiqueta": "puente"
+        }
+      ],
+      "value": "Millenium",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 17,
+      "clipIndexInPhrase": 0,
+      "linea": 148775,
+      "conceptos": [
+        {
+          "emoji": "👟",
+          "etiqueta": "zapatilla"
+        },
+        {
+          "emoji": "🚶",
+          "etiqueta": "caminata"
+        },
+        {
+          "emoji": "🎵",
+          "etiqueta": "ritmo"
+        }
+      ],
+      "value": "sincronizada",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 17,
+      "clipIndexInPhrase": 1,
+      "linea": 148776,
+      "conceptos": [
+        {
+          "emoji": "🧥",
+          "etiqueta": "abrigo"
+        },
+        {
+          "emoji": "👜",
+          "etiqueta": "bolso"
+        },
+        {
+          "emoji": "🚶",
+          "etiqueta": "peatón"
+        }
+      ],
+      "value": "demás",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 17,
+      "clipIndexInPhrase": 2,
+      "linea": 148777,
+      "conceptos": [
+        {
+          "emoji": "🪖",
+          "etiqueta": "casco"
+        },
+        {
+          "emoji": "🚫",
+          "etiqueta": "prohibido"
+        },
+        {
+          "emoji": "👥",
+          "etiqueta": "grupo"
+        }
+      ],
+      "value": "ejército",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 18,
+      "clipIndexInPhrase": 0,
+      "linea": 148778,
+      "conceptos": [
+        {
+          "emoji": "🏙️",
+          "etiqueta": "ciudad"
+        },
+        {
+          "emoji": "🚶",
+          "etiqueta": "peatón"
+        },
+        {
+          "emoji": "🧍",
+          "etiqueta": "persona"
+        }
+      ],
+      "value": "aleatorios",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 18,
+      "clipIndexInPhrase": 1,
+      "linea": 148779,
+      "conceptos": [
+        {
+          "emoji": "👟",
+          "etiqueta": "zapatilla"
+        },
+        {
+          "emoji": "🚶",
+          "etiqueta": "caminata"
+        },
+        {
+          "emoji": "🌉",
+          "etiqueta": "puente"
+        }
+      ],
+      "value": "caminan",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 18,
+      "clipIndexInPhrase": 2,
+      "linea": 148780,
+      "conceptos": [
+        {
+          "emoji": "🌉",
+          "etiqueta": "puente"
+        },
+        {
+          "emoji": "🏗️",
+          "etiqueta": "construcción"
+        },
+        {
+          "emoji": "📐",
+          "etiqueta": "plano"
+        }
+      ],
+      "value": "diseñado",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 19,
+      "clipIndexInPhrase": 0,
+      "linea": 148781,
+      "conceptos": [
+        {
+          "emoji": "🚶",
+          "etiqueta": "multitud"
+        },
+        {
+          "emoji": "🌉",
+          "etiqueta": "puente"
+        },
+        {
+          "emoji": "🚦",
+          "etiqueta": "semáforo"
+        }
+      ],
+      "value": "transeuntes",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 19,
+      "clipIndexInPhrase": 1,
+      "linea": 148782,
+      "conceptos": [
+        {
+          "emoji": "📏",
+          "etiqueta": "medida"
+        },
+        {
+          "emoji": "🏗️",
+          "etiqueta": "estructura"
+        },
+        {
+          "emoji": "⚠️",
+          "etiqueta": "advertencia"
+        }
+      ],
+      "value": "entenderlo",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 19,
+      "clipIndexInPhrase": 2,
+      "linea": 148783,
+      "conceptos": [
+        {
+          "emoji": "📜",
+          "etiqueta": "pergamino"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj antiguo"
+        },
+        {
+          "emoji": "🏰",
+          "etiqueta": "castillo"
+        }
+      ],
+      "value": "entenderlo",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 20,
+      "clipIndexInPhrase": 0,
+      "linea": 148785,
+      "conceptos": [
+        {
+          "emoji": "👨‍🔬",
+          "etiqueta": "científico"
+        },
+        {
+          "emoji": "📜",
+          "etiqueta": "documento"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        }
+      ],
+      "value": "famoso",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 20,
+      "clipIndexInPhrase": 1,
+      "linea": 148786,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "⚖️",
+          "etiqueta": "péndulo"
+        },
+        {
+          "emoji": "🔩",
+          "etiqueta": "tornillo"
+        }
+      ],
+      "value": "holandés",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 20,
+      "clipIndexInPhrase": 2,
+      "linea": 148787,
+      "conceptos": [
+        {
+          "emoji": "⚙️",
+          "etiqueta": "engranaje"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "⏱️",
+          "etiqueta": "cronómetro"
+        }
+      ],
+      "value": "Funcional",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 21,
+      "clipIndexInPhrase": 0,
+      "linea": 148788,
+      "conceptos": [
+        {
+          "emoji": "⛵",
+          "etiqueta": "velero"
+        },
+        {
+          "emoji": "🧭",
+          "etiqueta": "brújula"
+        },
+        {
+          "emoji": "🗺️",
+          "etiqueta": "mapa"
+        }
+      ],
+      "value": "objetivo",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 21,
+      "clipIndexInPhrase": 1,
+      "linea": 148789,
+      "conceptos": [
+        {
+          "emoji": "🌞",
+          "etiqueta": "sol"
+        },
+        {
+          "emoji": "⭐",
+          "etiqueta": "estrella"
+        },
+        {
+          "emoji": "📐",
+          "etiqueta": "sextante"
+        }
+      ],
+      "value": "hallaban",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 22,
+      "clipIndexInPhrase": 0,
+      "linea": 148790,
+      "conceptos": [
+        {
+          "emoji": "🌞",
+          "etiqueta": "sol"
+        },
+        {
+          "emoji": "📐",
+          "etiqueta": "sextante"
+        },
+        {
+          "emoji": "🌊",
+          "etiqueta": "mar"
+        }
+      ],
+      "value": "determinada",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 22,
+      "clipIndexInPhrase": 1,
+      "linea": 148791,
+      "conceptos": [
+        {
+          "emoji": "🗺️",
+          "etiqueta": "mapa"
+        },
+        {
+          "emoji": "🧭",
+          "etiqueta": "brújula"
+        },
+        {
+          "emoji": "⏱️",
+          "etiqueta": "cronómetro"
+        }
+      ],
+      "value": "estrellas",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 23,
+      "clipIndexInPhrase": 0,
+      "linea": 148792,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🏠",
+          "etiqueta": "puerto"
+        },
+        {
+          "emoji": "🗺️",
+          "etiqueta": "mapa"
+        }
+      ],
+      "value": "necesita",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 23,
+      "clipIndexInPhrase": 1,
+      "linea": 148793,
+      "conceptos": [
+        {
+          "emoji": "⚓",
+          "etiqueta": "ancla"
+        },
+        {
+          "emoji": "⛵",
+          "etiqueta": "barco"
+        },
+        {
+          "emoji": "🏙️",
+          "etiqueta": "ciudad"
+        }
+      ],
+      "value": "ejemplo",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 24,
+      "clipIndexInPhrase": 0,
+      "linea": 148794,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "📅",
+          "etiqueta": "calendario"
+        },
+        {
+          "emoji": "⏳",
+          "etiqueta": "retraso"
+        }
+      ],
+      "value": "retrasaban",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 24,
+      "clipIndexInPhrase": 1,
+      "linea": 148795,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "péndulo"
+        },
+        {
+          "emoji": "⚙️",
+          "etiqueta": "engranaje"
+        },
+        {
+          "emoji": "⏱️",
+          "etiqueta": "cronómetro"
+        }
+      ],
+      "value": "contraste",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 25,
+      "clipIndexInPhrase": 0,
+      "linea": 148796,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "péndulo"
+        },
+        {
+          "emoji": "⏱️",
+          "etiqueta": "cronómetro"
+        },
+        {
+          "emoji": "📐",
+          "etiqueta": "precisión"
+        }
+      ],
+      "value": "precisión",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 25,
+      "clipIndexInPhrase": 1,
+      "linea": 148797,
+      "conceptos": [
+        {
+          "emoji": "⚙️",
+          "etiqueta": "engranaje"
+        },
+        {
+          "emoji": "🔩",
+          "etiqueta": "tornillo"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        }
+      ],
+      "value": "segundos",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 25,
+      "clipIndexInPhrase": 2,
+      "linea": 148798,
+      "conceptos": [
+        {
+          "emoji": "⛵",
+          "etiqueta": "barco"
+        },
+        {
+          "emoji": "🌊",
+          "etiqueta": "mar"
+        },
+        {
+          "emoji": "🪢",
+          "etiqueta": "cuerda"
+        }
+      ],
+      "value": "plan",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 26,
+      "clipIndexInPhrase": 0,
+      "linea": 148799,
+      "conceptos": [
+        {
+          "emoji": "🏋️",
+          "etiqueta": "pesa"
+        },
+        {
+          "emoji": "🪝",
+          "etiqueta": "gancho"
+        },
+        {
+          "emoji": "⛵",
+          "etiqueta": "barco"
+        }
+      ],
+      "value": "Hoygens",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 26,
+      "clipIndexInPhrase": 1,
+      "linea": 148800,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🌊",
+          "etiqueta": "olas"
+        },
+        {
+          "emoji": "⚓",
+          "etiqueta": "ancla"
+        }
+      ],
+      "value": "embarcación",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 27,
+      "clipIndexInPhrase": 0,
+      "linea": 148801,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "📦",
+          "etiqueta": "caja"
+        }
+      ],
+      "value": "sacudidos",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 27,
+      "clipIndexInPhrase": 1,
+      "linea": 148802,
+      "conceptos": [
+        {
+          "emoji": "🔧",
+          "etiqueta": "llave"
+        },
+        {
+          "emoji": "⚙️",
+          "etiqueta": "engranaje"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        }
+      ],
+      "value": "requería",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 27,
+      "clipIndexInPhrase": 2,
+      "linea": 148803,
+      "conceptos": [
+        {
+          "emoji": "🌊",
+          "etiqueta": "olas"
+        },
+        {
+          "emoji": "⛈️",
+          "etiqueta": "tormenta"
+        },
+        {
+          "emoji": "⛵",
+          "etiqueta": "barco"
+        }
+      ],
+      "value": "detuviera",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 28,
+      "clipIndexInPhrase": 0,
+      "linea": 148804,
+      "conceptos": [
+        {
+          "emoji": "🛏️",
+          "etiqueta": "cama"
+        },
+        {
+          "emoji": "🤒",
+          "etiqueta": "termómetro"
+        },
+        {
+          "emoji": "💊",
+          "etiqueta": "medicina"
+        }
+      ],
+      "value": "mecanismo",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 28,
+      "clipIndexInPhrase": 1,
+      "linea": 148805,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🔧",
+          "etiqueta": "herramienta"
+        },
+        {
+          "emoji": "⚙️",
+          "etiqueta": "engranaje"
+        }
+      ],
+      "value": "mecanismo",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 28,
+      "clipIndexInPhrase": 2,
+      "linea": 148806,
+      "conceptos": [
+        {
+          "emoji": "💡",
+          "etiqueta": "bombilla"
+        },
+        {
+          "emoji": "📝",
+          "etiqueta": "cuaderno"
+        },
+        {
+          "emoji": "🔍",
+          "etiqueta": "lupa"
+        }
+      ],
+      "value": "descubrió",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 29,
+      "clipIndexInPhrase": 0,
+      "linea": 148807,
+      "conceptos": [
+        {
+          "emoji": "🪵",
+          "etiqueta": "vara"
+        },
+        {
+          "emoji": "🪑",
+          "etiqueta": "silla"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        }
+      ],
+      "value": "revelador",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 29,
+      "clipIndexInPhrase": 1,
+      "linea": 148808,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🪢",
+          "etiqueta": "cuerda"
+        }
+      ],
+      "value": "colgaban",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 30,
+      "clipIndexInPhrase": 0,
+      "linea": 148810,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "péndulo"
+        },
+        {
+          "emoji": "⏱️",
+          "etiqueta": "cronómetro"
+        },
+        {
+          "emoji": "👀",
+          "etiqueta": "observación"
+        }
+      ],
+      "value": "observando",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 30,
+      "clipIndexInPhrase": 1,
+      "linea": 148811,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🕐",
+          "etiqueta": "hora"
+        },
+        {
+          "emoji": "📊",
+          "etiqueta": "gráfico"
+        }
+      ],
+      "value": "descubrió",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 31,
+      "clipIndexInPhrase": 0,
+      "linea": 148812,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "péndulo"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "péndulo"
+        },
+        {
+          "emoji": "🔗",
+          "etiqueta": "sincronía"
+        }
+      ],
+      "value": "sincronizaron",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 31,
+      "clipIndexInPhrase": 1,
+      "linea": 148813,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "péndulo"
+        },
+        {
+          "emoji": "↔️",
+          "etiqueta": "oscilación"
+        },
+        {
+          "emoji": "⚖️",
+          "etiqueta": "balanza"
+        }
+      ],
+      "value": "restante",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 32,
+      "clipIndexInPhrase": 0,
+      "linea": 148814,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🔊",
+          "etiqueta": "sonido"
+        },
+        {
+          "emoji": "🎵",
+          "etiqueta": "ritmo"
+        }
+      ],
+      "value": "opuesto",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 32,
+      "clipIndexInPhrase": 1,
+      "linea": 148815,
+      "conceptos": [
+        {
+          "emoji": "🔨",
+          "etiqueta": "martillo"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "💥",
+          "etiqueta": "ruptura"
+        }
+      ],
+      "value": "intentó",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 33,
+      "clipIndexInPhrase": 0,
+      "linea": 148816,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "↔️",
+          "etiqueta": "desincronía"
+        }
+      ],
+      "value": "sincronización",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 33,
+      "clipIndexInPhrase": 1,
+      "linea": 148817,
+      "conceptos": [
+        {
+          "emoji": "🔧",
+          "etiqueta": "herramienta"
+        },
+        {
+          "emoji": "⚙️",
+          "etiqueta": "engranaje"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        }
+      ],
+      "value": "desincronizado",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 34,
+      "clipIndexInPhrase": 0,
+      "linea": 148818,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🔗",
+          "etiqueta": "sincronía"
+        }
+      ],
+      "value": "sincronizada",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 34,
+      "clipIndexInPhrase": 1,
+      "linea": 148819,
+      "conceptos": [
+        {
+          "emoji": "🌬️",
+          "etiqueta": "viento"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "péndulo"
+        },
+        {
+          "emoji": "💨",
+          "etiqueta": "corriente"
+        }
+      ],
+      "value": "simpatía",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 35,
+      "clipIndexInPhrase": 0,
+      "linea": 148820,
+      "conceptos": [
+        {
+          "emoji": "🪵",
+          "etiqueta": "tabla"
+        },
+        {
+          "emoji": "🪑",
+          "etiqueta": "silla"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        }
+      ],
+      "value": "corrientes",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 35,
+      "clipIndexInPhrase": 1,
+      "linea": 148821,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "péndulo"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "péndulo"
+        },
+        {
+          "emoji": "🧱",
+          "etiqueta": "barrera"
+        }
+      ],
+      "value": "Péndulos",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 36,
+      "clipIndexInPhrase": 0,
+      "linea": 148822,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🌬️",
+          "etiqueta": "aire"
+        },
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        }
+      ],
+      "value": "sincronizándose",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 36,
+      "clipIndexInPhrase": 1,
+      "linea": 148823,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "⚙️",
+          "etiqueta": "engranaje"
+        },
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        }
+      ],
+      "value": "sincronizándose",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 37,
+      "clipIndexInPhrase": 0,
+      "linea": 148825,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "📏",
+          "etiqueta": "regla"
+        },
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        }
+      ],
+      "value": "sincronización",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 37,
+      "clipIndexInPhrase": 1,
+      "linea": 148826,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "⏱️",
+          "etiqueta": "cronómetro"
+        },
+        {
+          "emoji": "📐",
+          "etiqueta": "escuadra"
+        }
+      ],
+      "value": "distanciaban",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 38,
+      "clipIndexInPhrase": 0,
+      "linea": 148827,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        },
+        {
+          "emoji": "🔩",
+          "etiqueta": "tornillo"
+        }
+      ],
+      "value": "sincronización",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 38,
+      "clipIndexInPhrase": 1,
+      "linea": 148828,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "⚙️",
+          "etiqueta": "engranaje"
+        },
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        }
+      ],
+      "value": "regresaba",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 39,
+      "clipIndexInPhrase": 0,
+      "linea": 148829,
+      "conceptos": [
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🔩",
+          "etiqueta": "tornillo"
+        }
+      ],
+      "value": "sincronizándose",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 39,
+      "clipIndexInPhrase": 1,
+      "linea": 148830,
+      "conceptos": [
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        },
+        {
+          "emoji": "〰️",
+          "etiqueta": "onda"
+        },
+        {
+          "emoji": "🔊",
+          "etiqueta": "altavoz"
+        }
+      ],
+      "value": "transfería",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 40,
+      "clipIndexInPhrase": 0,
+      "linea": 148831,
+      "conceptos": [
+        {
+          "emoji": "⚙️",
+          "etiqueta": "engranaje"
+        },
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        }
+      ],
+      "value": "vibraciones",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 40,
+      "clipIndexInPhrase": 1,
+      "linea": 148832,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "🔊",
+          "etiqueta": "altavoz"
+        },
+        {
+          "emoji": "〰️",
+          "etiqueta": "onda"
+        }
+      ],
+      "value": "osciladores",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 41,
+      "clipIndexInPhrase": 0,
+      "linea": 148833,
+      "conceptos": [
+        {
+          "emoji": "🔬",
+          "etiqueta": "microscopio"
+        },
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "📓",
+          "etiqueta": "cuaderno"
+        }
+      ],
+      "value": "sincronizaciones",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 41,
+      "clipIndexInPhrase": 1,
+      "linea": 148834,
+      "conceptos": [
+        {
+          "emoji": "🕰️",
+          "etiqueta": "reloj"
+        },
+        {
+          "emoji": "⚙️",
+          "etiqueta": "engranaje"
+        },
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        }
+      ],
+      "value": "sincronizaciones",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 42,
+      "clipIndexInPhrase": 0,
+      "linea": 148835,
+      "conceptos": [
+        {
+          "emoji": "📓",
+          "etiqueta": "cuaderno"
+        },
+        {
+          "emoji": "🖋️",
+          "etiqueta": "pluma"
+        },
+        {
+          "emoji": "🔬",
+          "etiqueta": "microscopio"
+        }
+      ],
+      "value": "cualitativamente",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 42,
+      "clipIndexInPhrase": 1,
+      "linea": 148836,
+      "conceptos": [
+        {
+          "emoji": "🔬",
+          "etiqueta": "microscopio"
+        },
+        {
+          "emoji": "🧪",
+          "etiqueta": "tubo"
+        },
+        {
+          "emoji": "💻",
+          "etiqueta": "computadora"
+        }
+      ],
+      "value": "sucediendo",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 43,
+      "clipIndexInPhrase": 0,
+      "linea": 148837,
+      "conceptos": [
+        {
+          "emoji": "📚",
+          "etiqueta": "libro"
+        },
+        {
+          "emoji": "🔬",
+          "etiqueta": "microscopio"
+        },
+        {
+          "emoji": "📝",
+          "etiqueta": "papel"
+        }
+      ],
+      "value": "científicos",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 43,
+      "clipIndexInPhrase": 1,
+      "linea": 148838,
+      "conceptos": [
+        {
+          "emoji": "🧮",
+          "etiqueta": "ábaco"
+        },
+        {
+          "emoji": "📐",
+          "etiqueta": "escuadra"
+        },
+        {
+          "emoji": "🖊️",
+          "etiqueta": "bolígrafo"
+        }
+      ],
+      "value": "sincronización",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 44,
+      "clipIndexInPhrase": 0,
+      "linea": 148840,
+      "conceptos": [
+        {
+          "emoji": "🎚️",
+          "etiqueta": "metrónomo"
+        },
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        },
+        {
+          "emoji": "🔩",
+          "etiqueta": "tornillo"
+        }
+      ],
+      "value": "demostración",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 44,
+      "clipIndexInPhrase": 1,
+      "linea": 148841,
+      "conceptos": [
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        },
+        {
+          "emoji": "📐",
+          "etiqueta": "escuadra"
+        },
+        {
+          "emoji": "🎚️",
+          "etiqueta": "metrónomo"
+        }
+      ],
+      "value": "metrónomos",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 45,
+      "clipIndexInPhrase": 0,
+      "linea": 148842,
+      "conceptos": [
+        {
+          "emoji": "🎚️",
+          "etiqueta": "metrónomo"
+        },
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        },
+        {
+          "emoji": "🔊",
+          "etiqueta": "altavoz"
+        }
+      ],
+      "value": "sincronizadamente",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 46,
+      "clipIndexInPhrase": 0,
+      "linea": 148845,
+      "conceptos": [
+        {
+          "emoji": "⚙️",
+          "etiqueta": "engranaje"
+        },
+        {
+          "emoji": "🔩",
+          "etiqueta": "tornillo"
+        },
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        }
+      ],
+      "value": "complicado",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "redNodos",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "phraseIndex": 46,
+      "clipIndexInPhrase": 1,
+      "linea": 148846,
+      "conceptos": [
+        {
+          "emoji": "🎚️",
+          "etiqueta": "metrónomo"
+        },
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        },
+        {
+          "emoji": "🔊",
+          "etiqueta": "altavoz"
+        }
+      ],
+      "value": "maneras",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "phraseIndex": 46,
+      "clipIndexInPhrase": 2,
+      "linea": 148847,
+      "conceptos": [
+        {
+          "emoji": "🎚️",
+          "etiqueta": "metrónomo"
+        },
+        {
+          "emoji": "✨",
+          "etiqueta": "destello"
+        },
+        {
+          "emoji": "🪵",
+          "etiqueta": "madera"
+        }
+      ],
+      "value": "funcione",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "capasApiladas",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    }
+  ]
+}

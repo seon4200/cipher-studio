@@ -2,6 +2,10 @@
 
 ## Corrección de cierre — 05/09/2026
 
+**Rectificación posterior: +7%, NO +20.** El control de 17 añadió solape a +20.
+La evidencia actual es plan-a3-mas7-20260905/medidas.json; las hojas +20/+35
+se conservan como decisiones retiradas. Ver README-solapes-a3.md.
+
 +35% queda DESCARTADO por la comparación entre vecinos. El tamaño elegido es
 +20% (3.48 cqmin); evidencia aplicada en plan-a3-mas20-20260905/medidas.json.
 Ver README-solapes-a3.md para el corpus reconstruido, el barrido temporal y T8.

@@ -5,7 +5,10 @@ process.on('uncaughtException',e=>{console.error(e);app.exit(1)})
 process.on('unhandledRejection',e=>{console.error(e);app.exit(1)})
 const repo=path.resolve(process.argv[2]),out=path.resolve(process.argv[3])
 const corpus=JSON.parse(fs.readFileSync(path.join(out,'corpus-posiciones.json')))
-if(corpus.casos.length!==107||corpus.casos.some(c=>c.conceptos.length!==3))throw Error('Corpus incompleto')
+const esperado=corpus.procedencia.tipo==='control-fuera-de-muestra'?1:107
+if(corpus.casos.length!==esperado||corpus.casos.some(c=>c.conceptos.length!==3))throw Error('Corpus incompleto')
+const subidas=(process.argv.find(x=>x.startsWith('--subidas='))?.split('=')[1]||'0,20,35').split(',').map(Number)
+if(subidas.some(x=>!Number.isFinite(x)||x<0||x>50))throw Error('Subidas invalidas')
 const runtime=fs.mkdtempSync(path.join(os.tmpdir(),'cipher-a3-solapes-'))
 app.setPath('userData',path.join(runtime,'perfil'));process.chdir(runtime);delete process.env.VITE_DEV_SERVER_URL
 global.fetch=async()=>{throw Error('Sin red')}
@@ -17,7 +20,7 @@ app.whenReady().then(async()=>{
  try{
   session.defaultSession.webRequest.onBeforeRequest({urls:['http://*/*','https://*/*','ws://*/*','wss://*/*']},(_r,cb)=>cb({cancel:true}))
   const resultados=[]
-  for(const [subida,tamano]of [[0,2.9],[20,3.48],[35,3.915]]){
+  for(const subida of subidas){const tamano=Number((2.9*(1+subida/100)).toFixed(6));
    const dist=path.join(runtime,'dist-'+subida);fs.cpSync(path.join(repo,'dist'),dist,{recursive:true})
    // Sondeo controlado: solo el literal de la metrica del bundle generado. CSS Y layout
    // siguen consumiendo el MISMO registro; no se cambia solamente el CSS ni la derivacion.
@@ -58,7 +61,7 @@ app.whenReady().then(async()=>{
       await w.webContents.executeJavaScript('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');w.webContents.invalidate();await new Promise(r=>setTimeout(r,100))
       const nombre='solape-'+subida+'-'+c.linea+'.png';fs.writeFileSync(path.join(out,nombre),(await w.webContents.capturePage({x:0,y:8,width:1080,height:1920})).toPNG());dato.captura=nombre
     }
-    if(ordinal%20===0)console.log('Progreso '+subida+': '+(ordinal+1)+'/107')
+    if(ordinal%20===0)console.log('Progreso '+subida+': '+(ordinal+1)+'/'+esperado)
    }
    w.destroy();w=null
    const fila={subida,tamano,chunkSHA,conSolape:casos.filter(c=>c.pares.some(p=>p.area>0)).length,

@@ -1,0 +1,1235 @@
+{
+  "base": 2.9,
+  "histograma": {
+    "3": 6,
+    "4": 29,
+    "5": 78,
+    "6": 56,
+    "7": 48,
+    "8": 38,
+    "9": 33,
+    "10": 16,
+    "11": 10,
+    "12": 4,
+    "13": 1,
+    "14": 1,
+    "15": 1
+  },
+  "distribucion": {
+    "n": 321,
+    "mediana": 6,
+    "p90": 10,
+    "p99": 12,
+    "maximo": 15,
+    "metodo": "nearest-rank, incluyendo repeticiones"
+  },
+  "filas": [
+    {
+      "subida": null,
+      "fuenteCqmin": 3.103,
+      "fuentePx": 33.51240000000001,
+      "limite": 22,
+      "rechazos": 0,
+      "gruposRechazados": 0,
+      "vacios": 0,
+      "intervaloMinimoPx": 253.11376800000005,
+      "referencia": {
+        "texto": "responsabilidades",
+        "caracteres": 17,
+        "admitida": true,
+        "intervaloPx": 185.28467039999995
+      },
+      "maximoExportado": 22,
+      "modelos": {
+        "juguete": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "libro": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "ropa": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "bolígrafo": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "papel": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "taza": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "coche": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "semáforo": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "carretera": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "cesta": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "manzana": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "puesto": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "hoja": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "viento": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "árbol": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "cronómetro": {
+          "modeloPx": 477.385488,
+          "admitida": true
+        },
+        "madera": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "tornillo": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "control": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "altavoz": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "regla": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "reloj": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "engranaje": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "cadena": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "luna": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "planeta": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "telescopio": {
+          "modeloPx": 477.385488,
+          "admitida": true
+        },
+        "insecto": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "pino": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "linterna": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "corazón": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "monitor": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "batería": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "estetoscopio": {
+          "modeloPx": 545.2145856000001,
+          "admitida": true
+        },
+        "pastilla": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "archivador": {
+          "modeloPx": 477.385488,
+          "admitida": true
+        },
+        "puente": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "lazo": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "confeti": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "barco": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "agua": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "edificio": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "zapato": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "abrigo": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "cámara": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "bastón": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "mochila": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "barrera": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "patrulla": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "letrero": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "señal": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "candado": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "puerta": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "persona": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "boleto": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "silla": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "vibración": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "llave": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "billete": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "moneda": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "banco": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "grúa": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "ladrillo": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "escalera": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "calendario": {
+          "modeloPx": 477.385488,
+          "admitida": true
+        },
+        "plano": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "lupa": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "destornillador": {
+          "modeloPx": 613.0436832,
+          "admitida": true
+        },
+        "bota": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "medalla": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "casco": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "explosión": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "periódico": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "pluma": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "vela": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "bota militar": {
+          "modeloPx": 545.2145856000001,
+          "admitida": true
+        },
+        "puente colgante": {
+          "modeloPx": 646.9582320000001,
+          "admitida": true
+        },
+        "marcha": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "río": {
+          "modeloPx": 239.98364640000003,
+          "admitida": true
+        },
+        "colapso": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "rescate": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "vendaje": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "hueso": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "hospital": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "medicina": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "ambulancia": {
+          "modeloPx": 477.385488,
+          "admitida": true
+        },
+        "orden": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "cuartel": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "fila": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "alto": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "peatón": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "ciudad": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "zapatilla": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "multitud": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "caminata": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "ritmo": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "bolso": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "prohibido": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "grupo": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "construcción": {
+          "modeloPx": 545.2145856000001,
+          "admitida": true
+        },
+        "medida": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "estructura": {
+          "modeloPx": 477.385488,
+          "admitida": true
+        },
+        "advertencia": {
+          "modeloPx": 511.30003680000004,
+          "admitida": true
+        },
+        "pergamino": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "reloj antiguo": {
+          "modeloPx": 579.1291344000001,
+          "admitida": true
+        },
+        "castillo": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "científico": {
+          "modeloPx": 477.385488,
+          "admitida": true
+        },
+        "documento": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "péndulo": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "velero": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "brújula": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "mapa": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "sol": {
+          "modeloPx": 239.98364640000003,
+          "admitida": true
+        },
+        "estrella": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "sextante": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "mar": {
+          "modeloPx": 239.98364640000003,
+          "admitida": true
+        },
+        "puerto": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "ancla": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "retraso": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "precisión": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "cuerda": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "pesa": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "gancho": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "olas": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "caja": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "tormenta": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "cama": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "termómetro": {
+          "modeloPx": 477.385488,
+          "admitida": true
+        },
+        "herramienta": {
+          "modeloPx": 511.30003680000004,
+          "admitida": true
+        },
+        "bombilla": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "cuaderno": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "vara": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "observación": {
+          "modeloPx": 511.30003680000004,
+          "admitida": true
+        },
+        "hora": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "gráfico": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "sincronía": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "oscilación": {
+          "modeloPx": 477.385488,
+          "admitida": true
+        },
+        "balanza": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "sonido": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "martillo": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "ruptura": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "desincronía": {
+          "modeloPx": 511.30003680000004,
+          "admitida": true
+        },
+        "corriente": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "tabla": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "aire": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "escuadra": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "onda": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "microscopio": {
+          "modeloPx": 511.30003680000004,
+          "admitida": true
+        },
+        "tubo": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "computadora": {
+          "modeloPx": 511.30003680000004,
+          "admitida": true
+        },
+        "ábaco": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "metrónomo": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "destello": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "responsabilidades": {
+          "modeloPx": 714.7873296000001,
+          "admitida": true
+        },
+        "@": {
+          "modeloPx": 172.1545488,
+          "admitida": true
+        },
+        "@@": {
+          "modeloPx": 206.06909760000002,
+          "admitida": true
+        },
+        "@@@": {
+          "modeloPx": 239.98364640000003,
+          "admitida": true
+        },
+        "@@@@": {
+          "modeloPx": 273.89819520000003,
+          "admitida": true
+        },
+        "@@@@@": {
+          "modeloPx": 307.812744,
+          "admitida": true
+        },
+        "@@@@@@": {
+          "modeloPx": 341.72729280000004,
+          "admitida": true
+        },
+        "@@@@@@@": {
+          "modeloPx": 375.6418416,
+          "admitida": true
+        },
+        "@@@@@@@@": {
+          "modeloPx": 409.55639040000005,
+          "admitida": true
+        },
+        "@@@@@@@@@": {
+          "modeloPx": 443.4709392000001,
+          "admitida": true
+        },
+        "@@@@@@@@@@": {
+          "modeloPx": 477.385488,
+          "admitida": true
+        },
+        "@@@@@@@@@@@": {
+          "modeloPx": 511.30003680000004,
+          "admitida": true
+        },
+        "@@@@@@@@@@@@": {
+          "modeloPx": 545.2145856000001,
+          "admitida": true
+        },
+        "@@@@@@@@@@@@@": {
+          "modeloPx": 579.1291344000001,
+          "admitida": true
+        },
+        "@@@@@@@@@@@@@@": {
+          "modeloPx": 613.0436832,
+          "admitida": true
+        },
+        "@@@@@@@@@@@@@@@": {
+          "modeloPx": 646.9582320000001,
+          "admitida": true
+        },
+        "@@@@@@@@@@@@@@@@": {
+          "modeloPx": 680.8727808000001,
+          "admitida": true
+        },
+        "@@@@@@@@@@@@@@@@@": {
+          "modeloPx": 714.7873296000001,
+          "admitida": true
+        },
+        "@@@@@@@@@@@@@@@@@@": {
+          "modeloPx": 748.7018784000002,
+          "admitida": true
+        },
+        "@@@@@@@@@@@@@@@@@@@": {
+          "modeloPx": 782.6164272000001,
+          "admitida": true
+        },
+        "@@@@@@@@@@@@@@@@@@@@": {
+          "modeloPx": 816.530976,
+          "admitida": true
+        },
+        "@@@@@@@@@@@@@@@@@@@@@": {
+          "modeloPx": 850.4455248,
+          "admitida": true
+        },
+        "@@@@@@@@@@@@@@@@@@@@@@": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "@@@@@@@@@@@@@@@@@@@@@@@": {
+          "modeloPx": 918.2746224,
+          "admitida": false
+        },
+        "@@@@@@@@@@@@@@@@@@@@@@@@": {
+          "modeloPx": 952.1891712000001,
+          "admitida": false
+        },
+        "@@@@@@@@@@@@@@@@@@@@@@@@@": {
+          "modeloPx": 986.10372,
+          "admitida": false
+        },
+        "@@@@@@@@@@@@@@@@@@@@@@@@@@": {
+          "modeloPx": 1020.0182688000002,
+          "admitida": false
+        },
+        "@@@@@@@@@@@@@@@@@@@@@@@@@@@": {
+          "modeloPx": 1053.9328176000001,
+          "admitida": false
+        },
+        "@@@@@@@@@@@@@@@@@@@@@@@@@@@@": {
+          "modeloPx": 1087.8473664,
+          "admitida": false
+        },
+        "                      ": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "!!!!!!!!!!!!!!!!!!!!!!": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "######################": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "$$$$$$$$$$$$$$$$$$$$$$": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "%%%%%%%%%%%%%%%%%%%%%%": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "&&&&&&&&&&&&&&&&&&&&&&": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "''''''''''''''''''''''": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "((((((((((((((((((((((": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "))))))))))))))))))))))": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "**********************": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "++++++++++++++++++++++": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        ",,,,,,,,,,,,,,,,,,,,,,": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "----------------------": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "......................": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "//////////////////////": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "0000000000000000000000": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "1111111111111111111111": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "2222222222222222222222": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "3333333333333333333333": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "4444444444444444444444": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "5555555555555555555555": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "6666666666666666666666": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "7777777777777777777777": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "8888888888888888888888": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "9999999999999999999999": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "::::::::::::::::::::::": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        ";;;;;;;;;;;;;;;;;;;;;;": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "<<<<<<<<<<<<<<<<<<<<<<": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "======================": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        ">>>>>>>>>>>>>>>>>>>>>>": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "??????????????????????": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "AAAAAAAAAAAAAAAAAAAAAA": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "BBBBBBBBBBBBBBBBBBBBBB": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "CCCCCCCCCCCCCCCCCCCCCC": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "DDDDDDDDDDDDDDDDDDDDDD": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "EEEEEEEEEEEEEEEEEEEEEE": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "FFFFFFFFFFFFFFFFFFFFFF": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "GGGGGGGGGGGGGGGGGGGGGG": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "HHHHHHHHHHHHHHHHHHHHHH": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "IIIIIIIIIIIIIIIIIIIIII": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "JJJJJJJJJJJJJJJJJJJJJJ": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "KKKKKKKKKKKKKKKKKKKKKK": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "LLLLLLLLLLLLLLLLLLLLLL": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "MMMMMMMMMMMMMMMMMMMMMM": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "NNNNNNNNNNNNNNNNNNNNNN": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "OOOOOOOOOOOOOOOOOOOOOO": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "PPPPPPPPPPPPPPPPPPPPPP": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "QQQQQQQQQQQQQQQQQQQQQQ": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "RRRRRRRRRRRRRRRRRRRRRR": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "SSSSSSSSSSSSSSSSSSSSSS": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "TTTTTTTTTTTTTTTTTTTTTT": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "UUUUUUUUUUUUUUUUUUUUUU": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "VVVVVVVVVVVVVVVVVVVVVV": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "WWWWWWWWWWWWWWWWWWWWWW": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "XXXXXXXXXXXXXXXXXXXXXX": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "YYYYYYYYYYYYYYYYYYYYYY": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "ZZZZZZZZZZZZZZZZZZZZZZ": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "[[[[[[[[[[[[[[[[[[[[[[": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "]]]]]]]]]]]]]]]]]]]]]]": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "^^^^^^^^^^^^^^^^^^^^^^": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "______________________": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "``````````````````````": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "aaaaaaaaaaaaaaaaaaaaaa": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "bbbbbbbbbbbbbbbbbbbbbb": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "cccccccccccccccccccccc": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "dddddddddddddddddddddd": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "eeeeeeeeeeeeeeeeeeeeee": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "ffffffffffffffffffffff": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "gggggggggggggggggggggg": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "hhhhhhhhhhhhhhhhhhhhhh": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "iiiiiiiiiiiiiiiiiiiiii": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "jjjjjjjjjjjjjjjjjjjjjj": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "kkkkkkkkkkkkkkkkkkkkkk": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "llllllllllllllllllllll": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "mmmmmmmmmmmmmmmmmmmmmm": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "nnnnnnnnnnnnnnnnnnnnnn": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "oooooooooooooooooooooo": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "pppppppppppppppppppppp": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "qqqqqqqqqqqqqqqqqqqqqq": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "rrrrrrrrrrrrrrrrrrrrrr": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "ssssssssssssssssssssss": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "tttttttttttttttttttttt": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "uuuuuuuuuuuuuuuuuuuuuu": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "vvvvvvvvvvvvvvvvvvvvvv": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "wwwwwwwwwwwwwwwwwwwwww": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "xxxxxxxxxxxxxxxxxxxxxx": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "yyyyyyyyyyyyyyyyyyyyyy": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "zzzzzzzzzzzzzzzzzzzzzz": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "{{{{{{{{{{{{{{{{{{{{{{": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "||||||||||||||||||||||": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "}}}}}}}}}}}}}}}}}}}}}}": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "~~~~~~~~~~~~~~~~~~~~~~": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "ÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁÁ": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "ÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉÉ": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "ÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓÓ": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "ÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚÚ": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "ÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑ": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "áááááááááááááááááááááá": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "éééééééééééééééééééééé": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "íííííííííííííííííííííí": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "óóóóóóóóóóóóóóóóóóóóóó": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "úúúúúúúúúúúúúúúúúúúúúú": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "üüüüüüüüüüüüüüüüüüüüüü": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "ññññññññññññññññññññññ": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        },
+        "¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿¿": {
+          "modeloPx": 884.3600736000001,
+          "admitida": true
+        }
+      },
+      "metricas": {
+        "archivo700": {
+          "familia": "Archivo",
+          "peso": 700,
+          "fuenteCqmin": 3.103,
+          "alfabeto": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ÁÉÍÓÚÜÑáéíóúüñ¡¿",
+          "emMaximoMedido": 1.001015625,
+          "emPorCaracter": 1.002,
+          "espaciadoEm": 0.01,
+          "fichero": "archivo-var.woff2"
+        }
+      },
+      "geometria": {
+        "paddingXCqmin": 2.4,
+        "bordeCqmin": 0.3,
+        "gapCqmin": 1.3,
+        "emojiAnchoCqmin": 6.1
+      }
+    }
+  ],
+  "zonaAnchoPx": 900.0720000000001,
+  "bundleSHA256": "214ba63b2b0fde9513960aad7f0a6b5e027dea53d06cb68dade65f2546981161"
+}

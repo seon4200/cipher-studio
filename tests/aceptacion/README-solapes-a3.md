@@ -49,3 +49,29 @@ Watchdog 600 s y salida roja por excepciones. Se evita autoquit entre ventanas:
 una ejecución inicial incompleta no se contó como sondeo de los tres tamaños.
 Los arneses se copiaron sin cambios semánticos; LF/CRLF explica sus SHA distintos
 del borrador. La reproducción desde clon usa los ficheros versionados.
+
+## Control adicional que retira +20% — y tamaño definitivo +7%
+
+El párrafo anterior es histórico: el control de 17 NO se puede apartar por no
+pertenecer a las 321. A mismo memoria/ondas/constelacion/quieto/media/regular/
+archivo, conceptos responsabilidades/archivo/conexion con sus emojis, ciclo 3 s,
+91 instantes y la misma fuente: base 0; +10 3.852517%; +15 13.026209%;
++20 21.832589%; +35 47.584879% de la caja menor. Desde +15 llega al span de texto;
+el PNG de +20 muestra letras tapadas. Son medidas de UN control, no tasas de vídeo.
+Barrido fino: +5 y +7 no intersectan; +8 0.0619322%; +9 1.9527554%.
+Resolución final: un punto porcentual, techo entre +7 y +8, NO 41.4.
+Los 107 grupos a +7 se midieron además completos: 0 pares/0 texto, sin mezcla
+con ese control. Este es el mayor incremento ENTERO comprobado que pasa ambos.
+
+```powershell
+node tests/aceptacion/preparar-control17-a3.cjs . C:/temporal/a3-control
+node node_modules/electron/cli.js tests/aceptacion/medir-solapes-a3.cjs . C:/temporal/a3-control --subidas=0,5,7,8,9,10,15,20,35
+node node_modules/electron/cli.js tests/aceptacion/medir-solapes-a3.cjs . C:/temporal/a3 --subidas=7
+```
+
+Fuentes: plan-a3-control17-20260905 (los dos barridos), plan-a3-pares7-20260905,
+plan-a3-mas7-20260905. Se conservan los resultados previos, no se reescriben.
+La coincidencia log/transcripción comprobada son los PREFIJOS de 80 caracteres
+que el log conserva, por índice; no se afirmó igualdad de texto que no guardó.
+La primera hoja +7 salió incompleta al componer PNG completos; se descartó y
+repitió en proceso nuevo. Esto es otra inspección de L9, no una guarda de completitud.

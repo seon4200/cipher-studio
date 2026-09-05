@@ -2732,3 +2732,31 @@ No merge a master; VERSION_PLANTILLAS 8 y cachés de trabajo aisladas.
 npm test 9/9, exit 0, sobre el clon CONSUMIDO cipher-a2-pruebas-20260905 con
 los artefactos actuales. Capas conserva la aserción; no se repitió para buscar verde.
 El resultado no sustituye al clon nuevo del cierre de fase.
+
+### A.3 — rectificación del +20 por el control de 17 (05/09/2026)
+
+~~+20 era el tamaño definitivo~~: el ejecutor lo registró en 35a9ca8 tras 9/9,
+pero se había apoyado solo en los 107 grupos. La hoja de 17 seguía tapando texto.
+Se midió ese control contra SU base, sin sumarlo a las 321. No se oculta el error.
+Condiciones: memoria, responsabilidades/archivo/conexion, ondas/constelacion/
+quieto/media/regular/archivo, voltaje, 1080x1920, 91 instantes del ciclo 3 s,
+Archivo 700 local. Código 35a9ca8, arnés medir-solapes-a3.cjs con corpus control;
+SHA en plan-a3-control17-20260905. AABB: base cero; +10 3.852517%, +15 13.026209%,
++20 21.832589%, +35 47.584879% del área de la caja menor. Desde +15 intersecta
+el rectángulo de texto. +20 se inspeccionó: tapa letras, no solo el borde.
+
+Barrido de cierre: +5/+7 cero; +8 0.0619322%, +9 1.9527554%. Se elige +7 como
+máximo entero comprobado. Los 107 grupos a +7: cero pares en todos los frames
+muestreados; fuente plan-a3-pares7-20260905. La reserva de 17 deja 185.2846704 px,
+el mínimo de las 321 es 253.113768 px; puerta y DOM admiten 22, cero rechazos.
+Medición aplicada en plan-a3-mas7-20260905, literal 3.103, hashes de fuente y bundle.
+
+Es un incremento pequeño: NO equivale a dar por resuelta la legibilidad general.
+El panel de 22 @ sigue mostrando vecindad pendiente. La separación es el límite
+antes que el encuadre; no se manda esta consecuencia a B sin escribirla aquí.
+El control de 17 sí queda completo y separado en la hoja nueva, al 45%.
+El primer ensamblado +7 salió parcial aunque sus PNG de origen estaban completos;
+se conservó fuera del repo y se repitió la captura. Inspección L9, no certificación
+automática de completitud. La copia correcta se miró antes de versionarla.
+La coincidencia con el log de las 114 frases solo cubre sus prefijos de 80
+caracteres y sus índices: el log no conserva el resto. Es reconstrucción declarada.
