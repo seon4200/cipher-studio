@@ -24,6 +24,7 @@ import React from 'react'
 import { SISTEMAS } from '../sistemas'
 import { FONDOS } from '../../../shared/escena'
 import { anchoCaja } from '../../../shared/mapa'
+import { METRICAS_ETIQUETA, METRICA_ETIQUETA, GEOMETRIA_CAJA } from '../../../shared/metricas-caja'
 import { ajustar, type DuracionUsada } from '../../../shared/ciclo'
 import { generador, semillaDe } from '../../../shared/semilla'
 import { CUANTOS_CONCEPTOS, type Concepto } from '../../../shared/conceptos'
@@ -95,15 +96,20 @@ const usa = (nom: string, n = 1): React.CSSProperties => ({
 // marco 1080x1920, un `y=30` caia en 30 % de 1080 = 16.9 % del cuadro, y las aristas morian muy
 // por encima de sus nodos sin dar un error. Esta en el CSS COMPARTIDO y no dentro de
 // `constelacion` a proposito: lo hereda toda estructura que use SVG, que seran casi todas.
+const metricaEtiqueta = METRICAS_ETIQUETA[METRICA_ETIQUETA]
+const geometriaCaja = GEOMETRIA_CAJA
 const CSS_FIJO = `
 .es-capa{position:absolute;inset:0}
 .es-svg{position:absolute;inset:0;width:100%;height:100%}
 .es-nodo{position:absolute;transform:translate(-50%,-50%);white-space:nowrap}
-.es-caja{display:flex;align-items:center;gap:1.3cqmin;padding:1.5cqmin 2.4cqmin;
-  border-radius:1.7cqmin;background:var(--caja,rgba(9,12,20,.9));border:.3cqmin solid var(--acento);
+.es-caja{display:flex;align-items:center;gap:${geometriaCaja.gapCqmin}cqmin;padding:1.5cqmin ${geometriaCaja.paddingXCqmin}cqmin;
+  border-radius:1.7cqmin;background:var(--caja,rgba(9,12,20,.9));border:${geometriaCaja.bordeCqmin}cqmin solid var(--acento);
   backdrop-filter:blur(.19cqmin)}
-.es-mini{font-size:4.4cqmin;line-height:1;flex:none}
-.es-etq{font:700 2.9cqmin Archivo,system-ui,sans-serif;letter-spacing:.01em;color:var(--texto)}
+.es-mini{font-size:4.4cqmin;line-height:1;flex:none;width:${geometriaCaja.emojiAnchoCqmin}cqmin;text-align:center}
+/* La cota suma avances individuales: no puede convivir con kerning ni ligaduras
+   contextuales que cambien esa suma. La medicion usa ESTAS propiedades reales. */
+.es-etq{font:${metricaEtiqueta.peso} ${metricaEtiqueta.fuenteCqmin}cqmin ${metricaEtiqueta.familia},system-ui,sans-serif;
+  letter-spacing:${metricaEtiqueta.espaciadoEm}em;font-kerning:none;font-variant-ligatures:none;color:var(--texto)}
 .es-hero{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);
   font-size:26cqmin;line-height:1;filter:drop-shadow(0 2cqmin 2.6cqmin rgba(0,0,0,.7))}
 .es-deco{position:absolute;width:1.6cqmin;height:1.6cqmin;border-radius:50%;

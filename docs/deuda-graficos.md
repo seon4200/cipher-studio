@@ -2403,3 +2403,76 @@ siguen provisionales. Se conserva el JSON anterior y el posterior.
 Verificacion intrarrama: tsc 0; build 0, renderer/main/preload presentes;
 npm test 9/9 a la primera, sin crash de exclusion. No es cierre de Fase A ni
 verificacion desde un nuevo clon; esa sigue reservada al cierre de fase.
+
+## A.2 — cota de cajas, desglose nominal y aislamiento (05/09/2026)
+
+**Política T2 confirmada por Jairo:** A–E permanecen SIN MERGE a producción.
+Los renders de trabajo usan proyectos/cachés temporales aislados. VERSION_PLANTILLAS
+sigue en 8; subirá UNA vez a 9 en el MISMO merge que incorpore los cambios de
+píxeles, inmediatamente antes de producir con ellos. También invalida las tarjetas:
+coste aceptado, aunque sus dibujos no hayan cambiado. El cierre de A requiere
+OTRO clon nuevo + npm ci + tsc + build por ficheros + las nueve suites.
+
+**El salto no es proporcional al número de identidades.** Medido importando el
+bundle, filtrando cada par en memoria y llamando al contador real:
+166.470 + 3.571.200 (tunel × deriva) + 44.640 (skyline × deriva) = 3.782.310.
+Pesos: tunel=80, deriva=48, estructuras=400+64+1 y tipografías=2.
+El primer par aporta 80×48×465×2; el segundo, 1×48×465×2.
+Son 48 identidades legales. Los pasos siguen NOMINALES: esta cuenta no calibra su
+distinguibilidad. No se ha demostrado que existan 3.782.310 dibujos perceptibles.
+Arnés: tests/aceptacion/desglosar-instancias-a2.cjs.
+
+**Aislamiento medido:** tests/aceptacion/auditar-cache-a2.cjs inventaría con SHA-256,
+tamaño y mtime tanto cache/graficos como materiales/visual de TODOS los proyectos.
+Vigila esos destinos mientras ejecuta el arnés M7, que bloquea fetch/HTTP y cambia
+cwd y userData ANTES de importar el bundle. Evidencia en plan-a2-20260905/cache.json;
+el manifiesto completo queda en la carpeta de salida indicada por el arnés.
+Las suites de A.2 se ejecutaron en C:/graphify/cipher-a2-pruebas-20260905:
+clon desechable con el parche aplicado, CONSUMIDO, no válido para cerrar A.
+No se renderizó en un proyecto de producción.
+
+**CERRADO para la puerta de escena, no para la separación entre cajas:**
+~~el ajuste medio 1,257×caracteres+12,18 basta para admitir 56 caracteres.~~
+Archivo 700 local, Electron 31.7.7 / Chromium 126, Windows x64, 1080×1920,
+t=2,999 s de 3 s, ondas / constelacion / quieto / media / regular / archivo,
+sistema voltaje. Las 56 W medían 1.845,421875 px y el modelo 891,7776 px.
+La nueva cota por fuente cuenta espaciado, bordes, relleno y ranura explícita del
+emoji. @=1,001015625 em es el máximo de 111 caracteres; se redondea a 1,002 em.
+Se desactivan kerning y ligaduras en las etiquetas para conservar avances
+individuales. Los caracteres no medidos se rechazan, no se presumen estrechos.
+Eso incluye otras escrituras: es una limitación explícita, no soporte universal.
+
+Límite actual: 24 caracteres. 24 @: caja 897,671875 px, cota 898,94016 px,
+ancho útil 900,072 px. 25 @ y 56 W: respaldo real, con aviso. Barrido de 111
+caracteres repetidos 24 veces: cero subestimaciones. Se verificaron también uno,
+cero conceptos y caracteres no medidos. El negativo (cota 0,58 SOLO en memoria)
+falla con exit 1. Medidas, condiciones y PNG: tests/aceptacion/plan-a2-20260905.
+El arnés importa las funciones del bundle; no las copia. El atlas no se vuelve a
+medir en la suite: se contrasta con el registro y con el SHA-256 de la fuente.
+
+**Decisión de A.2:** B, cota POR FUENTE. A (tabla por carácter) exige gestionar
+shaping y más datos para ahorrar ancho; D solo cambia el umbral de una estimación
+que seguiría siendo falsa; C introduce medida de DOM en cada render. No se añade
+DOM a shared. El registro admite nuevas métricas; cada futura familia necesita
+medición propia, no hereda Archivo. No hay diez familias todavía y no se inventa
+un desperdicio global para ellas. Con Archivo y 24 i la cota reserva 898,94 px
+frente a 345,94 px reales: 553,00 px de conservadurismo horizontal. No es una
+optimización del espacio ni establece la tasa de respaldo en producción.
+
+**Hallazgo visible pendiente de A:** con [24 @, archivo, conexion], a cámara
+quieto, las dos primeras cajas SE SOLAPAN aunque sus bordes estén dentro de X.
+La hoja lo muestra deliberadamente. Acotar un rectángulo al encuadre NO garantiza
+separarlo de sus vecinos. A.2 no se presenta como solución de todos los solapes;
+M3 con cámara y la revisión de distribución siguen pendientes del cierre de A.
+
+**Incidentes del instrumento, no ocultados por el verde:** el primer vigilante
+también cubría la lectura del propio inventario: obtuvo dos eventos (uno sin
+nombre), con los 1.029 hashes y mtimes idénticos. No se atribuyeron al render.
+Se separó la lectura de la ventana vigilada y se repitió. La primera importación
+del bundle DESPUÉS de app.ready abrió la app e inició una consulta de voces:
+se detuvo; ahora las funciones puras se importan en un proceso que termina antes
+de ready, y fetch también está bloqueado. Dos capturas CDP agotaron el watchdog;
+el arnés usa ahora la ventana offscreen. Una captura inmediata conservaba las
+56 W del sondeo anterior pese a que el DOM ya decía 24 @: se retiró. Ahora espera
+dos rAF y 100 ms con t fijo, invalida la superficie, y se miran los PNG. Esa espera
+es un método de inspección estática, NO una prueba universal de completitud.

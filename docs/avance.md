@@ -155,3 +155,13 @@ Ver `plan-maestro.md`.
 Las **tarjetas de gráficos solo salen si se piden a mano**, desde junio y por
 diseño (`fc4313a` movió esa vía a `regenerate-graphics`). ¿Se quiere que vuelvan a
 salir solas durante la generación? Sería una fase propia.
+
+### Plan A.2 — ancho de cajas (05/09/2026, sin merge)
+
+Cota por fuente y ranura de emoji compartidas por CSS y aritmética. Archivo 700:
+24 @ reales = 897,67 px; presupuesto = 898,94 px; zona = 900,07 px.
+56 W/25 @ se rechazan con respaldo visible y aviso. Barrido 111 caracteres sin
+subestimación y control negativo rojo. Evidencia: tests/aceptacion/plan-a2-20260905.
+Persisten solapes ENTRE cajas con etiquetas extremas; no se declara M3 completo.
+Política A–E: cachés temporales, sin merge; una subida 8→9 en el merge final.
+El cierre de A sigue pendiente y exigirá un clon NUEVO.

@@ -568,7 +568,30 @@ function conceptos (bundle) {
   ok(direccionDesde({ tipografia: 'inventada' }, 42).tipografia === direccionDe(42).tipografia,
     'tipografia desconocida vuelve al sorteo')
   ok(!cabeEnElPie('ß'.repeat(13), 'anton'), 'la puerta cuenta DESPUES de pasar a versal')
-  ok(bundle.MAX_CARACTERES_ETIQUETA === 56, 'las cajas conservan su limite 56')
+  // A.2: 56 era un ajuste medio que admitia 1845 px en 900 px disponibles.
+  // No se congela un nuevo tope: se comprueba el borde usando la funcion del bundle.
+  const limiteCaja = bundle.MAX_CARACTERES_ETIQUETA
+  const cajasMedidas = require('./aceptacion/plan-a2-20260905/medidas.json')
+  ok(limiteCaja === cajasMedidas.modelo.limite && bundle.cabeLaEtiqueta('@'.repeat(limiteCaja)) &&
+    !bundle.cabeLaEtiqueta('@'.repeat(limiteCaja + 1)), 'cota de Archivo 700: limite y siguiente')
+  ok(!bundle.cabeLaEtiqueta('W'.repeat(56)) &&
+    bundle.anchoCaja('W'.repeat(56), true) * 10.8 >= 1845.421875,
+    'regresion 56 W: rechaza y no subestima la medida DOM original')
+  ok(!bundle.cabeLaEtiqueta('漢字'), 'un caracter no medido no se presume estrecho')
+  ok(bundle.cabeLaEtiqueta('ÁÉÍÓÚÜÑ - O\'Hara'), 'espacio, guion, apostrofo y acentos medidos')
+  const metricaCaja = bundle.METRICAS_ETIQUETA[bundle.METRICA_ETIQUETA]
+  ok(metricaCaja.emPorCaracter >= metricaCaja.emMaximoMedido,
+    'cota redondeada hacia arriba, nunca promedio')
+  ok(JSON.stringify(bundle.METRICAS_ETIQUETA) === JSON.stringify(cajasMedidas.modelo.metricas) &&
+    JSON.stringify(bundle.GEOMETRIA_CAJA) === JSON.stringify(cajasMedidas.modelo.geometria),
+    'registro y geometria coinciden con la medicion versionada')
+  const hashCaja = require('crypto').createHash('sha256').update(require('fs').readFileSync(
+    path.join(RAIZ, 'dist/fonts', metricaCaja.fichero))).digest('hex')
+  ok(hashCaja === cajasMedidas.fuenteSHA256, 'la fuente de cajas es la que se midio')
+  const acotadas = [...cajasMedidas.casos, ...cajasMedidas.barrido]
+    .filter(c => c.modeloPx !== null)
+  ok(acotadas.every(c => bundle.anchoCaja(c.texto, true) * 10.8 >= c.ancho),
+    'la cota del bundle cubre las cajas DOM guardadas, incluido el barrido de 111 caracteres')
   // Congelar salidas del catalogo obligaba a editar esta prueba con cada pieza nueva.
   // Una prueba que se edita para ponerse verde deja de probar. El invariante es el ORDEN
   // de consumo y tipografia ultima, no que una semilla siga eligiendo el fondo de ayer.

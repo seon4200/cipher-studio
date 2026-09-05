@@ -83,6 +83,11 @@ propia copia de una función. Los tres pasaron con el log en verde.
 duracion, fps, VERSION_PLANTILLAS, modo, codec, sistema`.
 
 - Todo lo que decide píxeles está en la clave, **o** sube `VERSION_PLANTILLAS`.
+- **Plan A–E: sin merge a producción y renders en cachés temporales aisladas.**
+  El aislamiento se demuestra comparando los destinos de producción antes/después.
+  La subida 8→9 irá UNA vez, en el MISMO merge que incorpore los cambios de píxeles,
+  nunca después. Se acepta que también invalide tarjetas sin cambios. El cierre de
+  cada fase requiere clon nuevo; la comprobación intrarrama no lo sustituye.
 - `COMPOSICION_VISUAL` acaba dentro de `type`: cambiarlo **ya** cambia la clave.
   Subir `VERSION_PLANTILLAS` además invalida las tarjetas, que no han cambiado.
 - **El paso que mueve `COMPOSICION_VISUAL` va SOLO**, sin lote y con verificacion

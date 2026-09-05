@@ -32,6 +32,7 @@ export { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA }
 // el paso 3 sera quien la use. Sin estas dos lineas la octava suite no tendria como alcanzarlo
 // —el bundler no incluye lo que nadie importa— y la unica alternativa seria copiar la logica
 // dentro de la prueba, que es exactamente lo que las otras siete evitan.
+export { METRICAS_ETIQUETA, METRICA_ETIQUETA, GEOMETRIA_CAJA } from '../shared/metricas-caja'
 import * as mapa from '../shared/mapa'
 export const {
   SY, FOCO, ZONA, T, cl, ent, elige, jit, PALETAS, LAYOUTS, FAMILIAS,

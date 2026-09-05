@@ -88,8 +88,8 @@ export const FRANJA_TEXTO_Y = 100 - PIE_BOTTOM_PCT - PIE_ALTO_CQMIN * CQMIN_EN_P
 // ── EL TOPE DE LA ETIQUETA DE UN CONCEPTO ────────────────────────────────────────────
 //
 // Simetrico al del pie: lo que no cabe no se encoge ni se trunca, se cae al respaldo. La
-// diferencia es el modelo de ancho -- una caja de concepto tiene el suyo MEDIDO en el DOM real,
-// y esa medida ya vive en `anchoCaja`.
+// diferencia es la cota por fuente de metricas-caja.ts. El viejo ajuste medio
+// subestimaba hasta palabras normales; A.2 lo sustituyo por el maximo medido.
 //
 // SE DERIVA DE LA PROPIA FUNCION MEDIDA. `anchoCaja` recibe LA ETIQUETA, no su longitud: mide
 // `String(etiqueta).length` por dentro. Pasarle el numero medía `String(57).length` = 2, el
@@ -102,7 +102,7 @@ export const MAX_CARACTERES_ETIQUETA = (() => {
 
 /** ¿Cabe esta etiqueta en la zona segura, aunque haya que centrarla? */
 export function cabeLaEtiqueta(etiqueta: unknown): boolean {
-  return String(etiqueta ?? '').length <= MAX_CARACTERES_ETIQUETA;
+  return anchoCaja(etiqueta, true) <= ZONA_ANCHO_UTIL;
 }
 
 // ── EL CONTRATO DE UNA PIEZA ─────────────────────────────────────────────────────────
