@@ -2760,3 +2760,26 @@ se conservó fuera del repo y se repitió la captura. Inspección L9, no certifi
 automática de completitud. La copia correcta se miró antes de versionarla.
 La coincidencia con el log de las 114 frases solo cubre sus prefijos de 80
 caracteres y sus índices: el log no conserva el resto. Es reconstrucción declarada.
+
+### A.3 — peor par admisible; +7% retirado y disparador para B (05/09/2026)
+
+~~+7% era el tamaño aplicado~~. El control de 17 que lo autorizó era una sola
+pareja; no cubría la banda 16–22 que la puerta de +7 permite. Se midió el peor
+par admisible con `preparar-peor-par-a3.cjs`, que importa la puerta del bundle
+compilado: tres etiquetas de 22 `@`, memoria, ondas/constelacion/quieto/media/
+regular/archivo, visual_escena, 1080×1920, voltaje, ciclo 3 s y 91 instantes.
+En +7% (3.103 cqmin) el par 0/1 solapa a t=0.5 38.290,897676 px²: 95,169543%
+de la caja menor, y 21.687,465112 px² llegan al rectángulo de texto. PNG y JSON
+versionados: `tests/aceptacion/plan-a3-peor-par-20260905`; Electron 31.7.7,
+Chromium 126.0.6478.234.
+
+No se reduce el tamaño por tanteo: A.3 queda **aplazada a Fase B** y se restaura
+la métrica A.2 (2.9 cqmin). **Disparador obligatorio:** al cerrar B.1–B.3 —la
+estructura declara su disposición y B.3 demuestra separación— repetir este
+peor par y el corpus de 321 antes de elegir de nuevo el tamaño. El techo de +7
+lo imponía la vecindad que B va a cambiar; no se conserva como número sin esa
+caducidad.
+
+**T8 — decisión cerrada:** mapa se conserva solo como referencia de regresión
+sin ruta de producción hasta Fase 6; allí se retira en un commit propio tras
+cerrar el catálogo y el verificador. No queda como respaldo implícito.

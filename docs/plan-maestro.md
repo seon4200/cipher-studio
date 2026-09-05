@@ -18,15 +18,18 @@ El inventario de las copias externas y la medición nueva están en
 composición y commit las midieron, pegados a cada cita. Si no consta, no se usa
 como resultado verificable. Se conserva la historia tachada y su corrección.
 
-**T8 del plan A–F, decisión 05/09/2026.** Mapa se CONSERVA desacoplada: su
-modelo y CSS históricos quedan como en master d0dae0d; la cota por fuente de
-escena deja de importarse por mapa. No se retira mapa ni se amplía su texto
-para reparar una suite. Evidencia del acoplamiento y del sondeo: deuda-graficos.md,
-A.3; instrumentos y corpus en tests/aceptacion/README-solapes-a3.md.
-~~Tamaño elegido: +20%.~~ Retirado el 05/09/2026: el control real de 17 se
-solapa a +20 aunque las 321 no. Se elige +7%, sin pares en control ni muestra;
-+8% ya intersecta el control. No se confunde aumento pequeño con legibilidad
-resuelta. Procedencia: 35a9ca8 + corrección, README-solapes-a3.md y JSON con SHA.
+**T8 del plan A–F, decisión 05/09/2026.** Mapa se conserva desacoplada solo
+como referencia de regresión, sin ruta de producción, hasta Fase 6; allí se
+retira en un commit propio al cerrar catálogo y verificador. Su modelo y CSS
+históricos quedan como en master d0dae0d; la cota por fuente de escena deja de
+importarse por mapa. No se amplía su texto para reparar una suite. Evidencia del
+acoplamiento y del sondeo: deuda-graficos.md, A.3; instrumentos y corpus en
+tests/aceptacion/README-solapes-a3.md.
+~~Tamaño elegido: +20%, luego +7%.~~ Retirados el 05/09/2026: +7% pasó un
+control de 17 y las 321, pero el peor par que su puerta admite (tres 22 `@`)
+solapa texto en 95,169543% de la caja menor. A.3 queda aplazada a Fase B y
+vuelve a 2.9 cqmin; al cerrar B.1–B.3 se repiten peor par y corpus antes de
+decidir. Procedencia: README-solapes-a3.md y JSON con SHA.
 Esta decisión no cierra A.4/A.5 ni certifica legibilidad fuera de la muestra.
 
 ---

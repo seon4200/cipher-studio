@@ -3,9 +3,9 @@
 // Añadir una familia exige SU metrica: no hereda la de Archivo ni un promedio.
 export const METRICAS_ETIQUETA = {
   archivo700: {
-    // A.3: +7%; +8% ya solapa el control de responsabilidades con archivo.
-    // Limite entero medido, no solucion general de vecindad. Ver README-solapes-a3.md.
-    familia: 'Archivo', peso: 700, fuenteCqmin: 3.103,
+    // A.3 queda aplazada a Fase B: el peor par admisible solapa incluso al +7%.
+    // Se conserva la métrica A.2; no se reduce a ciegas mientras B no separe vecinos.
+    familia: 'Archivo', peso: 700, fuenteCqmin: 2.9,
     alfabeto: Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i)).join('') +
       'ÁÉÍÓÚÜÑáéíóúüñ¡¿',
     emMaximoMedido: 1.001015625,

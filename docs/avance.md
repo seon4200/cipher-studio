@@ -195,3 +195,11 @@ intersecta el control. Queda +7% (33.5124 px), no +20. Es un aumento pequeño,
 no una declaración de legibilidad resuelta. Evidencia en README-solapes-a3.md,
 plan-a3-control17-20260905 y plan-a3-pares7-20260905; código 35a9ca8 + arnés
 y literal fuenteCqmin=3.103, con SHA de bundle en plan-a3-mas7-20260905.
+
+**Rectificación final de A.3, 05/09/2026:** ~~+7% queda aplicado~~. El peor
+par que la puerta de +7 admite (tres etiquetas de 22 `@`) solapa texto a t=0.5:
+38.290,897676 px² / 95,169543% de la caja menor, en visual_escena 1080×1920,
+voltaje, 91 instantes. No se reduce el porcentaje a ojo: se restaura 2.9 cqmin y
+A.3 se aplaza a Fase B. Disparador: tras B.1–B.3, repetir peor par y corpus de
+321 antes de elegir tamaño. Evidencia versionada:
+plan-a3-peor-par-20260905 y README-solapes-a3.md.

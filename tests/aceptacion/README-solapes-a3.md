@@ -75,3 +75,23 @@ La coincidencia log/transcripción comprobada son los PREFIJOS de 80 caracteres
 que el log conserva, por índice; no se afirmó igualdad de texto que no guardó.
 La primera hoja +7 salió incompleta al componer PNG completos; se descartó y
 repitió en proceso nuevo. Esto es otra inspección de L9, no una guarda de completitud.
+
+## Peor par admisible — +7% queda aplazado a Fase B
+
+El control anterior era n=1 y no cubría la banda 16–22 que la puerta de +7%
+admite. `preparar-peor-par-a3.cjs` importa `MAX_CARACTERES_ETIQUETA` y
+`cabeLaEtiqueta` del bundle compilado, construye tres etiquetas con el máximo
+que la puerta autoriza (22 `@`) y conserva constelacion/ondas/quieto/media/
+regular/archivo. No copia la cota.
+
+Condiciones: visual_escena, memoria, tres etiquetas de 22 `@`, 1080×1920,
+voltaje, ciclo 3 s, 91 instantes (0..89/30 y 2.999), Electron 31.7.7 / Chromium
+126.0.6478.234, fuenteCqmin 3.103 (+7%). El par 0/1 solapa a t=0.5:
+38.290,897676 px², **95,169543%** de la caja menor y 21.687,465112 px² de su
+rectángulo de texto. PNG: `plan-a3-peor-par-20260905/solape-7-peor-par-admisible.png`.
+
+Conclusión: +7% no se aplica y no se elige un porcentaje menor por tanteo. Se
+restaura 2.9 cqmin de A.2. **Disparador de caducidad: al cerrar Fase B (B.1–B.3,
+disposición propia y separación de cajas), repetir este peor par y el corpus de
+321 antes de volver a decidir A.3.** El +7 histórico no se cita como límite
+vigente después de ese cierre.

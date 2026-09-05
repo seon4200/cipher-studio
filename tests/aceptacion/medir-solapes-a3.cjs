@@ -5,7 +5,7 @@ process.on('uncaughtException',e=>{console.error(e);app.exit(1)})
 process.on('unhandledRejection',e=>{console.error(e);app.exit(1)})
 const repo=path.resolve(process.argv[2]),out=path.resolve(process.argv[3])
 const corpus=JSON.parse(fs.readFileSync(path.join(out,'corpus-posiciones.json')))
-const esperado=corpus.procedencia.tipo==='control-fuera-de-muestra'?1:107
+const esperado=['control-fuera-de-muestra','peor-par-admisible-a3'].includes(corpus.procedencia.tipo)?1:107
 if(corpus.casos.length!==esperado||corpus.casos.some(c=>c.conceptos.length!==3))throw Error('Corpus incompleto')
 const subidas=(process.argv.find(x=>x.startsWith('--subidas='))?.split('=')[1]||'0,20,35').split(',').map(Number)
 if(subidas.some(x=>!Number.isFinite(x)||x<0||x>50))throw Error('Subidas invalidas')
