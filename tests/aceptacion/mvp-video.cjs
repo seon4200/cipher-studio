@@ -13,12 +13,13 @@ app.whenReady().then(async()=>{
   session.defaultSession.webRequest.onBeforeRequest((r,cb)=>cb({cancel:/^https?:/.test(r.url)}))
   const b=require(path.join(repo,'dist-electron/main/index.js'))
   const sistema=b.sistemaDeGeneracion(proyecto),casos=[]
+  const trazas=new Map((datos.generacion.trazabilidadGraficos||[]).map(t=>[t.id,t.graphicData]))
   fs.mkdirSync(framesDir,{recursive:true})
   for(const clip of datos.generacion.clips){
     if(clip.category!=='visual')continue
     // Se exige la entrada exacta que produjo el MP4. Reconstruirla desde el log pierde
     // `ancla` y `relacion`, ambas hashables, y convierte una hoja de evidencia en conjetura.
-    const graphicData=clip.graphic
+    const graphicData=trazas.get(clip.id)
     if(!graphicData)throw Error('El clip visual no conserva graphicData: '+clip.id)
     const palabra=graphicData.value
     const hash=path.basename(clip.path,'.mp4'),metrica=datos.metricas.find(m=>m.hash===hash)

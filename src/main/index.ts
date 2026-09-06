@@ -4669,6 +4669,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     if (!(await exists(thumbDir))) await fs.promises.mkdir(thumbDir, { recursive: true });
 
     const results = new Array(totalClips);
+    // Evidencia de aceptacion separada del timeline: `finalClips` borra `graphic` a proposito
+    // porque el MP4 ya sustituye la especificacion. Esta traza conserva la entrada exacta que
+    // produjo cada hash sin reintroducir graphicData en el estado persistido del proyecto.
+    const trazasGraficos: Array<{ id: string, graphicData: any }> = [];
     // Fuentes de stock ya usadas en esta generacion (provider_id, la misma identidad que el
     // fichero de cache) y cuantas veces. Keywords distintas pueden rankear el mismo video
     // generico: medido, uno llego a aparecer 4 veces en el mismo montaje.
@@ -4827,8 +4831,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             continue;
           }
           const durReal = await getVideoDuration(ruta);
+          const id = `visual-${item.index}`;
+          trazasGraficos.push({ id, graphicData: solicitudesGraficas[i].graphicData });
           results[item.index - 1] = {
-            id: `visual-${item.index}`,
+            id,
             name: path.basename(ruta),
             path: ruta,
             url: urlDeRuta(ruta),
@@ -4838,7 +4844,6 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             // tocar una sola linea del export. Y category lo hace contable en la auditoria.
             type: 'video',
             category: 'visual',
-            graphic: solicitudesGraficas[i].graphicData,
             thumbnailUrl: ''
           };
         }
@@ -5385,7 +5390,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     // La generacion llego al final. Si algo lanza antes, esto no se ejecuta y el resumen dira
     // que quedo incompleta -- que es lo que hay que decir.
     completa = true;
-    return { success: true, clips: finalClips };
+    const trazabilidadGraficos = trazasGraficos.filter(t =>
+      finalClips.some(c => c.id === t.id && c.category === 'visual'));
+    return { success: true, clips: finalClips, trazabilidadGraficos };
 
   } catch (err: any) {
     const errMsg = `[generate-timeline-assets] Error: ${err.message || err}`;
