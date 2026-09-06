@@ -521,6 +521,8 @@ function conceptos (bundle) {
   const activas = reg => Object.values(reg).filter(p => !p.prueba && p.formatos.includes('9:16'))
   const fondosActivos = activas(FONDOS_ESCENA), camarasActivas = activas(CAMARAS_ESCENA)
   const estructurasActivas = activas(ESTRUCTURAS_ESCENA).filter(e => e.minConceptos <= 3)
+  ok(fondosActivos.length >= 22 && camarasActivas.length >= 16 && estructurasActivas.length >= 17 &&
+    activas(TIPOGRAFIAS).length >= 10, 'el conteo derivado no oculta la desaparicion de repertorio entregado')
   const esperadas = fondosActivos.reduce((total, fondo) => total + camarasActivas.reduce((sub, camara) => {
     if (fondo.energia + camara.energia > 3) return sub
     return sub + estructurasActivas.reduce((porEstructura, estructura) => porEstructura +
@@ -529,8 +531,27 @@ function conceptos (bundle) {
   }, 0), 0)
   ok(REP.identidades === esperadas,
     'el repertorio cuenta densidad, ritmo y roles tipográficos disponibles', String(REP.identidades))
-  ok(REP.instancias >= REP.identidades, 'las instancias nominales nunca reducen identidades', String(REP.instancias))
-  ok(PRU.identidades > REP.identidades, 'las piezas de prueba solo amplían el espacio de inspección', String(PRU.identidades))
+  // La desigualdad nominal>=identidades dejaba pasar casi cualquier contador roto.
+  // Oraculo factorizado: suma ponderada fondo×camara por suma estructura×fuentes×densidad×ritmo.
+  // Se leen los pasos declarados, no se llama a instanciasDe ni al contador que se comprueba.
+  const pesoDeclarado = p => p.rangos.reduce((producto, r) => producto * r.pasos, 1)
+  const pesoPares = fondosActivos.reduce((s, f) => s + pesoDeclarado(f) *
+    camarasActivas.filter(c => f.energia + c.energia <= 3)
+      .reduce((n, c) => n + pesoDeclarado(c), 0), 0)
+  const pesoEstructuras = estructurasActivas.reduce((s, e) => s + pesoDeclarado(e) *
+    Object.values(TIPOGRAFIAS).filter(t => !t.prueba && t.formatos.includes('9:16') &&
+      e.tipografias.includes(t.rol)).length, 0)
+  const nominalEsperado = pesoPares * pesoEstructuras * Object.keys(DENSIDAD_A_N).length * RITMOS.length
+  ok(REP.instancias === nominalEsperado, 'nominal EXACTO derivado de los pesos declarados',
+    `${REP.instancias} = ${pesoPares} x ${pesoEstructuras} x ${Object.keys(DENSIDAD_A_N).length * RITMOS.length}`)
+  const todosFormato = reg => Object.values(reg).filter(p => p.formatos.includes('9:16'))
+  const paresControl = [0, 1, 2, 3].reduce((s, energia) => s +
+    todosFormato(FONDOS_ESCENA).filter(f => f.energia === energia).length *
+    todosFormato(CAMARAS_ESCENA).filter(c => c.energia <= 3 - energia).length, 0)
+  const rolesControl = todosFormato(ESTRUCTURAS_ESCENA).filter(e => e.minConceptos <= 3)
+    .reduce((s, e) => s + todosFormato(TIPOGRAFIAS).filter(t => e.tipografias.includes(t.rol)).length, 0)
+  ok(PRU.identidades === paresControl * rolesControl * Object.keys(DENSIDAD_A_N).length * RITMOS.length,
+    'los controles tienen un conteo EXACTO por histograma de energias', String(PRU.identidades))
   ok(Math.abs(bundle.MARGEN_CAMARA_PIE_Y - 9.72 / 1920 * 100) < 1e-12,
     'A.4: la reserva de cámara conserva los 9.72 px medidos')
   // El lote histórico se sigue pudiendo inspeccionar, pero el repertorio ya incorpora las 17.

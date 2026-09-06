@@ -1,0 +1,2043 @@
+{
+  "video": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\cipher-mvp-1788651762739.mp4",
+  "sistema": "editorial",
+  "ffprobe": {
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "profile": "High",
+        "codec_type": "video",
+        "codec_tag_string": "avc1",
+        "codec_tag": "0x31637661",
+        "mime_codec_string": "avc1.640028",
+        "width": 1080,
+        "height": 1920,
+        "coded_width": 1080,
+        "coded_height": 1920,
+        "has_b_frames": 2,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "9:16",
+        "pix_fmt": "yuv420p",
+        "level": 40,
+        "color_range": "tv",
+        "color_space": "bt709",
+        "color_transfer": "bt709",
+        "color_primaries": "bt709",
+        "chroma_location": "left",
+        "field_order": "progressive",
+        "is_avc": "true",
+        "nal_length_size": "4",
+        "id": "0x1",
+        "r_frame_rate": "30/1",
+        "avg_frame_rate": "25734000/857767",
+        "time_base": "1/30000",
+        "start_pts": 0,
+        "start_time": "0.000000",
+        "duration_ts": 8577670,
+        "duration": "285.922333",
+        "bit_rate": "1949922",
+        "bits_per_raw_sample": "8",
+        "nb_frames": "8578",
+        "extradata_size": 49,
+        "disposition": {
+          "default": 1,
+          "dub": 0,
+          "original": 0,
+          "comment": 0,
+          "lyrics": 0,
+          "karaoke": 0,
+          "forced": 0,
+          "hearing_impaired": 0,
+          "visual_impaired": 0,
+          "clean_effects": 0,
+          "attached_pic": 0,
+          "timed_thumbnails": 0,
+          "non_diegetic": 0,
+          "captions": 0,
+          "descriptions": 0,
+          "metadata": 0,
+          "dependent": 0,
+          "still_image": 0,
+          "multilayer": 0
+        },
+        "tags": {
+          "language": "und",
+          "handler_name": "VideoHandler",
+          "encoder": "Lavc62.28.101 libx264"
+        }
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_long_name": "AAC (Advanced Audio Coding)",
+        "profile": "LC",
+        "codec_type": "audio",
+        "codec_tag_string": "mp4a",
+        "codec_tag": "0x6134706d",
+        "mime_codec_string": "mp4a.40.2",
+        "sample_fmt": "fltp",
+        "sample_rate": "44100",
+        "channels": 2,
+        "channel_layout": "stereo",
+        "bits_per_sample": 0,
+        "initial_padding": 0,
+        "id": "0x2",
+        "r_frame_rate": "0/0",
+        "avg_frame_rate": "0/0",
+        "time_base": "1/44100",
+        "start_pts": 0,
+        "start_time": "0.000000",
+        "duration_ts": 12608499,
+        "duration": "285.907007",
+        "bit_rate": "129354",
+        "nb_frames": "12314",
+        "extradata_size": 5,
+        "disposition": {
+          "default": 1,
+          "dub": 0,
+          "original": 0,
+          "comment": 0,
+          "lyrics": 0,
+          "karaoke": 0,
+          "forced": 0,
+          "hearing_impaired": 0,
+          "visual_impaired": 0,
+          "clean_effects": 0,
+          "attached_pic": 0,
+          "timed_thumbnails": 0,
+          "non_diegetic": 0,
+          "captions": 0,
+          "descriptions": 0,
+          "metadata": 0,
+          "dependent": 0,
+          "still_image": 0,
+          "multilayer": 0
+        },
+        "tags": {
+          "language": "und",
+          "handler_name": "SoundHandler"
+        }
+      }
+    ],
+    "format": {
+      "filename": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\cipher-mvp-1788651762739.mp4",
+      "nb_streams": 2,
+      "nb_programs": 0,
+      "nb_stream_groups": 0,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV",
+      "start_time": "0.000000",
+      "duration": "285.922333",
+      "size": "74621552",
+      "bit_rate": "2087883",
+      "probe_score": 100,
+      "tags": {
+        "major_brand": "isom",
+        "minor_version": "512",
+        "compatible_brands": "isomiso2avc1mp41",
+        "encoder": "Lavf62.12.101"
+      }
+    }
+  },
+  "casos": [
+    {
+      "id": "visual-2",
+      "hash": "dbbb7324a1a4",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "desorden",
+        "extra": {
+          "pos": "0:1",
+          "conceptos": [
+            {
+              "emoji": "💻",
+              "etiqueta": "computadora"
+            },
+            {
+              "emoji": "📄",
+              "etiqueta": "papel"
+            },
+            {
+              "emoji": "☕",
+              "etiqueta": "taza"
+            }
+          ],
+          "direccion": {
+            "fondo": "cristales",
+            "estructura": "pilaVertical",
+            "camara": "alejamiento",
+            "densidad": "alta",
+            "ritmo": "frenando",
+            "tipografia": "playfairDisplay"
+          }
+        }
+      },
+      "duracionHash": 2.97,
+      "instante": 4.49,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\01-dbbb7324a1a4.png",
+      "sha256": "a375374def92c95f00d1dff7827cfb7bf37f70552b78503534bda2a40e45f502"
+    },
+    {
+      "id": "visual-4",
+      "hash": "c84d5d18b700",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "naturalmente",
+        "extra": {
+          "pos": "1:1",
+          "conceptos": [
+            {
+              "emoji": "🛒",
+              "etiqueta": "carrito"
+            },
+            {
+              "emoji": "🍎",
+              "etiqueta": "manzana"
+            },
+            {
+              "emoji": "🏪",
+              "etiqueta": "tienda"
+            }
+          ],
+          "direccion": {
+            "fondo": "demolicion",
+            "estructura": "mundoIsometrico",
+            "camara": "contrapicado",
+            "densidad": "alta",
+            "ritmo": "regular",
+            "tipografia": "anton"
+          }
+        }
+      },
+      "duracionHash": 2.03,
+      "instante": 9.2099998,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\02-c84d5d18b700.png",
+      "sha256": "443766d30e9ea6e6ac1aeeb744a428ba66bde320fa579296a590b6a7d087f808"
+    },
+    {
+      "id": "visual-6",
+      "hash": "2ff634652aad",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "desordenado",
+        "extra": {
+          "pos": "2:0",
+          "conceptos": [
+            {
+              "emoji": "🎵",
+              "etiqueta": "nota musical"
+            },
+            {
+              "emoji": "⏱️",
+              "etiqueta": "cronómetro"
+            },
+            {
+              "emoji": "🔩",
+              "etiqueta": "tornillo"
+            }
+          ],
+          "direccion": {
+            "fondo": "reinoAnimal",
+            "estructura": "anillosConcentricos",
+            "camara": "grua",
+            "densidad": "alta",
+            "ritmo": "regular",
+            "tipografia": "archivo"
+          }
+        }
+      },
+      "duracionHash": 2.36,
+      "instante": 13.480000200000001,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\03-2ff634652aad.png",
+      "sha256": "420bbb153c2a38b813d49cec2d3b9d091a40b9154f73c34853cc44a383ab07f3"
+    },
+    {
+      "id": "visual-8",
+      "hash": "86c0c87ccbcf",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "sincronización",
+        "extra": {
+          "pos": "2:2",
+          "conceptos": [
+            {
+              "emoji": "🧩",
+              "etiqueta": "rompecabezas"
+            },
+            {
+              "emoji": "📐",
+              "etiqueta": "regla"
+            },
+            {
+              "emoji": "🔲",
+              "etiqueta": "cuadrícula"
+            }
+          ],
+          "direccion": {
+            "fondo": "multitud",
+            "estructura": "engranajes",
+            "camara": "temblor",
+            "densidad": "alta",
+            "ritmo": "acelerando",
+            "tipografia": "playfairDisplay"
+          }
+        }
+      },
+      "duracionHash": 2.34,
+      "instante": 18.1799998,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\04-86c0c87ccbcf.png",
+      "sha256": "23da16bdfdbb5c816d5bfd13230ca49fb2fe8df9f6cf2a8ae9bcefc5f52a9294"
+    },
+    {
+      "id": "visual-10",
+      "hash": "707ae56960e5",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "simultáneos",
+        "extra": {
+          "pos": "3:1",
+          "conceptos": [
+            {
+              "emoji": "🐝",
+              "etiqueta": "abeja"
+            },
+            {
+              "emoji": "🌿",
+              "etiqueta": "planta"
+            },
+            {
+              "emoji": "🏮",
+              "etiqueta": "linterna"
+            }
+          ],
+          "direccion": {
+            "fondo": "leyDarwin",
+            "estructura": "anillosConcentricos",
+            "camara": "acercamiento",
+            "densidad": "alta",
+            "ritmo": "golpeSeco",
+            "tipografia": "barlowCondensed"
+          }
+        }
+      },
+      "duracionHash": 2.07,
+      "instante": 22.430000200000002,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\05-707ae56960e5.png",
+      "sha256": "b2e7650deb9e15471bd21b8610744414608f01b3044decde17f281525ebf5743"
+    },
+    {
+      "id": "visual-12",
+      "hash": "ca559ff952b7",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "regular",
+        "extra": {
+          "pos": "4:0",
+          "conceptos": [
+            {
+              "emoji": "❤️",
+              "etiqueta": "corazón"
+            },
+            {
+              "emoji": "🫀",
+              "etiqueta": "órgano"
+            },
+            {
+              "emoji": "💓",
+              "etiqueta": "latido"
+            }
+          ],
+          "direccion": {
+            "fondo": "multitud",
+            "estructura": "constelacion",
+            "camara": "barrido",
+            "densidad": "alta",
+            "ritmo": "regular",
+            "tipografia": "ibmPlexCondensed"
+          }
+        }
+      },
+      "duracionHash": 2.88,
+      "instante": 26.8,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\06-ca559ff952b7.png",
+      "sha256": "fc3ceefc429bdd1c6bdb4daddbe01f4c6be28a84e99ac64f2ce440fcdd1a0eba"
+    },
+    {
+      "id": "visual-14",
+      "hash": "896435b9d3a2",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "naturaleza",
+        "extra": {
+          "pos": "5:0",
+          "conceptos": [
+            {
+              "emoji": "🌉",
+              "etiqueta": "puente"
+            },
+            {
+              "emoji": "🎀",
+              "etiqueta": "cinta"
+            },
+            {
+              "emoji": "🎉",
+              "etiqueta": "confeti"
+            }
+          ],
+          "direccion": {
+            "fondo": "cristales",
+            "estructura": "abanicoTarjetas",
+            "camara": "temblor",
+            "densidad": "alta",
+            "ritmo": "frenando",
+            "tipografia": "spaceMono"
+          }
+        }
+      },
+      "duracionHash": 2.63,
+      "instante": 32.5,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\07-896435b9d3a2.png",
+      "sha256": "572446ac468d469a61b5e3fb470a8c87bfe1f1f3c31be99b771f4824dda802e1"
+    },
+    {
+      "id": "visual-16",
+      "hash": "5869a6e8585a",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "Millenium",
+        "extra": {
+          "pos": "5:2",
+          "conceptos": [
+            {
+              "emoji": "🎈",
+              "etiqueta": "globo"
+            },
+            {
+              "emoji": "📸",
+              "etiqueta": "cámara"
+            },
+            {
+              "emoji": "👟",
+              "etiqueta": "zapato"
+            }
+          ],
+          "direccion": {
+            "fondo": "mallaDeformada",
+            "estructura": "engranajes",
+            "camara": "alejamiento",
+            "densidad": "alta",
+            "ritmo": "simultaneo",
+            "tipografia": "archivo"
+          }
+        }
+      },
+      "duracionHash": 2.62,
+      "instante": 37.76,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\08-5869a6e8585a.png",
+      "sha256": "d1659b20a533716590cac73e0cdc4df07b0e8a106554a0a58c82a9e1dee84551"
+    },
+    {
+      "id": "visual-18",
+      "hash": "de0e00be6aec",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "acumulaba",
+        "extra": {
+          "pos": "6:1",
+          "conceptos": [
+            {
+              "emoji": "🌉",
+              "etiqueta": "puente"
+            },
+            {
+              "emoji": "🌬️",
+              "etiqueta": "viento"
+            },
+            {
+              "emoji": "📏",
+              "etiqueta": "regla"
+            }
+          ],
+          "direccion": {
+            "fondo": "mallaDeformada",
+            "estructura": "rayosImpacto",
+            "camara": "picado",
+            "densidad": "alta",
+            "ritmo": "frenando",
+            "tipografia": "anton"
+          }
+        }
+      },
+      "duracionHash": 2.91,
+      "instante": 43.330000000000005,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\09-de0e00be6aec.png",
+      "sha256": "ebac3f6f3c0c2d51751f928168bdedf5b10f2815ce7651b264de4ca127f2a9d0"
+    },
+    {
+      "id": "visual-20",
+      "hash": "11c0eac0ea1b",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "restringir",
+        "extra": {
+          "pos": "7:1",
+          "conceptos": [
+            {
+              "emoji": "🌉",
+              "etiqueta": "puente"
+            },
+            {
+              "emoji": "🌊",
+              "etiqueta": "ola"
+            },
+            {
+              "emoji": "🔩",
+              "etiqueta": "tornillo"
+            }
+          ],
+          "direccion": {
+            "fondo": "tramaTejida",
+            "estructura": "pilaVertical",
+            "camara": "vertigo",
+            "densidad": "alta",
+            "ritmo": "golpeSeco",
+            "tipografia": "spaceMono"
+          }
+        }
+      },
+      "duracionHash": 2.8,
+      "instante": 49.04,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\10-11c0eac0ea1b.png",
+      "sha256": "abcd56a42dd3487ba3a01ddb69f29f29d24bffb9f2abc7034bd3b215f224be0b"
+    },
+    {
+      "id": "visual-22",
+      "hash": "dba2adc7e7b1",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "tambaleo",
+        "extra": {
+          "pos": "8:1",
+          "conceptos": [
+            {
+              "emoji": "🌉",
+              "etiqueta": "puente"
+            },
+            {
+              "emoji": "📳",
+              "etiqueta": "vibración"
+            },
+            {
+              "emoji": "🔧",
+              "etiqueta": "llave"
+            }
+          ],
+          "direccion": {
+            "fondo": "ecosistemaMarino",
+            "estructura": "abanicoTarjetas",
+            "camara": "grua",
+            "densidad": "alta",
+            "ritmo": "frenando",
+            "tipografia": "ibmPlexCondensed"
+          }
+        }
+      },
+      "duracionHash": 2.22,
+      "instante": 53.922000000000004,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\11-dba2adc7e7b1.png",
+      "sha256": "c57e6f3de1b83c913ce404a4bd20d78a0458b8c030c0e9f95131caeaac392cf0"
+    },
+    {
+      "id": "visual-24",
+      "hash": "140813e296f4",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "después",
+        "extra": {
+          "pos": "9:0",
+          "conceptos": [
+            {
+              "emoji": "🚫",
+              "etiqueta": "prohibido"
+            },
+            {
+              "emoji": "🔒",
+              "etiqueta": "candado"
+            },
+            {
+              "emoji": "🪧",
+              "etiqueta": "letrero"
+            }
+          ],
+          "direccion": {
+            "fondo": "tramaTejida",
+            "estructura": "anillosConcentricos",
+            "camara": "orbita",
+            "densidad": "alta",
+            "ritmo": "simultaneo",
+            "tipografia": "barlowCondensed"
+          }
+        }
+      },
+      "duracionHash": 2.2,
+      "instante": 57.7,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\12-140813e296f4.png",
+      "sha256": "37228115b8aaf5a665865a1dfa4e451fb48c4fa48a073d438b5bad1f95bca86c"
+    },
+    {
+      "id": "visual-26",
+      "hash": "8fcb56514846",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "clausurado",
+        "extra": {
+          "pos": "9:2",
+          "conceptos": [
+            {
+              "emoji": "💷",
+              "etiqueta": "billete"
+            },
+            {
+              "emoji": "🪙",
+              "etiqueta": "moneda"
+            },
+            {
+              "emoji": "🏦",
+              "etiqueta": "banco"
+            }
+          ],
+          "direccion": {
+            "fondo": "leyDarwin",
+            "estructura": "constelacion",
+            "camara": "temblor",
+            "densidad": "alta",
+            "ritmo": "acelerando",
+            "tipografia": "playfairDisplay"
+          }
+        }
+      },
+      "duracionHash": 2.04,
+      "instante": 61.9999998,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\13-8fcb56514846.png",
+      "sha256": "2cbb0cfb7896e4e962e4291e37ec7b5dbef142acb6173c3199ca1be8a4a76f44"
+    },
+    {
+      "id": "visual-28",
+      "hash": "1a7cee0c2978",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "tiempo",
+        "extra": {
+          "pos": "10:1",
+          "conceptos": [
+            {
+              "emoji": "👷",
+              "etiqueta": "casco"
+            },
+            {
+              "emoji": "📋",
+              "etiqueta": "portapapeles"
+            },
+            {
+              "emoji": "🔦",
+              "etiqueta": "linterna"
+            }
+          ],
+          "direccion": {
+            "fondo": "leyDarwin",
+            "estructura": "cintaDiagonal",
+            "camara": "travelling",
+            "densidad": "alta",
+            "ritmo": "regular",
+            "tipografia": "dmSerifDisplay"
+          }
+        }
+      },
+      "duracionHash": 2.8,
+      "instante": 67.14,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\14-1a7cee0c2978.png",
+      "sha256": "0324b8db01fad1e59468e53babefdd74aee81e62910278506645703444d4ad84"
+    },
+    {
+      "id": "visual-30",
+      "hash": "868c6ef350bf",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "puentes",
+        "extra": {
+          "pos": "11:1",
+          "conceptos": [
+            {
+              "emoji": "🌉",
+              "etiqueta": "puente"
+            },
+            {
+              "emoji": "💥",
+              "etiqueta": "explosión"
+            },
+            {
+              "emoji": "🧱",
+              "etiqueta": "ladrillo"
+            }
+          ],
+          "direccion": {
+            "fondo": "mallaDeformada",
+            "estructura": "capasApiladas",
+            "camara": "acercamiento",
+            "densidad": "alta",
+            "ritmo": "acelerando",
+            "tipografia": "playfairDisplay"
+          }
+        }
+      },
+      "duracionHash": 2.18,
+      "instante": 71.928,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\15-868c6ef350bf.png",
+      "sha256": "318ebfd5af811623466355fede8d2caa78d06fad0fd13112bf2b25fc1e6bf853"
+    },
+    {
+      "id": "visual-32",
+      "hash": "6febbf28630a",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "marcharon",
+        "extra": {
+          "pos": "12:0",
+          "conceptos": [
+            {
+              "emoji": "🥾",
+              "etiqueta": "botas"
+            },
+            {
+              "emoji": "🌉",
+              "etiqueta": "puente colgante"
+            },
+            {
+              "emoji": "🎖️",
+              "etiqueta": "medalla"
+            }
+          ],
+          "direccion": {
+            "fondo": "mosaico",
+            "estructura": "editorial",
+            "camara": "deriva",
+            "densidad": "alta",
+            "ritmo": "frenando",
+            "tipografia": "caveat"
+          }
+        }
+      },
+      "duracionHash": 2.78,
+      "instante": 76.42,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\16-6febbf28630a.png",
+      "sha256": "12224510ed386581b7dac9a170c25f106297ef4c9b7d375884c4da4d35c2e9f3"
+    },
+    {
+      "id": "visual-34",
+      "hash": "671cf955cf3a",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "Inglaterra",
+        "extra": {
+          "pos": "13:0",
+          "conceptos": [
+            {
+              "emoji": "🌉",
+              "etiqueta": "puente"
+            },
+            {
+              "emoji": "💥",
+              "etiqueta": "colapso"
+            },
+            {
+              "emoji": "🌊",
+              "etiqueta": "río"
+            }
+          ],
+          "direccion": {
+            "fondo": "cuerdas",
+            "estructura": "rayosImpacto",
+            "camara": "vertigo",
+            "densidad": "alta",
+            "ritmo": "simultaneo",
+            "tipografia": "spaceMono"
+          }
+        }
+      },
+      "duracionHash": 2.95,
+      "instante": 81.98,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\17-671cf955cf3a.png",
+      "sha256": "1add2ad514504b5fd11c900c8bd20380be199c8255814e76ba68a1277895b280"
+    },
+    {
+      "id": "visual-36",
+      "hash": "256e3e4582ec",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "sufrieron",
+        "extra": {
+          "pos": "14:0",
+          "conceptos": [
+            {
+              "emoji": "🦴",
+              "etiqueta": "hueso"
+            },
+            {
+              "emoji": "🩹",
+              "etiqueta": "vendaje"
+            },
+            {
+              "emoji": "🛏️",
+              "etiqueta": "camilla"
+            }
+          ],
+          "direccion": {
+            "fondo": "circuito",
+            "estructura": "pilaVertical",
+            "camara": "vertigo",
+            "densidad": "alta",
+            "ritmo": "simultaneo",
+            "tipografia": "anton"
+          }
+        }
+      },
+      "duracionHash": 2.51,
+      "instante": 87.88,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\18-256e3e4582ec.png",
+      "sha256": "c8e6a324fc6fb301bd81a2667b7bd809e9e32855289bb2376718c7396d92bced"
+    },
+    {
+      "id": "visual-38",
+      "hash": "b296967e58ed",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "fallecidos",
+        "extra": {
+          "pos": "15:0",
+          "conceptos": [
+            {
+              "emoji": "📜",
+              "etiqueta": "orden"
+            },
+            {
+              "emoji": "🎖️",
+              "etiqueta": "ejército"
+            },
+            {
+              "emoji": "🇬🇧",
+              "etiqueta": "inglaterra"
+            }
+          ],
+          "direccion": {
+            "fondo": "warpEstelar",
+            "estructura": "anillosConcentricos",
+            "camara": "orbita",
+            "densidad": "alta",
+            "ritmo": "frenando",
+            "tipografia": "bebasNeue"
+          }
+        }
+      },
+      "duracionHash": 2.87,
+      "instante": 92.9,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\19-b296967e58ed.png",
+      "sha256": "cb05f7e056cd0de21c709ab33cb1c1454ce16ff84372f9d01b8daf69ae6e9bd3"
+    },
+    {
+      "id": "visual-40",
+      "hash": "7577f9fd01f1",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "puentes",
+        "extra": {
+          "pos": "16:0",
+          "conceptos": [
+            {
+              "emoji": "🌉",
+              "etiqueta": "puente"
+            },
+            {
+              "emoji": "👥",
+              "etiqueta": "multitud"
+            },
+            {
+              "emoji": "🚶",
+              "etiqueta": "peatones"
+            }
+          ],
+          "direccion": {
+            "fondo": "mallaDeformada",
+            "estructura": "capasApiladas",
+            "camara": "acercamiento",
+            "densidad": "alta",
+            "ritmo": "acelerando",
+            "tipografia": "playfairDisplay"
+          }
+        }
+      },
+      "duracionHash": 2.92,
+      "instante": 98.64,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\20-7577f9fd01f1.png",
+      "sha256": "99cb82eac9f9731f1b5d51cc744007dc24110ee9f672d57cb174d80768678f29"
+    },
+    {
+      "id": "visual-42",
+      "hash": "ae763e14ab67",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "sincronizada",
+        "extra": {
+          "pos": "17:0",
+          "conceptos": [
+            {
+              "emoji": "👥",
+              "etiqueta": "gente"
+            },
+            {
+              "emoji": "🚶",
+              "etiqueta": "caminar"
+            },
+            {
+              "emoji": "🏙️",
+              "etiqueta": "ciudad"
+            }
+          ],
+          "direccion": {
+            "fondo": "reinoAnimal",
+            "estructura": "partidoVertical",
+            "camara": "quieto",
+            "densidad": "alta",
+            "ritmo": "regular",
+            "tipografia": "spaceMono"
+          }
+        }
+      },
+      "duracionHash": 2.27,
+      "instante": 104.3396096,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\21-ae763e14ab67.png",
+      "sha256": "c22cc3e4fa6d01102bd746742b704f586a439efa3fd907cb0c139792858b410e"
+    },
+    {
+      "id": "visual-44",
+      "hash": "c7549706f69d",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "ejército",
+        "extra": {
+          "pos": "17:2",
+          "conceptos": [
+            {
+              "emoji": "🧑",
+              "etiqueta": "persona"
+            },
+            {
+              "emoji": "🏘️",
+              "etiqueta": "barrio"
+            },
+            {
+              "emoji": "🛍️",
+              "etiqueta": "bolsa"
+            }
+          ],
+          "direccion": {
+            "fondo": "reinoAnimal",
+            "estructura": "cascada",
+            "camara": "vertigo",
+            "densidad": "alta",
+            "ritmo": "frenando",
+            "tipografia": "barlowCondensed"
+          }
+        }
+      },
+      "duracionHash": 2.28,
+      "instante": 108.888,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\22-c7549706f69d.png",
+      "sha256": "e9d57434d34aba18a60f9979e60cbed6f2ad485223ce713cae5d5aeaf2875506"
+    },
+    {
+      "id": "visual-46",
+      "hash": "06833efa1d2c",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "caminan",
+        "extra": {
+          "pos": "18:1",
+          "conceptos": [
+            {
+              "emoji": "📐",
+              "etiqueta": "plano"
+            },
+            {
+              "emoji": "🏗️",
+              "etiqueta": "construcción"
+            },
+            {
+              "emoji": "🌉",
+              "etiqueta": "puente"
+            }
+          ],
+          "direccion": {
+            "fondo": "warpEstelar",
+            "estructura": "pilaVertical",
+            "camara": "inclinacion",
+            "densidad": "alta",
+            "ritmo": "regular",
+            "tipografia": "spaceMono"
+          }
+        }
+      },
+      "duracionHash": 2.09,
+      "instante": 113.14399999999999,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\23-06833efa1d2c.png",
+      "sha256": "e0583dab49ef07d807dcd305e9c53d2f5da5776a9c17ae037119da01b877e967"
+    },
+    {
+      "id": "visual-48",
+      "hash": "3ce61ef0d84e",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "transeuntes",
+        "extra": {
+          "pos": "19:0",
+          "conceptos": [
+            {
+              "emoji": "🌉",
+              "etiqueta": "puente"
+            },
+            {
+              "emoji": "⚠️",
+              "etiqueta": "peligro"
+            },
+            {
+              "emoji": "🔧",
+              "etiqueta": "mantenimiento"
+            }
+          ],
+          "direccion": {
+            "fondo": "mosaico",
+            "estructura": "lineaTiempo",
+            "camara": "saltos",
+            "densidad": "alta",
+            "ritmo": "acelerando",
+            "tipografia": "spaceMono"
+          }
+        }
+      },
+      "duracionHash": 2.46,
+      "instante": 117.5600002,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\24-3ce61ef0d84e.png",
+      "sha256": "355367147f7bb4c7438ca0eed5a01ea3bb5e6d6a3f575c4b1dbee7d0f1d30a34"
+    },
+    {
+      "id": "visual-50",
+      "hash": "21fcb98b7df8",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "entenderlo",
+        "extra": {
+          "pos": "19:2",
+          "conceptos": [
+            {
+              "emoji": "🏛️",
+              "etiqueta": "museo"
+            },
+            {
+              "emoji": "📖",
+              "etiqueta": "libro"
+            },
+            {
+              "emoji": "🗺️",
+              "etiqueta": "mapa"
+            }
+          ],
+          "direccion": {
+            "fondo": "cristales",
+            "estructura": "cintaDiagonal",
+            "camara": "barrido",
+            "densidad": "alta",
+            "ritmo": "acelerando",
+            "tipografia": "archivoBlack"
+          }
+        }
+      },
+      "duracionHash": 2.46,
+      "instante": 122.4800002,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\25-21fcb98b7df8.png",
+      "sha256": "f35622d60c6f20128a31ce104263370ca8128713a0b839362782857a1d5930b0"
+    },
+    {
+      "id": "visual-53",
+      "hash": "b970d548c9f1",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "holandés",
+        "extra": {
+          "pos": "20:1",
+          "conceptos": [
+            {
+              "emoji": "🕰️",
+              "etiqueta": "reloj"
+            },
+            {
+              "emoji": "⚖️",
+              "etiqueta": "péndulo"
+            },
+            {
+              "emoji": "🔩",
+              "etiqueta": "mecanismo"
+            }
+          ],
+          "direccion": {
+            "fondo": "viaLactea",
+            "estructura": "capasApiladas",
+            "camara": "rebote",
+            "densidad": "alta",
+            "ritmo": "frenando",
+            "tipografia": "anton"
+          }
+        }
+      },
+      "duracionHash": 2.35,
+      "instante": 129.68,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\26-b970d548c9f1.png",
+      "sha256": "5535a4cdf4108f037108355fdb5bcebd25c21a3c2d24c23a8be400f207b6c5ce"
+    },
+    {
+      "id": "visual-55",
+      "hash": "afbf4a24f21f",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "objetivo",
+        "extra": {
+          "pos": "21:0",
+          "conceptos": [
+            {
+              "emoji": "⛵",
+              "etiqueta": "barco"
+            },
+            {
+              "emoji": "🧭",
+              "etiqueta": "brújula"
+            },
+            {
+              "emoji": "🌊",
+              "etiqueta": "mar"
+            }
+          ],
+          "direccion": {
+            "fondo": "mallaDeformada",
+            "estructura": "abanicoTarjetas",
+            "camara": "inclinacion",
+            "densidad": "alta",
+            "ritmo": "regular",
+            "tipografia": "playfairDisplay"
+          }
+        }
+      },
+      "duracionHash": 2.74,
+      "instante": 134.48,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\27-afbf4a24f21f.png",
+      "sha256": "bffb37768c6b71283f921b884c604d1ec518d31e959da915b0cbffabe174c897"
+    },
+    {
+      "id": "visual-57",
+      "hash": "5acf6139d9fa",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "determinada",
+        "extra": {
+          "pos": "22:0",
+          "conceptos": [
+            {
+              "emoji": "☀️",
+              "etiqueta": "sol"
+            },
+            {
+              "emoji": "⭐",
+              "etiqueta": "estrella"
+            },
+            {
+              "emoji": "🔭",
+              "etiqueta": "telescopio"
+            }
+          ],
+          "direccion": {
+            "fondo": "panal",
+            "estructura": "editorial",
+            "camara": "acercamiento",
+            "densidad": "alta",
+            "ritmo": "frenando",
+            "tipografia": "spaceMono"
+          }
+        }
+      },
+      "duracionHash": 2.54,
+      "instante": 139.96,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\28-5acf6139d9fa.png",
+      "sha256": "90fb961bf9e5d42f80cd73d5cf31a332b17d998159de8110c748cf3a2c9f8c74"
+    },
+    {
+      "id": "visual-60",
+      "hash": "6290532d7953",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "ejemplo",
+        "extra": {
+          "pos": "23:1",
+          "conceptos": [
+            {
+              "emoji": "⛵",
+              "etiqueta": "barco"
+            },
+            {
+              "emoji": "🕰️",
+              "etiqueta": "reloj"
+            },
+            {
+              "emoji": "🌊",
+              "etiqueta": "océano"
+            }
+          ],
+          "direccion": {
+            "fondo": "skyline",
+            "estructura": "marcoPoster",
+            "camara": "quieto",
+            "densidad": "alta",
+            "ritmo": "simultaneo",
+            "tipografia": "spaceMono"
+          }
+        }
+      },
+      "duracionHash": 2.64,
+      "instante": 147.67999999999998,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\29-6290532d7953.png",
+      "sha256": "338d80b9128d5206c8101f076c0f7e3331a07a2d42773f06b5d2e46d2b454d7e"
+    },
+    {
+      "id": "visual-62",
+      "hash": "b80877d30b6e",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "contraste",
+        "extra": {
+          "pos": "24:1",
+          "conceptos": [
+            {
+              "emoji": "🕰️",
+              "etiqueta": "péndulo"
+            },
+            {
+              "emoji": "🔧",
+              "etiqueta": "herramienta"
+            },
+            {
+              "emoji": "⚙️",
+              "etiqueta": "engranaje"
+            }
+          ],
+          "direccion": {
+            "fondo": "multitud",
+            "estructura": "capasApiladas",
+            "camara": "vertigo",
+            "densidad": "alta",
+            "ritmo": "simultaneo",
+            "tipografia": "ibmPlexCondensed"
+          }
+        }
+      },
+      "duracionHash": 2.93,
+      "instante": 153.25,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\30-b80877d30b6e.png",
+      "sha256": "0ff7df47c426e22d6ce326971e39f237afe368b9b0e83f4bd4ce5c1c8d67f8ca"
+    },
+    {
+      "id": "visual-64",
+      "hash": "d450531f6593",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "segundos",
+        "extra": {
+          "pos": "25:1",
+          "conceptos": [
+            {
+              "emoji": "📏",
+              "etiqueta": "regla"
+            },
+            {
+              "emoji": "🔬",
+              "etiqueta": "microscopio"
+            },
+            {
+              "emoji": "🕰️",
+              "etiqueta": "reloj"
+            }
+          ],
+          "direccion": {
+            "fondo": "tunel",
+            "estructura": "rayosImpacto",
+            "camara": "inclinacion",
+            "densidad": "alta",
+            "ritmo": "acelerando",
+            "tipografia": "bebasNeue"
+          }
+        }
+      },
+      "duracionHash": 2.03,
+      "instante": 157.92999980000002,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\31-d450531f6593.png",
+      "sha256": "f938cf2a330398f52db3ed5a6db82cf2ff6593b7186c3480bef504205d65cd32"
+    },
+    {
+      "id": "visual-66",
+      "hash": "b3c89c76252e",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "Hoygens",
+        "extra": {
+          "pos": "26:0",
+          "conceptos": [
+            {
+              "emoji": "🕰️",
+              "etiqueta": "reloj"
+            },
+            {
+              "emoji": "⛵",
+              "etiqueta": "barco"
+            },
+            {
+              "emoji": "🪢",
+              "etiqueta": "cuerda"
+            }
+          ],
+          "direccion": {
+            "fondo": "cristales",
+            "estructura": "constelacion",
+            "camara": "rebote",
+            "densidad": "alta",
+            "ritmo": "regular",
+            "tipografia": "bebasNeue"
+          }
+        }
+      },
+      "duracionHash": 2.64,
+      "instante": 162.26,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\32-b3c89c76252e.png",
+      "sha256": "dac16954dbf5e4bcee5e2e98d0f235565383b7d082b127c6ccf575fa9b620d44"
+    },
+    {
+      "id": "visual-69",
+      "hash": "91e24f55d220",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "requería",
+        "extra": {
+          "pos": "27:1",
+          "conceptos": [
+            {
+              "emoji": "🕰️",
+              "etiqueta": "reloj"
+            },
+            {
+              "emoji": "🕰️",
+              "etiqueta": "reloj"
+            },
+            {
+              "emoji": "🪵",
+              "etiqueta": "madera"
+            }
+          ],
+          "direccion": {
+            "fondo": "circuito",
+            "estructura": "marcoPoster",
+            "camara": "barrido",
+            "densidad": "alta",
+            "ritmo": "regular",
+            "tipografia": "archivoBlack"
+          }
+        }
+      },
+      "duracionHash": 2.15,
+      "instante": 169.48,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\33-91e24f55d220.png",
+      "sha256": "d9d2dd870d906e588e884951104707daea1a557a52ecdef30e2d51cf3c94ccc9"
+    },
+    {
+      "id": "visual-71",
+      "hash": "ea4c28967d14",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "mecanismo",
+        "extra": {
+          "pos": "28:0",
+          "conceptos": [
+            {
+              "emoji": "🛏️",
+              "etiqueta": "cama"
+            },
+            {
+              "emoji": "🌡️",
+              "etiqueta": "termómetro"
+            },
+            {
+              "emoji": "💊",
+              "etiqueta": "medicina"
+            }
+          ],
+          "direccion": {
+            "fondo": "demolicion",
+            "estructura": "cintaDiagonal",
+            "camara": "temblor",
+            "densidad": "alta",
+            "ritmo": "regular",
+            "tipografia": "spaceMono"
+          }
+        }
+      },
+      "duracionHash": 2.14,
+      "instante": 173.7599998,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\34-ea4c28967d14.png",
+      "sha256": "cf1cf3142104684789bda6fd988f4e68bc7dbec253c9d61ef4f32c47b8fcf5a7"
+    },
+    {
+      "id": "visual-73",
+      "hash": "2eb3cc3ff92a",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "descubrió",
+        "extra": {
+          "pos": "28:2",
+          "conceptos": [
+            {
+              "emoji": "🕰️",
+              "etiqueta": "reloj"
+            },
+            {
+              "emoji": "🔧",
+              "etiqueta": "herramienta"
+            },
+            {
+              "emoji": "⚙️",
+              "etiqueta": "engranaje"
+            }
+          ],
+          "direccion": {
+            "fondo": "demolicion",
+            "estructura": "capasApiladas",
+            "camara": "saltos",
+            "densidad": "alta",
+            "ritmo": "regular",
+            "tipografia": "dmSerifDisplay"
+          }
+        }
+      },
+      "duracionHash": 2.14,
+      "instante": 178.0399998,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\35-2eb3cc3ff92a.png",
+      "sha256": "3f08621523a0a6643fc9279ff910ddc339ff3b21db1f0b68f9b68587035e1c82"
+    },
+    {
+      "id": "visual-80",
+      "hash": "200c3e19656b",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "restante",
+        "extra": {
+          "pos": "31:1",
+          "conceptos": [
+            {
+              "emoji": "🕰️",
+              "etiqueta": "reloj"
+            },
+            {
+              "emoji": "↔️",
+              "etiqueta": "movimiento"
+            },
+            {
+              "emoji": "🪵",
+              "etiqueta": "madera"
+            }
+          ],
+          "direccion": {
+            "fondo": "causticas",
+            "estructura": "marcoPoster",
+            "camara": "travelling",
+            "densidad": "alta",
+            "ritmo": "frenando",
+            "tipografia": "bebasNeue"
+          }
+        }
+      },
+      "duracionHash": 2.87,
+      "instante": 194.81,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\36-200c3e19656b.png",
+      "sha256": "36806a650a451fcc0b6e4fd25e011b1c5a63db5a207bf81f16c401d7cc1b83b5"
+    },
+    {
+      "id": "visual-84",
+      "hash": "4588ad678761",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "desincronizado",
+        "extra": {
+          "pos": "33:1",
+          "conceptos": [
+            {
+              "emoji": "🔧",
+              "etiqueta": "herramienta"
+            },
+            {
+              "emoji": "⚙️",
+              "etiqueta": "engranaje"
+            },
+            {
+              "emoji": "🕰️",
+              "etiqueta": "reloj"
+            }
+          ],
+          "direccion": {
+            "fondo": "multitud",
+            "estructura": "cintaDiagonal",
+            "camara": "deriva",
+            "densidad": "alta",
+            "ritmo": "frenando",
+            "tipografia": "ibmPlexCondensed"
+          }
+        }
+      },
+      "duracionHash": 2.63,
+      "instante": 205.87,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\37-4588ad678761.png",
+      "sha256": "cada857e350b8ad535a976def6c64b710f6aabdb55f490ac9ae115d616b35222"
+    },
+    {
+      "id": "visual-87",
+      "hash": "4e8f6fae5646",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "corrientes",
+        "extra": {
+          "pos": "35:0",
+          "conceptos": [
+            {
+              "emoji": "💨",
+              "etiqueta": "viento"
+            },
+            {
+              "emoji": "🕰️",
+              "etiqueta": "péndulo"
+            },
+            {
+              "emoji": "🕰️",
+              "etiqueta": "péndulo"
+            }
+          ],
+          "direccion": {
+            "fondo": "ondas",
+            "estructura": "editorial",
+            "camara": "alejamiento",
+            "densidad": "alta",
+            "ritmo": "frenando",
+            "tipografia": "spaceMono"
+          }
+        }
+      },
+      "duracionHash": 2.52,
+      "instante": 214.24,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\38-4e8f6fae5646.png",
+      "sha256": "aa6293af0c1cc2ccfde993b5d54d3355681d113571836b1778f9994e756f9da2"
+    },
+    {
+      "id": "visual-95",
+      "hash": "04987a099575",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "regresaba",
+        "extra": {
+          "pos": "38:1",
+          "conceptos": [
+            {
+              "emoji": "🕰️",
+              "etiqueta": "reloj"
+            },
+            {
+              "emoji": "⚖️",
+              "etiqueta": "balanza"
+            },
+            {
+              "emoji": "🔗",
+              "etiqueta": "cadena"
+            }
+          ],
+          "direccion": {
+            "fondo": "skyline",
+            "estructura": "lineaTiempo",
+            "camara": "picado",
+            "densidad": "alta",
+            "ritmo": "golpeSeco",
+            "tipografia": "playfairDisplay"
+          }
+        }
+      },
+      "duracionHash": 2.61,
+      "instante": 233.31,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\39-04987a099575.png",
+      "sha256": "b74e7b49f54c0415db20c6582996d26ba6f955d19ec71e840b372ced0e34f847"
+    },
+    {
+      "id": "visual-99",
+      "hash": "3d9c14cd0eea",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "osciladores",
+        "extra": {
+          "pos": "40:1",
+          "conceptos": [
+            {
+              "emoji": "🕰️",
+              "etiqueta": "reloj"
+            },
+            {
+              "emoji": "📳",
+              "etiqueta": "vibrador"
+            },
+            {
+              "emoji": "🔊",
+              "etiqueta": "altavoz"
+            }
+          ],
+          "direccion": {
+            "fondo": "causticas",
+            "estructura": "corteTransversal",
+            "camara": "saltos",
+            "densidad": "alta",
+            "ritmo": "golpeSeco",
+            "tipografia": "dmSerifDisplay"
+          }
+        }
+      },
+      "duracionHash": 2.75,
+      "instante": 243.81,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\40-3d9c14cd0eea.png",
+      "sha256": "e6be86fe2832e17d8544dc395226d6b0999d2098739c1345af543782a33ea632"
+    },
+    {
+      "id": "visual-102",
+      "hash": "c3567b9e315e",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "cualitativamente",
+        "extra": {
+          "pos": "42:0",
+          "conceptos": [
+            {
+              "emoji": "📜",
+              "etiqueta": "pergamino"
+            },
+            {
+              "emoji": "🖋️",
+              "etiqueta": "pluma"
+            },
+            {
+              "emoji": "🔬",
+              "etiqueta": "microscopio"
+            }
+          ],
+          "direccion": {
+            "fondo": "reinoAnimal",
+            "estructura": "abanicoTarjetas",
+            "camara": "contrapicado",
+            "densidad": "alta",
+            "ritmo": "simultaneo",
+            "tipografia": "anton"
+          }
+        }
+      },
+      "duracionHash": 2.57,
+      "instante": 251.8,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\41-c3567b9e315e.png",
+      "sha256": "fa56d55ab1eb072946477b027871c80daf983a9d09b88d0fcc52ecf1ed1939ee"
+    },
+    {
+      "id": "visual-113",
+      "hash": "7cf43bc66204",
+      "graphicData": {
+        "type": "visual_escena",
+        "value": "maneras",
+        "extra": {
+          "pos": "46:1",
+          "conceptos": [
+            {
+              "emoji": "🎚️",
+              "etiqueta": "metrónomo"
+            },
+            {
+              "emoji": "🕰️",
+              "etiqueta": "reloj"
+            },
+            {
+              "emoji": "🔊",
+              "etiqueta": "altavoz"
+            }
+          ],
+          "direccion": {
+            "fondo": "ordenEspontaneo",
+            "estructura": "marcoPoster",
+            "camara": "orbita",
+            "densidad": "alta",
+            "ritmo": "regular",
+            "tipografia": "spaceMono"
+          }
+        }
+      },
+      "duracionHash": 2.69,
+      "instante": 278.68999999999994,
+      "archivo": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964\\mvp-paso7\\fotogramas\\42-7cf43bc66204.png",
+      "sha256": "be25d7fa20de45e807baeba6f6f94fc06a4d8ebfbffbdf41eb0569dad3aa3941"
+    }
+  ],
+  "visuales": 42,
+  "palabrasDistintas": 41,
+  "identidadesDistintas": 41,
+  "fotogramasDistintos": 42,
+  "coste": {
+    "renders": 42,
+    "frames": 3168,
+    "ms": 163228,
+    "msPorFrame": 51.523989898989896,
+    "intentosPorFrame": 1.5669191919191918,
+    "framesEnElTope": 0
+  },
+  "resumen": {
+    "tipo": "resumen",
+    "resumen": {
+      "total": 114,
+      "filas": [
+        {
+          "origen": "original",
+          "objetivo": 26,
+          "real": 46
+        },
+        {
+          "origen": "stock",
+          "objetivo": 21,
+          "real": 21
+        },
+        {
+          "origen": "IA",
+          "objetivo": 21,
+          "real": 0
+        },
+        {
+          "origen": "Visual",
+          "objetivo": 46,
+          "real": 42
+        }
+      ],
+      "respaldo": [
+        {
+          "motivo": "visual-sin-palabra",
+          "descripcion": "Visuales sin ninguna palabra con significado en su tramo de audio",
+          "veces": 4
+        },
+        {
+          "motivo": "ia-fallida",
+          "descripcion": "clips de IA que fallaron al generarse",
+          "veces": 1
+        }
+      ],
+      "completa": true,
+      "cuadra": false
+    },
+    "lista": []
+  },
+  "energiaExcesiva": [
+    {
+      "palabra": "naturalmente",
+      "direccion": {
+        "fondo": "demolicion",
+        "estructura": "mundoIsometrico",
+        "camara": "contrapicado",
+        "densidad": "alta",
+        "ritmo": "regular",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "palabra": "sincronización",
+      "direccion": {
+        "fondo": "multitud",
+        "estructura": "engranajes",
+        "camara": "temblor",
+        "densidad": "alta",
+        "ritmo": "acelerando",
+        "tipografia": "playfairDisplay"
+      }
+    },
+    {
+      "palabra": "simultáneos",
+      "direccion": {
+        "fondo": "leyDarwin",
+        "estructura": "anillosConcentricos",
+        "camara": "acercamiento",
+        "densidad": "alta",
+        "ritmo": "golpeSeco",
+        "tipografia": "barlowCondensed"
+      }
+    },
+    {
+      "palabra": "regular",
+      "direccion": {
+        "fondo": "multitud",
+        "estructura": "constelacion",
+        "camara": "barrido",
+        "densidad": "alta",
+        "ritmo": "regular",
+        "tipografia": "ibmPlexCondensed"
+      }
+    },
+    {
+      "palabra": "naturaleza",
+      "direccion": {
+        "fondo": "cristales",
+        "estructura": "abanicoTarjetas",
+        "camara": "temblor",
+        "densidad": "alta",
+        "ritmo": "frenando",
+        "tipografia": "spaceMono"
+      }
+    },
+    {
+      "palabra": "Millenium",
+      "direccion": {
+        "fondo": "mallaDeformada",
+        "estructura": "engranajes",
+        "camara": "alejamiento",
+        "densidad": "alta",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      }
+    },
+    {
+      "palabra": "acumulaba",
+      "direccion": {
+        "fondo": "mallaDeformada",
+        "estructura": "rayosImpacto",
+        "camara": "picado",
+        "densidad": "alta",
+        "ritmo": "frenando",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "palabra": "clausurado",
+      "direccion": {
+        "fondo": "leyDarwin",
+        "estructura": "constelacion",
+        "camara": "temblor",
+        "densidad": "alta",
+        "ritmo": "acelerando",
+        "tipografia": "playfairDisplay"
+      }
+    },
+    {
+      "palabra": "puentes",
+      "direccion": {
+        "fondo": "mallaDeformada",
+        "estructura": "capasApiladas",
+        "camara": "acercamiento",
+        "densidad": "alta",
+        "ritmo": "acelerando",
+        "tipografia": "playfairDisplay"
+      }
+    },
+    {
+      "palabra": "Inglaterra",
+      "direccion": {
+        "fondo": "cuerdas",
+        "estructura": "rayosImpacto",
+        "camara": "vertigo",
+        "densidad": "alta",
+        "ritmo": "simultaneo",
+        "tipografia": "spaceMono"
+      }
+    },
+    {
+      "palabra": "sufrieron",
+      "direccion": {
+        "fondo": "circuito",
+        "estructura": "pilaVertical",
+        "camara": "vertigo",
+        "densidad": "alta",
+        "ritmo": "simultaneo",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "palabra": "fallecidos",
+      "direccion": {
+        "fondo": "warpEstelar",
+        "estructura": "anillosConcentricos",
+        "camara": "orbita",
+        "densidad": "alta",
+        "ritmo": "frenando",
+        "tipografia": "bebasNeue"
+      }
+    },
+    {
+      "palabra": "puentes",
+      "direccion": {
+        "fondo": "mallaDeformada",
+        "estructura": "capasApiladas",
+        "camara": "acercamiento",
+        "densidad": "alta",
+        "ritmo": "acelerando",
+        "tipografia": "playfairDisplay"
+      }
+    },
+    {
+      "palabra": "ejército",
+      "direccion": {
+        "fondo": "reinoAnimal",
+        "estructura": "cascada",
+        "camara": "vertigo",
+        "densidad": "alta",
+        "ritmo": "frenando",
+        "tipografia": "barlowCondensed"
+      }
+    },
+    {
+      "palabra": "caminan",
+      "direccion": {
+        "fondo": "warpEstelar",
+        "estructura": "pilaVertical",
+        "camara": "inclinacion",
+        "densidad": "alta",
+        "ritmo": "regular",
+        "tipografia": "spaceMono"
+      }
+    },
+    {
+      "palabra": "transeuntes",
+      "direccion": {
+        "fondo": "mosaico",
+        "estructura": "lineaTiempo",
+        "camara": "saltos",
+        "densidad": "alta",
+        "ritmo": "acelerando",
+        "tipografia": "spaceMono"
+      }
+    },
+    {
+      "palabra": "holandés",
+      "direccion": {
+        "fondo": "viaLactea",
+        "estructura": "capasApiladas",
+        "camara": "rebote",
+        "densidad": "alta",
+        "ritmo": "frenando",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "palabra": "objetivo",
+      "direccion": {
+        "fondo": "mallaDeformada",
+        "estructura": "abanicoTarjetas",
+        "camara": "inclinacion",
+        "densidad": "alta",
+        "ritmo": "regular",
+        "tipografia": "playfairDisplay"
+      }
+    },
+    {
+      "palabra": "contraste",
+      "direccion": {
+        "fondo": "multitud",
+        "estructura": "capasApiladas",
+        "camara": "vertigo",
+        "densidad": "alta",
+        "ritmo": "simultaneo",
+        "tipografia": "ibmPlexCondensed"
+      }
+    },
+    {
+      "palabra": "segundos",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "rayosImpacto",
+        "camara": "inclinacion",
+        "densidad": "alta",
+        "ritmo": "acelerando",
+        "tipografia": "bebasNeue"
+      }
+    },
+    {
+      "palabra": "requería",
+      "direccion": {
+        "fondo": "circuito",
+        "estructura": "marcoPoster",
+        "camara": "barrido",
+        "densidad": "alta",
+        "ritmo": "regular",
+        "tipografia": "archivoBlack"
+      }
+    },
+    {
+      "palabra": "mecanismo",
+      "direccion": {
+        "fondo": "demolicion",
+        "estructura": "cintaDiagonal",
+        "camara": "temblor",
+        "densidad": "alta",
+        "ritmo": "regular",
+        "tipografia": "spaceMono"
+      }
+    },
+    {
+      "palabra": "descubrió",
+      "direccion": {
+        "fondo": "demolicion",
+        "estructura": "capasApiladas",
+        "camara": "saltos",
+        "densidad": "alta",
+        "ritmo": "regular",
+        "tipografia": "dmSerifDisplay"
+      }
+    },
+    {
+      "palabra": "regresaba",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "lineaTiempo",
+        "camara": "picado",
+        "densidad": "alta",
+        "ritmo": "golpeSeco",
+        "tipografia": "playfairDisplay"
+      }
+    },
+    {
+      "palabra": "cualitativamente",
+      "direccion": {
+        "fondo": "reinoAnimal",
+        "estructura": "abanicoTarjetas",
+        "camara": "contrapicado",
+        "densidad": "alta",
+        "ritmo": "simultaneo",
+        "tipografia": "anton"
+      }
+    },
+    {
+      "palabra": "maneras",
+      "direccion": {
+        "fondo": "ordenEspontaneo",
+        "estructura": "marcoPoster",
+        "camara": "orbita",
+        "densidad": "alta",
+        "ritmo": "regular",
+        "tipografia": "spaceMono"
+      }
+    }
+  ]
+}

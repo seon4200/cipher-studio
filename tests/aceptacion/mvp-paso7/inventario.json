@@ -1,0 +1,1235 @@
+{
+  "commit": "1f1a6cb9ecf4871110554f7922b02c5b3aad0fec",
+  "inventario": {
+    "estructuras": [
+      "constelacion",
+      "capasApiladas",
+      "redNodos",
+      "lineaTiempo",
+      "corteTransversal",
+      "partidoVertical",
+      "cintaDiagonal",
+      "marcoPoster",
+      "anillosConcentricos",
+      "abanicoTarjetas",
+      "rayosImpacto",
+      "engranajes",
+      "cuaderno",
+      "cascada",
+      "editorial",
+      "mundoIsometrico",
+      "pilaVertical"
+    ],
+    "fondos": [
+      "tramaTejida",
+      "ondas",
+      "tunel",
+      "skyline",
+      "amanecer",
+      "causticas",
+      "cristales",
+      "panal",
+      "mallaDeformada",
+      "circuito",
+      "cuerdas",
+      "mosaico",
+      "warpEstelar",
+      "lluviaDatos",
+      "multitud",
+      "ordenEspontaneo",
+      "demolicion",
+      "comidaFamilia",
+      "viaLactea",
+      "reinoAnimal",
+      "leyDarwin",
+      "ecosistemaMarino"
+    ],
+    "camaras": [
+      "deriva",
+      "quieto",
+      "acercamiento",
+      "alejamiento",
+      "rebote",
+      "orbita",
+      "barrido",
+      "travelling",
+      "grua",
+      "picado",
+      "contrapicado",
+      "temblor",
+      "mano",
+      "vertigo",
+      "inclinacion",
+      "saltos"
+    ],
+    "tipografias": [
+      "archivo",
+      "anton",
+      "archivoBlack",
+      "barlowCondensed",
+      "bebasNeue",
+      "caveat",
+      "dmSerifDisplay",
+      "ibmPlexCondensed",
+      "playfairDisplay",
+      "spaceMono"
+    ],
+    "densidades": {
+      "minima": 1,
+      "baja": 3,
+      "media": 5,
+      "alta": 8,
+      "saturada": 14
+    },
+    "ritmos": [
+      "simultaneo",
+      "regular",
+      "acelerando",
+      "frenando",
+      "golpeSeco"
+    ]
+  },
+  "energia": {
+    "fondos": {
+      "0": 3,
+      "1": 4,
+      "2": 12,
+      "3": 3
+    },
+    "camaras": {
+      "0": 1,
+      "1": 4,
+      "2": 8,
+      "3": 3
+    },
+    "paresLegales": 163,
+    "paresCrudos": 352
+  },
+  "combinaciones": {
+    "identidades": 692750,
+    "instancias": 618389000
+  },
+  "incluyendoControles": {
+    "identidades": 895500,
+    "instancias": 665642000
+  },
+  "esperado": {
+    "identidades": 692750,
+    "nominal": 618389000
+  },
+  "repartoNominalPorPar": [
+    {
+      "fondo": "tramaTejida",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "acercamiento",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "alejamiento",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "rebote",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "orbita",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "barrido",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "picado",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "contrapicado",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "temblor",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "vertigo",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "inclinacion",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tramaTejida",
+      "camara": "saltos",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ondas",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "ondas",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ondas",
+      "camara": "acercamiento",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ondas",
+      "camara": "alejamiento",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ondas",
+      "camara": "rebote",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ondas",
+      "camara": "orbita",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ondas",
+      "camara": "barrido",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ondas",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ondas",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ondas",
+      "camara": "picado",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ondas",
+      "camara": "contrapicado",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ondas",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ondas",
+      "camara": "inclinacion",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "tunel",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 459840000
+    },
+    {
+      "fondo": "tunel",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 9580000
+    },
+    {
+      "fondo": "tunel",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 9580000
+    },
+    {
+      "fondo": "tunel",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 9580000
+    },
+    {
+      "fondo": "tunel",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 9580000
+    },
+    {
+      "fondo": "skyline",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "skyline",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "skyline",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "skyline",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "skyline",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "acercamiento",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "alejamiento",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "rebote",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "orbita",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "barrido",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "picado",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "contrapicado",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "temblor",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "vertigo",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "inclinacion",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "amanecer",
+      "camara": "saltos",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "causticas",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "acercamiento",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "alejamiento",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "rebote",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "orbita",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "barrido",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "picado",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "contrapicado",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "temblor",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "vertigo",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "inclinacion",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "causticas",
+      "camara": "saltos",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cristales",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "cristales",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cristales",
+      "camara": "acercamiento",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cristales",
+      "camara": "alejamiento",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cristales",
+      "camara": "rebote",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cristales",
+      "camara": "orbita",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cristales",
+      "camara": "barrido",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cristales",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cristales",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cristales",
+      "camara": "picado",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cristales",
+      "camara": "contrapicado",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cristales",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cristales",
+      "camara": "inclinacion",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "panal",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "panal",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "panal",
+      "camara": "acercamiento",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "panal",
+      "camara": "alejamiento",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "panal",
+      "camara": "rebote",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "panal",
+      "camara": "orbita",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "panal",
+      "camara": "barrido",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "panal",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "panal",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "panal",
+      "camara": "picado",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "panal",
+      "camara": "contrapicado",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "panal",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "panal",
+      "camara": "inclinacion",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "mallaDeformada",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "mallaDeformada",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "mallaDeformada",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "mallaDeformada",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "mallaDeformada",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "circuito",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "circuito",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "circuito",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "circuito",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "circuito",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cuerdas",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "cuerdas",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cuerdas",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cuerdas",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "cuerdas",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "mosaico",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "mosaico",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "mosaico",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "mosaico",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "mosaico",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "warpEstelar",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "lluviaDatos",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "multitud",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "multitud",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "multitud",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "multitud",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "multitud",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ordenEspontaneo",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "ordenEspontaneo",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ordenEspontaneo",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ordenEspontaneo",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ordenEspontaneo",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "demolicion",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "comidaFamilia",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "comidaFamilia",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "comidaFamilia",
+      "camara": "acercamiento",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "comidaFamilia",
+      "camara": "alejamiento",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "comidaFamilia",
+      "camara": "rebote",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "comidaFamilia",
+      "camara": "orbita",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "comidaFamilia",
+      "camara": "barrido",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "comidaFamilia",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "comidaFamilia",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "comidaFamilia",
+      "camara": "picado",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "comidaFamilia",
+      "camara": "contrapicado",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "comidaFamilia",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "comidaFamilia",
+      "camara": "inclinacion",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "viaLactea",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "viaLactea",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "viaLactea",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "viaLactea",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "viaLactea",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "reinoAnimal",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "reinoAnimal",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "reinoAnimal",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "reinoAnimal",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "reinoAnimal",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "leyDarwin",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "leyDarwin",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "leyDarwin",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "leyDarwin",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "leyDarwin",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ecosistemaMarino",
+      "camara": "deriva",
+      "identidades": 4250,
+      "nominal": 5748000
+    },
+    {
+      "fondo": "ecosistemaMarino",
+      "camara": "quieto",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ecosistemaMarino",
+      "camara": "travelling",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ecosistemaMarino",
+      "camara": "grua",
+      "identidades": 4250,
+      "nominal": 119750
+    },
+    {
+      "fondo": "ecosistemaMarino",
+      "camara": "mano",
+      "identidades": 4250,
+      "nominal": 119750
+    }
+  ],
+  "hash": {
+    "graphicData": {
+      "type": "visual_escena",
+      "value": "memoria",
+      "extra": {
+        "conceptos": [
+          {
+            "emoji": "🧠",
+            "etiqueta": "recuerdo"
+          },
+          {
+            "emoji": "🗂️",
+            "etiqueta": "archivo"
+          },
+          {
+            "emoji": "🔗",
+            "etiqueta": "conexion"
+          }
+        ],
+        "direccion": {
+          "fondo": "tunel",
+          "estructura": "capasApiladas",
+          "camara": "deriva",
+          "densidad": "alta",
+          "ritmo": "golpeSeco",
+          "tipografia": "ibmPlexCondensed"
+        }
+      }
+    },
+    "antesSistemaFijo": "aae3160cd710",
+    "despues": [
+      {
+        "id": "video-a",
+        "sistema": "editorial",
+        "hash": "904d38f3ef79"
+      },
+      {
+        "id": "video-b",
+        "sistema": "editorial",
+        "hash": "904d38f3ef79"
+      },
+      {
+        "id": "video-c",
+        "sistema": "clinico",
+        "hash": "ac027af74d03"
+      },
+      {
+        "id": "video-d",
+        "sistema": "clinico",
+        "hash": "ac027af74d03"
+      },
+      {
+        "id": "video-e",
+        "sistema": "calido",
+        "hash": "4f2382e024e4"
+      },
+      {
+        "id": "video-f",
+        "sistema": "editorial",
+        "hash": "904d38f3ef79"
+      },
+      {
+        "id": "C:\\Proyectos\\mi-app\\cipher-studio\\proyectos\\video-3-1788402898964",
+        "sistema": "editorial",
+        "hash": "904d38f3ef79"
+      }
+    ]
+  },
+  "sorteoFueraDeEnergia": {
+    "muestra": "palabras significativas unicas de la transcripcion de video 3",
+    "total": 346,
+    "casos": 178,
+    "ejemplos": [
+      {
+        "palabra": "ley",
+        "semilla": 1164636842,
+        "direccion": {
+          "fondo": "reinoAnimal",
+          "estructura": "lineaTiempo",
+          "camara": "alejamiento",
+          "densidad": "alta",
+          "ritmo": "regular",
+          "tipografia": "spaceMono"
+        }
+      },
+      {
+        "palabra": "universo",
+        "semilla": 2129383785,
+        "direccion": {
+          "fondo": "panal",
+          "estructura": "lineaTiempo",
+          "camara": "saltos",
+          "densidad": "alta",
+          "ritmo": "golpeSeco",
+          "tipografia": "caveat"
+        }
+      },
+      {
+        "palabra": "complejos",
+        "semilla": 1268207218,
+        "direccion": {
+          "fondo": "cuerdas",
+          "estructura": "cintaDiagonal",
+          "camara": "picado",
+          "densidad": "alta",
+          "ritmo": "golpeSeco",
+          "tipografia": "archivo"
+        }
+      },
+      {
+        "palabra": "norma",
+        "semilla": 1745186253,
+        "direccion": {
+          "fondo": "cuerdas",
+          "estructura": "rayosImpacto",
+          "camara": "saltos",
+          "densidad": "alta",
+          "ritmo": "simultaneo",
+          "tipografia": "ibmPlexCondensed"
+        }
+      },
+      {
+        "palabra": "así",
+        "semilla": 343013155,
+        "direccion": {
+          "fondo": "warpEstelar",
+          "estructura": "cuaderno",
+          "camara": "grua",
+          "densidad": "alta",
+          "ritmo": "frenando",
+          "tipografia": "spaceMono"
+        }
+      }
+    ]
+  }
+}

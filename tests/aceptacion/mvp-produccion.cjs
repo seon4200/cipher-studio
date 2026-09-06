@@ -10,7 +10,19 @@ const modo = process.argv[3]
 const resultado = {proyecto, modo, inicio: new Date().toISOString(), avisos: [], metricas: []}
 let quitarObservador
 let latido = Date.now()
+const logPath = path.join(repo,'generation-debug.log')
+let offsetLog = fs.existsSync(logPath) ? fs.statSync(logPath).size : 0
 const watchdog = setInterval(() => {
+  if(fs.existsSync(logPath)) {
+    const size=fs.statSync(logPath).size
+    if(size>offsetLog) {
+      const fd=fs.openSync(logPath,'r'), data=Buffer.alloc(size-offsetLog)
+      fs.readSync(fd,data,0,data.length,offsetLog);fs.closeSync(fd);offsetLog=size;latido=Date.now()
+      if(/el frame \d+ no llego tras 5 intentos/.test(data.toString('utf8'))) {
+        console.error('PARADA: perdida real de un frame, ver generation-debug.log');app.exit(3)
+      }
+    }
+  }
   if (Date.now() - latido > 240000) { console.error('Sin progreso durante 4 minutos'); app.exit(2) }
 }, 10000)
 const evento = {sender:{isDestroyed:()=>false,send:(canal,carga)=>{

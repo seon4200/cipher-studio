@@ -16,6 +16,7 @@ import fixtureParejas from '../../../tests/aceptacion/fixtures/parejas-estructur
 import fixtureLote from '../../../tests/aceptacion/fixtures/lote-estructuras-1.json'
 import './styles/globals.css'
 import './styles/banco.css'
+import { MvpCobertura } from './MvpCobertura'
 
 const ANCHO = 1080
 const ALTO = 1920
@@ -668,4 +669,4 @@ function Banco() {
 
 const host = document.getElementById('banco-root')
 if (!host) throw new Error('Falta #banco-root')
-createRoot(host).render(<Banco />)
+createRoot(host).render(parametrosUrl.get('vista') === 'cobertura' ? <MvpCobertura /> : <Banco />)

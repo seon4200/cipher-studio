@@ -1,0 +1,1861 @@
+{
+  "fecha": "2026-09-06T00:07:56.428Z",
+  "navegador": "152.0.7977.82",
+  "escala": 0.45,
+  "t": 1.5,
+  "ciclo": 3,
+  "lienzo": [
+    1080,
+    1920
+  ],
+  "miniatura": [
+    486,
+    864
+  ],
+  "casos": [
+    {
+      "caso": "estructura:constelacion",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:capasApiladas",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "capasApiladas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 23,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:redNodos",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "redNodos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 42,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:lineaTiempo",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "lineaTiempo",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 21,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:corteTransversal",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "corteTransversal",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 23,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:partidoVertical",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "partidoVertical",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 21,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:cintaDiagonal",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "cintaDiagonal",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 21,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:marcoPoster",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "marcoPoster",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 21,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:anillosConcentricos",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "anillosConcentricos",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 23,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:abanicoTarjetas",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "abanicoTarjetas",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 23,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:rayosImpacto",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "rayosImpacto",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 38,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:engranajes",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "engranajes",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 23,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:cuaderno",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "cuaderno",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 21,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:cascada",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "cascada",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 23,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:editorial",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "editorial",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 21,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:mundoIsometrico",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "mundoIsometrico",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 35,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:pilaVertical",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "pilaVertical",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 23,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "estructura:unaCaja",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "unaCaja",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 1,
+      "keyframes": 18,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:tramaTejida",
+      "puede": "true",
+      "direccion": {
+        "fondo": "tramaTejida",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 19,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:ondas",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:tunel",
+      "puede": "true",
+      "direccion": {
+        "fondo": "tunel",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:skyline",
+      "puede": "true",
+      "direccion": {
+        "fondo": "skyline",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 40,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:amanecer",
+      "puede": "true",
+      "direccion": {
+        "fondo": "amanecer",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 24,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:causticas",
+      "puede": "true",
+      "direccion": {
+        "fondo": "causticas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 19,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:cristales",
+      "puede": "true",
+      "direccion": {
+        "fondo": "cristales",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 31,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:panal",
+      "puede": "true",
+      "direccion": {
+        "fondo": "panal",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 66,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:mallaDeformada",
+      "puede": "true",
+      "direccion": {
+        "fondo": "mallaDeformada",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 31,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:circuito",
+      "puede": "true",
+      "direccion": {
+        "fondo": "circuito",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 27,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:cuerdas",
+      "puede": "true",
+      "direccion": {
+        "fondo": "cuerdas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 32,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:mosaico",
+      "puede": "true",
+      "direccion": {
+        "fondo": "mosaico",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 78,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:warpEstelar",
+      "puede": "true",
+      "direccion": {
+        "fondo": "warpEstelar",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 56,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:lluviaDatos",
+      "puede": "true",
+      "direccion": {
+        "fondo": "lluviaDatos",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 36,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:multitud",
+      "puede": "true",
+      "direccion": {
+        "fondo": "multitud",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 109,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:ordenEspontaneo",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ordenEspontaneo",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 62,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:demolicion",
+      "puede": "true",
+      "direccion": {
+        "fondo": "demolicion",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 44,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:comidaFamilia",
+      "puede": "true",
+      "direccion": {
+        "fondo": "comidaFamilia",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 24,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:viaLactea",
+      "puede": "true",
+      "direccion": {
+        "fondo": "viaLactea",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 54,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:reinoAnimal",
+      "puede": "true",
+      "direccion": {
+        "fondo": "reinoAnimal",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 52,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:leyDarwin",
+      "puede": "true",
+      "direccion": {
+        "fondo": "leyDarwin",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 42,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:ecosistemaMarino",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ecosistemaMarino",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 24,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "fondo:liso",
+      "puede": "true",
+      "direccion": {
+        "fondo": "liso",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 18,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:deriva",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "deriva",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:quieto",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:acercamiento",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "acercamiento",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:alejamiento",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "alejamiento",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:rebote",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "rebote",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:orbita",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "orbita",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:barrido",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "barrido",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:travelling",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "travelling",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:grua",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "grua",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:picado",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "picado",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:contrapicado",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "contrapicado",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:temblor",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "temblor",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:mano",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "mano",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:vertigo",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "vertigo",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:inclinacion",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "inclinacion",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:saltos",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "saltos",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "camara:derivaMinima",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "derivaMinima",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 33,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "tipografia:archivo",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "tipografia:anton",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "anton"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "tipografia:archivoBlack",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivoBlack"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "tipografia:barlowCondensed",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "barlowCondensed"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "tipografia:bebasNeue",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "bebasNeue"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "tipografia:caveat",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "caveat"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "tipografia:dmSerifDisplay",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "dmSerifDisplay"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "tipografia:ibmPlexCondensed",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "ibmPlexCondensed"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "tipografia:playfairDisplay",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "playfairDisplay"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "tipografia:spaceMono",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "spaceMono"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "densidad:minima",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "minima",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 21,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "densidad:baja",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "baja",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 25,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "densidad:media",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "densidad:alta",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "alta",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 35,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "densidad:saturada",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "saturada",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 47,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "ritmo:simultaneo",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "ritmo:regular",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "regular",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "ritmo:acelerando",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "acelerando",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "ritmo:frenando",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "frenando",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "ritmo:golpeSeco",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "golpeSeco",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "sistema:editorial",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "editorial",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "sistema:clinico",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "clinico",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "sistema:voltaje",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "voltaje",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    },
+    {
+      "caso": "sistema:calido",
+      "puede": "true",
+      "direccion": {
+        "fondo": "ondas",
+        "estructura": "constelacion",
+        "camara": "quieto",
+        "densidad": "media",
+        "ritmo": "simultaneo",
+        "tipografia": "archivo"
+      },
+      "sistema": "calido",
+      "palabra": "memoria",
+      "cajas": 3,
+      "keyframes": 29,
+      "rect": {
+        "x": 20,
+        "y": 188,
+        "width": 486,
+        "height": 960
+      }
+    }
+  ],
+  "imagenes": [
+    {
+      "eje": "estructura",
+      "png": "C:\\Proyectos\\mi-app\\cipher-studio\\tests\\aceptacion\\mvp-paso7\\cobertura-estructura-45pct.png",
+      "alto": 5080
+    },
+    {
+      "eje": "fondo",
+      "png": "C:\\Proyectos\\mi-app\\cipher-studio\\tests\\aceptacion\\mvp-paso7\\cobertura-fondo-45pct.png",
+      "alto": 6060
+    },
+    {
+      "eje": "camara",
+      "png": "C:\\Proyectos\\mi-app\\cipher-studio\\tests\\aceptacion\\mvp-paso7\\cobertura-camara-45pct.png",
+      "alto": 5080
+    },
+    {
+      "eje": "tipografia",
+      "png": "C:\\Proyectos\\mi-app\\cipher-studio\\tests\\aceptacion\\mvp-paso7\\cobertura-tipografia-45pct.png",
+      "alto": 3120
+    },
+    {
+      "eje": "densidad",
+      "png": "C:\\Proyectos\\mi-app\\cipher-studio\\tests\\aceptacion\\mvp-paso7\\cobertura-densidad-45pct.png",
+      "alto": 2140
+    },
+    {
+      "eje": "ritmo",
+      "png": "C:\\Proyectos\\mi-app\\cipher-studio\\tests\\aceptacion\\mvp-paso7\\cobertura-ritmo-45pct.png",
+      "alto": 2140
+    },
+    {
+      "eje": "sistema",
+      "png": "C:\\Proyectos\\mi-app\\cipher-studio\\tests\\aceptacion\\mvp-paso7\\cobertura-sistema-45pct.png",
+      "alto": 1160
+    }
+  ],
+  "errores": [],
+  "metodo": "Cada pieza en un documento recargado. Montaje PNG sin reescalar. Emoji de Chrome no identico al de Electron: ver emoji.json.",
+  "completa": "C:\\Proyectos\\mi-app\\cipher-studio\\tests\\aceptacion\\mvp-paso7\\hoja-completa-45pct.png"
+}
