@@ -6,13 +6,14 @@
 // POR QUE IMPORTA EL HASH: los conceptos van dentro de `extra`, que `canonizar` proyecta en la
 // clave del MOV. Una clave de mas —{emoji, etiqueta, confianza: 0.9}— cambiaria el hash SIN
 // cambiar un pixel, y la cache dejaria de reutilizar ficheros identicos. Por eso se PROYECTA a
-// dos claves exactas en vez de copiar el objeto.
+// los campos exactos que puede usar el renderer en vez de copiar el objeto.
 //
 // NO LANZA NUNCA. Matar el render convierte "un Visual feo" en "un Visual ausente", y un Visual
 // que falta descuadra la aritmetica de frames: medido, el -shortest del mux se comio 3.24 s de
 // narracion por esa via. Un dato malo se corrige o se descarta; nunca se revienta.
 
-export type Concepto = { emoji: string; etiqueta: string };
+/** `emoji` es el respaldo visible; `icono` nombra Solar cuando el renderer lo resuelve. */
+export type Concepto = { emoji: string; etiqueta: string; icono?: string; ic?: string };
 
 export const CUANTOS_CONCEPTOS = 3;
 export const MAX_PALABRAS_ETIQUETA = 2;
@@ -61,16 +62,17 @@ export function sanearConceptos(v: unknown): Concepto[] | null {
     // puede ejecutar codigo —un getter que lance—, y entonces la excepcion sale de esta funcion
     // y mata el render. Lo cazo una prueba con un objeto hostil; la promesa de "no lanza nunca"
     // no se sostenia sola. Un dato imposible no puede costar un Visual entero.
-    let emoji = '', etiqueta = '';
+    let emoji = '', etiqueta = '', icono = '';
     try {
-      emoji = primerGrafema(String((c as any).emoji ?? '').trim());
+      emoji = primerGrafema(String((c as any).ic ?? (c as any).emoji ?? '').trim());
       etiqueta = recortarEtiqueta((c as any).etiqueta);
+      icono = String((c as any).icono ?? '').trim();
     } catch (e) { continue; }
     // Los dos tienen que existir: media caja no es un concepto.
     if (!emoji || !etiqueta) continue;
-    // Se PROYECTA a dos claves. Cualquier campo extra que traiga el modelo se queda fuera por
-    // construccion, que es justo lo que protege la clave del hash.
-    buenos.push({ emoji, etiqueta });
+    // Se PROYECTA a los cuatro campos dibujables. Cualquier campo extra que traiga el modelo se
+    // queda fuera por construccion, que es justo lo que protege la clave del hash.
+    buenos.push({ emoji, etiqueta, ...(icono ? { icono, ic: emoji } : {}) });
     if (buenos.length === CUANTOS_CONCEPTOS) break;   // si vienen cinco, los tres primeros
   }
   return buenos.length === CUANTOS_CONCEPTOS ? buenos : null;

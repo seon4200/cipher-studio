@@ -7195,6 +7195,9 @@ ${res.filePath}`);
             </button>
           </div>
         )}
+        <div className="px-4 py-1 border-t border-[#3a3a3c]/50 text-[9px] text-slate-500">
+          Créditos de iconos: Solar Icons · CC BY 4.0
+        </div>
       </footer>
 
       {/* Export Settings Modal */}

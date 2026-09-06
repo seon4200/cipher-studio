@@ -54,12 +54,15 @@ export type DatosVisual = {
    * guion no trajo conceptos", que es un caso normal —1 de 82 sub-clips en la ultima
    * generacion— y no un error.
    *
-   * Vienen de `sanearConceptos`, no crudos de DeepSeek: son exactamente 3 {emoji, etiqueta} o
-   * null, y son los MISMOS que viajan en `extra.conceptos` dentro de la clave del hash. Si lo
+    * Vienen de `sanearConceptos`, no crudos de DeepSeek: son exactamente 3 conceptos con emoji,
+    * etiqueta y, opcionalmente, nombre Solar, o null; son los MISMOS que viajan en
+    * `extra.conceptos` dentro de la clave del hash. Si lo
    * que se pinta deja de ser lo que se hashea, la cache devolvera un fichero que no
    * corresponde al dibujo diciendo ACIERTO.
    */
   conceptos?: Concepto[] | null;
+  /** Sujeto principal de la relacion; puede coincidir con el primer termino. */
+  ancla?: Concepto | null;
   /**
    * LA DIRECCION, cruda, tal como viene de `extra.direccion`. Sin validar a proposito: quien
    * la consume la valida contra SUS registros, que son los que saben que piezas existen.
@@ -68,6 +71,8 @@ export type DatosVisual = {
    * "el guion no trajo direccion", y entonces la composicion la deriva de la semilla.
    */
   direccion?: unknown;
+  /** Semilla estable que llega desde `extra`; si falta, cada composición usa su respaldo. */
+  semilla?: number;
 };
 
 export type PropsComposicion = DatosVisual & {
@@ -77,11 +82,8 @@ export type PropsComposicion = DatosVisual & {
   ciclo: number;
   sistema: NombreSistema;
   /**
-   * La semilla de la disposicion, derivada de la PALABRA (`semillaDe`).
-   *
-   * Tiene que salir de la palabra y de nada mas: la palabra esta en la clave del hash, asi que
-   * la clave describe el dibujo. Sembrar con el indice del clip o con el instante daria dos
-   * dibujos distintos bajo el MISMO hash, y la cache devolveria el primero diciendo ACIERTO.
+   * La semilla de la disposicion. El backend la deriva de palabra + posicion estable y la
+   * guarda en `extra`, que forma parte de la clave del hash.
    */
   semilla: number;
 };

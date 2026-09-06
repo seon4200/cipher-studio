@@ -165,8 +165,8 @@ function main (bundle) {
 // de fichero y la cache mentiria — el peor modo de fallo que hay aqui, porque el sistema
 // afirmaria que ha acertado.
 function semillas (bundle) {
-  const { semillaDe, generador, entre, entero } = bundle
-  for (const [n, f] of Object.entries({ semillaDe, generador, entre, entero }))
+  const { semillaDe, semillaVisual, generador, entre, entero } = bundle
+  for (const [n, f] of Object.entries({ semillaDe, semillaVisual, generador, entre, entero }))
     ok(typeof f === 'function', n + ' se exporta del bundle')
   if (typeof semillaDe !== 'function') return
 
@@ -187,6 +187,9 @@ function semillas (bundle) {
   // Y que la diferencia SE VEA: dos palabras que solo cambian en una letra.
   ok(semillaDe('casa') !== semillaDe('caso'), 'una sola letra distinta cambia la semilla')
   ok(semillaDe('agua') !== semillaDe('auga'), 'y el ORDEN de las letras tambien')
+  ok(semillaVisual('puente', '14:0') === semillaVisual('puente', '14:0') &&
+    semillaVisual('puente', '14:0') !== semillaVisual('puente', '19:0'),
+  'misma palabra + misma posicion es reproducible; otra posicion no repite la escena')
 
   // G3. EL CERO. Un estado 0 deja el generador multiplicativo clavado en 0 para siempre:
   // todas esas palabras darian la MISMA disposicion degenerada.
@@ -258,8 +261,8 @@ function semillas (bundle) {
 // La limpieza que ya existia servia para COMPARAR, no para devolver: pasa a minusculas, y
 // "Millenium." habria salido "millenium".
 function palabras (bundle) {
-  const { recortarPuntuacion, tieneSignificado, palabraDelTramo } = bundle
-  for (const [n, f] of Object.entries({ recortarPuntuacion, tieneSignificado, palabraDelTramo }))
+  const { recortarPuntuacion, tieneSignificado, palabraDelTramo, palabraIlustrableDelTramo } = bundle
+  for (const [n, f] of Object.entries({ recortarPuntuacion, tieneSignificado, palabraDelTramo, palabraIlustrableDelTramo }))
     ok(typeof f === 'function', n + ' se exporta del bundle')
   if (typeof recortarPuntuacion !== 'function') return
 
@@ -331,7 +334,13 @@ function palabras (bundle) {
   ok(palabraDelTramo([W('un', 0, 0.2), W('48.6%.', 0.2, 1)], 0, 2) === '48.6',
     'y se elige, limpia de puntuacion en los bordes')
 
-  // H7. DEGENERADOS.
+  // H7. EL SUJETO ILUSTRABLE. El criterio nuevo no puede volver a escoger el adverbio largo.
+  ok(palabraIlustrableDelTramo([W('cualitativamente', 0, .4), W('puente', .4, 1)], 0, 2) === 'puente',
+    'la palabra ilustrable gana a un adverbio mas largo')
+  ok(palabraIlustrableDelTramo([W('después', 0, .4), W('maneras', .4, 1)], 0, 2) === null,
+    'sin sujeto ilustrable el sub-clip no fabrica un Visual')
+
+  // H8. DEGENERADOS.
   ok(recortarPuntuacion(null) === '' && recortarPuntuacion(undefined) === '',
     'null y undefined dan cadena vacia, no "null"')
   ok(recortarPuntuacion(123) === '123', 'un numero se convierte a texto')
@@ -452,6 +461,12 @@ function conceptos (bundle) {
   // LA POSICION distingue. Es lo que arregla que 37 clips compartieran 36 ficheros.
   ok(H({ pos: '3:1', conceptos: TRES }) !== H({ pos: '4:0', conceptos: TRES }),
     'la misma palabra en POSICIONES distintas da hashes distintos')
+  const CON_ICONO = { pos: '3:1', semilla: 101, relacion: 'conecta',
+    ancla: { emoji: '🗺️', etiqueta: 'mapa', icono: 'map', ic: '🗺️' }, conceptos: TRES }
+  ok(H(CON_ICONO) !== H({ ...CON_ICONO, relacion: 'contrasta' }) &&
+    H(CON_ICONO) !== H({ ...CON_ICONO, semilla: 102 }) &&
+    H(CON_ICONO) !== H({ ...CON_ICONO, ancla: { ...CON_ICONO.ancla, icono: 'city' } }),
+  'relacion, semilla e icono de ancla cambian la clave porque cambian pixeles')
   // Y el par no colisiona donde la suma si lo haria: 3+1 = 4+0 = 4.
   ok(H({ pos: '3:1', conceptos: null }) !== H({ pos: '4:0', conceptos: null }),
     'el par "3:1" y "4:0" no colisionan, cosa que la SUMA si haria')
@@ -496,7 +511,8 @@ function conceptos (bundle) {
   console.log('=== J) EL REGISTRO DE PIEZAS Y EL ESPACIO DE ESTILOS ===')
   const { combinacionesLegales, FONDOS_ESCENA, ESTRUCTURAS_ESCENA, CAMARAS_ESCENA,
     TIPOGRAFIAS, direccionDe, direccionDesde, densidadDesdeContenido, entradaRitmo,
-    DENSIDAD_A_N, RITMOS, esLegal, maxCaracteresPie, cabeEnElPie, sistemaDeGeneracion } = bundle
+    DENSIDAD_A_N, RITMOS, esLegal, maxCaracteresPie, cabeEnElPie, sistemaDeGeneracion,
+    direccionParaRelacion, resolverNombreSolar, normalizarNombreSolar } = bundle
   ok(typeof combinacionesLegales === 'function', 'combinacionesLegales se exporta del bundle')
   if (typeof combinacionesLegales !== 'function') return
   const sistemasMvp = ['editorial', 'clinico', 'voltaje', 'calido']
@@ -578,6 +594,24 @@ function conceptos (bundle) {
   }
   ok(Array.from({ length: 1000 }, (_, i) => direccionDe(i + 1))
     .every(d => !ESTRUCTURAS_ESCENA[d.estructura].prueba), '1000 semillas: el sorteo excluye solo piezas de prueba')
+  const direccionesEnergia = Array.from({ length: 10000 }, (_, i) => direccionDe(i + 1))
+  const ilegales = direccionesEnergia.filter(d => !bundle.esParFondoCamaraLegal(d.fondo, d.camara))
+  ok(ilegales.length === 0, 'A1: 10000 semillas sortean solo pares fondo-cámara legales',
+    ilegales.map(d => d.fondo + '+' + d.camara).join(', '))
+  const parIlegal = fondosActivos.flatMap(f => camarasActivas
+    .filter(c => f.energia + c.energia > 3).map(c => ({ fondo: f.id, camara: c.id })))[0]
+  if (parIlegal) {
+    const saneada = direccionDesde(parIlegal, 42)
+    ok(bundle.esParFondoCamaraLegal(saneada.fondo, saneada.camara),
+      'A1: una direccion externa ilegal no reabre un par prohibido')
+  }
+  const contrastes = fondosActivos.flatMap(f => sistemasMvp.map(sistema => {
+    const colores = bundle.coloresCaja(sistema, f.tono)
+    return { fondo: f.id, sistema, valor: bundle.contraste(colores.texto, colores.caja) }
+  }))
+  const contrasteBajo = contrastes.filter(x => x.valor < bundle.CONTRASTE_MINIMO_CAJA)
+  ok(contrasteBajo.length === 0, 'A2: texto/caja opacos mantienen al menos 3:1 en 4 paletas × fondos',
+    contrasteBajo.map(x => x.sistema + '/' + x.fondo + '=' + x.valor.toFixed(2)).join(', '))
   const bajaDensidad = { texto: 'sol', conceptos: [] }
   const altaDensidad = { texto: 'responsabilidades interconectadas',
     conceptos: ['arquitectura distribuida', 'sistemas adaptativos', 'coordinacion asincrona'] }
@@ -726,6 +760,48 @@ function conceptos (bundle) {
     ok(rotos.length === 0, 'y todos sus rangos declaran id, descripcion, min<max y pasos>=1',
       rotos.length ? rotos.join(', ') : ps.reduce((n, pi) => n + pi.rangos.length, 0) + ' rangos')
   }
+
+  const catalogo = bundle.catalogoRelaciones()
+  const sinRelacion = Object.values(ESTRUCTURAS_ESCENA).filter(e => !e.prueba &&
+    (!Array.isArray(e.relaciones) || !e.relaciones.length || !e.heroe))
+  ok(sinRelacion.length === 0, 'cada estructura productiva declara heroe y al menos una relacion',
+    sinRelacion.map(e => e.id).join(', ') || '17/17')
+  const rolesHuerfanos = Object.values(ESTRUCTURAS_ESCENA).flatMap(e => e.relaciones || [])
+    .filter(r => !(catalogo[r] || []).length)
+  ok(rolesHuerfanos.length === 0, 'todo enum de relacion declarado resuelve alguna estructura')
+  const semantica = bundle.sanearSemanticaVisual({ relacion: 'conecta',
+    ancla: { icono: 'map', ic: '🗺️', etiqueta: 'mapa' },
+    terminos: [
+      { icono: 'map', ic: '🗺️', etiqueta: 'mapa' },
+      { icono: 'city', ic: '🏙️', etiqueta: 'ciudad' },
+      { icono: 'buildings', ic: '🏙️', etiqueta: 'ciudad' }
+    ] })
+  ok(semantica && semantica.relacion === 'conecta' && semantica.terminos.length === 3,
+    'contrato semantico valido se proyecta a la relacion y sus tres terminos')
+  ok(bundle.sanearSemanticaVisual({ relacion: 'inventada', terminos: [], ancla: {} }) === null,
+    'relacion inexistente se rechaza entera y nunca llega como media direccion')
+  const terminosRepetidos = [
+    { icono: 'clock-circle', ic: '🕰️', etiqueta: 'reloj' },
+    { icono: 'clock-circle', ic: '🕰️', etiqueta: 'reloj' },
+    { icono: 'beam', ic: '🪵', etiqueta: 'viga' }
+  ]
+  ok(bundle.sanearSemanticaVisual({ relacion: 'conecta', ancla: terminosRepetidos[0], terminos: terminosRepetidos }) === null &&
+    bundle.sanearSemanticaVisual({ relacion: 'encaja', ancla: terminosRepetidos[0], terminos: terminosRepetidos }) !== null,
+  'terminos repetidos solo pasan para relaciones que los expresan')
+  ok(normalizarNombreSolar(' solar:Map Linear ') === 'map',
+    'la normalizacion Solar acepta prefijo y estilo sin inventar otro nombre')
+  ok(resolverNombreSolar('map', 'linear') === 'map-linear' &&
+    resolverNombreSolar('map', 'bold-duotone') === 'map-bold-duotone' &&
+    resolverNombreSolar('icono-inventado', 'linear') === null,
+  'Solar resuelve ambas variantes reales y deja el nombre desconocido al respaldo emoji')
+  const relacionesSorteables = Object.keys(catalogo)
+  const salidasRelacion = relacionesSorteables.flatMap(relacion => Array.from({ length: 100 }, (_, i) =>
+    ({ relacion, direccion: direccionParaRelacion(i + 1, relacion, { texto: 'puente', conceptos: semantica.terminos }) })))
+  const malDirigidas = salidasRelacion.filter(({ relacion, direccion }) =>
+    !ESTRUCTURAS_ESCENA[direccion.estructura].relaciones.includes(relacion) ||
+    !bundle.esParFondoCamaraLegal(direccion.fondo, direccion.camara))
+  ok(malDirigidas.length === 0, 'cada relacion valida resuelve estructura compatible y par energetico legal',
+    malDirigidas.map(x => x.relacion + '→' + x.direccion.estructura).join(', '))
 
   // LA REGLA DE LA ENERGIA MUERDE. Sin esto, la regla podria estar escrita y no aplicarse.
   const sinRegla = Object.values(FONDOS_ESCENA).length * Object.values(CAMARAS_ESCENA).length *

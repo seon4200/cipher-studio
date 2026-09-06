@@ -39,11 +39,10 @@ module.exports = function comprobarOrdenDireccion (bundle, archivo, ok) {
     return encontrados[0]
   }
   const ejes = ['fondo', 'estructura', 'camara', 'densidad', 'ritmo', 'tipografia']
-  // Densidad no es un sorteo: procede del contenido. La guardia protege exactamente los cinco
-  // consumos de semilla que quedan y falla si alguien vuelve a convertirla en un sexto dado.
+  // Densidad no es un sorteo: procede del contenido. Fondo+cámara ahora son UN sorteo sobre
+  // pares legales; la guardia protege que no vuelvan a sortearse por separado y reabran energía.
   const sorteos = [
-    ['fondo', 'FONDOS'], ['estructura', 'ESTRUCTURAS'], ['camara', 'CAMARAS'],
-    ['ritmo', 'RITMOS'], ['tipografia', 'TIPOGRAFIAS']
+    ['par', 'FONDOS'], ['estructura', 'ESTRUCTURAS'], ['ritmo', 'RITMOS'], ['tipografia', 'TIPOGRAFIAS']
   ]
   const retorno = raiz.body.statements.find(ts.isReturnStatement)
   assert(retorno && ts.isObjectLiteralExpression(retorno.expression))
@@ -61,41 +60,57 @@ module.exports = function comprobarOrdenDireccion (bundle, archivo, ok) {
     contexto[binding('generador')] = semilla => {
       llamadas.push(semilla)
       return () => {
-        assert(consumos < sorteos.length, 'No puede haber un sexto sorteo')
-        // Cinco entradas conocidas: el sorteo i cae en la casilla i del catalogo de prueba.
+        assert(consumos < sorteos.length, 'No puede haber un quinto sorteo')
+        // Cuatro entradas conocidas: par legal, estructura, ritmo y tipografía.
         return (consumos++ + 0.5) / n
       }
     }
-    sorteos.forEach(([eje, nombre], i) => {
+    const piezasEnergia = Object.fromEntries(Array.from({ length: n }, (_, j) => {
+      const id = 'par-' + j
+      return [id, { id, energia: 0 }]
+    }))
+    contexto[binding('FONDOS')] = piezasEnergia
+    contexto[binding('CAMARAS')] = piezasEnergia
+    sorteos.filter(([, nombre]) => nombre !== 'FONDOS').forEach(([eje, nombre], i) => {
       const ids = Array.from({ length: n }, (_, j) => eje + '-' + j)
       contexto[binding(nombre)] = nombre === 'RITMOS' ? ids :
         Object.fromEntries(ids.map(id => [id, nombre === 'ESTRUCTURAS'
           ? { id, tipografias: ['neutral', 'condensada'] }
-          : nombre === 'TIPOGRAFIAS' ? { id, rol: 'neutral' } : { id }]))
+          : { id, rol: 'neutral' }]))
     })
     const d = vm.runInNewContext(helpers.join('\n') + '\n' + codigo + '\n' +
       raiz.name.text + '(1729)', contexto, { timeout: 1000 })
     assert.deepEqual(llamadas, [1729], 'Un solo generador con la semilla recibida')
-    assert.equal(consumos, 5, 'Exactamente cinco sorteos sobre ese generador')
-    return sorteos.every(([eje], i) => d[eje] === eje + '-' + i) && d.densidad === 'minima'
+    assert.equal(consumos, 4, 'Exactamente cuatro sorteos sobre ese generador')
+    const indicePar = Math.floor((.5 / n) * n * n)
+    const fondo = 'par-' + Math.floor(indicePar / n)
+    const camara = 'par-' + (indicePar % n)
+    return d.fondo === fondo && d.camara === camara && d.estructura === 'estructura-1' &&
+      d.ritmo === 'ritmo-2' && d.tipografia === 'tipografia-3' && d.densidad === 'minima'
   }
 
   // Catalogos sinteticos con varias opciones en los cinco sorteos: no dependen de piezas futuras.
   for (const n of [6, 11]) {
-    ok(ejecutar(n), 'orden de los cinco sorteos, catalogos de ' + n + ' opciones')
-    let detectados = 0
-    const indicesSorteo = [0, 1, 2, 4, 5]
-    for (let ia = 0; ia < indicesSorteo.length; ia++) for (let ib = ia + 1; ib < indicesSorteo.length; ib++) {
-      const a = indicesSorteo[ia], b = indicesSorteo[ib]
-      const invertidas = propiedades.map(p => p.getText(ast))
-      ;[invertidas[a], invertidas[b]] = [invertidas[b], invertidas[a]]
-      // Mutacion SOLO en memoria, sobre limites del AST. Ningun fichero se modifica.
-      const inicio = objeto.getStart(ast) - raiz.getStart(ast)
-      const fin = objeto.end - raiz.getStart(ast)
-      const rota = fuente.slice(0, inicio) + '{' + invertidas.join(',\n') + '}' + fuente.slice(fin)
-      if (!ejecutar(n, rota)) detectados++
-    }
-    ok(detectados === 10, 'control negativo: detecta los 10 intercambios de sorteos (' + n + ' opciones)',
-      detectados + '/10; densidad queda fuera porque procede del contenido')
+    ok(ejecutar(n), 'orden de par legal, estructura, ritmo y tipografía, catalogos de ' + n + ' opciones')
+    // Control negativo 1: invertir estructura y ritmo cambia el ordinal de sus sorteos.
+    // Se intercambian EXPRESIONES, no la posicion de propiedades sin efectos como fondo/cámara,
+    // que ahora son dos caras del mismo par ya resuelto antes del return.
+    const props = propiedades.map(p => p.getText(ast))
+    const iE = props.findIndex(p => p.startsWith('estructura:'))
+    const iR = props.findIndex(p => p.startsWith('ritmo:'))
+    ;[props[iE], props[iR]] = [props[iR], props[iE]]
+    const inicio = objeto.getStart(ast) - raiz.getStart(ast)
+    const fin = objeto.end - raiz.getStart(ast)
+    const ordenRoto = fuente.slice(0, inicio) + '{' + props.join(',\n') + '}' + fuente.slice(fin)
+    let detectaOrden = false
+    try { detectaOrden = !ejecutar(n, ordenRoto) } catch (_) { detectaOrden = true }
+    ok(detectaOrden, 'control negativo: detecta invertir los sorteos de estructura y ritmo (' + n + ' opciones)')
+    // Control negativo 2: alterar el repertorio de pares cambia el fondo/cámara resultante.
+    const fnPares = binding('paresFondoCamaraLegales')
+    const parRoto = fuente.replace(fnPares + '()', fnPares + '().reverse()')
+    assert.notEqual(parRoto, fuente, 'La mutacion del repertorio de pares debe tocar la funcion exportada')
+    let detectaPar = false
+    try { detectaPar = !ejecutar(n, parRoto) } catch (_) { detectaPar = true }
+    ok(detectaPar, 'control negativo: detecta alterar el repertorio de pares legales (' + n + ' opciones)')
   }
 }

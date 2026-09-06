@@ -45,6 +45,33 @@ export function tieneSignificado(w: unknown): boolean {
 export type PalabraConTiempo = { word: string; start: number; end: number };
 
 /**
+ * Palabras que sobreviven `tieneSignificado()` pero no aportan una imagen concreta. Esta lista
+ * no intenta hacer analisis linguistico: bloquea las clases medidas (conectores, adverbios y
+ * abstracciones frecuentes) y deja que el sustantivo concreto del mismo tramo gane el puesto.
+ */
+const NO_ILUSTRABLES = new Set([
+  'despues', 'después', 'antes', 'ahora', 'restante', 'maneras', 'forma', 'cosas', 'cosa',
+  'cualitativamente', 'realmente', 'simplemente', 'especialmente', 'generalmente',
+  'practicamente', 'prácticamente', 'normalmente', 'finalmente', 'principalmente',
+  'tambien', 'también', 'ademas', 'además', 'entonces', 'mientras', 'porque', 'aunque',
+  'cuando', 'donde', 'dónde', 'como', 'cómo', 'cual', 'cuál', 'manera', 'parte', 'tipo',
+  'caso', 'tema', 'aspecto', 'proceso', 'sistema', 'resultado', 'consecuencia', 'impacto',
+  'problema', 'decision', 'decisión', 'cambio', 'situacion', 'situación', 'realidad',
+  'posibilidad', 'necesidad', 'capacidad', 'calidad', 'cantidad', 'informacion', 'información'
+]);
+
+/** Una heuristica conservadora: preferir objetos nombrables y no fabricar un Visual si no hay. */
+export function esIlustrable(w: unknown): boolean {
+  const c = limpiar(w);
+  if (!tieneSignificado(c) || NO_ILUSTRABLES.has(c)) return false;
+  // Los adverbios en -mente son el modo recurrente de colar una cualidad sin sujeto.
+  if (c.endsWith('mente')) return false;
+  // Una cifra es contenido medible, pero no un sujeto ilustrable sin contexto.
+  if (/^\d/.test(c)) return false;
+  return /[\p{L}]/u.test(c);
+}
+
+/**
  * La palabra del tramo [ini, fin) que pinta el Visual, o null si no hay ninguna con
  * significado — menos del 1% de los tramos, medido sobre tres proyectos reales.
  *
@@ -66,6 +93,26 @@ export function palabraDelTramo(
     limpiar(w.word).length > limpiar(m.word).length ? w : m);
   // Se devuelve SIN la puntuacion de los bordes. Antes era `.trim()` a secas y la coma se
   // pintaba. No puede caer a cadena vacia: `tieneSignificado` ya exigio 3 caracteres limpios.
+  return recortarPuntuacion(elegida.word);
+}
+
+/**
+ * Selecciona la palabra que puede ser SUJETO de un Visual, no simplemente la mas larga.
+ *
+ * El desempate estable conserva la prioridad original de "termino del tema": entre dos
+ * candidatos ilustrables gana el mas largo y, si empatan, el que se pronuncio antes.
+ * Null es intencional: ese sub-clip debe seguir con otro origen antes que decorar una idea.
+ */
+export function palabraIlustrableDelTramo(
+  words: PalabraConTiempo[] | null | undefined, ini: number, fin: number
+): string | null {
+  if (!Array.isArray(words) || !words.length) return null;
+  const dentro = words.filter(w =>
+    typeof w?.start === 'number' && typeof w?.end === 'number' &&
+    w.end > ini && w.start < fin && esIlustrable(w.word));
+  if (!dentro.length) return null;
+  const elegida = dentro.reduce((mejor, actual) =>
+    limpiar(actual.word).length > limpiar(mejor.word).length ? actual : mejor);
   return recortarPuntuacion(elegida.word);
 }
 

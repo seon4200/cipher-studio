@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.1",
+    "@iconify-json/solar": "^1.2.10",
     "gl-transition": "^2.1.0",
     "gl-transitions": "^1.71.0",
     "lucide-react": "^0.475.0",

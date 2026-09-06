@@ -1,19 +1,16 @@
-// LA SEMILLA SALE DE LA PALABRA.
+// LA SEMILLA SALE DE PALABRA + POSICION ESTABLE.
 //
 // Con una sola composicion todos los Visuales de un video salen identicos y solo cambia el
 // texto. Derivar la semilla de la palabra da a cada uno su propia disposicion —mismo estilo,
 // distinta composicion— sin escribir ni una escena mas.
 //
-// Y TIENE QUE SALIR DE LA PALABRA, no del indice del clip ni del instante. La razon es la
-// cache: la clave del MOV se construye con las seis claves de graphicData, y `value` —la
-// palabra— es una de ellas. Si la semilla saliera de algo que NO esta en la clave, dos Visuales
-// con la misma palabra tendrian dibujos distintos y el MISMO hash, y la cache devolveria el
-// primero diciendo ACIERTO. El fichero no seria el que su nombre promete.
+// La posicion no puede ser un indice global ni el instante: se conserva como
+// `phraseIndex:clipIndexInPhrase` DENTRO de `extra`, que entra en la clave del MOV. Si la semilla
+// saliera de algo que NO esta en la clave, dos Visuales con la misma palabra tendrian dibujos
+// distintos y el MISMO hash, y la cache devolveria el primero diciendo ACIERTO.
 //
-// Al reves no hay problema: dos palabras distintas ya dan claves distintas por construccion.
-//
-// CONSECUENCIA ACEPTADA: dos Visuales de la misma palabra en el mismo video salen identicos.
-// Es lo coherente con la cache —comparten fichero— y es una decision, no un descuido.
+// Dos "puentes" de sub-clips distintos no comparten escena por accidente; repetir la misma
+// generacion si conserva exactamente su palabra y posicion.
 
 /**
  * FNV-1a de 32 bits. Determinista, sin dependencias y con buena dispersion para cadenas
@@ -33,6 +30,17 @@ export function semillaDe(texto: unknown): number {
     h = Math.imul(h, 0x01000193);
   }
   return ((h >>> 0) % 2147483646) + 1;
+}
+
+/**
+ * Semilla estable de un Visual real.
+ *
+ * `pos` es `phraseIndex:clipIndexInPhrase`, no el indice global: insertar un clip antes no
+ * resemilla el resto del video. Viaja en `extra` junto con este entero y por eso forma parte
+ * de la misma clave de cache que describe los pixeles.
+ */
+export function semillaVisual(value: unknown, pos: unknown): number {
+  return semillaDe(String(value ?? '') + '\u0000' + String(pos ?? '0:0'));
 }
 
 /**

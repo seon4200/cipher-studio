@@ -199,12 +199,13 @@ export type InstanciaEscena = {
  * cuatro streams ni sobre el orden fondo -> estructura -> camara. No admite una semilla
  * inventada: recibe la misma palabra que entra en `graphicData.value` y, por tanto, en el hash.
  */
-export function instanciaDe(value: string, direccion: Direccion): InstanciaEscena {
+export function instanciaDe(value: string, direccion: Direccion, semilla?: number): InstanciaEscena {
+  const principal = Number.isInteger(semilla) && Number(semilla) > 0 ? Number(semilla) : semillaDe(value);
   const semillas: SemillasInstancia = {
-    principal: semillaDe(value),
-    puntos: semillaDe(value + '#pts'),
-    decoradores: semillaDe(value + '#deco'),
-    parametros: semillaDe(value + '#params')
+    principal,
+    puntos: semillaDe(principal + '#pts'),
+    decoradores: semillaDe(principal + '#deco'),
+    parametros: semillaDe(principal + '#params')
   };
   const rnd = generador(semillas.parametros);
   return {
@@ -351,6 +352,20 @@ export type DisposicionCajas = {
   adaptarDensidad: (elementos: number) => AjusteDensidadEstructura;
 };
 
+/** El vocabulario cerrado que una IA puede pedir: relacion, nunca nombre de estructura. */
+export type RelacionVisual =
+  | 'conecta' | 'apila' | 'orbita' | 'secuencia' | 'estratifica' | 'cruza'
+  | 'contiene' | 'expande' | 'abanica' | 'encaja' | 'anota' | 'construye' | 'contrasta';
+
+/** El heroe se declara por pieza para que nunca sea una pegatina generica accidental. */
+export type HeroEstructura = {
+  /** Posicion propia de la relacion, en porcentaje del lienzo. */
+  x: number;
+  y: number;
+  /** Verbo visual que enlaza el heroe con los terminos. */
+  relacion: RelacionVisual;
+};
+
 function ajusteDensidad(elementos: number, escalaBase: number, separacionBase: number): AjusteDensidadEstructura {
   const n = Math.max(1, Math.min(14, Math.round(elementos)));
   const presion = (n - 1) / 13;
@@ -369,6 +384,10 @@ export type MetaEstructura = PiezaBase & {
    */
   presupuestoTexto: number;
   tipografias: readonly RolTipografico[];
+  /** Relaciones que esta estructura puede expresar; el catalogo se deriva de estas entradas. */
+  relaciones: readonly RelacionVisual[];
+  /** Todo repertorio productivo declara su heroe y el lugar semantico que ocupa. */
+  heroe: HeroEstructura;
   disposicion: DisposicionCajas;
 };
 
@@ -546,6 +565,7 @@ export const ESTRUCTURAS = {
     minConceptos: CUANTOS_CONCEPTOS,
     presupuestoTexto: FRANJA_TEXTO_Y,
     tipografias: ['neutral', 'condensada'],
+    relaciones: ['conecta'], heroe: { x: 50, y: 45, relacion: 'conecta' },
     // NINGUNO de estos cambia lo que la estructura ES: sigan los valores que sigan, esto es
     // "tres conceptos alrededor de un centro". El numero de puntos NO es un rango -- lo fija
     // `minConceptos` y cambiarlo seria otra estructura.
@@ -570,6 +590,7 @@ export const ESTRUCTURAS = {
     minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y,
     tipografias: ['neutral', 'condensada'],
+    relaciones: ['apila', 'estratifica'], heroe: { x: 45, y: 46, relacion: 'apila' },
     rangos: [
       { id: 'anchoPlano', descripcion: 'Tamano de cada plano isometrico, en cqmin.', min: 38, max: 48, pasos: 4 },
       { id: 'inclinacion', descripcion: 'Inclinacion vertical de los planos, en grados.', min: 52, max: 64, pasos: 4 },
@@ -597,6 +618,7 @@ export const ESTRUCTURAS = {
     minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y,
     tipografias: ['neutral', 'condensada'],
+    relaciones: ['orbita', 'conecta'], heroe: { x: 50, y: 43, relacion: 'orbita' },
     // Fuente aprobada: docs/motion/lab-estructuras.html:314-331.
     // `sem(23)` no altera la pieza del lab: sus nodos no consumen `rnd()`.
     rangos: [],
@@ -612,6 +634,7 @@ export const ESTRUCTURAS = {
     energia: 1, formatos: ['9:16'], minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y, rangos: [],
     tipografias: ['neutral', 'condensada'],
+    relaciones: ['secuencia'], heroe: { x: 42, y: 45, relacion: 'secuencia' },
     disposicion: { lectura: 'cronologica', adaptarDensidad: n => ajusteDensidad(n, 0.88, 1.36),
     puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
       etiquetas.slice(0, CUANTOS_CONCEPTOS).map((etiqueta, i) => ({
@@ -624,6 +647,7 @@ export const ESTRUCTURAS = {
     energia: 1, formatos: ['9:16'], minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y, rangos: [],
     tipografias: ['neutral', 'condensada'],
+    relaciones: ['estratifica'], heroe: { x: 50, y: 43, relacion: 'estratifica' },
     disposicion: { lectura: 'estratos', adaptarDensidad: n => ajusteDensidad(n, 0.91, 1.31),
     puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
       etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) => ({ x: 50, y: 30 + i * 16 })),
@@ -635,6 +659,7 @@ export const ESTRUCTURAS = {
     energia: 1, formatos: ['9:16'], minConceptos: 1,
     presupuestoTexto: FRANJA_TEXTO_Y, rangos: [],
     tipografias: ['neutral', 'condensada'],
+    relaciones: ['cruza', 'contrasta'], heroe: { x: 50, y: 42, relacion: 'cruza' },
     disposicion: { lectura: 'cruzada', adaptarDensidad: n => ajusteDensidad(n, 0.93, 1.24),
     puntos: (_rnd: () => number, etiquetas: readonly string[]) => acotarPuntos(
       etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) => ({ x: 50 + i * 2, y: [20, 42, 60][i] })),
@@ -644,6 +669,7 @@ export const ESTRUCTURAS = {
     id: 'cintaDiagonal', descripcion: 'Una banda inclinada cruza el cuadro y los conceptos cuelgan de ella.',
     energia: 2, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
     tipografias: ['neutral', 'condensada'], rangos: [],
+    relaciones: ['cruza'], heroe: { x: 48, y: 43, relacion: 'cruza' },
     // Fuente aprobada: docs/motion/lab-estructuras-2.html:99-120.
     disposicion: { lectura: 'cruzada', adaptarDensidad: n => ajusteDensidad(n, .91, 1.30),
     puntos: (_rnd, etiquetas) => acotarPuntos(etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) =>
@@ -653,6 +679,7 @@ export const ESTRUCTURAS = {
     id: 'marcoPoster', descripcion: 'Marco grueso de cartel serigrafiado con contenido que respira dentro.',
     energia: 0, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
     tipografias: ['neutral', 'condensada'], rangos: [],
+    relaciones: ['contiene', 'estratifica'], heroe: { x: 44, y: 42, relacion: 'contiene' },
     // Fuente aprobada: docs/motion/lab-estructuras-2.html:122-143.
     disposicion: { lectura: 'estratos', adaptarDensidad: n => ajusteDensidad(n, .93, 1.26),
     puntos: (_rnd, etiquetas) => acotarPuntos(etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) =>
@@ -662,6 +689,7 @@ export const ESTRUCTURAS = {
     id: 'anillosConcentricos', descripcion: 'Círculos que se abren desde el centro y sostienen los conceptos.',
     energia: 1, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
     tipografias: ['neutral', 'condensada'], rangos: [],
+    relaciones: ['expande', 'orbita'], heroe: { x: 50, y: 43, relacion: 'expande' },
     // Fuente aprobada: docs/motion/lab-estructuras-2.html:166-191.
     disposicion: { lectura: 'radial', adaptarDensidad: n => ajusteDensidad(n, .92, 1.22),
     puntos: (_rnd, etiquetas) => acotarPuntos([{x:15,y:50},{x:30,y:25},{x:70,y:55}]
@@ -671,6 +699,7 @@ export const ESTRUCTURAS = {
     id: 'abanicoTarjetas', descripcion: 'Tarjetas desplegadas como una mano de cartas desde el centro.',
     energia: 1, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
     tipografias: ['neutral', 'condensada'], rangos: [],
+    relaciones: ['abanica'], heroe: { x: 50, y: 43, relacion: 'abanica' },
     // Fuente aprobada: docs/motion/lab-estructuras-2.html:194-217.
     disposicion: { lectura: 'radial', adaptarDensidad: n => ajusteDensidad(n, .90, 1.20),
     puntos: (_rnd, etiquetas) => acotarPuntos([{x:85,y:50},{x:50,y:62},{x:20,y:42}]
@@ -680,6 +709,7 @@ export const ESTRUCTURAS = {
     id: 'rayosImpacto', descripcion: 'Rayos que estallan desde el centro y reciben los conceptos.',
     energia: 3, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
     tipografias: ['neutral', 'condensada'], rangos: [],
+    relaciones: ['expande'], heroe: { x: 50, y: 44, relacion: 'expande' },
     // Fuente aprobada: docs/motion/lab-estructuras-2.html:341-368.
     disposicion: { lectura: 'radial', adaptarDensidad: n => ajusteDensidad(n, .88, 1.18),
     puntos: (_rnd, etiquetas) => acotarPuntos([{x:15,y:35},{x:80,y:64},{x:50,y:16}]
@@ -689,6 +719,7 @@ export const ESTRUCTURAS = {
     id: 'engranajes', descripcion: 'Ruedas dentadas encajadas que giran como un mecanismo.',
     energia: 2, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
     tipografias: ['neutral', 'condensada'], rangos: [],
+    relaciones: ['encaja'], heroe: { x: 50, y: 45, relacion: 'encaja' },
     // Fuente aprobada: docs/motion/lab-estructuras-2.html:371-398.
     disposicion: { lectura: 'orbital', adaptarDensidad: n => ajusteDensidad(n, .89, 1.24),
     puntos: (_rnd, etiquetas) => acotarPuntos([{x:85,y:35},{x:65,y:58},{x:35,y:45}]
@@ -698,6 +729,7 @@ export const ESTRUCTURAS = {
     id: 'cuaderno', descripcion: 'Página de cuaderno con renglones, anotaciones y subrayado.',
     energia: 0, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
     tipografias: ['neutral', 'condensada'], rangos: [],
+    relaciones: ['anota', 'secuencia'], heroe: { x: 42, y: 44, relacion: 'anota' },
     // Fuente aprobada: docs/motion/lab-estructuras-2.html:401-425.
     disposicion: { lectura: 'cronologica', adaptarDensidad: n => ajusteDensidad(n, .94, 1.33),
     puntos: (_rnd, etiquetas) => acotarPuntos(etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) =>
@@ -707,6 +739,7 @@ export const ESTRUCTURAS = {
     id: 'cascada', descripcion: 'Cajas que caen en escalones, una detrás de otra.',
     energia: 1, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
     tipografias: ['neutral', 'condensada'], rangos: [],
+    relaciones: ['secuencia'], heroe: { x: 50, y: 43, relacion: 'secuencia' },
     // Fuente aprobada: docs/motion/lab-estructuras.html:215-224.
     disposicion: { lectura: 'cronologica', adaptarDensidad: n => ajusteDensidad(n, .91, 1.29),
     puntos: (_rnd, etiquetas) => acotarPuntos(etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) =>
@@ -716,6 +749,7 @@ export const ESTRUCTURAS = {
     id: 'editorial', descripcion: 'Bloque pesado a la izquierda con conceptos alineados a la derecha.',
     energia: 0, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
     tipografias: ['neutral', 'condensada'], rangos: [],
+    relaciones: ['contrasta'], heroe: { x: 36, y: 42, relacion: 'contrasta' },
     // Fuente aprobada: docs/motion/lab-estructuras.html:240-249.
     disposicion: { lectura: 'estratos', adaptarDensidad: n => ajusteDensidad(n, .92, 1.35),
     puntos: (_rnd, etiquetas) => acotarPuntos(etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) =>
@@ -726,6 +760,7 @@ export const ESTRUCTURAS = {
     id: 'mundoIsometrico', descripcion: 'Mundo de tiles isométricos que se construye paso a paso.',
     energia: 1, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
     tipografias: ['neutral', 'condensada'], rangos: [],
+    relaciones: ['construye', 'contiene'], heroe: { x: 50, y: 46, relacion: 'construye' },
     // Fuente aprobada: docs/motion/lab-estructuras.html:251-283.
     disposicion: { lectura: 'estratos', adaptarDensidad: n => ajusteDensidad(n, .90, 1.24),
     puntos: (_rnd, etiquetas) => acotarPuntos([{x:50,y:65},{x:20,y:20},{x:80,y:45}]
@@ -735,6 +770,7 @@ export const ESTRUCTURAS = {
     id: 'pilaVertical', descripcion: 'Bloques que descienden y se apilan formando una torre.',
     energia: 1, formatos: ['9:16'], minConceptos: 1, presupuestoTexto: FRANJA_TEXTO_Y,
     tipografias: ['neutral', 'condensada'], rangos: [],
+    relaciones: ['apila', 'construye'], heroe: { x: 50, y: 45, relacion: 'apila' },
     // Fuente aprobada: docs/motion/lab-estructuras.html:334-351.
     disposicion: { lectura: 'apilada', adaptarDensidad: n => ajusteDensidad(n, .93, 1.32),
     puntos: (_rnd, etiquetas) => acotarPuntos(etiquetas.slice(0, CUANTOS_CONCEPTOS).map((_, i) =>
@@ -749,6 +785,7 @@ export const ESTRUCTURAS = {
     presupuestoTexto: FRANJA_TEXTO_Y,
     prueba: true,
     tipografias: ['neutral', 'condensada'],
+    relaciones: ['contiene'], heroe: { x: 50, y: 40, relacion: 'contiene' },
     rangos: [
       { id: 'desviacionY', descripcion: 'Cuanto sube o baja la caja del centro.', min: 1, max: 3, pasos: 3 }
     ],
@@ -896,6 +933,21 @@ export type IdFondo = keyof typeof FONDOS;
 export type IdEstructura = keyof typeof ESTRUCTURAS;
 export type IdCamara = keyof typeof CAMARAS;
 
+/** Catalogo de relaciones DERIVADO del registro: no hay una segunda tabla que mantener. */
+export function catalogoRelaciones(): Record<RelacionVisual, IdEstructura[]> {
+  const salida = {} as Record<RelacionVisual, IdEstructura[]>;
+  for (const [id, estructura] of Object.entries(ESTRUCTURAS) as [IdEstructura, MetaEstructura][]) {
+    if (estructura.prueba) continue;
+    for (const relacion of estructura.relaciones) (salida[relacion] ??= []).push(id);
+  }
+  return salida;
+}
+
+export function estructurasParaRelacion(relacion: unknown): IdEstructura[] {
+  if (typeof relacion !== 'string') return [];
+  return catalogoRelaciones()[relacion as RelacionVisual] ?? [];
+}
+
 /** Por nombre y no por numero: vocabulario cerrado, no un slider. */
 export type Densidad = 'minima' | 'baja' | 'media' | 'alta' | 'saturada';
 export const DENSIDADES: readonly Densidad[] = ['minima', 'baja', 'media', 'alta', 'saturada'];
@@ -957,6 +1009,21 @@ export type Direccion = {
   tipografia: IdTipografia;
 };
 
+export type ParFondoCamara = { fondo: IdFondo; camara: IdCamara };
+
+/** La misma regla que usa el contador: ahora tambien gobierna el sorteo real. */
+export function esParFondoCamaraLegal(fondo: IdFondo, camara: IdCamara): boolean {
+  return FONDOS[fondo].energia + CAMARAS[camara].energia <= 3;
+}
+
+/** Pares sorteables, derivados de los registros y sin piezas de prueba. */
+export function paresFondoCamaraLegales(): ParFondoCamara[] {
+  return (Object.keys(FONDOS) as IdFondo[]).filter(fondo => !(FONDOS[fondo] as PiezaBase).prueba)
+    .flatMap(fondo => (Object.keys(CAMARAS) as IdCamara[])
+      .filter(camara => !(CAMARAS[camara] as PiezaBase).prueba && esParFondoCamaraLegal(fondo, camara))
+      .map(camara => ({ fondo, camara })));
+}
+
 function elige<X>(rnd: () => number, a: readonly X[]): X {
   return a[Math.floor(rnd() * a.length)] ?? a[0];
 }
@@ -986,14 +1053,37 @@ export function direccionDe(semilla: number, contenido: ContenidoDensidad = {}):
   const rnd = generador(semilla);
   // `estructura` se conserva para que el ULTIMO sorteo consulte sus roles. La densidad no
   // consume este generador: sale solo del contenido y no puede desplazar ningun estilo.
+  const par = elige(rnd, paresFondoCamaraLegales());
   let estructura: IdEstructura;
   return {
-    fondo: elige(rnd, repertorio(FONDOS)),
+    fondo: par.fondo,
     estructura: estructura = elige(rnd, repertorio(ESTRUCTURAS)),
-    camara: elige(rnd, repertorio(CAMARAS)),
+    camara: par.camara,
     densidad: densidadDesdeContenido(contenido),
     ritmo: elige(rnd, RITMOS),
     // SIEMPRE EL ULTIMO SORTEO: fondo, estructura, camara y ritmo no se desplazan.
+    tipografia: elige(rnd, tipografiasPara(estructura))
+  };
+}
+
+/**
+ * La IA decide una relacion; este adaptador la convierte en una estructura elegible y deja que
+ * la semilla conserve variedad entre las estructuras que expresan el mismo verbo visual.
+ */
+export function direccionParaRelacion(
+  semilla: number, relacion: unknown, contenido: ContenidoDensidad = {}
+): Direccion {
+  const candidatas = estructurasParaRelacion(relacion);
+  if (!candidatas.length) return direccionDe(semilla, contenido);
+  const rnd = generador(semilla);
+  const par = elige(rnd, paresFondoCamaraLegales());
+  const estructura = elige(rnd, candidatas);
+  return {
+    fondo: par.fondo,
+    estructura,
+    camara: par.camara,
+    densidad: densidadDesdeContenido(contenido),
+    ritmo: elige(rnd, RITMOS),
     tipografia: elige(rnd, tipografiasPara(estructura))
   };
 }
@@ -1021,10 +1111,13 @@ export function direccionDesde(crudo: unknown, semilla: number, contenido: Conte
     (typeof v === 'string' && Object.prototype.hasOwnProperty.call(reg, v)) ? (v as K) : porDefecto;
   const estructura = val<IdEstructura>(c.estructura, ESTRUCTURAS, base.estructura);
   const tipografias = tipografiasPara(estructura);
+  const fondo = val<IdFondo>(c.fondo, FONDOS, base.fondo);
+  const camara = val<IdCamara>(c.camara, CAMARAS, base.camara);
   return {
-    fondo: val<IdFondo>(c.fondo, FONDOS, base.fondo),
+    // Una direccion externa no puede reabrir el par que la regla de energia cerro.
+    fondo: esParFondoCamaraLegal(fondo, camara) ? fondo : base.fondo,
     estructura,
-    camara: val<IdCamara>(c.camara, CAMARAS, base.camara),
+    camara: esParFondoCamaraLegal(fondo, camara) ? camara : base.camara,
     densidad: (DENSIDADES as readonly string[]).includes(String(c.densidad))
       ? (c.densidad as Densidad) : base.densidad,
     ritmo: (RITMOS as readonly string[]).includes(String(c.ritmo))

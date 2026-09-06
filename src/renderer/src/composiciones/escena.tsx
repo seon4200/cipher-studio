@@ -21,6 +21,7 @@
 //     DIVISION y no multiplicacion: `/ n` no puede expresar una duracion ilegal, `* 0.333` si.
 
 import React from 'react'
+import { IconoSolar } from './IconoSolar'
 import { SISTEMAS } from '../sistemas'
 import { FONDOS } from '../../../shared/escena'
 import { anchoCaja, METRICAS_ETIQUETA, METRICA_ETIQUETA, GEOMETRIA_CAJA } from '../../../shared/metricas-caja'
@@ -31,7 +32,8 @@ import {
   ESTRUCTURAS, CAMARAS, direccionDesde, PROFUNDIDAD, entradaRitmo, RITMOS,
   posicionDecorador, DENSIDAD_A_N, cabeEnElPie, cabeLaEtiqueta, instanciaDe,
   TIPOGRAFIAS, ZONA_X_MIN, ZONA_X_MAX, type IdTipografia,
-  type IdFondo, type IdEstructura, type IdCamara, type PuntoEscena, type Parametros
+  type IdFondo, type IdEstructura, type IdCamara, type PuntoEscena, type Parametros,
+  type MetaEstructura
 } from '../../../shared/escena'
 import type { Composicion, PropsComposicion } from './index'
 
@@ -109,15 +111,17 @@ const CSS_FIJO = `
 .es-svg{position:absolute;inset:0;width:100%;height:100%}
 .es-nodo{position:absolute;transform:translate(-50%,-50%);white-space:nowrap}
 .es-caja{display:flex;align-items:center;gap:${geometriaCaja.gapCqmin}cqmin;padding:1.5cqmin ${geometriaCaja.paddingXCqmin}cqmin;
-  border-radius:1.7cqmin;background:var(--caja,rgba(9,12,20,.9));border:${geometriaCaja.bordeCqmin}cqmin solid var(--acento);
+  border-radius:1.7cqmin;background:var(--caja,var(--sup));border:${geometriaCaja.bordeCqmin}cqmin solid color-mix(in srgb,var(--acento) 42%,var(--apoyo));
   backdrop-filter:blur(.19cqmin)}
-.es-mini{font-size:4.4cqmin;line-height:1;flex:none;width:${geometriaCaja.emojiAnchoCqmin}cqmin;text-align:center}
+.es-mini{font-size:4.4cqmin;line-height:1;flex:none;width:${geometriaCaja.emojiAnchoCqmin}cqmin;text-align:center;color:var(--apoyo)}
+.es-icono{width:1em;height:1em;vertical-align:middle;fill:none;stroke:currentColor;stroke-width:1.5}
+.es-icono path{stroke-dasharray:1;stroke-dashoffset:0}
 /* La cota suma avances individuales: no puede convivir con kerning ni ligaduras
    contextuales que cambien esa suma. La medicion usa ESTAS propiedades reales. */
 .es-etq{font:${metricaEtiqueta.peso} ${metricaEtiqueta.fuenteCqmin}cqmin ${metricaEtiqueta.familia},system-ui,sans-serif;
   letter-spacing:${metricaEtiqueta.espaciadoEm}em;font-kerning:none;font-variant-ligatures:none;color:var(--texto)}
-.es-hero{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);
-  font-size:26cqmin;line-height:1;filter:drop-shadow(0 2cqmin 2.6cqmin rgba(0,0,0,.7))}
+.es-hero{position:absolute;transform:translate(-50%,-50%);font-size:26cqmin;line-height:1;
+  color:var(--acento);filter:drop-shadow(0 2cqmin 2.6cqmin rgba(0,0,0,.7))}
 .es-deco{position:absolute;width:1.6cqmin;height:1.6cqmin;border-radius:50%;
   transform:translate(-50%,-50%);background:var(--apoyo)}
 .es-anillo{position:absolute;left:50%;top:45%;border-radius:50%;
@@ -318,7 +322,7 @@ const DIBUJO_FONDOS: Record<IdFondo, DibujoFondo> = {
 function caja(cs: Concepto[], i: number): React.ReactNode {
   return (
     <div className="es-caja">
-      <span className="es-mini">{cs[i]?.emoji ?? ''}</span>
+      <IconoSolar concepto={cs[i]} estilo="linear" className="es-mini es-icono" />
       <span className="es-etq">{cs[i]?.etiqueta ?? ''}</span>
     </div>
   )
@@ -338,7 +342,6 @@ function cajasConEntrada(kf: Kf, prefijo: string, puntos: PuntoEscena[], concept
 const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
   constelacion: ({ kf, puntos, conceptos, params, densidad }) => {
     const curva = params.curva ?? 4
-    const escalaHero = params.escalaHero ?? 26
     const nomEntrada = puntos.map((_, i) => kf('nodo' + i, 33, u => {
       const a = 0.06 + (i / puntos.length) * 0.30
       const p = Math.min(1, Math.max(0, (u - a) / 0.26))
@@ -377,16 +380,7 @@ const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
         width: `${(.7 * densidad.escala).toFixed(2)}cqmin`, height: `${(.7 * densidad.escala).toFixed(2)}cqmin`,
         borderRadius: '50%', background: 'var(--apoyo)', transform: `rotate(${a}rad)` }} />
     })
-    const nomHero = kf('hero', 41, u =>
-      `transform:translate(-50%,-50%) translateY(${(Math.sin(u * TAU) * 1.3).toFixed(3)}cqmin)`)
-    // LA RANURA DEL HEROE: hoy un emoji, mañana un `<img>` recortado en el MISMO sitio y con el
-    // MISMO factor de camara.
-    const hero = (
-      <div className="es-hero" style={{ ...usa(nomHero), fontSize: `${escalaHero.toFixed(2)}cqmin` }}>
-        {conceptos[0]?.emoji ?? ''}
-      </div>
-    )
-    return <>{aristas}{secundarios}{nodos}{hero}</>
+    return <>{aristas}{secundarios}{nodos}</>
   },
 
   capasApiladas: ({ kf, puntos, conceptos, params }) => {
@@ -605,6 +599,40 @@ const DIBUJO_ESTRUCTURAS: Record<IdEstructura, DibujoEstructura> = {
   }
 }
 
+/**
+ * El heroe y el verbo visual son comunes; la PIEZA declara posicion y relacion. Asi las 17
+ * estructuras no pueden olvidar el sujeto ni degradar la relacion a cajas co-presentes.
+ */
+function heroeRelacionado(
+  kf: Kf, meta: MetaEstructura, puntos: PuntoEscena[], ancla: Concepto, params: Parametros
+): React.ReactNode {
+  const { x, y, relacion } = meta.heroe
+  const entrada = kf(`hero-${relacion}`, 33, u => {
+    const e = 1 - Math.pow(1 - Math.min(1, u / .28), 3)
+    return `opacity:${e.toFixed(3)};transform:translate(-50%,-50%) translateY(${(Math.sin(u * TAU) * .9).toFixed(3)}cqmin) scale(${(.82 + .18 * e).toFixed(3)})`
+  })
+  const trazos = puntos.map((_, i) => kf(`rel-${relacion}-${i}`, 33, u => {
+    const inicio = .1 + i * .08
+    const e = Math.min(1, Math.max(0, (u - inicio) / .24))
+    return `stroke-dashoffset:${(1 - e).toFixed(3)};opacity:${(.22 + e * .58).toFixed(3)}`
+  }))
+  const lineas = relacion === 'contiene' || relacion === 'expande' || relacion === 'orbita'
+    ? <ellipse cx={x} cy={y} rx="14" ry="10" fill="none" stroke="var(--acento)" strokeWidth=".45"
+        pathLength="1" strokeDasharray="1" style={usa(trazos[0] ?? entrada)} />
+    : puntos.map((p, i) => <path key={i} pathLength="1" fill="none" stroke="var(--acento)" strokeWidth=".45"
+        strokeDasharray="1" d={`M${x},${y} L${p.x.toFixed(2)},${p.y.toFixed(2)}`}
+        style={usa(trazos[i] ?? entrada)} />)
+  return <>
+    <svg className="es-svg" viewBox="0 0 100 100" preserveAspectRatio="none">{lineas}</svg>
+    <div className="es-hero" style={{ ...usa(entrada), left: `${x}%`, top: `${y}%`,
+      // `escalaHero` sigue siendo un rango de instancia de la estructura. El icono sustituyo
+      // al emoji, no la geometria: quitar este consumo haria que el rango contara sin pixel.
+      fontSize: `${(params.escalaHero ?? 26).toFixed(2)}cqmin` }}>
+      <IconoSolar concepto={ancla} estilo="bold-duotone" className="es-icono" titulo={ancla.etiqueta} />
+    </div>
+  </>
+}
+
 // ── PIEZAS COMUNES A TODAS LAS ESCENAS ──────────────────────────────────────────────────────
 
 function decoradores(kf: Kf, n: number, entrada: ReturnType<typeof entradaRitmo>, rndPos: () => number): React.ReactNode {
@@ -667,8 +695,8 @@ function conCamara(
 
 // ── LA CACHE DE ARBOL ───────────────────────────────────────────────────────────────────────
 //
-// `direccionDe` depende UNICAMENTE de `semilla`, que sale de `semillaDe(texto)`, y `texto` YA es
-// la clave del hash del fichero. Y el arbol nunca hornea `ciclo` ni `sistema`: usa
+// `direccionDe` depende UNICAMENTE de `semilla`, que llega desde `extra` y YA forma parte de la
+// clave del hash del fichero. Y el arbol nunca hornea `ciclo` ni `sistema`: usa
 // `var(--ciclo)` y `var(--acento)` simbolicos. Asi que la clave no necesita nada mas.
 const CACHE_MAX = 4
 const cache = new Map<string, React.ReactElement<{ style: React.CSSProperties }>>()
@@ -676,17 +704,17 @@ const cache = new Map<string, React.ReactElement<{ style: React.CSSProperties }>
 /** Los separadores son caracteres de control, escritos con SECUENCIA DE ESCAPE y nunca
  *  literales: un caracter de control literal es invisible en el fuente, y el dia que un editor
  *  se lo coma, "ab"+"c" y "a"+"bc" darian la MISMA clave sin que nada lo dijera. */
-function claveDe(value: string, cs: Concepto[], dir: unknown): string {
+function claveDe(value: string, cs: Concepto[], ancla: Concepto | null, dir: unknown, semilla: number): string {
   // LA DIRECCION ENTRA EN LA CLAVE. El arbol depende de ella -- otra pieza es otro dibujo -- y
   // esta cache es por proceso: sin esto, dos Visuales con la misma palabra y direcciones
   // distintas se servirian el mismo arbol y el segundo saldria con las piezas del primero.
   const d = dir && typeof dir === "object" ? JSON.stringify(dir) : String(dir ?? "")
-  return value + '\u0002' + cs.map(c => c.emoji + '\u0001' + c.etiqueta).join('\u0003') +
-    '\u0004' + d
+  const a = ancla ? ancla.emoji + '\u0001' + ancla.etiqueta + '\u0001' + (ancla.icono ?? '') : ''
+  return value + '\u0002' + cs.map(c => c.emoji + '\u0001' + c.etiqueta + '\u0001' + (c.icono ?? '')).join('\u0003') +
+    '\u0004' + d + '\u0005' + String(semilla) + '\u0006' + a
 }
 
-function construir(value: string, cs: Concepto[], dirCruda: unknown) {
-  const semilla = semillaDe(value)
+function construir(value: string, cs: Concepto[], ancla: Concepto | null, dirCruda: unknown, semilla: number) {
   // La direccion que trajo el guion, validada contra los registros; lo que falte o no exista,
   // sorteado por semilla. Es la costura de la Fase 7 y hoy ya es el camino real.
   const direccion = direccionDesde(dirCruda, semilla, { texto: value, conceptos: cs })
@@ -694,7 +722,7 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown) {
   // Streams de aleatoriedad INDEPENDIENTES, mismo patron que mapa.tsx: si no se separan, anadir
   // una pieza a un registro desplazaria TAMBIEN el jitter de los puntos y las posiciones de los
   // decoradores para semillas que ya tenian un dibujo asignado.
-  const instancia = instanciaDe(value, direccion)
+  const instancia = instanciaDe(value, direccion, semilla)
   const rndPts = generador(instancia.semillas.puntos)
   const rndDeco = generador(instancia.semillas.decoradores)
 
@@ -728,8 +756,10 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown) {
   // La forma de que no vuelva a pasar no es acordarse: es que el JSX de abajo NO PUEDA llamar a
   // nada que emita. Solo consume constantes ya construidas.
   const capaFondo = DIBUJO_FONDOS[direccion.fondo]({ kf, params: parFondo })
-  const capaEstructura = DIBUJO_ESTRUCTURAS[direccion.estructura](
-    { kf, puntos, conceptos: cs, params: parEstructura, densidad: densidadEstructura })
+  const capaEstructura = <>
+    {DIBUJO_ESTRUCTURAS[direccion.estructura]({ kf, puntos, conceptos: cs, params: parEstructura, densidad: densidadEstructura })}
+    {heroeRelacionado(kf, metaEstructura, puntos, ancla ?? cs[0] ?? { emoji: '?', etiqueta: 'ancla' }, parEstructura)}
+  </>
   const capaDecoradores = decoradores(kf, nDeco, entrada, rndDeco)
   const capaTexto = textoPie(kf, value, direccion.tipografia)
 
@@ -758,13 +788,15 @@ function construir(value: string, cs: Concepto[], dirCruda: unknown) {
   )
 }
 
-function render({ texto, conceptos, direccion, sistema }: PropsComposicion): React.ReactNode {
+function render({ texto, conceptos, ancla, direccion, sistema, semilla }: PropsComposicion): React.ReactNode {
   const value = texto ?? ''
   const cs: Concepto[] = Array.isArray(conceptos) ? conceptos.slice(0, CUANTOS_CONCEPTOS).filter(Boolean) : []
-  const clave = claveDe(value, cs, direccion)
+  const semillaUsada = Number.isInteger(semilla) && semilla > 0 ? semilla : semillaDe(value)
+  const anclaSegura = ancla && ancla.emoji && ancla.etiqueta ? ancla : cs[0] ?? null
+  const clave = claveDe(value, cs, anclaSegura, direccion, semillaUsada)
   let arbol = cache.get(clave)
   if (arbol === undefined) {
-    arbol = construir(value, cs, direccion)
+    arbol = construir(value, cs, anclaSegura, direccion, semillaUsada)
     if (cache.size >= CACHE_MAX) {
       const primera = cache.keys().next().value
       if (primera !== undefined) cache.delete(primera)
@@ -773,7 +805,7 @@ function render({ texto, conceptos, direccion, sistema }: PropsComposicion): Rea
   }
   // El color se aplica FUERA de la cache: cambiar sistema no puede servir tinta vieja.
   // cloneElement conserva la misma raiz, sin introducir otro contenedor de unidades.
-  const dir = direccionDesde(direccion, semillaDe(value), { texto: value, conceptos: cs })
+  const dir = direccionDesde(direccion, semillaUsada, { texto: value, conceptos: cs })
   if (FONDOS[dir.fondo].tono === 'claro') {
     const tinta = SISTEMAS[sistema].tinta
     return React.cloneElement(arbol, { style: { ...arbol.props.style,
@@ -808,7 +840,9 @@ export const escena: Composicion = {
     if (buenos.length !== cs.length) return false
     // El minimo sale de la ESTRUCTURA que va a tocar, y esa depende de la MISMA semilla que usa
     // `construir`: la puerta y el dibujo no pueden discrepar.
-    const dir = direccionDesde(d.direccion, semillaDe(d.texto ?? ''))
+    const semilla = Number.isInteger(d.semilla) && Number(d.semilla) > 0
+      ? Number(d.semilla) : semillaDe(d.texto ?? '')
+    const dir = direccionDesde(d.direccion, semilla)
     if (buenos.length < ESTRUCTURAS[dir.estructura].minConceptos) return false
     if (!buenos.every(c => cabeLaEtiqueta(c.etiqueta))) return false
     return cabeEnElPie(d.texto, dir.tipografia)
