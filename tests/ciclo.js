@@ -612,6 +612,22 @@ function conceptos (bundle) {
   const contrasteBajo = contrastes.filter(x => x.valor < bundle.CONTRASTE_MINIMO_CAJA)
   ok(contrasteBajo.length === 0, 'A2: texto/caja opacos mantienen al menos 3:1 en 4 paletas × fondos',
     contrasteBajo.map(x => x.sistema + '/' + x.fondo + '=' + x.valor.toFixed(2)).join(', '))
+  const contrastesEscena = fondosActivos.flatMap(f => sistemasMvp.map(sistema => {
+    const tono = 'tonoDominante' in f ? f.tonoDominante : f.tono
+    const colores = bundle.coloresEscena(sistema, tono)
+    return { fondo: f.id, sistema, textoCaja: bundle.contraste(colores.texto, colores.caja),
+      textoFondo: bundle.contrasteTextoEscena(sistema, tono) }
+  }))
+  const contrasteEscenaBajo = contrastesEscena.filter(x =>
+    x.textoCaja < bundle.CONTRASTE_MINIMO_ESCENA || x.textoFondo < bundle.CONTRASTE_MINIMO_ESCENA)
+  const minimoTextoCaja = Math.min(...contrastesEscena.map(x => x.textoCaja))
+  const minimoTextoFondo = Math.min(...contrastesEscena.map(x => x.textoFondo))
+  ok(contrasteEscenaBajo.length === 0,
+    'A2: texto mantiene al menos 3:1 contra caja y fondo dominante en 4 paletas × fondos',
+    contrasteEscenaBajo.length
+      ? contrasteEscenaBajo.map(x => x.sistema + '/' + x.fondo + '=' +
+        x.textoCaja.toFixed(2) + '/' + x.textoFondo.toFixed(2)).join(', ')
+      : `min texto/caja=${minimoTextoCaja.toFixed(2)}; min texto/fondo=${minimoTextoFondo.toFixed(2)}`)
   const bajaDensidad = { texto: 'sol', conceptos: [] }
   const altaDensidad = { texto: 'responsabilidades interconectadas',
     conceptos: ['arquitectura distribuida', 'sistemas adaptativos', 'coordinacion asincrona'] }

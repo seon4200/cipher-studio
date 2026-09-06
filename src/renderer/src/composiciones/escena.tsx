@@ -22,7 +22,7 @@
 
 import React from 'react'
 import { IconoSolar } from './IconoSolar'
-import { SISTEMAS } from '../sistemas'
+import { coloresEscena } from '../sistemas'
 import { FONDOS } from '../../../shared/escena'
 import { anchoCaja, METRICAS_ETIQUETA, METRICA_ETIQUETA, GEOMETRIA_CAJA } from '../../../shared/metricas-caja'
 import { ajustar, type DuracionUsada } from '../../../shared/ciclo'
@@ -806,14 +806,14 @@ function render({ texto, conceptos, ancla, direccion, sistema, semilla }: PropsC
   // El color se aplica FUERA de la cache: cambiar sistema no puede servir tinta vieja.
   // cloneElement conserva la misma raiz, sin introducir otro contenedor de unidades.
   const dir = direccionDesde(direccion, semillaUsada, { texto: value, conceptos: cs })
-  if (FONDOS[dir.fondo].tono === 'claro') {
-    const tinta = SISTEMAS[sistema].tinta
-    return React.cloneElement(arbol, { style: { ...arbol.props.style,
-      '--texto': tinta.texto, '--sup': tinta.sup, '--acento': tinta.acento,
-      '--apoyo': tinta.apoyo, '--caja': tinta.sup, '--sombra-pie': 'rgba(255,255,255,.8)'
-    } as React.CSSProperties })
-  }
-  return arbol
+  const fondo = FONDOS[dir.fondo]
+  const tono = 'tonoDominante' in fondo ? fondo.tonoDominante : fondo.tono
+  const colores = coloresEscena(sistema, tono)
+  return React.cloneElement(arbol, { style: { ...arbol.props.style,
+    '--texto': colores.texto, '--sup': colores.sup, '--acento': colores.acento,
+    '--apoyo': colores.apoyo, '--caja': colores.caja,
+    '--sombra-pie': tono === 'claro' ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.85)'
+  } as React.CSSProperties })
 }
 
 export const escena: Composicion = {
