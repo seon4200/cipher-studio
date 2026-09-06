@@ -20,3 +20,16 @@ Notas de una línea (lo que vi mal y no toqué):
 - Contraste: clinico/calido con ondas muestran tinta oscura sobre cajas oscuras; visible en cobertura-sistema-45pct.png, sin corregir.
 - Contraste entre Visuales consecutivos y fidelidad completa en movimiento quedan sin calibrar; no se confunden 41 identidades distintas con 41 diseños percibidos.
 - El 4% es un umbral geométrico de ingeniería, no perceptual; la distancia implementada es media con emparejamiento voraz, no un mínimo global.
+
+## Encargo 2 — significado
+
+Encargo: `C:\Users\John Benites\.codex\attachments\1142dc2c-65eb-4775-ad31-6c7509e1a45e\pasted-text.txt`
+
+- [x] 0 · fijar ANTES — `1f1a6cb`; MP4, hoja 45% y tabla ligados por los 42 hashes del vídeo real
+- [ ] A · energía y contraste —
+- [ ] B · palabra, iconos Solar y héroe —
+- [ ] C · contrato semántico y selección por relación —
+- [ ] cierre · DESPUÉS, comparación y clon limpio —
+
+Notas de una línea (lo que vi mal y no toqué):
+- El paquete ANTES se reconstruyó desde los fotogramas extraídos del export original; no se volvió a renderizar ni a llamar a red.
