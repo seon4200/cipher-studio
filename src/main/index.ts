@@ -26,7 +26,9 @@ export { fraccion, esLegal, divisoresDe, comprobarCiclo, ajustar, cicloValido, T
 import { semillaDe, generador, entre, entero } from '../shared/semilla'
 export { semillaDe, generador, entre, entero }
 import { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA } from '../shared/conceptos'
+import { SISTEMAS, type NombreSistema } from '../shared/sistemas'
 export { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA }
+export { SISTEMAS, contraste, coloresCaja, CONTRASTE_MINIMO_CAJA } from '../shared/sistemas'
 // SOLO RE-EXPORTACION, para que tests/mapa.js pueda ejercitar el modulo sobre el BUNDLE
 // COMPILADO en vez de reimplementarlo. NADIE lo llama todavia: `mapa.ts` es matematica pura y
 // el paso 3 sera quien la use. Sin estas dos lineas la octava suite no tendria como alcanzarlo
@@ -50,7 +52,7 @@ export const {
   TIPOGRAFIAS, direccionDesde, combinacionesLegales, direccionDe, densidadDesdeContenido, entradaRitmo,
   DENSIDAD_A_N, RITMOS, acotarPuntos, cabeEnElPie, cabeLaEtiqueta,
   maxCaracteresPie, MAX_CARACTERES_ETIQUETA, FRANJA_TEXTO_Y, MARGEN_CAMARA_PIE_Y, ZONA_X_MIN, ZONA_X_MAX,
-  parametrosDe, instanciasDe
+  parametrosDe, instanciasDe, esParFondoCamaraLegal, paresFondoCamaraLegales
 } = escenaShared
 // SOLO RE-EXPORTACION, para que la suite ejercite el modulo sobre el BUNDLE COMPILADO en vez
 // de reimplementarlo. `avisos.ts` es puro -- sin Electron, sin React, sin fs -- justamente para
@@ -1131,8 +1133,7 @@ const dirDeModo = (proj: string, modo: 'overlay' | 'pantalla') =>
 // basta con que todas las entradas coincidan.
 const TIMESCALE = 30000;
 
-const SISTEMAS_VALIDOS = ['editorial', 'clinico', 'voltaje', 'calido'] as const;
-type NombreSistema = typeof SISTEMAS_VALIDOS[number];
+const SISTEMAS_VALIDOS = Object.keys(SISTEMAS) as NombreSistema[];
 
 /** Una paleta por vídeo/proyecto: se resuelve una vez antes del lote, nunca por sub-clip. */
 export function sistemaDeGeneracion(idEstable: string): NombreSistema {

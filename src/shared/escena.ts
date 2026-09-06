@@ -957,6 +957,21 @@ export type Direccion = {
   tipografia: IdTipografia;
 };
 
+export type ParFondoCamara = { fondo: IdFondo; camara: IdCamara };
+
+/** La misma regla que usa el contador: ahora tambien gobierna el sorteo real. */
+export function esParFondoCamaraLegal(fondo: IdFondo, camara: IdCamara): boolean {
+  return FONDOS[fondo].energia + CAMARAS[camara].energia <= 3;
+}
+
+/** Pares sorteables, derivados de los registros y sin piezas de prueba. */
+export function paresFondoCamaraLegales(): ParFondoCamara[] {
+  return (Object.keys(FONDOS) as IdFondo[]).filter(fondo => !(FONDOS[fondo] as PiezaBase).prueba)
+    .flatMap(fondo => (Object.keys(CAMARAS) as IdCamara[])
+      .filter(camara => !(CAMARAS[camara] as PiezaBase).prueba && esParFondoCamaraLegal(fondo, camara))
+      .map(camara => ({ fondo, camara })));
+}
+
 function elige<X>(rnd: () => number, a: readonly X[]): X {
   return a[Math.floor(rnd() * a.length)] ?? a[0];
 }
@@ -986,11 +1001,12 @@ export function direccionDe(semilla: number, contenido: ContenidoDensidad = {}):
   const rnd = generador(semilla);
   // `estructura` se conserva para que el ULTIMO sorteo consulte sus roles. La densidad no
   // consume este generador: sale solo del contenido y no puede desplazar ningun estilo.
+  const par = elige(rnd, paresFondoCamaraLegales());
   let estructura: IdEstructura;
   return {
-    fondo: elige(rnd, repertorio(FONDOS)),
+    fondo: par.fondo,
     estructura: estructura = elige(rnd, repertorio(ESTRUCTURAS)),
-    camara: elige(rnd, repertorio(CAMARAS)),
+    camara: par.camara,
     densidad: densidadDesdeContenido(contenido),
     ritmo: elige(rnd, RITMOS),
     // SIEMPRE EL ULTIMO SORTEO: fondo, estructura, camara y ritmo no se desplazan.
@@ -1021,10 +1037,13 @@ export function direccionDesde(crudo: unknown, semilla: number, contenido: Conte
     (typeof v === 'string' && Object.prototype.hasOwnProperty.call(reg, v)) ? (v as K) : porDefecto;
   const estructura = val<IdEstructura>(c.estructura, ESTRUCTURAS, base.estructura);
   const tipografias = tipografiasPara(estructura);
+  const fondo = val<IdFondo>(c.fondo, FONDOS, base.fondo);
+  const camara = val<IdCamara>(c.camara, CAMARAS, base.camara);
   return {
-    fondo: val<IdFondo>(c.fondo, FONDOS, base.fondo),
+    // Una direccion externa no puede reabrir el par que la regla de energia cerro.
+    fondo: esParFondoCamaraLegal(fondo, camara) ? fondo : base.fondo,
     estructura,
-    camara: val<IdCamara>(c.camara, CAMARAS, base.camara),
+    camara: esParFondoCamaraLegal(fondo, camara) ? camara : base.camara,
     densidad: (DENSIDADES as readonly string[]).includes(String(c.densidad))
       ? (c.densidad as Densidad) : base.densidad,
     ritmo: (RITMOS as readonly string[]).includes(String(c.ritmo))

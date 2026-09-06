@@ -109,7 +109,7 @@ const CSS_FIJO = `
 .es-svg{position:absolute;inset:0;width:100%;height:100%}
 .es-nodo{position:absolute;transform:translate(-50%,-50%);white-space:nowrap}
 .es-caja{display:flex;align-items:center;gap:${geometriaCaja.gapCqmin}cqmin;padding:1.5cqmin ${geometriaCaja.paddingXCqmin}cqmin;
-  border-radius:1.7cqmin;background:var(--caja,rgba(9,12,20,.9));border:${geometriaCaja.bordeCqmin}cqmin solid var(--acento);
+  border-radius:1.7cqmin;background:var(--caja,var(--sup));border:${geometriaCaja.bordeCqmin}cqmin solid var(--acento);
   backdrop-filter:blur(.19cqmin)}
 .es-mini{font-size:4.4cqmin;line-height:1;flex:none;width:${geometriaCaja.emojiAnchoCqmin}cqmin;text-align:center}
 /* La cota suma avances individuales: no puede convivir con kerning ni ligaduras

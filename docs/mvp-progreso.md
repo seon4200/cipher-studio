@@ -26,7 +26,7 @@ Notas de una línea (lo que vi mal y no toqué):
 Encargo: `C:\Users\John Benites\.codex\attachments\1142dc2c-65eb-4775-ad31-6c7509e1a45e\pasted-text.txt`
 
 - [x] 0 · fijar ANTES — `1f1a6cb`; MP4, hoja 45% y tabla ligados por los 42 hashes del vídeo real
-- [ ] A · energía y contraste —
+- [x] A · energía y contraste — pares sorteables legales y caja opaca medida desde el registro compartido
 - [ ] B · palabra, iconos Solar y héroe —
 - [ ] C · contrato semántico y selección por relación —
 - [ ] cierre · DESPUÉS, comparación y clon limpio —

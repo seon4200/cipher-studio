@@ -578,6 +578,24 @@ function conceptos (bundle) {
   }
   ok(Array.from({ length: 1000 }, (_, i) => direccionDe(i + 1))
     .every(d => !ESTRUCTURAS_ESCENA[d.estructura].prueba), '1000 semillas: el sorteo excluye solo piezas de prueba')
+  const direccionesEnergia = Array.from({ length: 10000 }, (_, i) => direccionDe(i + 1))
+  const ilegales = direccionesEnergia.filter(d => !bundle.esParFondoCamaraLegal(d.fondo, d.camara))
+  ok(ilegales.length === 0, 'A1: 10000 semillas sortean solo pares fondo-cámara legales',
+    ilegales.map(d => d.fondo + '+' + d.camara).join(', '))
+  const parIlegal = fondosActivos.flatMap(f => camarasActivas
+    .filter(c => f.energia + c.energia > 3).map(c => ({ fondo: f.id, camara: c.id })))[0]
+  if (parIlegal) {
+    const saneada = direccionDesde(parIlegal, 42)
+    ok(bundle.esParFondoCamaraLegal(saneada.fondo, saneada.camara),
+      'A1: una direccion externa ilegal no reabre un par prohibido')
+  }
+  const contrastes = fondosActivos.flatMap(f => sistemasMvp.map(sistema => {
+    const colores = bundle.coloresCaja(sistema, f.tono)
+    return { fondo: f.id, sistema, valor: bundle.contraste(colores.texto, colores.caja) }
+  }))
+  const contrasteBajo = contrastes.filter(x => x.valor < bundle.CONTRASTE_MINIMO_CAJA)
+  ok(contrasteBajo.length === 0, 'A2: texto/caja opacos mantienen al menos 3:1 en 4 paletas × fondos',
+    contrasteBajo.map(x => x.sistema + '/' + x.fondo + '=' + x.valor.toFixed(2)).join(', '))
   const bajaDensidad = { texto: 'sol', conceptos: [] }
   const altaDensidad = { texto: 'responsabilidades interconectadas',
     conceptos: ['arquitectura distribuida', 'sistemas adaptativos', 'coordinacion asincrona'] }
