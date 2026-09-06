@@ -1,7 +1,7 @@
 // Aceptacion EXPLICITA de produccion: usa guion/voz existentes, APIs reales y cache real.
 // electron tests/aceptacion/mvp-produccion.cjs <proyecto> mix|generar
 // Conserva el estado anterior antes de guardar; no cambia ningun otro proyecto.
-const {app, ipcMain, dialog} = require('electron')
+const {app, ipcMain, dialog, BrowserWindow} = require('electron')
 const fs = require('fs')
 const path = require('path')
 const repo = path.resolve(__dirname, '../..')
@@ -31,6 +31,16 @@ const evento = {sender:{isDestroyed:()=>false,send:(canal,carga)=>{
   if(canal==='generation-progress' || canal==='export-progress') console.log(canal,JSON.stringify(carga))
 }}}
 const llamar=(canal,arg)=>ipcMain._invokeHandlers.get(canal)(evento,arg)
+async function esperarVentanaPrincipal() {
+  // El modulo principal se carga DESPUES de app.whenReady() en este arnes. Esperar su
+  // ventana evita invocar export-video antes de que su `win` privado exista; sin ella el
+  // arnes declaraba fallida una generacion cuyos assets ya se habian creado correctamente.
+  for (let intento = 0; intento < 50; intento++) {
+    if (BrowserWindow.getAllWindows().some(w => !w.isDestroyed())) return
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  throw Error('Ventana principal no disponible tras 5s')
+}
 app.whenReady().then(async()=>{
   if(!['mix','generar'].includes(modo)) throw Error('Modo requerido: mix o generar')
   const estadoPath=path.join(proyecto,'project-state.json')
@@ -69,6 +79,7 @@ app.whenReady().then(async()=>{
     if(!guardar.success) throw Error(guardar.error)
     const fichero=path.join(salida,`cipher-mvp-${Date.now()}.mp4`)
     dialog.showSaveDialog=async()=>({canceled:false,filePath:fichero})
+    await esperarVentanaPrincipal()
     resultado.exportacion=await llamar('export-video',{
       clips:estado.timelineVideoClips,aspectRatio:'vertical',resolution:'1080p',format:'mp4',quality:'medium',
       assignedTransitions:{},transitionDuration:0.5,ajustesVideo:estado.ajustesVideo
