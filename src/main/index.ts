@@ -4022,6 +4022,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         // ni descripciones internas de las estructuras: decide significado, el motor decide forma.
         const relacionesPrompt = Object.keys(catalogoRelaciones()).sort().join(', ');
         const lineaConceptos =
+          // `conceptos` es el contrato historico que mantiene el video util si la capa
+          // semantica completa se rechaza. No se deriva de `semantica`: una relacion
+          // invalida no puede convertir un lote entero en clips sin Visual.
+          '- conceptos: EXACTAMENTE 3 objetos {icono:"nombre Solar libre en ingles", ic:"emoji respaldo", etiqueta:"1-2 palabras"}. Son el respaldo compatible con el motor anterior.\n' +
           '- semantica: UNA relacion y EXACTAMENTE 3 terminos de una misma idea visual.\n' +
           '    relacion: usa exactamente uno de estos enums: ' + relacionesPrompt + '.\n' +
           '    ancla: {icono:"nombre Solar libre en ingles", ic:"emoji respaldo", etiqueta:"1-2 palabras"}.\n' +
@@ -4046,6 +4050,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           // modelo copia el ejemplo. Poner aqui tres emojis concretos los anclaria igual.
           // Se describe la forma con marcadores y se deja que el modelo elija el contenido.
           '{"phrases":[{"phraseIndex":' + (batchStart+1) + ',"visualClips":[{"keyword":"protest march","timestamp":12.3,"duration":2.5,' +
+          '"conceptos":[{"icono":"megaphone","ic":"📣","etiqueta":"voz"},{"icono":"people-nearby","ic":"👥","etiqueta":"marcha"},{"icono":"flag","ic":"🚩","etiqueta":"plaza"}],' +
           '"semantica":{"relacion":"conecta","ancla":{"icono":"megaphone","ic":"📣","etiqueta":"voz"},' +
           '"terminos":[{"icono":"megaphone","ic":"📣","etiqueta":"voz"},{"icono":"people-nearby","ic":"👥","etiqueta":"marcha"},{"icono":"flag","ic":"🚩","etiqueta":"plaza"}]}}]}]}';
 
