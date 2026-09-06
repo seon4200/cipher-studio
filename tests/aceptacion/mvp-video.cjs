@@ -12,20 +12,15 @@ global.fetch=async()=>{throw Error('Inspeccion sin red')}
 app.whenReady().then(async()=>{
   session.defaultSession.webRequest.onBeforeRequest((r,cb)=>cb({cancel:/^https?:/.test(r.url)}))
   const b=require(path.join(repo,'dist-electron/main/index.js'))
-  const log=fs.readFileSync(path.join(repo,'generation-debug.log'),'utf8').split('\n').filter(l=>l.slice(1,25)>=datos.inicio)
-  const sistema=b.sistemaDeGeneracion(proyecto),casos=[],porFrase={}
+  const sistema=b.sistemaDeGeneracion(proyecto),casos=[]
   fs.mkdirSync(framesDir,{recursive:true})
   for(const clip of datos.generacion.clips){
-    const indice=porFrase[clip.phraseIdx]||0;porFrase[clip.phraseIdx]=indice+1
     if(clip.category!=='visual')continue
-    const seg=estado.transcriptSegments[clip.phraseIdx],dur=seg.end-seg.start,n=dur>4?Math.ceil(dur/3):1
-    const palabra=b.palabraDelTramo(seg.words,seg.start+dur*indice/n,seg.start+dur*(indice+1)/n)
-    const pos=`${clip.phraseIdx}:${indice}`
-    const linea=log.find(l=>l.includes(` pos=${pos} `)&&l.includes('saneado=OK'))
-    const conceptos=linea?linea.split('saneado=OK  ')[1].split('  frase=')[0].split(' | ').map(s=>{
-      const espacio=s.indexOf(' ');return {emoji:s.slice(0,espacio),etiqueta:s.slice(espacio+1)}
-    }):null
-    const graphicData={type:'visual_escena',value:palabra,extra:{pos,conceptos,direccion:b.direccionDe(b.semillaDe(palabra),{texto:palabra,conceptos:conceptos||[]})}}
+    // Se exige la entrada exacta que produjo el MP4. Reconstruirla desde el log pierde
+    // `ancla` y `relacion`, ambas hashables, y convierte una hoja de evidencia en conjetura.
+    const graphicData=clip.graphic
+    if(!graphicData)throw Error('El clip visual no conserva graphicData: '+clip.id)
+    const palabra=graphicData.value
     const hash=path.basename(clip.path,'.mp4'),metrica=datos.metricas.find(m=>m.hash===hash)
     let duracionHash=null
     if(metrica)for(let centesima=Math.floor(metrica.totalFrames/30*100)-2;centesima<=Math.ceil(metrica.totalFrames/30*100)+2;centesima++){

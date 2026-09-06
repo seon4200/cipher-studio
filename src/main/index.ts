@@ -4754,8 +4754,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
       const aRenderizar = conPalabra.filter(x => !!x.palabra);
       if (aRenderizar.length) {
-        const resVis = await renderGraphicClipsLote(
-          aRenderizar.map(x => {
+        // La traza vive junto a la solicitud que llega al renderer. El resultado de un Visual
+        // es un MP4 y antes se perdia el graphicData que explica sus pixeles: ni la aceptacion
+        // podia reconstruir un hash semantico (ancla/relacion) despues. No cambia el render ni
+        // la cache; solo conserva, en el clip resultante, la entrada exacta que ya se envio.
+        const solicitudesGraficas = aRenderizar.map(x => {
             // UNA SOLA CADENA gobierna dibujo, direccion y hash. Resolver la direccion desde el
             // texto sin recortar y hashear el recortado permitiria dos dibujos bajo una clave.
             const value = recortarTexto(x.palabra);
@@ -4802,7 +4805,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               },
               duracion: x.item.duration
             };
-          }),
+          });
+        const resVis = await renderGraphicClipsLote(
+          solicitudesGraficas,
           { aspectRatio, fps: 30, modo: 'pantalla', sistema: SISTEMA_VISUAL },
           (p) => event.sender.send('generation-progress',
             { index: p.index, total: p.total, paragraph: p.paragraph, type: 'Visual' })
@@ -4833,6 +4838,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             // tocar una sola linea del export. Y category lo hace contable en la auditoria.
             type: 'video',
             category: 'visual',
+            graphic: solicitudesGraficas[i].graphicData,
             thumbnailUrl: ''
           };
         }
