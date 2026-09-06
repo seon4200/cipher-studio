@@ -3932,16 +3932,16 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
 
 
-      // 12 y no 25, por el TRUNCADO. Con `max_tokens: 8000` y solo keyword+timestamp la salida
-      // de un proyecto de 107 sub-clips son ~1804 tokens: margen de 4.4x. Añadir tres conceptos
-      // por sub-clip la sube a ~5503 y el margen cae a 1.45x — con un video del doble de frases
-      // se toca el techo.
+      // Seis y no doce, por el TRUNCADO. El contrato actual devuelve conceptos de respaldo Y
+      // semantica: doce frases agotaron `max_tokens: 8000` en una generacion real. Seis reduce
+      // a la mitad el peor lote sin quitar ninguna capa ni convertir una respuesta truncada en
+      // clips originales.
       //
       // Y un lote truncado NO se degrada: se pierde ENTERO. El propio codigo lo dice mas abajo:
       // "AVISO: respuesta truncada (finish_reason=length). El lote se perdera y esas frases
-      // caeran a original". Con 25 se perderian 25 frases de golpe; con 12, doce.
-      // El precio es el doble de llamadas, que a este tamaño es ruido frente a perder un lote.
-      const BATCH_SIZE = 12;
+      // caeran a original". Con 25 se perderian 25 frases de golpe; con seis, seis.
+      // El precio es mas llamadas, que a este tamaño es ruido frente a perder un lote.
+      const BATCH_SIZE = 6;
       let phrasesDecision: any[] = [];
       let respuestasSemanticasRechazadas = 0;
       const causasSemantica = new Map<string, number>();
