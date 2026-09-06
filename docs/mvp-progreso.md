@@ -27,9 +27,10 @@ Encargo: `C:\Users\John Benites\.codex\attachments\1142dc2c-65eb-4775-ad31-6c750
 
 - [x] 0 · fijar ANTES — `1f1a6cb`; MP4, hoja 45% y tabla ligados por los 42 hashes del vídeo real
 - [x] A · energía y contraste — pares sorteables legales y caja opaca medida desde el registro compartido
-- [ ] B · palabra, iconos Solar y héroe —
-- [ ] C · contrato semántico y selección por relación —
+- [x] B · palabra, iconos Solar y héroe — este commit; la semilla es palabra + posición estable, Solar cae a emoji y el héroe/relación salen del registro
+- [x] C · contrato semántico y selección por relación — este commit; IA cerrada a enums, relación válida → estructura legal, semántica inválida cae al sorteo
 - [ ] cierre · DESPUÉS, comparación y clon limpio —
 
 Notas de una línea (lo que vi mal y no toqué):
 - El paquete ANTES se reconstruyó desde los fotogramas extraídos del export original; no se volvió a renderizar ni a llamar a red.
+- Solar importa su catálogo local completo (10.55 MB minificados en renderer) para mantener nombres libres sin red; queda medido, no se optimiza dentro de este encargo.

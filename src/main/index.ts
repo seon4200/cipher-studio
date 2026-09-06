@@ -10,11 +10,11 @@ import { fal } from '@fal-ai/client'
 // Re-exportado ademas de importado para que tests/reparto.js alcance la implementacion REAL
 // desde el bundle: una prueba que reimplementara el reparto probaria su copia, no el reparto.
 import { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../shared/reparto'
-import { palabraDelTramo, tieneSignificado, recortarPuntuacion,
+import { palabraDelTramo, palabraIlustrableDelTramo, tieneSignificado, recortarPuntuacion,
   PALABRAS_VACIAS, hayTiemposPorPalabra } from '../shared/palabra'
 // Se re-exportan para que la suite pueda ejercitarlas sobre el BUNDLE COMPILADO en vez de
 // reimplementarlas: una prueba que copiara la regla probaria su copia.
-export { palabraDelTramo, tieneSignificado, recortarPuntuacion, PALABRAS_VACIAS,
+export { palabraDelTramo, palabraIlustrableDelTramo, tieneSignificado, recortarPuntuacion, PALABRAS_VACIAS,
   hayTiemposPorPalabra }
 // Re-exportado para que tests/exclusion.js alcance la implementacion REAL desde el bundle.
 import { excluirSobreVisuales, solapa, SOLAPE_MINIMO_S,
@@ -23,9 +23,13 @@ export { excluirSobreVisuales, solapa, SOLAPE_MINIMO_S, colocarYFiltrarTarjetas,
 import { fraccion, esLegal, divisoresDe, comprobarCiclo, ajustar, cicloValido,
   TOLERANCIA_S } from '../shared/ciclo'
 export { fraccion, esLegal, divisoresDe, comprobarCiclo, ajustar, cicloValido, TOLERANCIA_S }
-import { semillaDe, generador, entre, entero } from '../shared/semilla'
-export { semillaDe, generador, entre, entero }
+import { semillaDe, semillaVisual, generador, entre, entero } from '../shared/semilla'
+export { semillaDe, semillaVisual, generador, entre, entero }
 import { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA } from '../shared/conceptos'
+import { sanearSemanticaVisual } from '../shared/semantica'
+export { sanearSemanticaVisual } from '../shared/semantica'
+import { resolverNombreSolar } from '../shared/iconos-solar'
+export { resolverNombreSolar, normalizarNombreSolar } from '../shared/iconos-solar'
 import { SISTEMAS, type NombreSistema } from '../shared/sistemas'
 export { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA }
 export { SISTEMAS, contraste, coloresCaja, CONTRASTE_MINIMO_CAJA } from '../shared/sistemas'
@@ -52,7 +56,8 @@ export const {
   TIPOGRAFIAS, direccionDesde, combinacionesLegales, direccionDe, densidadDesdeContenido, entradaRitmo,
   DENSIDAD_A_N, RITMOS, acotarPuntos, cabeEnElPie, cabeLaEtiqueta,
   maxCaracteresPie, MAX_CARACTERES_ETIQUETA, FRANJA_TEXTO_Y, MARGEN_CAMARA_PIE_Y, ZONA_X_MIN, ZONA_X_MAX,
-  parametrosDe, instanciasDe, esParFondoCamaraLegal, paresFondoCamaraLegales
+  parametrosDe, instanciasDe, esParFondoCamaraLegal, paresFondoCamaraLegales,
+  catalogoRelaciones, estructurasParaRelacion, direccionParaRelacion
 } = escenaShared
 // SOLO RE-EXPORTACION, para que la suite ejercite el modulo sobre el BUNDLE COMPILADO en vez
 // de reimplementarlo. `avisos.ts` es puro -- sin Electron, sin React, sin fs -- justamente para
@@ -3937,6 +3942,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // El precio es el doble de llamadas, que a este tamaño es ruido frente a perder un lote.
       const BATCH_SIZE = 12;
       let phrasesDecision: any[] = [];
+      let respuestasSemanticasRechazadas = 0;
+      const causasSemantica = new Map<string, number>();
 
       for (let batchStart = 0; batchStart < newAudioSegments.length; batchStart += BATCH_SIZE) {
         const batchEnd = Math.min(batchStart + BATCH_SIZE, newAudioSegments.length);
@@ -4010,22 +4017,18 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         // el ejemplo es de METODO y no de FORMATO, y va con tres objetos distintos para no
         // sugerir uno; aun asi, si la proxima generacion trae calendarios y maletas de mas,
         // la causa es esta linea.
+        // Se derivan en cada llamada del registro real. El modelo recibe enums, no los nombres
+        // ni descripciones internas de las estructuras: decide significado, el motor decide forma.
+        const relacionesPrompt = Object.keys(catalogoRelaciones()).sort().join(', ');
         const lineaConceptos =
-          '- conceptos: EXACTAMENTE 3, en el orden en que aparecen en el trozo. Cada uno con:\n' +
-          '    emoji: UNO solo, y tiene que ser algo FOTOGRAFIABLE: un objeto, una herramienta,\n' +
-          '      un animal, una planta, un vehiculo, un edificio o un lugar.\n' +
-          '      NO valen: banderas, caras, personas, partes del cuerpo, gestos, corazones,\n' +
-          '      simbolos, signos, flechas, relojes de arena ni formas geometricas.\n' +
-          '      Si dudas, elige un objeto.\n' +
-          '    etiqueta: 1 o 2 palabras en español. Nunca 3.\n' +
-          '  Los conceptos son cosas CONCRETAS del trozo, no ideas: "represa", "sequia",\n' +
-          '  "cultivo", "puente" SI; "impacto", "sistema", "consecuencias", "decision",\n' +
-          '  "crisis", "union", "problema", "confusion" NO.\n' +
-          '  SI LA FRASE HABLA DE UNA IDEA O DE UN SENTIMIENTO, no devuelvas la idea: piensa\n' +
-          '  en la ESCENA de la que habla y devuelve lo que se veria en pantalla al filmarla.\n' +
-          '  Ejemplo: "van a ser semanas de emociones contradictorias" no da "confusion";\n' +
-          '  da lo que hay en esa escena -- el calendario, la maleta, el vestuario.\n' +
-          '  Siempre hay algo fisico en la escena: sacalo de ahi.\n';
+          '- semantica: UNA relacion y EXACTAMENTE 3 terminos de una misma idea visual.\n' +
+          '    relacion: usa exactamente uno de estos enums: ' + relacionesPrompt + '.\n' +
+          '    ancla: {icono:"nombre Solar libre en ingles", ic:"emoji respaldo", etiqueta:"1-2 palabras"}.\n' +
+          '    terminos: EXACTAMENTE 3 objetos {icono:"nombre Solar libre en ingles", ic:"emoji respaldo", etiqueta:"1-2 palabras"}.\n' +
+          '  icono nombra un objeto fotografiable; ic es respaldo si Solar no lo resuelve.\n' +
+          '  Los tres terminos deben expresar LA RELACION, no ser tres ideas independientes.\n' +
+          '  Dos terminos iguales solo se permiten si la relacion los compara o encaja.\n' +
+          '  Si el trozo no tiene sujeto ilustrable ni relacion visual, devuelve semantica:null.\n';
 
         const batchPrompt = 'Eres un editor de video experto.\n' +
           'Para cada frase decide como ilustrarla visualmente. Si dura mas de 4.0s divide en 2-3 sub-clips (maximo 3.0s cada uno).\n' +
@@ -4042,9 +4045,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           // modelo copia el ejemplo. Poner aqui tres emojis concretos los anclaria igual.
           // Se describe la forma con marcadores y se deja que el modelo elija el contenido.
           '{"phrases":[{"phraseIndex":' + (batchStart+1) + ',"visualClips":[{"keyword":"protest march","timestamp":12.3,"duration":2.5,' +
-          '"conceptos":[{"emoji":"<emoji1>","etiqueta":"<Palabra1>"},{"emoji":"<emoji2>","etiqueta":"<Palabra2>"},{"emoji":"<emoji3>","etiqueta":"<Palabra3>"}]}]},' +
-          '{"phraseIndex":' + (batchStart+2) + ',"visualClips":[{"keyword":"empty stadium","timestamp":45.0,"duration":2.5,' +
-          '"conceptos":[{"emoji":"<emoji1>","etiqueta":"<Palabra1>"},{"emoji":"<emoji2>","etiqueta":"<Palabra2>"},{"emoji":"<emoji3>","etiqueta":"<Palabra3>"}]}]}]}';
+          '"semantica":{"relacion":"conecta","ancla":{"icono":"megaphone","ic":"📣","etiqueta":"voz"},' +
+          '"terminos":[{"icono":"megaphone","ic":"📣","etiqueta":"voz"},{"icono":"people-nearby","ic":"👥","etiqueta":"marcha"},{"icono":"flag","ic":"🚩","etiqueta":"plaza"}]}}]}]}';
 
         try {
           await logMessage('[FASE 2] Lote ' + Math.ceil((batchStart+1)/BATCH_SIZE) + 
@@ -4075,6 +4077,20 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             }
             const parsed = JSON.parse(content);
             if (Array.isArray(parsed.phrases)) {
+              const candidatas = parsed.phrases.flatMap((p: any) => p?.visualClips ?? p?.clips ?? []);
+              // Una respuesta semantica es atomica: no se mezcla media capa nueva con media
+              // capa vieja. Si una relacion/forma no valida, se descarta ESA capa completa;
+              // keywords y cuotas siguen vivos y el motor vuelve a direccionDe determinista.
+              const invalida = candidatas.find((c: any) => c?.semantica !== null && !sanearSemanticaVisual(c?.semantica));
+              if (invalida) {
+                respuestasSemanticasRechazadas++;
+                const causa = !invalida?.semantica ? 'sin-semantica' : 'semantica-invalida';
+                causasSemantica.set(causa, (causasSemantica.get(causa) ?? 0) + 1);
+                for (const frase of parsed.phrases) {
+                  for (const clip of frase?.visualClips ?? frase?.clips ?? []) delete clip.semantica;
+                }
+                await logMessage(`[FASE 2] SEMANTICA RECHAZADA lote=${Math.ceil((batchStart + 1) / BATCH_SIZE)} causa=${causa}; se usa sorteo determinista.`);
+              }
               phrasesDecision.push(...parsed.phrases);
             }
           } else {
@@ -4100,6 +4116,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       }
 
       // Gráficos se generan por separado con Regenerar Gráficos
+      if (respuestasSemanticasRechazadas) {
+        await logMessage(`[FASE 2] SEMANTICA: ${respuestasSemanticasRechazadas} respuestas rechazadas | ` +
+          Array.from(causasSemantica, ([causa, n]) => `${causa}=${n}`).join(' | '));
+      }
 
       // ── OBSERVABILIDAD DE LOS CONCEPTOS ────────────────────────────────────────────
       //
@@ -4118,6 +4138,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // primera es que el prompt no se entendio, la segunda que se entendio y no cumplio.
       const cLineas: string[] = [];
       let cTotal = 0, cOK = 0, cSinCampo = 0, cInsuficiente = 0;
+      let iconosSolarPedidos = 0, iconosSolarResueltos = 0, iconosSolarRespaldo = 0;
 
       // Pinta un concepto sin fiarse de el. El objeto viene del modelo y puede traer getters
       // hostiles — ya paso con sanearConceptos, que lanzaba hasta que se envolvio la LECTURA.
@@ -4180,7 +4201,22 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           // El try envuelve TODO —incluida la lectura de `c.conceptos`, que puede ejecutar un
           // getter— porque una excepcion aqui mataria FASE 2 entera: 78 sub-clips perdidos por
           // una linea de log seria un intercambio absurdo.
-          const saneados = sanearConceptos(c.conceptos);
+          const sinIlustracion = c.semantica === null;
+          const semantica = sinIlustracion ? null : sanearSemanticaVisual(c.semantica);
+          // Una capa semantica valida proyecta los mismos conceptos que ve escena. Si no viene
+          // o fue rechazada, conserva el contrato historico para que el video siga generando.
+          const saneados = semantica?.terminos ?? sanearConceptos(c.conceptos);
+          if (semantica) {
+            const iconos = [semantica.ancla, ...semantica.terminos];
+            for (const icono of iconos) {
+              iconosSolarPedidos++;
+              if (resolverNombreSolar(icono.icono, icono === semantica.ancla ? 'bold-duotone' : 'linear')) {
+                iconosSolarResueltos++;
+              } else {
+                iconosSolarRespaldo++;
+              }
+            }
+          }
           try {
             cTotal++;
             let crudo: any;
@@ -4207,7 +4243,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             cLineas.push(
               `[FASE 2] CONCEPTOS lote=${lote} pos=${idx}:${ci} ` +
               `kw=${String(c.keyword ?? 'broll').slice(0, 28)} ` +
-              `crudo=${nCrudo < 0 ? 'SIN-CAMPO' : nCrudo} saneado=${saneados ? 'OK' : 'NULL'}  ` +
+              `crudo=${semantica ? 'SEMANTICA' : (nCrudo < 0 ? 'SIN-CAMPO' : nCrudo)} saneado=${saneados ? 'OK' : 'NULL'}  ` +
               `${pintados}  frase="${frase}"`);
           } catch (err) { /* el log jamas puede tumbar FASE 2 */ }
 
@@ -4225,7 +4261,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             // Se reutiliza `saneados`, calculado arriba para el log. Es la MISMA llamada, no una
             // segunda: sanearConceptos es puro, pero llamarlo dos veces pondria la duda de si el
             // log describe lo que de verdad se guarda.
-            conceptos: saneados
+            conceptos: saneados,
+            relacion: semantica?.relacion ?? null,
+            ancla: semantica?.ancla ?? null,
+            sinVisual: sinIlustracion
           };
         });
 
@@ -4280,8 +4319,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         for (const l of cLineas) await logMessage(l);
         await logMessage(
           `[FASE 2] CONCEPTOS: ${cTotal} sub-clips | ${cOK} con 3 validos | ` +
-          `${cSinCampo} NULL causa (a): el campo "conceptos" no venia | ` +
+          `${cSinCampo} NULL causa (a): no vino contenido util | ` +
           `${cInsuficiente} NULL causa (b): venia con <3 validos tras saneo`);
+        await logMessage(`[FASE 2] ICONOS SOLAR: ${iconosSolarResueltos}/${iconosSolarPedidos} resueltos | ` +
+          `${iconosSolarRespaldo} al emoji de respaldo.`);
         // LAS CASILLAS TIENEN QUE CUADRAR. Hoy cuadran por construccion —el if/else de arriba
         // incrementa exactamente un contador en cada camino— pero eso es una propiedad del
         // codigo actual, no una garantia. El dia que alguien añada una cuarta categoria y
@@ -4481,7 +4522,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // ((k+0.5)*total/cantidad), no los primeros: amontonarlos al principio dejaria la
       // segunda mitad del video sin un solo Visual.
       if (objVisual > 0) {
-        const originales = reasignables.filter(j => cuotaLista[j].clip.type === 'original');
+        // La IA puede declarar `semantica:null`: no se fuerza un Visual decorativo sobre un
+        // conector. Ese slot sigue siendo original, que es el respaldo correcto del producto.
+        const originales = reasignables.filter(j =>
+          cuotaLista[j].clip.type === 'original' && !cuotaLista[j].clip.sinVisual);
         const cuantos = Math.min(objVisual, originales.length);
         for (let k = 0; k < cuantos; k++) {
           const pos = Math.min(originales.length - 1,
@@ -4578,6 +4622,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           // lineas mas arriba se sanean y aqui se tiraban, sin error y sin log. El mismo patron
           // que obligo a nombrarlos alli.
           conceptos: subClip.conceptos,
+          relacion: subClip.relacion,
+          ancla: subClip.ancla,
+          sinVisual: subClip.sinVisual,
           // EL ORIGEN PEDIDO Y EL MOTIVO CRUZAN EL APLANADO, y hay que nombrarlos igual que
           // `conceptos`. Es LA MISMA TRAMPA que documenta el comentario de aqui arriba: este
           // push construye objetos NUEVOS con claves a mano, asi que lo anotado sobre el
@@ -4671,7 +4718,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         const n = dur > 4.0 ? Math.ceil(dur / 3.0) : 1;
         const ini = seg ? seg.start + dur * item.clipIndexInPhrase / n : 0;
         const fin = seg ? seg.start + dur * (item.clipIndexInPhrase + 1) / n : 0;
-        return { item, palabra: seg ? palabraDelTramo(seg.words, ini, fin) : null };
+        return { item, palabra: seg ? palabraIlustrableDelTramo(seg.words, ini, fin) : null };
       });
 
       // Sin palabra con significado en su tramo —menos del 1%, medido— el Visual se DESCARTA y
@@ -4706,6 +4753,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             // UNA SOLA CADENA gobierna dibujo, direccion y hash. Resolver la direccion desde el
             // texto sin recortar y hashear el recortado permitiria dos dibujos bajo una clave.
             const value = recortarTexto(x.palabra);
+            const pos = `${x.item.phraseIndex}:${x.item.clipIndexInPhrase}`;
+            const semilla = semillaVisual(value, pos);
             return {
               graphicData: {
                 type: COMPOSICION_VISUAL,
@@ -4723,19 +4772,26 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
                   // Y son phraseIndex/clipIndexInPhrase y no el indice global del timeline:
                   // insertar un clip al principio desplazaria el global y re-renderizaria el
                   // video entero.
-                  pos: `${x.item.phraseIndex}:${x.item.clipIndexInPhrase}`,
+                  pos,
+                  // Misma palabra en dos sub-clips: dos semillas reproducibles y dos claves
+                  // distintas. La semilla se conserva para que main y renderer no rederiven.
+                  semilla,
                   // Ya vienen proyectados a {emoji, etiqueta} por `sanearConceptos`, que es el
                   // UNICO sitio donde vive esa regla. Volver a mapearlos aqui la pondria en dos
                   // lugares — el patron de las dos puertas, que ya ha mordido cuatro veces.
                   // `null` cuando DeepSeek no dio tres validos: la clave se mantiene siempre
                   // presente para que la forma del objeto no cambie segun el caso.
                   conceptos: x.item.conceptos ?? null,
+                  ancla: x.item.ancla ?? null,
+                  relacion: x.item.relacion ?? null,
                   // Se resuelve ANTES del render y viaja dentro de `extra`, que hashGrafico
                   // canoniza completo. Al crecer los registros, una palabra cuya direccion
                   // cambie obtiene otra clave en vez de recibir un MOV viejo con pixeles falsos.
                   // Densidad sale del contenido (no de otro sorteo): se resuelve aqui y viaja
                   // dentro de la direccion hashable para que main y renderer no puedan divergir.
-                  direccion: direccionDe(semillaDe(value), { texto: value, conceptos: x.item.conceptos ?? [] })
+                  direccion: x.item.relacion
+                    ? direccionParaRelacion(semilla, x.item.relacion, { texto: value, conceptos: x.item.conceptos ?? [] })
+                    : direccionDe(semilla, { texto: value, conceptos: x.item.conceptos ?? [] })
                 }
               },
               duracion: x.item.duration
