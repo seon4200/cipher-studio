@@ -4653,7 +4653,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     decisiones = clipsDecision;
     totalClips = flattenedClips.length;
 
-    await logMessage(`[FASE 2] Decisiones de clips listas. Sub-clips totales: ${clipsDecision.length}. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}, Gráficos asignados: ${sanitizedPhrases.filter(p => p.graphic !== null).length}`);
+    await logMessage(`[FASE 2] Decisiones de clips listas. Sub-clips totales: ${clipsDecision.length}. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}, Visuales asignados: ${clipsDecision.filter(c => c.type === 'visual').length}`);
 
     // FASE 3: FFmpeg e IA — generar clips
     await logMessage(`[FASE 3] Generando ${totalClips} clips con FFmpeg, Pexels y fal.ai (IA)...`);
@@ -5372,7 +5372,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         await logMessage(`[FASE 5] Normalización: ${normalized} de ${finalClips.length} clips ajustados para cobertura continua (audio: ${audioTotal.toFixed(2)}s)`);
         currentStart = audioTotal;
 
-    await logMessage(`[generate-timeline-assets] Completado. Clips: ${finalClips.length} (Videos: ${finalClips.filter(c => c.type === 'video').length}, Gráficos: ${finalClips.filter(c => c.type === 'graphic').length})`);
+    // Los Visuales son vídeos de pantalla completa con `category: 'visual'`: entran en el
+    // montaje como vídeo, no como el tipo legado `graphic`. Contar ese tipo daba cero aun
+    // después de renderizar y montar los Visuales, una salida verde con un resumen falso.
+    await logMessage(`[generate-timeline-assets] Completado. Clips: ${finalClips.length} (Videos: ${finalClips.filter(c => c.type === 'video').length}, Visuales: ${finalClips.filter(c => c.category === 'visual').length})`);
     // La generacion llego al final. Si algo lanza antes, esto no se ejecuta y el resumen dira
     // que quedo incompleta -- que es lo que hay que decir.
     completa = true;
