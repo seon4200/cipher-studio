@@ -23,8 +23,14 @@ app.whenReady().then(async()=>{
     if(!graphicData)throw Error('El clip visual no conserva graphicData: '+clip.id)
     const palabra=graphicData.value
     const hash=path.basename(clip.path,'.mp4'),metrica=datos.metricas.find(m=>m.hash===hash)
+    // Un acierto de caché no entra en `metricas`: no hubo render que medir. La duración
+    // del clip sí es la misma entrada que se entregó a renderGraphicClipsLote, y se usa
+    // solo para explorar las centésimas posibles; el hash sigue siendo la autoridad.
+    const centesimasBase=metrica
+      ? Math.round(metrica.totalFrames/30*100)
+      : Math.round(clip.durationSeconds*100)
     let duracionHash=null
-    if(metrica)for(let centesima=Math.floor(metrica.totalFrames/30*100)-2;centesima<=Math.ceil(metrica.totalFrames/30*100)+2;centesima++){
+    for(let centesima=centesimasBase-2;centesima<=centesimasBase+2;centesima++){
       const d=centesima/100
       if(b.hashGrafico(graphicData,1080,1920,d,30,'pantalla',sistema)===hash)duracionHash=d
     }

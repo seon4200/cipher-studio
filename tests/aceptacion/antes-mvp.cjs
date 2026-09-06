@@ -39,7 +39,7 @@ app.whenReady().then(async () => {
     const ctx = c.getContext('2d')
     ctx.fillStyle = '#10141b'; ctx.fillRect(0, 0, c.width, c.height)
     ctx.fillStyle = '#fff'; ctx.font = 'bold 26px Arial'
-    ctx.fillText('ANTES · VIDEO REAL · ESCALA 45%', margen, 38)
+    ctx.fillText(${JSON.stringify(prefijo)} + ' · VIDEO REAL · ESCALA 45%', margen, 38)
     ctx.font = '18px Arial'
     ctx.fillText('1080×1920 → 486×864 · fotogramas extraidos del MP4 exportado · t = 60% del clip (max. 1.5 s)', margen, 70)
     ctx.fillText('Cada celda: frase de Whisper y palabra que decidio el Visual de esa generacion.', margen, 100)

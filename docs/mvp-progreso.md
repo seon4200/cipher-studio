@@ -29,7 +29,7 @@ Encargo: `C:\Users\John Benites\.codex\attachments\1142dc2c-65eb-4775-ad31-6c750
 - [x] A · energía y contraste — pares sorteables legales y caja opaca medida desde el registro compartido
 - [x] B · palabra, iconos Solar y héroe — este commit; la semilla es palabra + posición estable, Solar cae a emoji y el héroe/relación salen del registro
 - [x] C · contrato semántico y selección por relación — este commit; IA cerrada a enums, relación válida → estructura legal, semántica inválida cae al sorteo
-- [ ] cierre · DESPUÉS, comparación y clon limpio —
+- [x] cierre · DESPUÉS, comparación y clon limpio — este commit; MP4, hojas 45%, muestra desenfocada y 9/9 desde clon desechable.
 
 Notas de una línea (lo que vi mal y no toqué):
 - El paquete ANTES se reconstruyó desde los fotogramas extraídos del export original; no se volvió a renderizar ni a llamar a red.
