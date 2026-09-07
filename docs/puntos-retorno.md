@@ -290,3 +290,27 @@ limpio** — se consume.
   imprimir "TODO CORRECTO" y salió en rojo igualmente.
 - **Un bundle viejo miente.** Un arnés falló y tenía razón: el `dist-electron` del
   repo de trabajo era anterior al commit que probaba.
+## `v-spike-proveedores-limpio`
+
+La etiqueta apunta al commit documental que contiene esta nota. Merge `c94cc3f`
+integra el spike limpio de proveedores sin incorporar binarios externos.
+
+**Qué contiene:** documentación del modelo de assets por vídeo, contrato de
+proveedores, manifiesto de evidencia sin binarios, validador offline y política de
+no redistribución. Conserva los resultados de OpenMoji, PNGImages y PurePNG.
+
+**Qué está comprobado:** OpenMoji se obtuvo desde fuente oficial como SVG válido;
+PurePNG produjo una muestra PNG con alpha útil; PNGImages produjo PNG válido sin
+transparencia útil. Cuando las muestras locales están disponibles, el validador
+comprueba SHA, MIME, dimensiones y alpha. El árbol de Git no contiene esos
+binarios externos.
+
+**Qué no está comprobado:** render, Photo Hero, Asset Engine, búsqueda por guion,
+almacenamiento real de proyecto, estructura definitiva del manifiesto,
+Pexels/Pixabay, Wikimedia, ByPeople, removedor de fondo o IA/FLUX.
+
+**Volver aquí:** conserva densidad/Solar y la investigación limpia de proveedores;
+no incorpora ningún motor de imágenes. La ruta `materiales/assets/` es un contrato
+propuesto, pendiente de auditar `project-state.json` y los almacenes existentes.
+
+---

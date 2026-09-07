@@ -26,8 +26,14 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 > saturada 14`; es una medición de esa traza, no una promesa de distribución general.
 > Solar conserva `68/188` como agregado histórico irrecuperable y mide un corpus
 > nuevo, versionado, de 158 solicitudes: `43/158 → 72/158`. No son muestras
-> comparables. El spike de imágenes queda bloqueado hasta recibir los tres assets
-> manuales reales especificados en `docs/spike-hero/`.
+> comparables.
+>
+> **Spike limpio de proveedores (`c94cc3f`).** Se conserva evidencia sin binarios:
+> OpenMoji oficial (SVG válido), PurePNG como muestra secundaria con alpha útil y
+> PNGImages pendiente por alpha no útil. El renderer, Photo Hero y Asset Engine no
+> se implementaron. El flujo por vídeo hacia `materiales/assets/` es una propuesta
+> pendiente de auditar contra `project-state.json` y los almacenes actuales; Git no
+> guarda ni redistribuye assets crudos de terceros.
 >
 > Evidencia real conservada: `tests/aceptacion/mvp-paso7/` documenta un MP4 de
 > producción de `1f1a6cb` con 42 Visuales, 41 palabras y 41 direcciones distintas.

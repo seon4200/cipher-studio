@@ -13,10 +13,12 @@ node docs/spike-hero/validar-provider-assets.cjs --samples-dir "RUTA"
 Sin `--samples-dir`, el validador mira `downloaded/`: informa evidencia registrada
 si la muestra no está, y sólo compara SHA/MIME/dimensiones/alpha cuando la encuentra.
 
-El flujo de producción futuro descarga por necesidad de cada vídeo, valida y guarda
-el archivo bajo `proyectos/<id>/materiales/assets/<provider>/`, junto a un
-`asset-manifest.json` del proyecto. No descarga catálogos completos, no usa Git
-como almacén ni redistribuye binarios de proveedores.
+El flujo de producción **propuesto** descarga por necesidad de cada vídeo, valida y
+guarda el archivo bajo una ubicación del proyecto equivalente a
+`proyectos/<id>/materiales/assets/<provider>/`, con un manifiesto de proyecto. La
+forma y la ruta definitivas quedan pendientes de auditar `project-state.json`,
+`materiales/stock/` y los almacenes existentes. No descarga catálogos completos,
+no usa Git como almacén ni redistribuye binarios de proveedores.
 
 OpenMoji es obligatorio, pero su integración se decidirá como paquete, release,
 repositorio o CDN oficial **pinneado**, no como SVGs copiados manualmente. ByPeople

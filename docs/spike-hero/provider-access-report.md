@@ -45,11 +45,14 @@ La app futura resuelve por vídeo y por necesidad:
 2. Busca en el proyecto y después en `materiales/` existentes.
 3. Consulta proveedores y descarga sólo el asset necesario.
 4. Valida el archivo y guarda metadata.
-5. Lo deja bajo `proyectos/<id>/materiales/assets/<provider>/` y lo registra en
-   `asset-manifest.json` del proyecto.
+5. Lo deja bajo una ubicación de proyecto equivalente a
+   `proyectos/<id>/materiales/assets/<provider>/` y lo registra en un manifiesto
+   de proyecto cuya forma final queda pendiente de auditar la arquitectura actual.
 6. Photo Hero/timeline lo reutilizan dentro del mismo proyecto.
 
-No hay catálogo completo ni `CipherData`. Git conserva código, contratos,
+No hay catálogo completo ni `CipherData`. Esta es una propuesta de flujo, no una
+decisión cerrada de esquema: antes de implementarla se auditan `project-state.json`,
+`materiales/stock/` y los almacenes existentes. Git conserva código, contratos,
 validadores y manifiestos de evidencia; no PNG/JPG/SVG crudos de proveedores.
 OpenMoji se integrará mediante paquete, release, repositorio o CDN oficial
 pinneado. PurePNG es secundario; PNGImages necesita más validación; FFCU no es
