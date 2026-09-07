@@ -2798,3 +2798,56 @@ margen del presupuesto antes de acotar el borde inferior de cada caja. Condició
 deriva, estructura 0.50 / pie 0.20, 1080×1920, t=2.999 s; la deriva relativa
 máxima medida fue 9.72 px hacia abajo. La prueba de ciclo verifica la conversión
 y el borde reservado. No resuelve la vecindad entre cajas: queda para B.
+
+---
+
+## Auditoría de sincronización — 06/09/2026
+
+**Procedencia del estado vivo:** código `44ca34adbcc53c871198e8fddc68543a29a926bf`,
+inventario/MP4 de aceptación `tests/aceptacion/mvp-paso7/` en `1f1a6cb`, y
+corrección de contraste `c7f3777` integrada por el merge `44ca34a`. Esta sección
+no convierte mediciones de una generación en propiedades universales.
+
+### Contraste dominante — CERRADO para la guardia, no para toda la calibración visual
+
+~~Con paleta clara y fondo dominantemente oscuro, el texto podía conservar tinta
+oscura y perderse fuera de la caja.~~ `c7f3777` añade `tonoDominante` y resuelve
+colores de escena por sistema/fondo; `tests/ciclo.js` exige ≥3:1 tanto contra la
+caja opaca como contra el fondo dominante, para las 4 paletas y todos los fondos
+activos. Condición de la guarda: colores declarados opacos; no mide contraste sobre
+fotogramas, contraste entre clips ni peso visual.
+
+### Producción real MVP — observaciones abiertas
+
+En la generación de `1f1a6cb`, proyecto `video-3-1788402898964`, 46 Visuales
+objetivo produjeron 42: 4/46 (8,70%) cayeron por `visual-sin-palabra`, ninguna por
+longitud ni por fallo de dibujo. El mismo export midió 51,524 ms/frame y 1,567
+intentos/frame, con 0 pérdidas y 0 frames aceptados en el quinto intento. Son
+condiciones distintas de la referencia M7 (40,84 ms/frame, 1,644 intentos/frame),
+por lo que no demuestran regresión causal. Evidencia completa: `mvp-paso7/video.json`
+e `INFORME.md`.
+
+La cobertura de banco monta cada pieza, pero no demuestra que la selección aleatoria
+la ejerza con frecuencia útil ni que identidades distintas sean percibidas como
+diseños distintos. Peso visual desigual, tiempo legible, vecindad de cajas, hero
+y contraste entre Visuales consecutivos siguen abiertos.
+
+### Emoji — paridad no resuelta
+
+La comprobación de `mvp-paso7/emoji.json` no encontró tofu en tres glifos, pero
+Chrome 152 y Electron/Chromium 126 renderizan versiones distintas de Segoe UI
+Emoji. Noto Color Emoji no está empaquetada; la paridad visual exacta queda abierta.
+
+### Próxima reevaluación: imágenes/recortes
+
+La Fase 9 no se implementa en esta auditoría. Antes de seguir el orden histórico,
+se decide si la prioridad de producto —motion graphics con imágenes/recortes
+protagonistas— adelanta ese trabajo. Si se abre, conserva los invariantes ya
+escritos: generación fuera del render, `materiales/`, hash de contenido y no ruta,
+`img.decode()` con guarda, data URI, recorte local/BiRefNet y contraste medido.
+
+### Nota de referencia histórica
+
+La etiqueta local y remota `v-fase3-banco` resuelve a `219bdad`, no se mueve. El
+merge del banco que la precede en la historia es `581ac6b`. Esta nota corrige la
+lectura de la cronología sin reescribir ningún tag.

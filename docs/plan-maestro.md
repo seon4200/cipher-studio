@@ -1,5 +1,14 @@
 # PLAN MAESTRO — Motor combinatorio de Visuales
 
+> **Estado auditado al 06/09/2026.** Este plan conserva decisiones de diseño y
+> fases históricas; no es por sí solo un parte de ejecución. El motor activo en
+> `44ca34a` ya usa `visual_escena`, con 17 estructuras, 22 fondos, 16 cámaras,
+> 5 densidades, 5 ritmos, 10 tipografías y 4 paletas por proyecto. Los apartados
+> de Fases 4–8 se actualizaron abajo para reflejar qué se implementó; Fase 9 no se
+> implementa aquí y se reevalúa primero porque el objetivo de producto cambió hacia
+> motion graphics con imágenes/recortes protagonistas. Evidencia: `docs/mvp-progreso.md`
+> y `tests/aceptacion/mvp-paso7/`.
+
 Punto de partida verificado: **`v-paso9-mapa-sin-palabra`** (`757b6cc`).
 Estado y etiquetas al día: ver `avance.md` y `puntos-retorno.md`.
 
@@ -36,25 +45,31 @@ Esta decisión no cierra A.4/A.5 ni certifica legibilidad fuera de la muestra.
 
 # 0 · EL PROBLEMA Y LA SOLUCIÓN
 
-**Lo que funciona:** `mapa`, una composición escrita a mano.
-**El problema:** `mapa` es *una* escena. Añadir escenas a mano **suma**.
+**Origen histórico:** `mapa`, una composición escrita a mano, fue la ruta de
+producción hasta `v-fase4f-interruptor`; queda como referencia de regresión.
+**Estado actual:** `escena` es la ruta de producción. Añadir escenas a mano **suma**.
 **La solución:** una composición **genérica** que combina piezas de vocabularios
-cerrados. Cinco ejes que **multiplican**.
+cerrados. Seis ejes que **multiplican**.
 
 | eje | piezas | estado |
 |---|---|---|
-| estructura | 17 | ✅ aprobadas en lab |
-| fondo | 22 | ✅ aprobados en lab |
-| cámara | 16 | ✅ aprobadas en lab |
-| densidad | 5 | ✅ |
-| ritmo de entrada | 5 | ✅ |
-| paleta · tipografía · acabado | ~20 | ⏳ Fase 8 |
+| estructura | 17 | ✅ implementadas |
+| fondo | 22 | ✅ implementados |
+| cámara | 16 | ✅ implementadas |
+| densidad | 5 | ✅ implementadas |
+| ritmo de entrada | 5 | ✅ implementados |
+| tipografía | 10 | ✅ implementadas |
+| paleta | 4 | ✅ fijada por proyecto; no suma dentro de un vídeo |
+| acabado | 0 | ⬜ no implementado |
 
-**65 piezas → 17 × 22 × 16 × 5 × 5 = 149.600 identidades.**
+**Conteo vigente:** la regla de energía deja 163 pares fondo×cámara. Por tanto
+17 × 163 × 5 × 5 × 10 = **692.750 identidades legales**. Paleta es por vídeo y
+no multiplica sus subclips. El nominal de instancias (618.389.000) no se usa como
+indicador de variedad porque refleja el reparto de rangos de piezas, no percepción.
 
-**La meta se entrega al cerrar la Fase 6.** Las fases 7 a 10 añaden intención
-(que la IA elija un estilo que pegue con el contenido, no más estilos), imágenes y
-formato horizontal.
+La entrega de catálogo ocurrió por el MVP, no siguiendo exactamente el orden
+original. Quedan calibración perceptiva, intención semántica verificable, acabado,
+imágenes y formato horizontal.
 
 ---
 
@@ -120,7 +135,7 @@ compara **con tolerancia**, nunca por igualdad de bytes.
 
 `combinacionesLegales()` devuelve **dos**, y confundirlos ya costó un error de 10×:
 
-- **Identidades** = producto de los cinco ejes. Finito. Impide que todo *se vea
+- **Identidades** = producto de los seis ejes que varían por subclip. Finito. Impide que todo *se vea
   igual*.
 - **Instancias** = dentro de una identidad, la pieza se dibuja distinta según la
   semilla. Impide ver *esta escena exacta* otra vez.
@@ -129,9 +144,9 @@ Hacen falta las dos. Solo con ejes, dos vídeos con la misma combinación salen
 idénticos; solo con rangos, todo se ve igual aunque nunca se repita. **Las
 instancias se suman por combinación, no se multiplican en bloque.**
 
-Medido con una pieza real y una de prueba por eje: **2 identidades, 1.176.000
-instancias.** Un millón de dibujos sobre dos cosas distintas de ver. **Lo que
-multiplica es escribir piezas.**
+El experimento temprano de 2 identidades/1.176.000 instancias queda como
+advertencia histórica: un nominal alto puede describir rangos y no diseños. El
+inventario completo vigente está versionado en `tests/aceptacion/mvp-paso7/inventario.json`.
 
 **El otro techo no es combinatorio, es de coste:** 1.60–1.73 intentos/frame contra
 un listón de 1.30. De ese +0.35, la cámara solo cuesta 0.11.
@@ -205,9 +220,10 @@ export a 1080×1920.
 A.1 (04/09/2026): `deriva` queda en energia 1 tambien en el registro; ver
 `tests/aceptacion/README-a1.md` para amplitudes y evidencia. Esta tabla da
 3x16 + 4x13 + 12x5 + 3x1 = 163 pares legales de fondo/camara; con 17 estructuras,
-5 densidades y 5 ritmos: **69.275 identidades de cinco ejes**, no variedad percibida.
-Si deriva fuese energia 2 serian 151 pares y 64.175. No incluye tipografia ni
-sus compatibilidades. Es proyeccion del catalogo completo, NO repertorio actual.
+5 densidades, 5 ritmos y 10 tipografías: **692.750 identidades de seis ejes**,
+no variedad percibida. Si deriva fuese energía 2 serían 151 pares y 641.750
+identidades. Es el repertorio activo, sin controles de prueba y sin paleta (por
+vídeo).
 
 **5.2 · Tono.** Cada fondo declara `oscuro` o `claro`. **El claro obliga a texto en
 tinta.** Claros: trama tejida, amanecer, comida en familia. **Son el contrapeso.**
@@ -246,7 +262,7 @@ motivo · sale también si aborta · `graphicsDecision` borrado.
 ## PUENTE · El suelo de las pruebas — ✅
 `npm test` con seguro de conteo · arneses versionados · comparador con tolerancia.
 
-## FASE 3 · Las dos herramientas
+## FASE 3 · Banco + hoja — ✅ cerrada; verificador de artefacto diferido
 
 *Escribir una pieza es barato; **mirarla** cuesta un render, y eso se repite 65
 veces. Va **antes** del vocabulario, no después.*
@@ -256,53 +272,58 @@ veces. Va **antes** del vocabulario, no después.*
 - [ ] 3.2 Si falla → se descarta y entra el respaldo que **ya existe**.
 - [ ] 3.3 Reutilizar lo que ya hace `tests/graficos.js`.
 - [ ] 3.4 Dejar el **gancho de medición de píxeles** abierto (lo usa 9.8).
-- [ ] 3.5 **El banco de pruebas**: importa la composición **real** y la monta con
+- [x] 3.5 **El banco de pruebas**: importa la composición **real** y la monta con
       `u` recorriendo el ciclo, **sin lazo de captura ni FFmpeg** (§1.7). Con
       selector de pieza por eje y de semilla.
       **Hecho cuando** cambiar una combinación se ve **sin renderizar un `.mp4`**.
-- [ ] 3.6 **Hoja de contactos**: una rejilla con N combinaciones a la vez. Es lo
+- [x] 3.6 **Hoja de contactos**: una rejilla con N combinaciones a la vez. Es lo
       que convierte "mirar 65 piezas" en mirar una imagen. Y con ella se calibra
       `pasos`, hoy inflado.
 - [ ] 3.7 **Medir la pendiente**, no el desnivel: densidad baja contra alta.
 
-## FASE 4 · El vocabulario mínimo
+## FASE 4 · El vocabulario mínimo — ✅ superada por el catálogo completo
 
-- [ ] 4.1 Cuatro estructuras muy distintas: **mundo isométrico**, **cascada**,
+Los objetivos mínimos siguientes quedaron cubiertos por el catálogo completo y el
+interruptor; los ajustes de calibración siguen abiertos en la deuda.
+
+- [x] 4.1 Cuatro estructuras muy distintas: **mundo isométrico**, **cascada**,
       **línea de tiempo**, **constelación**, cada una con `minConceptos` y
       `presupuestoTexto`.
-- [ ] 4.2 Cuatro fondos que cubren los cuatro casos: **ondas** (neutro), **malla**
+- [x] 4.2 Cuatro fondos que cubren los cuatro casos: **ondas** (neutro), **malla**
       (medio), **amanecer** (claro), **multitud** (temático).
-- [ ] 4.3 Las 16 cámaras con sus factores por capa.
-- [ ] 4.4 La regla de energía como filtro.
+- [x] 4.3 Las 16 cámaras con sus factores por capa.
+- [x] 4.4 La regla de energía como filtro.
 - [ ] 4.5 Ajustes: **lluvia de datos a pantalla completa**; **revisar amplitud de
       temblor y saltos**; **subir el contraste de los anillos**, hoy casi
       invisibles; **los decoradores se leen como polvo**, no como densidad.
-- [ ] 4.6 **Mover el interruptor**: `COMPOSICION_VISUAL` → `'visual_escena'`, en
+- [x] 4.6 **Mover el interruptor**: `COMPOSICION_VISUAL` → `'visual_escena'`, en
       commit aislado.
 
-**Hecho cuando:** ≥256 identidades, la hoja de contactos mirada, un vídeo real con
-≥20 Visuales distintos, coste dentro del listón, suites verdes.
+**Criterio histórico:** ≥256 identidades, la hoja de contactos mirada, un vídeo
+real con ≥20 Visuales distintos, coste dentro del listón, suites verdes. El catálogo
+y el vídeo de aceptación sí existen; el coste comparable y la revisión perceptual
+siguen abiertos y no se reclaman como cierre de calidad.
 
-## FASE 5 · Densidad y ritmo
+## FASE 5 · Densidad y ritmo — ✅ implementada
 
-- [ ] 5.1 Cinco densidades, con las piezas **adaptándose**.
-- [ ] 5.2 Densidad **derivada del contenido**, no de la semilla.
-- [ ] 5.3 Cinco ritmos que reparten instantes de entrada.
-- [ ] 5.4 **Cada ritmo pasa por `ajustar()`**.
+- [x] 5.1 Cinco densidades, con adaptación declarada.
+- [x] 5.2 Densidad **derivada del contenido**, no de la semilla.
+- [x] 5.3 Cinco ritmos que reparten instantes de entrada.
+- [x] 5.4 **Cada ritmo pasa por `ajustar()`**.
 
-## FASE 6 · El resto del vocabulario — **aquí se entrega la meta**
+## FASE 6 · El resto del vocabulario — ✅ piezas portadas; calibración pendiente
 
 *Antes de abrirla: cerrar los 1.154 huérfanos.*
 *Unidad de paso: **un lote de 3-4 piezas + su hoja de contactos**, no una pieza.*
 
-- [ ] 6.1 Las 13 estructuras restantes.
-- [ ] 6.2 Los 18 fondos restantes.
+- [x] 6.1 Las 13 estructuras restantes.
+- [x] 6.2 Los 18 fondos restantes.
 - [ ] 6.3 **Prueba de variedad, por eje.** Sobre 40 escenas seguidas, contar
       repeticiones **de cada eje por separado**. Umbral: no más de dos seguidas
       iguales en ningún eje, y ninguna pieza por encima del 25 %.
 - [ ] 6.4 Una medición: bundle antes/después y ms de arranque.
 
-## FASE 7 · La IA elige
+## FASE 7 · La IA elige — 🟨 contrato y relación implementados
 
 Lote de 12 **antes del render** · salida en **enums, no en prosa**, con la
 `descripcion` de cada pieza viviendo en el código para que el prompt **se derive
@@ -310,13 +331,13 @@ del vocabulario** · dirección macro por vídeo con modelo mejor · capa de cor
 que **corrige, no solo avisa** · **fallback determinista por semilla** · banco por
 concepto · `direccion` entra por `extra` → hash.
 
-## FASE 8 · Los moduladores
+## FASE 8 · Los moduladores — 🟨 paleta y tipografía implementadas; acabado pendiente
 
 Paleta (~8) con etiqueta de tono — **que el acento se relacione con el héroe**;
 tipografía (~7) con compatibilidad por estructura; acabado (~5) como **eje
 propio**; y **medir el blur antes de comprometerse**, en **intentos/frame**.
 
-## FASE 9 · Imágenes
+## FASE 9 · Imágenes — ⬜ antes, reevaluar prioridad de producto
 
 Generación **fuera del render**, en `materiales/` · **al hash entra el hash del
 contenido**, nunca la ruta · regenerar es **acción explícita** · `img.decode()` con

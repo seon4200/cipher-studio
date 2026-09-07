@@ -4,10 +4,10 @@ Adendas: conversación de esta tarea — «ADENDA 1 AL ENCARGO» y «ancla contr
 
 - [x] 1 · cerrar A.5 y A.6 — comprobado en `7bb62c7`, `53005aa`
 - [x] 2 · B.1 contrato — `d754bf3`, `946b8cf` · tag `v-mvp-contrato`
-- [x] 3 · las 43 piezas — implementadas y verificadas en este commit
-- [x] 4 · las 4 paletas por vídeo — selección estable por proyecto y hash encadenado
-- [x] 5 · las ~8 tipografías — 10 familias locales, métricas y SHA-256 versionados
-- [x] 6 · densidades y ritmos — densidad derivada del contenido; cinco perfiles legales del ciclo
+- [x] 3 · las 43 piezas — `260198f` · catálogo completo implementado y cubierto por banco
+- [x] 4 · las 4 paletas por vídeo — `f663dd5` · selección estable por proyecto y hash encadenado
+- [x] 5 · las ~8 tipografías — `25de943` · 10 familias locales, métricas y SHA-256 versionados
+- [x] 6 · densidades y ritmos — `215b5f7` · densidad derivada del contenido; cinco perfiles legales del ciclo
 - [x] 7 · dejarlo usable (a…g) — merge `d4e11ce` (versión 9), mix `1f1a6cb`, vídeo real con 42 Visuales; evidencia e incidencias en `tests/aceptacion/mvp-paso7/INFORME.md`.
 
 Notas de una línea (lo que vi mal y no toqué):
@@ -17,7 +17,7 @@ Notas de una línea (lo que vi mal y no toqué):
 - Emoji: Chrome 152 y Electron/Chromium 126 usan Segoe UI Emoji, pero dibujan versiones distintas; tres glifos comprobados, ninguno tofu.
 - Tamaño de etiqueta y proximidad/solape entre vecinos siguen pendientes; una captura por pieza no certifica todos los contenidos.
 - Peso visual desigual: cristales/rayosImpacto dominan; ranura del héroe y tiempo legible no calibrados.
-- Contraste: clinico/calido con ondas muestran tinta oscura sobre cajas oscuras; visible en cobertura-sistema-45pct.png, sin corregir.
+- ~~Contraste: clinico/calido con ondas muestran tinta oscura sobre cajas oscuras.~~ Corregido por `c7f3777` y merge `44ca34a`; `tests/ciclo.js` exige ≥3:1 contra caja y fondo dominante para 4 paletas × fondos activos.
 - Contraste entre Visuales consecutivos y fidelidad completa en movimiento quedan sin calibrar; no se confunden 41 identidades distintas con 41 diseños percibidos.
 - El 4% es un umbral geométrico de ingeniería, no perceptual; la distancia implementada es media con emparejamiento voraz, no un mínimo global.
 

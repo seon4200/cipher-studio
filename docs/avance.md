@@ -3,29 +3,56 @@
 **Regla:** un punto solo se marca ✅ con **evidencia** — hash del commit, suites
 verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho".
 
+> **Estado auditado al 06/09/2026 — este bloque manda sobre el texto histórico
+> inferior.** El código está en `44ca34a`: `COMPOSICION_VISUAL='visual_escena'`
+> y `VERSION_PLANTILLAS=11` (`src/main/index.ts:1081,4724`). El catálogo activo
+> contiene 17 estructuras, 22 fondos, 16 cámaras, 5 densidades, 5 ritmos y 10
+> tipografías (`src/shared/escena.ts:281–971`). `combinacionesLegales()` devuelve
+> 692.750 identidades legales; las 618.389.000 instancias nominales no son una
+> medida de variedad percibida. Procedencia: `tests/aceptacion/mvp-paso7/inventario.json`
+> de `1f1a6cb`.
+>
+> Fases reales: 0–3 cerradas; el catálogo completo, densidad/ritmo y el
+> interruptor se implementaron en los commits MVP (`260198f`–`d4e11ce`);
+> selección semántica parcial en `16bf7a6`; paletas por proyecto y diez
+> tipografías implementadas. La Fase 9 de imágenes sigue sin implementar y debe
+> reevaluarse antes de continuar el plan antiguo: la prioridad de producto ahora
+> son motion graphics con recortes/imágenes protagonistas. No se inicia aquí.
+>
+> Evidencia real conservada: `tests/aceptacion/mvp-paso7/` documenta un MP4 de
+> producción de `1f1a6cb` con 42 Visuales, 41 palabras y 41 direcciones distintas.
+> Prueba que el camino funcionó entonces; no certifica variedad perceptual ni una
+> nueva generación después de `44ca34a`. El contraste global se corrigió en
+> `c7f3777` y está guardado por ≥3:1 contra caja y fondo dominante en `tests/ciclo.js`.
+>
+> Sigue abierto: separación entre cajas vecinas, tamaño de etiqueta, coste y
+> respaldo de producción, paridad emoji, peso/tiempo/variedad perceptiva y los
+> 1.154 huérfanos. El peor par admisible solapa 95,169543% de la caja menor incluso
+> a tamaño base (`tests/aceptacion/plan-a3-peor-par-cero-20260905/solapes.json`).
+
 ---
 
 ## Resumen
 
 | fase | tema | avance |
 |---|---|---|
-| — | Diseño del vocabulario | ✅ 5 de 8 ejes · 65 piezas |
+| — | Diseño e implementación del vocabulario | ✅ 6 ejes activos · 75 piezas de registro |
 | **0** | Preparar el terreno | ✅ 4/4 |
 | **1** | El esqueleto | ✅ 10/10 · `v-fase1-escena-inactiva` |
 | **2** | Hacer visibles los fallos | ✅ 4/4 · `v-fase2-avisos` |
 | **puente** | El suelo de las pruebas | ✅ · `v-puente-suelo` (`4157e0c`) |
 | **3** | Banco + hoja de contactos | ✅ 2/2 · `v-fase3-hoja` |
-| 4 | Vocabulario mínimo | 🟨 · interruptor activo desde `v-fase4f-interruptor` (`8f7004c`) |
-| 5 | Densidad y ritmo | ⬜ 0/4 |
-| 6 | Resto del vocabulario | ⬜ 0/4 · **aquí se entrega la meta** |
-| 7 | La IA elige | ⬜ 0/7 |
-| 8 | Moduladores | ⬜ 0/4 |
+| 4 | Vocabulario + interruptor | ✅ catálogo completo e interruptor activo |
+| 5 | Densidad y ritmo | ✅ cinco perfiles, densidad derivada del contenido |
+| 6 | Resto del vocabulario | ✅ piezas portadas; calibración perceptiva pendiente |
+| 7 | La IA elige | 🟨 relación/contrato/fallback implementados; calidad no certificada |
+| 8 | Moduladores | 🟨 4 paletas por proyecto + 10 tipografías; sin acabado |
 | 9 | Imágenes | ⬜ 0/8 |
 | 10 | YouTube 16:9 | ⬜ 0/4 |
 
-**La meta —variedad casi ilimitada— se entrega al cerrar la Fase 6.**
-El tramo es 1 → 2 → 3 → 4 → 5 → 6. Las fases 7 a 10 añaden intención, color,
-imágenes y formato horizontal: cosas distintas, no más variedad.
+El texto posterior conserva el plan y sus mediciones intermedias. Las marcas `0/…`,
+versiones 8 y frases como "siguiente: Fase 4" que no hayan sido corregidas son
+históricas; no describen el estado auditado de arriba.
 
 ---
 
@@ -38,7 +65,8 @@ capas con cámara, `direccionDe(semilla)`, ranura de héroe reservada, `cqmin` c
 instancia y `combinacionesLegales()` devolviendo **dos** números.
 
 El interruptor es `COMPOSICION_VISUAL` en `src/main/index.ts`, hoy `'visual_escena'`.
-La direccion entra en `extra` y en el hash desde `v-fase4f-interruptor`; version 8.
+La dirección entra en `extra` y en el hash desde `v-fase4f-interruptor`; la versión
+vigente es 11 tras los merges `d4e11ce` (9), `16bf7a6` (10) y `44ca34a` (11).
 A.0 incorporo el lote `84062d7` con merge `d0dae0d`: tres estructuras de prueba,
 fuera del sorteo. El plan A-F posterior se trabaja en `plan-A-cajas`; A no esta cerrada.
 
@@ -62,8 +90,9 @@ producción.
 
 ## Recuento operativo
 
-**48 identidades legales.** Procedencia: contador del bundle en A.1,
-`825b8d3`, repertorio de escena con energía de deriva=1.
+**692.750 identidades legales.** Procedencia: inventario de `1f1a6cb`, sobre el
+catálogo completo y la regla de energía actual: 163 pares fondo×cámara × 17
+estructuras × 5 densidades × 5 ritmos × 10 tipografías.
 No se cita el nominal de instancias como cabecera: su reparto por par y el
 instrumento están en deuda-graficos.md y en desglosar-instancias-a2.cjs,
 incorporados por `ea741c3`. La cifra nominal no acredita variedad perceptible
@@ -75,7 +104,7 @@ sorteos desde el bundle (tipografia ultima), no salidas congeladas del catalogo.
 Capturas: `tests/aceptacion/tono-oscuro-claro.png`, `trama-tejida-lab-pieza.png` y las tres
 `capas-pareja-*.png`. El grano mas marcado y la calibracion pendiente estan documentados.
 Aquella etiqueta tenia `visual_mapa`; el interruptor se movio despues, en `8f7004c`.
-Hoy `COMPOSICION_VISUAL='visual_escena'` y `VERSION_PLANTILLAS=8`.
+Hoy `COMPOSICION_VISUAL='visual_escena'` y `VERSION_PLANTILLAS=11`.
 
 **Coste vigente (A.0, condiciones y JSON en `tests/rendimiento/README-m7.md`):**
 40,84 ms/frame y 1,644 intentos/frame en regimen; seis clips completos, 0/540
@@ -116,13 +145,14 @@ deja de mirar una por una: antes de la Fase 6, cuando entran 31 piezas por lotes
 *El antiguo punto 3.0 (determinismo del render) se retiró: resultó no ser
 bloqueante. Ver `puntos-retorno.md`.*
 
-**Siguiente:** Fase 4, vocabulario mínimo e interruptor todavía separado.
+**Siguiente:** decidir si la prioridad de imágenes/recortes adelanta la Fase 9;
+no iniciar implementación desde este documento. La calibración de disposición de
+cajas sigue siendo deuda independiente.
 
 ## Fases 4 a 10
 
 Ver `plan-maestro.md`.
-**4 (0/6)** las piezas · **5 (0/4)** densidad y ritmo · **6 (0/4) la meta** ·
-7 (0/7) la IA · 8 (0/4) moduladores · 9 (0/8) imágenes · 10 (0/4) YouTube.
+El resumen auditado de arriba sustituye estos contadores históricos.
 
 ---
 
@@ -150,7 +180,7 @@ Las **tarjetas de gráficos solo salen si se piden a mano**, desde junio y por
 diseño (`fc4313a` movió esa vía a `regenerate-graphics`). ¿Se quiere que vuelvan a
 salir solas durante la generación? Sería una fase propia.
 
-### Plan A.2 — ancho de cajas (05/09/2026, sin merge)
+### Registro histórico del Plan A — ancho de cajas (05/09/2026)
 
 Cota por fuente y ranura de emoji compartidas por CSS y aritmética. Archivo 700:
 24 @ reales = 897,67 px; presupuesto = 898,94 px; zona = 900,07 px.

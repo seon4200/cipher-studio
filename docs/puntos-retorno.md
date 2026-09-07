@@ -4,6 +4,34 @@ Etiquetas a las que se puede volver, y qué está probado de cada una.
 
 ---
 
+## `v-visuales-produccion-usable`
+
+**`44ca34adbcc53c871198e8fddc68543a29a926bf`** · merge de
+`ajuste-contraste-global` (`c7f3777`). Es el punto de retorno funcional auditado
+antes de sincronizar la documentación con GitHub.
+
+**Qué contiene.** `visual_escena` es la composición de producción;
+`VERSION_PLANTILLAS=11`; hay 17 estructuras, 22 fondos, 16 cámaras, 5 densidades,
+5 ritmos, 10 tipografías y 4 paletas por proyecto. Incluye el catálogo completo,
+selección semántica/relación con respaldo determinista, la dirección en el hash y
+la corrección de contraste global. La evidencia de producción versionada más
+cercana es `tests/aceptacion/mvp-paso7/`: 42 Visuales en un MP4 real de `1f1a6cb`.
+
+**Qué está comprobado.** El catálogo y las guardias están cubiertos por las suites;
+el MP4 citado prueba que el camino real funcionó en ese commit. El cambio de
+contraste está protegido por la guardia 3:1 contra caja y fondo dominante.
+
+**Qué NO está comprobado.** No hay una generación real nueva específica de
+`44ca34a`; no se certifican variedad perceptual, legibilidad/vecindad de todas las
+cajas, coste en las mismas condiciones de la referencia, paridad exacta de emoji
+ni calidad semántica humana. Imágenes/recortes, acabado y 16:9 quedan fuera.
+
+**Volver aquí:** conserva el motor activo y todo el trabajo funcional posterior a
+`v-fase3-banco`; se perderían los commits posteriores de documentación/sincronía,
+no el código del motor. La etiqueta no mueve ninguno de los checkpoints previos.
+
+---
+
 ## `v-antes-del-interruptor`
 
 **`94685f2c9097d5afcb64342d4eff7b3210b4f7e7`** · ultimo `master` con
