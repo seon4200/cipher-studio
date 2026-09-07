@@ -4217,22 +4217,24 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           // Una capa semantica valida proyecta los mismos conceptos que ve escena. Si no viene
           // o fue rechazada, conserva el contrato historico para que el video siga generando.
           const saneados = semantica?.terminos ?? sanearConceptos(c.conceptos);
-          if (semantica) {
-            const iconos = [semantica.ancla, ...semantica.terminos];
-            for (const [indiceIcono, icono] of iconos.entries()) {
-              iconosSolarPedidos++;
-              const estilo = icono === semantica.ancla ? 'bold-duotone' : 'linear';
-              const resolucion = resolverSolarDetallado(icono.icono, estilo);
-              if (resolucion.resultado) {
-                iconosSolarResueltos++;
-              } else {
-                iconosSolarRespaldo++;
-              }
-              cLineas.push(`[FASE 2] SOLAR pos=${idx}:${ci} papel=${indiceIcono === 0 ? 'ancla' : 'termino'} ` +
-                `solicitado=${JSON.stringify(resolucion.solicitado)} canonico=${JSON.stringify(resolucion.candidatoCanonico)} ` +
-                `candidatos=${JSON.stringify(resolucion.candidatos)} decision=${resolucion.resultado ?? 'emoji'} ` +
-                `motivo=${resolucion.motivo}`);
+          // La traza cubre tanto la semántica nueva como el contrato histórico: si solo se
+          // midiera la primera, un fallback de conceptos podría volver a inventar nombres sin
+          // dejar evidencia de la petición ni del emoji usado.
+          const iconosTrazables = semantica ? [semantica.ancla, ...semantica.terminos] : (saneados ?? []);
+          for (const [indiceIcono, icono] of iconosTrazables.entries()) {
+            iconosSolarPedidos++;
+            const esAncla = Boolean(semantica) && indiceIcono === 0;
+            const estilo = esAncla ? 'bold-duotone' : 'linear';
+            const resolucion = resolverSolarDetallado(icono.icono, estilo);
+            if (resolucion.resultado) {
+              iconosSolarResueltos++;
+            } else {
+              iconosSolarRespaldo++;
             }
+            cLineas.push(`[FASE 2] SOLAR pos=${idx}:${ci} papel=${esAncla ? 'ancla' : semantica ? 'termino' : 'concepto-respaldo'} ` +
+              `solicitado=${JSON.stringify(resolucion.solicitado)} canonico=${JSON.stringify(resolucion.candidatoCanonico)} ` +
+              `candidatos=${JSON.stringify(resolucion.candidatos)} decision=${resolucion.resultado ?? 'emoji'} ` +
+              `motivo=${resolucion.motivo}`);
           }
           try {
             cTotal++;

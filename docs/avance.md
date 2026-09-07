@@ -3,9 +3,10 @@
 **Regla:** un punto solo se marca ✅ con **evidencia** — hash del commit, suites
 verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho".
 
-> **Estado auditado al 06/09/2026 — este bloque manda sobre el texto histórico
-> inferior.** El código está en `44ca34a`: `COMPOSICION_VISUAL='visual_escena'`
-> y `VERSION_PLANTILLAS=11` (`src/main/index.ts:1081,4724`). El catálogo activo
+> **Estado auditado al 07/09/2026 — este bloque manda sobre el texto histórico
+> inferior.** El candidato de merge `5388088` conserva `COMPOSICION_VISUAL='visual_escena'`
+> y sube `VERSION_PLANTILLAS=12` por el cambio de resolución Solar que puede mover
+> píxeles de `extra` ya existente. El catálogo activo
 > contiene 17 estructuras, 22 fondos, 16 cámaras, 5 densidades, 5 ritmos y 10
 > tipografías (`src/shared/escena.ts:281–971`). `combinacionesLegales()` devuelve
 > 692.750 identidades legales; las 618.389.000 instancias nominales no son una
@@ -18,6 +19,15 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 > tipografías implementadas. La Fase 9 de imágenes sigue sin implementar y debe
 > reevaluarse antes de continuar el plan antiguo: la prioridad de producto ahora
 > son motion graphics con recortes/imágenes protagonistas. No se inicia aquí.
+>
+> **Densidad y Solar (candidato `5388088`).** La densidad deja de partir de tres
+> conceptos fijos: deriva de frase, palabra y etiquetas. En la traza real de 42
+> Visuales de `mvp-paso7`, `alta 42` se recalcula como `media 2 · alta 26 ·
+> saturada 14`; es una medición de esa traza, no una promesa de distribución general.
+> Solar conserva `68/188` como agregado histórico irrecuperable y mide un corpus
+> nuevo, versionado, de 158 solicitudes: `43/158 → 72/158`. No son muestras
+> comparables. El spike de imágenes queda bloqueado hasta recibir los tres assets
+> manuales reales especificados en `docs/spike-hero/`.
 >
 > Evidencia real conservada: `tests/aceptacion/mvp-paso7/` documenta un MP4 de
 > producción de `1f1a6cb` con 42 Visuales, 41 palabras y 41 direcciones distintas.
@@ -104,7 +114,8 @@ sorteos desde el bundle (tipografia ultima), no salidas congeladas del catalogo.
 Capturas: `tests/aceptacion/tono-oscuro-claro.png`, `trama-tejida-lab-pieza.png` y las tres
 `capas-pareja-*.png`. El grano mas marcado y la calibracion pendiente estan documentados.
 Aquella etiqueta tenia `visual_mapa`; el interruptor se movio despues, en `8f7004c`.
-Hoy `COMPOSICION_VISUAL='visual_escena'` y `VERSION_PLANTILLAS=11`.
+Hoy `COMPOSICION_VISUAL='visual_escena'`; el candidato `5388088` lleva
+`VERSION_PLANTILLAS=12`.
 
 **Coste vigente (A.0, condiciones y JSON en `tests/rendimiento/README-m7.md`):**
 40,84 ms/frame y 1,644 intentos/frame en regimen; seis clips completos, 0/540
