@@ -1,0 +1,1431 @@
+{
+  "solicitudes": [
+    {
+      "visual": "visual-1",
+      "palabra": "termodinámica",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "broken-glass",
+      "etiqueta": "caos",
+      "emojiRespaldo": "💥"
+    },
+    {
+      "visual": "visual-1",
+      "palabra": "termodinámica",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "broken-glass",
+      "etiqueta": "caos",
+      "emojiRespaldo": "💥"
+    },
+    {
+      "visual": "visual-1",
+      "palabra": "termodinámica",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "scattered-papers",
+      "etiqueta": "desorden",
+      "emojiRespaldo": "📄"
+    },
+    {
+      "visual": "visual-1",
+      "palabra": "termodinámica",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "spilled-liquid",
+      "etiqueta": "derrame",
+      "emojiRespaldo": "💧"
+    },
+    {
+      "visual": "visual-3",
+      "palabra": "complejos",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "network-nodes",
+      "etiqueta": "red",
+      "emojiRespaldo": "🕸️"
+    },
+    {
+      "visual": "visual-3",
+      "palabra": "complejos",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "network-nodes",
+      "etiqueta": "red",
+      "emojiRespaldo": "🕸️"
+    },
+    {
+      "visual": "visual-3",
+      "palabra": "complejos",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "tangled-wires",
+      "etiqueta": "enredo",
+      "emojiRespaldo": "🔌"
+    },
+    {
+      "visual": "visual-3",
+      "palabra": "complejos",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "swarm",
+      "etiqueta": "enjambre",
+      "emojiRespaldo": "🐝"
+    },
+    {
+      "visual": "visual-5",
+      "palabra": "desperarse",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "galaxy",
+      "etiqueta": "universo",
+      "emojiRespaldo": "🌌"
+    },
+    {
+      "visual": "visual-5",
+      "palabra": "desperarse",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "galaxy",
+      "etiqueta": "universo",
+      "emojiRespaldo": "🌌"
+    },
+    {
+      "visual": "visual-5",
+      "palabra": "desperarse",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "scattered-stars",
+      "etiqueta": "estrellas",
+      "emojiRespaldo": "✨"
+    },
+    {
+      "visual": "visual-5",
+      "palabra": "desperarse",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "debris",
+      "etiqueta": "escombros",
+      "emojiRespaldo": "🪨"
+    },
+    {
+      "visual": "visual-8",
+      "palabra": "sincronización",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "flock-birds",
+      "etiqueta": "bandada",
+      "emojiRespaldo": "🐦"
+    },
+    {
+      "visual": "visual-8",
+      "palabra": "sincronización",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "flock-birds",
+      "etiqueta": "bandada",
+      "emojiRespaldo": "🐦"
+    },
+    {
+      "visual": "visual-8",
+      "palabra": "sincronización",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "school-fish",
+      "etiqueta": "cardumen",
+      "emojiRespaldo": "🐟"
+    },
+    {
+      "visual": "visual-8",
+      "palabra": "sincronización",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "swarm-bees",
+      "etiqueta": "enjambre",
+      "emojiRespaldo": "🐝"
+    },
+    {
+      "visual": "visual-11",
+      "palabra": "luciérnagas",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "heart",
+      "etiqueta": "corazón",
+      "emojiRespaldo": "❤️"
+    },
+    {
+      "visual": "visual-11",
+      "palabra": "luciérnagas",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "heart",
+      "etiqueta": "corazón",
+      "emojiRespaldo": "❤️"
+    },
+    {
+      "visual": "visual-11",
+      "palabra": "luciérnagas",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "pulse",
+      "etiqueta": "pulso",
+      "emojiRespaldo": "📈"
+    },
+    {
+      "visual": "visual-11",
+      "palabra": "luciérnagas",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "stethoscope",
+      "etiqueta": "latido",
+      "emojiRespaldo": "🩺"
+    },
+    {
+      "visual": "visual-13",
+      "palabra": "tendencia",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "leaf",
+      "etiqueta": "naturaleza",
+      "emojiRespaldo": "🍃"
+    },
+    {
+      "visual": "visual-13",
+      "palabra": "tendencia",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "leaf",
+      "etiqueta": "naturaleza",
+      "emojiRespaldo": "🍃"
+    },
+    {
+      "visual": "visual-13",
+      "palabra": "tendencia",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "decay",
+      "etiqueta": "decadencia",
+      "emojiRespaldo": "🍂"
+    },
+    {
+      "visual": "visual-13",
+      "palabra": "tendencia",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "erosion",
+      "etiqueta": "erosión",
+      "emojiRespaldo": "🏜️"
+    },
+    {
+      "visual": "visual-15",
+      "palabra": "inauguró",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "london-bridge",
+      "etiqueta": "Londres",
+      "emojiRespaldo": "🏙️"
+    },
+    {
+      "visual": "visual-15",
+      "palabra": "inauguró",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "london-bridge",
+      "etiqueta": "Londres",
+      "emojiRespaldo": "🏙️"
+    },
+    {
+      "visual": "visual-15",
+      "palabra": "inauguró",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "river-thames",
+      "etiqueta": "Támesis",
+      "emojiRespaldo": "🌊"
+    },
+    {
+      "visual": "visual-15",
+      "palabra": "inauguró",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "pedestrians",
+      "etiqueta": "peatones",
+      "emojiRespaldo": "🚶"
+    },
+    {
+      "visual": "visual-18",
+      "palabra": "acumulaba",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "people-nearby",
+      "etiqueta": "multitud",
+      "emojiRespaldo": "👥"
+    },
+    {
+      "visual": "visual-18",
+      "palabra": "acumulaba",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-18",
+      "palabra": "acumulaba",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "queue",
+      "etiqueta": "fila",
+      "emojiRespaldo": "🚶"
+    },
+    {
+      "visual": "visual-20",
+      "palabra": "restringir",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "police",
+      "etiqueta": "policía",
+      "emojiRespaldo": "👮"
+    },
+    {
+      "visual": "visual-20",
+      "palabra": "restringir",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "barrier",
+      "etiqueta": "barrera",
+      "emojiRespaldo": "🚧"
+    },
+    {
+      "visual": "visual-20",
+      "palabra": "restringir",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-22",
+      "palabra": "tambaleo",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-22",
+      "palabra": "tambaleo",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "swing",
+      "etiqueta": "balanceo",
+      "emojiRespaldo": "↔️"
+    },
+    {
+      "visual": "visual-22",
+      "palabra": "tambaleo",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "crowd",
+      "etiqueta": "multitud",
+      "emojiRespaldo": "👥"
+    },
+    {
+      "visual": "visual-24",
+      "palabra": "costado",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-24",
+      "palabra": "costado",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "closed-sign",
+      "etiqueta": "cerrado",
+      "emojiRespaldo": "⛔"
+    },
+    {
+      "visual": "visual-24",
+      "palabra": "costado",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "barrier",
+      "etiqueta": "barrera",
+      "emojiRespaldo": "🚧"
+    },
+    {
+      "visual": "visual-26",
+      "palabra": "clausurado",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "calendar",
+      "etiqueta": "años",
+      "emojiRespaldo": "📅"
+    },
+    {
+      "visual": "visual-26",
+      "palabra": "clausurado",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-26",
+      "palabra": "clausurado",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "closed-sign",
+      "etiqueta": "cerrado",
+      "emojiRespaldo": "⛔"
+    },
+    {
+      "visual": "visual-28",
+      "palabra": "tiempo",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "clock",
+      "etiqueta": "tiempo",
+      "emojiRespaldo": "🕰️"
+    },
+    {
+      "visual": "visual-28",
+      "palabra": "tiempo",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "book",
+      "etiqueta": "saber",
+      "emojiRespaldo": "📖"
+    },
+    {
+      "visual": "visual-28",
+      "palabra": "tiempo",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-30",
+      "palabra": "puentes",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "soldier",
+      "etiqueta": "soldado",
+      "emojiRespaldo": "🪖"
+    },
+    {
+      "visual": "visual-30",
+      "palabra": "puentes",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-30",
+      "palabra": "puentes",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "footsteps",
+      "etiqueta": "pasos",
+      "emojiRespaldo": "👣"
+    },
+    {
+      "visual": "visual-32",
+      "palabra": "marcharon",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-32",
+      "palabra": "marcharon",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "soldier",
+      "etiqueta": "soldado",
+      "emojiRespaldo": "🪖"
+    },
+    {
+      "visual": "visual-32",
+      "palabra": "marcharon",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-32",
+      "palabra": "marcharon",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "march",
+      "etiqueta": "marcha",
+      "emojiRespaldo": "🚶"
+    },
+    {
+      "visual": "visual-33",
+      "palabra": "marcharon",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-33",
+      "palabra": "marcharon",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "rope",
+      "etiqueta": "cuerda",
+      "emojiRespaldo": "🪢"
+    },
+    {
+      "visual": "visual-33",
+      "palabra": "marcharon",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-33",
+      "palabra": "marcharon",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "river",
+      "etiqueta": "río",
+      "emojiRespaldo": "🏞️"
+    },
+    {
+      "visual": "visual-35",
+      "palabra": "sincronizados",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "falling-man",
+      "etiqueta": "caída",
+      "emojiRespaldo": "🪂"
+    },
+    {
+      "visual": "visual-35",
+      "palabra": "sincronizados",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "falling-man",
+      "etiqueta": "caída",
+      "emojiRespaldo": "🪂"
+    },
+    {
+      "visual": "visual-35",
+      "palabra": "sincronizados",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "river",
+      "etiqueta": "río",
+      "emojiRespaldo": "🏞️"
+    },
+    {
+      "visual": "visual-35",
+      "palabra": "sincronizados",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "splash",
+      "etiqueta": "salpicadura",
+      "emojiRespaldo": "💦"
+    },
+    {
+      "visual": "visual-38",
+      "palabra": "fallecidos",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "document",
+      "etiqueta": "orden",
+      "emojiRespaldo": "📄"
+    },
+    {
+      "visual": "visual-38",
+      "palabra": "fallecidos",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "army-helmet",
+      "etiqueta": "ejército",
+      "emojiRespaldo": "🪖"
+    },
+    {
+      "visual": "visual-38",
+      "palabra": "fallecidos",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "document",
+      "etiqueta": "orden",
+      "emojiRespaldo": "📄"
+    },
+    {
+      "visual": "visual-38",
+      "palabra": "fallecidos",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "uk-flag",
+      "etiqueta": "británico",
+      "emojiRespaldo": "🇬🇧"
+    },
+    {
+      "visual": "visual-40",
+      "palabra": "puentes",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-40",
+      "palabra": "puentes",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "pedestrians",
+      "etiqueta": "peatones",
+      "emojiRespaldo": "🚶"
+    },
+    {
+      "visual": "visual-40",
+      "palabra": "puentes",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-40",
+      "palabra": "puentes",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "london",
+      "etiqueta": "Londres",
+      "emojiRespaldo": "🏙️"
+    },
+    {
+      "visual": "visual-42",
+      "palabra": "sincronizada",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "pedestrians",
+      "etiqueta": "peatones",
+      "emojiRespaldo": "🚶"
+    },
+    {
+      "visual": "visual-42",
+      "palabra": "sincronizada",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "pedestrians",
+      "etiqueta": "peatones",
+      "emojiRespaldo": "🚶"
+    },
+    {
+      "visual": "visual-42",
+      "palabra": "sincronizada",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "sync",
+      "etiqueta": "sincronía",
+      "emojiRespaldo": "🔄"
+    },
+    {
+      "visual": "visual-42",
+      "palabra": "sincronizada",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-44",
+      "palabra": "ejército",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "people-nearby",
+      "etiqueta": "gente",
+      "emojiRespaldo": "👥"
+    },
+    {
+      "visual": "visual-44",
+      "palabra": "ejército",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "people-nearby",
+      "etiqueta": "gente",
+      "emojiRespaldo": "👥"
+    },
+    {
+      "visual": "visual-44",
+      "palabra": "ejército",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "public",
+      "etiqueta": "público",
+      "emojiRespaldo": "🏛️"
+    },
+    {
+      "visual": "visual-44",
+      "palabra": "ejército",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-46",
+      "palabra": "caminan",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-46",
+      "palabra": "caminan",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-46",
+      "palabra": "caminan",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "steel",
+      "etiqueta": "acero",
+      "emojiRespaldo": "🏗️"
+    },
+    {
+      "visual": "visual-46",
+      "palabra": "caminan",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "pedestrian",
+      "etiqueta": "peatón",
+      "emojiRespaldo": "🚶"
+    },
+    {
+      "visual": "visual-48",
+      "palabra": "transeuntes",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "people-nearby",
+      "etiqueta": "multitud",
+      "emojiRespaldo": "👥"
+    },
+    {
+      "visual": "visual-48",
+      "palabra": "transeuntes",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "people-nearby",
+      "etiqueta": "multitud",
+      "emojiRespaldo": "👥"
+    },
+    {
+      "visual": "visual-48",
+      "palabra": "transeuntes",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "traffic-light",
+      "etiqueta": "tráfico",
+      "emojiRespaldo": "🚦"
+    },
+    {
+      "visual": "visual-48",
+      "palabra": "transeuntes",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "bridge",
+      "etiqueta": "puente",
+      "emojiRespaldo": "🌉"
+    },
+    {
+      "visual": "visual-50",
+      "palabra": "entenderlo",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "map",
+      "etiqueta": "mapa",
+      "emojiRespaldo": "🗺️"
+    },
+    {
+      "visual": "visual-50",
+      "palabra": "entenderlo",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "map",
+      "etiqueta": "mapa",
+      "emojiRespaldo": "🗺️"
+    },
+    {
+      "visual": "visual-50",
+      "palabra": "entenderlo",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "compass",
+      "etiqueta": "brújula",
+      "emojiRespaldo": "🧭"
+    },
+    {
+      "visual": "visual-50",
+      "palabra": "entenderlo",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "quill",
+      "etiqueta": "pluma",
+      "emojiRespaldo": "🪶"
+    },
+    {
+      "visual": "visual-53",
+      "palabra": "holandés",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "clock",
+      "etiqueta": "reloj",
+      "emojiRespaldo": "🕰️"
+    },
+    {
+      "visual": "visual-53",
+      "palabra": "holandés",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "clock",
+      "etiqueta": "reloj",
+      "emojiRespaldo": "🕰️"
+    },
+    {
+      "visual": "visual-53",
+      "palabra": "holandés",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "pendulum",
+      "etiqueta": "péndulo",
+      "emojiRespaldo": "⏲️"
+    },
+    {
+      "visual": "visual-53",
+      "palabra": "holandés",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "gear",
+      "etiqueta": "engranaje",
+      "emojiRespaldo": "⚙️"
+    },
+    {
+      "visual": "visual-55",
+      "palabra": "objetivo",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "compass",
+      "etiqueta": "brújula",
+      "emojiRespaldo": "🧭"
+    },
+    {
+      "visual": "visual-55",
+      "palabra": "objetivo",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "sailboat",
+      "etiqueta": "velero",
+      "emojiRespaldo": "⛵"
+    },
+    {
+      "visual": "visual-55",
+      "palabra": "objetivo",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "compass",
+      "etiqueta": "brújula",
+      "emojiRespaldo": "🧭"
+    },
+    {
+      "visual": "visual-55",
+      "palabra": "objetivo",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "map",
+      "etiqueta": "mapa",
+      "emojiRespaldo": "🗺️"
+    },
+    {
+      "visual": "visual-57",
+      "palabra": "determinada",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "sun",
+      "etiqueta": "sol",
+      "emojiRespaldo": "☀️"
+    },
+    {
+      "visual": "visual-57",
+      "palabra": "determinada",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "sun",
+      "etiqueta": "sol",
+      "emojiRespaldo": "☀️"
+    },
+    {
+      "visual": "visual-57",
+      "palabra": "determinada",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "stars",
+      "etiqueta": "estrellas",
+      "emojiRespaldo": "⭐"
+    },
+    {
+      "visual": "visual-57",
+      "palabra": "determinada",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "sextant",
+      "etiqueta": "sextante",
+      "emojiRespaldo": "🧭"
+    },
+    {
+      "visual": "visual-59",
+      "palabra": "necesita",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "clock",
+      "etiqueta": "reloj",
+      "emojiRespaldo": "🕰️"
+    },
+    {
+      "visual": "visual-59",
+      "palabra": "necesita",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "clock",
+      "etiqueta": "reloj",
+      "emojiRespaldo": "🕰️"
+    },
+    {
+      "visual": "visual-59",
+      "palabra": "necesita",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "anchor",
+      "etiqueta": "puerto",
+      "emojiRespaldo": "⚓"
+    },
+    {
+      "visual": "visual-59",
+      "palabra": "necesita",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "map-pin",
+      "etiqueta": "ubicación",
+      "emojiRespaldo": "📍"
+    },
+    {
+      "visual": "visual-61",
+      "palabra": "retrasaban",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "clock",
+      "etiqueta": "reloj",
+      "emojiRespaldo": "🕰️"
+    },
+    {
+      "visual": "visual-61",
+      "palabra": "retrasaban",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "clock",
+      "etiqueta": "reloj",
+      "emojiRespaldo": "🕰️"
+    },
+    {
+      "visual": "visual-61",
+      "palabra": "retrasaban",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "hourglass",
+      "etiqueta": "retraso",
+      "emojiRespaldo": "⏳"
+    },
+    {
+      "visual": "visual-61",
+      "palabra": "retrasaban",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "calendar",
+      "etiqueta": "diario",
+      "emojiRespaldo": "📅"
+    },
+    {
+      "visual": "visual-64",
+      "palabra": "segundos",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "stopwatch",
+      "etiqueta": "precisión",
+      "emojiRespaldo": "⏱️"
+    },
+    {
+      "visual": "visual-64",
+      "palabra": "segundos",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "stopwatch",
+      "etiqueta": "precisión",
+      "emojiRespaldo": "⏱️"
+    },
+    {
+      "visual": "visual-64",
+      "palabra": "segundos",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "ruler",
+      "etiqueta": "medida",
+      "emojiRespaldo": "📏"
+    },
+    {
+      "visual": "visual-64",
+      "palabra": "segundos",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "calendar",
+      "etiqueta": "diario",
+      "emojiRespaldo": "📅"
+    },
+    {
+      "visual": "visual-66",
+      "palabra": "Hoygens",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "mast",
+      "etiqueta": "mástil",
+      "emojiRespaldo": "⛵"
+    },
+    {
+      "visual": "visual-66",
+      "palabra": "Hoygens",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "ship",
+      "etiqueta": "barco",
+      "emojiRespaldo": "🚢"
+    },
+    {
+      "visual": "visual-66",
+      "palabra": "Hoygens",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "mast",
+      "etiqueta": "mástil",
+      "emojiRespaldo": "⛵"
+    },
+    {
+      "visual": "visual-66",
+      "palabra": "Hoygens",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "rope",
+      "etiqueta": "cuerda",
+      "emojiRespaldo": "🪢"
+    },
+    {
+      "visual": "visual-67",
+      "palabra": "embarcación",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "hook",
+      "etiqueta": "gancho",
+      "emojiRespaldo": "🪝"
+    },
+    {
+      "visual": "visual-67",
+      "palabra": "embarcación",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "clock",
+      "etiqueta": "reloj",
+      "emojiRespaldo": "🕰️"
+    },
+    {
+      "visual": "visual-67",
+      "palabra": "embarcación",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "hook",
+      "etiqueta": "gancho",
+      "emojiRespaldo": "🪝"
+    },
+    {
+      "visual": "visual-67",
+      "palabra": "embarcación",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "rope",
+      "etiqueta": "cuerda",
+      "emojiRespaldo": "🪢"
+    },
+    {
+      "visual": "visual-69",
+      "palabra": "requería",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "table",
+      "etiqueta": "mesa",
+      "emojiRespaldo": "🪑"
+    },
+    {
+      "visual": "visual-69",
+      "palabra": "requería",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "clock",
+      "etiqueta": "reloj",
+      "emojiRespaldo": "🕰️"
+    },
+    {
+      "visual": "visual-69",
+      "palabra": "requería",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "clock",
+      "etiqueta": "reloj2",
+      "emojiRespaldo": "⏰"
+    },
+    {
+      "visual": "visual-69",
+      "palabra": "requería",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "table",
+      "etiqueta": "mesa",
+      "emojiRespaldo": "🪑"
+    },
+    {
+      "visual": "visual-71",
+      "palabra": "mecanismo",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "bed",
+      "etiqueta": "cama",
+      "emojiRespaldo": "🛏️"
+    },
+    {
+      "visual": "visual-71",
+      "palabra": "mecanismo",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "bed",
+      "etiqueta": "cama",
+      "emojiRespaldo": "🛏️"
+    },
+    {
+      "visual": "visual-71",
+      "palabra": "mecanismo",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "thermometer",
+      "etiqueta": "fiebre",
+      "emojiRespaldo": "🌡️"
+    },
+    {
+      "visual": "visual-71",
+      "palabra": "mecanismo",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "medicine",
+      "etiqueta": "medicina",
+      "emojiRespaldo": "💊"
+    },
+    {
+      "visual": "visual-73",
+      "palabra": "descubrió",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "notebook",
+      "etiqueta": "notas",
+      "emojiRespaldo": "📓"
+    },
+    {
+      "visual": "visual-73",
+      "palabra": "descubrió",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "lightbulb",
+      "etiqueta": "idea",
+      "emojiRespaldo": "💡"
+    },
+    {
+      "visual": "visual-73",
+      "palabra": "descubrió",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "notebook",
+      "etiqueta": "notas",
+      "emojiRespaldo": "📓"
+    },
+    {
+      "visual": "visual-73",
+      "palabra": "descubrió",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "clock",
+      "etiqueta": "reloj",
+      "emojiRespaldo": "🕰️"
+    },
+    {
+      "visual": "visual-80",
+      "palabra": "relojo",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "clock",
+      "etiqueta": "reloj",
+      "emojiRespaldo": "⏰"
+    },
+    {
+      "visual": "visual-80",
+      "palabra": "relojo",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "tick",
+      "etiqueta": "tic",
+      "emojiRespaldo": "✅"
+    },
+    {
+      "visual": "visual-80",
+      "palabra": "relojo",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "sound",
+      "etiqueta": "sonido",
+      "emojiRespaldo": "🔊"
+    },
+    {
+      "visual": "visual-84",
+      "palabra": "desincronizado",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "clock",
+      "etiqueta": "reloj",
+      "emojiRespaldo": "⏰"
+    },
+    {
+      "visual": "visual-84",
+      "palabra": "desincronizado",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "gear",
+      "etiqueta": "ajuste",
+      "emojiRespaldo": "⚙️"
+    },
+    {
+      "visual": "visual-84",
+      "palabra": "desincronizado",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "hand",
+      "etiqueta": "mano",
+      "emojiRespaldo": "✋"
+    },
+    {
+      "visual": "visual-87",
+      "palabra": "corrientes",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "wind",
+      "etiqueta": "aire",
+      "emojiRespaldo": "💨"
+    },
+    {
+      "visual": "visual-87",
+      "palabra": "corrientes",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "pendulum",
+      "etiqueta": "péndulo",
+      "emojiRespaldo": "🕰️"
+    },
+    {
+      "visual": "visual-87",
+      "palabra": "corrientes",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "flow",
+      "etiqueta": "corriente",
+      "emojiRespaldo": "🌊"
+    },
+    {
+      "visual": "visual-95",
+      "palabra": "regresaba",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "scientist",
+      "etiqueta": "científico",
+      "emojiRespaldo": "👨‍🔬"
+    },
+    {
+      "visual": "visual-95",
+      "palabra": "regresaba",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "scientist",
+      "etiqueta": "científico",
+      "emojiRespaldo": "👨‍🔬"
+    },
+    {
+      "visual": "visual-95",
+      "palabra": "regresaba",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "lightbulb",
+      "etiqueta": "idea",
+      "emojiRespaldo": "💡"
+    },
+    {
+      "visual": "visual-95",
+      "palabra": "regresaba",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "clock",
+      "etiqueta": "reloj",
+      "emojiRespaldo": "🕰️"
+    },
+    {
+      "visual": "visual-99",
+      "palabra": "osciladores",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "oscillator",
+      "etiqueta": "oscilador",
+      "emojiRespaldo": "🔁"
+    },
+    {
+      "visual": "visual-99",
+      "palabra": "osciladores",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "oscillator",
+      "etiqueta": "oscilador",
+      "emojiRespaldo": "🔁"
+    },
+    {
+      "visual": "visual-99",
+      "palabra": "osciladores",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "coupling",
+      "etiqueta": "acoplamiento",
+      "emojiRespaldo": "🔗"
+    },
+    {
+      "visual": "visual-99",
+      "palabra": "osciladores",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "sync",
+      "etiqueta": "sincronía",
+      "emojiRespaldo": "🔄"
+    },
+    {
+      "visual": "visual-102",
+      "palabra": "descripto",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "notebook",
+      "etiqueta": "apuntes",
+      "emojiRespaldo": "📓"
+    },
+    {
+      "visual": "visual-102",
+      "palabra": "descripto",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "pencil",
+      "etiqueta": "escritura",
+      "emojiRespaldo": "✏️"
+    },
+    {
+      "visual": "visual-102",
+      "palabra": "descripto",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "notebook",
+      "etiqueta": "apuntes",
+      "emojiRespaldo": "📓"
+    },
+    {
+      "visual": "visual-102",
+      "palabra": "descripto",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "glasses",
+      "etiqueta": "científico",
+      "emojiRespaldo": "👓"
+    },
+    {
+      "visual": "visual-113",
+      "palabra": "parece",
+      "papel": "ancla",
+      "estilo": "bold-duotone",
+      "solicitado": "sparkles",
+      "etiqueta": "magia",
+      "emojiRespaldo": "✨"
+    },
+    {
+      "visual": "visual-113",
+      "palabra": "parece",
+      "papel": "concepto-1",
+      "estilo": "linear",
+      "solicitado": "metronome",
+      "etiqueta": "metrónomo",
+      "emojiRespaldo": "🎵"
+    },
+    {
+      "visual": "visual-113",
+      "palabra": "parece",
+      "papel": "concepto-2",
+      "estilo": "linear",
+      "solicitado": "sync",
+      "etiqueta": "sincronía",
+      "emojiRespaldo": "🔄"
+    },
+    {
+      "visual": "visual-113",
+      "palabra": "parece",
+      "papel": "concepto-3",
+      "estilo": "linear",
+      "solicitado": "sparkles",
+      "etiqueta": "magia",
+      "emojiRespaldo": "✨"
+    }
+  ],
+  "resueltas": 72,
+  "fallbackEmoji": 86,
+  "porcentaje": 45.57,
+  "fuente": "tests/aceptacion/mvp-paso7/video.json",
+  "sha256Fuente": "2a76e93cfe036d38bbab349f387925c23cc0b69fdcde68c13fb04c33826d1dd9"
+}
