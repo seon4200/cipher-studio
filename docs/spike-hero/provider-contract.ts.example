@@ -1,0 +1,115 @@
+/**
+ * Contrato de diseño para descargas por vídeo. No se importa desde producción:
+ * el futuro Asset Engine reutilizará proyectos/<id>/materiales/assets/, no Git.
+ */
+type AssetProviderKind =
+  | 'icon'
+  | 'illustration'
+  | 'transparent-png'
+  | 'photo'
+  | 'video'
+  | 'generated'
+
+type AutomationLevel =
+  | 'official-api'
+  | 'official-package'
+  | 'official-cdn'
+  | 'official-repo'
+  | 'public-page-controlled'
+  | 'browser-assisted'
+  | 'manual-only'
+  | 'disabled-risk'
+
+type ProviderPolicy = {
+  id: string
+  name: string
+  kinds: AssetProviderKind[]
+  automationLevel: AutomationLevel
+  hasPublicApi: boolean
+  requiresApiKey: boolean
+  allowCatalogDownload: boolean
+  allowOnDemandDownload: boolean
+  maxDownloadsPerVideoFuture: number
+  requiresAttribution: boolean
+  commercialUseClaimed: boolean
+  rawRedistributionAllowed: boolean
+  requiresIndividualReview: boolean
+  needsBackgroundRemovalByDefault: boolean
+  rightsRiskDefault: 'low' | 'medium' | 'high'
+  notes: string[]
+}
+
+export const PROVIDER_POLICIES: ProviderPolicy[] = [
+  {
+    id: 'openmoji', name: 'OpenMoji', kinds: ['icon', 'illustration'],
+    automationLevel: 'official-cdn', hasPublicApi: false, requiresApiKey: false,
+    allowCatalogDownload: false, allowOnDemandDownload: true, maxDownloadsPerVideoFuture: 20,
+    requiresAttribution: true, commercialUseClaimed: true, rawRedistributionAllowed: false,
+    requiresIndividualReview: false, needsBackgroundRemovalByDefault: false, rightsRiskDefault: 'low',
+    notes: ['Proveedor obligatorio; SVG/PNG por metadata oficial y necesidad del vídeo.', 'No sustituir por emoji del sistema.'],
+  },
+  {
+    id: 'purepng', name: 'PurePNG', kinds: ['transparent-png'],
+    automationLevel: 'public-page-controlled', hasPublicApi: false, requiresApiKey: false,
+    allowCatalogDownload: false, allowOnDemandDownload: true, maxDownloadsPerVideoFuture: 3,
+    requiresAttribution: false, commercialUseClaimed: true, rawRedistributionAllowed: false,
+    requiresIndividualReview: true, needsBackgroundRemovalByDefault: false, rightsRiskDefault: 'medium',
+    notes: ['Secundario: validar alpha, ficha y riesgo por archivo; no asumir procedencia global.'],
+  },
+  {
+    id: 'pngimages', name: 'PNGImages.com', kinds: ['transparent-png'],
+    automationLevel: 'public-page-controlled', hasPublicApi: false, requiresApiKey: false,
+    allowCatalogDownload: false, allowOnDemandDownload: true, maxDownloadsPerVideoFuture: 3,
+    requiresAttribution: true, commercialUseClaimed: true, rawRedistributionAllowed: false,
+    requiresIndividualReview: true, needsBackgroundRemovalByDefault: false, rightsRiskDefault: 'medium',
+    notes: ['Pendiente de varias muestras; verificar transparencia real, no sólo canal alpha.'],
+  },
+  {
+    id: 'freeforcommercialuse', name: 'FreeForCommercialUse.net', kinds: ['transparent-png'],
+    automationLevel: 'disabled-risk', hasPublicApi: false, requiresApiKey: false,
+    allowCatalogDownload: false, allowOnDemandDownload: false, maxDownloadsPerVideoFuture: 0,
+    requiresAttribution: false, commercialUseClaimed: true, rawRedistributionAllowed: false,
+    requiresIndividualReview: true, needsBackgroundRemovalByDefault: false, rightsRiskDefault: 'high',
+    notes: ['No automático en V1: filtrar personajes, marcas, logos, celebridades y franquicias.'],
+  },
+  {
+    id: 'pexels', name: 'Pexels', kinds: ['photo', 'video'],
+    automationLevel: 'official-api', hasPublicApi: true, requiresApiKey: true,
+    allowCatalogDownload: false, allowOnDemandDownload: true, maxDownloadsPerVideoFuture: 3,
+    requiresAttribution: false, commercialUseClaimed: true, rawRedistributionAllowed: false,
+    requiresIndividualReview: true, needsBackgroundRemovalByDefault: true, rightsRiskDefault: 'medium',
+    notes: ['Fallback futuro; normalmente llega sin alpha y requiere recorte posterior.'],
+  },
+  {
+    id: 'pixabay', name: 'Pixabay', kinds: ['photo', 'illustration', 'video'],
+    automationLevel: 'official-api', hasPublicApi: true, requiresApiKey: true,
+    allowCatalogDownload: false, allowOnDemandDownload: true, maxDownloadsPerVideoFuture: 3,
+    requiresAttribution: false, commercialUseClaimed: true, rawRedistributionAllowed: false,
+    requiresIndividualReview: true, needsBackgroundRemovalByDefault: true, rightsRiskDefault: 'medium',
+    notes: ['Fallback futuro; validar formato y alpha por archivo.'],
+  },
+  {
+    id: 'wikimedia', name: 'Wikimedia Commons', kinds: ['photo', 'illustration', 'video'],
+    automationLevel: 'official-api', hasPublicApi: true, requiresApiKey: false,
+    allowCatalogDownload: false, allowOnDemandDownload: true, maxDownloadsPerVideoFuture: 2,
+    requiresAttribution: true, commercialUseClaimed: false, rawRedistributionAllowed: false,
+    requiresIndividualReview: true, needsBackgroundRemovalByDefault: true, rightsRiskDefault: 'medium',
+    notes: ['Fallback abierto: licencia y atribución se resuelven por archivo.'],
+  },
+  {
+    id: 'bypeople', name: 'ByPeople', kinds: ['photo'],
+    automationLevel: 'manual-only', hasPublicApi: false, requiresApiKey: false,
+    allowCatalogDownload: false, allowOnDemandDownload: false, maxDownloadsPerVideoFuture: 0,
+    requiresAttribution: true, commercialUseClaimed: false, rawRedistributionAllowed: false,
+    requiresIndividualReview: true, needsBackgroundRemovalByDefault: false, rightsRiskDefault: 'medium',
+    notes: ['Premium futuro; sin compra, scraping ni automatización de login.'],
+  },
+  {
+    id: 'flux', name: 'IA / FLUX', kinds: ['generated'],
+    automationLevel: 'disabled-risk', hasPublicApi: false, requiresApiKey: true,
+    allowCatalogDownload: false, allowOnDemandDownload: false, maxDownloadsPerVideoFuture: 0,
+    requiresAttribution: false, commercialUseClaimed: false, rawRedistributionAllowed: false,
+    requiresIndividualReview: true, needsBackgroundRemovalByDefault: false, rightsRiskDefault: 'high',
+    notes: ['Último fallback futuro; exige contrato de estilo, coste, derechos, caché y fallback propio.'],
+  },
+]

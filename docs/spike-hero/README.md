@@ -1,16 +1,23 @@
-# Spike de hero asset — entrada manual requerida
+# Spike de proveedores de hero asset
 
-Este directorio prepara la comparación visual de seis celdas del renderer real
-`visual_escena`; no es un almacén de assets ni un importador.
+Este directorio contiene documentación, contratos y validadores del spike. **No
+contiene assets crudos de terceros.** Las muestras que se descargaron para medir
+el acceso son locales y no forman parte de Git; su ausencia en un clon es esperada.
 
-Para ejecutar el spike faltan estos archivos manuales, descargados por el usuario:
+Para revalidar muestras locales, sin red ni descargas:
 
-- `openmoji-food-sweet.svg` o `openmoji-food-sweet.png`, desde
-  <https://openmoji.org/library/#group=food-drink%2Ffood-sweet> (CC-BY-SA-4.0).
-- `bypeople-person.png`, un recorte de persona descargado oficialmente desde ByPeople.
-- `bypeople-object.png`, un recorte de objeto descargado oficialmente desde ByPeople.
+```powershell
+node docs/spike-hero/validar-provider-assets.cjs --samples-dir "RUTA"
+```
 
-No se automatiza ByPeople, no se usa login ni scraping y no se redistribuye material
-de ByPeople sin su permiso contractual. Cuando existan los tres archivos, el spike
-los colocará mediante la ranura `heroe` ya declarada por la estructura; su SHA-256
-viajará en `extra.hero` para que nunca haya mismo hash con píxeles distintos.
+Sin `--samples-dir`, el validador mira `downloaded/`: informa evidencia registrada
+si la muestra no está, y sólo compara SHA/MIME/dimensiones/alpha cuando la encuentra.
+
+El flujo de producción futuro descarga por necesidad de cada vídeo, valida y guarda
+el archivo bajo `proyectos/<id>/materiales/assets/<provider>/`, junto a un
+`asset-manifest.json` del proyecto. No descarga catálogos completos, no usa Git
+como almacén ni redistribuye binarios de proveedores.
+
+OpenMoji es obligatorio, pero su integración se decidirá como paquete, release,
+repositorio o CDN oficial **pinneado**, no como SVGs copiados manualmente. ByPeople
+continúa fuera: sin compra, login, scraping ni automatización.
