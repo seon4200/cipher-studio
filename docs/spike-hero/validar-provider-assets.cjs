@@ -83,9 +83,15 @@ if (manifest.schemaVersion !== 2 || !Array.isArray(manifest.assets) || !manifest
 let errores = 0
 console.log(`EVIDENCIA: ${manifest.assets.length} muestras · directorio local: ${directorioMuestras}`)
 for (const asset of manifest.assets) {
-  const requeridos = ['provider', 'sampleFileName', 'sha256', 'mime', 'sourceUrl', 'storedInGit', 'localFileAvailableAtValidationTime']
+  const requeridos = [
+    'provider', 'sampleFileName', 'sha256', 'mime', 'sourceUrl',
+    'binaryStoredInRepository', 'binaryPreservedExternally', 'evidenceOnly',
+    'localFileAvailableAtValidationTime',
+  ]
   const faltan = requeridos.filter(campo => asset[campo] === undefined || asset[campo] === '')
-  if (faltan.length || asset.storedInGit !== false || path.basename(asset.sampleFileName) !== asset.sampleFileName) {
+  if (faltan.length || asset.binaryStoredInRepository !== false ||
+    asset.binaryPreservedExternally !== true || asset.evidenceOnly !== true ||
+    path.basename(asset.sampleFileName) !== asset.sampleFileName) {
     console.log(`${asset.provider}: MANIFEST INVÁLIDO · ${faltan.join(', ') || 'archivo de muestra no seguro'}`); errores += 1; continue
   }
   const archivo = path.join(directorioMuestras, asset.sampleFileName)
