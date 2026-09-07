@@ -4,6 +4,35 @@ Etiquetas a las que se puede volver, y qué está probado de cada una.
 
 ---
 
+## `v-densidad-solar-instrumentado`
+
+**Merge local `9d99103`** de `encargo-3-1-densidad-solar`; la etiqueta nombra
+este punto de retorno y se crea sobre el cierre documental que sigue.
+
+**Qué contiene.** `visual_escena` sigue activa con `VERSION_PLANTILLAS=12`.
+La densidad usa frase, palabra y etiquetas; Solar recibe un vocabulario curado,
+aliases conservadores y escribe la traza de solicitud/candidatos/decisión/fallback
+en semántica completa y en el contrato histórico. Incluye el corpus reproducible
+de 158 solicitudes y la preparación documental —sin renderer— del spike de héroe.
+
+**Qué está comprobado.** En la traza de 42 Visuales de `mvp-paso7`, la densidad
+grabada como `alta 42` se recalcula a `media 2 · alta 26 · saturada 14`; no es una
+promesa para otros guiones. El corpus nuevo Solar mide `43/158 → 72/158`; no se
+compara con el agregado histórico no recuperable `68/188`. TypeScript, build y las
+nueve suites pasan antes de este merge.
+
+**Qué NO está comprobado.** La calibración perceptiva de densidad y Solar no está
+cerrada; `bridge`, `pedestrians`, `rope` y `sync` siguen a emoji por falta de un
+equivalente inequívoco. El spike necesita `openmoji-food-sweet`,
+`bypeople-person` y `bypeople-object` manuales antes de implementar dibujo de
+assets. No contiene Photo Hero ni Asset Engine.
+
+**Volver aquí:** vuelve al motor productivo con densidad no colapsada y Solar
+instrumentado; al volver a `v-visuales-produccion-usable` se pierden esos cambios
+y se recupera `VERSION_PLANTILLAS=11`.
+
+---
+
 ## `v-visuales-produccion-usable`
 
 **`44ca34adbcc53c871198e8fddc68543a29a926bf`** · merge de
