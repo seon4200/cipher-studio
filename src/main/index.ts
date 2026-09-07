@@ -28,8 +28,8 @@ export { semillaDe, semillaVisual, generador, entre, entero }
 import { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA } from '../shared/conceptos'
 import { sanearSemanticaVisual } from '../shared/semantica'
 export { sanearSemanticaVisual } from '../shared/semantica'
-import { resolverNombreSolar } from '../shared/iconos-solar'
-export { resolverNombreSolar, normalizarNombreSolar } from '../shared/iconos-solar'
+import { resolverSolarDetallado, NOMBRES_SOLAR_CURADOS } from '../shared/iconos-solar'
+export { resolverNombreSolar, resolverSolarDetallado, normalizarNombreSolar, NOMBRES_SOLAR_CURADOS } from '../shared/iconos-solar'
 import { SISTEMAS, type NombreSistema } from '../shared/sistemas'
 export { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA }
 export { SISTEMAS, contraste, coloresCaja, coloresEscena, contrasteTextoEscena,
@@ -54,7 +54,7 @@ export const {
 import * as escenaShared from '../shared/escena'
 export const {
   FONDOS: FONDOS_ESCENA, ESTRUCTURAS: ESTRUCTURAS_ESCENA, CAMARAS: CAMARAS_ESCENA,
-  TIPOGRAFIAS, direccionDesde, combinacionesLegales, direccionDe, densidadDesdeContenido, entradaRitmo,
+  TIPOGRAFIAS, direccionDesde, combinacionesLegales, direccionDe, cargaDensidad, densidadDesdeContenido, entradaRitmo,
   DENSIDAD_A_N, RITMOS, acotarPuntos, cabeEnElPie, cabeLaEtiqueta,
   maxCaracteresPie, MAX_CARACTERES_ETIQUETA, FRANJA_TEXTO_Y, MARGEN_CAMARA_PIE_Y, ZONA_X_MIN, ZONA_X_MAX,
   parametrosDe, instanciasDe, esParFondoCamaraLegal, paresFondoCamaraLegales,
@@ -1075,10 +1075,10 @@ const canonizar = (v: any): string => {
 // Encargo 2: iconos, héroe, semilla por posición y relación cambian píxeles. Esta subida entra
 // en el MISMO merge para que ninguna generación sirva caché vieja entre ambos commits.
 // También invalida tarjetas sin cambios: coste aceptado de la versión global compartida.
-// El contraste efectivo de escena cambia píxeles sin cambiar `extra`; esta subida impide
-// servir Visuales cacheados con la tinta anterior. También invalida tarjetas: coste aceptado
-// para mantener una sola clave de versión global.
-const VERSION_PLANTILLAS = 11;
+// El contraste efectivo y el resolvedor Solar pueden cambiar píxeles sin modificar el
+// graphicData ya cacheado; esta subida impide servirlo con apariencia antigua. También
+// invalida tarjetas: coste aceptado para mantener una sola clave de versión global.
+const VERSION_PLANTILLAS = 12;
 
 // EL FORMATO LO DECIDE EL MODO, y se dice AQUI una sola vez. Las tres cosas —codec, pix_fmt y
 // extension— tienen que ir juntas o el fichero sale mintiendo sobre si mismo: un .mp4 con
@@ -4029,12 +4029,13 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           // `conceptos` es el contrato historico que mantiene el video util si la capa
           // semantica completa se rechaza. No se deriva de `semantica`: una relacion
           // invalida no puede convertir un lote entero en clips sin Visual.
-          '- conceptos: EXACTAMENTE 3 objetos {icono:"nombre Solar libre en ingles", ic:"emoji respaldo", etiqueta:"1-2 palabras"}. Son el respaldo compatible con el motor anterior.\n' +
+          '- conceptos: EXACTAMENTE 3 objetos {icono:"nombre Solar de la lista permitida", ic:"emoji respaldo", etiqueta:"1-2 palabras"}. Son el respaldo compatible con el motor anterior.\n' +
           '- semantica: UNA relacion y EXACTAMENTE 3 terminos de una misma idea visual.\n' +
           '    relacion: usa exactamente uno de estos enums: ' + relacionesPrompt + '.\n' +
-          '    ancla: {icono:"nombre Solar libre en ingles", ic:"emoji respaldo", etiqueta:"1-2 palabras"}.\n' +
-          '    terminos: EXACTAMENTE 3 objetos {icono:"nombre Solar libre en ingles", ic:"emoji respaldo", etiqueta:"1-2 palabras"}.\n' +
-          '  icono nombra un objeto fotografiable; ic es respaldo si Solar no lo resuelve.\n' +
+          '    ancla: {icono:"nombre Solar de la lista permitida", ic:"emoji respaldo", etiqueta:"1-2 palabras"}.\n' +
+          '    terminos: EXACTAMENTE 3 objetos {icono:"nombre Solar de la lista permitida", ic:"emoji respaldo", etiqueta:"1-2 palabras"}.\n' +
+          '  icono DEBE ser exactamente uno de estos nombres Solar reales: ' + NOMBRES_SOLAR_CURADOS.join(', ') + '.\n' +
+          '  Si ninguno representa el objeto sin forzarlo, usa icono:"" y deja que ic sea el respaldo.\n' +
           '  Los tres terminos deben expresar LA RELACION, no ser tres ideas independientes.\n' +
           '  Dos terminos iguales solo se permiten si la relacion los compara o encaja.\n' +
           '  Si el trozo no tiene sujeto ilustrable ni relacion visual, devuelve semantica:null.\n';
@@ -4218,13 +4219,19 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           const saneados = semantica?.terminos ?? sanearConceptos(c.conceptos);
           if (semantica) {
             const iconos = [semantica.ancla, ...semantica.terminos];
-            for (const icono of iconos) {
+            for (const [indiceIcono, icono] of iconos.entries()) {
               iconosSolarPedidos++;
-              if (resolverNombreSolar(icono.icono, icono === semantica.ancla ? 'bold-duotone' : 'linear')) {
+              const estilo = icono === semantica.ancla ? 'bold-duotone' : 'linear';
+              const resolucion = resolverSolarDetallado(icono.icono, estilo);
+              if (resolucion.resultado) {
                 iconosSolarResueltos++;
               } else {
                 iconosSolarRespaldo++;
               }
+              cLineas.push(`[FASE 2] SOLAR pos=${idx}:${ci} papel=${indiceIcono === 0 ? 'ancla' : 'termino'} ` +
+                `solicitado=${JSON.stringify(resolucion.solicitado)} canonico=${JSON.stringify(resolucion.candidatoCanonico)} ` +
+                `candidatos=${JSON.stringify(resolucion.candidatos)} decision=${resolucion.resultado ?? 'emoji'} ` +
+                `motivo=${resolucion.motivo}`);
             }
           }
           try {
@@ -4732,7 +4739,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         const n = dur > 4.0 ? Math.ceil(dur / 3.0) : 1;
         const ini = seg ? seg.start + dur * item.clipIndexInPhrase / n : 0;
         const fin = seg ? seg.start + dur * (item.clipIndexInPhrase + 1) / n : 0;
-        return { item, palabra: seg ? palabraIlustrableDelTramo(seg.words, ini, fin) : null };
+        return {
+          item,
+          frase: seg?.text ?? '',
+          palabra: seg ? palabraIlustrableDelTramo(seg.words, ini, fin) : null
+        };
       });
 
       // Sin palabra con significado en su tramo —menos del 1%, medido— el Visual se DESCARTA y
@@ -4807,8 +4818,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
                   // Densidad sale del contenido (no de otro sorteo): se resuelve aqui y viaja
                   // dentro de la direccion hashable para que main y renderer no puedan divergir.
                   direccion: x.item.relacion
-                    ? direccionParaRelacion(semilla, x.item.relacion, { texto: value, conceptos: x.item.conceptos ?? [] })
-                    : direccionDe(semilla, { texto: value, conceptos: x.item.conceptos ?? [] })
+                    ? direccionParaRelacion(semilla, x.item.relacion,
+                      { texto: value, frase: x.frase, conceptos: x.item.conceptos ?? [] })
+                    : direccionDe(semilla,
+                      { texto: value, frase: x.frase, conceptos: x.item.conceptos ?? [] })
                 }
               },
               duracion: x.item.duration

@@ -1,0 +1,25 @@
+{
+  "assets": [
+    {
+      "id": "openmoji-food-sweet",
+      "source": "openmoji",
+      "kind": "illustration",
+      "license": "CC-BY-SA-4.0",
+      "file": "openmoji-food-sweet.svg"
+    },
+    {
+      "id": "bypeople-person",
+      "source": "bypeople",
+      "kind": "photo-cutout",
+      "license": "extended-commercial-user-provided",
+      "file": "bypeople-person.png"
+    },
+    {
+      "id": "bypeople-object",
+      "source": "bypeople",
+      "kind": "photo-cutout",
+      "license": "extended-commercial-user-provided",
+      "file": "bypeople-object.png"
+    }
+  ]
+}

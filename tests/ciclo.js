@@ -512,7 +512,7 @@ function conceptos (bundle) {
   const { combinacionesLegales, FONDOS_ESCENA, ESTRUCTURAS_ESCENA, CAMARAS_ESCENA,
     TIPOGRAFIAS, direccionDe, direccionDesde, densidadDesdeContenido, entradaRitmo,
     DENSIDAD_A_N, RITMOS, esLegal, maxCaracteresPie, cabeEnElPie, sistemaDeGeneracion,
-    direccionParaRelacion, resolverNombreSolar, normalizarNombreSolar } = bundle
+    direccionParaRelacion, resolverNombreSolar, resolverSolarDetallado, normalizarNombreSolar } = bundle
   ok(typeof combinacionesLegales === 'function', 'combinacionesLegales se exporta del bundle')
   if (typeof combinacionesLegales !== 'function') return
   const sistemasMvp = ['editorial', 'clinico', 'voltaje', 'calido']
@@ -630,11 +630,27 @@ function conceptos (bundle) {
       : `min texto/caja=${minimoTextoCaja.toFixed(2)}; min texto/fondo=${minimoTextoFondo.toFixed(2)}`)
   const bajaDensidad = { texto: 'sol', conceptos: [] }
   const altaDensidad = { texto: 'responsabilidades interconectadas',
+    frase: 'Las responsabilidades interconectadas obligan a coordinar equipos, recursos, decisiones, dependencias y plazos durante procesos largos donde cada cambio altera varias partes del sistema y exige volver a comprobar el conjunto antes de continuar.',
     conceptos: ['arquitectura distribuida', 'sistemas adaptativos', 'coordinacion asincrona'] }
   const dBaja = direccionDe(1729, bajaDensidad)
   const dAlta = direccionDe(1729, altaDensidad)
   ok(densidadDesdeContenido(bajaDensidad) === 'minima' && densidadDesdeContenido(altaDensidad) === 'saturada',
     'densidad deriva del contenido, de minima a saturada')
+  // Corpus fijo de cargas lingüísticas: tres conceptos son contrato y no bastan para decidir
+  // densidad. La frase corta, media y cargada obliga a que el eje vuelva a responder al contenido
+  // y evita que una modificación de umbrales convierta toda la producción en `alta`.
+  const muestraDensidad = [
+    { texto: 'sol', frase: 'Sale el sol.', conceptos: ['sol', 'luz', 'día'] },
+    { texto: 'puente', frase: 'El puente se mueve cuando la multitud camina junta.',
+      conceptos: ['puente', 'multitud', 'movimiento'] },
+    { texto: 'terremoto', frase: 'La presión entre placas tectónicas acumula energía durante décadas y libera ondas que recorren ciudades enteras.',
+      conceptos: ['placas tectónicas', 'energía acumulada', 'ondas sísmicas'] },
+    { texto: 'ecosistema', frase: 'En un ecosistema complejo cada especie intercambia recursos, compite, coopera y transforma el equilibrio del conjunto a lo largo del tiempo.',
+      conceptos: ['especies conectadas', 'recursos limitados', 'equilibrio dinámico'] }
+  ]
+  const repartoDensidad = muestraDensidad.map(densidadDesdeContenido)
+  ok(new Set(repartoDensidad).size >= 3 && !repartoDensidad.every(d => d === 'alta'),
+    'densidad responde a una muestra variada de frases y no colapsa en alta', repartoDensidad.join(', '))
   ok(['fondo', 'estructura', 'camara', 'ritmo', 'tipografia'].every(k => dBaja[k] === dAlta[k]) &&
     dBaja.densidad !== dAlta.densidad, 'cambiar contenido no desplaza los cinco sorteos esteticos')
   ok(JSON.stringify(DENSIDAD_A_N) === JSON.stringify({ minima: 1, baja: 3, media: 5, alta: 8, saturada: 14 }),
@@ -810,6 +826,13 @@ function conceptos (bundle) {
     resolverNombreSolar('map', 'bold-duotone') === 'map-bold-duotone' &&
     resolverNombreSolar('icono-inventado', 'linear') === null,
   'Solar resuelve ambas variantes reales y deja el nombre desconocido al respaldo emoji')
+  ok(bundle.NOMBRES_SOLAR_CURADOS.every(nombre =>
+    resolverNombreSolar(nombre, 'linear') && resolverNombreSolar(nombre, 'bold-duotone')),
+  'el vocabulario Solar que recibe la IA existe en ambos estilos del catalogo')
+  ok(resolverSolarDetallado('clock', 'linear').resultado === 'clock-circle-linear' &&
+    resolverSolarDetallado('clock', 'linear').motivo === 'alias' &&
+    resolverSolarDetallado('bridge', 'linear').resultado === null,
+  'aliases curados resuelven solo equivalencias conocidas; lo ausente conserva el emoji')
   const relacionesSorteables = Object.keys(catalogo)
   const salidasRelacion = relacionesSorteables.flatMap(relacion => Array.from({ length: 100 }, (_, i) =>
     ({ relacion, direccion: direccionParaRelacion(i + 1, relacion, { texto: 'puente', conceptos: semantica.terminos }) })))
