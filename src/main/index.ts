@@ -32,7 +32,8 @@ import { resolverNombreSolar } from '../shared/iconos-solar'
 export { resolverNombreSolar, normalizarNombreSolar } from '../shared/iconos-solar'
 import { SISTEMAS, type NombreSistema } from '../shared/sistemas'
 export { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA }
-export { SISTEMAS, contraste, coloresCaja, CONTRASTE_MINIMO_CAJA } from '../shared/sistemas'
+export { SISTEMAS, contraste, coloresCaja, coloresEscena, contrasteTextoEscena,
+  CONTRASTE_MINIMO_CAJA, CONTRASTE_MINIMO_ESCENA } from '../shared/sistemas'
 // SOLO RE-EXPORTACION, para que tests/mapa.js pueda ejercitar el modulo sobre el BUNDLE
 // COMPILADO en vez de reimplementarlo. NADIE lo llama todavia: `mapa.ts` es matematica pura y
 // el paso 3 sera quien la use. Sin estas dos lineas la octava suite no tendria como alcanzarlo
@@ -1074,7 +1075,10 @@ const canonizar = (v: any): string => {
 // Encargo 2: iconos, héroe, semilla por posición y relación cambian píxeles. Esta subida entra
 // en el MISMO merge para que ninguna generación sirva caché vieja entre ambos commits.
 // También invalida tarjetas sin cambios: coste aceptado de la versión global compartida.
-const VERSION_PLANTILLAS = 10;
+// El contraste efectivo de escena cambia píxeles sin cambiar `extra`; esta subida impide
+// servir Visuales cacheados con la tinta anterior. También invalida tarjetas: coste aceptado
+// para mantener una sola clave de versión global.
+const VERSION_PLANTILLAS = 11;
 
 // EL FORMATO LO DECIDE EL MODO, y se dice AQUI una sola vez. Las tres cosas —codec, pix_fmt y
 // extension— tienen que ir juntas o el fichero sale mintiendo sobre si mismo: un .mp4 con

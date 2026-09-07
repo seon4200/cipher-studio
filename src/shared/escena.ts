@@ -335,6 +335,8 @@ export type IdTipografia = keyof typeof TIPOGRAFIAS;
 export type MetaFondo = PiezaBase & {
   /** Sobre que se lee: escena selecciona la tinta del sistema para los fondos claros. */
   tono: 'oscuro' | 'claro';
+  /** `sistema` solo para fondos cuya superficie dominante usa `--fondo`. */
+  tonoDominante?: 'oscuro' | 'claro' | 'sistema';
 };
 
 export type AjusteDensidadEstructura = {
@@ -426,6 +428,7 @@ export const FONDOS = {
     descripcion: 'Once lineas sinusoidales oscuras que se desplazan con fases distintas.',
     energia: 1,
     tono: 'oscuro',
+    tonoDominante: 'sistema',
     formatos: ['9:16'],
     // Fuente aprobada: docs/motion/lab-fondos.html:90-108. Los rangos anteriores describian
     // ANILLOS y pertenecian a otra geometria; conservarlos inflaria instancias que no existen.
@@ -448,6 +451,7 @@ export const FONDOS = {
     descripcion: 'Barras verticales que crecen y bajan como un ecualizador urbano.',
     energia: 2,
     tono: 'oscuro',
+    tonoDominante: 'sistema',
     formatos: ['9:16'],
     // Fuente aprobada: docs/motion/lab-fondos-2.html:237-251. No declara pasos hasta que sus
     // extremos se hayan mirado: inventarlos inflaria el numero que mide la variedad del motor.
@@ -510,7 +514,7 @@ export const FONDOS = {
   },
   ordenEspontaneo: {
     id: 'ordenEspontaneo', descripcion: 'Partículas que encuentran orden sin una cuadrícula impuesta.',
-    energia: 2, tono: 'oscuro', formatos: ['9:16'], rangos: []
+    energia: 2, tono: 'oscuro', tonoDominante: 'sistema', formatos: ['9:16'], rangos: []
     // Fuente aprobada: docs/motion/lab-fondos-3.html:178-205.
   },
   demolicion: {
@@ -548,6 +552,7 @@ export const FONDOS = {
     descripcion: 'Fondo plano de un solo color, sin movimiento. Pieza de prueba.',
     energia: 0,
     tono: 'oscuro',
+    tonoDominante: 'sistema',
     formatos: ['9:16', '16:9'],
     prueba: true,
     // SIN RANGOS, y es honesto: un plano de un color no tiene nada que variar. Inventarle un
