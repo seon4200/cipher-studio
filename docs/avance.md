@@ -4,8 +4,9 @@
 verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho".
 
 > **Estado auditado al 07/09/2026 — este bloque manda sobre el texto histórico
-> inferior.** El candidato de merge `5388088` conserva `COMPOSICION_VISUAL='visual_escena'`
-> y sube `VERSION_PLANTILLAS=12` por el cambio de resolución Solar que puede mover
+> inferior.** El checkpoint integrado `v-densidad-solar-instrumentado` conserva
+> `COMPOSICION_VISUAL='visual_escena'` y deja `VERSION_PLANTILLAS=12` por el cambio
+> de resolución Solar que puede mover
 > píxeles de `extra` ya existente. El catálogo activo
 > contiene 17 estructuras, 22 fondos, 16 cámaras, 5 densidades, 5 ritmos y 10
 > tipografías (`src/shared/escena.ts:281–971`). `combinacionesLegales()` devuelve
@@ -20,7 +21,7 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 > reevaluarse antes de continuar el plan antiguo: la prioridad de producto ahora
 > son motion graphics con recortes/imágenes protagonistas. No se inicia aquí.
 >
-> **Densidad y Solar (candidato `5388088`).** La densidad deja de partir de tres
+> **Densidad y Solar (integrados desde `5388088`).** La densidad deja de partir de tres
 > conceptos fijos: deriva de frase, palabra y etiquetas. En la traza real de 42
 > Visuales de `mvp-paso7`, `alta 42` se recalcula como `media 2 · alta 26 ·
 > saturada 14`; es una medición de esa traza, no una promesa de distribución general.
@@ -82,7 +83,8 @@ instancia y `combinacionesLegales()` devolviendo **dos** números.
 
 El interruptor es `COMPOSICION_VISUAL` en `src/main/index.ts`, hoy `'visual_escena'`.
 La dirección entra en `extra` y en el hash desde `v-fase4f-interruptor`; la versión
-vigente es 11 tras los merges `d4e11ce` (9), `16bf7a6` (10) y `44ca34a` (11).
+vigente es 12 tras los merges `d4e11ce` (9), `16bf7a6` (10), `44ca34a` (11) y el
+checkpoint de densidad/Solar (12).
 A.0 incorporo el lote `84062d7` con merge `d0dae0d`: tres estructuras de prueba,
 fuera del sorteo. El plan A-F posterior se trabaja en `plan-A-cajas`; A no esta cerrada.
 
