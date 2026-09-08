@@ -1,0 +1,3127 @@
+{
+  "specVersion": "scene-recipe-documental-v1",
+  "status": "proposed-not-rendered",
+  "conditions": {
+    "baseCommit": "291069e",
+    "source": "Encargo 3.3C + 3.3.5",
+    "timing": "Editorial hipotético normalizado; sin audio ni renders medidos",
+    "assets": "Todos los slots sin resolver; no garantiza catálogo ni disponibilidad",
+    "motion": "Presets propuestos; no implementados",
+    "substrates": "Seis vídeos hipotéticos, tres escenas por vídeo"
+  },
+  "ProjectSubstrates": {
+    "video-blueprint": {
+      "primaryStyle": "blueprint",
+      "paletteId": "clinico",
+      "fontPairId": "technical-black",
+      "decoratorFamilyId": "measurement",
+      "textureFamilyId": "technical-grid"
+    },
+    "video-tech": {
+      "primaryStyle": "tech",
+      "paletteId": "editorial",
+      "fontPairId": "technical-black",
+      "decoratorFamilyId": "circuits",
+      "textureFamilyId": "dark-lines"
+    },
+    "video-authority": {
+      "primaryStyle": "authority",
+      "paletteId": "calido",
+      "fontPairId": "editorial-black",
+      "decoratorFamilyId": "marginalia",
+      "textureFamilyId": "aged-paper"
+    },
+    "video-investigation": {
+      "primaryStyle": "investigation",
+      "paletteId": "editorial",
+      "fontPairId": "editorial-black",
+      "decoratorFamilyId": "evidence",
+      "textureFamilyId": "aged-paper"
+    },
+    "video-economic": {
+      "primaryStyle": "economic",
+      "paletteId": "clinico",
+      "fontPairId": "editorial-black",
+      "decoratorFamilyId": "accounting",
+      "textureFamilyId": "soft-editorial"
+    },
+    "video-pop": {
+      "primaryStyle": "pop",
+      "paletteId": "voltaje",
+      "fontPairId": "manuscript-black",
+      "decoratorFamilyId": "cut-paper",
+      "textureFamilyId": "radial-gradient"
+    }
+  },
+  "examples": [
+    {
+      "id": "scene-01",
+      "topic": "universo",
+      "SceneIntent": {
+        "id": "intent-01",
+        "phrase": "El telescopio amplía lo que podemos observar del universo.",
+        "idea": "Extender el alcance de observación.",
+        "abstractConcept": "universo",
+        "concreteMetaphor": "Un telescopio como puente hacia lo lejano.",
+        "keyword": "OBSERVAR"
+      },
+      "SceneRecipe": {
+        "id": "recipe-1",
+        "sceneIntentRef": "intent-01",
+        "projectSubstrateRef": "video-blueprint",
+        "styleVariant": {
+          "layoutIntent": "object-dominant",
+          "energy": "low",
+          "textureVariant": "base",
+          "motionFamily": "measured"
+        },
+        "densityIntent": "media",
+        "text": {
+          "connector": "Más lejos",
+          "keywordRef": "SceneIntent.keyword",
+          "closing": "mejor",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.5,
+            "closingStart": 0.625
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "telescopio orientado a una estrella",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "scale-in",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "float",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [
+                {
+                  "preset": "punch",
+                  "trigger": {
+                    "kind": "keyword-hit",
+                    "normalizedTime": 0.5
+                  },
+                  "duration": 0.1,
+                  "intensity": "strong",
+                  "reason": "La palabra observar marca la ampliación del alcance."
+                }
+              ],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "estrella aislada",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "línea de medición",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "technical-grid",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "hard-cut",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-02",
+      "topic": "ciencia",
+      "SceneIntent": {
+        "id": "intent-02",
+        "phrase": "La evidencia cambia cuando una medición contradice la hipótesis.",
+        "idea": "Revisar una explicación frente a un dato.",
+        "abstractConcept": "ciencia",
+        "concreteMetaphor": "Una regla revela que una pieza no encaja.",
+        "keyword": "MEDIR"
+      },
+      "SceneRecipe": {
+        "id": "recipe-2",
+        "sceneIntentRef": "intent-02",
+        "projectSubstrateRef": "video-blueprint",
+        "styleVariant": {
+          "layoutIntent": "evidence-board",
+          "energy": "medium",
+          "textureVariant": "base",
+          "motionFamily": "measured"
+        },
+        "densityIntent": "alta",
+        "text": {
+          "connector": "Antes de afirmar",
+          "keywordRef": "SceneIntent.keyword",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.3
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "regla junto a pieza desajustada",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "slide-left",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "parallax-drift",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "slide-out-right",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "pieza geométrica",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "marca de distancia",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          },
+          {
+            "id": "detail-2",
+            "role": "decorator",
+            "intent": "marca secundaria que refuerza la misma relación",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "technical-grid",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "match-shape",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-03",
+      "topic": "descubrimiento",
+      "SceneIntent": {
+        "id": "intent-03",
+        "phrase": "Un descubrimiento abre una puerta que antes parecía cerrada.",
+        "idea": "Una observación permite explorar una vía.",
+        "abstractConcept": "descubrimiento",
+        "concreteMetaphor": "Llave que abre una caja.",
+        "keyword": "DESCUBRIR"
+      },
+      "SceneRecipe": {
+        "id": "recipe-3",
+        "sceneIntentRef": "intent-03",
+        "projectSubstrateRef": "video-blueprint",
+        "styleVariant": {
+          "layoutIntent": "negative-space",
+          "energy": "low",
+          "textureVariant": "base",
+          "motionFamily": "measured"
+        },
+        "densityIntent": "baja",
+        "text": {
+          "connector": "Una pista",
+          "keywordRef": "SceneIntent.keyword",
+          "closing": "abre caminos",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.3,
+            "closingStart": 0.625
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "llave genérica",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "scale-overshoot",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "medium"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "scale-down",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "caja abierta",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "technical-grid",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "none",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-04",
+      "topic": "tecnología",
+      "SceneIntent": {
+        "id": "intent-04",
+        "phrase": "Una herramienta cambia las acciones que podemos realizar.",
+        "idea": "Ampliar capacidades mediante una herramienta.",
+        "abstractConcept": "tecnología",
+        "concreteMetaphor": "Circuito que conecta una entrada con una salida.",
+        "keyword": "CONECTAR"
+      },
+      "SceneRecipe": {
+        "id": "recipe-4",
+        "sceneIntentRef": "intent-04",
+        "projectSubstrateRef": "video-tech",
+        "styleVariant": {
+          "layoutIntent": "evidence-board",
+          "energy": "low",
+          "textureVariant": "base",
+          "motionFamily": "measured"
+        },
+        "densityIntent": "media",
+        "text": {
+          "connector": "La herramienta",
+          "keywordRef": "SceneIntent.keyword",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.3
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "circuito sencillo sin marcas",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "slide-up",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "float",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [
+                {
+                  "preset": "punch",
+                  "trigger": {
+                    "kind": "hero-entry"
+                  },
+                  "duration": 0.1,
+                  "intensity": "strong",
+                  "reason": "La conexión se establece al entrar el circuito."
+                }
+              ],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "conector",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "traza luminosa",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "dark-lines",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "hard-cut",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-05",
+      "topic": "inteligencia",
+      "SceneIntent": {
+        "id": "intent-05",
+        "phrase": "Resolver un problema exige encontrar la pieza que falta.",
+        "idea": "Encontrar una relación útil.",
+        "abstractConcept": "inteligencia",
+        "concreteMetaphor": "Una pieza completa un mecanismo.",
+        "keyword": "RESOLVER"
+      },
+      "SceneRecipe": {
+        "id": "recipe-5",
+        "sceneIntentRef": "intent-05",
+        "projectSubstrateRef": "video-tech",
+        "styleVariant": {
+          "layoutIntent": "object-dominant",
+          "energy": "medium",
+          "textureVariant": "base",
+          "motionFamily": "measured"
+        },
+        "densityIntent": "alta",
+        "text": {
+          "connector": "La pieza que falta",
+          "keywordRef": "SceneIntent.keyword",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.3
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "engranaje incompleto",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "scale-in",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "slide-out-left",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "pieza complementaria",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "flecha de ajuste",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          },
+          {
+            "id": "detail-2",
+            "role": "decorator",
+            "intent": "marca secundaria que refuerza la misma relación",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "dark-lines",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "shrink-to-anchor",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-06",
+      "topic": "conexión",
+      "SceneIntent": {
+        "id": "intent-06",
+        "phrase": "Una red depende tanto de sus enlaces como de sus nodos.",
+        "idea": "Los vínculos hacen funcionar un conjunto.",
+        "abstractConcept": "conexión",
+        "concreteMetaphor": "Eslabón conectando dos nodos.",
+        "keyword": "VÍNCULO"
+      },
+      "SceneRecipe": {
+        "id": "recipe-6",
+        "sceneIntentRef": "intent-06",
+        "projectSubstrateRef": "video-tech",
+        "styleVariant": {
+          "layoutIntent": "editorial-left",
+          "energy": "low",
+          "textureVariant": "base",
+          "motionFamily": "measured"
+        },
+        "densityIntent": "media",
+        "text": {
+          "connector": "Entre nosotros",
+          "keywordRef": "SceneIntent.keyword",
+          "alignment": "left",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.3
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "eslabón genérico",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-slide",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "sway",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "scale-down",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "nodo",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "línea de conexión",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "dark-lines",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "match-shape",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-07",
+      "topic": "historia",
+      "SceneIntent": {
+        "id": "intent-07",
+        "phrase": "La historia conserva capas que no siempre cuentan lo mismo.",
+        "idea": "Comparar registros a través del tiempo.",
+        "abstractConcept": "historia",
+        "concreteMetaphor": "Libro cuyas páginas guardan estratos.",
+        "keyword": "HISTORIA"
+      },
+      "SceneRecipe": {
+        "id": "recipe-7",
+        "sceneIntentRef": "intent-07",
+        "projectSubstrateRef": "video-authority",
+        "styleVariant": {
+          "layoutIntent": "sandwich",
+          "energy": "low",
+          "textureVariant": "base",
+          "motionFamily": "measured"
+        },
+        "densityIntent": "media",
+        "text": {
+          "connector": "Bajo cada capa",
+          "keywordRef": "SceneIntent.keyword",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.3
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "libro abierto sin texto documental falso",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "slide-right",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "slow-zoom",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "estrato de papel",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "anotación de margen",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "aged-paper",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "hard-cut",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-08",
+      "topic": "autoridad",
+      "SceneIntent": {
+        "id": "intent-08",
+        "phrase": "La autoridad de una afirmación depende de poder comprobarla.",
+        "idea": "Distinguir autoridad de prueba.",
+        "abstractConcept": "autoridad",
+        "concreteMetaphor": "Sello genérico al lado de documento examinable.",
+        "keyword": "COMPROBAR"
+      },
+      "SceneRecipe": {
+        "id": "recipe-8",
+        "sceneIntentRef": "intent-08",
+        "projectSubstrateRef": "video-authority",
+        "styleVariant": {
+          "layoutIntent": "editorial-left",
+          "energy": "medium",
+          "textureVariant": "base",
+          "motionFamily": "measured"
+        },
+        "densityIntent": "alta",
+        "text": {
+          "connector": "No basta el sello",
+          "keywordRef": "SceneIntent.keyword",
+          "alignment": "left",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.5
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "sello editorial genérico sin insignias",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "scale-overshoot",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "medium"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [
+                {
+                  "preset": "punch",
+                  "trigger": {
+                    "kind": "keyword-hit",
+                    "normalizedTime": 0.5
+                  },
+                  "duration": 0.1,
+                  "intensity": "strong",
+                  "reason": "Comprobar desplaza el peso del sello hacia la evidencia."
+                }
+              ],
+              "exit": {
+                "preset": "scale-down",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "documento abstracto sin afirmaciones",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "marca de revisión",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          },
+          {
+            "id": "detail-2",
+            "role": "badge",
+            "intent": "firma editorial genérica sin aval institucional",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "aged-paper",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "none",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-09",
+      "topic": "poder",
+      "SceneIntent": {
+        "id": "intent-09",
+        "phrase": "Controlar una llave puede decidir quién entra.",
+        "idea": "El acceso confiere poder.",
+        "abstractConcept": "poder",
+        "concreteMetaphor": "Una llave gobierna una cerradura.",
+        "keyword": "ACCESO"
+      },
+      "SceneRecipe": {
+        "id": "recipe-9",
+        "sceneIntentRef": "intent-09",
+        "projectSubstrateRef": "video-authority",
+        "styleVariant": {
+          "layoutIntent": "negative-space",
+          "energy": "low",
+          "textureVariant": "base",
+          "motionFamily": "measured"
+        },
+        "densityIntent": "baja",
+        "text": {
+          "connector": "Quién tiene la llave",
+          "keywordRef": "SceneIntent.keyword",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.3
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "llave dominante",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "hold",
+                "start": 0.1,
+                "duration": 0.7,
+                "reason": "dramatic-emphasis"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "slide-out-down",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "cerradura",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "aged-paper",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "shrink-to-anchor",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-10",
+      "topic": "evidencia",
+      "SceneIntent": {
+        "id": "intent-10",
+        "phrase": "Una huella es un indicio, no una conclusión completa.",
+        "idea": "Examinar indicios sin convertirlos en certeza.",
+        "abstractConcept": "evidencia",
+        "concreteMetaphor": "Una lupa deja ver una huella parcial.",
+        "keyword": "INDICIO"
+      },
+      "SceneRecipe": {
+        "id": "recipe-10",
+        "sceneIntentRef": "intent-10",
+        "projectSubstrateRef": "video-investigation",
+        "styleVariant": {
+          "layoutIntent": "evidence-board",
+          "energy": "low",
+          "textureVariant": "base",
+          "motionFamily": "measured"
+        },
+        "densityIntent": "media",
+        "text": {
+          "connector": "Todavía no",
+          "keywordRef": "SceneIntent.keyword",
+          "closing": "una conclusión",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.3,
+            "closingStart": 0.625
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "lupa",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "scale-in",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "float",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [
+                {
+                  "preset": "punch",
+                  "trigger": {
+                    "kind": "manual",
+                    "normalizedTime": 0.5
+                  },
+                  "duration": 0.1,
+                  "intensity": "strong",
+                  "reason": "El golpe señala indicio, no una culpabilidad."
+                }
+              ],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "huella parcial genérica",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "línea que vincula indicio",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "aged-paper",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "hard-cut",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-11",
+      "topic": "misterio",
+      "SceneIntent": {
+        "id": "intent-11",
+        "phrase": "Lo que falta en un relato puede ser tan importante como lo visible.",
+        "idea": "Reconocer información ausente.",
+        "abstractConcept": "misterio",
+        "concreteMetaphor": "Sobre cerrado que deja una pregunta abierta.",
+        "keyword": "FALTA"
+      },
+      "SceneRecipe": {
+        "id": "recipe-11",
+        "sceneIntentRef": "intent-11",
+        "projectSubstrateRef": "video-investigation",
+        "styleVariant": {
+          "layoutIntent": "negative-space",
+          "energy": "low",
+          "textureVariant": "base",
+          "motionFamily": "measured"
+        },
+        "densityIntent": "minima",
+        "text": {
+          "connector": "La pieza que",
+          "keywordRef": "SceneIntent.keyword",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.3
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "sobre cerrado sin marcas",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "slide-left",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "sway",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "scale-down",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "signo de interrogación",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "aged-paper",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "match-shape",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-12",
+      "topic": "noticias",
+      "SceneIntent": {
+        "id": "intent-12",
+        "phrase": "Una noticia necesita fuentes antes de convertirse en certeza.",
+        "idea": "Contrastar una afirmación pública.",
+        "abstractConcept": "noticias",
+        "concreteMetaphor": "Dos documentos apuntan a una lupa.",
+        "keyword": "CONTRASTAR"
+      },
+      "SceneRecipe": {
+        "id": "recipe-12",
+        "sceneIntentRef": "intent-12",
+        "projectSubstrateRef": "video-investigation",
+        "styleVariant": {
+          "layoutIntent": "editorial-left",
+          "energy": "medium",
+          "textureVariant": "base",
+          "motionFamily": "measured"
+        },
+        "densityIntent": "saturada",
+        "text": {
+          "connector": "Antes de compartir",
+          "keywordRef": "SceneIntent.keyword",
+          "alignment": "left",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.3
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "lupa editorial",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-slide",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "slide-out-up",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "documentos abstractos",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "líneas de procedencia",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          },
+          {
+            "id": "detail-2",
+            "role": "decorator",
+            "intent": "marca secundaria que refuerza la misma relación",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          },
+          {
+            "id": "texture",
+            "role": "texture",
+            "intent": "trama discreta de papel",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "aged-paper",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "none",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-13",
+      "topic": "dinero",
+      "SceneIntent": {
+        "id": "intent-13",
+        "phrase": "El dinero cambia de manos cuando se intercambia valor.",
+        "idea": "Mostrar el intercambio, no prometer riqueza.",
+        "abstractConcept": "dinero",
+        "concreteMetaphor": "Moneda que pasa entre dos lados de una balanza.",
+        "keyword": "INTERCAMBIO"
+      },
+      "SceneRecipe": {
+        "id": "recipe-13",
+        "sceneIntentRef": "intent-13",
+        "projectSubstrateRef": "video-economic",
+        "styleVariant": {
+          "layoutIntent": "sandwich",
+          "energy": "low",
+          "textureVariant": "base",
+          "motionFamily": "measured"
+        },
+        "densityIntent": "media",
+        "text": {
+          "connector": "El valor circula",
+          "keywordRef": "SceneIntent.keyword",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.5
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "moneda genérica sin emblemas",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "slide-right",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "sway",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [
+                {
+                  "preset": "punch",
+                  "trigger": {
+                    "kind": "keyword-hit",
+                    "normalizedTime": 0.5
+                  },
+                  "duration": 0.1,
+                  "intensity": "strong",
+                  "reason": "El golpe señala el instante del intercambio."
+                }
+              ],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "balanza",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "flecha de intercambio",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "soft-editorial",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "hard-cut",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-14",
+      "topic": "crecimiento",
+      "SceneIntent": {
+        "id": "intent-14",
+        "phrase": "El crecimiento necesita tiempo y recursos para sostenerse.",
+        "idea": "Proceso gradual con condiciones.",
+        "abstractConcept": "crecimiento",
+        "concreteMetaphor": "Un brote emerge de una semilla.",
+        "keyword": "CRECER"
+      },
+      "SceneRecipe": {
+        "id": "recipe-14",
+        "sceneIntentRef": "intent-14",
+        "projectSubstrateRef": "video-economic",
+        "styleVariant": {
+          "layoutIntent": "hero-bottom",
+          "energy": "medium",
+          "textureVariant": "base",
+          "motionFamily": "measured"
+        },
+        "densityIntent": "alta",
+        "text": {
+          "connector": "Con tiempo",
+          "keywordRef": "SceneIntent.keyword",
+          "closing": "y cuidado",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.3,
+            "closingStart": 0.625
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "brote",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "scale-overshoot",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "medium"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "scale-down",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "semilla",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "marca de progresión sin cifras",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          },
+          {
+            "id": "detail-2",
+            "role": "decorator",
+            "intent": "marca secundaria que refuerza la misma relación",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "soft-editorial",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "shrink-to-anchor",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-15",
+      "topic": "riesgo",
+      "SceneIntent": {
+        "id": "intent-15",
+        "phrase": "Cuando falta margen, una pequeña perturbación puede romper el equilibrio.",
+        "idea": "Fragilidad ante perturbaciones.",
+        "abstractConcept": "riesgo",
+        "concreteMetaphor": "Torre equilibrada con poco apoyo.",
+        "keyword": "RIESGO"
+      },
+      "SceneRecipe": {
+        "id": "recipe-15",
+        "sceneIntentRef": "intent-15",
+        "projectSubstrateRef": "video-economic",
+        "styleVariant": {
+          "layoutIntent": "object-dominant",
+          "energy": "medium",
+          "textureVariant": "base",
+          "motionFamily": "impact"
+        },
+        "densityIntent": "saturada",
+        "text": {
+          "connector": "Sin margen",
+          "keywordRef": "SceneIntent.keyword",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.3
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "torre de bloques",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "sway",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [
+                {
+                  "preset": "shake-short",
+                  "trigger": {
+                    "kind": "narration-pause",
+                    "normalizedTime": 0.5
+                  },
+                  "duration": 0.1,
+                  "intensity": "subtle",
+                  "reason": "Una perturbación concreta muestra la fragilidad del equilibrio."
+                }
+              ],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "contrapeso pequeño",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "línea de equilibrio",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          },
+          {
+            "id": "detail-2",
+            "role": "decorator",
+            "intent": "marca secundaria que refuerza la misma relación",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "soft-editorial",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "none",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-16",
+      "topic": "psicología",
+      "SceneIntent": {
+        "id": "intent-16",
+        "phrase": "La memoria reconstruye lo vivido, no reproduce una copia exacta.",
+        "idea": "Recordar implica reconstrucción.",
+        "abstractConcept": "psicología",
+        "concreteMetaphor": "Fichas que recomponen un archivo.",
+        "keyword": "MEMORIA"
+      },
+      "SceneRecipe": {
+        "id": "recipe-16",
+        "sceneIntentRef": "intent-16",
+        "projectSubstrateRef": "video-pop",
+        "styleVariant": {
+          "layoutIntent": "sandwich",
+          "energy": "low",
+          "textureVariant": "base",
+          "motionFamily": "organic"
+        },
+        "densityIntent": "media",
+        "text": {
+          "connector": "Recordar es reconstruir",
+          "keywordRef": "SceneIntent.keyword",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.3
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "cajón de fichas",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "scale-in",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "float",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "slide-out-right",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "ficha desplazada",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "trazo de reconstrucción",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "radial-gradient",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "match-shape",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-17",
+      "topic": "decisión",
+      "SceneIntent": {
+        "id": "intent-17",
+        "phrase": "Elegir un camino implica dejar otro sin recorrer.",
+        "idea": "Reconocer renuncia en una elección.",
+        "abstractConcept": "decisión",
+        "concreteMetaphor": "Una bifurcación con una ruta señalada.",
+        "keyword": "ELEGIR"
+      },
+      "SceneRecipe": {
+        "id": "recipe-17",
+        "sceneIntentRef": "intent-17",
+        "projectSubstrateRef": "video-pop",
+        "styleVariant": {
+          "layoutIntent": "object-dominant",
+          "energy": "low",
+          "textureVariant": "base",
+          "motionFamily": "organic"
+        },
+        "densityIntent": "baja",
+        "text": {
+          "connector": "Un camino",
+          "keywordRef": "SceneIntent.keyword",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.5
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "señal de bifurcación",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "slide-up",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "parallax-drift",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [
+                {
+                  "preset": "punch",
+                  "trigger": {
+                    "kind": "keyword-hit",
+                    "normalizedTime": 0.5
+                  },
+                  "duration": 0.1,
+                  "intensity": "strong",
+                  "reason": "El énfasis marca elegir una ruta y renunciar a otra."
+                }
+              ],
+              "exit": {
+                "preset": "scale-down",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "flecha de ruta",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "radial-gradient",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "hard-cut",
+        "fallback": "editorial-text"
+      }
+    },
+    {
+      "id": "scene-18",
+      "topic": "cambio",
+      "SceneIntent": {
+        "id": "intent-18",
+        "phrase": "El cambio empieza al cruzar un umbral, aunque persista la incertidumbre.",
+        "idea": "Actuar sin certeza completa.",
+        "abstractConcept": "cambio",
+        "concreteMetaphor": "Puerta abierta con un escalón.",
+        "keyword": "CAMBIO"
+      },
+      "SceneRecipe": {
+        "id": "recipe-18",
+        "sceneIntentRef": "intent-18",
+        "projectSubstrateRef": "video-pop",
+        "styleVariant": {
+          "layoutIntent": "hero-bottom",
+          "energy": "low",
+          "textureVariant": "base",
+          "motionFamily": "organic"
+        },
+        "densityIntent": "media",
+        "text": {
+          "connector": "Cruzar el umbral",
+          "keywordRef": "SceneIntent.keyword",
+          "alignment": "center",
+          "maxLines": 2,
+          "timing": {
+            "connectorStart": 0,
+            "keywordStart": 0.3
+          }
+        },
+        "assetSlots": [
+          {
+            "id": "hero",
+            "role": "hero",
+            "intent": "puerta abierta",
+            "preferredKind": "illustration",
+            "importance": "primary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "scale-overshoot",
+                "start": 0,
+                "duration": 0.1,
+                "intensity": "medium"
+              },
+              "sustain": {
+                "preset": "float",
+                "cycleDivisor": 2,
+                "start": 0.1,
+                "duration": 0.7,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "slide-out-left",
+                "start": 0.8,
+                "duration": 0.2,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "support",
+            "role": "support",
+            "intent": "escalón",
+            "preferredKind": "illustration",
+            "importance": "secondary",
+            "optional": false,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.125,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "breathe",
+                "cycleDivisor": 4,
+                "start": 0.25,
+                "duration": 0.5,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "generic-illustration",
+              "solar",
+              "editorial-text"
+            ]
+          },
+          {
+            "id": "detail",
+            "role": "decorator",
+            "intent": "trazo hacia el umbral",
+            "preferredKind": "procedural",
+            "importance": "ambient",
+            "optional": true,
+            "motion": {
+              "entry": {
+                "preset": "fade-in",
+                "start": 0.25,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "sustain": {
+                "preset": "soft-rotate",
+                "cycleDivisor": 4,
+                "start": 0.375,
+                "duration": 0.375,
+                "intensity": "subtle"
+              },
+              "emphasis": [],
+              "exit": {
+                "preset": "fade-out",
+                "start": 0.875,
+                "duration": 0.125,
+                "intensity": "subtle"
+              },
+              "visibility": {
+                "start": 0,
+                "end": 1
+              }
+            },
+            "fallback": [
+              "next-candidate",
+              "omit"
+            ]
+          }
+        ],
+        "backgroundIntent": {
+          "family": "radial-gradient",
+          "motion": "slow-pan"
+        },
+        "transitionIntent": "scale-cover",
+        "fallback": "editorial-text"
+      }
+    }
+  ]
+}

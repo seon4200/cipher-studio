@@ -2,6 +2,13 @@
 
 **Sólo diseño documental.** No se importa desde `src/`, no cambia estado de proyecto ni habilita descargas.
 
+Actualización 3.3.5: `scene-recipe-v1.md` separa SceneIntent, SceneRecipe,
+ResolvedScenePlan y RenderSpec. Este documento conserva la propuesta 3.3 de asset
+individual. La unión `SceneHeroReference` de abajo es histórica: la forma nueva
+discriminada no permite `present` sin SHA ni `missing` con bytes supuestos.
+`extra.hero` no coexistirá como segunda autoridad con `extra.sceneSpec`: el
+adaptador futuro tendrá una sola proyección visual hacia la composición real.
+
 ## Responsabilidades
 
 | Concepto | Responde | No contiene |
