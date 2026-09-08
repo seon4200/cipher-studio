@@ -2,6 +2,16 @@
 
 Etiquetas a las que se puede volver, y qué está probado de cada una.
 
+## Regla de etiquetas inmutables
+
+Una etiqueta se crea sólo después de merge, cierre documental, clon nuevo,
+suites y `git status --porcelain` limpio. Una vez creada no se mueve: una
+corrección posterior recibe una etiqueta nueva (`-fix1`, `-r2`, `-hardened` o
+nueva versión). `v-openmoji-catalog-v1` tuvo un movimiento local histórico antes
+de publicarse; queda registrado como excepción previa a esta regla y conserva su
+target final `a9d109ece77c9b552a8e84e3cd248e25ba7fa3a8`. No se reescriben etiquetas
+históricas ni se reutilizan sus nombres.
+
 ## `v-openmoji-catalog-v1`
 
 Merge local **`5bf8635280b2623ef3f3d47e4e0d8dc83fa6a111`** de

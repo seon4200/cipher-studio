@@ -1,4 +1,4 @@
-# Plan V1 — orden de ejecución después de 3.4A
+# Plan V1 — orden de ejecución después de 3.4C
 
 Base documental `291069e`, tag `v-auditoria-pipeline-assets`; ejecución actualizada
 con el merge 3.4A `8760491`. Hecho documental no significa función implementada.
@@ -9,12 +9,13 @@ con el merge 3.4A `8760491`. Hecho documental no significa función implementada
 - [x] 3.3.5 — Especificación documental cerrada en `v-scene-recipe-editorial-v1`: Scene Recipe + ProjectSubstrate, 18 ejemplos y validador; sin renderer nuevo.
 - [x] 3.4A — Persistencia mínima integrada con merge `8760491` y retorno `v-persistencia-assets-v1`. Código `6b8dddf`: schema/migración, ProjectSubstrate, manifest V1, rutas confinadas y backup; clon nuevo con npm ci, tsc, build y 10/10. Evidencia: persistencia-assets-v1.md. No incluye catálogo ni asset real.
 - [x] 3.4B — Catálogo OpenMoji oficial pinneado, integrado con merge `5bf8635` y cierre de aislamiento `23ed2c2`; retorno `v-openmoji-catalog-v1`. Metadata local, SVG color, nombres/grupos/aliases, atribución y búsqueda offline. La validación exhaustiva queda en build; carga/búsqueda runtime no inspeccionan SVG y la resolución valida sólo el SVG elegido. Reconciliación 3.4B.1: fixtures bajo `%TEMP%`, 30/30 casos, 11/11 suites y los tres proyectos actuales con huella idéntica antes/después. No copia assets a proyectos ni implementa Hero. Evidencia: `openmoji-catalog-v1.md`.
-- [ ] 3.4C — Round trip: resolver birthday cake, copiar un solo SVG, validar, SHA, manifest, cerrar y reabrir offline resolviendo el mismo asset.
-- [ ] 3.5A — AttentionIntent: pregunta del espectador, emoción objetivo, mecanismo de atención, restricción de verdad, propósito de cada elemento y variantes cortas de texto; después de 3.4C, sin llamada IA en 3.4B.
-- [ ] 3.5B — Asset Resolver: proyecto primero, OpenMoji, proveedores, continuidad/variedad y fallback trazable; candidato, descarga, validación, referencias relativas y plan resuelto.
-- [ ] 3.6A — Hero estático: una ranura real, bytes presentes, RenderSpec y coherencia de ambas cachés; sin nuevos movimientos ni transiciones.
+- [x] 3.4C — Round trip OpenMoji candidato: birthday cake/1F382, validación profunda, SHA, publicación atómica, AssetManifest real e inspección offline en proyecto temporal. No dibuja ni publica assets en proyectos reales. Evidencia: openmoji-asset-roundtrip-v1.md; integración/checkpoint pendientes de la certificación final.
+- [ ] 3.4D — Spike visual inmediato en el banco: tres OpenMoji elegidos manualmente, original frente a accent mask, hoja de seis celdas y evaluación humana; sin resolver automático.
+- [ ] 3.5B — Asset Resolver mínimo: proyecto primero, OpenMoji, continuidad/variedad y fallback trazable; sin ampliar proveedores todavía.
+- [ ] 3.6A — Hero estático productivo: una ranura real, bytes presentes, RenderSpec y coherencia de ambas cachés; sin nuevos movimientos ni transiciones.
 - [ ] 3.6B — Motion Envelope: presets acotados y ciclo legal, bounds durante todo el movimiento, sin geometría duplicada.
 - [ ] 3.6C — QC Hero: hoja visual del renderer real, SHA/ausencia/contraste/bounds y aceptación perceptiva.
+- [ ] 3.5A — AttentionIntent calibrado después de evidencia visual: pregunta del espectador, emoción objetivo, mecanismo de atención, restricción de verdad, propósito y texto; sin llamada IA en 3.4B–3.4D.
 - [ ] 3.7 — Texto editorial: pares medidos, presupuesto, legibilidad y keyword sincronizable.
 - [ ] 3.8 — Support: jerarquía y presupuesto semántico, sin competir con Hero.
 - [ ] 3.9 — Collage/layouts: compatibilidad entre intents y las estructuras, texturas/decoradores y density roles; recalibrar límites con evidencia.
@@ -38,8 +39,8 @@ real del proyecto y un manifest V1 vacío para proyectos nuevos. No valida bytes
 no copia materiales en Guardar como y no hace transacción conjunta entre ambos
 JSON. 3.4B ya está integrado: catálogo OpenMoji oficial pinneado,
 metadata/aliases/atribución offline, validación de build y carga runtime ligera.
-El siguiente límite es 3.4C: un único round trip de SVG al proyecto, sin Hero
-todavía.
+3.4C ya tiene un candidato probado en proyecto temporal: el siguiente límite es
+3.4D, un spike visual humano en el banco. Sigue sin Hero productivo todavía.
 
 ## Límites de no-regresión
 

@@ -27,6 +27,29 @@ ni RenderSpec. Cuando 3.4C publique un SVG concreto, su SHA/estado/tinte efectiv
 pasarán a la identidad visual; su ruta relativa seguirá siendo sólo un locator.
 Ver `openmoji-catalog-v1.md` para la API, errores y recurso offline.
 
+## 3.4C — ProjectAsset OpenMoji materializado, sin escena
+
+3.4C añade la única operación interna que puede pasar de catálogo de aplicación
+a asset de un **proyecto temporal**: `publishOpenMojiAsset({ projectRoot,
+stableId })`. Reutiliza ProjectAssetRecord y AssetManifestV1 existentes, no los
+amplía. El archivo final es `materiales/assets/openmoji/<sha256>.svg`; el locator
+relativo sirve para abrirlo, mientras que SHA, MIME, tamaño y revisión de
+validación acreditan el contenido. La atribución/vía de procedencia se toma de
+`attribution.ts`; no se hace fetch.
+
+La verificación de bytes se llama `verifyProjectAssetContent`. Esta fase no
+crea SceneAssetSlot, ResolvedScenePlan, RenderAssetIdentity, RenderBindings ni
+`extra.sceneSpec`; por tanto no modifica `graphicData`, `hashGrafico` ni los
+píxeles. Cuando se llegue a render, sólo resultado materializado (presente o
+ausente, SHA, tint, fit, revisión y motion efectivos) será PixelIdentity. URL,
+provider, licencia, path, candidato y AttentionIntent continúan siendo datos de
+provenance/decisión, no identidad visual.
+
+La forma actual de ProjectAssetRecord sigue siendo la autoridad; no se convierte
+el ejemplo relacional de abajo en schema productivo. Ver
+`openmoji-asset-roundtrip-v1.md` para la política SVG, errores, orden atómico e
+idempotencia.
+
 ## Responsabilidades separadas
 
 | Contrato | Autoridad | No contiene |
