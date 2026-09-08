@@ -1,8 +1,9 @@
 # Persistencia de proyectos y assets V1 — 3.4A
 
-Base: master 0444fea / v-scene-recipe-editorial-v1. Implementación en
-asset-persistence-3-4a, candidatos 3338991 y 6b8dddf. Sin merge, tag ni push.
-No se implementan selección editorial, descarga, OpenMoji, Hero, RenderSpec ni
+Base antes de integrar: master `0444fea` / `v-scene-recipe-editorial-v1`.
+Implementación en `asset-persistence-3-4a`, candidatos `3338991` y `6b8dddf`;
+merge local `8760491` y cierre `v-persistencia-assets-v1`. No hubo push. No se
+implementan selección editorial, descarga, OpenMoji, Hero, RenderSpec ni
 movimiento. VERSION_PLANTILLAS permanece 12; la persistencia no alimenta el hash.
 
 ## Autoridades y contratos reales
@@ -197,8 +198,12 @@ Sin borradores ni fixtures antes de comenzar; el clon quedó consumido por prueb
 - Fixture de última tirada: directorio temporal cipher-assets-persistence-1gKZty
   en os.tmpdir(), no un proyecto real. Fixtures inválidos son deliberados y las
   pruebas esperan rechazo; los estados/manifests válidos se parsean y comparan.
-- 61 project-state.json reales: SHA-256, byteLength y mtime antes/después
-  idénticos. No se usaron como fixtures ni se abrieron con la app.
+- La certificación de rama registró 61 `project-state.json` reales con SHA-256,
+  byteLength y mtime idénticos antes/después. No se usaron como fixtures ni se
+  abrieron con la app. En el cierre posterior sobre master, `proyectos/` contenía
+  56 estados presentes; los 56 conservaron esas tres medidas. La diferencia de
+  cinco no se explica ni se atribuye a esta tarea: la evidencia de 61 permanece
+  histórica, no una garantía del recuento actual.
 - Diff vacío frente a 0444fea en renderer, preload, shared/escena, semilla,
   sistemas, package-lock y Vite. hashGrafico, canonizar, renderGraphicClip,
   sistemaDeGeneracion y dimensionesDeExport idénticos al extraer sus nodos TS

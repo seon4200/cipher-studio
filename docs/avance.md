@@ -8,8 +8,11 @@
 > desconocidos; Guardar como captura el origen antes del diálogo.
 > Clon NUEVO de `6b8dddf`: npm ci, tsc, build por ficheros y **10/10 suites**;
 > suite nueva de persistencia/assets con 25 grupos sobre consumidores compilados.
-> Los commits posteriores a ese árbol ejecutable son sólo documentación. Los 61
-> estados reales mantienen SHA, tamaño y fecha. Evidencia y limitaciones:
+> Los commits posteriores a ese árbol ejecutable son sólo documentación. La
+> certificación de rama registró 61 estados reales intactos; el cierre en master
+> recontó los 56 hoy presentes bajo `proyectos/`, también sin cambios de SHA,
+> tamaño o fecha. No se atribuyen los cinco ausentes a esta tarea. Evidencia y
+> limitaciones:
 > `docs/asset-engine/persistencia-assets-v1.md`.
 > El retorno `v-persistencia-assets-v1` apunta al cierre documental final. Versión
 > 12 y visual_escena intactas. Sin OpenMoji, Hero ni imágenes; siguiente código

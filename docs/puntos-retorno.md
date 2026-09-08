@@ -20,8 +20,10 @@ y rutas históricas; una versión futura se rechaza sin sobrescribir; ProjectSub
 válido hace round trip; un proyecto nuevo crea manifest vacío; legacy sin manifest
 abre; traversal/UNC/drive/junction se rechazan; corrupción recupera desde backup
 válido; fallo antes de publicar conserva principal; Guardar como conserva el origen;
-10/10 suites pasan; los 61 estados de proyectos reales mantienen SHA, tamaño y
-fecha; y un clon nuevo verificó el árbol ejecutable final.
+10/10 suites pasan; la certificación de rama registró 61 estados reales intactos.
+En el cierre de master se recontaron los 56 hoy presentes bajo `proyectos/` y esos
+56 mantuvieron SHA, tamaño y fecha; no se atribuyen los cinco ausentes a esta tarea.
+Un clon nuevo verificó el árbol ejecutable final.
 
 **Qué NO está comprobado:** portabilidad de rutas antiguas; copia de materiales en
 Guardar como; transacción conjunta estado+manifest; bloqueo multiproceso;
