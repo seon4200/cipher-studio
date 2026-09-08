@@ -8,9 +8,10 @@ con el merge 3.4A `8760491`. Hecho documental no significa función implementada
 - [x] 3.3 — Auditoría de pipeline, integrada con `993a123`; cierre `291069e`.
 - [x] 3.3.5 — Especificación documental cerrada en `v-scene-recipe-editorial-v1`: Scene Recipe + ProjectSubstrate, 18 ejemplos y validador; sin renderer nuevo.
 - [x] 3.4A — Persistencia mínima integrada con merge `8760491` y retorno `v-persistencia-assets-v1`. Código `6b8dddf`: schema/migración, ProjectSubstrate, manifest V1, rutas confinadas y backup; clon nuevo con npm ci, tsc, build y 10/10. Evidencia: persistencia-assets-v1.md. No incluye catálogo ni asset real.
-- [ ] 3.4B — Catálogo OpenMoji pinneado: elegir release/paquete, metadata local, nombres/grupos/aliases, atribución y modo offline.
+- [x] 3.4B — Catálogo OpenMoji oficial pinneado en la rama `openmoji-catalog-3-4b`: metadata local, SVG color, nombres/grupos/aliases, atribución y búsqueda offline. No está mergeado; no copia assets a proyectos ni implementa Hero. Evidencia: `openmoji-catalog-v1.md`.
 - [ ] 3.4C — Round trip: resolver birthday cake, copiar un solo SVG, validar, SHA, manifest, cerrar y reabrir offline resolviendo el mismo asset.
-- [ ] 3.5 — Asset Resolver: proyecto primero; candidato, descarga, validación, referencias relativas, plan resuelto y fallback trazable.
+- [ ] 3.5A — AttentionIntent: pregunta del espectador, emoción objetivo, mecanismo de atención, restricción de verdad, propósito de cada elemento y variantes cortas de texto; después de 3.4C, sin llamada IA en 3.4B.
+- [ ] 3.5B — Asset Resolver: proyecto primero, OpenMoji, proveedores, continuidad/variedad y fallback trazable; candidato, descarga, validación, referencias relativas y plan resuelto.
 - [ ] 3.6A — Hero estático: una ranura real, bytes presentes, RenderSpec y coherencia de ambas cachés; sin nuevos movimientos ni transiciones.
 - [ ] 3.6B — Motion Envelope: presets acotados y ciclo legal, bounds durante todo el movimiento, sin geometría duplicada.
 - [ ] 3.6C — QC Hero: hoja visual del renderer real, SHA/ausencia/contraste/bounds y aceptación perceptiva.

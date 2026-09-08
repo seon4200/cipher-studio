@@ -10,6 +10,23 @@ No existen adquisición, descarga, Recipe compiler, RenderSpec ni renderer nuevo
 La propuesta individual extra.hero sigue sustituida conceptualmente por
 extra.sceneSpec para la fase de render, no implementada en 3.4A.
 
+## Catálogo de aplicación OpenMoji — 3.4B
+
+3.4B añade un catálogo de **aplicación**, no un inventario de proyecto. Su
+autoridad ejecutable está en `src/main/assets/openmoji/`; usa la distribución
+oficial exacta `openmoji@17.0.0` durante build y publica un recurso local
+selectivo fuera de Git. `OpenMojiCatalogEntry` separa metadata oficial
+(hexcode/emoji/annotation/group/subgroup), datos derivados (stableId,
+normalización, tags y ruta color SVG) y aliases de Cipher. La atribución tiene
+una única autoridad en `attribution.ts`.
+
+El catálogo sólo devuelve candidatos y una ruta local confinada. No crea
+`ProjectAssetRecord`, no escribe `materiales/assets/manifest.json`, no devuelve
+una URL remota de render y no contiene geometría, SceneRecipe, motion, timeline
+ni RenderSpec. Cuando 3.4C publique un SVG concreto, su SHA/estado/tinte efectivo
+pasarán a la identidad visual; su ruta relativa seguirá siendo sólo un locator.
+Ver `openmoji-catalog-v1.md` para la API, errores y recurso offline.
+
 ## Responsabilidades separadas
 
 | Contrato | Autoridad | No contiene |
