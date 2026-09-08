@@ -1,8 +1,9 @@
 # 3.4B — catálogo OpenMoji oficial, local y offline
 
-**Estado:** validado en la rama **openmoji-catalog-3-4b**, pendiente de merge
-local y etiqueta. No crea ProjectAssetRecord, no escribe AssetManifest, no copia
-SVG a un proyecto, no abre IPC y no dibuja Hero.
+**Estado:** integrado localmente en `master` mediante merge `5bf8635`; el retorno
+`v-openmoji-catalog-v1` apunta al cierre documental posterior. No crea
+ProjectAssetRecord, no escribe AssetManifest, no copia SVG a un proyecto, no abre
+IPC y no dibuja Hero.
 
 ## Fuente y pin
 

@@ -2,6 +2,39 @@
 
 Etiquetas a las que se puede volver, y qué está probado de cada una.
 
+## `v-openmoji-catalog-v1`
+
+Merge local **`5bf8635280b2623ef3f3d47e4e0d8dc83fa6a111`** de
+`openmoji-catalog-3-4b`. La etiqueta apunta al cierre documental posterior al
+merge: resolver con `git rev-parse v-openmoji-catalog-v1^{commit}`. No mueve ni
+reutiliza etiquetas anteriores.
+
+**Qué contiene:** `openmoji@17.0.0` exacto como devDependency de build; recurso
+selectivo local con metadata, 4.495 SVG color, licencia y manifiesto derivado;
+aliases españoles, food-sweet, atribución centralizada y búsqueda determinista
+offline. La validación exhaustiva vive en preparación/build; la carga runtime es
+ligera y la validación del SVG es lazy. El recurso se empaqueta fuera de ASAR; el
+runner conserva 11 suites.
+
+**Qué está comprobado:** 4.495 entradas y 4.495 SVG color; `birthday cake` es
+`1F382`; aliases, scoring y desempate estables; red bloqueada; cero inspecciones
+de `color/svg` en carga, búsqueda y listas; una inspección al resolver `1F382`;
+recurso local/pin/atribución; build; paquete temporal con `resources/openmoji`
+fuera de ASAR y sin duplicado; 30/30 casos de catálogo; 11/11 suites; y clon
+nuevo con `npm ci`, typecheck, build y pruebas. La comprobación de paquete cubre
+presencia, rutas y carga del recurso, no una sesión interactiva instalada.
+
+**Qué NO está comprobado:** ProjectAsset OpenMoji; copia al proyecto; SHA del
+asset publicado; validación profunda/sanitización de SVG; AssetManifest con
+OpenMoji; reapertura de un asset publicado; Hero; RenderSpec; motion; calidad
+visual; PurePNG/PNGImages; ni AttentionIntent.
+
+**Volver aquí:** conserva persistencia y catálogo OpenMoji local/offline, pero
+ningún SVG fue publicado dentro de un proyecto ni dibujado. Volver al checkpoint
+anterior pierde el catálogo y su undécima suite, no los puntos históricos.
+
+---
+
 ## `v-persistencia-assets-v1`
 
 Merge local **`87604917960b1e511707f4203e94a4a8de445bad`** de

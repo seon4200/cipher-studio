@@ -8,7 +8,7 @@ con el merge 3.4A `8760491`. Hecho documental no significa función implementada
 - [x] 3.3 — Auditoría de pipeline, integrada con `993a123`; cierre `291069e`.
 - [x] 3.3.5 — Especificación documental cerrada en `v-scene-recipe-editorial-v1`: Scene Recipe + ProjectSubstrate, 18 ejemplos y validador; sin renderer nuevo.
 - [x] 3.4A — Persistencia mínima integrada con merge `8760491` y retorno `v-persistencia-assets-v1`. Código `6b8dddf`: schema/migración, ProjectSubstrate, manifest V1, rutas confinadas y backup; clon nuevo con npm ci, tsc, build y 10/10. Evidencia: persistencia-assets-v1.md. No incluye catálogo ni asset real.
-- [x] 3.4B — Catálogo OpenMoji oficial pinneado y validado en la rama `openmoji-catalog-3-4b`: metadata local, SVG color, nombres/grupos/aliases, atribución y búsqueda offline. La validación exhaustiva queda en build; carga/búsqueda runtime no inspeccionan SVG y la resolución valida sólo el SVG elegido. Pendiente de merge local; no copia assets a proyectos ni implementa Hero. Evidencia: `openmoji-catalog-v1.md`.
+- [x] 3.4B — Catálogo OpenMoji oficial pinneado, integrado con merge `5bf8635` y retorno `v-openmoji-catalog-v1`: metadata local, SVG color, nombres/grupos/aliases, atribución y búsqueda offline. La validación exhaustiva queda en build; carga/búsqueda runtime no inspeccionan SVG y la resolución valida sólo el SVG elegido. No copia assets a proyectos ni implementa Hero. Evidencia: `openmoji-catalog-v1.md`.
 - [ ] 3.4C — Round trip: resolver birthday cake, copiar un solo SVG, validar, SHA, manifest, cerrar y reabrir offline resolviendo el mismo asset.
 - [ ] 3.5A — AttentionIntent: pregunta del espectador, emoción objetivo, mecanismo de atención, restricción de verdad, propósito de cada elemento y variantes cortas de texto; después de 3.4C, sin llamada IA en 3.4B.
 - [ ] 3.5B — Asset Resolver: proyecto primero, OpenMoji, proveedores, continuidad/variedad y fallback trazable; candidato, descarga, validación, referencias relativas y plan resuelto.
@@ -36,10 +36,10 @@ de la caché existente y la caché React. No inventar otro renderer para optimiz
 3.4A formalizó persistencia mínima de ProjectSubstrate dentro de la estructura
 real del proyecto y un manifest V1 vacío para proyectos nuevos. No valida bytes,
 no copia materiales en Guardar como y no hace transacción conjunta entre ambos
-JSON. 3.4B ya está validado en rama: catálogo OpenMoji oficial pinneado,
+JSON. 3.4B ya está integrado: catálogo OpenMoji oficial pinneado,
 metadata/aliases/atribución offline, validación de build y carga runtime ligera.
-Tras integrarlo, el siguiente límite será 3.4C: un único round trip de SVG al
-proyecto, sin Hero todavía.
+El siguiente límite es 3.4C: un único round trip de SVG al proyecto, sin Hero
+todavía.
 
 ## Límites de no-regresión
 
