@@ -1,5 +1,17 @@
 # AVANCE — dónde vamos
 
+> **3.4B — cierre local pendiente de merge (08/09/2026).** La rama
+> `openmoji-catalog-3-4b` fija `openmoji@17.0.0` como devDependency de build y
+> genera un catálogo local de metadata + SVG color + licencia, fuera de Git. El
+> catálogo devuelve candidatos deterministas por annotation/emoji/hex/grupo/
+> subgrupo/alias, con 14 entradas `food-drink/food-sweet` y `birthday cake`
+> (`1F382`) localizado. La validación exhaustiva de 4.495 SVG queda en build;
+> carga, búsqueda y listas no tocan `color/svg`, y resolver el SVG elegido lo
+> valida lazy. La suite 11 cubre 30 casos con red bloqueada. No se ha mergeado ni
+> etiquetado; no se copió SVG a proyectos, no se escribió manifest, no se dibujó
+> Hero y `VERSION_PLANTILLAS` sigue en 12. Evidencia y límites:
+> `docs/asset-engine/openmoji-catalog-v1.md`.
+>
 > **3.4A — persistencia V1 integrada y comprobada (07/09/2026).**
 > Merge local `8760491` de `asset-persistence-3-4a`. Estado versionado V1,
 > migración legacy en memoria, ProjectSubstrate null/validado sin consumo visual,
@@ -64,7 +76,9 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 > existen sólo como cimiento vacío de proyectos V1; no descargan ni validan assets.
 > No se implementó movimiento nuevo. 3.4A ya cerró schema/migración legacy,
 > ProjectSubstrate, manifest V1, rutas confinadas, escritura recuperable y
-> recuperación; siguiente código recomendado: **3.4B, catálogo OpenMoji pinneado**.
+> recuperación; el cierre local pendiente de merge **3.4B** integra el catálogo
+> OpenMoji local con carga runtime ligera. El siguiente código después de
+> integrarlo será **3.4C**, no Hero.
 >
 > **Spike limpio de proveedores (`c94cc3f`).** Se conserva evidencia sin binarios:
 > OpenMoji oficial (SVG válido), PurePNG como muestra secundaria con alpha útil y
