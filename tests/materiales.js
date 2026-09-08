@@ -20,13 +20,16 @@
  */
 const { app, ipcMain, dialog } = require('electron')
 const fs = require('fs')
-const os = require('os')
 const path = require('path')
+const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
 
 const RAIZ = path.resolve(__dirname, '..')
-const PROY = path.join(RAIZ, 'proyectos')
+const FIXTURE_ROOT = createTestFixture('materiales')
+process.chdir(FIXTURE_ROOT)
+const PROY = path.join(FIXTURE_ROOT, 'cipher-studio', 'proyectos')
 const MARCA = 'zz-prueba-materiales'
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-mat-'))
+const TMP = path.join(FIXTURE_ROOT, 'external')
+fs.mkdirSync(TMP, { recursive: true })
 
 const fallos = []
 const ok = (cond, titulo, detalle) => {
@@ -40,13 +43,12 @@ const llamar = (canal, arg) => {
   return h({ sender: { send: () => {} } }, arg)
 }
 
-const limpiar = () => {
-  if (!fs.existsSync(PROY)) return
-  for (const d of fs.readdirSync(PROY)) {
-    if (d.toLowerCase().startsWith(MARCA)) {
-      fs.rmSync(path.join(PROY, d), { recursive: true, force: true })
-    }
-  }
+let fixtureCleaned = false
+const limpiarFixture = () => {
+  if (fixtureCleaned) return
+  process.chdir(path.dirname(FIXTURE_ROOT))
+  cleanupTestFixture(FIXTURE_ROOT)
+  fixtureCleaned = true
 }
 
 const tocar = (p) => {
@@ -312,12 +314,9 @@ async function parteC (proyecto) {
 async function main () {
   console.log('AUDITORIA DE MATERIALES — los cuatro estados y la guarda del export')
   console.log('Corre sobre el bundle compilado: ejecuta `npm run build` antes si has tocado el codigo.')
-  limpiar()
   const proyecto = await partesAyB()
   await parteC(proyecto)
   await llamar('close-project', {})
-  limpiar()
-  fs.rmSync(TMP, { recursive: true, force: true })
 
   console.log('\n' + '─'.repeat(70))
   if (fallos.length) {
@@ -333,6 +332,6 @@ app.whenReady().then(async () => {
   require(path.join(RAIZ, 'dist-electron/main/index.js'))
   await new Promise(r => setTimeout(r, 1500))
   let code = 1
-  try { code = await main() } catch (e) { console.log('EXCEPCION: ' + e.stack) }
+  try { code = await main() } catch (e) { console.log('EXCEPCION: ' + e.stack) } finally { limpiarFixture() }
   app.exit(code ? 1 : 0)
 })

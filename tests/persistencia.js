@@ -21,10 +21,13 @@
 const { app, ipcMain } = require('electron')
 const fs = require('fs')
 const path = require('path')
+const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
 
 const RAIZ = path.resolve(__dirname, '..')
 const FUENTE = path.join(RAIZ, 'src/renderer/src/main.tsx')
-const PROY = path.join(RAIZ, 'proyectos')
+const FIXTURE_ROOT = createTestFixture('persistencia')
+process.chdir(FIXTURE_ROOT)
+const PROY = path.join(FIXTURE_ROOT, 'cipher-studio', 'proyectos')
 const MARCA = 'zz-prueba-persistencia'
 
 // Claves que NO son un estado con el mismo nombre. Se declaran aqui, a la vista, con su
@@ -151,11 +154,12 @@ const llamar = (canal, arg) => {
   if (!h) throw new Error('sin handler: ' + canal)
   return h({ sender: { send: () => {} } }, arg)
 }
-const limpiar = () => {
-  if (!fs.existsSync(PROY)) return
-  for (const d of fs.readdirSync(PROY)) {
-    if (d.toLowerCase().startsWith(MARCA)) fs.rmSync(path.join(PROY, d), { recursive: true, force: true })
-  }
+let fixtureCleaned = false
+const limpiarFixture = () => {
+  if (fixtureCleaned) return
+  process.chdir(path.dirname(FIXTURE_ROOT))
+  cleanupTestFixture(FIXTURE_ROOT)
+  fixtureCleaned = true
 }
 
 async function parteB (claves) {
@@ -171,7 +175,6 @@ async function parteB (claves) {
         : `${Object.keys(MUESTRA).length} campos en la muestra`)
   }
 
-  limpiar()
   const p = await llamar('create-project', { name: MARCA })
   await llamar('save-project-state', { id: p.data.id, name: p.data.name, clips: [], ...MUESTRA })
   await llamar('close-project', {})
@@ -201,7 +204,6 @@ async function parteB (claves) {
     'un proyecto guardado ANTES de estos campos sigue abriendose',
     excepcion ? 'EXCEPCION: ' + excepcion : 'abre sin los campos nuevos, que llegan undefined')
 
-  limpiar()
 }
 
 app.whenReady().then(async () => {
@@ -217,6 +219,7 @@ app.whenReady().then(async () => {
   console.log('\n' + '─'.repeat(70))
   if (fallos.length === 0) {
     console.log('TODO CORRECTO — lo que se guarda se restaura, y las dependencias estan al dia.')
+    limpiarFixture()
     app.exit(0)
   } else {
     console.log(`${fallos.length} FALLO(S):`)
@@ -224,6 +227,7 @@ app.whenReady().then(async () => {
     console.log('\nUn campo que no sobrevive significa que el usuario pierde ese ajuste al')
     console.log('reabrir su proyecto, y en el caso de aspectRatio, que exporta con el formato')
     console.log('equivocado sin enterarse.')
+    limpiarFixture()
     app.exit(1)
   }
 }).catch(e => { console.error('LA PRUEBA NO PUDO EJECUTARSE:', e); app.exit(1) })

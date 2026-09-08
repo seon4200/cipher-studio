@@ -17,16 +17,19 @@
  */
 const { app, ipcMain, BrowserWindow } = require('electron')
 const fs = require('fs')
-const os = require('os')
 const path = require('path')
 const crypto = require('crypto')
 const { exec } = require('child_process')
+const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
 
 const RAIZ = path.resolve(__dirname, '..')
-const PROY = path.join(RAIZ, 'proyectos')
-const LOG = path.join(RAIZ, 'generation-debug.log')
+const FIXTURE_ROOT = createTestFixture('graficos')
+process.chdir(FIXTURE_ROOT)
+const PROY = path.join(FIXTURE_ROOT, 'cipher-studio', 'proyectos')
+const LOG = path.join(FIXTURE_ROOT, 'generation-debug.log')
 const MARCA = 'zz-prueba-graficos'
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-graf-'))
+const TMP = path.join(FIXTURE_ROOT, 'output')
+fs.mkdirSync(TMP, { recursive: true })
 
 const ANCHO = 1080, ALTO = 1920, FPS = 30, DUR = 2
 // Alto de la franja de la sonda. Copiado de SONDA_ALTO en main/index.ts y grafico.tsx: la
@@ -57,13 +60,12 @@ const ejecutar = (cmd) => new Promise((resolve, reject) => {
     err ? reject(new Error(String(stderr || err.message).slice(-600))) : resolve(String(stdout)))
 })
 
-const limpiar = () => {
-  if (!fs.existsSync(PROY)) return
-  for (const d of fs.readdirSync(PROY)) {
-    if (d.toLowerCase().startsWith(MARCA)) {
-      fs.rmSync(path.join(PROY, d), { recursive: true, force: true })
-    }
-  }
+let fixtureCleaned = false
+const limpiarFixture = () => {
+  if (fixtureCleaned) return
+  process.chdir(path.dirname(FIXTURE_ROOT))
+  cleanupTestFixture(FIXTURE_ROOT)
+  fixtureCleaned = true
 }
 
 // Solo las offscreen: el bundle abre su ventana principal al arrancar.
@@ -123,7 +125,6 @@ async function main (bundle) {
   const sinNada = bundle.dimensionesDeExport(undefined, undefined)
   ok(sinNada.ancho === 1920 && sinNada.alto === 1080, 'y sin argumentos, igual')
 
-  limpiar()
   const p = await llamar('create-project', { name: MARCA })
   const cacheGraficos = path.join(p.projectPath, 'cache', 'graficos')
   const logAntes = fs.existsSync(LOG) ? fs.statSync(LOG).size : 0
@@ -627,8 +628,7 @@ async function main (bundle) {
     // proceso de test se queda colgado.
     try { bundle.cerrarVentanaGraficos() } catch (e) {}
     try { await llamar('close-project', {}) } catch (e) {}
-    limpiar()
-    try { fs.rmSync(TMP, { recursive: true, force: true }) } catch (e) {}
+    limpiarFixture()
   }
 }
 
@@ -654,8 +654,7 @@ app.whenReady().then(async () => {
     // dejar una ventana Electron viva esperando para siempre.
     try { bundle.cerrarVentanaGraficos() } catch (e) {}
     try { await llamar('close-project', {}) } catch (e) {}
-    limpiar()
-    try { fs.rmSync(TMP, { recursive: true, force: true }) } catch (e) {}
+    limpiarFixture()
   }
 
   console.log('\n' + '─'.repeat(70))

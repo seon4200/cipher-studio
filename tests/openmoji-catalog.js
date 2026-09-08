@@ -1,13 +1,13 @@
 // Exercises the actual compiled main-process catalog. Fixtures are generated in
-// os.tmpdir(); no OpenMoji binary and no project state is written by this suite.
+// marked os.tmpdir() roots; no OpenMoji binary and no project state is written by this suite.
 const { app } = require('electron')
 const assert = require('assert/strict')
 const crypto = require('crypto')
 const fs = require('fs')
 const http = require('http')
 const https = require('https')
-const os = require('os')
 const path = require('path')
+const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
 
 const RAIZ = path.resolve(__dirname, '..')
 const CASOS_ESPERADOS = 30
@@ -80,7 +80,7 @@ function makeFixture({
   svgContent = '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
   manifestOverrides = {},
 } = {}) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-openmoji-catalog-'))
+  const root = createTestFixture('openmoji-catalog')
   fs.mkdirSync(path.join(root, 'data'), { recursive: true })
   fs.mkdirSync(path.join(root, 'color', 'svg'), { recursive: true })
   const metadataBytes = Buffer.from(JSON.stringify(entries), 'utf8')
@@ -337,17 +337,17 @@ try {
     const root = makeFixture()
     try {
       code(() => b.loadOpenMojiCatalog({ resourceRoot: root, aliases: [{ alias: 'fantasma', language: 'es', stableIds: ['openmoji:dead'] }] }), 'OPENMOJI_ALIAS_INVALID')
-    } finally { fs.rmSync(root, { recursive: true, force: true }) }
+    } finally { cleanupTestFixture(root) }
   })
   test('21 an incompatible resource version fails before use', () => {
     const root = makeFixture({ version: '17.0.1' })
     try { code(() => b.loadOpenMojiCatalog({ resourceRoot: root, aliases: [] }), 'OPENMOJI_VERSION_MISMATCH') }
-    finally { fs.rmSync(root, { recursive: true, force: true }) }
+    finally { cleanupTestFixture(root) }
   })
   test('22 duplicate stable IDs in metadata fail deterministically', () => {
     const root = makeFixture({ entries: [fixtureEntry(), fixtureEntry({ annotation: 'duplicate tube' })] })
     try { code(() => b.loadOpenMojiCatalog({ resourceRoot: root, aliases: [] }), 'OPENMOJI_DUPLICATE_ID') }
-    finally { fs.rmSync(root, { recursive: true, force: true }) }
+    finally { cleanupTestFixture(root) }
   })
   test('23 a missing selected color SVG fails lazily, not during catalog load', () => {
     const root = makeFixture({ withSvg: false })
@@ -355,7 +355,7 @@ try {
       const fixtureCatalog = b.loadOpenMojiCatalog({ resourceRoot: root, aliases: [] })
       assert.equal(fixtureCatalog.entries.length, 1)
       code(() => b.resolveOpenMojiSvgCatalogPath(fixtureCatalog.entries[0], { resourceRoot: root, aliases: [] }), 'OPENMOJI_SVG_NOT_FOUND')
-    } finally { fs.rmSync(root, { recursive: true, force: true }) }
+    } finally { cleanupTestFixture(root) }
   })
   test('24 traversal and absolute path injection are rejected', () => {
     const cake = b.getOpenMojiEntryByHexcode('1F382')
@@ -367,12 +367,12 @@ try {
     try {
       const fixtureCatalog = b.loadOpenMojiCatalog({ resourceRoot: root, aliases: [] })
       code(() => b.resolveOpenMojiSvgCatalogPath(fixtureCatalog.entries[0], { resourceRoot: root, aliases: [] }), 'OPENMOJI_SVG_NOT_FOUND')
-    } finally { fs.rmSync(root, { recursive: true, force: true }) }
+    } finally { cleanupTestFixture(root) }
   })
   test('26 an invalid manifest schema is rejected', () => {
     const root = makeFixture({ manifestOverrides: { resourceSchemaVersion: 2 } })
     try { code(() => b.loadOpenMojiCatalog({ resourceRoot: root, aliases: [] }), 'OPENMOJI_METADATA_INVALID') }
-    finally { fs.rmSync(root, { recursive: true, force: true }) }
+    finally { cleanupTestFixture(root) }
   })
   test('27 metadata SHA mismatch is rejected without inspecting SVG files', () => {
     const root = makeFixture({ manifestOverrides: { metadataSha256: '0'.repeat(64) } })
@@ -381,12 +381,12 @@ try {
         code(() => b.loadOpenMojiCatalog({ resourceRoot: root, aliases: [] }), 'OPENMOJI_METADATA_INVALID')
         assert.equal(tracker.svgPaths.size, 0)
       })
-    } finally { fs.rmSync(root, { recursive: true, force: true }) }
+    } finally { cleanupTestFixture(root) }
   })
   test('28 resource fingerprint inconsistency is rejected', () => {
     const root = makeFixture({ manifestOverrides: { resourceFingerprint: 'f'.repeat(64) } })
     try { code(() => b.loadOpenMojiCatalog({ resourceRoot: root, aliases: [] }), 'OPENMOJI_METADATA_INVALID') }
-    finally { fs.rmSync(root, { recursive: true, force: true }) }
+    finally { cleanupTestFixture(root) }
   })
   test('29 attribution is a single immutable authority for callers', () => {
     const first = b.getOpenMojiCatalogInfo()

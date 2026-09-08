@@ -32,6 +32,7 @@
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
+const { createTestFixture, cleanupTestFixture } = require('../helpers/safe-fixture')
 const { execSync } = require('child_process')
 
 // ── LOS UMBRALES, Y DE DONDE SALEN ──────────────────────────────────────────────────────────
@@ -175,14 +176,17 @@ if (require.main === module) {
     console.log(informe(path.basename(A) + ' vs ' + path.basename(B), c))
     peores.push(veredicto(c))
   } else {
-    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-cmp-'))
-    for (const n of frames) {
-      const c = comparar(sacarFrame(A, n, path.join(tmp, `a${n}.raw`)),
-                         sacarFrame(B, n, path.join(tmp, `b${n}.raw`)))
-      console.log(informe('frame ' + String(n).padStart(3), c))
-      peores.push(veredicto(c))
+    const tmp = createTestFixture('comparar-capturas')
+    try {
+      for (const n of frames) {
+        const c = comparar(sacarFrame(A, n, path.join(tmp, `a${n}.raw`)),
+                           sacarFrame(B, n, path.join(tmp, `b${n}.raw`)))
+        console.log(informe('frame ' + String(n).padStart(3), c))
+        peores.push(veredicto(c))
+      }
+    } finally {
+      cleanupTestFixture(tmp)
     }
-    fs.rmSync(tmp, { recursive: true, force: true })
   }
 
   const peor = peores.includes('ERROR') ? 'ERROR'
