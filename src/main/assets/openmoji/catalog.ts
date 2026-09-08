@@ -1,3 +1,4 @@
+import { createHash } from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import aliasDocument from './openmoji-aliases.es.json'
@@ -6,7 +7,7 @@ import { getOpenMojiCatalogInfo, OPENMOJI_CATALOG_VERSION, type OpenMojiCatalogI
 export { getOpenMojiCatalogInfo, OPENMOJI_CATALOG_VERSION }
 export type { OpenMojiCatalogInfo }
 
-const RESOURCE_FORMAT_VERSION = 1
+const RESOURCE_SCHEMA_VERSION = 1
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 50
 const MAX_QUERY_LENGTH = 256
@@ -74,17 +75,21 @@ export class OpenMojiCatalogError extends Error {
 }
 
 type ResourceManifest = {
-  resourceFormatVersion: number
+  resourceSchemaVersion: number
   provider: string
   sourceKind: string
   sourcePackage: string
   catalogVersion: string
   metadataRelativeFile: string
-  svgDirectory: string
+  svgRootRelative: string
   licenseRelativeFile: string
   entryCount: number
-  colorSvgCount: number
+  svgCount: number
   knownMissingSvgHexcodes: string[]
+  metadataSha256: string
+  fileListSha256: string
+  generatorRevision: string
+  resourceFingerprint: string
 }
 
 type OfficialEntry = {
@@ -102,8 +107,11 @@ type LoadedCatalog = {
   byStableId: Map<string, OpenMojiCatalogEntry>
   byHexcode: Map<string, OpenMojiCatalogEntry>
   resourceRoot: string
+  catalogVersion: string
+  generatorRevision: string
 }
 
+const cachedCatalogs = new Map<string, LoadedCatalog>()
 let cachedDefaultCatalog: LoadedCatalog | undefined
 
 function fail(code: string, message: string, details: Record<string, unknown> = {}): never {
@@ -136,17 +144,29 @@ function stableIdForHexcode(hexcode: string): string {
   return 'openmoji:' + hexcode.toLowerCase()
 }
 
+function sha256(bytes: Buffer | string): string {
+  return createHash('sha256').update(bytes).digest('hex')
+}
+
+function resourceFingerprint(manifest: Pick<ResourceManifest, 'catalogVersion' | 'metadataSha256' | 'fileListSha256' | 'generatorRevision'>): string {
+  return sha256([
+    'openmoji',
+    manifest.catalogVersion,
+    manifest.metadataSha256,
+    manifest.fileListSha256,
+    manifest.generatorRevision,
+  ].join('\n'))
+}
+
 function tagsFromOfficial(entry: OfficialEntry): string[] {
   const values = [entry.tags, entry.openmoji_tags].filter((value): value is string => typeof value === 'string')
   return [...new Set(values.flatMap(value => value.split(',')).map(value => value.trim()).filter(Boolean))].sort((a, b) =>
     normalizeText(a).localeCompare(normalizeText(b), 'en'))
 }
 
-function parseAliasDocument(raw: unknown): OpenMojiAliasDefinition[] {
-  if (!isRecord(raw) || raw.aliasRevision !== 1 || !Array.isArray(raw.entries))
-    fail('OPENMOJI_ALIAS_INVALID', 'Documento de aliases OpenMoji inválido')
+function checkedAliases(rawAliases: readonly OpenMojiAliasDefinition[]): OpenMojiAliasDefinition[] {
   const names = new Set<string>()
-  return raw.entries.map((entry, index) => {
+  return rawAliases.map((entry, index) => {
     if (!isRecord(entry)) fail('OPENMOJI_ALIAS_INVALID', 'Alias no es objeto', { index })
     const alias = requireString(entry.alias, 'OPENMOJI_ALIAS_INVALID', 'alias')
     const language = requireString(entry.language, 'OPENMOJI_ALIAS_INVALID', 'language')
@@ -163,10 +183,34 @@ function parseAliasDocument(raw: unknown): OpenMojiAliasDefinition[] {
   })
 }
 
+function parseAliasDocument(raw: unknown): OpenMojiAliasDefinition[] {
+  if (!isRecord(raw) || raw.aliasRevision !== 1 || !Array.isArray(raw.entries))
+    fail('OPENMOJI_ALIAS_INVALID', 'Documento de aliases OpenMoji inválido')
+  return checkedAliases(raw.entries as OpenMojiAliasDefinition[])
+}
+
 const DEFAULT_ALIASES = Object.freeze(parseAliasDocument(aliasDocument))
+
+function aliasesFor(options: OpenMojiCatalogLoadOptions): readonly OpenMojiAliasDefinition[] {
+  return options.aliases === undefined ? DEFAULT_ALIASES : Object.freeze(checkedAliases(options.aliases))
+}
+
+function aliasesCacheKey(aliases: readonly OpenMojiAliasDefinition[]): string {
+  return aliases.map(alias => [
+    normalizeText(alias.alias),
+    alias.language,
+    [...alias.stableIds].join(','),
+    alias.comment || '',
+  ].join('|')).join('\n')
+}
 
 function isDefaultLoad(options: OpenMojiCatalogLoadOptions): boolean {
   return options.resourceRoot === undefined && options.aliases === undefined
+}
+
+export function clearOpenMojiCatalogCacheForTests(): void {
+  cachedDefaultCatalog = undefined
+  cachedCatalogs.clear()
 }
 
 export function resolveOpenMojiCatalogResourceRoot(runtime: OpenMojiRuntimePaths = {}): string {
@@ -197,13 +241,18 @@ function requiredResourceRoot(root: string): string {
   }
 }
 
-function confinedExistingFile(root: string, relative: string, missingCode: string): string {
+function confinedCandidate(root: string, relative: string): string {
   if (!relative || path.isAbsolute(relative) || relative.split(/[\\/]/).some(part => !part || part === '.' || part === '..'))
     fail('OPENMOJI_PATH_OUTSIDE_CATALOG', 'Ruta OpenMoji no confinada', { relative })
   const candidate = path.resolve(root, relative)
   const relation = path.relative(root, candidate)
   if (!relation || relation.startsWith('..') || path.isAbsolute(relation))
     fail('OPENMOJI_PATH_OUTSIDE_CATALOG', 'Ruta OpenMoji fuera de la raíz', { relative })
+  return candidate
+}
+
+function confinedExistingFile(root: string, relative: string, missingCode: string): string {
+  const candidate = confinedCandidate(root, relative)
   try {
     const real = fs.realpathSync(candidate)
     const realRelation = path.relative(root, real)
@@ -216,14 +265,19 @@ function confinedExistingFile(root: string, relative: string, missingCode: strin
   }
 }
 
-function readJson(root: string, relative: string, code: string): unknown {
+function readJson(root: string, relative: string, code: string): { bytes: Buffer, value: unknown } {
   const file = confinedExistingFile(root, relative, 'OPENMOJI_CATALOG_NOT_FOUND')
   try {
-    return JSON.parse(fs.readFileSync(file, 'utf8'))
+    const bytes = fs.readFileSync(file)
+    return { bytes, value: JSON.parse(bytes.toString('utf8')) }
   } catch (error: any) {
     if (error instanceof OpenMojiCatalogError) throw error
     fail(code, 'JSON OpenMoji inválido', { relative, causeCode: error?.code })
   }
+}
+
+function isSha256(value: unknown): value is string {
+  return typeof value === 'string' && /^[0-9a-f]{64}$/.test(value)
 }
 
 function parseResourceManifest(raw: unknown): ResourceManifest {
@@ -235,30 +289,43 @@ function parseResourceManifest(raw: unknown): ResourceManifest {
     return manifest[field] as number
   }
   const string = (field: string) => requireString(manifest[field], 'OPENMOJI_METADATA_INVALID', field)
-  if (manifest.resourceFormatVersion !== RESOURCE_FORMAT_VERSION || string('provider') !== 'openmoji' ||
+  if (manifest.resourceSchemaVersion !== RESOURCE_SCHEMA_VERSION || string('provider') !== 'openmoji' ||
     string('sourceKind') !== 'official-npm' || string('sourcePackage') !== 'openmoji')
     fail('OPENMOJI_METADATA_INVALID', 'Manifest de recurso OpenMoji no reconocido')
   const catalogVersion = string('catalogVersion')
   if (catalogVersion !== OPENMOJI_CATALOG_VERSION)
     fail('OPENMOJI_VERSION_MISMATCH', 'Versión OpenMoji incompatible', { found: catalogVersion, expected: OPENMOJI_CATALOG_VERSION })
+  const entryCount = number('entryCount')
+  if (entryCount === 0)
+    fail('OPENMOJI_METADATA_INVALID', 'Manifest OpenMoji sin entradas declaradas')
   if (!Array.isArray(manifest.knownMissingSvgHexcodes) || !manifest.knownMissingSvgHexcodes.every(value => typeof value === 'string'))
     fail('OPENMOJI_METADATA_INVALID', 'knownMissingSvgHexcodes inválido')
-  const svgDirectory = string('svgDirectory')
-  if (svgDirectory !== 'color/svg')
+  const svgRootRelative = string('svgRootRelative')
+  if (svgRootRelative !== 'color/svg')
     fail('OPENMOJI_METADATA_INVALID', '3.4B sólo admite color/svg como recurso OpenMoji')
-  return {
-    resourceFormatVersion: RESOURCE_FORMAT_VERSION,
+  for (const field of ['metadataSha256', 'fileListSha256', 'resourceFingerprint']) {
+    if (!isSha256(manifest[field])) fail('OPENMOJI_METADATA_INVALID', 'Fingerprint de manifest inválido: ' + field)
+  }
+  const resource: ResourceManifest = {
+    resourceSchemaVersion: RESOURCE_SCHEMA_VERSION,
     provider: 'openmoji',
     sourceKind: 'official-npm',
     sourcePackage: 'openmoji',
     catalogVersion,
     metadataRelativeFile: string('metadataRelativeFile'),
-    svgDirectory,
+    svgRootRelative,
     licenseRelativeFile: string('licenseRelativeFile'),
-    entryCount: number('entryCount'),
-    colorSvgCount: number('colorSvgCount'),
+    entryCount,
+    svgCount: number('svgCount'),
     knownMissingSvgHexcodes: manifest.knownMissingSvgHexcodes.map(value => normalizeHexcode(value) || fail('OPENMOJI_METADATA_INVALID', 'Hexcode faltante inválido')),
+    metadataSha256: manifest.metadataSha256 as string,
+    fileListSha256: manifest.fileListSha256 as string,
+    generatorRevision: string('generatorRevision'),
+    resourceFingerprint: manifest.resourceFingerprint as string,
   }
+  if (resource.resourceFingerprint !== resourceFingerprint(resource))
+    fail('OPENMOJI_METADATA_INVALID', 'Fingerprint de recurso OpenMoji inconsistente')
+  return resource
 }
 
 function svgRelativeFile(hexcode: string): string {
@@ -329,11 +396,22 @@ export function transformOpenMojiMetadata(raw: unknown, aliases: readonly OpenMo
 function loadedCatalog(options: OpenMojiCatalogLoadOptions = {}): LoadedCatalog {
   if (isDefaultLoad(options) && cachedDefaultCatalog) return cachedDefaultCatalog
   const root = requiredResourceRoot(options.resourceRoot || resolveOpenMojiCatalogResourceRoot())
-  const aliases = options.aliases === undefined ? DEFAULT_ALIASES : Object.freeze([...options.aliases])
-  const resource = parseResourceManifest(readJson(root, 'catalog-resource.json', 'OPENMOJI_METADATA_INVALID'))
+  const aliases = aliasesFor(options)
+  const cacheKey = root + '\u0000' + aliasesCacheKey(aliases)
+  const cached = cachedCatalogs.get(cacheKey)
+  if (cached) {
+    if (isDefaultLoad(options)) cachedDefaultCatalog = cached
+    return cached
+  }
+  const resource = parseResourceManifest(readJson(root, 'catalog-resource.json', 'OPENMOJI_METADATA_INVALID').value)
   const license = confinedExistingFile(root, resource.licenseRelativeFile, 'OPENMOJI_CATALOG_NOT_FOUND')
-  if (fs.statSync(license).size === 0) fail('OPENMOJI_METADATA_INVALID', 'LICENSE.txt OpenMoji vacío')
-  const rawMetadata = readJson(root, resource.metadataRelativeFile, 'OPENMOJI_METADATA_INVALID')
+  const licenseStat = fs.statSync(license)
+  if (!licenseStat.isFile() || licenseStat.size === 0)
+    fail('OPENMOJI_METADATA_INVALID', 'LICENSE.txt OpenMoji vacío')
+  const metadataDocument = readJson(root, resource.metadataRelativeFile, 'OPENMOJI_METADATA_INVALID')
+  if (sha256(metadataDocument.bytes) !== resource.metadataSha256)
+    fail('OPENMOJI_METADATA_INVALID', 'SHA-256 de metadata OpenMoji no coincide')
+  const rawMetadata = metadataDocument.value
   if (!Array.isArray(rawMetadata) || rawMetadata.length !== resource.entryCount)
     fail('OPENMOJI_METADATA_INVALID', 'Cantidad de entradas OpenMoji no coincide', { expected: resource.entryCount })
   const entries = transformOfficialMetadata(rawMetadata, aliases)
@@ -343,27 +421,26 @@ function loadedCatalog(options: OpenMojiCatalogLoadOptions = {}): LoadedCatalog 
   }
   const declaredMissing = new Set(resource.knownMissingSvgHexcodes)
   if (declaredMissing.size !== resource.knownMissingSvgHexcodes.length ||
-    [...declaredMissing].some(hexcode => !entries.some(entry => entry.hexcode === hexcode)))
+    [...declaredMissing].some(hexcode => !byStableId.has(stableIdForHexcode(hexcode))))
     fail('OPENMOJI_METADATA_INVALID', 'SVG faltante declarado no corresponde al metadata')
-  const warnings: OpenMojiCatalogWarning[] = []
-  const indexed: OpenMojiCatalogEntry[] = []
-  for (const entry of entries) {
-    const relative = entry.svgRelativeFile
-    if (declaredMissing.has(entry.hexcode)) {
-      warnings.push({ code: 'OPENMOJI_SVG_DECLARED_MISSING', hexcode: entry.hexcode })
-      continue
-    }
-    const file = confinedExistingFile(root, relative, 'OPENMOJI_SVG_NOT_FOUND')
-    const stat = fs.statSync(file)
-    if (!stat.isFile() || stat.size === 0 || path.extname(file).toLowerCase() !== '.svg' || !svgLooksLikeSvg(file))
-      fail('OPENMOJI_SVG_NOT_FOUND', 'SVG color OpenMoji inválido', { stableId: entry.stableId, relative })
-    indexed.push(entry)
-  }
-  if (indexed.length !== resource.colorSvgCount)
-    fail('OPENMOJI_METADATA_INVALID', 'Cantidad de SVG color OpenMoji no coincide', { expected: resource.colorSvgCount, found: indexed.length })
+  if (resource.svgCount !== entries.length - declaredMissing.size)
+    fail('OPENMOJI_METADATA_INVALID', 'Cantidad declarada de SVG color no coincide', { expected: entries.length - declaredMissing.size, found: resource.svgCount })
+  // Validate every derived route without touching color/svg. File-system checks are
+  // intentionally delayed until a caller selects one entry.
+  for (const entry of entries) confinedCandidate(root, entry.svgRelativeFile)
+  const warnings: OpenMojiCatalogWarning[] = [...declaredMissing]
+    .map(hexcode => ({ code: 'OPENMOJI_SVG_DECLARED_MISSING' as const, hexcode }))
+  const indexed = entries.filter(entry => !declaredMissing.has(entry.hexcode))
   const catalog: OpenMojiCatalog = Object.freeze({ entries: Object.freeze(indexed), warnings: Object.freeze(warnings) })
-  const result: LoadedCatalog = { catalog, byStableId: new Map(indexed.map(entry => [entry.stableId, entry])),
-    byHexcode: new Map(indexed.map(entry => [entry.hexcode, entry])), resourceRoot: root }
+  const result: LoadedCatalog = {
+    catalog,
+    byStableId: new Map(indexed.map(entry => [entry.stableId, entry])),
+    byHexcode: new Map(indexed.map(entry => [entry.hexcode, entry])),
+    resourceRoot: root,
+    catalogVersion: resource.catalogVersion,
+    generatorRevision: resource.generatorRevision,
+  }
+  cachedCatalogs.set(cacheKey, result)
   if (isDefaultLoad(options)) cachedDefaultCatalog = result
   return result
 }
@@ -467,7 +544,8 @@ export function resolveOpenMojiSvgCatalogPath(entry: OpenMojiCatalogEntry, optio
   const canonical = catalog.byStableId.get(entry.stableId)
   if (!canonical || canonical.hexcode !== hexcode) fail('OPENMOJI_SVG_NOT_FOUND', 'Entrada OpenMoji no pertenece al catálogo cargado')
   const file = confinedExistingFile(catalog.resourceRoot, canonical.svgRelativeFile, 'OPENMOJI_SVG_NOT_FOUND')
-  if (path.extname(file).toLowerCase() !== '.svg' || fs.statSync(file).size === 0 || !svgLooksLikeSvg(file))
+  const stat = fs.statSync(file)
+  if (!stat.isFile() || path.extname(file).toLowerCase() !== '.svg' || stat.size === 0 || !svgLooksLikeSvg(file))
     fail('OPENMOJI_SVG_NOT_FOUND', 'SVG OpenMoji inválido al resolver', { stableId: canonical.stableId })
   return file
 }
