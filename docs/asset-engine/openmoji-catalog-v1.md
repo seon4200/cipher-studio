@@ -60,9 +60,11 @@ CDN, fetch, http.request, https.request, ruta absoluta del PC ni dependencia de
 node_modules/openmoji en tiempo de consulta.
 
 La inclusión se comprobó en dos niveles: la suite comprueba el recurso construido
-y un empaquetado Windows temporal comprobó resources/openmoji con manifest,
-metadata, licencia y 1F382.svg. Esa comprobación certifica presencia y rutas; no
-es una sesión interactiva de la aplicación instalada.
+y un empaquetado Windows temporal comprobó `resources/openmoji` con manifiesto,
+metadata, licencia y `1F382.svg`. El consumidor compilado cargó explícitamente
+esa raíz empaquetada, obtuvo las 4.495 entradas y resolvió `birthday cake` /
+`1F382.svg`. Eso certifica presencia, rutas y carga del recurso; no es una sesión
+interactiva de la aplicación instalada.
 
 El empaquetado final medido dejó 4.498 archivos y 16.387.404 bytes en
 `resources/openmoji`, cero entradas OpenMoji en `app.asar`, y conserva el main,
@@ -182,6 +184,13 @@ ms y leyeron metadata una sola vez; dos búsquedas filtradas `sweet` tardaron
 SVG. La preparación exhaustiva de build tomó 4.740,5 ms, generando 4.498
 archivos / 16.387.737 bytes. Son mediciones de este host, no presupuestos
 universales.
+
+La certificación desde clon nuevo de `b747573`, creado sin `node_modules`, repitió
+`npm ci`, typecheck, build, la suite OpenMoji y las 11/11 suites. Sus tres cargas
+de primer proceso fueron **60,1 / 61,1 / 71,4 ms** (mínimo / mediana / máximo),
+también con cero inspecciones SVG durante carga/búsqueda. El commit posterior a
+esa certificación, si sólo cambia documentación, conserva el mismo árbol de
+código probado.
 
 ## Límites y siguiente paso
 
