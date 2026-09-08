@@ -2,6 +2,36 @@
 
 Etiquetas a las que se puede volver, y qué está probado de cada una.
 
+## `v-auditoria-pipeline-assets`
+
+Merge local `993a1231aaf7d365c3ffe4a79943507c87dcaee9` integra `19d3ce3` y
+`3d99f45`. La etiqueta señala el commit documental final que contiene esta nota
+(resolver con `git rev-parse v-auditoria-pipeline-assets^{commit}`). No mueve tags anteriores.
+
+**Qué contiene:** auditoría de proyectos, materiales, stock, providers, downloader,
+timeline y hash; almacenamiento propuesto, contratos conceptuales y plan V1.
+
+**Hechos comprobados:** base `c0a9c78`; sin schemaVersion/migraciones en el estado,
+rutas mayormente absolutas, sin manifiesto productivo ni `materiales/assets/` en
+la muestra auditada; timeline tipado video/audio/graphic; descarga actual sin
+validación específica de assets de imagen. Código sin cambios: versión 12 y
+`visual_escena` activa. Diff, sintaxis del validador y ejecución offline comprobados.
+
+**Conclusiones de arquitectura, no funciones verificadas:** Hero de archivo
+dentro de `visual_escena`; OpenMoji como primer provider recomendado; SHA/estado
+representados en la clave y ruta excluida de identidad. Son contratos propuestos.
+
+**Qué no está comprobado:** schema del manifiesto, implementación OpenMoji,
+Photo Hero, nuevo movimiento, Scene Recipe, PurePNG/PNGImages integrados,
+APIs fallback de imagen, removedor, ByPeople ni IA/FLUX.
+
+**Volver aquí:** conserva densidad/Solar y toda la auditoría documental, sin motor
+de imágenes. Volver a `v-spike-proveedores-limpio` pierde esta auditoría y sus
+correcciones documentales, sin cambiar producción. El encargo exime suites al
+no modificar producción: este checkpoint no acredita una nueva ejecución 9/9.
+
+---
+
 ---
 
 ## `v-densidad-solar-instrumentado`

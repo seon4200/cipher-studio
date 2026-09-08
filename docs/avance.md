@@ -29,11 +29,19 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 > nuevo, versionado, de 158 solicitudes: `43/158 → 72/158`. No son muestras
 > comparables.
 >
+> **Auditoría 3.3 integrada (`993a123`).** Los documentos de `docs/asset-engine/`
+> trazan proyecto, materiales, stock, descarga, timeline y hash. Estado actual:
+> rutas mayormente absolutas, sin schema/migraciones ni manifiesto productivo de
+> assets. Manifiesto por proyecto, rutas relativas y OpenMoji pinneado/local son
+> propuestas. No existe Photo Hero de archivo. Retorno: `v-auditoria-pipeline-assets`.
+> Sigue la especificación documental 3.3.5 Scene Recipe + ProjectSubstrate;
+> no hay implementación de imágenes o movimiento nuevo.
+>
 > **Spike limpio de proveedores (`c94cc3f`).** Se conserva evidencia sin binarios:
 > OpenMoji oficial (SVG válido), PurePNG como muestra secundaria con alpha útil y
 > PNGImages pendiente por alpha no útil. El renderer, Photo Hero y Asset Engine no
 > se implementaron. El flujo por vídeo hacia `materiales/assets/` es una propuesta
-> pendiente de auditar contra `project-state.json` y los almacenes actuales; Git no
+> auditada en 3.3, pendiente de validar schema e implementación; Git no
 > guarda ni redistribuye assets crudos de terceros.
 >
 > Evidencia real conservada: `tests/aceptacion/mvp-paso7/` documenta un MP4 de
@@ -122,7 +130,7 @@ sorteos desde el bundle (tipografia ultima), no salidas congeladas del catalogo.
 Capturas: `tests/aceptacion/tono-oscuro-claro.png`, `trama-tejida-lab-pieza.png` y las tres
 `capas-pareja-*.png`. El grano mas marcado y la calibracion pendiente estan documentados.
 Aquella etiqueta tenia `visual_mapa`; el interruptor se movio despues, en `8f7004c`.
-Hoy `COMPOSICION_VISUAL='visual_escena'`; el candidato `5388088` lleva
+Hoy `COMPOSICION_VISUAL='visual_escena'`; `5388088` está integrado y
 `VERSION_PLANTILLAS=12`.
 
 **Coste vigente (A.0, condiciones y JSON en `tests/rendimiento/README-m7.md`):**
