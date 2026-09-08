@@ -67,8 +67,19 @@ function removeFixtureFile (fixtureRoot, candidate) {
 function cleanupTestFixture (candidate) {
   const root = assertSafeFixtureRoot(candidate)
   if (!createdFixtures.has(root)) fail('no es el fixture exacto creado por esta ejecución: ' + root)
-  fs.rmSync(root, { recursive: true, force: false })
+  try {
+    fs.rmSync(root, { recursive: true, force: false })
+  } catch (error) {
+    // Electron can retain a handle while its process is still unwinding. Retaining this marked
+    // temporary fixture is safe; broadening the deletion target to force cleanup is not.
+    if (error && (error.code === 'EBUSY' || error.code === 'EPERM')) {
+      createdFixtures.delete(root)
+      return { removed: false, retained: true, reason: error.code }
+    }
+    throw error
+  }
   createdFixtures.delete(root)
+  return { removed: true, retained: false }
 }
 
 module.exports = {
