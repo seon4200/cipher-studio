@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "test": "node tests/todas.js",
     "test:persistencia": "electron tests/persistencia.js",
+    "test:assets-persistencia": "electron tests/assets-persistencia.js",
     "test:via4": "electron tests/via4.js",
     "test:materiales": "electron tests/materiales.js",
     "test:graficos": "electron tests/graficos.js",

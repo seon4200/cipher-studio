@@ -1,5 +1,20 @@
 # AVANCE — dónde vamos
 
+> **3.4A — cierre de rama, no merge a master (07/09/2026).**
+> `asset-persistence-3-4a`: `3338991` + `6b8dddf`. Estado versionado V1,
+> migración legacy en memoria, ProjectSubstrate null/validado sin consumo visual,
+> manifest vacío para nuevos proyectos, rutas confinadas y JSON recuperable con
+> backup. Los legacy sin manifest abren sin crearlo. Guardado conserva campos
+> desconocidos; Guardar como captura el origen antes del diálogo.
+> Segundo clon NUEVO de `6b8dddf`: npm ci, tsc, build por ficheros y **10/10 suites**;
+> suite nueva de persistencia/assets con 25 grupos sobre consumidores compilados.
+> Los 61 estados reales mantienen SHA, tamaño y fecha. Evidencia y limitaciones:
+> `docs/asset-engine/persistencia-assets-v1.md`.
+> Master sigue en `0444fea` / `v-scene-recipe-editorial-v1`; versión 12 y
+> visual_escena intactas. Sin OpenMoji, Hero ni imágenes; siguiente código **3.4B**
+> después de revisar esta rama. Las referencias inferiores a 3.4A como siguiente
+> describen master previo, no el trabajo comprobado en esta rama.
+
 **Regla:** un punto solo se marca ✅ con **evidencia** — hash del commit, suites
 verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho".
 
