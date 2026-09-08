@@ -169,6 +169,16 @@ app.whenReady().then(async () => {
   dialog.showSaveDialog=async()=>({canceled:false,filePath:copy})
   assert((await call('save-project-as',{aiScript:'AS'})).success)
   assert.deepEqual(b.loadProjectFile(copy).state.projectSubstrate,substrate)
+  const other=path.join(root,'other-project')
+  b.createProjectFiles(other,{...legacy,unknown:{belongsTo:'other'},projectSubstrate:null})
+  const copyAfterSwitch=path.join(root,'saved-after-switch.json')
+  dialog.showSaveDialog=async()=>{
+    assert((await call('load-project',{projectPath:other})).success)
+    return {canceled:false,filePath:copyAfterSwitch}
+  }
+  assert((await call('save-project-as',{aiScript:'source captured before dialog'})).success)
+  assert.deepEqual(b.loadProjectFile(copyAfterSwitch).state.projectSubstrate,substrate)
+  assert.deepEqual(b.loadProjectFile(copyAfterSwitch).state.unknown,legacy.unknown)
   dialog.showOpenDialog=async()=>({canceled:false,filePaths:[copy]})
   assert((await call('open-project')).success)
   put(copy,future)

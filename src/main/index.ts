@@ -1777,6 +1777,8 @@ ipcMain.on('ready-to-close', () => {
 ipcMain.handle('save-project-as', async (_event, state) => {
   try {
     if (!win) return { success: false, error: 'Ventana no disponible' };
+    // Capture the source before the dialog yields: project switching must not mix substrates.
+    const sourceStateFile = activeProjectPath && activeProjectStateFile ? activeProjectStateFile : null;
     const { filePath, canceled } = await dialog.showSaveDialog(win, {
       title: 'Guardar Proyecto Como',
       defaultPath: activeProjectPath ? path.join(activeProjectPath, 'project-state.json') : path.join(process.cwd(), 'project-state.json'),
@@ -1785,7 +1787,7 @@ ipcMain.handle('save-project-as', async (_event, state) => {
     if (canceled || !filePath) {
       return { success: false, error: 'Guardado cancelado por el usuario' };
     }
-    saveProjectFile(filePath, state, activeProjectPath && activeProjectStateFile ? activeProjectStateFile : filePath);
+    saveProjectFile(filePath, state, sourceStateFile || filePath);
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message, code: err.code, details: err.details };

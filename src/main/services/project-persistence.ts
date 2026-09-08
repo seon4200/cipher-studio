@@ -128,7 +128,10 @@ export function auditAssetManifest(root: string, raw: unknown, physical = false)
         if (!exists(file)) { result.missingAssets.push(a.id); result.warnings.push('ASSET_FILE_MISSING:' + a.id); continue }
         const stat = f.statSync(file)
         if (!stat.isFile() || stat.size !== a.byteLength) result.errors.push('ASSET_BYTE_LENGTH_MISMATCH:' + a.id)
-      } catch (e: any) { result.outsideAssets.push(a.id); result.errors.push(e.code || 'ASSET_FILE_READ_FAILED') }
+      } catch (e: any) {
+        if (e.code === 'ASSET_MANIFEST_PATH_OUTSIDE_PROJECT') result.outsideAssets.push(a.id)
+        result.errors.push(e.code || 'ASSET_FILE_READ_FAILED')
+      }
     }
   } catch (e: any) {
     result.errors.push(e.code || 'ASSET_MANIFEST_INVALID')
