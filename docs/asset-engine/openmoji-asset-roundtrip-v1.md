@@ -1,10 +1,10 @@
 # 3.4C — round trip de un SVG OpenMoji por proyecto
 
-**Estado de esta rama:** implementación y prueba local completas en
-openmoji-asset-roundtrip-3-4c; la integración y el checkpoint se cierran sólo
-después de la certificación en clon nuevo. Esta fase publica únicamente el SVG
-oficial ya incluido en el catálogo local: openmoji:1f382 / birthday cake / 1F382.
-No selecciona assets por semántica, no llama a red y no dibuja nada.
+**Estado:** integrado localmente en `master` mediante merge `04cba197`; el
+retorno inmutable `v-openmoji-asset-roundtrip-v1` apunta al cierre documental
+posterior. Esta fase publica únicamente el SVG oficial ya incluido en el catálogo
+local: openmoji:1f382 / birthday cake / 1F382. No selecciona assets por semántica,
+no llama a red y no dibuja nada.
 
 ## API interna y raíz explícita
 
@@ -104,6 +104,14 @@ inexistente, SVG malicioso, junctions, rutas con traversal, falta/cambio de
 archivo, idempotencia, manifest fallido con rollback limitado, temporal huérfano
 no aceptado, ausencia de red y huella intacta de los proyectos reales. El runner
 real pasa de 11 a 12 suites.
+
+La certificación de cierre usó un clon nuevo sin proyectos reales ni
+`node_modules`: `npm ci`, typecheck, build, catálogo 30/30, esta suite 50/50 y
+el runner 12/12 pasaron. El árbol ejecutable certificado entra sin cambios en el
+merge; el cierre posterior sólo documenta y etiqueta. En el repositorio principal,
+los tres estados reales conservaron ruta, SHA-256, tamaño y `LastWriteTimeUtc`
+antes/después de las pruebas; no apareció estado en la raíz, fixture dentro del
+repositorio, manifest real ni SVG en esos proyectos.
 
 ## Lo que 3.4C no hace
 

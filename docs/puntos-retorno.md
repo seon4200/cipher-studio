@@ -12,6 +12,43 @@ de publicarse; queda registrado como excepción previa a esta regla y conserva s
 target final `a9d109ece77c9b552a8e84e3cd248e25ba7fa3a8`. No se reescriben etiquetas
 históricas ni se reutilizan sus nombres.
 
+## `v-openmoji-asset-roundtrip-v1`
+
+Merge local **`04cba197a92dad52aead4fc303811a2a47ecedbc`** de
+`openmoji-asset-roundtrip-3-4c`; esta etiqueta apunta al cierre documental final
+posterior al merge. No mueve `v-openmoji-catalog-v1` ni reutiliza ninguna etiqueta
+histórica.
+
+**Qué contiene:** publicación interna, sin IPC ni UI, de un único SVG OpenMoji
+local (`openmoji:1f382`, birthday cake) dentro de un proyecto temporal explícito;
+validación profunda `openmoji-svg-v1`, SHA-256 de bytes exactos, publicación
+atómica en `materiales/assets/openmoji/<sha>.svg`, `ProjectAssetRecord` real en
+AssetManifest V1, idempotencia y reapertura offline. Añade la duodécima suite y
+la regla de etiquetas inmutables.
+
+**Qué está comprobado:** projectRoot ausente, relativo, cwd, repositorio, `.git`,
+junction y estado inválido/futuro se rechazan; `1F382` se resuelve localmente;
+un SVG válido se copia con SHA/MIME/tamaño/procedencia/atribución correctos;
+segunda publicación reutiliza un solo archivo y registro; manifest fallido no
+queda parcial y no borra un archivo previo; falta, alteración, tamaño erróneo,
+traversal y SVG malicioso se detectan; no hubo red. Catálogo 30/30, round trip
+50/50 y runner 12/12 pasaron desde clon nuevo. Los tres proyectos actuales
+mantuvieron ruta, SHA-256, tamaño y fecha antes/después; no se creó estado en la
+raíz, fixture dentro del repositorio, manifest real ni SVG en esos proyectos.
+
+**Qué NO está comprobado:** publicación sobre un proyecto real del usuario,
+resolver automático, Hero, renderer, RenderSpec/PixelIdentity, hash de gráfico,
+motion, calidad visual, PNG, PurePNG/PNGImages, AttentionIntent ni descarga por
+vídeo. El único archivo materializado por 3.4C vive y se limpia en un fixture
+temporal.
+
+**Volver aquí:** conserva persistencia, catálogo OpenMoji y el primer round trip
+seguro de un asset en proyecto temporal, pero ningún píxel ni proyecto real se
+altera. Volver a `v-openmoji-catalog-v1` pierde esta publicación y la duodécima
+suite, no la historia ni las etiquetas anteriores.
+
+---
+
 ## `v-openmoji-catalog-v1`
 
 Merge local **`5bf8635280b2623ef3f3d47e4e0d8dc83fa6a111`** de

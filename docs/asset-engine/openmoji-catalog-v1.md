@@ -160,8 +160,8 @@ y revisión openmoji-catalog-v1. El texto recomendado por Cipher es:
 
 > OpenMoji 17.0.0 — CC BY-SA 4.0 — https://openmoji.org/
 
-La URL y la versión son procedencia, no identidad visual. El candidato 3.4C ya
-guarda atribución y SHA real del SVG que publica en un proyecto temporal; ver
+La URL y la versión son procedencia, no identidad visual. 3.4C ya guarda
+atribución y SHA real del SVG que publica en un proyecto temporal; ver
 `openmoji-asset-roundtrip-v1.md`.
 
 ## Offline, pruebas y mediciones
@@ -232,7 +232,7 @@ atribuye la reducción a `npm test` ni al catálogo OpenMoji.
 ## Límites y siguiente paso
 
 3.4B no incluye descarga por vídeo, búsqueda de provider, Hero, RenderSpec,
-SceneIntent, data URI, tinte ni cambio de píxeles. El candidato 3.4C ya añade un
+SceneIntent, data URI, tinte ni cambio de píxeles. 3.4C añade un
 ProjectAsset/AssetManifest real, SHA publicada, validación profunda y reapertura
 offline sólo en fixtures temporales; no lo dibuja ni lo escribe en proyectos
 reales. VERSION_PLANTILLAS permanece en 12. El siguiente límite, después del
