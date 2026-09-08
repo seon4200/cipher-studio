@@ -1,67 +1,120 @@
-# Contratos conceptuales del futuro Asset Engine
+# Contratos conceptuales — autoridad documental 3.3.5
 
-**Sólo diseño documental.** No se importa desde `src/`, no cambia estado de proyecto ni habilita descargas.
+Sólo especificación. Ningún tipo se importa por src/; no hay almacenamiento,
+descarga ni renderer nuevo. Sustituye la propuesta individual SceneHeroReference
+de 3.3: extra.hero no coexistirá con extra.sceneSpec.
 
-## Responsabilidades
+## Responsabilidades separadas
 
-| Concepto | Responde | No contiene |
+| Contrato | Autoridad | No contiene |
 |---|---|---|
-| `AssetIntent` | qué requiere expresar el subclip | URL, archivo, geometría o licencia resuelta |
-| `AssetCandidate` | una respuesta remota posible | bytes locales/uso de escena |
-| `DownloadRequest` | una descarga y límites | posición/escala |
-| `DownloadedAsset` | bytes temporales obtenidos | aprobación/referencia |
-| `AssetValidation` | qué se comprobó de bytes | política/timeline |
-| `AssetSourceRecord` | URL, licencia, atribución, riesgo | geometría |
-| `ProjectAsset` | archivo aprobado del proyecto | semántica de subclip |
-| `SceneHeroReference` | contenido del Hero y píxeles | posición/escala |
-| `ProviderPolicy` | capacidad, evidencia y política | archivo/candidato |
+| SceneIntent | idea, frase, metáfora, keyword semántica | proveedor, bytes, geometría |
+| SceneRecipe | dirección de arte/roles sin resolver, motion/timing deseados | SHA, URL, paths, proveedor, coordenadas |
+| ProjectSubstrate | estilo estable por vídeo, paleta/par tipográfico por ID | inventario de assets o hex por escena |
+| SceneAssetSlot | rol, intención, clase preferida, importancia, opcionalidad, fallback | asset real/posición |
+| AssetMotionRecipe | entry/sustain/emphasis/exit/visibility normalizados | segundos, CSS, amplitudes libres |
+| AssetIntent | solicitud de adquisición derivada del slot e intención | píxeles, geometría |
+| AssetCandidate | posibilidad remota | aprobación o uso en escena |
+| DownloadRequest | URL candidata y límites de una operación | composición |
+| DownloadedAsset | temporal recibido, tamaño/estado de descarga | aprobación/identidad visual |
+| AssetValidation | mediciones de archivo/seguridad | política o montaje |
+| AssetSourceRecord | proveedor, URLs, versión, licencia, atribución, fecha/riesgo | motion o escena |
+| ProjectAsset | archivo aprobado con refs de validación y procedencia | listado de escenas, motion o uso |
+| AssetManifest | inventario de assets/validaciones/procedencia por proyecto | ProjectSubstrate/timeline |
+| SubjectBounds | contenido visible dentro del archivo, revisión de medición | posición de escena |
+| ResolvedScenePlan | assets por slot, refs, SHA/MIME/bounds y decisiones/fallback | React/CSS libre o geometría paralela |
+| RenderSpec | resultado visual efectivo y revisiones; único input visual nuevo | selección semántica/proveedor/ruta |
+| RenderAssetIdentity | estado/SHA/ajuste/tinte/motion efectivo | assetId administrativo/ruta |
+| RenderAssetLocator | slotId/assetId/relativeFile para bytes | identidad visual |
+| RenderBindings | locators operativos verificados contra spec | decisiones de render |
+| NullAssetStrategy | respuesta explícita a ausencia/riesgo/concepto no ilustrable | presente ficticio |
+| ProviderPolicy | capacidad, verificación y política habilitada separadas | un asset concreto |
 
-## Forma mínima
+Formas canónicas: [scene-recipe-v1.md](scene-recipe-v1.md),
+[motion-contract-v1.md](motion-contract-v1.md),
+[project-substrate-v1.md](project-substrate-v1.md),
+[layouts-editoriales-v1.md](layouts-editoriales-v1.md) y
+[null-asset-strategy-v1.md](null-asset-strategy-v1.md).
+No mantener otra copia de sus tipos aquí.
+
+## Adquisición y persistencia: propuesta mínima, no schema productivo
 
 ```ts
 type AssetIntent = {
-  id: string
-  query: string
+  id: string; slotRef: string; query: string
   kind: 'icon' | 'illustration' | 'transparent-png' | 'photo'
-  relation: string
-  allowedProviders: string[]
-  fallback: 'solar' | 'emoji' | 'no-hero'
+  allowedProviders: string[] // política del resolver, nunca SceneRecipe
 }
 type AssetCandidate = {
-  provider: string; remoteId?: string; sourceUrl: string; downloadUrl?: string
-  declaredMime?: string; licenseClaim?: string; attribution?: string
-  rightsRisk: 'low' | 'medium' | 'high'
+  provider: string; remoteId?: string; sourceUrl: string; fileUrl?: string
+  declaredMime?: string; sourceRef: string
+}
+type DownloadRequest = { candidateRef: string; limitsPolicyId: string }
+type DownloadedAsset = {
+  candidateRef: string; temporaryFile: string; byteLength: number
+  state: 'complete' | 'failed'
 }
 type AssetValidation = {
-  accepted: boolean; mime: string; byteLength: number; width?: number; height?: number
-  hasAlpha?: boolean; alphaUseful?: boolean; contentSha256?: string; reason?: string
+  id: string; accepted: boolean; mime: string; byteLength: number
+  width?: number; height?: number; hasAlpha?: boolean; alphaUseful?: boolean
+  sha256?: string; reason?: string; validatedAt: string; policyRevision: string
+}
+type AssetSourceRecord = {
+  id: string; provider: string; sourceUrl: string; fileUrl: string
+  providerVersion?: string; openmojiCatalogVersion?: string; fetchedAt: string
+  licenseClaim: string; licenseEvidenceUrl: string | null
+  attribution: string; requiresAttribution: boolean
+  rightsRisk: 'low' | 'medium' | 'high'
 }
 type ProjectAsset = {
-  id: string; relativeFile: string; sha256: string; mime: string; provider: string
-  validation: AssetValidation; source: AssetSourceRecord
+  id: string; relativeFile: string; sha256: string; mime: string
+  sourceRef: string; validationRef: string
 }
-type SceneHeroReference = {
-  state: 'present' | 'missing' | 'none'; assetId?: string; sha256?: string
-  kind?: 'photo-cutout' | 'illustration' | 'icon'; tint: 'none' | 'accent'
+type AssetManifest = {
+  assetManifestVersion: 1
+  assets: ProjectAsset[]
+  sources: AssetSourceRecord[]
+  validations: AssetValidation[]
 }
 ```
 
-`AssetSourceRecord` conserva procedencia/licencia/fecha/riesgo. `ProviderPolicy` adopta estados de verificación del ejemplo `docs/spike-hero/provider-contract.ts.example`: capacidad técnica, permiso declarado y habilitación del producto son distintos.
+OpenMoji exige openmojiCatalogVersion no vacía y atribución desde 3.4.
+ProjectAsset referencia registros, no duplica proveedor/licencia/QC/uso/motion.
+Manifest vive propuesto en materiales/assets/manifest.json. relativeFile
+relativo a raíz del proyecto. Estado versionado guarda schemaVersion,
+projectSubstrate y referencias de uso/timeline, no otra copia de archivos.
+3.4A debe probar migración/default legacy, guardado atómico y recuperación;
+no hay manifest productivo ni materiales/assets/ por escribir estos contratos.
 
-## Lifecycle
+## Lifecycle y hash
 
-1. Semántica existente deriva `AssetIntent` antes de construir `graphicData`.
-2. Resolver busca `ProjectAsset` válido y luego candidates de provider permitido.
-3. Descarga escribe temporalmente.
-4. Validador clasifica MIME/magic, límites, dimensiones, alpha/SVG, SHA y riesgo.
-5. Sólo asset aprobado publica a `materiales/assets/<provider>/` y manifest propuesto.
-6. Constructor escribe `SceneHeroReference` (SHA/estado/tinte) en `extra.hero`.
-7. `hashGrafico` canoniza ese extra (`src/main/index.ts:1157–1190`).
-8. Escena resuelve ruta relativa y pinta dentro de Hero de estructura.
-9. Falta/fracaso cambia estado, emite aviso y usa fallback; no reutiliza hash de presente.
+1. SceneIntent + ProjectSubstrate → Recipe (metáfora/slots o editorial-text).
+2. Adquisición deriva AssetIntent; busca inventario local válido antes de provider.
+3. Candidate → DownloadRequest → temporal, sin publicar aún.
+4. Validar MIME/magic, límites, dimensiones, SVG/alpha, SHA y riesgo.
+5. Publicar archivo + inventario recuperables de forma atómica por proyecto.
+6. ResolvedScenePlan registra slots y decisiones de densidad/paleta/fuentes/fallback.
+7. Compilar RenderSpec + RenderBindings: identidad y localización separadas.
+8. Verificar locators contra SHA, retener bytes verificados, hashear
+   graphicData.extra.sceneSpec y clave React correspondiente.
+9. visual_escena pinta el resultado ya elegido dentro de geometría de estructura;
+   el Visual termina como vídeo en timeline, no clip PNG paralelo.
+10. Si faltan/cambian bytes, aviso y rechazo de captura o recompilación/fallback
+    con nueva identidad. Nunca present sin archivo bajo el mismo hash.
 
-La estructura conserva `heroe:{x,y,relacion}`, cámara y animación; el asset nunca duplica geometría. V1 no crea clip de imagen: el Hero vive dentro del MP4 de `visual_escena`, como el Visual de hoy.
+SHA final representa bytes dibujados, original en procedencia si hubo derivado.
+Las revisiones de algoritmo/tinte/bounds/texto/motion y tier también determinan
+píxeles. Una nueva licencia/URL no cambia imagen salvo texto visible materializado.
+La ruta y assetId son operativos, no identidad.
 
-## Seguridad y caché
+## Seguridad y política
 
-Validar `relativeFile` contra raíz de proyecto tras `resolve/realpath`; rechazar absolutos, `..` y symlinks externos. URLs HTTPS/allowlist; validar respuesta antes de publicar. SVG: sólo OpenMoji pinneado sin scripts/recursos externos, o rasterización/sanitización controlada. IA nunca entrega ruta/URL/nombre de archivo. `present+SHA` y `missing` son identidades distintas; ruta distinta con mismos bytes no lo es.
+relativeFile debe quedar confinado tras resolve/realpath, sin absolutos,
+traversal ni symlinks externos. HTTPS, límites y respuesta validada antes de
+publicar. SVG sólo OpenMoji pinneado y política contra scripts/recursos externos;
+sanitización/rasterización determinista si corresponde, SHA de bytes finales.
+ProviderPolicy permanece ejemplo separado en ../spike-hero/provider-contract.ts.example;
+capacidad técnica, permiso y habilitación no son equivalentes.
+
+No ResolvedAsset gigante ni inventario global nuevo. OpenMoji primero; PurePNG
+condicionado, PNGImages pendiente, APIs/removedor/ByPeople/IA posteriores.
