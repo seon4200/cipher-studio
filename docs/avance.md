@@ -1,19 +1,19 @@
 # AVANCE — dónde vamos
 
-> **3.4A — cierre de rama, no merge a master (07/09/2026).**
-> `asset-persistence-3-4a`: `3338991` + `6b8dddf`. Estado versionado V1,
+> **3.4A — persistencia V1 integrada y comprobada (07/09/2026).**
+> Merge local `8760491` de `asset-persistence-3-4a`. Estado versionado V1,
 > migración legacy en memoria, ProjectSubstrate null/validado sin consumo visual,
 > manifest vacío para nuevos proyectos, rutas confinadas y JSON recuperable con
 > backup. Los legacy sin manifest abren sin crearlo. Guardado conserva campos
 > desconocidos; Guardar como captura el origen antes del diálogo.
-> Segundo clon NUEVO de `6b8dddf`: npm ci, tsc, build por ficheros y **10/10 suites**;
+> Clon NUEVO de `6b8dddf`: npm ci, tsc, build por ficheros y **10/10 suites**;
 > suite nueva de persistencia/assets con 25 grupos sobre consumidores compilados.
-> Los 61 estados reales mantienen SHA, tamaño y fecha. Evidencia y limitaciones:
+> Los commits posteriores a ese árbol ejecutable son sólo documentación. Los 61
+> estados reales mantienen SHA, tamaño y fecha. Evidencia y limitaciones:
 > `docs/asset-engine/persistencia-assets-v1.md`.
-> Master sigue en `0444fea` / `v-scene-recipe-editorial-v1`; versión 12 y
-> visual_escena intactas. Sin OpenMoji, Hero ni imágenes; siguiente código **3.4B**
-> después de revisar esta rama. Las referencias inferiores a 3.4A como siguiente
-> describen master previo, no el trabajo comprobado en esta rama.
+> El retorno `v-persistencia-assets-v1` apunta al cierre documental final. Versión
+> 12 y visual_escena intactas. Sin OpenMoji, Hero ni imágenes; siguiente código
+> **3.4B**. Las referencias históricas inferiores a 3.4A describen master previo.
 
 **Regla:** un punto solo se marca ✅ con **evidencia** — hash del commit, suites
 verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho".
@@ -45,10 +45,11 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 > comparables.
 >
 > **Auditoría 3.3 integrada (`993a123`).** Los documentos de `docs/asset-engine/`
-> trazan proyecto, materiales, stock, descarga, timeline y hash. Estado actual:
-> rutas mayormente absolutas, sin schema/migraciones ni manifiesto productivo de
-> assets. Manifiesto por proyecto, rutas relativas y OpenMoji pinneado/local son
-> propuestas. No existe Photo Hero de archivo. Retorno: `v-auditoria-pipeline-assets`.
+> trazan proyecto, materiales, stock, descarga, timeline y hash. Estado auditado
+> antes de 3.4A (`c0a9c78`): rutas mayormente absolutas, sin schema/migraciones ni
+> manifiesto productivo de assets. 3.4A incorpora schema V1 y un manifest mínimo
+> para proyectos nuevos; no migra rutas legacy ni implementa OpenMoji o Photo Hero.
+> Retorno de la auditoría: `v-auditoria-pipeline-assets`.
 > **3.3.5 integrada documentalmente:** merge local `1d8415a` desde la base
 > `291069e` / `v-auditoria-pipeline-assets`, conserva `74d1572` y corrección
 > `140ed8e`. Retorno de cierre: `v-scene-recipe-editorial-v1`.
@@ -56,11 +57,11 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 > proyección `extra.sceneSpec`. Validador documental: 18 ejemplos (16 asset-led,
 > 2 editorial-text), 6 hard cuts y 5 Heroes sin salida; no prueba calidad visual.
 > Fuente: `docs/asset-engine/validar-scene-recipe-v1.cjs`, corpus de `140ed8e`.
-> No existe OpenMoji integrado, Photo Hero ni `materiales/assets/` funcional.
-> No se implementó movimiento nuevo ni persistencia; sólo contratos y ejemplos.
-> Siguiente código recomendado: **3.4A, persistencia mínima** (schemaVersion,
-> migración/default legacy, ProjectSubstrate, AssetManifest, rutas relativas,
-> escritura atómica, validación al abrir y recuperación). No depende de ByPeople.
+> No existe OpenMoji integrado ni Photo Hero. `materiales/assets/` y su manifest
+> existen sólo como cimiento vacío de proyectos V1; no descargan ni validan assets.
+> No se implementó movimiento nuevo. 3.4A ya cerró schema/migración legacy,
+> ProjectSubstrate, manifest V1, rutas confinadas, escritura recuperable y
+> recuperación; siguiente código recomendado: **3.4B, catálogo OpenMoji pinneado**.
 >
 > **Spike limpio de proveedores (`c94cc3f`).** Se conserva evidencia sin binarios:
 > OpenMoji oficial (SVG válido), PurePNG como muestra secundaria con alpha útil y
@@ -213,7 +214,12 @@ El resumen auditado de arriba sustituye estos contadores históricos.
 - ⬜ Rotar las 6 claves de API (1 de 6). **Rotar primero, reescribir el historial
   después** — al revés no sirve de nada
 - ⬜ `writeDebugLog` crece sin límite (`index.ts:185-201`, sin rotación)
-- ⬜ Autoguardado con temporal + rename
+- ✅ ~~Autoguardado con temporal + rename~~ — cerrado en 3.4A para
+  `project-state.json`: temporal en el mismo directorio, `fsync`, publicación sin
+  borrar el principal y backup recuperable. Límites vivos: no hay transacción
+  conjunta estado+manifest, bloqueo multiproceso, medición de JSON grande,
+  recuperación de backups en `list-projects` ni aviso específico de recuperación
+  en UI.
 - ⬜ `node_modules` fuera del historial de git
 - ⬜ Registrar `usage` de las APIs
 - ⬜ Los **1.154 huérfanos** (`VisualEngine.ts`, `visual-holograms.tsx`) →

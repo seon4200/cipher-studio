@@ -1,12 +1,13 @@
-# Plan V1 — orden de ejecución después de 3.3.5
+# Plan V1 — orden de ejecución después de 3.4A
 
-Base de código `291069e`, tag `v-auditoria-pipeline-assets`. Hecho documental no
-significa función implementada. 3.3.5 integrada con merge local `1d8415a` y cierre
+Base documental `291069e`, tag `v-auditoria-pipeline-assets`; ejecución actualizada
+con el merge 3.4A `8760491`. Hecho documental no significa función implementada.
+3.3.5 integrada con merge local `1d8415a` y cierre
 `v-scene-recipe-editorial-v1`; su aceptación visual aún no se ha realizado.
 
 - [x] 3.3 — Auditoría de pipeline, integrada con `993a123`; cierre `291069e`.
 - [x] 3.3.5 — Especificación documental cerrada en `v-scene-recipe-editorial-v1`: Scene Recipe + ProjectSubstrate, 18 ejemplos y validador; sin renderer nuevo.
-- [x] 3.4A — Persistencia mínima probada en rama `asset-persistence-3-4a`, código `6b8dddf`, sin merge. Schema/migración, ProjectSubstrate, manifest, rutas y backup; clon nuevo con npm ci, tsc, build y 10/10. Evidencia: persistencia-assets-v1.md. No incluye catálogo ni asset real.
+- [x] 3.4A — Persistencia mínima integrada con merge `8760491` y retorno `v-persistencia-assets-v1`. Código `6b8dddf`: schema/migración, ProjectSubstrate, manifest V1, rutas confinadas y backup; clon nuevo con npm ci, tsc, build y 10/10. Evidencia: persistencia-assets-v1.md. No incluye catálogo ni asset real.
 - [ ] 3.4B — Catálogo OpenMoji pinneado: elegir release/paquete, metadata local, nombres/grupos/aliases, atribución y modo offline.
 - [ ] 3.4C — Round trip: resolver birthday cake, copiar un solo SVG, validar, SHA, manifest, cerrar y reabrir offline resolviendo el mismo asset.
 - [ ] 3.5 — Asset Resolver: proyecto primero; candidato, descarga, validación, referencias relativas, plan resuelto y fallback trazable.
@@ -29,14 +30,14 @@ significa función implementada. 3.3.5 integrada con merge local `1d8415a` y cie
 Render incremental no es una fase obligatoria: medir antes los aciertos y coste
 de la caché existente y la caché React. No inventar otro renderer para optimizar.
 
-## Alcance inmediato de 3.4A
+## Cierre de 3.4A y siguiente límite
 
-Formalizar persistencia mínima de ProjectSubstrate dentro de la estructura real
-del proyecto y relación con manifest propuesto; decidir versión oficial/pin de
-OpenMoji desde evidencia, validar un asset por necesidad y reapertura offline.
-Los contratos 3.3.5 son el destino: 3.4 no debe implementar Recipe compiler,
-Photo Hero, motion, Support ni nuevos layouts. No copiar una release completa a
-cada proyecto; distinguir índice/dependencia pinneada de material elegido por vídeo.
+3.4A formalizó persistencia mínima de ProjectSubstrate dentro de la estructura
+real del proyecto y un manifest V1 vacío para proyectos nuevos. No valida bytes,
+no copia materiales en Guardar como y no hace transacción conjunta entre ambos
+JSON. El siguiente límite es 3.4B: decidir e integrar un catálogo OpenMoji
+oficial pinneado, metadata local, aliases y atribución offline, sin copiar aún
+assets al proyecto ni implementar Hero.
 
 ## Límites de no-regresión
 

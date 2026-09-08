@@ -1,16 +1,23 @@
-# Decisión propuesta — almacenamiento de assets por proyecto
+# Decisión vigente — almacenamiento de assets por proyecto
 
-**Estado 3.4A:** persistencia mínima implementada en la rama asset-persistence-3-4a,
-sin merge. Autoridades reales y garantías: [persistencia-assets-v1.md](persistencia-assets-v1.md).
-Ruta fija materiales/assets/manifest.json, SIN referencia duplicada de ruta en
-project-state. ProjectSubstrate vive sólo en el estado versionado.
+**Estado 3.4A integrado:** persistencia mínima V1 en master desde el merge
+`8760491`. Autoridades reales y garantías:
+[persistencia-assets-v1.md](persistencia-assets-v1.md). Ruta fija
+`materiales/assets/manifest.json`, sin referencia duplicada de ruta en
+`project-state`. ProjectSubstrate vive sólo en el estado versionado.
 **Historia:** la comparación inferior recoge la auditoría `c0a9c78` y la propuesta
-3.3.5 anterior al código. Sus afirmaciones de ausencia de schema/manifest no
-describen esta rama. OpenMoji y su primer archivo real siguen sin implementar.
+3.3.5 anterior al código. Sus afirmaciones de ausencia de schema/manifest
+describen aquel estado, no el V1 integrado. OpenMoji y su primer archivo real
+siguen sin implementar.
 
-## Evidencia que obliga a separar responsabilidades
+## Evidencia: auditoría base y límite actual
 
-`project-state.json` guarda el timeline desde `src/renderer/src/main.tsx:1730–1760` y main lo persiste sin schema (`src/main/index.ts:1736–1747`). En la auditoría, sus rutas son absolutas y no hay SHA, licencia, validación o inventario de material. El disco contiene bytes, pero no puede derivar procedencia ni si un archivo está aprobado. No existe índice/manifiesto de assets reutilizable.
+En `c0a9c78`, `project-state.json` guardaba el timeline desde
+`src/renderer/src/main.tsx:1730–1760` y main lo persistía sin schema. Sus rutas
+eran mayormente absolutas y no había SHA, licencia, validación o inventario de
+material. 3.4A sustituye esa ausencia sólo para el nuevo sustrato V1: no cambia
+las rutas históricas ni añade un proveedor o asset real. El disco contiene bytes,
+pero no puede derivar procedencia ni si un archivo está aprobado.
 
 No se propone una segunda fuente de verdad para el mismo hecho:
 
@@ -22,23 +29,23 @@ No se propone una segunda fuente de verdad para el mismo hecho:
 
 | Opción | Ventaja | Problema visto en código | Decisión |
 |---|---|---|---|
-| A. Ampliar `project-state.json` | un archivo | no schema/migración; mezcla inventario repetible y timeline con escrituras distintas | No como inventario único. |
-| B. Manifest bajo `materiales/`, referenciado por estado | propiedad por proyecto, auditoría, rutas relativas, licencia junto a bytes | exige transacción, recuperación y validación nuevas | **Recomendado condicionalmente.** |
+| A. Ampliar `project-state.json` | un archivo | antes de 3.4A no tenía schema/migración; mezcla inventario repetible y timeline con escrituras distintas | No como inventario único. |
+| B. Manifest bajo `materiales/`, referenciado por estado | propiedad por proyecto, auditoría, rutas relativas, licencia junto a bytes | V1 ya escribe cada JSON de forma recuperable, pero no ofrece transacción conjunta ni validación de bytes | **Implementado como cimiento mínimo.** |
 | C. Derivar sólo del disco | sin JSON adicional | no conserva URL/licencia/SHA esperada/estado parcial | Descartado. |
 | D. Reutilizar índice existente | no duplicar | no existe: banco global enumera sólo vídeo | No disponible. |
 
-## Recomendación
+## Recomendación materializada en 3.4A
 
-Cierre 3.3.5: la recomendación concreta para 3.4A es
-materiales/assets/manifest.json, con assetManifestVersion; los archivos aprobados
-en materiales/assets/<provider>/. relativeFile se resuelve desde la raíz del
-proyecto (no desde la carpeta del manifest). project-state.json introduce
-schemaVersion, projectSubstrate versionado y referencias de uso/timeline; no
-duplica metadata de archivo. El manifest es autoridad de SHA, validación,
-proveedor/licencia y ruta; el estado de identidad editorial y montaje.
+Cierre 3.4A materializa `materiales/assets/manifest.json`, con
+`assetManifestVersion`; los futuros archivos aprobados vivirán en
+`materiales/assets/<provider>/`. `relativeFile` se resuelve desde la raíz del
+proyecto (no desde la carpeta del manifest). `project-state.json` introduce
+`schemaVersion`, `projectSubstrate` versionado y referencias de uso/timeline; no
+duplica metadata de archivo. El manifest V1 es autoridad de la metadata mínima
+del archivo; el estado conserva identidad editorial y montaje.
 La identidad visual compilada se proyectará únicamente a extra.sceneSpec,
 sustituyendo la propuesta anterior extra.hero. Ver scene-recipe-v1.md.
-No se implementa ni declara probado este reparto documental.
+No se declaran implementados adquisición, asset real, Recipe compiler ni render.
 
 ### Ejemplo documental, no productivo
 
@@ -59,9 +66,14 @@ No se implementa ni declara probado este reparto documental.
 
 No guarda posición/escala: pertenecen a `HeroEstructura` (`src/shared/escena.ts:362–393`). No guarda ruta absoluta como identidad.
 
-## Qué queda por probar
+## Límites vivos y qué queda por probar
 
-La implementación deberá definir escritura temporal + rename de bytes/manifiesto, recuperación si uno falla, validación de ruta relativa al abrir, schema/migración y audit específico. No corrige las rutas absolutas de clips existentes; esa migración es aparte. No anticipa banco global: duplicados entre proyectos son coste V1 reconocido hasta medir volumen/licencias.
+V1 ya define schema/migración legacy, validación de rutas relativas confinadas,
+auditoría física/estructural mínima y escritura recuperable de cada JSON. Falta
+transacción conjunta estado+manifest, SHA real del archivo, MIME/magic, SVG seguro,
+alpha y recuperación de `list-projects`. No corrige las rutas absolutas de clips
+existentes; esa migración es aparte. No anticipa banco global: duplicados entre
+proyectos son coste V1 reconocido hasta medir volumen/licencias.
 
 ## Inserción recomendada: OpenMoji y PNG
 

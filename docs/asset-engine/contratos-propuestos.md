@@ -43,7 +43,13 @@ Formas canónicas: [scene-recipe-v1.md](scene-recipe-v1.md),
 [null-asset-strategy-v1.md](null-asset-strategy-v1.md).
 No mantener otra copia de sus tipos aquí.
 
-## Adquisición y persistencia: propuesta mínima, no schema productivo
+## Adquisición y persistencia: contrato ampliado propuesto, separado del schema V1
+
+La forma relacional siguiente sigue siendo una propuesta para la adquisición y el
+resolver futuros; no sustituye el schema productivo mínimo de 3.4A. El V1 actual
+usa `ProjectStateV1`, `ProjectSubstrate`, `ProjectAssetRecord` y
+`AssetManifestV1` de `src/shared/project-state.ts`, con `source` y `validation`
+anidados por archivo.
 
 ```ts
 type AssetIntent = {
@@ -86,11 +92,12 @@ type AssetManifest = {
 
 OpenMoji exige openmojiCatalogVersion no vacía y atribución desde 3.4.
 ProjectAsset referencia registros, no duplica proveedor/licencia/QC/uso/motion.
-Manifest vive propuesto en materiales/assets/manifest.json. relativeFile
-relativo a raíz del proyecto. Estado versionado guarda schemaVersion,
-projectSubstrate y referencias de uso/timeline, no otra copia de archivos.
-3.4A debe probar migración/default legacy, guardado atómico y recuperación;
-no hay manifest productivo ni materiales/assets/ por escribir estos contratos.
+El manifest V1 vive en `materiales/assets/manifest.json`; `relativeFile` es
+relativo a la raíz del proyecto. El estado versionado guarda `schemaVersion`,
+`projectSubstrate` y referencias de uso/timeline, no otra copia de archivos.
+3.4A ya comprobó migración/default legacy, guardado recuperable y recuperación
+por backup. Esta forma ampliada queda para adquisición, referencias separadas y
+validación de assets reales; no existen todavía proveedor, descarga ni Hero.
 
 ## Lifecycle y hash
 

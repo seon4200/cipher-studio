@@ -2,6 +2,39 @@
 
 Etiquetas a las que se puede volver, y qué está probado de cada una.
 
+## `v-persistencia-assets-v1`
+
+Merge local **`87604917960b1e511707f4203e94a4a8de445bad`** de
+`asset-persistence-3-4a`. La etiqueta apunta al cierre documental final posterior
+al merge: resolver con `git rev-parse v-persistencia-assets-v1^{commit}`. No mueve
+ni reutiliza etiquetas anteriores.
+
+**Qué contiene:** `project-state` schema 1; migración legacy en memoria;
+ProjectSubstrate nullable; AssetManifest V1 en `materiales/assets/manifest.json`
+para proyectos nuevos; rutas relativas confinadas; escritura JSON recuperable con
+backup; auditoría mínima; integración con crear/abrir/guardar/autoguardar/Guardar
+como; y décima suite de persistencia/assets.
+
+**Qué está comprobado:** legacy abre sin reescritura y conserva campos desconocidos
+y rutas históricas; una versión futura se rechaza sin sobrescribir; ProjectSubstrate
+válido hace round trip; un proyecto nuevo crea manifest vacío; legacy sin manifest
+abre; traversal/UNC/drive/junction se rechazan; corrupción recupera desde backup
+válido; fallo antes de publicar conserva principal; Guardar como conserva el origen;
+10/10 suites pasan; los 61 estados de proyectos reales mantienen SHA, tamaño y
+fecha; y un clon nuevo verificó el árbol ejecutable final.
+
+**Qué NO está comprobado:** portabilidad de rutas antiguas; copia de materiales en
+Guardar como; transacción conjunta estado+manifest; bloqueo multiproceso;
+rendimiento con JSON grande; aviso específico de recuperación en UI; SHA real de
+archivo; MIME/magic de imágenes; SVG seguro real; alpha; OpenMoji; Asset Resolver;
+Hero; RenderSpec; ni motion.
+
+**Volver aquí:** conserva todo el motor visual actual y añade el cimiento
+persistente de assets, pero todavía no descarga ni dibuja imágenes. Volver al
+checkpoint anterior pierde ese cimiento y su décima suite, no los tags históricos.
+
+---
+
 ## `v-scene-recipe-editorial-v1`
 
 Base `291069ea6edaf59a06c8717c270ba21ecd0ae06e`, corrección documental
