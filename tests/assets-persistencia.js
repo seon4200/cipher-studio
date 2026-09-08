@@ -1,7 +1,17 @@
-// Real compiled consumers and existing IPC; all fixtures live under os.tmpdir().
+// Real compiled consumers and existing IPC; every mutable fixture is confined to os.tmpdir().
 const {app, ipcMain, dialog} = require('electron')
-const fs = require('fs'), path = require('path'), os = require('os'), assert = require('assert/strict')
-const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-assets-persistence-'))
+const fs = require('fs'), path = require('path'), assert = require('assert/strict')
+const { MARKER, assertSafeFixtureRoot, assertFixtureChild, createTestFixture, cleanupTestFixture, removeFixtureFile } = require('./helpers/safe-fixture')
+const REPO_ROOT = path.resolve(__dirname, '..')
+const root = createTestFixture('assets-persistence')
+process.chdir(root)
+const rootProjectStateFiles = [
+  path.join(REPO_ROOT, 'project-state.json'),
+  path.join(REPO_ROOT, 'project-state.json.bak'),
+]
+const assertNoRepositoryProjectState = () => {
+  for (const file of rootProjectStateFiles) assert(!fs.existsSync(file), 'la suite no puede crear ' + file)
+}
 let passed = 0
 const test = (name, fn) => { fn(); passed++; console.log('OK ' + name) }
 const put = (p,v) => { fs.mkdirSync(path.dirname(p),{recursive:true}); fs.writeFileSync(p,JSON.stringify(v)) }
@@ -21,6 +31,39 @@ app.whenReady().then(async () => {
     sha256:'a'.repeat(64),mime:'application/octet-stream',byteLength:5,source:{},
     validation:{status:'accepted',validationRevision:'fixture-v1',warnings:[]}})
   const m = (assets=[]) => ({assetManifestVersion:1,assets})
+  test('fixture isolation rejects repository-like roots and only cleans its own exact temporary directory',()=>{
+    assertNoRepositoryProjectState()
+    assert.throws(()=>assertSafeFixtureRoot(REPO_ROOT), error=>error && error.code==='CIPHER_TEST_FIXTURE_UNSAFE')
+    const isolation = createTestFixture('isolation')
+    const withGit = path.join(isolation, 'with-git')
+    const withProjects = path.join(isolation, 'with-projects')
+    const withoutMarker = path.join(isolation, 'without-marker')
+    const valid = createTestFixture('isolation-valid')
+    const sibling = createTestFixture('isolation-sibling')
+    try {
+      for (const unsafe of [withGit, withProjects]) {
+        fs.mkdirSync(unsafe, { recursive: true })
+        fs.writeFileSync(path.join(unsafe, MARKER), 'synthetic marker')
+      }
+      fs.mkdirSync(path.join(withGit, '.git'))
+      fs.mkdirSync(path.join(withProjects, 'proyectos'))
+      fs.mkdirSync(withoutMarker)
+      assert.throws(()=>assertSafeFixtureRoot(withGit), error=>error && error.code==='CIPHER_TEST_FIXTURE_UNSAFE')
+      assert.throws(()=>assertSafeFixtureRoot(withProjects), error=>error && error.code==='CIPHER_TEST_FIXTURE_UNSAFE')
+      assert.throws(()=>assertFixtureChild(root, path.join(REPO_ROOT, 'proyectos')), error=>error && error.code==='CIPHER_TEST_FIXTURE_UNSAFE')
+      assert.throws(()=>cleanupTestFixture(withoutMarker), error=>error && error.code==='CIPHER_TEST_FIXTURE_UNSAFE')
+      assert.throws(()=>cleanupTestFixture(path.dirname(valid)), error=>error && error.code==='CIPHER_TEST_FIXTURE_UNSAFE')
+      fs.writeFileSync(path.join(valid, 'only-this-fixture.txt'), 'fixture')
+      assert.doesNotThrow(()=>assertSafeFixtureRoot(valid))
+      cleanupTestFixture(valid)
+      assert(!fs.existsSync(valid))
+      assert(fs.existsSync(sibling))
+    } finally {
+      if (fs.existsSync(sibling)) cleanupTestFixture(sibling)
+      if (fs.existsSync(isolation)) cleanupTestFixture(isolation)
+    }
+    assertNoRepositoryProjectState()
+  })
   test('legacy migrates in memory without mutation or unknown-field loss',()=>{
     const copy=JSON.stringify(legacy),r=b.migrateProjectState(legacy)
     assert.equal(r.sourceVersion,0);assert.equal(r.targetVersion,1);assert.equal(r.migrated,true)
@@ -104,13 +147,13 @@ app.whenReady().then(async () => {
     assert(b.auditAssetManifest(root,m([{...asset(),byteLength:6}]),true).errors.length)
   })
   test('physical confinement rejects an external junction',()=>{
-    const outside=fs.mkdtempSync(path.join(os.tmpdir(),'cipher-assets-outside-'))
+    const outside=createTestFixture('assets-outside')
     try {
       const link=path.join(root,'materiales/assets/linked');fs.symlinkSync(outside,link,'junction')
       fail(()=>b.resolveProjectRelativePath(root,'materiales/assets/linked/file.bin',true),'ASSET_MANIFEST_PATH_OUTSIDE_PROJECT')
       assert.equal(b.auditAssetManifest(root,m([{...asset(),provider:'linked',relativeFile:'materiales/assets/linked/file.bin'}]),true).outsideAssets.length,1)
-      fs.unlinkSync(link)
-    } finally { fs.rmdirSync(outside) }
+      removeFixtureFile(root, link)
+    } finally { cleanupTestFixture(outside) }
   })
   test('atomic write leaves complete target and valid previous backup',()=>{
     b.saveProjectFile(p,{aiScript:'before'})
@@ -190,6 +233,9 @@ app.whenReady().then(async () => {
   assert.deepEqual(b.readAssetStorage(rt).manifest,m())
   passed++;console.log('OK integrated temporary project + substrate + empty manifest round trip')
   await call('close-project')
+  assertNoRepositoryProjectState()
   console.log('ASSETS PERSISTENCE: '+passed+' groups passed on '+process.platform+'; fixtures: '+root)
+  process.chdir(path.dirname(root))
+  cleanupTestFixture(root)
   app.exit(0)
 }).catch(e=>{console.error(e);console.error('Fixtures retained for diagnosis: '+root);app.exit(1)})

@@ -10,11 +10,14 @@
  */
 const { app, ipcMain, BrowserWindow } = require('electron')
 const fs = require('fs')
-const os = require('os')
 const path = require('path')
+const { createTestFixture, removeFixtureFile } = require('../helpers/safe-fixture')
 
 const RAIZ = path.resolve(__dirname, '../..')
-const SALIDA = fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-interruptor-'))
+const FIXTURE_ROOT = createTestFixture('interruptor-direccion')
+process.chdir(FIXTURE_ROOT)
+const SALIDA = path.join(FIXTURE_ROOT, 'output')
+fs.mkdirSync(SALIDA, { recursive: true })
 const MARCA = 'zz-aceptacion-interruptor'
 const FRAMES = [0, 39, 77]
 const OPCIONES = {
@@ -76,7 +79,7 @@ app.whenReady().then(async () => {
     const copia = path.join(SALIDA, `${nombre}.mp4`)
     fs.copyFileSync(ruta, copia)
     // Obliga al siguiente montaje a recorrer el render real en vez de acertar la cache.
-    fs.rmSync(ruta, { force: true })
+    removeFixtureFile(FIXTURE_ROOT, ruta)
     return copia
   }
 
@@ -86,8 +89,8 @@ app.whenReady().then(async () => {
     const rawA = comparador.sacarFrame(a, frame, rutaA)
     const rawB = comparador.sacarFrame(b, frame, rutaB)
     const medida = comparador.comparar(rawA, rawB)
-    fs.rmSync(rutaA, { force: true })
-    fs.rmSync(rutaB, { force: true })
+    removeFixtureFile(FIXTURE_ROOT, rutaA)
+    removeFixtureFile(FIXTURE_ROOT, rutaB)
     return {
       frame,
       pixeles: medida.pix,
@@ -157,11 +160,8 @@ app.whenReady().then(async () => {
     clearTimeout(watchdog)
     try { bundle.cerrarVentanaGraficos() } catch {}
     try { await llamar('close-project', {}) } catch {}
-    const ruta = proyecto?.projectPath
-    if (ruta && path.basename(ruta).startsWith(MARCA) &&
-        path.dirname(ruta).toLowerCase() === path.join(RAIZ, 'proyectos').toLowerCase()) {
-      fs.rmSync(ruta, { recursive: true, force: true })
-    }
+    // Conserva los artefactos de aceptación en su fixture marcado bajo os.tmpdir(); no crea ni
+    // borra proyectos dentro del repositorio.
   }
   app.exit(codigo)
 }).catch(error => {

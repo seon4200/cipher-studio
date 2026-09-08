@@ -13,11 +13,46 @@
 // crearia una segunda definicion de cada suite que se separaria de la primera en silencio.
 
 const { spawnSync } = require('child_process');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
 const RAIZ = path.join(__dirname, '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(RAIZ, 'package.json'), 'utf8'));
+
+// El ejecutor también es una barrera: las suites verdes no pueden haber escrito la raíz del repo
+// ni cambiado o eliminado estados de proyectos reales. Las suites mutables usan fixtures en tmp,
+// pero esta huella detecta una regresión aunque alguien se salte ese helper en el futuro.
+const sha256 = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const fileFingerprint = file => fs.existsSync(file)
+  ? { sha256: sha256(file), size: fs.statSync(file).size, mtimeMs: fs.statSync(file).mtimeMs }
+  : null;
+function projectFingerprint () {
+  const root = path.join(RAIZ, 'proyectos');
+  const files = [];
+  const walk = dir => {
+    if (!fs.existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const target = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(target);
+      else if (entry.isFile() && (entry.name === 'project-state.json' || entry.name === 'project-state.json.bak')) {
+        files.push([path.relative(RAIZ, target).replace(/\\/g, '/'), fileFingerprint(target)]);
+      }
+    }
+  };
+  walk(root);
+  return files.sort((a, b) => a[0].localeCompare(b[0]));
+}
+const repositoryStateBaseline = JSON.stringify({
+  rootState: fileFingerprint(path.join(RAIZ, 'project-state.json')),
+  rootBackup: fileFingerprint(path.join(RAIZ, 'project-state.json.bak')),
+  projects: projectFingerprint(),
+});
+const verifyRepositoryState = () => JSON.stringify({
+  rootState: fileFingerprint(path.join(RAIZ, 'project-state.json')),
+  rootBackup: fileFingerprint(path.join(RAIZ, 'project-state.json.bak')),
+  projects: projectFingerprint(),
+}) === repositoryStateBaseline;
 
 // ── LO QUE SE EXCLUYE, Y POR QUE, ESCRITO AQUI Y NO EN LA CABEZA DE NADIE ────────────────────
 //
@@ -109,9 +144,12 @@ for (const s of aCorrer) {
   // El codigo de salida es LA AUTORIDAD. Las suites salen con 1 si hay fallos (`app.exit(...)`).
   // Buscar "TODO CORRECTO" en la salida seria mas bonito y menos fiable: una suite que revienta
   // antes de imprimir nada no imprime tampoco su fracaso.
-  const ok = r.status === 0;
+  const stateStayedIntact = verifyRepositoryState();
+  const ok = r.status === 0 && stateStayedIntact;
   const seg = ((Date.now() - t0) / 1000).toFixed(1);
-  resultados.push({ suite: s, ok, code: r.status, seg, salida: (r.stdout || '') + (r.stderr || '') });
+  const isolationFailure = stateStayedIntact ? ''
+    : '\nFALLO DE AISLAMIENTO: la suite cambió project-state.json/.bak en la raíz o dentro de proyectos/.\n';
+  resultados.push({ suite: s, ok, code: r.status, seg, salida: (r.stdout || '') + (r.stderr || '') + isolationFailure });
   console.log((ok ? verde('OK') : rojo('FALLA (exit=' + r.status + ')')) + gris('  ' + seg + 's'));
 }
 
