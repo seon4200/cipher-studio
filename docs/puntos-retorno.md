@@ -5,16 +5,19 @@ Etiquetas a las que se puede volver, y qué está probado de cada una.
 ## `v-openmoji-catalog-v1`
 
 Merge local **`5bf8635280b2623ef3f3d47e4e0d8dc83fa6a111`** de
-`openmoji-catalog-3-4b`. La etiqueta apunta al cierre documental posterior al
-merge: resolver con `git rev-parse v-openmoji-catalog-v1^{commit}`. No mueve ni
-reutiliza etiquetas anteriores.
+`openmoji-catalog-3-4b`, más cierre de aislamiento **`23ed2c2`**. La etiqueta
+apunta al cierre documental posterior a ambos merges: resolver con
+`git rev-parse v-openmoji-catalog-v1^{commit}`. El target local anterior
+`5223b0c0538f0750cbdb10cb237dad7ff59c3508` quedó registrado antes de recrearla;
+la etiqueta no estaba publicada.
 
 **Qué contiene:** `openmoji@17.0.0` exacto como devDependency de build; recurso
 selectivo local con metadata, 4.495 SVG color, licencia y manifiesto derivado;
 aliases españoles, food-sweet, atribución centralizada y búsqueda determinista
 offline. La validación exhaustiva vive en preparación/build; la carga runtime es
 ligera y la validación del SVG es lazy. El recurso se empaqueta fuera de ASAR; el
-runner conserva 11 suites.
+runner conserva 11 suites. Todos los arneses mutables usan raíces marcadas bajo
+`%TEMP%`; el runner vigila los estados reales después de cada suite.
 
 **Qué está comprobado:** 4.495 entradas y 4.495 SVG color; `birthday cake` es
 `1F382`; aliases, scoring y desempate estables; red bloqueada; cero inspecciones
@@ -22,7 +25,20 @@ de `color/svg` en carga, búsqueda y listas; una inspección al resolver `1F382`
 recurso local/pin/atribución; build; paquete temporal con `resources/openmoji`
 fuera de ASAR y sin duplicado; 30/30 casos de catálogo; 11/11 suites; y clon
 nuevo con `npm ci`, typecheck, build y pruebas. La comprobación de paquete cubre
-presencia, rutas y carga del recurso, no una sesión interactiva instalada.
+presencia, rutas y carga/búsqueda offline del recurso, no una sesión interactiva
+instalada. El clon final de `92a069a` dejó 26 grupos de persistencia, 30/30 casos
+OpenMoji y 11/11 suites; no creó estados, fixtures ni carpetas de datos dentro del
+clon. Tres procesos independientes midieron first-process load en 61,5 / 62,0 /
+71,7 ms (mínimo / mediana / máximo), frente al baseline histórico de 36,2 s.
+Los tres proyectos actuales conservaron exactamente ruta, SHA-256, tamaño y fecha
+antes/después de la ejecución controlada.
+
+**Aclaración de recuento:** 61 estados en una certificación antigua y 56 en una
+medición posterior son evidencia histórica. La línea base actual son tres
+proyectos que el usuario decidió conservar; la reducción fue manual y no se
+atribuye a `npm test` ni a OpenMoji. Se hizo backup externo previo. Los dos estados
+vacíos hallados en la raíz fueron preservados en cuarentena externa; no coincidían
+con esos tres proyectos y su origen concreto no pudo demostrarse.
 
 **Qué NO está comprobado:** ProjectAsset OpenMoji; copia al proyecto; SHA del
 asset publicado; validación profunda/sanitización de SVG; AssetManifest con
@@ -54,9 +70,10 @@ válido hace round trip; un proyecto nuevo crea manifest vacío; legacy sin mani
 abre; traversal/UNC/drive/junction se rechazan; corrupción recupera desde backup
 válido; fallo antes de publicar conserva principal; Guardar como conserva el origen;
 10/10 suites pasan; la certificación de rama registró 61 estados reales intactos.
-En el cierre de master se recontaron los 56 hoy presentes bajo `proyectos/` y esos
-56 mantuvieron SHA, tamaño y fecha; no se atribuyen los cinco ausentes a esta tarea.
-Un clon nuevo verificó el árbol ejecutable final.
+Otra medición posterior registró 56 y verificó sus huellas. Ambos recuentos son
+históricos: el usuario confirmó que eliminó manualmente la mayoría y que los tres
+proyectos presentes el 08/09/2026 son la nueva línea base operativa. La reducción
+no se atribuye a las pruebas. Un clon nuevo verificó el árbol ejecutable final.
 
 **Qué NO está comprobado:** portabilidad de rutas antiguas; copia de materiales en
 Guardar como; transacción conjunta estado+manifest; bloqueo multiproceso;

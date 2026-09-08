@@ -15,6 +15,22 @@
 > Evidencia y límites:
 > `docs/asset-engine/openmoji-catalog-v1.md`.
 >
+> **Reconciliación 3.4B.1 — tres proyectos actuales y pruebas aisladas
+> (08/09/2026).** El usuario confirmó que eliminó manualmente la mayoría de los
+> proyectos: 61 y 56 son recuentos históricos; la línea base operativa actual son
+> exactamente tres `proyectos/**/project-state.json`. Se hizo una copia externa
+> completa antes de probar. Los tres conservaron ruta, SHA-256, tamaño y
+> `LastWriteTimeUtc` después de typecheck, build, 30/30 casos OpenMoji y 11/11
+> suites. Por tanto, el descenso 56 → 3 no se atribuye a `npm test` ni al catálogo.
+> El merge local `23ed2c2` añade fixtures marcados bajo `%TEMP%`, rechazos de
+> raíces peligrosas y una huella que el runner compara después de cada suite.
+> Un `EBUSY` de Windows conserva el fixture temporal marcado para inspección; no
+> amplía la limpieza. Un `project-state.json` V1 vacío y su `.bak` legacy hallados
+> en la raíz no coincidían con los tres proyectos: se copiaron y movieron a
+> cuarentena externa. El producto conserva un fallback posible a `process.cwd()`,
+> pero no hay evidencia que permita atribuir esos dos archivos a una ejecución
+> concreta; el origen queda como no demostrable.
+>
 > **3.4A — persistencia V1 integrada y comprobada (07/09/2026).**
 > Merge local `8760491` de `asset-persistence-3-4a`. Estado versionado V1,
 > migración legacy en memoria, ProjectSubstrate null/validado sin consumo visual,
@@ -24,9 +40,10 @@
 > Clon NUEVO de `6b8dddf`: npm ci, tsc, build por ficheros y **10/10 suites**;
 > suite nueva de persistencia/assets con 25 grupos sobre consumidores compilados.
 > Los commits posteriores a ese árbol ejecutable son sólo documentación. La
-> certificación de rama registró 61 estados reales intactos; el cierre en master
-> recontó los 56 hoy presentes bajo `proyectos/`, también sin cambios de SHA,
-> tamaño o fecha. No se atribuyen los cinco ausentes a esta tarea. Evidencia y
+> certificación de rama registró 61 estados reales intactos; otra medición
+> posterior registró 56, también sin cambios de SHA, tamaño o fecha durante esa
+> ejecución. Ambos son recuentos históricos. El usuario confirmó después la
+> eliminación manual hasta los tres proyectos que decidió conservar. Evidencia y
 > limitaciones:
 > `docs/asset-engine/persistencia-assets-v1.md`.
 > El retorno `v-persistencia-assets-v1` apunta al cierre documental final. Versión

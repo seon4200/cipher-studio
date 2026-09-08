@@ -67,10 +67,15 @@ esa raíz empaquetada, obtuvo las 4.495 entradas y resolvió `birthday cake` /
 `1F382.svg`. Eso certifica presencia, rutas y carga del recurso; no es una sesión
 interactiva de la aplicación instalada.
 
-El empaquetado final medido dejó 4.498 archivos y 16.387.404 bytes en
+El empaquetado final medido dejó 4.498 archivos y 16.387.737 bytes en
 `resources/openmoji`, cero entradas OpenMoji en `app.asar`, y conserva el main,
 preload y dependencias de producción dentro del ASAR. La regla de empaquetado
 excluye expresamente `dist/win-unpacked/**` para no empaquetar su propia salida.
+La certificación 3.4B.1 repitió el paquete en una salida externa. El primer intento
+se detuvo al extraer enlaces simbólicos del auxiliar de firma de Windows; la
+repetición desactivó sólo firma/edición del ejecutable para ese paquete temporal,
+sin cambiar `package.json`. La estructura resultante, el ASAR y el recurso fueron
+los que se verificaron; no se certificó firma ni una sesión instalada interactiva.
 
 ## Metadata oficial y campos derivados
 
@@ -192,6 +197,35 @@ de primer proceso fueron **60,1 / 61,1 / 71,4 ms** (mínimo / mediana / máximo)
 también con cero inspecciones SVG durante carga/búsqueda. El commit posterior a
 esa certificación, si sólo cambia documentación, conserva el mismo árbol de
 código probado.
+
+La reconciliación 3.4B.1 certificó el árbol final de arneses `92a069a` en otro
+clon nuevo, sin proyectos ni `node_modules`: `npm ci`, typecheck, build, 26 grupos
+de persistencia, 30/30 casos OpenMoji y 11/11 suites. Tras las pruebas no había
+`project-state`, `.cipher-test-fixture` ni directorio de datos dentro del clon.
+Tres procesos Electron independientes midieron first-process load en **61,5 /
+62,0 / 71,7 ms** (mínimo / mediana / máximo), con cero inspecciones SVG en carga
+y búsqueda; `1F382` produjo una sola inspección lazy. La mediana queda muy por
+debajo de 5 s y no reaparece la pausa de 36,2 s.
+
+Los arneses que cargan el main trabajan ahora bajo una raíz creada con `mkdtemp`
+en `%TEMP%` y marcada con `.cipher-test-fixture`. La limpieza rechaza la raíz del
+repositorio, `.git`, `src`, `package.json`, `proyectos/`, padres y rutas sin
+marcador; sólo elimina la ruta exacta creada por esa ejecución. Si Windows devuelve
+`EBUSY`/`EPERM`, retiene ese fixture marcado para inspección en lugar de ampliar
+el alcance. El runner toma huella de todo `proyectos/**/project-state.json(.bak)`
+y de los estados de raíz después de cada suite.
+
+Durante la verificación se observaron en la raíz un estado V1 vacío y un backup
+legacy vacío. No coincidían por bytes con ninguno de los tres proyectos actuales;
+se preservaron y pusieron en cuarentena fuera del repositorio. Existe un fallback
+productivo `activeProjectPath || process.cwd()`, pero no hay traza que demuestre
+qué ejecución creó ese par: el origen se clasifica como no demostrable.
+
+Los 61 estados de una certificación antigua y los 56 de una medición posterior
+son cifras históricas. El usuario confirmó la eliminación manual de la mayoría;
+la base actual son tres proyectos. Una ejecución controlada sobre el repositorio
+confirmó 3/3 antes y después, con ruta, SHA-256, tamaño y fecha idénticos. No se
+atribuye la reducción a `npm test` ni al catálogo OpenMoji.
 
 ## Límites y siguiente paso
 
