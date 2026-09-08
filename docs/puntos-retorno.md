@@ -2,6 +2,47 @@
 
 Etiquetas a las que se puede volver, y qué está probado de cada una.
 
+## `v-scene-recipe-editorial-v1`
+
+Base `291069ea6edaf59a06c8717c270ba21ecd0ae06e`, corrección documental
+`140ed8ef569676adef86ced1b01b0febd4a6811c` sobre `74d1572`.
+Merge local **`1d8415a86dfc4358c8e627ca894bfe411640ae7e`**, sin squash.
+La etiqueta apunta al commit documental final que contiene esta nota, no al
+merge intermedio: resolver `git rev-parse v-scene-recipe-editorial-v1^{commit}`.
+Confirmación con `git ls-remote . refs/tags/v-scene-recipe-editorial-v1*` (local,
+no publicación remota). No se mueve ninguna etiqueta anterior.
+
+**Qué contiene:** SceneIntent, SceneRecipe, ResolvedScenePlan, RenderSpec;
+separación identidad visual/locator/RenderBindings; ProjectSubstrate;
+Motion Contract, NullAssetStrategy, layout intents, SubjectBounds, texto editorial,
+seis perfiles, veinte metáforas, QC, 18 ejemplos y validador documental reproducible;
+plan 3.4A–3.17. ProjectSubstrate propuesto en estado versionado; inventario propuesto
+en materiales/assets/manifest.json. No archivos productivos creados.
+
+**Qué está comprobado documentalmente:** revisión de contratos y JSON válido,
+referencias/modos/roles, máximos de texto/énfasis, ventanas/divisores y cobertura.
+Medido por validar-scene-recipe-v1.cjs sobre corpus de `140ed8e`: 18 (tres por perfil),
+16 asset-led, 2 editorial-text, 6 hard cuts, 5 Hero exit none, 11 sin emphasis,
+1 hold, 3 Supports opcionales omitibles, 1 Hero sin Support, 1 no-metaphor y
+1 providers-exhausted. Cinco tipos de transición; 8 entradas scale, 6 slide,
+5 float, 7 punch/shake motivados. Sin URL/path/proveedor/SHA resueltos en Recipe.
+Controles negativos documentados en qc-scene-recipe-v1.md. Diff sin cambios
+en src/, tests/, paquetes ni Vite contra `291069e`; versión 12 y visual_escena intactas.
+
+**Qué NO está comprobado:** calidad visual, render de assets, movimiento real,
+contraste local/bounds reales, compatibilidad geométrica de layouts, OpenMoji
+integrado, persistencia/migración/manifest productivo, Photo Hero, PurePNG/PNGImages,
+APIs, removedor, ByPeople ni IA/FLUX. El validador no certifica esas propiedades.
+No se ejecutaron las nueve suites: excepción explícita del encargo para este
+cierre exclusivamente documental. No hubo render, descargas, APIs ni push.
+
+**Volver aquí:** conserva motor actual, densidad/Solar, auditoría del pipeline y
+especificación de dirección de arte, sin motor de imágenes. Volver al checkpoint
+anterior v-auditoria-pipeline-assets pierde esta especificación/correcciones,
+no funciones productivas. Siguiente: 3.4A persistencia mínima; no iniciada aquí.
+
+---
+
 ## `v-auditoria-pipeline-assets`
 
 Merge local `993a1231aaf7d365c3ffe4a79943507c87dcaee9` integra `19d3ce3` y

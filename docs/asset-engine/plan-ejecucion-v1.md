@@ -1,11 +1,11 @@
 # Plan V1 — orden de ejecución después de 3.3.5
 
 Base de código `291069e`, tag `v-auditoria-pipeline-assets`. Hecho documental no
-significa función implementada. La especificación 3.3.5 vive en rama separada sin
-merge; su aceptación visual aún no se ha realizado.
+significa función implementada. 3.3.5 integrada con merge local `1d8415a` y cierre
+`v-scene-recipe-editorial-v1`; su aceptación visual aún no se ha realizado.
 
 - [x] 3.3 — Auditoría de pipeline, integrada con `993a123`; cierre `291069e`.
-- [ ] 3.3.5 — Especificación documental Scene Recipe + ProjectSubstrate y 18 ejemplos; sin renderer nuevo.
+- [x] 3.3.5 — Especificación documental cerrada en `v-scene-recipe-editorial-v1`: Scene Recipe + ProjectSubstrate, 18 ejemplos y validador; sin renderer nuevo.
 - [ ] 3.4A — Persistencia mínima: schemaVersion, migración/default legacy, ProjectSubstrate en project-state, AssetManifest, rutas relativas, escritura atómica, validación al abrir y recuperación.
 - [ ] 3.4B — Catálogo OpenMoji pinneado: elegir release/paquete, metadata local, nombres/grupos/aliases, atribución y modo offline.
 - [ ] 3.4C — Round trip: resolver birthday cake, copiar un solo SVG, validar, SHA, manifest, cerrar y reabrir offline resolviendo el mismo asset.

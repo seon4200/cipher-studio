@@ -34,10 +34,15 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 > rutas mayormente absolutas, sin schema/migraciones ni manifiesto productivo de
 > assets. Manifiesto por proyecto, rutas relativas y OpenMoji pinneado/local son
 > propuestas. No existe Photo Hero de archivo. Retorno: `v-auditoria-pipeline-assets`.
-> Master antes del cierre 3.3.5: `291069e` / `v-auditoria-pipeline-assets`.
-> La especificación 3.3.5 Scene Recipe + ProjectSubstrate está en la rama
-> `scene-recipe-editorial-3-3-5`; sin implementar imágenes ni movimiento.
+> **3.3.5 integrada documentalmente:** merge local `1d8415a` desde la base
+> `291069e` / `v-auditoria-pipeline-assets`, conserva `74d1572` y corrección
+> `140ed8e`. Retorno de cierre: `v-scene-recipe-editorial-v1`.
+> Scene Recipe + ProjectSubstrate separan identidad/locator y fijan una única
+> proyección `extra.sceneSpec`. Validador documental: 18 ejemplos (16 asset-led,
+> 2 editorial-text), 6 hard cuts y 5 Heroes sin salida; no prueba calidad visual.
+> Fuente: `docs/asset-engine/validar-scene-recipe-v1.cjs`, corpus de `140ed8e`.
 > No existe OpenMoji integrado, Photo Hero ni `materiales/assets/` funcional.
+> No se implementó movimiento nuevo ni persistencia; sólo contratos y ejemplos.
 > Siguiente código recomendado: **3.4A, persistencia mínima** (schemaVersion,
 > migración/default legacy, ProjectSubstrate, AssetManifest, rutas relativas,
 > escritura atómica, validación al abrir y recuperación). No depende de ByPeople.
