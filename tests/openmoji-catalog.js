@@ -10,6 +10,8 @@ const path = require('path')
 const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
 
 const RAIZ = path.resolve(__dirname, '..')
+const CWD_FIXTURE = createTestFixture('openmoji-cwd')
+process.chdir(CWD_FIXTURE)
 const CASOS_ESPERADOS = 30
 let passed = 0
 let networkAttempts = 0
@@ -416,5 +418,8 @@ try {
   http.request = originalHttpRequest
   https.request = originalHttpsRequest
   app.quit = originalAppQuit
-  app.exit(process.exitCode || 0)
+  const exitCode = process.exitCode || 0
+  process.chdir(path.dirname(CWD_FIXTURE))
+  cleanupTestFixture(CWD_FIXTURE)
+  app.exit(exitCode)
 }

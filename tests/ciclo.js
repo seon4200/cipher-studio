@@ -16,8 +16,11 @@
  */
 const { app } = require('electron')
 const path = require('path')
+const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
 
 const RAIZ = path.resolve(__dirname, '..')
+const FIXTURE_ROOT = createTestFixture('ciclo')
+process.chdir(FIXTURE_ROOT)
 const fallos = []
 const ok = (cond, titulo, detalle) => {
   if (cond) console.log(`  OK    ${titulo}${detalle ? '\n          ' + detalle : ''}`)
@@ -874,5 +877,8 @@ app.whenReady().then(() => {
   } else {
     console.log('TODO CORRECTO — ninguna duracion puede colarse sin dividir su ciclo.')
   }
-  app.exit(fallos.length ? 1 : 0)
+  const exitCode = fallos.length ? 1 : 0
+  process.chdir(path.dirname(FIXTURE_ROOT))
+  cleanupTestFixture(FIXTURE_ROOT)
+  app.exit(exitCode)
 })
