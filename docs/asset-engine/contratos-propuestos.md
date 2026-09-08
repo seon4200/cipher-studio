@@ -1,8 +1,14 @@
 # Contratos conceptuales — autoridad documental 3.3.5
 
-Sólo especificación. Ningún tipo se importa por src/; no hay almacenamiento,
-descarga ni renderer nuevo. Sustituye la propuesta individual SceneHeroReference
-de 3.3: extra.hero no coexistirá con extra.sceneSpec.
+Los bloques inferiores conservan la especificación conceptual 3.3.5, no tipos
+importados desde Markdown. Actualización 3.4A en rama asset-persistence-3-4a:
+ProjectSubstrate, ProjectStateV1, ProjectAssetRecord y AssetManifestV1 tienen
+autoridad productiva en src/shared/project-state.ts. El manifest mínimo usa
+source/validation anidados por archivo, no las tablas con refs del ejemplo futuro.
+Estado y manifest no duplican metadata. Ver persistencia-assets-v1.md.
+No existen adquisición, descarga, Recipe compiler, RenderSpec ni renderer nuevo.
+La propuesta individual extra.hero sigue sustituida conceptualmente por
+extra.sceneSpec para la fase de render, no implementada en 3.4A.
 
 ## Responsabilidades separadas
 

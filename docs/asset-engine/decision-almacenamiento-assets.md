@@ -1,7 +1,12 @@
 # Decisión propuesta — almacenamiento de assets por proyecto
 
-**Estado:** recomendación basada en `c0a9c78`; no es schema ni implementación aprobada.
-**Condición:** validar schema/migración y primer flujo OpenMoji antes de declararla definitiva.
+**Estado 3.4A:** persistencia mínima implementada en la rama asset-persistence-3-4a,
+sin merge. Autoridades reales y garantías: [persistencia-assets-v1.md](persistencia-assets-v1.md).
+Ruta fija materiales/assets/manifest.json, SIN referencia duplicada de ruta en
+project-state. ProjectSubstrate vive sólo en el estado versionado.
+**Historia:** la comparación inferior recoge la auditoría `c0a9c78` y la propuesta
+3.3.5 anterior al código. Sus afirmaciones de ausencia de schema/manifest no
+describen esta rama. OpenMoji y su primer archivo real siguen sin implementar.
 
 ## Evidencia que obliga a separar responsabilidades
 

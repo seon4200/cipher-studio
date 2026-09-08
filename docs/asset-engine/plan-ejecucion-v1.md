@@ -6,7 +6,7 @@ significa función implementada. 3.3.5 integrada con merge local `1d8415a` y cie
 
 - [x] 3.3 — Auditoría de pipeline, integrada con `993a123`; cierre `291069e`.
 - [x] 3.3.5 — Especificación documental cerrada en `v-scene-recipe-editorial-v1`: Scene Recipe + ProjectSubstrate, 18 ejemplos y validador; sin renderer nuevo.
-- [ ] 3.4A — Persistencia mínima: schemaVersion, migración/default legacy, ProjectSubstrate en project-state, AssetManifest, rutas relativas, escritura atómica, validación al abrir y recuperación.
+- [x] 3.4A — Persistencia mínima probada en rama `asset-persistence-3-4a`, código `6b8dddf`, sin merge. Schema/migración, ProjectSubstrate, manifest, rutas y backup; clon nuevo con npm ci, tsc, build y 10/10. Evidencia: persistencia-assets-v1.md. No incluye catálogo ni asset real.
 - [ ] 3.4B — Catálogo OpenMoji pinneado: elegir release/paquete, metadata local, nombres/grupos/aliases, atribución y modo offline.
 - [ ] 3.4C — Round trip: resolver birthday cake, copiar un solo SVG, validar, SHA, manifest, cerrar y reabrir offline resolviendo el mismo asset.
 - [ ] 3.5 — Asset Resolver: proyecto primero; candidato, descarga, validación, referencias relativas, plan resuelto y fallback trazable.
