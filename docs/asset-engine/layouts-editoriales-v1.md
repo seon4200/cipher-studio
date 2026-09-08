@@ -30,12 +30,12 @@ type SubjectBounds = {
   centerOfMass: { x: number; y: number }
   aspectRatio: number
   transparentPadding: { top: number; right: number; bottom: number; left: number }
-  measurementRevision: string
+  boundsMeasurementRevision: string
 }
 type FitPolicy = 'contain' | 'cover' | 'subject-fit' | 'face-fit'
 ```
 
-Coordenadas normalizadas al lienzo del asset, no al vídeo: x/y/ratios/padding en 0..1, dimensiones positivas, rectángulo dentro de 0..1. aspectRatio es ancho visible/alto visible, no otro tamaño de lienzo; centerOfMass ponderado por alpha. Umbral alpha y algoritmo se fijan en measurementRevision, para no cambiar resultados al “mejorar” la medición. Comprobar consistencia de ratios/padding con alphaBounds, no guardar valores independientes incompatibles.
+Coordenadas normalizadas al lienzo del asset, no al vídeo: x/y/ratios/padding en 0..1, dimensiones positivas, rectángulo dentro de 0..1. aspectRatio es ancho visible/alto visible, no otro tamaño de lienzo; centerOfMass ponderado por alpha. Umbral alpha y algoritmo se fijan en boundsMeasurementRevision, para no cambiar resultados al “mejorar” la medición. Comprobar consistencia de ratios/padding con alphaBounds, no guardar valores independientes incompatibles.
 
 Asset opaco: bounds de lienzo completo; no significa que su fondo sea transparente. Asset totalmente transparente: inválido, sin división por cero ni sujeto imaginario. SVG requiere rasterización de análisis fijada por versión/resolución o extracción conservadora demostrada; estos bounds aún no se calculan en producción.
 

@@ -25,3 +25,16 @@ Recipe contiene intenciones de fallback, no proveedor concreto. generic-illustra
 No blur/mancha genérica obligatoria. No escena rota, Hero present sin bytes o hash compartido entre present/missing. Optional ausente se registra en plan; su omisión cambia spec si antes pintaba. Un Hero requerido ausente replantea layout/texto/motion y triggers, no deja hueco por casualidad.
 
 La degradación registra slot, motivo, candidatos descartados y decisión en el canal de avisos futuro y procedencia; no introduce URL/licencia en Recipe. La trazabilidad de elección no entra al hash salvo efectos visibles. Avisos/persistencia se integrarán con el pipeline real, sin segundo renderer.
+
+## Modo y escenarios de los ejemplos
+
+SceneRecipe.visualMode distingue asset-led (un Hero requerido) y editorial-text
+(cero Hero, sólo procedural opcional o ningún slot). NullAssetStrategy sigue
+siendo "editorial-text": el motivo pertenece a ResolvedScenePlan.fallbackDecision,
+no es una segunda política de proveedores en Recipe.
+
+Los ejemplos 6 y 12 incluyen un fallbackCase documental fuera de Recipe:
+{reason, fromMode, toMode, expectedStrategy}. Representa una condición hipotética,
+NO una descarga o resolución ejecutada. no-metaphor no inventa concreteMetaphor;
+providers-exhausted conserva la intención original pero muestra la nueva receta
+editorial sin Hero. No contiene nombres de proveedores ni assets resueltos.

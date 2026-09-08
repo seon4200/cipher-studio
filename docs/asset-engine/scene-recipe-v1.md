@@ -15,6 +15,7 @@ La receta referencia SceneIntent en vez de copiar narrative: `keyword` y texto v
 
 ```ts
 type SceneIntent = {
+  sceneIntentVersion: 1
   id: string
   phrase: string
   idea: string
@@ -32,7 +33,10 @@ type SceneStyleVariant = {
   textureVariant?: 'base' | 'fine' | 'coarse'
   motionFamily?: 'measured' | 'organic' | 'impact'
 }
+type VisualMode = 'asset-led' | 'editorial-text'
 type SceneRecipe = {
+  sceneRecipeVersion: 1
+  visualMode: VisualMode
   id: string
   sceneIntentRef: string
   projectSubstrateRef: string
@@ -40,7 +44,6 @@ type SceneRecipe = {
   densityIntent: 'minima' | 'baja' | 'media' | 'alta' | 'saturada'
   text: {
     connector?: string
-    keywordRef: 'SceneIntent.keyword'
     closing?: string
     alignment: 'left' | 'center'
     maxLines: 2 | 3
@@ -65,70 +68,166 @@ type SceneAssetSlot = {
 
 `U01`, motion, triggers y reglas numéricas: motion-contract-v1.md. Tipos de fallback: null-asset-strategy-v1.md. No hay enums implementados por crear estos textos. `densityIntent` es una decisión semántica justificada por roles/contenido, no un sorteo para cubrir cinco valores.
 
-## Resolución propuesta
+## Resolución y modo efectivo
+
+`asset-led` exige exactamente un Hero obligatorio. `editorial-text` tiene cero
+Hero: slots vacíos o sólo texture/decorator procedural opcional; fallback
+editorial, sin fingir metáfora ni mantener una ranura vacía. El modo efectivo
+persiste en ResolvedScenePlan y RenderSpec. La tabla de densidad asset-led no
+obliga a añadir objetos a una escena tipográfica.
 
 ```ts
+type Resolution<T> = { requested: T; effective: T; reason: string }
 type ResolvedSlot =
   | { slotId: string; state: 'present'; assetId: string; sha256: string;
-      mime: string; kind: string; bounds: SubjectBounds; source: AssetSourceRecord }
+      mime: string; kind: 'photo-cutout' | 'illustration' | 'icon';
+      bounds: SubjectBounds; sourceRef: string; validationRef: string }
   | { slotId: string; state: 'procedural'; presetId: string; revision: string }
   | { slotId: string; state: 'missing'; reason: MissingReason }
   | { slotId: string; state: 'omitted'; reason: 'optional' }
 type ResolvedScenePlan = {
   recipeRef: string
+  visualMode: VisualMode // efectivo
   slots: ResolvedSlot[]
-  fallbackDecision: string
+  densityResolution: Resolution<Densidad>
+  paletteResolution: Resolution<NombreSistema>
+  fontPairResolution: Resolution<FontPairId>
+  layoutResolution: { requested: LayoutIntent; structureId: string; reason: string }
+  fallbackDecision: { strategy: 'none' | 'editorial-text'; reason?: MissingReason }
 }
 ```
 
-El resolver valida bytes y conserva procedencia en el inventario propuesto. Missing no admite SHA/assetId de un supuesto presente. Los roles obligatorios ausentes fuerzan nueva receta de fallback; no se entrega una composición rota.
+Source/validation refs resuelven registros de procedencia y validación del
+inventario, no criterios de React. Todo desvío exige motivo no vacío; incluso
+coincidencia usa razón de compatibilidad. No se sortean densidades por cuota.
+Missing no conserva SHA de presente. Un Hero obligatorio no resuelto obliga a
+compilar una receta editorial nueva, no a dejar asset-led roto.
 
-RenderSpec conceptual: `specVersion`, `renderTier` (`standard | reduced`), snapshot visual del sustrato, `direccion` completa (estructura/fondo/cámara/densidad/ritmo/tipografía), semilla/instancia y parámetros resueltos, texto y tiempos normalizados, slots efectivos (estado, SHA, MIME, bounds usados, fitPolicy, tint y motion), decisión de fallback visual. La estructura sigue produciendo toda geometría final. Presets y revisiones cerrados; sin CSS libre.
+El compilador futuro materializa layoutIntent → estructura real;
+densityIntent → direccion.densidad; fontPairId → fuentes efectivas por rol;
+paletteId → sistema. Sólo el resultado efectivo gobierna píxeles. Por ejemplo,
+baja→saturada o clinico→otro sistema sin motivo es inválido. La keyword efectiva
+se copia de SceneIntent.keyword; Recipe sólo tiene sceneIntentRef, sin keywordRef
+literal ni segunda keyword. Cambio de fuente keyword necesita decisión explícita
+y materialización; direccion.tipografia debe concordar con el rol keyword.
+
+## Identidad visual y localización de bytes
 
 ```ts
-type RenderAsset =
-  | { slotId: string; state: 'present'; sha256: string; mime: string;
+type RenderMotion =
+  | { motionRevision: 'static-spike-v1'; visibility: { start: 0; end: 1 } }
+  | { motionRevision: string; recipe: AssetMotionRecipe }
+type RenderAssetIdentity =
+  | { slotId: string; role: SceneAssetSlot['role']; state: 'present'; sha256: string; mime: string;
       kind: 'photo-cutout' | 'illustration' | 'icon'; bounds: SubjectBounds;
-      fitPolicy: FitPolicy; tint: 'none' | 'accent'; motion: AssetMotionRecipe }
-  | { slotId: string; state: 'procedural'; presetId: string; revision: string;
-      motion: AssetMotionRecipe }
-  | { slotId: string; state: 'missing' | 'omitted' }
+      fitPolicy: FitPolicy; tint: 'none' | 'accent'; motion: RenderMotion }
+  | { slotId: string; role: SceneAssetSlot['role']; state: 'procedural'; presetId: string; revision: string;
+      motion: RenderMotion }
+  | { slotId: string; role: SceneAssetSlot['role']; state: 'missing' | 'omitted' }
+type RenderAssetLocator = { slotId: string; assetId: string; relativeFile: string }
+type RenderBindings = { assets: RenderAssetLocator[] }
 type RenderSpec = {
-  specVersion: 'scene-render-v1'
+  renderSpecVersion: 1
+  visualMode: VisualMode
   renderTier: 'standard' | 'reduced'
-  presetRevision: string
-  substrateVisual: ProjectSubstrate
-  direccion: Direccion // tipo vigente; IDs de registros existentes
+  revisions: {
+    motionPresetRevision: string; layoutCompatibilityRevision: string
+    boundsMeasurementRevision: string; textLayoutRevision: string
+    fitPolicyRevision: string; tintRevision: string
+    fontMetricsRevision: string; paletteRevision: string
+  }
+  sistema: NombreSistema // efectivo; única autoridad de paleta
+  direccion: Direccion // IDs efectivos de estructura/fondo/cámara/densidad/ritmo/tipografía
+  fontIds: { connector?: string; keyword: string; closing?: string }
   semilla: number // uint32 finito
-  text: { connector?: string; keyword: string; closing?: string;
-    alignment: 'left' | 'center'; maxLines: 2 | 3;
-    timing: { connectorStart?: U01; keywordStart: U01; closingStart?: U01 } }
-  slots: RenderAsset[]
+  instanceParameters: Record<string, number> // claves/rangos cerrados por pieza; no números libres
+  text: {
+    connector?: string; keyword: string; closing?: string
+    alignment: 'left' | 'center'; maxLines: 2 | 3
+    timing: { connectorStart?: U01; keywordStart: U01; closingStart?: U01 }
+  }
+  slots: RenderAssetIdentity[]
   fallbackVisual: 'none' | 'editorial-text'
 }
+type CompiledScene = { visual: RenderSpec; bindings: RenderBindings }
 ```
 
-Forma conceptual aún sin consumidor. ID administrativo/assetId se usa para resolver
-y trazar en ResolvedScenePlan; RenderSpec puede omitirlo y usar SHA/slotId para no
-invalidar al renombrar un registro. Ordenar slots por ID estable y ordenar capas por
-rol/estructura, nunca por orden de llegada de descargas. Si la instancia no se deriva
-íntegramente de dirección+semilla+revisión, sus parámetros deben materializarse también.
-`substrateVisual.brandMarkId` no basta para una marca externa: compilarla como slot
-con SHA o preset procedural versionado antes de aceptar el spec.
+Tipos conceptuales, no importables por producción. El caso estático se discrimina
+por motionRevision exacta; el catálogo animado excluye ese ID reservado y exige
+recipe. Los IDs de fuentes son IDs reales, no familias libres. Bounds lleva
+boundsMeasurementRevision (definido en layouts-editoriales-v1.md), que debe
+coincidir con la revisión de RenderSpec. No se duplica una segunda densidad:
+únicamente direccion.densidad; densityResolution es traza de compilación.
 
-`extra.sceneSpec` sería la única representación nueva del resultado. No duplicarlo también en `extra.hero` y `extra.direccion`: el adaptador futuro deberá definir una proyección canónica única hacia las props existentes. 3.3 propuso extra.hero para un spike simple; 3.3.5 generaliza a roles y sustituye esa propuesta al implementarse. Nada de esto existe en main actualmente.
+CompiledScene.visual → graphicData.extra.sceneSpec → canonizar/hashGrafico →
+clave React → composición real → MP4/MOV → timeline.
+CompiledScene.bindings sólo localiza bytes: relativeFile es relativo a la raíz
+del proyecto, confinado tras resolve/realpath. Hay exactamente un locator por
+slot present y ninguno para missing/omitted/procedural. Antes del render,
+verificar presencia, MIME y SHA contra la identidad; mantener esos bytes
+verificados disponibles durante toda la captura. Ni una nueva ruta ni assetId
+administrativo cambian identidad si los bytes y el spec coinciden.
 
-## Cadena de identidad propuesta
+`extra.sceneSpec` es la única proyección visual nueva. No duplicar en
+extra.hero, extra.collage ni extra.direccionNueva. La propuesta 3.3 extra.hero
+queda sustituida, no simultánea. La direccion existente se consume/adapta desde
+sceneSpec, nunca se vuelve a sortear. Si las props heredadas necesitan sistema,
+direccion o tipografía, se proyectan desde spec y se comprueba igualdad;
+no se aceptan dos autoridades contradictorias. El renderer NO reinterpreta
+layoutIntent, densityIntent, preferredKind, allowedProviders, metáfora, perfil
+ni aliases. Estructura/presets versionados son el único emisor de geometría.
 
-`Intent → Recipe → selección/validación → ResolvedScenePlan → RenderSpec → graphicData.extra → canonizar/hashGrafico → escena real → MP4 → timeline`.
+`src/main/index.ts:1157` hashea extra y sistema;
+`src/renderer/src/composiciones/escena.tsx:706` usa además claveDe.
+Ambas claves futuras deben consumir la misma proyección visual. No basta
+actualizar la caché de archivo y dejar antigua la del árbol React.
 
-`src/main/index.ts:1157` hashea todo extra y sistema; `src/renderer/src/composiciones/escena.tsx:706` tiene además `claveDe` para el árbol React. Ambos consumidores deben ver la proyección visual. Un hash nuevo de archivo no corrige por sí solo una clave React incompleta.
+SHA es del contenido validado realmente renderizado. Si se deriva/rasteriza,
+el SHA original queda en procedencia y el derivado en RenderSpec. Si falta o
+cambia el archivo tras resolver: aviso, invalidar binding y volver a resolver;
+rechazar esa captura o recompilar fallback con otra identidad, nunca pintar
+sin Hero bajo present. Proveedor, URL, licencia, fecha y ruta no entran en hash;
+atribución visible sí se materializa como texto efectivo. Orden estable de slots
+por ID; orden de capas por estructura/rol, no por llegada de descargas.
 
-SHA se calcula sobre contenido validado antes de RenderSpec. Si hay rasterización, conservar SHA original en procedencia y SHA del derivado realmente renderizado en RenderSpec. Bounds que afectan el ajuste también se incluyen, con versión de medición; mismo SHA con distintos bounds puede cambiar píxeles. Ruta, fuente URL y licencia permanecen fuera de identidad, salvo texto de atribución visible que sí se materializa.
+Roles efectivos se guardan en cada identidad, no se infieren del nombre del slot.
+Decorator/texture families se compilan a presets/revisiones procedurales concretos
+o al fondo efectivo; no quedan IDs editoriales por interpretar. El estado asset-led
+requiere Hero presente/procedural; un Hero missing obliga a modo editorial-text.
+Los estados missing/omitted sólo documentan slots que no dibujan, nunca autorizan
+al renderer a buscar un sustituto.
 
-Revalidar presencia antes de consumir material en render. Si desaparece o cambia, resolver nuevamente, emitir aviso y construir otra identidad; nunca conservar present mientras se omite imagen. Bytes verificados deben mantenerse disponibles durante la captura. Un cambio de tier requiere decisión explícita, nueva spec/hash y aviso; no degradación oculta.
+BrandMark se resuelve como slot SHA/preset versionado, no ID opaco. Tamaños,
+tratamientos y distribución de texto derivan de estructura+revisión+fuentes;
+si no quedan determinados, se materializan antes del hash. Lo mismo para
+parámetros de instancia: sólo claves/rangos legales de pieza, no CSS.
+renderTier se decide antes del hash. Cambio por rendimiento exige nueva spec,
+aviso y clave; nunca degradación silenciosa por carga de máquina.
+Duración/fps/dimensiones/modo/codec/VERSION_PLANTILLAS siguen en parámetros del
+hash existente. Nada de esta cadena nueva está implementado.
 
-Sin colores hex por escena. La paleta del sustrato se pasa como sistema del hash existente; duración/fps/dimensiones/modo/codec/versión siguen siendo parámetros externos del hash.
+## Versiones y revisiones
+
+| Campo | Autoridad / efecto en identidad |
+|---|---|
+| sceneIntentVersion | schema semántico; no hash si el resultado visual no cambia |
+| sceneRecipeVersion | schema editorial; no hash por sí solo, resultado materializado sí |
+| projectSubstrateVersion | schema de estado; compilar IDs/revisiones efectivos, no duplicar snapshot semántico en spec |
+| assetManifestVersion | schema inventario; no hash, contenido validado sí |
+| openmojiCatalogVersion | procedencia/selección pinneada; SHA final identifica bytes, cambios de elección se materializan |
+| renderSpecVersion | entra en extra.sceneSpec, contrato visual |
+| motionPresetRevision | amplitudes/easings/continuidad/timing efectivo; entra en spec |
+| layoutCompatibilityRevision | selección y contrato geométrico versionado; entra en spec |
+| boundsMeasurementRevision | algoritmo y bounds utilizados; entra en spec |
+| textLayoutRevision | presupuesto, métricas y distribución; entra en spec |
+| fitPolicyRevision | subject-fit/contain/etc.; entra en spec |
+| tintRevision, fontMetricsRevision, paletteRevision | algoritmos de tinte, archivos/métricas de fuentes y sistema de color; entran en spec |
+
+Mismo PNG + nuevo subject-fit, easing, bounds, tinte o métrica puede cambiar
+píxeles: SHA sola no basta. Las revisiones se fijan al compilar, no se leen de
+un catálogo mutable durante render. Cambios sólo de evidencia/licencia no
+invalidan imagen salvo que modifiquen texto visible. No se sube versión
+productiva por crear esta especificación.
 
 ## Roles y densidades
 

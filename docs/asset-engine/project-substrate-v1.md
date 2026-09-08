@@ -7,6 +7,7 @@ Estado: propuesta; no implementado. Base de código: `291069e`, idéntica en pro
 ```ts
 type PrimaryStyle = 'blueprint' | 'tech' | 'authority' | 'investigation' | 'economic' | 'pop'
 type ProjectSubstrate = {
+  projectSubstrateVersion: 1
   primaryStyle: PrimaryStyle
   paletteId: NombreSistema
   fontPairId: FontPairId
@@ -16,7 +17,18 @@ type ProjectSubstrate = {
 }
 ```
 
-Se fija una instancia por vídeo y se conserva como snapshot del montaje futuro. No se sortean estos campos por subclip. La persistencia/versionado de ese snapshot es trabajo 3.4, no existe hoy. No crear otro almacén: convivirá con project-state y el inventario propuesto de 3.3.
+Se fija una instancia por vídeo/montaje, no por subclip. Recomendación 3.4A:
+project-state.json versionado es la única autoridad de projectSubstrate, junto
+con schemaVersion y referencias de timeline/uso. No es metadata de asset; no
+crear visual-substrate.json ni copiarlo al manifest. Si un proyecto conserva
+versiones de montaje, su estado conserva el snapshot de cada montaje; no
+recalcularlo al reabrir. Esta persistencia todavía no existe.
+
+materiales/assets/manifest.json será autoridad de archivos, SHA, relativeFile,
+validación y procedencia/licencia, no del estilo. 3.4A debe introducir
+schemaVersion, migración mínima, default determinista para proyectos antiguos,
+escritura atómica, validación al abrir y recuperación. Es propuesta documental,
+no un archivo creado ni schema productivo.
 
 Paletas existentes: `editorial | clinico | voltaje | calido` en `src/shared/sistemas.ts:3`; el renderer las reexporta. No se copian colores ni se aceptan hex por escena. `sistemaDeGeneracion` (`src/main/index.ts:1149`) elige hoy un sistema para el lote; el nuevo sustrato reutiliza esa decisión y su autoridad de tinta/luz, no crea cuatro paletas nuevas.
 
@@ -51,3 +63,10 @@ BrandMark opcional: una marca visible exige resolución de contenido/SHA como cu
 Recipe refiere el sustrato por ID; no duplica sus colores o fuentes. RenderSpec materializa paletteId, IDs tipográficos y revisiones de registros que determinan píxeles. Si un registro cambia manteniendo ID, la revisión visual/versión de plantilla debe cambiar en la futura integración. IDs administrativos de proyecto no son identidad visual.
 
 Los ejemplos usan seis referencias de sustrato para seis vídeos hipotéticos, con tres escenas cada uno. No son seis estilos alternándose en un mismo vídeo.
+
+El par fija familias permitidas por rol durante el vídeo; no fija el mismo
+tamaño, tratamiento, alineación, distribución o entrada para cada escena.
+SceneStyleVariant y estructura deciden esos usos dentro del presupuesto medido.
+RenderSpec materializa IDs efectivos por rol y revisiones tipográficas;
+direccion.tipografia es la proyección del ID keyword. No cambiar pareja por
+anti-repetición. Una excepción explícita queda en la traza de resolución.

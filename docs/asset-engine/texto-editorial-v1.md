@@ -19,3 +19,12 @@ Conector ligero (serif/manuscrito/cursivo sólo si existe el archivo verificado)
 No truncar una idea para conseguir verde. Si no cabe, reducir texto semánticamente con nueva Recipe o elegir otro layout; último recurso editorial tipográfico. Tiempo mínimo legible queda pendiente de medición perceptiva para cada par/tamaño: duración 2–3 s no demuestra lectura.
 
 Los actuales `textoPie` y etiquetas Archivo no implementan estos tres niveles. Los diez IDs de fuentes empaquetadas no equivalen a pares medidos. No cambiar tamaños ni prompts como parte de esta especificación.
+
+## Una sola palabra y familias efectivas
+
+SceneIntent.keyword es la autoridad semántica; Recipe sólo sceneIntentRef.
+No keywordRef literal ni keyword duplicada. RenderSpec.text.keyword materializa
+la palabra real junto al timing efectivo. fontPairId reside en ProjectSubstrate,
+fijo por montaje; fontIds por rol se materializan en spec. Las escenas conservan
+variación de tamaños/tratamiento/entrada dentro de estructura y textLayoutRevision,
+sin sintetizar estilos ausentes del archivo de fuente verificado.

@@ -24,16 +24,25 @@ No se propone una segunda fuente de verdad para el mismo hecho:
 
 ## Recomendación
 
-En el primer provider, crear un manifiesto por proyecto bajo `materiales/`; sus assets aprobados viven en `materiales/assets/<provider>/`. El estado de proyecto conserva sólo referencias de uso/timeline (`assetId` y `extra.hero`); no duplica metadatos. El manifest es autoridad para archivo relativo, SHA, validación, proveedor y licencia. La escena conserva cámara/geometría y el timeline conserva uso/duración.
+Cierre 3.3.5: la recomendación concreta para 3.4A es
+materiales/assets/manifest.json, con assetManifestVersion; los archivos aprobados
+en materiales/assets/<provider>/. relativeFile se resuelve desde la raíz del
+proyecto (no desde la carpeta del manifest). project-state.json introduce
+schemaVersion, projectSubstrate versionado y referencias de uso/timeline; no
+duplica metadata de archivo. El manifest es autoridad de SHA, validación,
+proveedor/licencia y ruta; el estado de identidad editorial y montaje.
+La identidad visual compilada se proyectará únicamente a extra.sceneSpec,
+sustituyendo la propuesta anterior extra.hero. Ver scene-recipe-v1.md.
+No se implementa ni declara probado este reparto documental.
 
 ### Ejemplo documental, no productivo
 
 ```json
 {
-  "version": 1,
+  "assetManifestVersion": 1,
   "assets": [{
     "id": "hero-openmoji-<sha12>",
-    "relativeFile": "assets/openmoji/<sha>.svg",
+    "relativeFile": "materiales/assets/openmoji/<sha>.svg",
     "sha256": "<sha256 de bytes>",
     "mime": "image/svg+xml",
     "provider": "openmoji",

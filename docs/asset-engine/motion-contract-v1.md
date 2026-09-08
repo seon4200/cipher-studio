@@ -83,3 +83,19 @@ SceneTransitionIntent = none | hard-cut | scale-cover | whip-pan | flash | match
 Es una intención entre escenas A y B; no ejecuta por sí misma una transición. El compilador de timeline futuro valida ambas escenas, duración, overlap, continuidad, handles y hash compuesto. No implementarla en el primer Photo Hero.
 
 Exit scale-cover dentro de A no equivale automáticamente a transición A→B scale-cover. Entry/sustain/emphasis/exit son internos. Música y ducking son política futura de audio/timeline, fuera de SceneRecipe.
+
+## Perfil técnico anterior a Motion: 3.6A
+
+3.6A materializará RenderMotion con motionRevision: "static-spike-v1" y
+visibility: {start: 0, end: 1}. No entry none ni presets ficticiamente soportados.
+La unión animada sólo admite revisiones de catálogo distintas de static-spike-v1
+y exige AssetMotionRecipe. 3.6B compilará el ciclo completo y verificará envolventes.
+Hard-cut con exit: {preset: "none"} es válido: el corte pertenece al timeline;
+no se exige salida visible a todas las escenas.
+
+El validador documental comprueba ventanas finitas y contenidas, sustain después
+de entry y antes de exit, emphasis posterior a entry/dentro de visibility/sin
+invadir exit. Comprueba intersección de intervalos de hold y emphasis, no rechaza
+su mera coexistencia si no se solapan. Un hero-entry requiere Hero y no acepta
+normalizedTime; keyword-hit coincide con text.timing.keywordStart del ejemplo.
+renderTier y motionPresetRevision se resuelven antes del hash.

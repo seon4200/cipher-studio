@@ -5,8 +5,10 @@ significa función implementada. La especificación 3.3.5 vive en rama separada 
 merge; su aceptación visual aún no se ha realizado.
 
 - [x] 3.3 — Auditoría de pipeline, integrada con `993a123`; cierre `291069e`.
-- [x] 3.3.5 — Especificación documental Scene Recipe + ProjectSubstrate y 18 ejemplos; sin renderer nuevo.
-- [ ] 3.4 — Sustrato mínimo por proyecto + manifest propuesto + OpenMoji pinneado. Validar schema/migraciones y límites; metadata/licencia, copia por necesidad, publicación atómica, SHA y validación. No descargar catálogos de assets por vídeo.
+- [ ] 3.3.5 — Especificación documental Scene Recipe + ProjectSubstrate y 18 ejemplos; sin renderer nuevo.
+- [ ] 3.4A — Persistencia mínima: schemaVersion, migración/default legacy, ProjectSubstrate en project-state, AssetManifest, rutas relativas, escritura atómica, validación al abrir y recuperación.
+- [ ] 3.4B — Catálogo OpenMoji pinneado: elegir release/paquete, metadata local, nombres/grupos/aliases, atribución y modo offline.
+- [ ] 3.4C — Round trip: resolver birthday cake, copiar un solo SVG, validar, SHA, manifest, cerrar y reabrir offline resolviendo el mismo asset.
 - [ ] 3.5 — Asset Resolver: proyecto primero; candidato, descarga, validación, referencias relativas, plan resuelto y fallback trazable.
 - [ ] 3.6A — Hero estático: una ranura real, bytes presentes, RenderSpec y coherencia de ambas cachés; sin nuevos movimientos ni transiciones.
 - [ ] 3.6B — Motion Envelope: presets acotados y ciclo legal, bounds durante todo el movimiento, sin geometría duplicada.
@@ -27,7 +29,7 @@ merge; su aceptación visual aún no se ha realizado.
 Render incremental no es una fase obligatoria: medir antes los aciertos y coste
 de la caché existente y la caché React. No inventar otro renderer para optimizar.
 
-## Alcance inmediato de 3.4
+## Alcance inmediato de 3.4A
 
 Formalizar persistencia mínima de ProjectSubstrate dentro de la estructura real
 del proyecto y relación con manifest propuesto; decidir versión oficial/pin de

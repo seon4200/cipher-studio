@@ -34,8 +34,13 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 > rutas mayormente absolutas, sin schema/migraciones ni manifiesto productivo de
 > assets. Manifiesto por proyecto, rutas relativas y OpenMoji pinneado/local son
 > propuestas. No existe Photo Hero de archivo. Retorno: `v-auditoria-pipeline-assets`.
-> Sigue la especificación documental 3.3.5 Scene Recipe + ProjectSubstrate;
-> no hay implementación de imágenes o movimiento nuevo.
+> Master antes del cierre 3.3.5: `291069e` / `v-auditoria-pipeline-assets`.
+> La especificación 3.3.5 Scene Recipe + ProjectSubstrate está en la rama
+> `scene-recipe-editorial-3-3-5`; sin implementar imágenes ni movimiento.
+> No existe OpenMoji integrado, Photo Hero ni `materiales/assets/` funcional.
+> Siguiente código recomendado: **3.4A, persistencia mínima** (schemaVersion,
+> migración/default legacy, ProjectSubstrate, AssetManifest, rutas relativas,
+> escritura atómica, validación al abrir y recuperación). No depende de ByPeople.
 >
 > **Spike limpio de proveedores (`c94cc3f`).** Se conserva evidencia sin binarios:
 > OpenMoji oficial (SVG válido), PurePNG como muestra secundaria con alpha útil y

@@ -22,86 +22,79 @@ Estado: especificación. Validar JSON documental no acredita legibilidad, metáf
 | 16. Geometría única | estructura produce placement y envelope; Recipe no coordenadas de escena |
 | 17. Recipe limpia | ninguna URL/path/proveedor ni bytes/SHA resueltos; sólo slots/intenciones |
 
-## Comprobaciones documentales de este encargo
+## Comprobaciones documentales reproducibles
 
-El JSON de ejemplos debe tener 18 entradas (3 por perfil), referencias válidas, texto <=8 palabras, uno o cero emphasis en toda escena, ventanas dentro de visibility, tres scale-in/overshoot, tres slides, tres floats, tres punch/shake con motivo, tres salidas y tres tipos de transición. Ningún asset de ejemplo está resuelto; no URLs/paths/hex/hashes inventados.
+Desde la raíz del repositorio:
 
-Estos conteos prueban cobertura de la especificación, no acierto visual. Motion, contraste, safe zones, lectura, coste y metáforas deberán comprobarse sobre renderer real más revisión humana en las fases previstas.
+```powershell
+node --check docs/asset-engine/validar-scene-recipe-v1.cjs
+node docs/asset-engine/validar-scene-recipe-v1.cjs
+```
+
+[Validador único](validar-scene-recipe-v1.cjs). Lee sólo el JSON de ejemplos;
+sin imports de producción, red ni escrituras. Error de contrato/cobertura:
+mensaje con escena/campo y código de salida 1. No mantener otra copia del
+validador dentro de Markdown. Exporta validate para controles en memoria.
+
+Fuente: ejemplos-scene-recipe-v1.json corregido sobre 74d1572, base master
+291069e, ejecución de cierre 07/09/2026. Son 18 ejemplos hipotéticos, 3 por perfil.
+No es muestra real de vídeos ni evaluación de catálogo/render.
+
+| Cobertura | Medida | Mínimo documental |
+|---|---:|---:|
+| asset-led / editorial-text | 16 / 2 | editorial-text >=2 |
+| hard-cut | 6 | 4 |
+| Hero exit none | 5 | 4 |
+| escenas sin emphasis | 11 | 3 |
+| Supports opcionales omitibles | 3 | 2 |
+| hold motivado | 1 | 1 |
+| asset-led sin Support | 1 | 1 |
+| no-metaphor / providers-exhausted | 1 / 1 | 1 / 1 |
+| entradas scale / slide | 8 / 6 | 3 / 3 |
+| float | 5 | 3 |
+| punch/shake con reason | 7 | 3 |
+| tipos de transición | 5 | 3 |
+| salidas visibles de Hero | 11 | no exigidas en todas |
+
+Transiciones: hard-cut 6, match-shape 4, none 4, shrink-to-anchor 3, scale-cover 1.
+Las escenas 6 y 12 ilustran fallbacks, no proveedores ejecutados.
+
+Controles en memoria ejecutados contra validate: rechazados keywordRef duplicado,
+Hero en editorial, asset-led sin Hero, entry fuera de visibility, sustain antes
+de entry, ventana exit incompatible, doble énfasis, hold solapado, divisor 7,
+NaN, ausencia de hard cuts, SHA/campo infiltrado, ruta, URL, falta de casos
+fallback, referencia inexistente, nueve palabras y hero-entry con tiempo.
+Son 18 rechazos esperados, no suites productivas. Un hold 0.1–0.3 y punch
+manual 0.5–0.6 en scene-09 es válido: evita prohibir coexistencia sin solape.
+
+Ejemplo de control negativo sin escribir fixtures:
+
+```powershell
+node -e 'const {validate}=require("./docs/asset-engine/validar-scene-recipe-v1.cjs"); const d=require("./docs/asset-engine/ejemplos-scene-recipe-v1.json"); d.examples[0].SceneRecipe.text.keywordRef="SceneIntent.keyword"; validate(d)'
+```
+
+Debe salir distinto de cero. Estas comprobaciones sólo certifican coherencia
+estructural/documental. No demuestran metáforas acertadas, legibilidad, movimiento,
+contraste o compatibilidad de estructuras.
+
+## Puertas visuales futuras: no basta una captura fija
+
+Contraste se mide en la zona REAL del texto sobre fondo/asset/tinte: después de
+entrada, keyword-hit, overshoot máximo, extremos de sustain y antes de salida.
+Bounds considera entrada, overshoot, sustain, emphasis, salida, cámara y texto
+real. Una captura central no certifica el intervalo completo ni la legibilidad.
+
+Desde 3.4 OpenMoji deja traza de proveedor, versión, source URL, file URL, SHA,
+licencia, atribución, validación y fecha, fuera de Recipe y de la identidad
+salvo atribución que se dibuje. Validación V1: MIME y magic bytes, tamaño,
+dimensiones, SHA, política de SVG permitido, scripts y recursos externos.
+OCR, watermark detector y logo detector son endurecimiento/proveedores de riesgo,
+no puertas obligatorias de 3.4.
 
 ## Integración y cachés
 
-Antes de implementar, ampliar de forma coherente hash de archivo y clave del árbol React de escena, no sólo extra. Guardar renderTier y timing efectivo. Si coste exige tier distinto, nueva identidad y aviso; no reducir silenciosamente contenido. Medir caché existente antes de proponer render incremental.
-
-## Evidencia documental 3.3.5
-
-Conteo sobre `ejemplos-scene-recipe-v1.json` de esta rama, base `291069e`:
-18 ejemplos, tres por cada uno de seis perfiles; 8 Hero scale-in/overshoot, 6
-slide-in, 5 float, 7 punch/shake con motivo, 18 salidas y cinco transitionIntent
-(cuatro distintos de none). Ninguna escena tiene más de un énfasis. No se
-midieron píxeles ni se llamó al renderer.
-
-Reproducción desde raíz del repo: ejecutar este bloque JavaScript con Node.
-Sólo lee el JSON documental; no descarga, modifica archivos ni reimplementa
-funciones de producción. Sirve para chequear ejemplos, no para aprobar el motor.
-
-```javascript
-const fs = require('fs');
-const d = JSON.parse(fs.readFileSync('docs/asset-engine/ejemplos-scene-recipe-v1.json','utf8'));
-const assert=(ok,msg)=>{if(!ok)throw Error(msg)};
-const count={scale:0,slide:0,float:0,emphasis:0,exit:0,transitions:new Set(),profiles:{}};
-const unit=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=1;
-const window=(o,where)=>assert(unit(o.start)&&unit(o.duration)&&o.duration>0&&o.start+o.duration<=1+1e-9,where);
-assert(d.examples.length===18,'18 ejemplos');
-for(const e of d.examples){
- const r=e.SceneRecipe, intent=e.SceneIntent, sub=d.ProjectSubstrates[r.projectSubstrateRef];
- assert(sub&&r.sceneIntentRef===intent.id,'referencias');
- count.profiles[sub.primaryStyle]=(count.profiles[sub.primaryStyle]||0)+1;
- const words=[r.text.connector,intent.keyword,r.text.closing].filter(Boolean).join(' ').trim().split(/\s+/).length;
- assert(words<=8,'palabras '+e.id);
- assert(r.text.timing.connectorStart<=r.text.timing.keywordStart,'texto');
- if(r.text.closing)assert(r.text.timing.keywordStart<=r.text.timing.closingStart,'cierre');
- assert(r.assetSlots.filter(s=>s.role==='hero').length===1,'hero');
- assert(r.assetSlots.filter(s=>s.role!=='texture').length<=4,'semanticos');
- let emph=0;
- assert(new Set(r.assetSlots.map(s=>s.id)).size===r.assetSlots.length,'slot IDs');
- for(const s of r.assetSlots){
-   assert(['hero','support','decorator','badge','texture'].includes(s.role),'role');
-   assert(typeof s.optional==='boolean' && s.intent.trim(),'slot contract');
-   assert(s.fallback.every(f=>['next-candidate','generic-illustration','solar','omit','editorial-text'].includes(f)),'fallback');
-   assert(s.optional || !s.fallback.includes('omit'),'required slot omit');
-   const m=s.motion;
-   assert(['fade-in','fade-slide','slide-left','slide-right','slide-up','slide-down','scale-in','scale-overshoot','whip-in'].includes(m.entry.preset),'entry preset');
-   assert(['float','breathe','soft-rotate','parallax-drift','slow-zoom','sway','hold','none'].includes(m.sustain.preset),'sustain preset');
-   assert(['fade-out','scale-down','scale-cover','slide-out-left','slide-out-right','slide-out-up','slide-out-down','whip-out','none'].includes(m.exit.preset),'exit preset');
-   assert(m.visibility.start>=0&&m.visibility.end<=1&&m.visibility.end>m.visibility.start,'visibility');
-   window(m.entry,'entry'); if(m.exit.preset!=='none')window(m.exit,'exit');
-   if(m.sustain.preset!=='none'){window(m.sustain,'sustain');assert(m.sustain.start>=m.entry.start+m.entry.duration-1e-9,'sustain entry');}
-   if(m.sustain.cycleDivisor)assert([2,3,4,5,6,8,10,12].includes(m.sustain.cycleDivisor),'divisor');
-   if(m.sustain.preset==='hold')assert(['manual','narration-pause','dramatic-emphasis'].includes(m.sustain.reason),'hold reason');
-   for(const hit of m.emphasis){
-    emph++; assert(hit.reason.trim(),'reason');
-    assert(m.sustain.preset!=='hold','emphasis en hold'); assert(unit(hit.duration)&&hit.duration>0,'duration');
-    const time=hit.trigger.kind==='hero-entry'?r.assetSlots.find(x=>x.role==='hero').motion.entry.start+r.assetSlots.find(x=>x.role==='hero').motion.entry.duration:hit.trigger.normalizedTime;
-    assert(unit(time)&&time+hit.duration<=m.visibility.end,'hit');
-    if(m.exit.preset!=='none')assert(time+hit.duration<=m.exit.start,'hit exit');
-   }
- }
- assert(emph<=1,'max un emphasis');
- const h=r.assetSlots.find(s=>s.role==='hero').motion;
- if(['scale-in','scale-overshoot'].includes(h.entry.preset))count.scale++;
- if(h.entry.preset.startsWith('slide-'))count.slide++;
- if(h.sustain.preset==='float')count.float++;
- if(h.emphasis.some(x=>['punch','shake-short'].includes(x.preset)))count.emphasis++;
- if(h.exit.preset!=='none')count.exit++;
- count.transitions.add(r.transitionIntent);
- function walk(o){if(!o||typeof o!=='object')return; for(const [k,v] of Object.entries(o)){
- assert(!['url','path','sha256','provider','sourceUrl','localFile','x','y'].includes(k),'campo prohibido '+k);
- if(typeof v==='string')assert(!/https?:\/\/|#[0-9a-f]{6}\b|[a-f0-9]{64}/i.test(v),'valor prohibido'); else walk(v);
- }}
- walk(r);walk(intent);
-}
-assert(Object.keys(count.profiles).length===6&&Object.values(count.profiles).every(n=>n===3),'3 por perfil');
-for(const key of ['scale','slide','float','emphasis','exit'])assert(count[key]>=3,key);
-assert(count.transitions.size>=3,'transiciones');
-console.log(JSON.stringify({...count,transitions:[...count.transitions]},null,2));
-```
+Hash de archivo y clave del árbol React consumen la misma extra.sceneSpec
+materializada. RenderBindings sólo localiza bytes y se verifica antes de render.
+renderTier y revisiones/timing efectivos se fijan ANTES de hashear; si coste exige
+otro tier, nueva identidad y aviso. Nunca degradación silenciosa por carga de
+máquina. Medir caché existente antes de proponer render incremental.

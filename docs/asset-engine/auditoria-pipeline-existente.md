@@ -3,6 +3,12 @@
 **Base auditada:** `c0a9c78` / `v-spike-proveedores-limpio`, 07/09/2026.
 **Método:** lectura de código, estado y 61 proyectos locales; no se llamó a proveedores, no se descargó ni se exportó nada. Las rutas y líneas son evidencia; los límites V1 son propuestas, no mediciones.
 
+**Nota de cierre 3.3.5:** esta auditoría conserva las propuestas históricas de
+3.3. La proyección `extra.hero` de sus apartados de hash queda sustituida por
+`extra.sceneSpec` + bindings operativos en `scene-recipe-v1.md`. La ubicación
+documental recomendada se concreta en `materiales/assets/manifest.json`, con
+ProjectSubstrate en estado versionado; no cambia ninguno de los hechos auditados.
+
 ## Conclusión operativa
 
 Hoy los clips se guardan bajo el proyecto, pero el timeline persiste rutas **absolutas**. No existe `materiales/assets/`, `asset-manifest.json`, schema version ni migración de `project-state.json`. El JSON es la fuente de verdad de timeline/editor; el disco sólo confirma existencia. Un Photo Hero V1 debe ser material interno de `visual_escena` y terminar dentro de su MP4/MOV: el timeline acepta vídeo, audio o graphic, no PNG/SVG.
