@@ -325,10 +325,12 @@ try {
     b.clearOpenMojiCatalogCacheForTests()
     trackFilesystem(tracker => {
       const cake = b.searchOpenMoji('birthday cake')[0].entry
+      const started = process.hrtime.bigint()
       const svg = b.resolveOpenMojiSvgCatalogPath(cake)
+      const selectedSvgValidationMs = Number(process.hrtime.bigint() - started) / 1e6
       assert.match(svg.replace(/\\/g, '/'), /color\/svg\/1F382\.svg$/)
       assert.deepEqual([...tracker.svgPaths], [svg.replace(/\\/g, '/').toLowerCase()])
-      console.log('MEDICION openmoji selected-svg-inspections=' + tracker.svgPaths.size)
+      console.log('MEDICION openmoji selected-svg-validation-ms=' + selectedSvgValidationMs.toFixed(3) + ' inspections=' + tracker.svgPaths.size)
     })
   })
   test('20 an alias to a nonexistent stable ID fails validation', () => {
