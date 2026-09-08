@@ -7,6 +7,9 @@ import fs from 'fs'
 import { createProjectFiles, loadProjectFile, saveProjectFile } from './services/project-persistence'
 // Tests exercise the real compiled consumers, never copies of migration or IO.
 export * from './services/project-persistence'
+// 3.4B exposes the real local catalog from the compiled main bundle. It does not
+// resolve or copy assets to projects, and has no renderer/IPC side effect.
+export * from './assets/openmoji/catalog'
 import { pathToFileURL } from 'url'
 import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, getVideoDimensions } from './services/ffmpeg'
 import { fal } from '@fal-ai/client'

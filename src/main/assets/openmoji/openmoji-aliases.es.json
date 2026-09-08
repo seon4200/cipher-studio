@@ -1,0 +1,75 @@
+{
+  "aliasRevision": 1,
+  "entries": [
+    {
+      "alias": "pastel",
+      "language": "es",
+      "stableIds": ["openmoji:1f382", "openmoji:1f370"],
+      "comment": "Pastel puede ser de cumpleaños o porción de shortcake."
+    },
+    {
+      "alias": "torta",
+      "language": "es",
+      "stableIds": ["openmoji:1f382", "openmoji:1f370"],
+      "comment": "Término regionalmente ambiguo."
+    },
+    {
+      "alias": "tarta",
+      "language": "es",
+      "stableIds": ["openmoji:1f967", "openmoji:1f370"],
+      "comment": "Puede referirse a pie o shortcake."
+    },
+    {
+      "alias": "pastel de cumpleaños",
+      "language": "es",
+      "stableIds": ["openmoji:1f382"]
+    },
+    {
+      "alias": "cumpleaños",
+      "language": "es",
+      "stableIds": ["openmoji:1f382"]
+    },
+    {
+      "alias": "dona",
+      "language": "es",
+      "stableIds": ["openmoji:1f369"]
+    },
+    {
+      "alias": "rosquilla",
+      "language": "es",
+      "stableIds": ["openmoji:1f369"]
+    },
+    {
+      "alias": "galleta",
+      "language": "es",
+      "stableIds": ["openmoji:1f36a"]
+    },
+    {
+      "alias": "chocolate",
+      "language": "es",
+      "stableIds": ["openmoji:1f36b"]
+    },
+    {
+      "alias": "caramelo",
+      "language": "es",
+      "stableIds": ["openmoji:1f36c"]
+    },
+    {
+      "alias": "dulce",
+      "language": "es",
+      "stableIds": ["openmoji:1f36c", "openmoji:1f36d", "openmoji:1f36b"],
+      "comment": "Genérico y deliberadamente no seleccionable de forma única."
+    },
+    {
+      "alias": "piruleta",
+      "language": "es",
+      "stableIds": ["openmoji:1f36d"]
+    },
+    {
+      "alias": "helado",
+      "language": "es",
+      "stableIds": ["openmoji:1f368", "openmoji:1f367", "openmoji:1f366"],
+      "comment": "El catálogo distingue ice cream, shaved ice y soft ice cream."
+    }
+  ]
+}
