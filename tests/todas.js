@@ -38,7 +38,7 @@ const EXCLUIDAS = {
 // conjunto que ya no es el conjunto. Con el, el numero no cuadra y salta.
 //
 // SUBIRLO A MANO ES EL PUNTO. Es la linea que obliga a pararse a pensar "¿la he enganchado?".
-const ESPERADAS = 9;
+const ESPERADAS = 10;
 
 const rojo = s => '\x1b[31m' + s + '\x1b[0m';
 const verde = s => '\x1b[32m' + s + '\x1b[0m';

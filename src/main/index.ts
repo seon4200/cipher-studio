@@ -4,6 +4,9 @@ import { spawn, exec } from 'child_process'
 import { once } from 'events'
 import { createHash } from 'crypto'
 import fs from 'fs'
+import { createProjectFiles, loadProjectFile, saveProjectFile } from './services/project-persistence'
+// Tests exercise the real compiled consumers, never copies of migration or IO.
+export * from './services/project-persistence'
 import { pathToFileURL } from 'url'
 import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, getVideoDimensions } from './services/ffmpeg'
 import { fal } from '@fal-ai/client'
@@ -435,6 +438,8 @@ ipcMain.on('start-transcription', async (event, filePath) => {
 })
 
 let activeProjectPath: string | null = null;
+// Keeps unknown persisted fields even when open-project selected a non-default JSON name.
+let activeProjectStateFile: string | null = null;
 
 function slugify(text: string): string {
   return text
@@ -614,10 +619,6 @@ async function initProjectDirs(projectPath: string) {
   }
 }
 
-async function sanitizeProjectState(parsed: any) {
-  return parsed;
-}
-
 // Project Management Handlers
 ipcMain.handle('list-projects', async () => {
   try {
@@ -683,31 +684,31 @@ ipcMain.handle('create-project', async (_event, { name }) => {
       timelineWeights: [...PESOS_POR_DEFECTO]
     };
     
-    const stateFile = path.join(projectPath, 'project-state.json');
-    await fs.promises.writeFile(stateFile, JSON.stringify(initialState, null, 2), 'utf8');
+    const persistedState = createProjectFiles(projectPath, initialState);
 
     // El anterior se limpia cuando el nuevo YA existe. Antes se limpiaba primero, asi que
     // si la creacion fallaba te quedabas sin el viejo y sin el nuevo.
     const anterior = activeProjectPath;
     activeProjectPath = projectPath;
+    activeProjectStateFile = path.join(projectPath, 'project-state.json');
     if (anterior && anterior !== projectPath) await cleanupProjectTemp(anterior);
 
     console.log(`[create-project] Proyecto creado en: ${projectPath}`);
-    return { success: true, data: initialState, projectPath };
+    return { success: true, data: persistedState, projectPath };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, code: err.code, details: err.details };
   }
 });
 
 ipcMain.handle('load-project', async (_event, { projectPath }) => {
   try {
     const stateFile = path.join(projectPath, 'project-state.json');
-    if (!(await exists(stateFile))) {
+    if (!(await exists(stateFile)) && !(await exists(stateFile + '.bak'))) {
       return { success: false, error: 'No se encontró el estado del proyecto en la carpeta seleccionada.' };
     }
 
-    const raw = await fs.promises.readFile(stateFile, 'utf8');
-    const parsed = await sanitizeProjectState(JSON.parse(raw));
+    const persistence = loadProjectFile(stateFile);
+    const parsed = persistence.state;
 
     // Se crean las carpetas que falten, pero NO se limpia el temp del proyecto que se
     // ABRE: ahi viven sus clips. Antes era initProjectDirs -> cleanup -> initProjectDirs,
@@ -719,6 +720,7 @@ ipcMain.handle('load-project', async (_event, { projectPath }) => {
     // primero, asi que una carga fallida destruia el viejo sin abrir el nuevo.
     const anterior = activeProjectPath;
     activeProjectPath = projectPath;
+    activeProjectStateFile = stateFile;
     if (anterior && anterior !== projectPath) await cleanupProjectTemp(anterior);
 
     // La auditoria se calcula AQUI, en el backend, y no en el frontend: hay dos caminos de
@@ -733,9 +735,9 @@ ipcMain.handle('load-project', async (_event, { projectPath }) => {
     }
 
     console.log(`[load-project] Proyecto cargado desde: ${projectPath}`);
-    return { success: true, data: parsed, projectPath, auditoria };
+    return { success: true, data: parsed, projectPath, auditoria, persistence };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, code: err.code, details: err.details };
   }
 });
 
@@ -1737,12 +1739,11 @@ ipcMain.handle('save-project-state', async (_event, state) => {
   try {
     const targetPath = activeProjectPath || process.cwd();
     const filePath = path.join(targetPath, 'project-state.json');
-    const sanitized = await sanitizeProjectState(state);
-    sanitized.date = Date.now();
-    await fs.promises.writeFile(filePath, JSON.stringify(sanitized, null, 2), 'utf8');
+    saveProjectFile(filePath, state, activeProjectPath && activeProjectStateFile ? activeProjectStateFile : filePath);
+    if (activeProjectPath) activeProjectStateFile = filePath;
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, code: err.code, details: err.details };
   }
 });
 
@@ -1750,22 +1751,20 @@ ipcMain.handle('load-project-state', async () => {
   try {
     if (activeProjectPath) {
       const stateFile = path.join(activeProjectPath, 'project-state.json');
-      if (await exists(stateFile)) {
-        const raw = await fs.promises.readFile(stateFile, 'utf8');
-        const parsed = await sanitizeProjectState(JSON.parse(raw));
-        return { success: true, data: parsed };
+      if ((await exists(stateFile)) || (await exists(stateFile + '.bak'))) {
+        const persistence = loadProjectFile(stateFile);
+        return { success: true, data: persistence.state, persistence };
       }
     }
     // Backward compatibility fallback to process.cwd()
     const filePath = path.join(process.cwd(), 'project-state.json');
-    if (await exists(filePath)) {
-      const rawData = await fs.promises.readFile(filePath, 'utf8');
-      const parsed = await sanitizeProjectState(JSON.parse(rawData));
-      return { success: true, data: parsed };
+    if ((await exists(filePath)) || (await exists(filePath + '.bak'))) {
+      const persistence = loadProjectFile(filePath);
+      return { success: true, data: persistence.state, persistence };
     }
     return { success: false, error: 'No se encontró proyecto activo.' };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, code: err.code, details: err.details };
   }
 });
 
@@ -1786,12 +1785,10 @@ ipcMain.handle('save-project-as', async (_event, state) => {
     if (canceled || !filePath) {
       return { success: false, error: 'Guardado cancelado por el usuario' };
     }
-    const sanitized = await sanitizeProjectState(state);
-    sanitized.date = Date.now();
-    await fs.promises.writeFile(filePath, JSON.stringify(sanitized, null, 2), 'utf8');
+    saveProjectFile(filePath, state, activeProjectPath && activeProjectStateFile ? activeProjectStateFile : filePath);
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, code: err.code, details: err.details };
   }
 });
 
@@ -1810,8 +1807,8 @@ ipcMain.handle('open-project', async () => {
     const filePath = filePaths[0];
     const projectPath = path.dirname(filePath);
     
-    const raw = await fs.promises.readFile(filePath, 'utf8');
-    const parsed = await sanitizeProjectState(JSON.parse(raw));
+    const persistence = loadProjectFile(filePath);
+    const parsed = persistence.state;
 
     // Mismo criterio que load-project: NO se limpia el temp del proyecto que se abre,
     // y el anterior se limpia solo cuando el nuevo ya esta cargado.
@@ -1819,11 +1816,12 @@ ipcMain.handle('open-project', async () => {
 
     const anterior = activeProjectPath;
     activeProjectPath = projectPath;
+    activeProjectStateFile = filePath;
     if (anterior && anterior !== projectPath) await cleanupProjectTemp(anterior);
 
-    return { success: true, data: parsed, projectPath };
+    return { success: true, data: parsed, projectPath, persistence };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, code: err.code, details: err.details };
   }
 });
 
