@@ -1,9 +1,10 @@
 # 3.4B — catálogo OpenMoji oficial, local y offline
 
 **Estado:** integrado localmente en `master` mediante merge `5bf8635`; el retorno
-`v-openmoji-catalog-v1` apunta al cierre documental posterior. No crea
-ProjectAssetRecord, no escribe AssetManifest, no copia SVG a un proyecto, no abre
-IPC y no dibuja Hero.
+`v-openmoji-catalog-v1` apunta al cierre documental posterior. Por sí solo 3.4B
+no creaba ProjectAssetRecord, no escribía AssetManifest ni copiaba SVG a un
+proyecto; 3.4C hace ese único round trip en un proyecto temporal separado. 3.4B
+no abre IPC ni dibuja Hero.
 
 ## Fuente y pin
 
@@ -159,8 +160,9 @@ y revisión openmoji-catalog-v1. El texto recomendado por Cipher es:
 
 > OpenMoji 17.0.0 — CC BY-SA 4.0 — https://openmoji.org/
 
-La URL y la versión son procedencia, no identidad visual. 3.4C deberá guardar la
-atribución y la SHA real del SVG que publique en un proyecto.
+La URL y la versión son procedencia, no identidad visual. El candidato 3.4C ya
+guarda atribución y SHA real del SVG que publica en un proyecto temporal; ver
+`openmoji-asset-roundtrip-v1.md`.
 
 ## Offline, pruebas y mediciones
 
@@ -229,12 +231,9 @@ atribuye la reducción a `npm test` ni al catálogo OpenMoji.
 
 ## Límites y siguiente paso
 
-No hay descarga por vídeo, búsqueda de proveedor, ProjectAsset, AssetManifest
-real, SHA de asset publicado, validación profunda/sanitización/rasterización de
-SVG, data URI, tinte, Hero, RenderSpec, SceneIntent ni cambio de píxeles.
-VERSION_PLANTILLAS permanece en 12.
-
-**3.4C** debe hacer un solo round trip autorizado: resolver birthday cake,
-validar el SVG elegido de verdad, calcular SHA-256, copiarlo atómicamente a
-materiales/assets/openmoji, registrarlo en AssetManifest y comprobar reapertura
-offline. No debe dibujarlo todavía.
+3.4B no incluye descarga por vídeo, búsqueda de provider, Hero, RenderSpec,
+SceneIntent, data URI, tinte ni cambio de píxeles. El candidato 3.4C ya añade un
+ProjectAsset/AssetManifest real, SHA publicada, validación profunda y reapertura
+offline sólo en fixtures temporales; no lo dibuja ni lo escribe en proyectos
+reales. VERSION_PLANTILLAS permanece en 12. El siguiente límite, después del
+cierre de 3.4C, es el spike visual 3.4D.

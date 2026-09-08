@@ -10,6 +10,9 @@ export * from './services/project-persistence'
 // 3.4B exposes the real local catalog from the compiled main bundle. It does not
 // resolve or copy assets to projects, and has no renderer/IPC side effect.
 export * from './assets/openmoji/catalog'
+// 3.4C sigue siendo una API interna sin IPC: esta reexportación permite que la
+// suite ejecute el consumidor compilado real, no una copia de publicación/IO.
+export * from './assets/openmoji/publish'
 import { pathToFileURL } from 'url'
 import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, getVideoDimensions } from './services/ffmpeg'
 import { fal } from '@fal-ai/client'

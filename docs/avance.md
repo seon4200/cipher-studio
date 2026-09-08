@@ -1,5 +1,15 @@
 # AVANCE — dónde vamos
 
+> **3.4C — round trip OpenMoji candidato y verificado en rama (08/09/2026).**
+> `openmoji-asset-roundtrip-3-4c` publica sólo `openmoji:1f382` en un proyecto
+> temporal explícito: valida SVG profundo, calcula SHA-256, publica mediante
+> temporal+rename en `materiales/assets/openmoji/<sha>.svg`, registra el
+> AssetManifest V1 real y lo reabre sin red. La suite nueva tiene 50 casos y el
+> runner pasa a 12 suites. No hay Hero, renderer, hash, píxeles, IPC, selector,
+> descarga ni SVG/manifest añadido a los tres proyectos reales. La integración,
+> clon nuevo y checkpoint quedan pendientes del cierre de esta rama. Evidencia:
+> `docs/asset-engine/openmoji-asset-roundtrip-v1.md`.
+
 > **3.4B — integrado y comprobado (08/09/2026).** El merge local `5bf8635` de la
 > rama
 > `openmoji-catalog-3-4b` fija `openmoji@17.0.0` como devDependency de build y
