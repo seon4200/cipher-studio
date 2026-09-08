@@ -1,8 +1,8 @@
 # 3.4B — catálogo OpenMoji oficial, local y offline
 
-**Estado:** implementado en la rama **openmoji-catalog-3-4b**; no está mergeado ni
-etiquetado. No crea ProjectAssetRecord, no escribe AssetManifest, no copia SVG a
-un proyecto, no abre IPC y no dibuja Hero.
+**Estado:** validado en la rama **openmoji-catalog-3-4b**, pendiente de merge
+local y etiqueta. No crea ProjectAssetRecord, no escribe AssetManifest, no copia
+SVG a un proyecto, no abre IPC y no dibuja Hero.
 
 ## Fuente y pin
 
@@ -33,8 +33,11 @@ no se afirma haber verificado la firma npm.
 ## Recurso local y empaquetado
 
 **scripts/prepare-openmoji-catalog.cjs** parte de su propio directorio, no de
-process.cwd(). Rechaza paquete distinto de 17.0.0, metadata no-array, hexcode
-duplicado o SVG color ausente. Genera, fuera de Git:
+process.cwd(). Es la validación exhaustiva de preparación/build: rechaza paquete
+distinto de 17.0.0, metadata no-array o con conteo distinto de 4.495, hexcode
+duplicado, licencia incompatible, ruta fuera de `color/svg`, archivo no regular,
+SVG vacío o preámbulo que no sea SVG/XML. Recorre los 4.495 SVG sólo aquí y luego
+genera, fuera de Git:
 
     dist-electron/openmoji/
       catalog-resource.json       # derivado: versión, conteos y rutas fijas
@@ -43,8 +46,11 @@ duplicado o SVG color ausente. Genera, fuera de Git:
       LICENSE.txt                 # licencia del paquete oficial
 
 No copia black, PNG 72/618, fuentes, sprites, tests, src ni helpers de OpenMoji.
-El recurso generado medido contiene 4.498 archivos y 16.387.404 bytes: 4.495
-SVG, metadata, licencia y manifiesto derivado. Está ignorado por Git.
+El manifiesto derivado fija esquema, versión, conteos, rutas fijas, SHA-256 de
+metadata, SHA-256 de la lista ordenada ruta+tamaño, revisión del generador y un
+fingerprint determinista de esos campos. No lleva timestamp de identidad. El
+recurso generado medido contiene 4.498 archivos y 16.387.737 bytes: 4.495 SVG,
+metadata, licencia y manifiesto derivado. Está ignorado por Git.
 
 En desarrollo, tests y build, resolveOpenMojiCatalogResourceRoot resuelve
 dist-electron/openmoji desde el directorio compilado del main. En la aplicación
@@ -78,14 +84,22 @@ orden. 3.4B consume los campos necesarios y no muta ese JSON.
 | aliases | aliases controlados de Cipher |
 | svgRelativeFile | derivado fijo color/svg/<HEX>.svg |
 
-catalog-resource.json también es derivado: transporta versión y conteos desde el
-package.json oficial. No es metadata oficial ni identidad de un asset de proyecto.
+catalog-resource.json también es derivado: transporta versión, conteos y
+fingerprints de preparación. No es metadata oficial ni identidad de un asset de
+proyecto.
 
-El cargador valida versión exacta, shape array, IDs/hexcodes únicos, aliases a
-IDs existentes, confinamiento/realpath, extensión, tamaño y preámbulo SVG/XML de
-cada SVG indexado. En 17.0.0 no hubo hexcode duplicado, SVG faltante ni warning.
-Una excepción futura sólo puede excluirse si está declarada explícitamente en el
-manifiesto de recurso; un faltante inesperado falla con código estable.
+La validación queda separada explícitamente:
+
+| Momento | Responsable | Qué comprueba | Qué no hace |
+|---|---|---|---|
+| preparación/build | `prepare-openmoji-catalog.cjs` | paquete exacto, 4.495 metadata/SVG, rutas, archivos, tamaños, preámbulos, licencia y fingerprints | no se usa durante búsqueda de usuario |
+| carga runtime | `loadOpenMojiCatalog()` | manifiesto, versión, metadata SHA, conteos, IDs/hexcodes, aliases y rutas derivables confinadas | no abre, enumera, hace stat, lstat o realpath de `color/svg` |
+| resolución lazy | `resolveOpenMojiSvgCatalogPath()` | sólo el SVG elegido: confinamiento, realpath, archivo regular, extensión, tamaño y preámbulo | no valida el resto del catálogo |
+
+En 17.0.0 no hubo hexcode duplicado, SVG declarado faltante ni warning. Una
+excepción futura sólo puede excluirse si está declarada explícitamente en el
+manifiesto; un SVG solicitado pero ausente falla con código estable, sin mantener
+la falsa pretensión de haber revalidado los otros 4.494.
 
 ## API y búsqueda
 
@@ -143,17 +157,31 @@ atribución y la SHA real del SVG que publique en un proyecto.
 ## Offline, pruebas y mediciones
 
 **tests/openmoji-catalog.js** importa el consumidor compilado real desde
-dist-electron/main/index.js. Bloquea global.fetch, http.request y https.request,
-y los 25 casos pasan sin intento de red. Cubre metadata, IDs, SVG locales,
-confinamiento, annotation, emoji, hex, tokens, grupos, aliases españoles,
-food-sweet, birthday cake, versiones/aliases/SVG inválidos, traversal, atribución,
-orden y recurso build. El runner sube a 11 suites.
+dist-electron/main/index.js. Bloquea global.fetch, http.request y https.request;
+sus 30 casos terminan con `CASOS_COMPLETADOS=30` y
+`CASOS_ESPERADOS=30`, o fallan. Una instrumentación de `stat`, `lstat`,
+`realpath`, `readdir`, lectura y apertura falla si carga, búsqueda, consulta o
+lista toca `color/svg`; `birthday cake` (`1F382`) demuestra después una única
+inspección lazy. Cubre además caché reiniciable, manifiesto/fingerprint inválido,
+metadata SHA, aliases, traversal, SVG ausente o inválido, scoring, orden,
+atribución y ausencia de red. El runner conserva 11 suites.
 
-Mediciones de primera pasada fría en el host de cierre: carga y validación de
-4.495 entradas/SVG en 808,5 ms; dos búsquedas sweet filtradas en 4,238 ms. Son
-mediciones de ese host, no presupuestos universales. El generador añadió 2.511,4
-ms en la última corrida de build; no se afirma una diferencia total de build sin
-un A/B controlado.
+La línea histórica de 808,5 ms se tomó en un host con estado de filesystem no
+controlado; se conserva como medida histórica, pero no sirve como baseline de
+clon. El baseline pertinente antes de separar las capas fue **36,2 s** en un
+clon nuevo: `loadOpenMojiCatalog()` recorría 4.495 SVG y hacía como mínimo
+realpath + stat + open + read + close por cada uno (22.475 operaciones SVG,
+además de metadata/manifiesto). Esa es la causa, no el scoring.
+
+Tras la separación, tres procesos Electron independientes en este host midieron
+la carga de primer proceso en **62,7 / 68,5 / 77,5 ms** (mínimo / mediana /
+máximo), sin inspecciones SVG. No se llama "cold filesystem": la caché del SO no
+se controló. Dos accesos consecutivos cached en el mismo proceso tardaron 0,005
+ms y leyeron metadata una sola vez; dos búsquedas filtradas `sweet` tardaron
+3,652 ms; la validación lazy de `1F382.svg` tardó 0,924 ms e inspeccionó un solo
+SVG. La preparación exhaustiva de build tomó 4.740,5 ms, generando 4.498
+archivos / 16.387.737 bytes. Son mediciones de este host, no presupuestos
+universales.
 
 ## Límites y siguiente paso
 
