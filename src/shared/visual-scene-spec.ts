@@ -23,10 +23,13 @@ import { esNombreSolarCanonico, type EstiloSolar } from './iconos-solar'
  * project paths and bytes are represented by RenderBindings and never enter this object.
  */
 export const VISUAL_RENDER_SPEC_VERSION = 1 as const
-export const VISUAL_MVP_LAYOUT_REVISION = 'visual-asset-layout-v1' as const
-export const VISUAL_MVP_TEXT_REVISION = 'editorial-text-v1' as const
+export const VISUAL_MVP_LAYOUT_REVISION_V1 = 'visual-asset-layout-v1' as const
+export const VISUAL_MVP_TEXT_REVISION_V1 = 'editorial-text-v1' as const
+export const VISUAL_MVP_TREATMENT_REVISION_V1 = 'asset-treatment-v1' as const
+export const VISUAL_MVP_LAYOUT_REVISION = 'visual-asset-layout-v2' as const
+export const VISUAL_MVP_TEXT_REVISION = 'editorial-text-v2' as const
 export const VISUAL_MVP_MOTION_REVISION = 'asset-motion-v1' as const
-export const VISUAL_MVP_TREATMENT_REVISION = 'asset-treatment-v1' as const
+export const VISUAL_MVP_TREATMENT_REVISION = 'asset-treatment-v2' as const
 export const VISUAL_MVP_BOUNDS_REVISION = 'subject-bounds-v1' as const
 export const VISUAL_MVP_FONT_REVISION = 'cipher-font-pairs-v1' as const
 export const VISUAL_MVP_PALETTE_REVISION = 'cipher-palettes-v1' as const
@@ -121,7 +124,7 @@ export type EditorialTextV1 = {
   keyword: string
   closing?: string
   alignment: 'left' | 'center'
-  maxLines: 2
+  maxLines: 2 | 3
   fontPairId: VisualMvpFontPair
   timing: {
     connectorStart: number
@@ -139,11 +142,55 @@ export type VisualDirectionV1 = {
   semilla: number
 }
 
+export type SceneDensityInputV2 = {
+  localText: string
+  visualMode: VisualModeV1
+  heroState: SceneSlotV1['state'] | 'none'
+  actualElementCount: number
+  visibleWordCount: number
+  lineCount: 2 | 3
+  rhythm: Ritmo
+  structure: VisualMvpStructure
+  supportCount: number
+}
+
+/**
+ * Density for productive SceneSpec visuals. Unlike the legacy rule, this consumes the bounded
+ * local phrase and the elements that will actually be painted. It intentionally has no quota:
+ * saturated remains possible, but requires a genuinely crowded materialized scene.
+ */
+export function resolveSceneDensityV2(input: SceneDensityInputV2): Densidad {
+  const localWords = input.localText.match(/[\p{L}\p{N}]+/gu)?.length ?? 0
+  const highRhythm = input.rhythm === 'acelerando' || input.rhythm === 'golpeSeco'
+  if (input.visualMode === 'editorial-text' || input.heroState === 'missing' ||
+      input.heroState === 'omitted' || input.heroState === 'none') {
+    if (input.visibleWordCount <= 4 && input.lineCount === 2 && localWords <= 14) return 'baja'
+    if (input.visibleWordCount <= 8 && localWords <= 28 && !highRhythm) return 'media'
+    return 'alta'
+  }
+  if (input.actualElementCount >= 6 && input.supportCount >= 2 && input.lineCount === 3 && highRhythm)
+    return 'saturada'
+  if (input.visibleWordCount <= 4 && input.lineCount === 2 && !highRhythm) return 'media'
+  return 'alta'
+}
+
+/** Decorator budget for the SceneSpec path only. Legacy keeps DENSIDAD_A_N unchanged. */
+export function decoratorBudgetV2(
+  visualMode: VisualModeV1,
+  density: Densidad,
+  hasHero: boolean,
+): number {
+  if (visualMode === 'editorial-text' || !hasHero) {
+    return ({ minima: 0, baja: 0, media: 1, alta: 2, saturada: 3 } as const)[density]
+  }
+  return ({ minima: 0, baja: 1, media: 2, alta: 3, saturada: 4 } as const)[density]
+}
+
 export type VisualRevisionsV1 = {
-  layoutRevision: typeof VISUAL_MVP_LAYOUT_REVISION
-  textRevision: typeof VISUAL_MVP_TEXT_REVISION
+  layoutRevision: typeof VISUAL_MVP_LAYOUT_REVISION | typeof VISUAL_MVP_LAYOUT_REVISION_V1
+  textRevision: typeof VISUAL_MVP_TEXT_REVISION | typeof VISUAL_MVP_TEXT_REVISION_V1
   motionRevision: typeof VISUAL_MVP_MOTION_REVISION
-  treatmentRevision: typeof VISUAL_MVP_TREATMENT_REVISION
+  treatmentRevision: typeof VISUAL_MVP_TREATMENT_REVISION | typeof VISUAL_MVP_TREATMENT_REVISION_V1
   boundsRevision: typeof VISUAL_MVP_BOUNDS_REVISION
   fontRevision: typeof VISUAL_MVP_FONT_REVISION
   paletteRevision: typeof VISUAL_MVP_PALETTE_REVISION
@@ -199,8 +246,28 @@ const REVISIONS: VisualRevisionsV1 = {
   paletteRevision: VISUAL_MVP_PALETTE_REVISION,
 }
 
+const SUPPORTED_REVISIONS: { [K in keyof VisualRevisionsV1]: readonly VisualRevisionsV1[K][] } = {
+  layoutRevision: [VISUAL_MVP_LAYOUT_REVISION_V1, VISUAL_MVP_LAYOUT_REVISION],
+  textRevision: [VISUAL_MVP_TEXT_REVISION_V1, VISUAL_MVP_TEXT_REVISION],
+  motionRevision: [VISUAL_MVP_MOTION_REVISION],
+  treatmentRevision: [VISUAL_MVP_TREATMENT_REVISION_V1, VISUAL_MVP_TREATMENT_REVISION],
+  boundsRevision: [VISUAL_MVP_BOUNDS_REVISION],
+  fontRevision: [VISUAL_MVP_FONT_REVISION],
+  paletteRevision: [VISUAL_MVP_PALETTE_REVISION],
+}
+
 export function visualMvpRevisions(): VisualRevisionsV1 {
   return { ...REVISIONS }
+}
+
+/** Kept only to prove that persisted V1 sceneSpecs remain readable after the V13 renderer. */
+export function legacyVisualMvpRevisions(): VisualRevisionsV1 {
+  return {
+    ...REVISIONS,
+    layoutRevision: VISUAL_MVP_LAYOUT_REVISION_V1,
+    textRevision: VISUAL_MVP_TEXT_REVISION_V1,
+    treatmentRevision: VISUAL_MVP_TREATMENT_REVISION_V1,
+  }
 }
 
 function fail(code: string, message: string, details: Record<string, unknown> = {}): never {
@@ -327,7 +394,7 @@ function validateText(value: unknown): asserts value is EditorialTextV1 {
   const closing = Object.prototype.hasOwnProperty.call(value, 'closing')
     ? nonempty(value.closing, code, 'closing') : ''
   oneOf(value.alignment, ['left', 'center'], code, 'alignment')
-  if (value.maxLines !== 2) fail(code, 'El MVP fija maxLines=2')
+  if (value.maxLines !== 2 && value.maxLines !== 3) fail(code, 'Editorial V2 admite maxLines=2 o 3')
   oneOf(value.fontPairId, VISUAL_MVP_FONT_PAIRS, code, 'fontPairId')
   const words = [connector, keyword, closing].filter(Boolean).join(' ').split(/\s+/).filter(Boolean)
   if (words.length > 8) fail(code, 'El texto editorial supera ocho palabras visibles', { words: words.length })
@@ -403,8 +470,9 @@ function validateRevisions(value: unknown): asserts value is VisualRevisionsV1 {
   const code = 'VISUAL_SCENE_REVISION_INVALID'
   object(value, code, 'revisions')
   exactKeys(value, Object.keys(REVISIONS), code, 'revisions')
-  for (const [key, expected] of Object.entries(REVISIONS))
-    if (value[key] !== expected) fail(code, `Revisión no soportada: ${key}`, { expected, actual: value[key] })
+  for (const [key, supported] of Object.entries(SUPPORTED_REVISIONS))
+    if (!(supported as readonly unknown[]).includes(value[key]))
+      fail(code, `Revisión no soportada: ${key}`, { supported, actual: value[key] })
 }
 
 export function validateVisualSceneSpec(value: unknown): VisualSceneSpecV1 {

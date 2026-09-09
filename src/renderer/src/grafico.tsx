@@ -240,14 +240,22 @@ const rect = (element: Element | null) => {
     keywordOpacity: keyword ? Number(getComputedStyle(keyword).opacity) : 0,
     textColor: keyword ? getComputedStyle(keyword).color : null,
     textOverflow: text ? text.scrollWidth > text.clientWidth + 1 || text.scrollHeight > text.clientHeight + 1 : false,
+    // The keyword owns its line box; a tight Archivo Black line-height can make scrollHeight
+    // exceed clientHeight without clipping. Horizontal overflow is the broken-word condition.
+    keywordOverflow: keyword ? keyword.scrollWidth > keyword.clientWidth + 1 : false,
     maxLines: text?.dataset.qcMaxLines ?? null,
     visibleWords: Number(text?.dataset.qcVisibleWords ?? 0),
+    decoratorCount: document.querySelectorAll('[data-qc-decorator="true"]').length,
+    emptyHeroFrames: document.querySelectorAll('[data-qc-empty-hero-frame="true"]').length,
   }
 }
 
 ;(window as any).__hideVisualTextForQc = (hidden: boolean) => {
   const text = document.querySelector('[data-qc-text="true"]') as HTMLElement | null
-  if (text) text.style.visibility = hidden ? 'hidden' : 'visible'
+  if (!text) return
+  for (const element of text.querySelectorAll('[data-qc-text-glyph="true"]')) {
+    ;(element as HTMLElement).style.visibility = hidden ? 'hidden' : 'visible'
+  }
 }
 
 ;(window as any).__setT = (t: number) => {

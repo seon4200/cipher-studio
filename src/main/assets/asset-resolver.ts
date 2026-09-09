@@ -9,11 +9,14 @@ import type { DirectConcreteEvidenceV1, LocalSceneSemanticV1 } from '../../share
 import type { ProjectAssetRecord } from '../../shared/project-state'
 import {
   VISUAL_MVP_STRUCTURES,
+  VISUAL_MVP_TREATMENT_REVISION,
   createMvpMotion,
+  resolveSceneDensityV2,
   fullSubjectBounds,
   validateVisualSceneSpec,
   visualMvpRevisions,
   type RenderBindingsV1,
+  type SceneSlotV1,
   type VisualDirectionV1,
   type VisualMvpStructure,
   type VisualSceneSpecV1,
@@ -61,6 +64,8 @@ export type MetaphorCandidateV1 = {
   expectedStableId?: string
   solarName?: string
   preferProvider: 'openmoji' | 'solar'
+  /** Whether the subject survives as a silhouette or needs its internal marks to remain visible. */
+  detailReliance?: 'silhouette' | 'interior-detail'
   /** Local semantic evidence is diagnostic/scoring input only; it never reaches RenderSpec. */
   directEvidence?: readonly DirectConcreteEvidenceV1[]
 }
@@ -206,7 +211,8 @@ const METAPHOR_RULES: ReadonlyArray<MetaphorCandidateV1 & { terms: readonly stri
   // historical Solar hint was a generic star/settings glyph.
   { id: 'football-soccer-ball', label: 'fútbol → balón', family: 'icon-monochrome', kind: 'simple-icon', score: 3,
     terms: ['futbol', 'fútbol', 'balon', 'balón', 'soccer'],
-    openmojiQuery: 'soccer ball', expectedStableId: 'openmoji:26bd', preferProvider: 'openmoji' },
+    openmojiQuery: 'soccer ball', expectedStableId: 'openmoji:26bd', preferProvider: 'openmoji',
+    detailReliance: 'interior-detail' },
   { id: 'stadium', label: 'estadio → estadio', family: 'flat-illustration', kind: 'complex-illustration', score: 3,
     terms: ['estadio', 'estadios'], openmojiQuery: 'stadium', expectedStableId: 'openmoji:1f3df', preferProvider: 'openmoji' },
   { id: 'construction', label: 'construcción → obra', family: 'flat-illustration', kind: 'complex-illustration', score: 3,
@@ -638,17 +644,39 @@ function usableSession(value: ResolverSessionV1 | undefined): ResolverSessionV1 
 export function resolveAssetTreatment(input: {
   kind: 'simple-icon' | 'complex-illustration'
   requested?: 'none' | 'accent-mask' | 'duotone'
+  detailReliance?: 'silhouette' | 'interior-detail'
 }): { requested: string; effective: 'none' | 'accent-mask' | 'duotone'; reason: string; revision: string } {
   const requested = input.requested ?? 'auto'
   if (input.requested === 'none') return {
-    requested, effective: 'none', reason: 'EXPLICIT_NONE_ONLY', revision: 'asset-treatment-v1',
+    requested, effective: 'none', reason: 'EXPLICIT_NONE_ONLY', revision: VISUAL_MVP_TREATMENT_REVISION,
   }
   if (input.requested && input.requested !== 'accent-mask' && input.requested !== 'duotone')
     fail('ASSET_TREATMENT_INVALID', 'Tratamiento solicitado no válido')
-  if (input.kind === 'simple-icon') return {
-    requested, effective: 'accent-mask', reason: 'SIMPLE_ICON_ACCENT_MASK', revision: 'asset-treatment-v1',
+  if (input.requested) return {
+    requested,
+    effective: input.requested,
+    reason: 'EXPLICIT_TREATMENT',
+    revision: VISUAL_MVP_TREATMENT_REVISION,
   }
-  return { requested, effective: 'duotone', reason: 'COMPLEX_ILLUSTRATION_DUOTONE', revision: 'asset-treatment-v1' }
+  if (input.detailReliance === 'interior-detail') return {
+    requested,
+    effective: 'duotone',
+    reason: 'INTERIOR_DETAIL_DUOTONE',
+    revision: VISUAL_MVP_TREATMENT_REVISION,
+  }
+  if (input.kind === 'simple-icon') return {
+    requested, effective: 'accent-mask', reason: 'SILHOUETTE_SAFE_ACCENT_MASK', revision: VISUAL_MVP_TREATMENT_REVISION,
+  }
+  return {
+    requested,
+    effective: 'duotone',
+    reason: 'COMPLEX_ILLUSTRATION_DUOTONE',
+    revision: VISUAL_MVP_TREATMENT_REVISION,
+  }
+}
+
+function treatmentForMetaphor(metaphor: MetaphorCandidateV1) {
+  return resolveAssetTreatment({ kind: metaphor.kind, detailReliance: metaphor.detailReliance })
 }
 
 function selectStructure(intent: AssetIntentV1, metaphor: MetaphorCandidateV1 | null, session: ResolverSessionV1, seed: number): VisualMvpStructure {
@@ -675,7 +703,109 @@ function clipWords(value: string): string {
   return value.trim().split(/\s+/).filter(Boolean).slice(0, 8).join(' ')
 }
 
-function directionFor(input: ResolveSceneInputV1, structure: VisualMvpStructure): VisualDirectionV1 {
+type NarrativeWordV2 = { value: string; canonical: string; start: number; end: number }
+
+const CONNECTOR_WORDS_V2 = new Set([
+  'a', 'al', 'ante', 'bajo', 'como', 'con', 'contra', 'de', 'del', 'desde', 'durante', 'el', 'en',
+  'entre', 'hacia', 'hasta', 'la', 'las', 'lo', 'los', 'para', 'pero', 'por', 'que', 'segun',
+  'según', 'sin', 'sobre', 'tras', 'un', 'una', 'y',
+])
+
+function editorialWords(value: string): NarrativeWordV2[] {
+  const output: NarrativeWordV2[] = []
+  for (const match of value.matchAll(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)?/gu)) {
+    const word = match[0]
+    const start = match.index ?? 0
+    output.push({ value: word, canonical: canonicalNarrativeTerm(word), start, end: start + word.length })
+  }
+  return output
+}
+
+function clauseBreak(value: string, left: NarrativeWordV2, right: NarrativeWordV2): boolean {
+  return /[.!?;:,]/u.test(value.slice(left.end, right.start))
+}
+
+/**
+ * Extracts a short, contiguous editorial fragment from the already-local phrase. It never
+ * invents copy: connector and closing are literal words adjacent to the selected keyword.
+ */
+export function deriveEditorialTextV2(input: {
+  localText?: string
+  keyword: string
+  visualMode: ResolverVisualModeV1
+  structure: VisualMvpStructure
+}): VisualSceneSpecV1['text'] {
+  const keyword = clipWords(input.keyword)
+  const source = String(input.localText ?? '').trim()
+  const words = editorialWords(source)
+  const keywordParts = editorialWords(keyword).map(word => word.canonical).filter(Boolean)
+  const matches: number[] = []
+  if (keywordParts.length) {
+    for (let index = 0; index <= words.length - keywordParts.length; index++) {
+      if (keywordParts.every((part, offset) => words[index + offset]?.canonical === part)) matches.push(index)
+    }
+  }
+  const occurrence = matches.sort((a, b) => {
+    const quality = (index: number) => {
+      const before = words[index - 1]
+      const keywordStart = words[index]
+      const afterStart = index + keywordParts.length
+      const priorConnector = before && keywordStart && !clauseBreak(source, before, keywordStart) &&
+        CONNECTOR_WORDS_V2.has(before.canonical) ? 2 : 0
+      let following = 0
+      for (let cursor = afterStart; cursor < Math.min(words.length, afterStart + 4); cursor++) {
+        if (cursor > afterStart && clauseBreak(source, words[cursor - 1], words[cursor])) break
+        following++
+      }
+      const centerDistance = Math.abs(index + keywordParts.length / 2 - words.length / 2)
+      return priorConnector + following - centerDistance * .01
+    }
+    return quality(b) - quality(a) || a - b
+  })[0]
+
+  let connectorWords: NarrativeWordV2[] = []
+  let closingWords: NarrativeWordV2[] = []
+  if (occurrence !== undefined) {
+    for (let cursor = occurrence - 1; cursor >= Math.max(0, occurrence - 2); cursor--) {
+      const right = cursor === occurrence - 1 ? words[occurrence] : words[cursor + 1]
+      if (clauseBreak(source, words[cursor], right) || !CONNECTOR_WORDS_V2.has(words[cursor].canonical)) break
+      connectorWords.unshift(words[cursor])
+    }
+    const after = occurrence + keywordParts.length
+    const maxClosing = input.visualMode === 'editorial-text' ? 4 : 2
+    for (let cursor = after; cursor < Math.min(words.length, after + maxClosing); cursor++) {
+      if (cursor > after && clauseBreak(source, words[cursor - 1], words[cursor])) break
+      closingWords.push(words[cursor])
+    }
+  }
+
+  if (input.visualMode === 'asset-led' && connectorWords.length) closingWords = []
+  const keywordWordCount = Math.max(1, keyword.split(/\s+/).filter(Boolean).length)
+  while (connectorWords.length + keywordWordCount + closingWords.length > 8) closingWords.pop()
+  while (connectorWords.length + keywordWordCount + closingWords.length > 8) connectorWords.shift()
+  const connector = connectorWords.map(word => word.value).join(' ')
+  const closing = closingWords.map(word => word.value).join(' ')
+  const maxLines: 2 | 3 = input.visualMode === 'editorial-text' && connector && closing ? 3 : 2
+  return {
+    ...(connector ? { connector } : {}),
+    keyword,
+    ...(closing ? { closing } : {}),
+    alignment: input.structure === 'editorial' ? 'left' : 'center',
+    maxLines,
+    fontPairId: input.structure === 'editorial' ? 'editorial-black' : 'technical-black',
+    timing: {
+      connectorStart: 0.04,
+      keywordStart: 0.16,
+      ...(closing ? { closingStart: 0.32 } : {}),
+    },
+  }
+}
+
+function directionFor(
+  input: ResolveSceneInputV1,
+  structure: VisualMvpStructure,
+  density: VisualDirectionV1['densidad'],
+): VisualDirectionV1 {
   const source = input.direction
   if (!Number.isSafeInteger(source.semilla) || Number(source.semilla) <= 0)
     fail('ASSET_RESOLVER_DIRECTION_INVALID', 'La dirección necesita una semilla positiva')
@@ -683,21 +813,37 @@ function directionFor(input: ResolveSceneInputV1, structure: VisualMvpStructure)
     fondo: source.fondo as VisualDirectionV1['fondo'],
     estructura: structure,
     camara: source.camara as VisualDirectionV1['camara'],
-    densidad: source.densidad as VisualDirectionV1['densidad'],
+    densidad: density,
     ritmo: source.ritmo as VisualDirectionV1['ritmo'],
     semilla: Number(source.semilla),
   }
 }
 
 function compileDecision(input: ResolveSceneInputV1, decision: ResolvedSceneDecisionV1): CompiledResolvedSceneV1 {
-  const direction = directionFor(input, decision.structure)
-  const text = {
-    keyword: clipWords(decision.intent.keyword),
-    alignment: decision.structure === 'editorial' ? 'left' as const : 'center' as const,
-    maxLines: 2 as const,
-    fontPairId: decision.structure === 'editorial' ? 'editorial-black' as const : 'technical-black' as const,
-    timing: { connectorStart: 0.04, keywordStart: 0.16 },
-  }
+  const text = deriveEditorialTextV2({
+    localText: decision.intent.phrase,
+    keyword: decision.intent.keyword,
+    visualMode: decision.visualMode,
+    structure: decision.structure,
+  })
+  const heroState: SceneSlotV1['state'] | 'none' = decision.hero
+    ? (decision.hero.provider === 'solar' ? 'procedural' : 'present') : 'none'
+  const visibleWordCount = [text.connector, text.keyword, text.closing]
+    .filter(Boolean).join(' ').split(/\s+/).filter(Boolean).length
+  const actualElementCount = 1 + (text.connector ? 1 : 0) + (text.closing ? 1 : 0) +
+    (decision.hero ? 1 : 0)
+  const density = resolveSceneDensityV2({
+    localText: decision.intent.phrase ?? decision.intent.keyword,
+    visualMode: decision.visualMode,
+    heroState,
+    actualElementCount,
+    visibleWordCount,
+    lineCount: text.maxLines,
+    rhythm: input.direction.ritmo as VisualDirectionV1['ritmo'],
+    structure: decision.structure,
+    supportCount: 0,
+  })
+  const direction = directionFor(input, decision.structure, density)
   let slots: VisualSceneSpecV1['slots'] = []
   let bindings = emptyBindings()
   if (decision.hero?.provider === 'openmoji') {
@@ -748,7 +894,7 @@ function addHistory(session: ResolverSessionV1, decision: ResolvedSceneDecisionV
 function editorialDecision(
   intent: AssetIntentV1,
   metaphor: MetaphorCandidateV1 | null,
-  structure: VisualMvpStructure,
+  _structure: VisualMvpStructure,
   reason: string,
   alerts: ResolverAlertV1[],
 ): ResolvedSceneDecisionV1 {
@@ -759,7 +905,8 @@ function editorialDecision(
     visualMode: 'editorial-text',
     metaphor,
     hero: null,
-    structure,
+    // Text is the Hero in this mode. The V2 renderer must not reserve an empty asset slot.
+    structure: 'editorial',
     reasons: [reason],
     fallback: reason,
     alerts,
@@ -822,6 +969,7 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
       code: 'NO_VISUAL_METAPHOR', severity: 'info', message: 'La escena no tiene una metáfora concreta defendible; se usa texto editorial.',
     }])
     trace.visualMode = decision.visualMode
+    trace.structure = decision.structure
     trace.fallback = decision.fallback
     trace.reasons.push(...decision.reasons)
     const compiled = compileDecision(input, decision)
@@ -842,6 +990,7 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
       code: 'AMBIGUOUS_ASSET_CANDIDATES', severity: 'warning', message: 'Los candidatos visuales empatan; no se elige un Hero en silencio.',
     }])
     trace.visualMode = decision.visualMode
+    trace.structure = decision.structure
     trace.fallback = decision.fallback
     trace.reasons.push(...decision.reasons)
     const compiled = compileDecision(input, decision)
@@ -886,7 +1035,7 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
     hero = {
       provider: 'openmoji', stableId: selectedOpenMoji.entry.stableId, assetId: reusable.id,
       relativeFile: reusable.relativeFile, sha256: reusable.sha256, mime: 'image/svg+xml', kind: metaphor.kind,
-      treatment: resolveAssetTreatment({ kind: metaphor.kind }).effective, published: 'reused',
+      treatment: treatmentForMetaphor(metaphor).effective, published: 'reused',
     }
     trace.selectedCandidate = { provider: 'project-asset', identity: reusable.id, score: 3,
       reason: 'PROJECT_ASSET_FIRST', stableId: selectedOpenMoji.entry.stableId }
@@ -900,7 +1049,7 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
       hero = {
         provider: 'openmoji', stableId: selectedOpenMoji.entry.stableId, assetId: published.asset.id,
         relativeFile: published.asset.relativeFile, sha256: published.asset.sha256, mime: 'image/svg+xml', kind: metaphor.kind,
-        treatment: resolveAssetTreatment({ kind: metaphor.kind }).effective, published: published.status,
+        treatment: treatmentForMetaphor(metaphor).effective, published: published.status,
       }
       trace.selectedCandidate = { provider: 'openmoji', identity: selectedOpenMoji.entry.stableId, score: selectedOpenMoji.score,
         reason: 'OPENMOJI_PUBLISHED:' + published.status, stableId: selectedOpenMoji.entry.stableId,
@@ -933,6 +1082,7 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
     })
     const decision = editorialDecision(intent, metaphor, structure, reason, alerts)
     trace.visualMode = decision.visualMode
+    trace.structure = decision.structure
     trace.fallback = decision.fallback
     trace.reasons.push(...decision.reasons)
     const compiled = compileDecision(input, decision)
@@ -940,7 +1090,7 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
     return { decision, trace, compiled, metrics }
   }
 
-  const treatment = hero.provider === 'openmoji' ? resolveAssetTreatment({ kind: hero.kind }) : null
+  const treatment = hero.provider === 'openmoji' ? treatmentForMetaphor(metaphor) : null
   const decision: ResolvedSceneDecisionV1 = {
     version: ASSET_RESOLVER_VERSION,
     sceneId: intent.sceneId,

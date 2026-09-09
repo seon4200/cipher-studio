@@ -1,5 +1,6 @@
 import type { BrowserWindow } from 'electron'
 import {
+  decoratorBudgetV2,
   motionQcTimes,
   type PresentHeroSlotV1,
   type ProceduralHeroSlotV1,
@@ -25,8 +26,11 @@ export type VisualDomQcSnapshot = {
   keywordOpacity: number
   textColor: string | null
   textOverflow: boolean
+  keywordOverflow?: boolean
   maxLines: string | null
   visibleWords: number
+  decoratorCount: number
+  emptyHeroFrames: number
 }
 
 export type VisualRuntimeQcFinding = {
@@ -88,8 +92,16 @@ export function evaluateVisualDomQc(
     }
     if (!inside(snapshot.text, frame) || !inside(snapshot.keyword, safeText))
       findings.push({ code: 'VISUAL_QC_TEXT_BOUNDS', level: 'error', message: 'Texto fuera de la zona segura', normalizedTime: at })
-    if (snapshot.textOverflow || snapshot.maxLines !== '2' || snapshot.visibleWords > 8)
-      findings.push({ code: 'VISUAL_QC_TEXT_OVERFLOW', level: 'error', message: 'Texto recortado o fuera del presupuesto V1', normalizedTime: at })
+    if (snapshot.textOverflow || snapshot.keywordOverflow ||
+        !['2', '3'].includes(snapshot.maxLines ?? '') || snapshot.visibleWords > 8)
+      findings.push({ code: 'VISUAL_QC_TEXT_OVERFLOW', level: 'error', message: 'Texto recortado o fuera del presupuesto Editorial V2', normalizedTime: at })
+    if (Number.isFinite(snapshot.emptyHeroFrames) && snapshot.emptyHeroFrames > 0)
+      findings.push({ code: 'VISUAL_QC_EMPTY_HERO_FRAME', level: 'error', message: 'La composición reservó un marco de Hero sin contenido', normalizedTime: at })
+    if (Number.isFinite(snapshot.decoratorCount)) {
+      const expectedDecorators = decoratorBudgetV2(spec.visualMode, spec.direccion.densidad, spec.visualMode === 'asset-led')
+      if (snapshot.decoratorCount !== expectedDecorators)
+        findings.push({ code: 'VISUAL_QC_DECORATOR_BUDGET', level: 'error', message: 'La capa excede el presupuesto de decoradores V2', normalizedTime: at })
+    }
 
     if (spec.visualMode === 'asset-led') {
       if (!snapshot.hero) {

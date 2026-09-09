@@ -29,10 +29,12 @@
     "test:visual-asset-mvp": "electron tests/visual-asset-mvp.js",
     "test:asset-resolver-v1": "electron tests/asset-resolver-v1.js",
     "test:semantic-decision-repair-v1": "electron tests/semantic-decision-repair-v1.js",
+    "test:visual-composition-v2": "electron tests/visual-composition-v2.js",
     "accept:visual-asset-mvp": "electron tests/aceptacion/visual-asset-mvp/generar.cjs",
     "accept:asset-resolver-v1": "electron tests/aceptacion/asset-resolver-v1/generar.cjs",
     "accept:asset-resolver-corpus": "electron tests/aceptacion/asset-resolver-v1/medir-corpus.cjs",
     "accept:semantic-decision-repair-v1": "electron tests/aceptacion/semantic-decision-repair-v1/generar.cjs",
+    "accept:visual-composition-v2": "electron tests/aceptacion/visual-composition-v2/generar.cjs",
     "bench:graficos": "electron tests/rendimiento/graficos.js",
     "test:ventana": "electron tests/ventana.js"
   },

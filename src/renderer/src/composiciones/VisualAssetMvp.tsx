@@ -185,53 +185,63 @@ export const EditorialText: React.FC<{ spec: VisualSceneSpecV1; u: number }> = (
     ? 0.88 + keywordP / 0.78 * 0.16
     : 1.04 - (keywordP - 0.78) / 0.22 * 0.04
   const exitOpacity = u <= 0.9 ? 1 : Math.max(0, (1 - u) / 0.1)
-  const keywordLength = Array.from(text.keyword).length
-  const keywordSize = spec.visualMode === 'editorial-text'
-    // A long editorial keyword is still valid input. The certified max is two lines, but
-    // V1's keyword row is intentionally a single dominant line; scale it before it would
-    // clip rather than accepting a broken frame. Legacy text never reaches this component.
-    ? (keywordLength > 10 ? 8.6 : 12.4)
-    : (keywordLength > 13 ? 7.4 : 9.2)
+  const keywordParts = text.keyword.split(/\s+/).filter(Boolean)
+  const longestKeyword = Math.max(1, ...keywordParts.map(word => Array.from(word).length))
+  const keywordSize = Math.max(4.6, Math.min(
+    spec.visualMode === 'editorial-text' ? 10.3 : 8.1,
+    (spec.visualMode === 'editorial-text' ? 78 : 74) / longestKeyword,
+  ))
   const align = text.alignment === 'left' ? 'left' : 'center'
   const visibleWords = [text.connector, text.keyword, text.closing]
     .filter(Boolean).join(' ').split(/\s+/).filter(Boolean).length
+  const editorial = spec.visualMode === 'editorial-text'
 
   return (
     <div data-qc-text="true" data-qc-max-lines={text.maxLines}
-      data-qc-visible-words={visibleWords} style={{
-        position: 'absolute', left: '8.33%', right: '8.33%', bottom: '13.54%',
-        height: spec.visualMode === 'editorial-text' ? '27%' : '23%', zIndex: 8,
-        display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: align,
-        color: 'var(--texto)', opacity: exitOpacity,
+      data-qc-visible-words={visibleWords} data-visual-editorial-v2="true" style={{
+        position: 'absolute', left: '11.5%', right: '11.5%',
+        ...(editorial ? { top: '27%', minHeight: '36%' } : { bottom: '14.5%', minHeight: '20%' }),
+        maxHeight: editorial ? '48%' : '25%', zIndex: 8,
+        boxSizing: 'border-box', overflow: 'hidden',
+        display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'stretch',
+        gap: editorial ? '1.35cqmin' : '.85cqmin',
+        padding: editorial ? '4.3cqmin 4.6cqmin 4cqmin' : '2.6cqmin 3.4cqmin 2.4cqmin',
+        textAlign: align, color: 'var(--texto)', opacity: exitOpacity,
+        background: 'var(--sup)',
+        borderLeft: '.75cqmin solid var(--acento)',
+        borderTop: '.16cqmin solid color-mix(in srgb,var(--apoyo) 42%,transparent)',
+        boxShadow: '0 1.5cqmin 4.8cqmin rgba(0,0,0,.28)',
       }}>
-      {text.connector && <div data-qc-connector="true" style={{
+      {text.connector && <div data-qc-connector="true" data-qc-text-glyph="true" style={{
         fontFamily: `${fonts.connector},serif`, fontWeight: fonts.connectorWeight,
-        fontSize: spec.visualMode === 'editorial-text' ? '3.7cqmin' : '3.15cqmin',
+        fontSize: editorial ? '3.55cqmin' : '2.9cqmin',
         lineHeight: 1.1, fontStyle: text.fontPairId === 'editorial-black' ? 'italic' : 'normal',
         letterSpacing: text.fontPairId === 'technical-black' ? '.08em' : '.01em',
         opacity: connectorP,
         transform: `translateY(${((1 - connectorP) * 1.5).toFixed(4)}cqmin)`,
-        marginBottom: '1.1cqmin', whiteSpace: 'nowrap',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>{text.connector}</div>}
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: align === 'left' ? 'flex-start' : 'center',
-        gap: '1.35cqmin', minWidth: 0, whiteSpace: 'nowrap' }}>
-        <span data-qc-keyword="true" style={{
-          fontFamily: `${fonts.keyword},sans-serif`, fontWeight: fonts.keywordWeight,
-          fontSize: `${keywordSize}cqmin`, lineHeight: .9, letterSpacing: '-.025em',
-          textTransform: 'uppercase', display: 'inline-block', opacity: keywordP,
-          transform: `scale(${overshoot.toFixed(5)})`, transformOrigin: align === 'left' ? '0 70%' : '50% 70%',
-          textShadow: '0 .35cqmin 2.2cqmin var(--sombra-pie,rgba(0,0,0,.8))',
-        }}>{text.keyword}</span>
-        {text.closing && <span data-qc-closing="true" style={{
-          fontFamily: `${fonts.connector},serif`, fontWeight: fonts.connectorWeight,
-          fontSize: spec.visualMode === 'editorial-text' ? '3.5cqmin' : '2.9cqmin',
-          lineHeight: 1, opacity: closingP,
-          transform: `translateY(${((1 - closingP) * 1.2).toFixed(4)}cqmin)`,
-          display: 'inline-block',
-        }}>{text.closing}</span>}
-      </div>
-      <div style={{ height: '.75cqmin', width: spec.visualMode === 'editorial-text' ? '20cqmin' : '13cqmin',
-        margin: align === 'left' ? '2.2cqmin 0 0' : '2.2cqmin auto 0', borderRadius: '99cqmin',
+      <span data-qc-keyword="true" data-qc-text-glyph="true" style={{
+        maxWidth: '100%', fontFamily: `${fonts.keyword},sans-serif`, fontWeight: fonts.keywordWeight,
+        fontSize: `${keywordSize.toFixed(3)}cqmin`, lineHeight: .9, letterSpacing: '-.025em',
+        textTransform: 'uppercase', display: 'block', opacity: keywordP,
+        // A single narrative keyword is one semantic unit: shrinking is preferable to
+        // splitting INDIGNACIÓN/ACCIDENTE in the middle of the word. Multi-word keywords
+        // may still wrap only at their existing spaces.
+        whiteSpace: keywordParts.length === 1 ? 'nowrap' : 'normal',
+        overflowWrap: 'normal', wordBreak: 'keep-all',
+        transform: `scale(${overshoot.toFixed(5)})`, transformOrigin: align === 'left' ? '0 70%' : '50% 70%',
+        textShadow: '0 .35cqmin 2.2cqmin var(--sombra-pie,rgba(0,0,0,.8))',
+      }}>{text.keyword}</span>
+      {text.closing && <span data-qc-closing="true" data-qc-text-glyph="true" style={{
+        maxWidth: '100%', fontFamily: `${fonts.connector},serif`, fontWeight: fonts.connectorWeight,
+        fontSize: editorial ? '3.25cqmin' : '2.75cqmin',
+        lineHeight: 1.12, opacity: closingP,
+        transform: `translateY(${((1 - closingP) * 1.2).toFixed(4)}cqmin)`,
+        display: 'block', whiteSpace: 'normal', overflowWrap: 'break-word',
+      }}>{text.closing}</span>}
+      <div data-qc-text-glyph="true" style={{ height: '.58cqmin', width: editorial ? '17cqmin' : '11cqmin',
+        margin: align === 'left' ? '.8cqmin 0 0' : '.8cqmin auto 0', borderRadius: '99cqmin',
         background: 'var(--acento)', transform: `scaleX(${keywordP.toFixed(4)})`,
         transformOrigin: align === 'left' ? '0 50%' : '50% 50%', opacity: keywordP }} />
     </div>

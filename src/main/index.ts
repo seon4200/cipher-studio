@@ -1105,7 +1105,7 @@ const canonizar = (v: any): string => {
 // El contraste efectivo y el resolvedor Solar pueden cambiar píxeles sin modificar el
 // graphicData ya cacheado; esta subida impide servirlo con apariencia antigua. También
 // invalida tarjetas: coste aceptado para mantener una sola clave de versión global.
-const VERSION_PLANTILLAS = 12;
+export const VERSION_PLANTILLAS = 13;
 
 // EL FORMATO LO DECIDE EL MODO, y se dice AQUI una sola vez. Las tres cosas —codec, pix_fmt y
 // extension— tienen que ir juntas o el fichero sale mintiendo sobre si mismo: un .mp4 con
@@ -1181,10 +1181,18 @@ export function sistemaDeGeneracion(idEstable: string): NombreSistema {
 // Se EXPORTA para que la prueba pueda comprobar la clave directamente, sin renderizar. Las
 // propiedades que importan de un hash —que dos entradas distintas den claves distintas, que
 // sea estable— se verifican mejor sobre la funcion que a traves del nombre de un fichero.
-export function hashGrafico(graphicData: any, ancho: number, alto: number,
-                            duracion: number, fps: number,
-                            modo: 'overlay' | 'pantalla',
-                            sistema: NombreSistema = 'voltaje'): string {
+export function hashGraficoConVersionPlantillas(
+  graphicData: any,
+  ancho: number,
+  alto: number,
+  duracion: number,
+  fps: number,
+  modo: 'overlay' | 'pantalla',
+  sistema: NombreSistema,
+  versionPlantillas: number,
+): string {
+  if (!Number.isSafeInteger(versionPlantillas) || versionPlantillas < 1)
+    throw new Error('VERSION_PLANTILLAS inválida para identidad de caché');
   const g = graphicData || {};
   const sceneSpec = sceneSpecFromGraphicData(g);
   // Legacy keeps its byte-for-byte identity projection. The productive scene path ignores
@@ -1199,7 +1207,7 @@ export function hashGrafico(graphicData: any, ancho: number, alto: number,
     ...contenido,
     // La duracion SI entra: 2s y 3s son animaciones distintas, no la misma estirada.
     String(ancho), String(alto), String(duracion), String(fps),
-    'plantillas=' + VERSION_PLANTILLAS,
+    'plantillas=' + versionPlantillas,
     // EL MODO Y EL CODEC ENTRAN, y esto arregla un fallo que YA EXISTE hoy: el modo cambia el
     // layout —'pantalla' centra y quita el margen inferior, 'overlay' lo pega abajo— y sin el
     // en la clave la misma tarjeta en los dos modos devolveria el fichero del OTRO, con el log
@@ -1214,6 +1222,15 @@ export function hashGrafico(graphicData: any, ancho: number, alto: number,
     'sistema=' + sistema
   ];
   return createHash('sha1').update(partes.join('|')).digest('hex').slice(0, 12);
+}
+
+export function hashGrafico(graphicData: any, ancho: number, alto: number,
+                            duracion: number, fps: number,
+                            modo: 'overlay' | 'pantalla',
+                            sistema: NombreSistema = 'voltaje'): string {
+  return hashGraficoConVersionPlantillas(
+    graphicData, ancho, alto, duracion, fps, modo, sistema, VERSION_PLANTILLAS,
+  );
 }
 
 async function obtenerVentanaGraficos(ancho: number, alto: number): Promise<BrowserWindow> {
@@ -1337,6 +1354,8 @@ export async function renderGraphicClip(
     renderBindings?: RenderBindingsV1;
     /** Diagnostics only: a QC rejection remains a rejected render and never changes pixels. */
     onQcFailure?: (report: VisualRuntimeQcReport) => void | Promise<void>;
+    /** Diagnostics only: exposes the measured successful report without changing acceptance. */
+    onQcReport?: (report: VisualRuntimeQcReport) => void | Promise<void>;
   } = {}
 ): Promise<string | null> {
   const ancho = opciones.ancho ?? 1080;
@@ -1453,6 +1472,7 @@ export async function renderGraphicClip(
 
     if (preparado.kind === 'scene-spec') {
       const qc = await runVisualRuntimeQc(v, preparado.sceneSpec, duracion);
+      if (opciones.onQcReport) await opciones.onQcReport(qc);
       for (const finding of qc.findings.filter(finding => finding.level === 'needs-review')) {
         await writeDebugLog(`[GRAFICO] QC NEEDS-REVIEW: ${finding.code} — ${finding.message}`);
       }
@@ -1622,7 +1642,8 @@ export async function renderGraphicClipsLote(
               // Sin esto, un lote de Visuales los renderizaria TODOS con el sistema por
               // defecto y el usuario no podria elegir el color. Estaba anotado como pendiente.
               sistema?: string;
-              onQcFailure?: (context: { index: number; sceneId?: string; hash: string }, report: VisualRuntimeQcReport) => void | Promise<void> } = {},
+              onQcFailure?: (context: { index: number; sceneId?: string; hash: string }, report: VisualRuntimeQcReport) => void | Promise<void>;
+              onQcReport?: (context: { index: number; sceneId?: string; hash: string }, report: VisualRuntimeQcReport) => void | Promise<void> } = {},
   emitirProgreso?: (p: { index: number; total: number; paragraph: string; type: string }) => void
 ) {
   // El lote no sabe de pixeles: recibe lo mismo que el export —formato y resolucion, que el
@@ -1718,6 +1739,7 @@ export async function renderGraphicClipsLote(
           projectRoot: peticiones[i].projectRoot,
           renderBindings: peticiones[i].renderBindings,
           onQcFailure: report => opciones.onQcFailure?.({ index: i, sceneId: peticiones[i].diagnosticSceneId, hash }, report),
+          onQcReport: report => opciones.onQcReport?.({ index: i, sceneId: peticiones[i].diagnosticSceneId, hash }, report),
         });
 
       rutas[i] = ruta;                      // POSICIONAL: el hueco se queda en su sitio

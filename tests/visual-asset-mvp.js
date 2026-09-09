@@ -284,13 +284,16 @@ app.whenReady().then(async () => {
     await runCase('39 ningún proyecto real fue modificado', () => {
       assert.equal(JSON.stringify(snapshotRealProjects()), realProjectsBefore)
     })
-    await runCase('40 identidad legacy sigue estable', () => {
+    await runCase('40 legacy conserva proyección y V13 invalida caché V12', () => {
       const legacy = { type: 'visual_escena', value: 'memoria', extra: { conceptos: [
         { emoji: '🧠', etiqueta: 'recuerdo' }, { emoji: '🗂️', etiqueta: 'archivo' }, { emoji: '🔗', etiqueta: 'conexion' }],
         direccion: { fondo: 'ondas', estructura: 'constelacion', camara: 'quieto', densidad: 'media', ritmo: 'simultaneo', tipografia: 'archivo' } } }
-      const hash = bundle.hashGrafico(legacy, 1080, 1920, 3, 30, 'pantalla', 'editorial')
-      // Recorded from the immutable b735f05 baseline projection (plantillas=12).
-      assert.equal(hash, 'aaaacd306d51')
+      const hashV12 = bundle.hashGraficoConVersionPlantillas(legacy, 1080, 1920, 3, 30, 'pantalla', 'editorial', 12)
+      const hashV13 = bundle.hashGrafico(legacy, 1080, 1920, 3, 30, 'pantalla', 'editorial')
+      assert.equal(bundle.VERSION_PLANTILLAS, 13)
+      assert.equal(hashV12, 'aaaacd306d51')
+      assert.equal(hashV13, '3beef56a9943')
+      assert.notEqual(hashV12, hashV13)
       assert.equal(bundle.prepareGraphicForVisualRender({ graphicData: legacy }).kind, 'legacy')
     })
 

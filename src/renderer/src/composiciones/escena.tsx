@@ -36,6 +36,7 @@ import {
   type MetaEstructura, type Direccion
 } from '../../../shared/escena'
 import {
+  decoratorBudgetV2,
   sceneSpecReactKey,
   type PresentHeroSlotV1,
   type ProceduralHeroSlotV1,
@@ -796,6 +797,58 @@ function construir(value: string, cs: Concepto[], ancla: Concepto | null, dirCru
   )
 }
 
+/** SceneSpec-only structure marks. Legacy continues to use DIBUJO_ESTRUCTURAS unchanged. */
+function estructuraMvpV2(kf: Kf, spec: VisualSceneSpecV1, hasHero: boolean): React.ReactNode {
+  if (!hasHero || spec.visualMode === 'editorial-text' || spec.direccion.estructura === 'constelacion') return null
+  const entrada = kf('estructura-v2', 25, value => {
+    const p = Math.min(1, value / .3)
+    return `opacity:${(.12 + p * .3).toFixed(3)};transform:scale(${(.94 + p * .06).toFixed(3)})`
+  })
+  if (spec.direccion.estructura === 'marcoPoster') {
+    return <div data-qc-structure-mark="frame-with-hero" style={{
+      ...usa(entrada), position: 'absolute', left: '15%', top: '18%', width: '58%', height: '48%',
+      boxSizing: 'border-box', transformOrigin: '44% 42%',
+      border: '.55cqmin solid var(--acento)',
+      boxShadow: 'inset 0 0 0 .18cqmin color-mix(in srgb,var(--apoyo) 48%,transparent)',
+    }} />
+  }
+  return <div data-qc-structure-mark="editorial-rail-with-hero" style={{
+    ...usa(entrada), position: 'absolute', left: '13%', top: '20%', width: '.65cqmin', height: '43%',
+    transformOrigin: '50% 50%', background: 'var(--acento)',
+    boxShadow: '2cqmin 0 0 color-mix(in srgb,var(--apoyo) 20%,transparent)',
+  }} />
+}
+
+/** A bounded SceneSpec decorator layer. The legacy 1/3/5/8/14 budget remains untouched. */
+function decoradoresMvpV2(
+  kf: Kf,
+  n: number,
+  entrada: ReturnType<typeof entradaRitmo>,
+  rndPos: () => number,
+  visualMode: VisualSceneSpecV1['visualMode'],
+): React.ReactNode {
+  const output: React.ReactNode[] = []
+  const maxOpacity = visualMode === 'editorial-text' ? .24 : .34
+  for (let index = 0; index < n; index++) {
+    const point = posicionDecorador(rndPos)
+    const delay = entrada.retardos[index] ?? 0
+    const animation = kf('deco-v2-' + index, 25, value => {
+      const raw = Math.min(1, Math.max(0, (value - delay) / entrada.ventana))
+      const eased = entrada.curva === 'acelerar' ? raw * raw
+        : entrada.curva === 'frenar' ? 1 - Math.pow(1 - raw, 2)
+          : entrada.curva === 'golpe' ? 1 - Math.pow(1 - raw, 4) : raw
+      return `opacity:${(eased * maxOpacity).toFixed(3)};transform:translate(-50%,-50%) scale(${(.72 + .28 * eased).toFixed(3)})`
+    })
+    output.push(<div key={index} className="es-deco" data-qc-decorator="true" style={{
+      ...usa(animation), left: `${point.x}%`, top: `${point.y}%`,
+      width: visualMode === 'editorial-text' ? '.78cqmin' : '.95cqmin',
+      height: visualMode === 'editorial-text' ? '.78cqmin' : '.95cqmin',
+      boxShadow: 'none',
+    }} />)
+  }
+  return output
+}
+
 /**
  * Productive asset-led/editorial path. It deliberately reuses the current background,
  * structure, camera and decorator registries: sceneSpec selects a certified structure but does
@@ -814,16 +867,15 @@ function construirMvp(
   const rndDeco = generador(instancia.semillas.decoradores)
   const prefijo = 'esmvp' + (spec.direccion.semilla >>> 0).toString(36)
   const { kf, reglas } = emisor(prefijo)
-  const metaEstructura = ESTRUCTURAS[spec.direccion.estructura]
-  const nDeco = DENSIDAD_A_N[spec.direccion.densidad]
-  const densidadEstructura = metaEstructura.disposicion.adaptarDensidad(nDeco)
-  const entrada = entradaRitmo(nDeco, spec.direccion.ritmo, 1)
   const heroSlot = spec.slots.find(
     (slot): slot is PresentHeroSlotV1 => slot.state === 'present',
   )
   const solarHeroSlot = spec.slots.find(
     (slot): slot is ProceduralHeroSlotV1 => slot.state === 'procedural',
   )
+  const hasHero = Boolean(heroSlot || solarHeroSlot)
+  const nDeco = decoratorBudgetV2(spec.visualMode, spec.direccion.densidad, hasHero)
+  const entrada = entradaRitmo(nDeco, spec.direccion.ritmo, 1)
   const runtimeHero = runtimeAssets.find(asset => asset.slotId === 'hero')
   if (spec.visualMode === 'asset-led' && !heroSlot && !solarHeroSlot) {
     throw new Error('VISUAL_RUNTIME_HERO_REQUIRED')
@@ -832,18 +884,12 @@ function construirMvp(
 
   const capaFondo = DIBUJO_FONDOS[spec.direccion.fondo]({ kf, params: instancia.fondo })
   const capaEstructura = <>
-    {DIBUJO_ESTRUCTURAS[spec.direccion.estructura]({
-      kf,
-      puntos: [],
-      conceptos: [],
-      params: instancia.estructura,
-      densidad: densidadEstructura,
-    })}
+    {estructuraMvpV2(kf, spec, hasHero)}
     {heroSlot && runtimeHero &&
       <ProjectAssetHero spec={spec} slot={heroSlot} runtimeAsset={runtimeHero} u={u} />}
     {solarHeroSlot && <ProceduralSolarHero spec={spec} slot={solarHeroSlot} u={u} />}
   </>
-  const capaDecoradores = decoradores(kf, nDeco, entrada, rndDeco)
+  const capaDecoradores = decoradoresMvpV2(kf, nDeco, entrada, rndDeco, spec.visualMode)
   const capaTexto = <EditorialText spec={spec} u={u} />
   const capas: React.ReactNode[] = [
     conCamara(kf, capaFondo, PROFUNDIDAD.fondo, 1, spec.direccion.camara, instancia.camara),
@@ -857,7 +903,12 @@ function construirMvp(
   const hoja = CSS_FIJO + reglas.join('\n')
 
   return (
-    <div key={sceneSpecReactKey(spec)} data-visual-mvp="true" style={{
+    <div key={sceneSpecReactKey(spec)} data-visual-mvp="true"
+      data-visual-composition="v2"
+      data-visual-density={spec.direccion.densidad}
+      data-qc-decorator-count={nDeco}
+      data-qc-empty-hero-frames="0"
+      style={{
       position: 'absolute', inset: 0, containerType: 'size',
       '--texto': colores.texto, '--sup': colores.sup, '--acento': colores.acento,
       '--apoyo': colores.apoyo, '--caja': colores.caja,
