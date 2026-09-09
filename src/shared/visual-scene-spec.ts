@@ -13,6 +13,7 @@ import {
   type Ritmo,
 } from './escena'
 import { CONTRASTE_MINIMO_ESCENA, SISTEMAS, contrasteTextoEscena, type NombreSistema } from './sistemas'
+import { esNombreSolarCanonico, type EstiloSolar } from './iconos-solar'
 
 /**
  * Productive V1 projection for an asset-led Visual.
@@ -89,6 +90,23 @@ export type PresentHeroSlotV1 = {
   motion: AssetMotionRecipeV1
 }
 
+/**
+ * A local procedural Solar icon. It is a materialized visual choice, not an asset locator:
+ * its canonical Solar name/style are PixelIdentity while ProjectAsset bindings remain absent.
+ */
+export type ProceduralHeroSlotV1 = {
+  slotId: 'hero'
+  role: 'hero'
+  state: 'procedural'
+  kind: 'simple-icon'
+  solarIcon: string
+  solarStyle: EstiloSolar
+  bounds: SubjectBoundsV1
+  fitPolicy: 'contain' | 'subject-contain'
+  tint: { treatment: 'none' }
+  motion: AssetMotionRecipeV1
+}
+
 /** Missing/omitted carry no SHA. Their state, not a stale content identity, is hashed. */
 export type EmptyHeroSlotV1 = {
   slotId: 'hero'
@@ -96,7 +114,7 @@ export type EmptyHeroSlotV1 = {
   state: 'missing' | 'omitted'
 }
 
-export type SceneSlotV1 = PresentHeroSlotV1 | EmptyHeroSlotV1
+export type SceneSlotV1 = PresentHeroSlotV1 | ProceduralHeroSlotV1 | EmptyHeroSlotV1
 
 export type EditorialTextV1 = {
   connector?: string
@@ -352,9 +370,24 @@ function validateSlot(value: unknown): asserts value is SceneSlotV1 {
     if (value.slotId !== 'hero' || value.role !== 'hero') fail(code, 'El MVP sólo admite el slot hero')
     return
   }
+  if (value.state === 'procedural') {
+    exactKeys(value, ['slotId', 'role', 'state', 'kind', 'solarIcon', 'solarStyle', 'bounds', 'fitPolicy', 'tint', 'motion'], code, 'slot procedural')
+    if (value.slotId !== 'hero' || value.role !== 'hero') fail(code, 'El MVP sólo admite el slot hero')
+    if (value.kind !== 'simple-icon') fail(code, 'Solar V1 sólo admite icono simple')
+    const solarIcon = nonempty(value.solarIcon, code, 'solarIcon')
+    const solarStyle = oneOf(value.solarStyle, ['linear', 'bold-duotone'], code, 'solarStyle')
+    if (!esNombreSolarCanonico(solarIcon, solarStyle)) fail(code, 'solarIcon no es un ID Solar canónico válido')
+    validateBounds(value.bounds)
+    oneOf(value.fitPolicy, ['contain', 'subject-contain'], code, 'fitPolicy')
+    object(value.tint, code, 'tint')
+    exactKeys(value.tint, ['treatment'], code, 'tint')
+    if (value.tint.treatment !== 'none') fail(code, 'Solar procedural V1 no acepta tratamiento externo')
+    validateMotion(value.motion)
+    return
+  }
   exactKeys(value, ['slotId', 'role', 'state', 'sha256', 'mime', 'kind', 'bounds', 'fitPolicy', 'tint', 'motion'], code, 'slot present')
   if (value.slotId !== 'hero' || value.role !== 'hero' || value.state !== 'present')
-    fail(code, 'El MVP sólo admite hero present/missing/omitted')
+    fail(code, 'El MVP sólo admite hero present/procedural/missing/omitted')
   if (typeof value.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(value.sha256)) fail(code, 'SHA-256 inválida')
   if (value.mime !== 'image/svg+xml') fail(code, 'El MVP productivo sólo admite SVG OpenMoji')
   oneOf(value.kind, ['simple-icon', 'complex-illustration'], code, 'kind')
@@ -386,9 +419,9 @@ export function validateVisualSceneSpec(value: unknown): VisualSceneSpecV1 {
   validateText(value.text)
   if (!Array.isArray(value.slots) || value.slots.length > 1) fail(code, 'El MVP admite como máximo un slot')
   for (const slot of value.slots) validateSlot(slot)
-  const present = value.slots.filter(slot => (slot as { state?: unknown }).state === 'present')
-  if (visualMode === 'asset-led' && present.length !== 1) fail('VISUAL_SCENE_HERO_REQUIRED', 'asset-led exige un Hero present')
-  if (visualMode === 'editorial-text' && present.length !== 0) fail(code, 'editorial-text no puede contener un Hero present')
+  const activeHero = value.slots.filter(slot => ['present', 'procedural'].includes((slot as { state?: unknown }).state as string))
+  if (visualMode === 'asset-led' && activeHero.length !== 1) fail('VISUAL_SCENE_HERO_REQUIRED', 'asset-led exige un Hero present o procedural')
+  if (visualMode === 'editorial-text' && activeHero.length !== 0) fail(code, 'editorial-text no puede contener un Hero')
   validateRevisions(value.revisions)
   if (value.fallbackVisual !== 'editorial-text') fail(code, 'El único fallback del MVP es editorial-text')
   return value as VisualSceneSpecV1
@@ -555,7 +588,8 @@ export function evaluateVisualMvpQc(spec: VisualSceneSpecV1): VisualMvpQcIssue[]
   if (contrast < CONTRASTE_MINIMO_ESCENA)
     issues.push({ code: 'VISUAL_QC_TEXT_CONTRAST', level: 'error', message: `Contraste conservador ${contrast.toFixed(2)} < ${CONTRASTE_MINIMO_ESCENA}` })
 
-  const hero = spec.slots.find((slot): slot is PresentHeroSlotV1 => slot.state === 'present')
+  const hero = spec.slots.find((slot): slot is PresentHeroSlotV1 | ProceduralHeroSlotV1 =>
+    slot.state === 'present' || slot.state === 'procedural')
   if (!hero) return issues
   const meta = ESTRUCTURAS[spec.direccion.estructura].heroe
   const envelope = VISUAL_MVP_HERO_ENVELOPES[spec.direccion.estructura]

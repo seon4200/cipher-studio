@@ -90,6 +90,12 @@ export function resolverNombreSolar(valor: unknown, estilo: EstiloSolar): string
   return resolverSolarDetallado(valor, estilo).resultado;
 }
 
+/** A materialized renderer spec may accept only an exact catalog ID, never an alias. */
+export function esNombreSolarCanonico(valor: unknown, estilo: EstiloSolar): boolean {
+  const id = typeof valor === 'string' ? valor.trim() : '';
+  return id.endsWith(`-${estilo}`) && NOMBRES.has(id);
+}
+
 export function existeNombreSolar(valor: unknown): boolean {
   return resolverNombreSolar(valor, 'linear') !== null || resolverNombreSolar(valor, 'bold-duotone') !== null;
 }

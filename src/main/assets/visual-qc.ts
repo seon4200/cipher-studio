@@ -2,6 +2,7 @@ import type { BrowserWindow } from 'electron'
 import {
   motionQcTimes,
   type PresentHeroSlotV1,
+  type ProceduralHeroSlotV1,
   type VisualSceneSpecV1,
 } from '../../shared/visual-scene-spec'
 
@@ -166,7 +167,8 @@ export async function runVisualRuntimeQc(
   spec: VisualSceneSpecV1,
   duration: number,
 ): Promise<VisualRuntimeQcReport> {
-  const hero = spec.slots.find((slot): slot is PresentHeroSlotV1 => slot.state === 'present')
+  const hero = spec.slots.find((slot): slot is PresentHeroSlotV1 | ProceduralHeroSlotV1 =>
+    slot.state === 'present' || slot.state === 'procedural')
   const times = hero ? motionQcTimes(hero.motion) : [0, .2, .5, .8, 1]
   const snapshots: VisualDomQcSnapshot[] = []
   for (const normalizedTime of times) {

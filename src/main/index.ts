@@ -13,11 +13,17 @@ export * from './assets/openmoji/catalog'
 // 3.4C sigue siendo una API interna sin IPC: esta reexportación permite que la
 // suite ejecute el consumidor compilado real, no una copia de publicación/IO.
 export * from './assets/openmoji/publish'
+// Resolver V1 consumes already-sanitized generation semantics and materializes a SceneSpec
+// before hashing/rendering. It never runs inside the renderer.
+export * from '../shared/asset-intent'
+export * from './assets/asset-resolver'
 // Productive Visual MVP: the shared scene projection is the single authority for both the
 // file hash and the React tree; filesystem bindings remain a separate main-process concern.
 export * from '../shared/visual-scene-spec'
 export * from './assets/visual-render'
 import { sceneSpecFromGraphicData, sceneSpecPixelIdentity, type RenderBindingsV1 } from '../shared/visual-scene-spec'
+import { createAssetIntentV1 } from '../shared/asset-intent'
+import { createResolverSessionV1, resolveAndCompileVisualSceneV1 } from './assets/asset-resolver'
 import { prepareGraphicForVisualRender, visualRenderRoot } from './assets/visual-render'
 import { runVisualRuntimeQc } from './assets/visual-qc'
 export * from './assets/visual-qc'
@@ -1595,7 +1601,7 @@ export async function renderGraphicClip(
  * La PIEZA 3 necesita saber CUAL falto para poder decir "esperaba 19, compuse 17".
  */
 export async function renderGraphicClipsLote(
-  peticiones: { graphicData: any; duracion?: number }[],
+  peticiones: { graphicData: any; duracion?: number; projectRoot?: string; renderBindings?: RenderBindingsV1 }[],
   opciones: { aspectRatio?: string; resolution?: string;
               fps?: number; modo?: 'overlay' | 'pantalla';
               // Sin esto, un lote de Visuales los renderizaria TODOS con el sistema por
@@ -1689,7 +1695,11 @@ export async function renderGraphicClipsLote(
 
       intentados++;
       const ruta = await renderGraphicClip(peticiones[i].graphicData,
-        { ancho, alto, fps, duracion, modo, sistema: opciones.sistema });
+        {
+          ancho, alto, fps, duracion, modo, sistema: opciones.sistema,
+          projectRoot: peticiones[i].projectRoot,
+          renderBindings: peticiones[i].renderBindings,
+        });
 
       rutas[i] = ruta;                      // POSICIONAL: el hueco se queda en su sitio
       if (!ruta) fallos++;
@@ -4744,7 +4754,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     // Evidencia de aceptacion separada del timeline: `finalClips` borra `graphic` a proposito
     // porque el MP4 ya sustituye la especificacion. Esta traza conserva la entrada exacta que
     // produjo cada hash sin reintroducir graphicData en el estado persistido del proyecto.
-    const trazasGraficos: Array<{ id: string, graphicData: any }> = [];
+    const trazasGraficos: Array<{ id: string, graphicData: any, resolverTrace?: unknown }> = [];
     // Fuentes de stock ya usadas en esta generacion (provider_id, la misma identidad que el
     // fichero de cache) y cuantas veces. Keywords distintas pueden rankear el mismo video
     // generico: medido, uno llego a aparecer 4 veces en el mismo montaje.
@@ -4771,7 +4781,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     // está generando y se captura antes del lote; todos sus sub-clips reciben el mismo sistema.
     // Va al hash mediante el parámetro `sistema` de renderGraphicClipsLote, así que una paleta
     // distinta nunca puede reutilizar un MP4 coloreado para otro vídeo.
-    const SISTEMA_VISUAL = sistemaDeGeneracion(activeProjectPath ?? scriptText ?? 'sin-proyecto');
+    // Capture the authorized project once. New SceneSpecs never infer a root from cwd.
+    const PROYECTO_VISUAL = activeProjectPath;
+    const SISTEMA_VISUAL = sistemaDeGeneracion(PROYECTO_VISUAL ?? scriptText ?? 'sin-proyecto');
     // TEMPORAL, igual que el de arriba: la composicion va fija. El tipo decide QUE se pinta
     // —AnimatedGraphic busca en el registro quitandole el prefijo `visual_`— y hasta ahora
     // estaba cableado a 'visual_texto', asi que por muchas composiciones que se registraran
@@ -4834,60 +4846,81 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
       const aRenderizar = conPalabra.filter(x => !!x.palabra);
       if (aRenderizar.length) {
-        // La traza vive junto a la solicitud que llega al renderer. El resultado de un Visual
-        // es un MP4 y antes se perdia el graphicData que explica sus pixeles: ni la aceptacion
-        // podia reconstruir un hash semantico (ancla/relacion) despues. No cambia el render ni
-        // la cache; solo conserva, en el clip resultante, la entrada exacta que ya se envio.
+        // All semantic work completes before hashing/rendering. Renderer gets only the
+        // materialized SceneSpec and its locator-only bindings; its trace remains diagnostic.
+        const resolverSession = createResolverSessionV1();
         const solicitudesGraficas = aRenderizar.map(x => {
-            // UNA SOLA CADENA gobierna dibujo, direccion y hash. Resolver la direccion desde el
-            // texto sin recortar y hashear el recortado permitiria dos dibujos bajo una clave.
-            const value = recortarTexto(x.palabra);
-            const pos = `${x.item.phraseIndex}:${x.item.clipIndexInPhrase}`;
-            const semilla = semillaVisual(value, pos);
+          const value = recortarTexto(x.palabra);
+          const pos = `${x.item.phraseIndex}:${x.item.clipIndexInPhrase}`;
+          const semilla = semillaVisual(value, pos);
+          const direccion = x.item.relacion
+            ? direccionParaRelacion(semilla, x.item.relacion,
+              { texto: value, frase: x.frase, conceptos: x.item.conceptos ?? [] })
+            : direccionDe(semilla,
+              { texto: value, frase: x.frase, conceptos: x.item.conceptos ?? [] });
+          const legacyGraphicData = {
+            type: COMPOSICION_VISUAL,
+            value,
+            extra: {
+              pos,
+              semilla,
+              conceptos: x.item.conceptos ?? null,
+              ancla: x.item.ancla ?? null,
+              relacion: x.item.relacion ?? null,
+              direccion,
+            },
+          };
+          try {
+            const intent = createAssetIntentV1({
+              sceneId: `visual-${pos}`,
+              phrase: x.frase || undefined,
+              keyword: value,
+              concepts: x.item.conceptos ?? [],
+              relation: x.item.relacion ?? undefined,
+              anchor: x.item.ancla ?? undefined,
+              searchTerms: [x.item.ancla, ...(x.item.conceptos ?? [])],
+              preferredVisualMode: x.item.sinVisual ? 'editorial-text' : 'auto',
+            });
+            const resolved = resolveAndCompileVisualSceneV1({
+              intent,
+              projectRoot: PROYECTO_VISUAL ?? undefined,
+              sistema: SISTEMA_VISUAL,
+                direction: { ...direccion, semilla },
+              session: resolverSession,
+            });
+            for (const alert of resolved.decision.alerts) {
+              avisar({
+                severidad: alert.severity === 'warning' ? 'aviso' : 'info',
+                codigo: alert.code,
+                origen: 'asset-resolver',
+                mensaje: alert.message,
+                detalle: `scene=${intent.sceneId}`,
+              });
+            }
             return {
-              graphicData: {
-                type: COMPOSICION_VISUAL,
-                value,
-                // LOS CONCEPTOS Y LA POSICION VIAJAN AQUI, DENTRO DE graphicData, y no por fuera.
-                // El motivo es la cache, no la comodidad: `canonizar` proyecta seis claves de
-                // graphicData —type, value, label, unit, emoji, extra— y `extra` es una de ellas.
-                // Lo que va por fuera NO entra en la clave, asi que dos Visuales con dibujos
-                // distintos compartirian .mov y la cache diria ACIERTO sobre un fichero que no es.
-                // Regla: lo que decide los pixeles tiene que estar en la clave.
-                extra: {
-                  // LA POSICION, como PAR y no como suma. `phraseIndex + clipIndexInPhrase`
-                  // colisiona —frase 3 clip 1 y frase 4 clip 0 dan los dos 4— y dos posiciones
-                  // distintas acabarian con el mismo hash, que es justo lo que se quiere evitar.
-                  // Y son phraseIndex/clipIndexInPhrase y no el indice global del timeline:
-                  // insertar un clip al principio desplazaria el global y re-renderizaria el
-                  // video entero.
-                  pos,
-                  // Misma palabra en dos sub-clips: dos semillas reproducibles y dos claves
-                  // distintas. La semilla se conserva para que main y renderer no rederiven.
-                  semilla,
-                  // Ya vienen proyectados a {emoji, etiqueta} por `sanearConceptos`, que es el
-                  // UNICO sitio donde vive esa regla. Volver a mapearlos aqui la pondria en dos
-                  // lugares — el patron de las dos puertas, que ya ha mordido cuatro veces.
-                  // `null` cuando DeepSeek no dio tres validos: la clave se mantiene siempre
-                  // presente para que la forma del objeto no cambie segun el caso.
-                  conceptos: x.item.conceptos ?? null,
-                  ancla: x.item.ancla ?? null,
-                  relacion: x.item.relacion ?? null,
-                  // Se resuelve ANTES del render y viaja dentro de `extra`, que hashGrafico
-                  // canoniza completo. Al crecer los registros, una palabra cuya direccion
-                  // cambie obtiene otra clave en vez de recibir un MOV viejo con pixeles falsos.
-                  // Densidad sale del contenido (no de otro sorteo): se resuelve aqui y viaja
-                  // dentro de la direccion hashable para que main y renderer no puedan divergir.
-                  direccion: x.item.relacion
-                    ? direccionParaRelacion(semilla, x.item.relacion,
-                      { texto: value, frase: x.frase, conceptos: x.item.conceptos ?? [] })
-                    : direccionDe(semilla,
-                      { texto: value, frase: x.frase, conceptos: x.item.conceptos ?? [] })
-                }
-              },
-              duracion: x.item.duration
+              graphicData: resolved.compiled.graphicData,
+              renderBindings: resolved.compiled.renderBindings,
+              projectRoot: PROYECTO_VISUAL ?? undefined,
+              resolverTrace: resolved.trace,
+              duracion: x.item.duration,
             };
-          });
+          } catch (error: any) {
+            // Normal no-metaphor/provider failures already produced editorial SceneSpecs. This
+            // last guard exists only for an unexpected internal error and is explicitly visible.
+            avisar({
+              severidad: 'aviso',
+              codigo: 'RESOLVER_DEGRADED',
+              origen: 'asset-resolver',
+              mensaje: 'El resolver visual no pudo materializar esta escena; se conserva el Visual legacy.',
+              detalle: `scene=visual-${pos} code=${error?.code ?? 'UNKNOWN'}`,
+            });
+            return {
+              graphicData: legacyGraphicData,
+              projectRoot: PROYECTO_VISUAL ?? undefined,
+              duracion: x.item.duration,
+            };
+          }
+        });
         const resVis = await renderGraphicClipsLote(
           solicitudesGraficas,
           { aspectRatio, fps: 30, modo: 'pantalla', sistema: SISTEMA_VISUAL },
@@ -4910,7 +4943,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           }
           const durReal = await getVideoDuration(ruta);
           const id = `visual-${item.index}`;
-          trazasGraficos.push({ id, graphicData: solicitudesGraficas[i].graphicData });
+          trazasGraficos.push({ id, graphicData: solicitudesGraficas[i].graphicData,
+            resolverTrace: solicitudesGraficas[i].resolverTrace });
           results[item.index - 1] = {
             id,
             name: path.basename(ruta),
