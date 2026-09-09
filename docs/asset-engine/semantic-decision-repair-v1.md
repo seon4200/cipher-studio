@@ -133,7 +133,7 @@ El replay de las 16 posiciones históricas de QC es una reproducción V4A con
 frase, transcript temporizado y conceptos preservados; los reports QC originales
 habían sido descartados y no se reconstruyen como hechos históricos. En la
 última corrida del replay: 9 materializados y 7 rechazados; findings contados:
-8 `VISUAL_QC_TEXT_BOUNDS`, 5 `VISUAL_QC_CONTRAST_LOCAL` y 3
+8 `VISUAL_QC_TEXT_BOUNDS`, 6 `VISUAL_QC_CONTRAST_LOCAL` y 3
 `VISUAL_QC_TEXT_OVERFLOW`.
 
 La generación temporal por el handler real también escribió el diagnóstico. La
