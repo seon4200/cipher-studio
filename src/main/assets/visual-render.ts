@@ -189,6 +189,21 @@ export function prepareGraphicForVisualRender(input: {
   if (input.renderBindings === undefined)
     fail('VISUAL_HERO_BINDING_REQUIRED', 'asset-led requiere RenderBindings explícitos')
   const bindings = validateRenderBindings(input.renderBindings)
+  const procedural = spec.slots.find(slot => slot.state === 'procedural')
+  if (procedural) {
+    if (bindings.assets.length) fail('VISUAL_RENDER_BINDINGS_UNUSED', 'Hero Solar procedural no acepta RenderBindings')
+    // Solar is already materialized in sceneSpec by the resolver. This branch deliberately
+    // performs no catalog/provider lookup and has no bytes to locate.
+    return {
+      kind: 'scene-spec',
+      graphicData: withSceneSpec(input.graphicData, spec),
+      sceneSpec: spec,
+      scenePixelIdentity: sceneSpecPixelIdentity(spec),
+      projectRoot,
+      preparedAssets: [],
+      warnings: issues.filter(issue => issue.level === 'needs-review').map(issue => issue.code),
+    }
+  }
   if (bindings.assets.length !== 1) fail('VISUAL_HERO_BINDING_REQUIRED', 'asset-led requiere un binding Hero')
   return resolvePresentHero(input.graphicData, spec, projectRoot, bindings)
 }

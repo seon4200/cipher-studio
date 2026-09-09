@@ -38,11 +38,12 @@ import {
 import {
   sceneSpecReactKey,
   type PresentHeroSlotV1,
+  type ProceduralHeroSlotV1,
   type RuntimeRenderAssetV1,
   type VisualSceneSpecV1,
 } from '../../../shared/visual-scene-spec'
 import type { Composicion, PropsComposicion } from './index'
-import { EditorialText, ProjectAssetHero } from './VisualAssetMvp'
+import { EditorialText, ProceduralSolarHero, ProjectAssetHero } from './VisualAssetMvp'
 
 const TAU = 6.283185307
 
@@ -820,10 +821,14 @@ function construirMvp(
   const heroSlot = spec.slots.find(
     (slot): slot is PresentHeroSlotV1 => slot.state === 'present',
   )
+  const solarHeroSlot = spec.slots.find(
+    (slot): slot is ProceduralHeroSlotV1 => slot.state === 'procedural',
+  )
   const runtimeHero = runtimeAssets.find(asset => asset.slotId === 'hero')
-  if (spec.visualMode === 'asset-led' && (!heroSlot || !runtimeHero)) {
+  if (spec.visualMode === 'asset-led' && !heroSlot && !solarHeroSlot) {
     throw new Error('VISUAL_RUNTIME_HERO_REQUIRED')
   }
+  if (spec.visualMode === 'asset-led' && heroSlot && !runtimeHero) throw new Error('VISUAL_RUNTIME_HERO_REQUIRED')
 
   const capaFondo = DIBUJO_FONDOS[spec.direccion.fondo]({ kf, params: instancia.fondo })
   const capaEstructura = <>
@@ -836,6 +841,7 @@ function construirMvp(
     })}
     {heroSlot && runtimeHero &&
       <ProjectAssetHero spec={spec} slot={heroSlot} runtimeAsset={runtimeHero} u={u} />}
+    {solarHeroSlot && <ProceduralSolarHero spec={spec} slot={solarHeroSlot} u={u} />}
   </>
   const capaDecoradores = decoradores(kf, nDeco, entrada, rndDeco)
   const capaTexto = <EditorialText spec={spec} u={u} />

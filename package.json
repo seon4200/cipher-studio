@@ -27,7 +27,10 @@
     "test:openmoji-catalog": "electron tests/openmoji-catalog.js",
     "test:openmoji-asset-roundtrip": "electron tests/openmoji-asset-roundtrip.js",
     "test:visual-asset-mvp": "electron tests/visual-asset-mvp.js",
+    "test:asset-resolver-v1": "electron tests/asset-resolver-v1.js",
     "accept:visual-asset-mvp": "electron tests/aceptacion/visual-asset-mvp/generar.cjs",
+    "accept:asset-resolver-v1": "electron tests/aceptacion/asset-resolver-v1/generar.cjs",
+    "accept:asset-resolver-corpus": "electron tests/aceptacion/asset-resolver-v1/medir-corpus.cjs",
     "bench:graficos": "electron tests/rendimiento/graficos.js",
     "test:ventana": "electron tests/ventana.js"
   },

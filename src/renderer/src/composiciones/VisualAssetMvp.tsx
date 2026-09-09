@@ -5,11 +5,13 @@ import {
   evaluateAssetMotion,
   sceneSpecReactKey,
   type PresentHeroSlotV1,
+  type ProceduralHeroSlotV1,
   type RuntimeRenderAssetV1,
   type VisualMvpFontPair,
   type VisualSceneSpecV1,
 } from '../../../shared/visual-scene-spec'
 import { coloresEscena } from '../sistemas'
+import { IconoSolar } from './IconoSolar'
 
 const FONT_PAIRS: Record<VisualMvpFontPair, {
   connector: string
@@ -127,6 +129,51 @@ export const ProjectAssetHero: React.FC<{
   )
 }
 
+/**
+ * Solar reaches the renderer only as a canonical local icon already selected by the resolver.
+ * It has no RenderBinding and does not consult aliases, providers, or the network here.
+ */
+export const ProceduralSolarHero: React.FC<{
+  spec: VisualSceneSpecV1
+  slot: ProceduralHeroSlotV1
+  u: number
+}> = ({ spec, slot, u }) => {
+  const structure = ESTRUCTURAS[spec.direccion.estructura]
+  const envelope = VISUAL_MVP_HERO_ENVELOPES[spec.direccion.estructura]
+  const motion = evaluateAssetMotion(slot.motion, u)
+  return (
+    <div
+      key={sceneSpecReactKey(spec)}
+      data-qc-hero="true"
+      data-qc-slot="hero"
+      data-qc-state="procedural"
+      data-qc-treatment="none"
+      style={{
+        position: 'absolute',
+        left: `${structure.heroe.x}%`,
+        top: `${structure.heroe.y}%`,
+        width: `${envelope.widthPct}%`,
+        height: `${envelope.heightPct}%`,
+        transform: `translate(-50%,-50%) translate3d(${motion.translateXCqmin.toFixed(4)}cqmin,` +
+          `${motion.translateYCqmin.toFixed(4)}cqmin,0) scale(${motion.scale.toFixed(5)})`,
+        transformOrigin: '50% 50%',
+        opacity: motion.opacity,
+        willChange: 'transform,opacity',
+        color: 'var(--acento)',
+        filter: 'drop-shadow(0 1.4cqmin 2.2cqmin rgba(0,0,0,.58))',
+      }}
+    >
+      <IconoSolar
+        concepto={{ emoji: '', etiqueta: slot.solarIcon, icono: slot.solarIcon }}
+        estilo={slot.solarStyle}
+        canonicalId={slot.solarIcon}
+        className="es-svg"
+        titulo={`Hero Solar ${slot.solarIcon}`}
+      />
+    </div>
+  )
+}
+
 export const EditorialText: React.FC<{ spec: VisualSceneSpecV1; u: number }> = ({ spec, u }) => {
   const text = spec.text
   const fonts = FONT_PAIRS[text.fontPairId]
@@ -140,7 +187,10 @@ export const EditorialText: React.FC<{ spec: VisualSceneSpecV1; u: number }> = (
   const exitOpacity = u <= 0.9 ? 1 : Math.max(0, (1 - u) / 0.1)
   const keywordLength = Array.from(text.keyword).length
   const keywordSize = spec.visualMode === 'editorial-text'
-    ? (keywordLength > 13 ? 10.2 : 12.4)
+    // A long editorial keyword is still valid input. The certified max is two lines, but
+    // V1's keyword row is intentionally a single dominant line; scale it before it would
+    // clip rather than accepting a broken frame. Legacy text never reaches this component.
+    ? (keywordLength > 10 ? 8.6 : 12.4)
     : (keywordLength > 13 ? 7.4 : 9.2)
   const align = text.alignment === 'left' ? 'left' : 'center'
   const visibleWords = [text.connector, text.keyword, text.closing]
@@ -194,10 +244,13 @@ export const VisualAssetMvp: React.FC<{
   u: number
 }> = ({ spec, runtimeAssets, u }) => {
   const slot = spec.slots.find((candidate): candidate is PresentHeroSlotV1 => candidate.state === 'present')
+  const solarSlot = spec.slots.find((candidate): candidate is ProceduralHeroSlotV1 => candidate.state === 'procedural')
   const runtime = runtimeAssets.find(candidate => candidate.slotId === 'hero')
   return <>
     {spec.visualMode === 'asset-led' && slot && runtime &&
       <ProjectAssetHero spec={spec} slot={slot} runtimeAsset={runtime} u={u} />}
+    {spec.visualMode === 'asset-led' && solarSlot &&
+      <ProceduralSolarHero spec={spec} slot={solarSlot} u={u} />}
     <EditorialText spec={spec} u={u} />
   </>
 }

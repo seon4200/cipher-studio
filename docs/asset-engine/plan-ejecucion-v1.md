@@ -6,7 +6,8 @@ con el merge 3.4A `8760491`. Hecho documental no significa función implementada
 `v-scene-recipe-editorial-v1`; el Visual MVP materializa su subconjunto mínimo,
 pero el compilador completo de Scene Recipe aún no existe.
 El Visual MVP productivo se integra con merge local `471476ac`; su cierre es
-`v-visual-asset-mvp-v1` y no incluye resolver automático.
+`v-visual-asset-mvp-v1`. El Resolver V1 posterior materializa decisiones antes
+del hash y no amplía providers.
 
 - [x] 3.3 — Auditoría de pipeline, integrada con `993a123`; cierre `291069e`.
 - [x] 3.3.5 — Especificación documental cerrada en `v-scene-recipe-editorial-v1`: Scene Recipe + ProjectSubstrate, 18 ejemplos y validador; sin renderer nuevo.
@@ -18,7 +19,7 @@ El Visual MVP productivo se integra con merge local `471476ac`; su cierre es
 - [x] 3.6B — Motion MVP: `fade-slide`, `scale-in`, `float`, `breathe`, `fade-out`, `scale-down` y un `punch`; no cierra el contrato de motion completo.
 - [x] 3.6C — QC mínimo de frame roto: archivo/SHA/MIME, bounds durante motion, texto, solape y contraste local; hoja y vídeo productivos revisados.
 - [x] 3.7A — Texto editorial MVP: connector/keyword/closing, dos pares existentes, ocho palabras y dos líneas. Sin sincronía exacta de voz.
-- [ ] 3.5B — **Siguiente: GRAN RONDA 3/3.** Asset Resolver mínimo: proyecto primero, OpenMoji, continuidad/variedad y fallback trazable; sin ampliar proveedores todavía.
+- [x] 3.5B — Asset Resolver mínimo automático: AssetIntentV1, metáfora antes de asset, ProjectAsset primero, OpenMoji/Solar/editorial-text offline, session de continuidad/variedad, trazas/avisos y compilador único a `VisualSceneSpecV1 + RenderBindingsV1`. La evidencia del corpus físico de 42 y el vídeo automático están en `asset-resolver-v1.md`; no añade providers.
 - [ ] 3.5A — AttentionIntent calibrado después de evidencia visual: pregunta del espectador, emoción objetivo, mecanismo de atención, restricción de verdad, propósito y texto; sin llamada IA en 3.4B–3.4D.
 - [ ] 3.7B — Texto editorial posterior: sincronía de keyword con voz, calibración ampliada y más pares sólo con evidencia.
 - [ ] 3.8 — Support: jerarquía y presupuesto semántico, sin competir con Hero.
@@ -28,7 +29,7 @@ El Visual MVP productivo se integra con merge local `471476ac`; su cierre es
 - [ ] 3.11 — PurePNG/PNGImages experimentales: validar archivos individuales, transparencia y riesgo; sin elevación automática a base.
 - [ ] 3.12 — APIs fallback de imágenes: Pexels/Pixabay/Wikimedia y controles de consumo.
 - [ ] 3.13 — Removedor, sólo cuando no haya cutout útil.
-- [ ] 3.14 — ByPeople premium por vía oficial autorizada, sin scraping/login automatizado.
+- [ ] Post-MVP / primera expansión — ByPeople premium por vía oficial autorizada, sin scraping/login automatizado. Estado: `planned-not-audited`; primero inspeccionar la biblioteca adquirida, no continuar el roadmap lineal automáticamente.
 - [ ] 3.15 — IA/FLUX: último fallback; estilo, derechos, coste y caché propios.
 - [ ] 3.16 — Endurecimiento: portabilidad, transacciones, ausencias, límites, pruebas y avisos.
 - [ ] 3.17 — Aceptación final: vídeo real autorizado y revisión humana; medir variedad, significado, legibilidad, rendimiento y fallback.
@@ -44,9 +45,11 @@ no copia materiales en Guardar como y no hace transacción conjunta entre ambos
 JSON. 3.4B ya está integrado: catálogo OpenMoji oficial pinneado,
 metadata/aliases/atribución offline, validación de build y carga runtime ligera.
 3.4C está integrado y certificado en proyecto temporal. La puerta visual y el
-Visual MVP productivo ya prueban, sin resolver automático, ProjectAsset →
-RenderSpec/Bindings → visual_escena → vídeo/timeline, con Hero, texto, motion y
-QC mínimos. El siguiente límite es 3.5B, Asset Resolver mínimo automático.
+Visual MVP productivo y Resolver V1 ya prueban ProjectAsset →
+RenderSpec/Bindings → visual_escena → vídeo/timeline con Hero, texto, motion,
+QC y decisión automática trazable. La siguiente acción no es otra fase lineal:
+usar Cipher en vídeos reales y registrar evidencia de selección antes de ampliar
+fuentes.
 
 ## Límites de no-regresión
 
