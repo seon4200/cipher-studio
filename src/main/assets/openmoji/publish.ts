@@ -36,6 +36,12 @@ export type ValidatedOpenMojiSvg = {
   validationRevision: typeof OPENMOJI_SVG_VALIDATION_REVISION
 }
 
+export type VerifiedProjectAssetContent = ValidatedOpenMojiSvg & {
+  absoluteFile: string
+  /** Exact bytes that passed size, SHA, MIME and SVG-policy validation. */
+  bytes: Buffer
+}
+
 export type PublishOpenMojiAssetInput = {
   projectRoot: string
   stableId: string
@@ -93,7 +99,7 @@ function regularFile(target: string, missingCode: string): fs.Stats {
   return stat
 }
 
-function requireProjectRoot(value: unknown): string {
+export function requireAssetProjectRoot(value: unknown): string {
   if (value === undefined || value === null || (typeof value === 'string' && !value.trim()))
     fail('ASSET_PROJECT_ROOT_REQUIRED', 'projectRoot es obligatorio')
   if (typeof value !== 'string' || !path.isAbsolute(value))
@@ -238,8 +244,11 @@ function resolveAssetFile(projectRoot: string, relativeFile: unknown): string {
   }
 }
 
-export function verifyProjectAssetContent(projectRoot: string, asset: ProjectAssetRecord): ValidatedOpenMojiSvg {
-  const root = requireProjectRoot(projectRoot)
+export function readVerifiedProjectAssetContent(
+  projectRoot: string,
+  asset: ProjectAssetRecord,
+): VerifiedProjectAssetContent {
+  const root = requireAssetProjectRoot(projectRoot)
   if (!asset || typeof asset !== 'object') fail('PROJECT_ASSET_MISSING', 'Registro de asset inválido')
   if (asset.mime !== OPENMOJI_SVG_MIME)
     fail('PROJECT_ASSET_MIME_MISMATCH', 'El MIME del asset no coincide con OpenMoji SVG')
@@ -260,7 +269,13 @@ export function verifyProjectAssetContent(projectRoot: string, asset: ProjectAss
     fail('PROJECT_ASSET_SHA_MISMATCH', 'La SHA-256 del asset no coincide con el manifest', { expected: asset.sha256, actual: actualSha })
   if (asset.provider !== 'openmoji' || asset.validation.validationRevision !== OPENMOJI_SVG_VALIDATION_REVISION)
     fail('PROJECT_ASSET_SVG_INVALID', 'El asset no cumple la política OpenMoji SVG V1')
-  return validateOpenMojiSvgBytes(bytes)
+  return { ...validateOpenMojiSvgBytes(bytes), absoluteFile: file, bytes }
+}
+
+export function verifyProjectAssetContent(projectRoot: string, asset: ProjectAssetRecord): ValidatedOpenMojiSvg {
+  const { absoluteFile: _absoluteFile, bytes: _bytes, ...validated } =
+    readVerifiedProjectAssetContent(projectRoot, asset)
+  return validated
 }
 
 type PublishFileResult = { created: boolean, absoluteFile: string }
@@ -378,7 +393,7 @@ function recordFor(entry: { hexcode: string }, validated: ValidatedOpenMojiSvg):
 
 export function publishOpenMojiAsset(input: PublishOpenMojiAssetInput): PublishOpenMojiAssetResult {
   if (!input || typeof input !== 'object') fail('OPENMOJI_ASSET_INPUT_INVALID', 'Entrada de publicación inválida')
-  const projectRoot = requireProjectRoot(input.projectRoot)
+  const projectRoot = requireAssetProjectRoot(input.projectRoot)
   const stableId = canonicalStableId(input.stableId)
   const entry = getOpenMojiEntry(stableId)
   if (!entry) fail('OPENMOJI_ASSET_NOT_FOUND', 'stableId OpenMoji no existe en el catálogo local', { stableId })

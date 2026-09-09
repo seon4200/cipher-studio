@@ -13,6 +13,14 @@ export * from './assets/openmoji/catalog'
 // 3.4C sigue siendo una API interna sin IPC: esta reexportación permite que la
 // suite ejecute el consumidor compilado real, no una copia de publicación/IO.
 export * from './assets/openmoji/publish'
+// Productive Visual MVP: the shared scene projection is the single authority for both the
+// file hash and the React tree; filesystem bindings remain a separate main-process concern.
+export * from '../shared/visual-scene-spec'
+export * from './assets/visual-render'
+import { sceneSpecFromGraphicData, sceneSpecPixelIdentity, type RenderBindingsV1 } from '../shared/visual-scene-spec'
+import { prepareGraphicForVisualRender, visualRenderRoot } from './assets/visual-render'
+import { runVisualRuntimeQc } from './assets/visual-qc'
+export * from './assets/visual-qc'
 import { pathToFileURL } from 'url'
 import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, getVideoDimensions } from './services/ffmpeg'
 import { fal } from '@fal-ai/client'
@@ -1167,9 +1175,17 @@ export function hashGrafico(graphicData: any, ancho: number, alto: number,
                             modo: 'overlay' | 'pantalla',
                             sistema: NombreSistema = 'voltaje'): string {
   const g = graphicData || {};
+  const sceneSpec = sceneSpecFromGraphicData(g);
+  // Legacy keeps its byte-for-byte identity projection. The productive scene path ignores
+  // value/label/emoji and unrelated extra fields because it paints only sceneSpec. This is the
+  // explicit PixelIdentity boundary: adding a path or provider beside sceneSpec cannot poison
+  // the cache, and changing a visual field cannot evade it.
+  const contenido = sceneSpec
+    ? [canonizar(g.type), 'sceneSpec=' + sceneSpecPixelIdentity(sceneSpec)]
+    : [canonizar(g.type), canonizar(g.value), canonizar(g.label),
+        canonizar(g.unit), canonizar(g.emoji), canonizar(g.extra)];
   const partes = [
-    canonizar(g.type), canonizar(g.value), canonizar(g.label),
-    canonizar(g.unit), canonizar(g.emoji), canonizar(g.extra),
+    ...contenido,
     // La duracion SI entra: 2s y 3s son animaciones distintas, no la misma estirada.
     String(ancho), String(alto), String(duracion), String(fps),
     'plantillas=' + VERSION_PLANTILLAS,
@@ -1304,6 +1320,10 @@ export async function renderGraphicClip(
     ancho?: number; alto?: number; fps?: number; duracion?: number;
     modo?: 'overlay' | 'pantalla';
     sistema?: string;
+    /** Mandatory for extra.sceneSpec; legacy deliberately retains its current active project. */
+    projectRoot?: string;
+    /** Locator-only bindings. Never included in hashGrafico or graphicData. */
+    renderBindings?: RenderBindingsV1;
   } = {}
 ): Promise<string | null> {
   const ancho = opciones.ancho ?? 1080;
@@ -1313,16 +1333,37 @@ export async function renderGraphicClip(
   const modo = opciones.modo ?? 'overlay';
   const totalFrames = Math.round(duracion * fps);
 
-  if (!activeProjectPath) {
+  let preparado: ReturnType<typeof prepareGraphicForVisualRender>;
+  try {
+    preparado = prepareGraphicForVisualRender({
+      graphicData,
+      projectRoot: opciones.projectRoot,
+      renderBindings: opciones.renderBindings,
+    });
+  } catch (e: any) {
+    await writeDebugLog(`[GRAFICO] RenderSpec/binding rechazado: ${e.code || e.message}`);
+    return null;
+  }
+  const graphicDataEfectivo = preparado.graphicData as any;
+  if (preparado.kind === 'scene-spec' && modo !== 'pantalla') {
+    await writeDebugLog('[GRAFICO] RenderSpec rechazado: la vía productiva sólo admite modo=pantalla.');
+    return null;
+  }
+  const proyectoRender = visualRenderRoot(preparado, activeProjectPath);
+
+  if (!proyectoRender) {
     await writeDebugLog('[GRAFICO] Sin proyecto activo: no se renderiza.');
     return null;
+  }
+  for (const warning of preparado.warnings) {
+    await writeDebugLog(`[GRAFICO] SCENE-SPEC: ${warning}`);
   }
 
   // La carpeta la crea quien la llena, con su propio mkdir recursive. Hacen falta las dos
   // razones: cache/graficos salio de SUB_CACHE en 7dd9b64 para que cleanupProjectTemp dejara
   // de borrarla, asi que initProjectDirs no la crea; y materiales/visual SI esta en
   // SUB_MATERIALES, pero un proyecto anterior a este cambio no la tiene hasta que se abra.
-  const destDir = dirDeModo(activeProjectPath, modo);
+  const destDir = dirDeModo(proyectoRender, modo);
   await fs.promises.mkdir(destDir, { recursive: true });
 
   // El nombre ES el hash: no hay indice que mantener ni que pueda desincronizarse del disco.
@@ -1331,7 +1372,9 @@ export async function renderGraphicClip(
   // El sistema se RESUELVE antes de hashear. Si se hasheara el nombre pedido y se pintara
   // otro, la clave describiria un fichero que no es el que hay en disco: la cache devolveria
   // colores distintos de los que su nombre promete.
-  const sistemaPedido = opciones.sistema ?? 'voltaje';
+  const sistemaPedido = preparado.kind === 'scene-spec'
+    ? preparado.sceneSpec.sistema
+    : opciones.sistema ?? 'voltaje';
   const sistema: NombreSistema = (SISTEMAS_VALIDOS as readonly string[]).includes(sistemaPedido)
     ? sistemaPedido as NombreSistema
     : 'voltaje';
@@ -1339,7 +1382,7 @@ export async function renderGraphicClip(
     await writeDebugLog(`[GRAFICO] sistema desconocido "${sistemaPedido}": se usa voltaje.`);
   }
 
-  const hash = hashGrafico(graphicData, ancho, alto, duracion, fps, modo, sistema);
+  const hash = hashGrafico(graphicDataEfectivo, ancho, alto, duracion, fps, modo, sistema);
   const destino = path.join(destDir, hash + FORMATO_POR_MODO[modo].ext);
 
   // ACIERTO. Se exige tamano > 0: un MOV de 0 bytes de un render interrumpido existe pero no
@@ -1369,8 +1412,9 @@ export async function renderGraphicClip(
     // dos Visuales con el mismo texto y distinta duracion ya eran ficheros distintos: pasarla
     // no cambia la cache ni invalida nada de lo renderizado.
     await v.webContents.executeJavaScript(
-      `window.__montar(${JSON.stringify(graphicData)}, ` +
-      `${JSON.stringify({ ancho, alto, modo, duracion, sistema })})`);
+      `window.__montar(${JSON.stringify(graphicDataEfectivo)}, ` +
+      `${JSON.stringify({ ancho, alto, modo, duracion, sistema })}, ` +
+      `${JSON.stringify(preparado.preparedAssets)})`);
 
     // EL CANDADO DEL CICLO, recogido AQUI y no en la consola de la pagina. Esta ventana es
     // offscreen y su consola no la abre nadie: un console.warn ahi seria un aviso que nadie
@@ -1392,6 +1436,15 @@ export async function renderGraphicClip(
     if (tam.width !== ancho || tam.height !== alto + SONDA_ALTO) {
       throw new Error(`la ventana mide ${tam.width}x${tam.height} y se pidio ` +
         `${ancho}x${alto + SONDA_ALTO}: el MOV saldria recortado`);
+    }
+
+    if (preparado.kind === 'scene-spec') {
+      const qc = await runVisualRuntimeQc(v, preparado.sceneSpec, duracion);
+      for (const finding of qc.findings.filter(finding => finding.level === 'needs-review')) {
+        await writeDebugLog(`[GRAFICO] QC NEEDS-REVIEW: ${finding.code} — ${finding.message}`);
+      }
+      await writeDebugLog(`[GRAFICO] QC OK — ${qc.snapshots.length} instantes — ` +
+        `contraste local=${qc.localTextContrast?.toFixed(2) ?? 'no medido'}`);
     }
 
     // Patron NUEVO en este codigo: todo lo demas invoca ffmpeg con exec y una cadena. Aqui
@@ -1507,7 +1560,7 @@ export async function renderGraphicClip(
     const ms = Date.now() - t0;
     const medicion: MedicionRenderGrafico = {
       hash,
-      type: String(graphicData?.type ?? ''),
+      type: String(graphicDataEfectivo?.type ?? ''),
       totalFrames,
       ancho,
       alto,
@@ -1519,7 +1572,7 @@ export async function renderGraphicClip(
     };
     // Antes del await del log: la medida no depende de que su cola avance o llegue a disco.
     emitirMedicionRenderGrafico(medicion);
-    await writeDebugLog(`[GRAFICO] RENDER ${hash} — ${graphicData?.type} — ` +
+    await writeDebugLog(`[GRAFICO] RENDER ${hash} — ${graphicDataEfectivo?.type} — ` +
       `${totalFrames}f ${ancho}x${alto} — ${(size / 1048576).toFixed(2)} MB — ` +
       `${ms} ms — ${medicion.intentosPorFrame.toFixed(2)} intentos/frame — ` +
       `${framesEnElTope} frame(s) en el tope de ${MAX_INTENTOS_FRAME}`);
@@ -1527,7 +1580,7 @@ export async function renderGraphicClip(
 
   } catch (e: any) {
     // Se pierde ESTE grafico, no el export. Y se dice por que.
-    await writeDebugLog(`[GRAFICO] FALLO (${graphicData?.type}): ${e.message}`);
+    await writeDebugLog(`[GRAFICO] FALLO (${graphicDataEfectivo?.type}): ${e.message}`);
     try { ff?.kill(); } catch {}
     try { await fs.promises.unlink(destino); } catch {}
     return null;

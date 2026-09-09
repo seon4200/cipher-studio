@@ -8,6 +8,7 @@ import { flushSync } from 'react-dom'
 import { AnimatedGraphic } from './AnimatedGraphic'
 import { NombreSistema } from './sistemas'
 import { FUENTES_RENDER, MUESTRA_FUENTES, faltaLaFuentePorAncho } from './fuentes-render'
+import type { PreparedRenderAssetV1, RuntimeRenderAssetV1 } from '../../shared/visual-scene-spec'
 import './styles/globals.css'
 
 // Franja de la SONDA, encima del lienzo. El proceso principal codifica ahi el indice de
@@ -76,6 +77,7 @@ const sonda = document.getElementById('sonda') as HTMLDivElement
 const lienzo = document.getElementById('lienzo') as HTMLDivElement
 let raiz: Root | null = null
 let datos: any = null
+let runtimeAssets: RuntimeRenderAssetV1[] = []
 
 // La escala va en un ENVOLTORIO propio, no sobre la tarjeta.
 //
@@ -104,7 +106,7 @@ function pintar(t?: number) {
   // alcanza lo mismo que antes: el envoltorio esta POR ENCIMA de esa raiz, no en medio.
   const hijo = React.createElement(AnimatedGraphic,
     { graphic: datos, t, modo: opciones.modo, sistema: opciones.sistema,
-      ciclo: opciones.duracion })
+      ciclo: opciones.duracion, runtimeAssets })
   flushSync(() => raiz!.render(
     // EN PANTALLA NO HAY ENVOLTORIO DE ESCALA. El scale(1.6) existe para agrandar una TARJETA
     // dentro de un cuadro mas grande; aplicado a un Visual que ya ocupa el cuadro entero lo
@@ -115,7 +117,47 @@ function pintar(t?: number) {
   ))
 }
 
-;(window as any).__montar = (graphicData: any, op: Partial<Opciones> = {}) => {
+function liberarRuntimeAssets() {
+  for (const asset of runtimeAssets) URL.revokeObjectURL(asset.objectUrl)
+  runtimeAssets = []
+}
+
+async function prepararRuntimeAssets(assets: readonly PreparedRenderAssetV1[]): Promise<RuntimeRenderAssetV1[]> {
+  const preparados: RuntimeRenderAssetV1[] = []
+  try {
+    for (const asset of assets) {
+      if (asset.slotId !== 'hero' || asset.mime !== 'image/svg+xml' || !asset.bytesBase64)
+        throw new Error('Render asset efímero inválido')
+      const binary = atob(asset.bytesBase64)
+      const bytes = new Uint8Array(binary.length)
+      for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index)
+      const objectUrl = URL.createObjectURL(new Blob([bytes], { type: asset.mime }))
+      // Register before decode so a decode failure also revokes this exact URL in the catch.
+      preparados.push({ slotId: asset.slotId, assetId: asset.assetId, mime: asset.mime, objectUrl })
+      // Decoding completes before frame zero can be captured. The URL remains alive until the
+      // next __montar, so the verified bytes cannot change midway through a clip.
+      const image = new Image()
+      image.src = objectUrl
+      await image.decode()
+    }
+    return preparados
+  } catch (error) {
+    for (const asset of preparados) URL.revokeObjectURL(asset.objectUrl)
+    throw error
+  }
+}
+
+;(window as any).__montar = async (
+  graphicData: any,
+  op: Partial<Opciones> = {},
+  preparedAssets: readonly PreparedRenderAssetV1[] = [],
+) => {
+  if (raiz) {
+    raiz.unmount()
+    raiz = null
+  }
+  liberarRuntimeAssets()
+  runtimeAssets = await prepararRuntimeAssets(preparedAssets)
   opciones = { ...opciones, ...op }
   sonda.style.cssText = `height:${SONDA_ALTO}px;width:100%;background:#000;opacity:1`
   // El margen se calcula en PIXELES desde el alto. Ojo con la tentacion de volver a una clase
@@ -161,9 +203,36 @@ function pintar(t?: number) {
   // Y basta con esto: esta medido que desmontar el subarbol arregla el frame. No hace falta
   // recargar la pagina ni tirar la ventana, que es lo caro —~150 ms de arranque— y es
   // justamente lo que la ventana reutilizada existe para evitar.
-  if (raiz) raiz.unmount()
   raiz = createRoot(lienzo)
   ;(window as any).__setT(0)
+}
+
+const rect = (element: Element | null) => {
+  if (!element) return null
+  const value = element.getBoundingClientRect()
+  return { left: value.left, top: value.top, right: value.right, bottom: value.bottom,
+    width: value.width, height: value.height }
+}
+
+/** Actual DOM geometry after camera, fit and motion; main samples this at the QC instants. */
+;(window as any).__visualQc = () => {
+  const hero = document.querySelector('[data-qc-hero="true"]')
+  const text = document.querySelector('[data-qc-text="true"]') as HTMLElement | null
+  const keyword = document.querySelector('[data-qc-keyword="true"]') as HTMLElement | null
+  return {
+    frame: rect(lienzo), hero: rect(hero), text: rect(text), keyword: rect(keyword),
+    heroOpacity: hero ? Number(getComputedStyle(hero).opacity) : 0,
+    keywordOpacity: keyword ? Number(getComputedStyle(keyword).opacity) : 0,
+    textColor: keyword ? getComputedStyle(keyword).color : null,
+    textOverflow: text ? text.scrollWidth > text.clientWidth + 1 || text.scrollHeight > text.clientHeight + 1 : false,
+    maxLines: text?.dataset.qcMaxLines ?? null,
+    visibleWords: Number(text?.dataset.qcVisibleWords ?? 0),
+  }
+}
+
+;(window as any).__hideVisualTextForQc = (hidden: boolean) => {
+  const text = document.querySelector('[data-qc-text="true"]') as HTMLElement | null
+  if (text) text.style.visibility = hidden ? 'hidden' : 'visible'
 }
 
 ;(window as any).__setT = (t: number) => {
