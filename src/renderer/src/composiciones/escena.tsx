@@ -33,9 +33,16 @@ import {
   posicionDecorador, DENSIDAD_A_N, cabeEnElPie, cabeLaEtiqueta, instanciaDe,
   TIPOGRAFIAS, ZONA_X_MIN, ZONA_X_MAX, type IdTipografia,
   type IdFondo, type IdEstructura, type IdCamara, type PuntoEscena, type Parametros,
-  type MetaEstructura
+  type MetaEstructura, type Direccion
 } from '../../../shared/escena'
+import {
+  sceneSpecReactKey,
+  type PresentHeroSlotV1,
+  type RuntimeRenderAssetV1,
+  type VisualSceneSpecV1,
+} from '../../../shared/visual-scene-spec'
 import type { Composicion, PropsComposicion } from './index'
+import { EditorialText, ProjectAssetHero } from './VisualAssetMvp'
 
 const TAU = 6.283185307
 
@@ -788,7 +795,78 @@ function construir(value: string, cs: Concepto[], ancla: Concepto | null, dirCru
   )
 }
 
-function render({ texto, conceptos, ancla, direccion, sistema, semilla }: PropsComposicion): React.ReactNode {
+/**
+ * Productive asset-led/editorial path. It deliberately reuses the current background,
+ * structure, camera and decorator registries: sceneSpec selects a certified structure but does
+ * not carry a second set of coordinates. Hero placement still comes from HeroEstructura.
+ */
+function construirMvp(
+  spec: VisualSceneSpecV1,
+  runtimeAssets: readonly RuntimeRenderAssetV1[],
+  u: number,
+): React.ReactElement {
+  // instanciaDe only consumes fondo/estructura/camara ranges. The legacy typography field is a
+  // required part of Direccion but does not influence any of those streams; the productive text
+  // pair lives exclusively in sceneSpec.text.fontPairId.
+  const direccionInstancia: Direccion = { ...spec.direccion, tipografia: 'archivo' }
+  const instancia = instanciaDe(spec.text.keyword, direccionInstancia, spec.direccion.semilla)
+  const rndDeco = generador(instancia.semillas.decoradores)
+  const prefijo = 'esmvp' + (spec.direccion.semilla >>> 0).toString(36)
+  const { kf, reglas } = emisor(prefijo)
+  const metaEstructura = ESTRUCTURAS[spec.direccion.estructura]
+  const nDeco = DENSIDAD_A_N[spec.direccion.densidad]
+  const densidadEstructura = metaEstructura.disposicion.adaptarDensidad(nDeco)
+  const entrada = entradaRitmo(nDeco, spec.direccion.ritmo, 1)
+  const heroSlot = spec.slots.find(
+    (slot): slot is PresentHeroSlotV1 => slot.state === 'present',
+  )
+  const runtimeHero = runtimeAssets.find(asset => asset.slotId === 'hero')
+  if (spec.visualMode === 'asset-led' && (!heroSlot || !runtimeHero)) {
+    throw new Error('VISUAL_RUNTIME_HERO_REQUIRED')
+  }
+
+  const capaFondo = DIBUJO_FONDOS[spec.direccion.fondo]({ kf, params: instancia.fondo })
+  const capaEstructura = <>
+    {DIBUJO_ESTRUCTURAS[spec.direccion.estructura]({
+      kf,
+      puntos: [],
+      conceptos: [],
+      params: instancia.estructura,
+      densidad: densidadEstructura,
+    })}
+    {heroSlot && runtimeHero &&
+      <ProjectAssetHero spec={spec} slot={heroSlot} runtimeAsset={runtimeHero} u={u} />}
+  </>
+  const capaDecoradores = decoradores(kf, nDeco, entrada, rndDeco)
+  const capaTexto = <EditorialText spec={spec} u={u} />
+  const capas: React.ReactNode[] = [
+    conCamara(kf, capaFondo, PROFUNDIDAD.fondo, 1, spec.direccion.camara, instancia.camara),
+    conCamara(kf, capaEstructura, PROFUNDIDAD.estructura, 2, spec.direccion.camara, instancia.camara),
+    conCamara(kf, capaDecoradores, PROFUNDIDAD.decoradores, 3, spec.direccion.camara, instancia.camara),
+    conCamara(kf, capaTexto, PROFUNDIDAD.texto, 4, spec.direccion.camara, instancia.camara),
+  ]
+  const fondo = FONDOS[spec.direccion.fondo]
+  const tono = 'tonoDominante' in fondo ? fondo.tonoDominante : fondo.tono
+  const colores = coloresEscena(spec.sistema, tono)
+  const hoja = CSS_FIJO + reglas.join('\n')
+
+  return (
+    <div key={sceneSpecReactKey(spec)} data-visual-mvp="true" style={{
+      position: 'absolute', inset: 0, containerType: 'size',
+      '--texto': colores.texto, '--sup': colores.sup, '--acento': colores.acento,
+      '--apoyo': colores.apoyo, '--caja': colores.caja,
+      '--sombra-pie': tono === 'claro' ? 'rgba(255,255,255,.8)' : 'rgba(0,0,0,.85)',
+    } as React.CSSProperties}>
+      <style dangerouslySetInnerHTML={{ __html: hoja }} />
+      {capas}
+    </div>
+  )
+}
+
+function render({
+  u, texto, conceptos, ancla, direccion, sistema, semilla, sceneSpec, runtimeAssets = [],
+}: PropsComposicion): React.ReactNode {
+  if (sceneSpec) return construirMvp(sceneSpec, runtimeAssets, u)
   const value = texto ?? ''
   const cs: Concepto[] = Array.isArray(conceptos) ? conceptos.slice(0, CUANTOS_CONCEPTOS).filter(Boolean) : []
   const semillaUsada = Number.isInteger(semilla) && semilla > 0 ? semilla : semillaDe(value)

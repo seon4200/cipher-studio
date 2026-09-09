@@ -4,6 +4,11 @@ import { recortarTexto } from '../../shared/texto'
 import { cicloValido } from '../../shared/ciclo'
 import { semillaDe } from '../../shared/semilla'
 import { composicion } from './composiciones'
+import {
+  sceneSpecFromGraphicData,
+  sceneSpecReactKey,
+  type RuntimeRenderAssetV1,
+} from '../../shared/visual-scene-spec'
 
 /* --------------------------------------------------------------
    AnimatedGraphic – Fase 2
@@ -105,8 +110,12 @@ export const AnimatedGraphic: React.FC<{
    * miran esto.
    */
   ciclo?: number
-}> = ({ graphic, t, modo = 'overlay', sistema = 'voltaje', ciclo = 2 }) => {
+  /** Ephemeral Blob URLs prepared from already-verified ProjectAsset bytes. */
+  runtimeAssets?: readonly RuntimeRenderAssetV1[]
+}> = ({ graphic, t, modo = 'overlay', sistema = 'voltaje', ciclo = 2, runtimeAssets = [] }) => {
   const { type, value, label, unit, emoji, extra } = graphic
+  const sceneSpec = sceneSpecFromGraphicData(graphic)
+  const sistemaEfectivo = sceneSpec?.sistema ?? sistema
   const [internalAuto, setInternalAuto] = useState<number>(0)
   const raizRef = React.useRef<HTMLDivElement>(null)
 
@@ -506,7 +515,7 @@ export const AnimatedGraphic: React.FC<{
     }
   }
 
-  const s = SISTEMAS[sistema] ?? SISTEMAS.voltaje
+  const s = SISTEMAS[sistemaEfectivo] ?? SISTEMAS.voltaje
   // Las variables CSS son lo unico que permite cambiar el color sin tocar los 37 hex escritos
   // a mano por el fichero. En V1 solo las usa el donut; el resto de tipos se migra cuando le
   // toque a cada uno, y mientras tanto siguen funcionando con su hex.
@@ -529,7 +538,7 @@ export const AnimatedGraphic: React.FC<{
     // entonces se cae al Visual de texto de siempre: un tipo desconocido no puede dejar el
     // cuadro en blanco.
     const comp = composicion(String(type || '').replace(/^visual_/, ''))
-    const palabra = recortarTexto(value)
+    const palabra = sceneSpec ? sceneSpec.text.keyword : recortarTexto(value)
     // Los conceptos viajan en `extra`, que es donde los mete el backend y por tanto donde entran
     // en la clave del hash. Se pasan TAL CUAL: ya vienen de `sanearConceptos`, y volver a
     // sanearlos aqui podria cambiar el dibujo sin cambiar la clave.
@@ -538,18 +547,24 @@ export const AnimatedGraphic: React.FC<{
     // LA DIRECCION viaja por el mismo sitio y por la misma razon: `extra` esta en la clave del
     // hash, asi que dos direcciones distintas dan dos ficheros distintos. Se pasa TAL CUAL --
     // sin validar-- porque quien sabe que piezas existen es la composicion, no este fichero.
-    const direccion = extra?.direccion ?? null
+    const direccion = sceneSpec?.direccion ?? extra?.direccion ?? null
     // El entero ya esta dentro de `extra` (y, por tanto, del hash). No se acepta 0, que clavaria
     // el Lehmer; el respaldo conserva los artefactos historicos que aun no lo tenian.
-    const semilla = Number.isInteger(extra?.semilla) && Number(extra.semilla) > 0
-      ? Number(extra.semilla) : semillaDe(palabra)
+    const semilla = sceneSpec?.direccion.semilla ??
+      (Number.isInteger(extra?.semilla) && Number(extra.semilla) > 0
+        ? Number(extra.semilla) : semillaDe(palabra))
 
     // LA PUERTA. Que el tipo nombre una composicion no significa que pueda dibujarse: el
     // despacho es por `type` y `type` no sabe nada de los datos. Un Visual con `visual_mapa` y
     // `conceptos: null` encontraba su composicion igual y se pintaba a medias — sin aristas,
     // sin conceptos y sin emoji final. Con la puerta cerrada cae al Visual de texto de abajo,
     // que es el respaldo que ya existia y no hay que fabricar.
-    const puede = comp ? comp.puedeDibujar({ texto: palabra, conceptos, ancla, direccion, semilla }) : false
+    // A validated sceneSpec is the explicit productive contract. It does not need the three
+    // legacy concepts: its own validator and main-process QC are the gate. Without sceneSpec,
+    // this remains the byte-for-byte legacy condition.
+    const puede = comp
+      ? (sceneSpec !== null || comp.puedeDibujar({ texto: palabra, conceptos, ancla, direccion, semilla }))
+      : false
     const tipoEfectivo = comp && !puede ? 'visual_texto' : String(type ?? '')
 
     // EL RESPALDO NO ES MUDO. Si el 30% de los Visuales cae a texto hay que verlo en el log, no
@@ -584,8 +599,11 @@ export const AnimatedGraphic: React.FC<{
           style={{ ...vars, backgroundColor: 'var(--fondo)' }}
           className="w-full h-full relative overflow-hidden"
         >
-          {comp.render({ u: cicloUsado > 0 ? ((t ?? 0) / cicloUsado) % 1 : 0,
-                         ciclo: cicloUsado, sistema, texto: palabra, conceptos, ancla, direccion, semilla })}
+          <React.Fragment key={sceneSpec ? sceneSpecReactKey(sceneSpec) : undefined}>
+            {comp.render({ u: cicloUsado > 0 ? ((t ?? 0) / cicloUsado) % 1 : 0,
+                           ciclo: cicloUsado, sistema: sistemaEfectivo, texto: palabra,
+                           conceptos, ancla, direccion, semilla, sceneSpec, runtimeAssets })}
+          </React.Fragment>
           {/* LA PALABRA NO SE PIERDE. La composicion ocupa el cuadro, pero un Visual existe
               para poner una palabra a pantalla completa: si la composicion la sustituyera, el
               Visual dejaria de hacer su trabajo y seria decoracion.
