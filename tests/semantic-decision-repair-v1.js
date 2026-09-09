@@ -66,18 +66,21 @@ function runCase (name, fn) {
 }
 
 function timedSegment (scene) {
-  const words = scene.words || []
+  const explicitWords = Array.isArray(scene.timedWords) ? scene.timedWords : null
+  const words = explicitWords || scene.words || []
   const span = Math.max(.1, scene.end - scene.start)
   return [{
-    start: scene.start,
-    end: scene.end,
+    start: explicitWords ? Math.min(scene.start, ...words.map(word => word.start)) : scene.start,
+    end: explicitWords ? Math.max(scene.end, ...words.map(word => word.end)) : scene.end,
     text: scene.globalText,
-    words: words.map((word, index) => ({
-      word,
-      start: scene.start + span * index / Math.max(1, words.length),
-      end: scene.start + span * (index + 1) / Math.max(1, words.length),
-      probability: .9,
-    })),
+    words: explicitWords
+      ? words.map(word => ({ word: word.word, start: word.start, end: word.end, probability: word.probability }))
+      : words.map((word, index) => ({
+          word,
+          start: scene.start + span * index / Math.max(1, words.length),
+          end: scene.start + span * (index + 1) / Math.max(1, words.length),
+          probability: .9,
+        })),
   }]
 }
 
@@ -103,8 +106,12 @@ app.whenReady().then(async () => {
     globalText: scene.globalText,
     globalContextRef: 'forensic:' + scene.sceneId,
   })
+  const keywordCandidatesFor = scene => typeof scene.sceneKeyword === 'string'
+    ? [{ keyword: scene.sceneKeyword, source: 'scene-semantic' }]
+    : undefined
   const resolve = (scene, root = projectRoot, session) => bundle.resolveLocalSemanticVisualSceneV1({
     localSemantic: semanticFor(scene),
+    ...(keywordCandidatesFor(scene) ? { keywordCandidates: keywordCandidatesFor(scene) } : {}),
     projectRoot: root,
     sistema: 'editorial',
     direction: direction(917),
@@ -208,13 +215,15 @@ app.whenReady().then(async () => {
       assert.equal(localizedChurch.keywordSelection.keyword.toLocaleLowerCase('es'), 'iglesia')
       assert.equal(localizedChurch.decision.hero?.stableId, 'openmoji:26ea')
     })
-    await runCase('9 accidente no hereda un calendario global', () => {
+    await runCase('9 la keyword semántica alineada no pierde ante un vecino temporal', () => {
       const result = resolve(scene('forensic-accidente'))
       assert.notEqual(result.decision.metaphor?.id, 'calendar')
       assert(!result.trace.providerCandidates.some(candidate => /calendar/i.test(candidate.identity)))
       assert.equal(result.decision.visualMode, 'editorial-text')
       const indignation = resolve(scene('forensic-indignacion'))
       assert.equal(indignation.keywordSelection.keyword.toLocaleLowerCase('es'), 'indignación')
+      assert.equal(indignation.keywordSelection.reason, 'SCENE_KEYWORD_DIRECT_TIMED_MATCH')
+      assert.notEqual(indignation.keywordSelection.keyword.toLocaleLowerCase('es'), 'emoción')
       assert.equal(indignation.decision.visualMode, 'editorial-text')
     })
     await runCase('10 abstracción local de tiempo conserva Solar-first sin identidad concreta', () => {

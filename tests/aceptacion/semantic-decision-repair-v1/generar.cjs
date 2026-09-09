@@ -222,6 +222,13 @@ function historicalRange (timeline, attempt) {
   return rangeForAttempt(attempt, [])
 }
 
+function recordedSceneKeywordCandidate (value) {
+  const keyword = typeof value === 'string' ? value.trim() : ''
+  // Recorded semantic output has subclip provenance. The selector grants it priority only
+  // when the timed transcript independently places that exact word in this scene.
+  return keyword ? [{ keyword, source: 'scene-semantic' }] : undefined
+}
+
 async function replayHistoricalQc (bundle, audit) {
   const attempts = audit.attempts.filter(attempt => FAILURE_POSITIONS.has(attempt.pos))
   if (attempts.length !== 16) throw new Error('El corpus forense ya no contiene los 16 slots QC esperados')
@@ -246,9 +253,11 @@ async function replayHistoricalQc (bundle, audit) {
       globalText: attempt.phrase, globalHints: [attempt.keyword, attempt.semantic?.queryTruncated].filter(Boolean),
       globalContextRef: 'forensic:' + attempt.pos,
     })
+    const keywordCandidates = recordedSceneKeywordCandidate(attempt.keyword)
     const resolved = bundle.resolveLocalSemanticVisualSceneV1({
       localSemantic: semantic, projectRoot: REPLAY_PROJECT, sistema: 'editorial',
       direction: directionFor(attempt.index), session: sessionState,
+      ...(keywordCandidates ? { keywordCandidates } : {}),
     })
     let report = null
     let rendered = null
@@ -360,8 +369,10 @@ async function renderReviewCases (bundle, audit) {
       globalHints: [beforeVisual.keyword, beforeVisual.semantic?.queryTruncated].filter(Boolean),
       globalContextRef: 'forensic:' + beforeVisual.pos,
     })
+    const keywordCandidates = recordedSceneKeywordCandidate(beforeVisual.diagnosticInput?.keyword || beforeVisual.keyword)
     const resolved = bundle.resolveLocalSemanticVisualSceneV1({
       localSemantic, projectRoot: REPLAY_PROJECT, sistema: 'editorial', direction: directionFor(500 + order), session: sessionState,
+      ...(keywordCandidates ? { keywordCandidates } : {}),
     })
     let report = null
     let rendered = null
@@ -391,6 +402,7 @@ async function renderReviewCases (bundle, audit) {
       historical: { index, pos: beforeVisual.pos, keyword, provider: beforeVisual.effective?.provider || null,
         candidate: beforeVisual.effective?.candidate || null, mode: beforeVisual.effective?.mode || null },
       current: { localText: localSemantic.localText, keyword: resolved.keywordSelection.keyword,
+        keywordReason: resolved.keywordSelection.reason,
         provider: currentProvider, candidate, visualMode: resolved.decision.visualMode,
         structure: resolved.decision.structure, treatment: resolved.trace.treatment, rendered: Boolean(rendered),
         qcFindingCodes: Array.isArray(report?.findings) ? report.findings.map(finding => finding.code) : [] },

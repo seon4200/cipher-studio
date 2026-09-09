@@ -4836,6 +4836,13 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         const fin = seg ? seg.start + dur * (item.clipIndexInPhrase + 1) / n : 0;
         const pos = `${item.phraseIndex}:${item.clipIndexInPhrase}`;
         const legacyKeywordCandidate = seg ? palabraIlustrableDelTramo(seg.words, ini, fin) : null;
+        // `item.keyword` belongs to this semantic subclip. It can resolve a tie only when the
+        // transcript confirms that same word inside the exact time range; the legacy helper is
+        // still useful evidence, but never gets that scene-specific priority.
+        const keywordCandidates = [
+          ...(typeof item.keyword === 'string' ? [{ keyword: item.keyword, source: 'scene-semantic' as const }] : []),
+          ...(typeof legacyKeywordCandidate === 'string' ? [{ keyword: legacyKeywordCandidate, source: 'legacy-timed' as const }] : []),
+        ];
         const localSemantic = createLocalSceneSemanticV1({
           sceneId: `visual-${pos}`,
           start: ini,
@@ -4848,13 +4855,14 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           globalHints: [item.keyword, item.prompt].filter((value): value is string => typeof value === 'string'),
           globalContextRef: `phrase:${item.phraseIndex}`,
         });
-        const keywordSelection = selectNarrativeKeywordV2(localSemantic, [legacyKeywordCandidate, item.keyword]);
+        const keywordSelection = selectNarrativeKeywordV2(localSemantic, keywordCandidates);
         return {
           item,
           frase: seg?.text ?? '',
           pos,
           localSemantic,
           keywordSelection,
+          keywordCandidates,
         };
       });
 
@@ -4876,7 +4884,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               { texto: value, frase: x.frase, conceptos: x.item.conceptos ?? [] });
           const resolved = resolveLocalSemanticVisualSceneV1({
             localSemantic: x.localSemantic,
-            keywordCandidates: x.keywordSelection.alternatives.map((alternative: any) => alternative.keyword),
+            keywordCandidates: x.keywordCandidates,
             preferredVisualMode: x.item.sinVisual ? 'editorial-text' : 'auto',
             projectRoot: PROYECTO_VISUAL ?? undefined,
             sistema: SISTEMA_VISUAL,

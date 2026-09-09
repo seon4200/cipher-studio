@@ -37,9 +37,19 @@ subclip:
 
 El texto local se extrae de `transcriptSegments` en la ventana temporal real,
 con contexto inmediato acotado, puntuación cercana y un máximo de 360 caracteres.
-No se copia el párrafo entero al AssetIntent. La prioridad de decisión es texto
-local, luego conceptos/ancla, luego candidatos existentes y por último contexto
-global diagnóstico.
+No se copia el párrafo entero al AssetIntent. La prioridad de decisión es:
+
+1. tokens y conceptos que intersectan el intervalo exacto del subclip;
+2. ancla o concepto asociado al tramo;
+3. contexto inmediato;
+4. conceptos vecinos;
+5. contexto global diagnóstico.
+
+La keyword ya emitida por la semántica del subclip tiene procedencia
+`scene-semantic`, pero sólo desempata dentro del primer nivel si el transcript
+temporizado confirma literalmente esa misma palabra dentro del intervalo. Así,
+una palabra vecina de la misma cláusula no desplaza la palabra alineada al
+subclip, ni una candidata global puede imponerse sobre evidencia temporal.
 
 ## Keyword y metáfora V2
 
@@ -118,23 +128,28 @@ bloqueada y un fixture temporal con 22 entradas condensadas del corpus forense.
 | Frase global que invalidaba AssetIntent | 598 caracteres | `localText` ≤ 360 |
 | Escenas nuevas que caen a legacy por input | 6 observadas | 0/22 del corpus |
 | Ganadores residuales conocidos | `estando` observado en el export | 0/22 |
-| Oportunidades concretas evaluadas | — | 15 |
-| Hit rate concreto | — | 13/15 = 86,7 % |
-| Decisiones del corpus 22 | — | 11 OpenMoji, 0 Solar, 11 editorial-text |
+| Oportunidades concretas evaluadas | — | 14 |
+| Hit rate concreto | — | 14/14 = 100,0 % |
+| Decisiones del corpus 22 | — | 14 OpenMoji, 0 Solar, 8 editorial-text |
 
-Las puertas específicas pasan: fútbol evalúa `openmoji:26bd`, estadio
+La oportunidad de bandera vecina que antes se atribuía a `indignación` dejó de
+contarse como oportunidad de esa escena: pertenece a otro significado del
+tramo. Las puertas específicas pasan: fútbol evalúa `openmoji:26bd`, estadio
 `openmoji:1f3df`, construcción `openmoji:1f3d7`, cerveza `openmoji:1f37a`,
 trabajador `openmoji:1f477` y México `openmoji:1f1f2-1f1fd`. Iglesia y religioso
 no heredan cronómetro; accidente no hereda calendario y materializa
-`editorial-text`. El caso sintético de abstracción local de tiempo conserva la
-vía Solar. La misma entrada/inventario/sesión produce la misma identidad.
+`editorial-text`. La escena temporal `indignación` conserva `indignación`, no
+`emoción`, mediante `SCENE_KEYWORD_DIRECT_TIMED_MATCH`. El caso sintético de
+abstracción local de tiempo conserva la vía Solar. La misma
+entrada/inventario/sesión produce la misma identidad.
 
 El replay de las 16 posiciones históricas de QC es una reproducción V4A con
 frase, transcript temporizado y conceptos preservados; los reports QC originales
 habían sido descartados y no se reconstruyen como hechos históricos. En la
-última corrida del replay: 9 materializados y 7 rechazados; findings contados:
-8 `VISUAL_QC_TEXT_BOUNDS`, 6 `VISUAL_QC_CONTRAST_LOCAL` y 3
-`VISUAL_QC_TEXT_OVERFLOW`.
+última corrida del replay, los findings contados fueron 17
+`VISUAL_QC_TEXT_BOUNDS`, 15 `VISUAL_QC_TEXT_OVERFLOW` y 5
+`VISUAL_QC_CONTRAST_LOCAL`. Son medidas de la reproducción vigente, no hechos
+históricos del export original.
 
 La generación temporal por el handler real también escribió el diagnóstico. La
 última corrida solicitó 1 Visual, materializó 0, rechazó 1 por
@@ -148,6 +163,11 @@ compara ocho escenas: construir, partidos, fútbol, estando, iglesia, religioso,
 accidente e indignación. Cada celda lleva `B` (histórica), `A` (materializada en
 la reproducción) o `QC` (rechazada), provider abreviado y candidato. El detalle
 estructurado vive en `evidence.json` y `qc-replay.json` del mismo directorio.
+
+La revisión humana detectó que la primera reproducción V2 mostraba `EMOCIÓN`
+para el subclip histórico de `INDIGNACIÓN`. La hoja vigente ya conserva
+`INDIGNACIÓN` con la razón temporal explícita anterior. Sigue siendo evidencia
+para revisión humana, no una aprobación estética.
 
 La hoja no es una aprobación estética. Su campo de evidencia es
 `visualVerdict: pending-human-review`; Jairo debe revisar los frames antes de

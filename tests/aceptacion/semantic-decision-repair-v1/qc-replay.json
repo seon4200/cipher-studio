@@ -4,9 +4,9 @@
   "method": "V4A local-semantic replay from preserved phrase, timed transcript and recorded conceptsLog; original discarded QC reports are not reconstructed as historical facts.",
   "attempted": 16,
   "qcCategories": {
-    "VISUAL_QC_CONTRAST_LOCAL": 6,
-    "VISUAL_QC_TEXT_BOUNDS": 8,
-    "VISUAL_QC_TEXT_OVERFLOW": 3
+    "VISUAL_QC_TEXT_BOUNDS": 17,
+    "VISUAL_QC_TEXT_OVERFLOW": 15,
+    "VISUAL_QC_CONTRAST_LOCAL": 5
   },
   "replayDiagnostic": "materiales/diagnostics/visual-decisions/forensic-qc-replay-v1.json",
   "rows": [
@@ -42,9 +42,9 @@
         ]
       },
       "keyword": {
-        "keyword": "casi",
+        "keyword": "usaron",
         "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "reason": "DIRECT_TIMED_LOCAL_TOKEN",
         "alternatives": [
           {
             "keyword": "abandonado",
@@ -68,41 +68,164 @@
             "keyword": "casi",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           },
           {
             "keyword": "nada",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "partidos",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "pasaron",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           },
           {
             "keyword": "usaron",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           }
         ]
       },
-      "selectedMetaphor": "direct-concrete-casi",
+      "selectedMetaphor": "direct-concrete-usaron",
       "selectedCandidate": null,
       "visualMode": "editorial-text",
       "structure": "constelacion",
       "treatment": null,
       "reasons": [
-        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-casi",
+        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-usaron",
+        "PROVIDER_NO_USABLE_RESULT"
+      ],
+      "warnings": [
+        {
+          "code": "PROVIDER_NO_USABLE_RESULT",
+          "severity": "warning",
+          "message": "No hay Hero local defendible; se materializa texto editorial."
+        }
+      ],
+      "inputFallback": {
+        "used": false,
+        "code": null
+      },
+      "render": {
+        "outcome": "materialized",
+        "file": "materiales/visual/e01e202c333f.mp4",
+        "qcReport": null
+      }
+    },
+    {
+      "historical": {
+        "index": 6,
+        "pos": "2:0",
+        "keyword": "imaginante",
+        "phrase": "En 2018 Rusia usó el Mundial para lavar su imaginante el mundo y todo indica que ese Mundial igual que el siguiente fue comprado por el país.",
+        "outcome": "[2026-09-09T07:02:32.737Z] [GRAFICO] FALLO (visual_escena): El Visual productivo no supera el QC de geometría/contraste",
+        "conceptsSource": "forensic-semantic.conceptsLog",
+        "anchorSource": "first-recorded-concept"
+      },
+      "localSemantic": {
+        "start": 12.06,
+        "end": 14.39,
+        "localText": "En 2018 Rusia usó el Mundial para lavar su imaginante el mundo y",
+        "globalContextRef": "forensic:2:0",
+        "globalTextLength": 141,
+        "concepts": [
+          {
+            "label": "Rusia",
+            "emoji": "🇷🇺"
+          },
+          {
+            "label": "mundo",
+            "emoji": "🌍"
+          },
+          {
+            "label": "trofeo",
+            "emoji": "🏆"
+          }
+        ]
+      },
+      "keyword": {
+        "keyword": "imaginante",
+        "confidence": "medium",
+        "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+        "alternatives": [
+          {
+            "keyword": "Rusia",
+            "source": "anchor",
+            "visualizability": 3,
+            "reason": "DIRECT_TIMED_ANCHOR",
+            "temporalAlignment": "direct"
+          },
+          {
+            "keyword": "mundo",
+            "source": "concept",
+            "visualizability": 3,
+            "reason": "CONCEPT_CONCRETE_EVIDENCE"
+          },
+          {
+            "keyword": "trofeo",
+            "source": "concept",
+            "visualizability": 3,
+            "reason": "CONCEPT_CONCRETE_EVIDENCE"
+          },
+          {
+            "keyword": "imaginante",
+            "source": "scene-keyword",
+            "visualizability": 2,
+            "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+            "temporalAlignment": "direct"
+          },
+          {
+            "keyword": "usó",
+            "source": "local-token",
+            "visualizability": 2,
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
+          },
+          {
+            "keyword": "lavar",
+            "source": "local-token",
+            "visualizability": 1,
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
+          },
+          {
+            "keyword": "Mundial",
+            "source": "local-token",
+            "visualizability": 1,
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
+          },
+          {
+            "keyword": "2018",
+            "source": "local-token",
+            "visualizability": 0,
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
+          }
+        ]
+      },
+      "selectedMetaphor": "direct-concrete-imaginante",
+      "selectedCandidate": null,
+      "visualMode": "editorial-text",
+      "structure": "constelacion",
+      "treatment": null,
+      "reasons": [
+        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-imaginante",
         "PROVIDER_NO_USABLE_RESULT"
       ],
       "warnings": [
@@ -141,11 +264,11 @@
                 "height": 259.1875
               },
               "keyword": {
-                "left": 194.36032104492188,
+                "left": 65.44125366210938,
                 "top": 675.4047241210938,
-                "right": 345.62408447265625,
+                "right": 474.5587463378906,
                 "bottom": 728.4247436523438,
-                "width": 151.26376342773438,
+                "width": 409.11749267578125,
                 "height": 53.02001953125
               },
               "heroOpacity": 0,
@@ -175,17 +298,17 @@
                 "height": 259.1875
               },
               "keyword": {
-                "left": 184.16806030273438,
+                "left": 37.8746337890625,
                 "top": 670.4031982421875,
-                "right": 355.8163146972656,
+                "right": 502.1253662109375,
                 "bottom": 730.5682373046875,
-                "width": 171.64825439453125,
+                "width": 464.250732421875,
                 "height": 60.1650390625
               },
               "heroOpacity": 0,
               "keywordOpacity": 0.578125,
               "textColor": "rgb(22, 28, 38)",
-              "textOverflow": false,
+              "textOverflow": true,
               "maxLines": "2",
               "visibleWords": 1
             },
@@ -209,17 +332,17 @@
                 "height": 259.1875
               },
               "keyword": {
-                "left": 184.046875,
+                "left": 37.546875,
                 "top": 670.34375,
-                "right": 355.9375,
+                "right": 502.453125,
                 "bottom": 730.59375,
-                "width": 171.890625,
+                "width": 464.90625,
                 "height": 60.25
               },
               "heroOpacity": 0,
               "keywordOpacity": 1,
               "textColor": "rgb(22, 28, 38)",
-              "textOverflow": false,
+              "textOverflow": true,
               "maxLines": "2",
               "visibleWords": 1
             },
@@ -243,17 +366,17 @@
                 "height": 259.1875
               },
               "keyword": {
-                "left": 184.046875,
+                "left": 37.546875,
                 "top": 670.34375,
-                "right": 355.9375,
+                "right": 502.453125,
                 "bottom": 730.59375,
-                "width": 171.890625,
+                "width": 464.90625,
                 "height": 60.25
               },
               "heroOpacity": 0,
               "keywordOpacity": 1,
               "textColor": "rgb(22, 28, 38)",
-              "textOverflow": false,
+              "textOverflow": true,
               "maxLines": "2",
               "visibleWords": 1
             },
@@ -277,11 +400,11 @@
                 "height": 259.1875
               },
               "keyword": {
-                "left": 194.36032104492188,
+                "left": 65.44125366210938,
                 "top": 675.4047241210938,
-                "right": 345.62408447265625,
+                "right": 474.5587463378906,
                 "bottom": 728.4247436523438,
-                "width": 151.26376342773438,
+                "width": 409.11749267578125,
                 "height": 53.02001953125
               },
               "heroOpacity": 0,
@@ -292,127 +415,46 @@
               "visibleWords": 1
             }
           ],
-          "localTextContrast": 1,
+          "localTextContrast": 11.63098549192327,
           "findings": [
             {
-              "code": "VISUAL_QC_CONTRAST_LOCAL",
+              "code": "VISUAL_QC_TEXT_BOUNDS",
               "level": "error",
-              "message": "Contraste local p10=1.00 < 3"
+              "message": "Texto fuera de la zona segura",
+              "normalizedTime": 0.2
+            },
+            {
+              "code": "VISUAL_QC_TEXT_OVERFLOW",
+              "level": "error",
+              "message": "Texto recortado o fuera del presupuesto V1",
+              "normalizedTime": 0.2
+            },
+            {
+              "code": "VISUAL_QC_TEXT_BOUNDS",
+              "level": "error",
+              "message": "Texto fuera de la zona segura",
+              "normalizedTime": 0.5
+            },
+            {
+              "code": "VISUAL_QC_TEXT_OVERFLOW",
+              "level": "error",
+              "message": "Texto recortado o fuera del presupuesto V1",
+              "normalizedTime": 0.5
+            },
+            {
+              "code": "VISUAL_QC_TEXT_BOUNDS",
+              "level": "error",
+              "message": "Texto fuera de la zona segura",
+              "normalizedTime": 0.8
+            },
+            {
+              "code": "VISUAL_QC_TEXT_OVERFLOW",
+              "level": "error",
+              "message": "Texto recortado o fuera del presupuesto V1",
+              "normalizedTime": 0.8
             }
           ]
         }
-      }
-    },
-    {
-      "historical": {
-        "index": 6,
-        "pos": "2:0",
-        "keyword": "imaginante",
-        "phrase": "En 2018 Rusia usó el Mundial para lavar su imaginante el mundo y todo indica que ese Mundial igual que el siguiente fue comprado por el país.",
-        "outcome": "[2026-09-09T07:02:32.737Z] [GRAFICO] FALLO (visual_escena): El Visual productivo no supera el QC de geometría/contraste",
-        "conceptsSource": "forensic-semantic.conceptsLog",
-        "anchorSource": "first-recorded-concept"
-      },
-      "localSemantic": {
-        "start": 12.06,
-        "end": 14.39,
-        "localText": "En 2018 Rusia usó el Mundial para lavar su imaginante el mundo y",
-        "globalContextRef": "forensic:2:0",
-        "globalTextLength": 141,
-        "concepts": [
-          {
-            "label": "Rusia",
-            "emoji": "🇷🇺"
-          },
-          {
-            "label": "mundo",
-            "emoji": "🌍"
-          },
-          {
-            "label": "trofeo",
-            "emoji": "🏆"
-          }
-        ]
-      },
-      "keyword": {
-        "keyword": "usó",
-        "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
-        "alternatives": [
-          {
-            "keyword": "Rusia",
-            "source": "anchor",
-            "visualizability": 3,
-            "reason": "ANCHOR_CONCEPT_EVIDENCE"
-          },
-          {
-            "keyword": "mundo",
-            "source": "concept",
-            "visualizability": 3,
-            "reason": "CONCEPT_CONCRETE_EVIDENCE"
-          },
-          {
-            "keyword": "trofeo",
-            "source": "concept",
-            "visualizability": 3,
-            "reason": "CONCEPT_CONCRETE_EVIDENCE"
-          },
-          {
-            "keyword": "usó",
-            "source": "local-token",
-            "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
-          },
-          {
-            "keyword": "imaginante",
-            "source": "local-token",
-            "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
-          },
-          {
-            "keyword": "lavar",
-            "source": "local-token",
-            "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
-          },
-          {
-            "keyword": "Mundial",
-            "source": "local-token",
-            "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
-          },
-          {
-            "keyword": "2018",
-            "source": "local-token",
-            "visualizability": 0,
-            "reason": "TIMED_LOCAL_TOKEN"
-          }
-        ]
-      },
-      "selectedMetaphor": "direct-concrete-uso",
-      "selectedCandidate": null,
-      "visualMode": "editorial-text",
-      "structure": "constelacion",
-      "treatment": null,
-      "reasons": [
-        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-uso",
-        "PROVIDER_NO_USABLE_RESULT"
-      ],
-      "warnings": [
-        {
-          "code": "PROVIDER_NO_USABLE_RESULT",
-          "severity": "warning",
-          "message": "No hay Hero local defendible; se materializa texto editorial."
-        }
-      ],
-      "inputFallback": {
-        "used": false,
-        "code": null
-      },
-      "render": {
-        "outcome": "materialized",
-        "file": "materiales/visual/8d999db6f8a4.mp4",
-        "qcReport": null
       }
     },
     {
@@ -449,7 +491,7 @@
       "keyword": {
         "keyword": "indica",
         "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "reason": "DIRECT_TIMED_LOCAL_TOKEN",
         "alternatives": [
           {
             "keyword": "voto",
@@ -473,31 +515,36 @@
             "keyword": "indica",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "igual",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "imaginante",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "lavar",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           },
           {
             "keyword": "Mundial",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           }
         ]
       },
@@ -741,9 +788,9 @@
         ]
       },
       "keyword": {
-        "keyword": "guerra",
+        "keyword": "naciones",
         "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
         "alternatives": [
           {
             "keyword": "familia",
@@ -764,44 +811,49 @@
             "reason": "CONCEPT_CONCRETE_EVIDENCE"
           },
           {
+            "keyword": "naciones",
+            "source": "scene-keyword",
+            "visualizability": 2,
+            "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+            "temporalAlignment": "direct"
+          },
+          {
             "keyword": "casa",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "guerra",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           },
           {
             "keyword": "invita",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
-          },
-          {
-            "keyword": "naciones",
-            "source": "local-token",
-            "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "persecución",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           }
         ]
       },
-      "selectedMetaphor": "direct-concrete-guerra",
+      "selectedMetaphor": "direct-concrete-naciones",
       "selectedCandidate": null,
       "visualMode": "editorial-text",
       "structure": "constelacion",
       "treatment": null,
       "reasons": [
-        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-guerra",
+        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-naciones",
         "PROVIDER_NO_USABLE_RESULT"
       ],
       "warnings": [
@@ -817,7 +869,7 @@
       },
       "render": {
         "outcome": "materialized",
-        "file": "materiales/visual/6133a8146941.mp4",
+        "file": "materiales/visual/ef7f4fa48f1c.mp4",
         "qcReport": null
       }
     },
@@ -853,15 +905,16 @@
         ]
       },
       "keyword": {
-        "keyword": "escala",
+        "keyword": "experimenten",
         "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
         "alternatives": [
           {
             "keyword": "dinero",
             "source": "anchor",
             "visualizability": 3,
-            "reason": "ANCHOR_CONCEPT_EVIDENCE"
+            "reason": "DIRECT_TIMED_ANCHOR",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "conexión",
@@ -876,34 +929,39 @@
             "reason": "CONCEPT_CONCRETE_EVIDENCE"
           },
           {
+            "keyword": "experimenten",
+            "source": "scene-keyword",
+            "visualizability": 2,
+            "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+            "temporalAlignment": "direct"
+          },
+          {
             "keyword": "cada",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "escala",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
-          },
-          {
-            "keyword": "experimenten",
-            "source": "local-token",
-            "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "precios",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "cosa",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           }
         ]
       },
@@ -936,7 +994,7 @@
       },
       "render": {
         "outcome": "materialized",
-        "file": "materiales/visual/61617c753db4.mp4",
+        "file": "materiales/visual/78ecdc36a720.mp4",
         "qcReport": null
       }
     },
@@ -972,9 +1030,9 @@
         ]
       },
       "keyword": {
-        "keyword": "experimenten",
+        "keyword": "cuestiones",
         "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
         "alternatives": [
           {
             "keyword": "duda",
@@ -995,44 +1053,49 @@
             "reason": "CONCEPT_CONCRETE_EVIDENCE"
           },
           {
+            "keyword": "cuestiones",
+            "source": "scene-keyword",
+            "visualizability": 2,
+            "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+            "temporalAlignment": "direct"
+          },
+          {
             "keyword": "cada",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "chingados",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "conecta",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
-          },
-          {
-            "keyword": "cuestiones",
-            "source": "local-token",
-            "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "dinero",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           }
         ]
       },
-      "selectedMetaphor": "direct-concrete-experimenten",
+      "selectedMetaphor": "direct-concrete-cuestiones",
       "selectedCandidate": null,
       "visualMode": "editorial-text",
       "structure": "editorial",
       "treatment": null,
       "reasons": [
-        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-experimenten",
+        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-cuestiones",
         "PROVIDER_NO_USABLE_RESULT"
       ],
       "warnings": [
@@ -1072,11 +1135,11 @@
               },
               "keyword": {
                 "left": 44.96875,
-                "top": 683.0877685546875,
-                "right": 395.896240234375,
-                "bottom": 719.855224609375,
-                "width": 350.927490234375,
-                "height": 36.7674560546875
+                "top": 675.4047241210938,
+                "right": 458.98126220703125,
+                "bottom": 728.4247436523438,
+                "width": 414.01251220703125,
+                "height": 53.02001953125
               },
               "heroOpacity": 0,
               "keywordOpacity": 0,
@@ -1106,16 +1169,16 @@
               },
               "keyword": {
                 "left": 42.33588790893555,
-                "top": 681.04052734375,
-                "right": 445.2140312194824,
-                "bottom": 723.2509765625,
-                "width": 402.8781433105469,
-                "height": 42.21044921875
+                "top": 671.7164916992188,
+                "right": 517.6380729675293,
+                "bottom": 732.5855102539062,
+                "width": 475.30218505859375,
+                "height": 60.8690185546875
               },
               "heroOpacity": 0,
               "keywordOpacity": 0.578125,
               "textColor": "rgb(242, 244, 247)",
-              "textOverflow": false,
+              "textOverflow": true,
               "maxLines": "2",
               "visibleWords": 1
             },
@@ -1140,16 +1203,16 @@
               },
               "keyword": {
                 "left": 37.317665100097656,
-                "top": 683.7158203125,
-                "right": 449.65750885009766,
-                "bottom": 726.9176025390625,
-                "width": 412.33984375,
-                "height": 43.2017822265625
+                "top": 674.16748046875,
+                "right": 523.782356262207,
+                "bottom": 736.4659423828125,
+                "width": 486.4646911621094,
+                "height": 62.2984619140625
               },
               "heroOpacity": 0,
               "keywordOpacity": 1,
               "textColor": "rgb(242, 244, 247)",
-              "textOverflow": false,
+              "textOverflow": true,
               "maxLines": "2",
               "visibleWords": 1
             },
@@ -1174,16 +1237,16 @@
               },
               "keyword": {
                 "left": 42.33588790893555,
-                "top": 680.998779296875,
-                "right": 445.78290939331055,
-                "bottom": 723.2688598632812,
-                "width": 403.447021484375,
-                "height": 42.27008056640625
+                "top": 671.6563720703125,
+                "right": 518.309154510498,
+                "bottom": 732.6112670898438,
+                "width": 475.9732666015625,
+                "height": 60.95489501953125
               },
               "heroOpacity": 0,
               "keywordOpacity": 1,
               "textColor": "rgb(242, 244, 247)",
-              "textOverflow": false,
+              "textOverflow": true,
               "maxLines": "2",
               "visibleWords": 1
             },
@@ -1208,11 +1271,11 @@
               },
               "keyword": {
                 "left": 44.96875,
-                "top": 683.0877685546875,
-                "right": 395.896240234375,
-                "bottom": 719.855224609375,
-                "width": 350.927490234375,
-                "height": 36.7674560546875
+                "top": 675.4047241210938,
+                "right": 458.98126220703125,
+                "bottom": 728.4247436523438,
+                "width": 414.01251220703125,
+                "height": 53.02001953125
               },
               "heroOpacity": 0,
               "keywordOpacity": 0,
@@ -1222,12 +1285,18 @@
               "visibleWords": 1
             }
           ],
-          "localTextContrast": 2.524966904825164,
+          "localTextContrast": 2.555102736221035,
           "findings": [
             {
               "code": "VISUAL_QC_TEXT_BOUNDS",
               "level": "error",
               "message": "Texto fuera de la zona segura",
+              "normalizedTime": 0.2
+            },
+            {
+              "code": "VISUAL_QC_TEXT_OVERFLOW",
+              "level": "error",
+              "message": "Texto recortado o fuera del presupuesto V1",
               "normalizedTime": 0.2
             },
             {
@@ -1237,15 +1306,27 @@
               "normalizedTime": 0.5
             },
             {
+              "code": "VISUAL_QC_TEXT_OVERFLOW",
+              "level": "error",
+              "message": "Texto recortado o fuera del presupuesto V1",
+              "normalizedTime": 0.5
+            },
+            {
               "code": "VISUAL_QC_TEXT_BOUNDS",
               "level": "error",
               "message": "Texto fuera de la zona segura",
               "normalizedTime": 0.8
             },
             {
+              "code": "VISUAL_QC_TEXT_OVERFLOW",
+              "level": "error",
+              "message": "Texto recortado o fuera del presupuesto V1",
+              "normalizedTime": 0.8
+            },
+            {
               "code": "VISUAL_QC_CONTRAST_LOCAL",
               "level": "error",
-              "message": "Contraste local p10=2.52 < 3"
+              "message": "Contraste local p10=2.56 < 3"
             }
           ]
         }
@@ -1283,9 +1364,9 @@
         ]
       },
       "keyword": {
-        "keyword": "mucho",
+        "keyword": "contradicción",
         "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
         "alternatives": [
           {
             "keyword": "celebración",
@@ -1297,7 +1378,8 @@
             "keyword": "contradicción",
             "source": "concept",
             "visualizability": 3,
-            "reason": "CONCEPT_CONCRETE_EVIDENCE"
+            "reason": "DIRECT_TIMED_CONCEPT",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "sentimiento",
@@ -1309,41 +1391,46 @@
             "keyword": "mucho",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "también",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "Antelato",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "celebrar",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "ahí",
             "source": "local-token",
             "visualizability": 0,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           }
         ]
       },
-      "selectedMetaphor": "direct-concrete-mucho",
+      "selectedMetaphor": "direct-concrete-contradiccion",
       "selectedCandidate": null,
       "visualMode": "editorial-text",
       "structure": "constelacion",
       "treatment": null,
       "reasons": [
-        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-mucho",
+        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-contradiccion",
         "PROVIDER_NO_USABLE_RESULT"
       ],
       "warnings": [
@@ -1382,12 +1469,12 @@
                 "height": 259.1875
               },
               "keyword": {
-                "left": 149.31625366210938,
-                "top": 675.4047241210938,
-                "right": 390.6837463378906,
-                "bottom": 728.4247436523438,
-                "width": 241.36749267578125,
-                "height": 53.02001953125
+                "left": 82.51875305175781,
+                "top": 683.0877685546875,
+                "right": 457.4812774658203,
+                "bottom": 719.855224609375,
+                "width": 374.9625244140625,
+                "height": 36.7674560546875
               },
               "heroOpacity": 0,
               "keywordOpacity": 0,
@@ -1416,12 +1503,12 @@
                 "height": 262.219970703125
               },
               "keyword": {
-                "left": 131.45046997070312,
-                "top": 671.7164916992188,
-                "right": 408.549560546875,
-                "bottom": 732.5855102539062,
-                "width": 277.0990905761719,
-                "height": 60.8690185546875
+                "left": 54.76439666748047,
+                "top": 681.04052734375,
+                "right": 485.2356185913086,
+                "bottom": 723.2509765625,
+                "width": 430.4712219238281,
+                "height": 42.21044921875
               },
               "heroOpacity": 0,
               "keywordOpacity": 0.578125,
@@ -1450,12 +1537,12 @@
                 "height": 267.9998779296875
               },
               "keyword": {
-                "left": 128.1965789794922,
-                "top": 674.16748046875,
-                "right": 411.8033905029297,
-                "bottom": 736.4659423828125,
-                "width": 283.6068115234375,
-                "height": 62.2984619140625
+                "left": 49.709510803222656,
+                "top": 683.7158203125,
+                "right": 490.2904739379883,
+                "bottom": 726.9176025390625,
+                "width": 440.5809631347656,
+                "height": 43.2017822265625
               },
               "heroOpacity": 0,
               "keywordOpacity": 1,
@@ -1484,12 +1571,12 @@
                 "height": 262.219970703125
               },
               "keyword": {
-                "left": 131.2548370361328,
-                "top": 671.6563720703125,
-                "right": 408.7451934814453,
-                "bottom": 732.6112670898438,
-                "width": 277.4903564453125,
-                "height": 60.95489501953125
+                "left": 54.46048355102539,
+                "top": 680.998779296875,
+                "right": 485.53955459594727,
+                "bottom": 723.2688598632812,
+                "width": 431.0790710449219,
+                "height": 42.27008056640625
               },
               "heroOpacity": 0,
               "keywordOpacity": 1,
@@ -1518,12 +1605,12 @@
                 "height": 259.1875
               },
               "keyword": {
-                "left": 149.31625366210938,
-                "top": 675.4047241210938,
-                "right": 390.6837463378906,
-                "bottom": 728.4247436523438,
-                "width": 241.36749267578125,
-                "height": 53.02001953125
+                "left": 82.51875305175781,
+                "top": 683.0877685546875,
+                "right": 457.4812774658203,
+                "bottom": 719.855224609375,
+                "width": 374.9625244140625,
+                "height": 36.7674560546875
               },
               "heroOpacity": 0,
               "keywordOpacity": 0,
@@ -1533,12 +1620,12 @@
               "visibleWords": 1
             }
           ],
-          "localTextContrast": 2.311215382122829,
+          "localTextContrast": 2.555102736221035,
           "findings": [
             {
               "code": "VISUAL_QC_CONTRAST_LOCAL",
               "level": "error",
-              "message": "Contraste local p10=2.31 < 3"
+              "message": "Contraste local p10=2.56 < 3"
             }
           ]
         }
@@ -1576,9 +1663,9 @@
         ]
       },
       "keyword": {
-        "keyword": "propio",
+        "keyword": "Washington",
         "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
         "alternatives": [
           {
             "keyword": "periódico",
@@ -1596,63 +1683,76 @@
             "keyword": "mundial",
             "source": "concept",
             "visualizability": 3,
-            "reason": "CONCEPT_CONCRETE_EVIDENCE"
+            "reason": "DIRECT_TIMED_CONCEPT",
+            "temporalAlignment": "direct"
+          },
+          {
+            "keyword": "Washington",
+            "source": "scene-keyword",
+            "visualizability": 2,
+            "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "propio",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "Antelato",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "Sports",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
-          },
-          {
-            "keyword": "Washington",
-            "source": "local-token",
-            "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "ante",
             "source": "local-token",
             "visualizability": 0,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           }
         ]
       },
-      "selectedMetaphor": "direct-concrete-propio",
-      "selectedCandidate": null,
-      "visualMode": "editorial-text",
+      "selectedMetaphor": "direct-concrete-washington",
+      "selectedCandidate": {
+        "provider": "openmoji",
+        "identity": "openmoji:1f3f4-e0075-e0073-e0064-e0063-e007f",
+        "score": 3,
+        "reason": "OPENMOJI_PUBLISHED:created",
+        "stableId": "openmoji:1f3f4-e0075-e0073-e0064-e0063-e007f",
+        "annotation": "washington dc flag"
+      },
+      "visualMode": "asset-led",
       "structure": "constelacion",
-      "treatment": null,
+      "treatment": {
+        "requested": "auto",
+        "effective": "accent-mask",
+        "reason": "SIMPLE_ICON_ACCENT_MASK",
+        "revision": "asset-treatment-v1"
+      },
       "reasons": [
-        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-propio",
-        "PROVIDER_NO_USABLE_RESULT"
+        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-washington",
+        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-washington",
+        "OPENMOJI_HERO"
       ],
-      "warnings": [
-        {
-          "code": "PROVIDER_NO_USABLE_RESULT",
-          "severity": "warning",
-          "message": "No hay Hero local defendible; se materializa texto editorial."
-        }
-      ],
+      "warnings": [],
       "inputFallback": {
         "used": false,
         "code": null
       },
       "render": {
         "outcome": "materialized",
-        "file": "materiales/visual/9aead694a6a2.mp4",
+        "file": "materiales/visual/d2978add5e51.mp4",
         "qcReport": null
       }
     },
@@ -1689,14 +1789,15 @@
       },
       "keyword": {
         "keyword": "frase",
-        "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "confidence": "high",
+        "reason": "DIRECT_TIMED_CONCEPT",
         "alternatives": [
           {
             "keyword": "frase",
             "source": "anchor",
             "visualizability": 3,
-            "reason": "ANCHOR_CONCEPT_EVIDENCE"
+            "reason": "DIRECT_TIMED_ANCHOR",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "acción",
@@ -1714,31 +1815,36 @@
             "keyword": "pedimos",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           },
           {
             "keyword": "acionar.",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "creo",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "México",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           },
           {
             "keyword": "resume",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           }
         ]
       },
@@ -2064,15 +2170,16 @@
         ]
       },
       "keyword": {
-        "keyword": "dejen",
+        "keyword": "consciente",
         "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
         "alternatives": [
           {
             "keyword": "vernos",
             "source": "anchor",
             "visualizability": 3,
-            "reason": "ANCHOR_CONCEPT_EVIDENCE"
+            "reason": "DIRECT_TIMED_ANCHOR",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "atención",
@@ -2088,43 +2195,48 @@
           },
           {
             "keyword": "consciente",
-            "source": "local-token",
+            "source": "scene-keyword",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "dejen",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "menos",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           },
           {
             "keyword": "eso",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "pedimos",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           }
         ]
       },
-      "selectedMetaphor": "direct-concrete-dejen",
+      "selectedMetaphor": "direct-concrete-consciente",
       "selectedCandidate": null,
       "visualMode": "editorial-text",
       "structure": "constelacion",
       "treatment": null,
       "reasons": [
-        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-dejen",
+        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-consciente",
         "PROVIDER_NO_USABLE_RESULT"
       ],
       "warnings": [
@@ -2139,9 +2251,221 @@
         "code": null
       },
       "render": {
-        "outcome": "materialized",
-        "file": "materiales/visual/d9a04c41e89a.mp4",
-        "qcReport": null
+        "outcome": "qc-rejected",
+        "file": null,
+        "qcReport": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 43.4835319519043,
+                "top": 581.948974609375,
+                "right": 496.5164604187012,
+                "bottom": 842.8470458984375,
+                "width": 453.0329284667969,
+                "height": 260.8980712890625
+              },
+              "keyword": {
+                "left": 59.96660614013672,
+                "top": 679.147216796875,
+                "right": 480.0333786010742,
+                "bottom": 732.5172119140625,
+                "width": 420.0667724609375,
+                "height": 53.3699951171875
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 1
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 47.44172286987305,
+                "top": 580.2155151367188,
+                "right": 500.4746513366699,
+                "bottom": 841.1136474609375,
+                "width": 453.0329284667969,
+                "height": 260.89813232421875
+              },
+              "keyword": {
+                "left": 35.62040710449219,
+                "top": 672.3792724609375,
+                "right": 512.2959442138672,
+                "bottom": 732.94140625,
+                "width": 476.675537109375,
+                "height": 60.5621337890625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": true,
+              "maxLines": "2",
+              "visibleWords": 1
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 43.4835319519043,
+                "top": 576.937744140625,
+                "right": 496.5164604187012,
+                "bottom": 837.8358154296875,
+                "width": 453.0329284667969,
+                "height": 260.8980712890625
+              },
+              "keyword": {
+                "left": 31.32569122314453,
+                "top": 669.0416259765625,
+                "right": 508.6742935180664,
+                "bottom": 729.6893310546875,
+                "width": 477.3486022949219,
+                "height": 60.647705078125
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 1,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": true,
+              "maxLines": "2",
+              "visibleWords": 1
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 39.52534103393555,
+                "top": 580.2155151367188,
+                "right": 492.5582695007324,
+                "bottom": 841.1136474609375,
+                "width": 453.0329284667969,
+                "height": 260.89813232421875
+              },
+              "keyword": {
+                "left": 27.36750030517578,
+                "top": 672.3193969726562,
+                "right": 504.71610260009766,
+                "bottom": 732.9671020507812,
+                "width": 477.3486022949219,
+                "height": 60.647705078125
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 1,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": true,
+              "maxLines": "2",
+              "visibleWords": 1
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 43.4835319519043,
+                "top": 581.948974609375,
+                "right": 496.5164604187012,
+                "bottom": 842.8470458984375,
+                "width": 453.0329284667969,
+                "height": 260.8980712890625
+              },
+              "keyword": {
+                "left": 59.96660614013672,
+                "top": 679.147216796875,
+                "right": 480.0333786010742,
+                "bottom": 732.5172119140625,
+                "width": 420.0667724609375,
+                "height": 53.3699951171875
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 1
+            }
+          ],
+          "localTextContrast": 17.988002008033742,
+          "findings": [
+            {
+              "code": "VISUAL_QC_TEXT_BOUNDS",
+              "level": "error",
+              "message": "Texto fuera de la zona segura",
+              "normalizedTime": 0.2
+            },
+            {
+              "code": "VISUAL_QC_TEXT_OVERFLOW",
+              "level": "error",
+              "message": "Texto recortado o fuera del presupuesto V1",
+              "normalizedTime": 0.2
+            },
+            {
+              "code": "VISUAL_QC_TEXT_BOUNDS",
+              "level": "error",
+              "message": "Texto fuera de la zona segura",
+              "normalizedTime": 0.5
+            },
+            {
+              "code": "VISUAL_QC_TEXT_OVERFLOW",
+              "level": "error",
+              "message": "Texto recortado o fuera del presupuesto V1",
+              "normalizedTime": 0.5
+            },
+            {
+              "code": "VISUAL_QC_TEXT_BOUNDS",
+              "level": "error",
+              "message": "Texto fuera de la zona segura",
+              "normalizedTime": 0.8
+            },
+            {
+              "code": "VISUAL_QC_TEXT_OVERFLOW",
+              "level": "error",
+              "message": "Texto recortado o fuera del presupuesto V1",
+              "normalizedTime": 0.8
+            }
+          ]
+        }
       }
     },
     {
@@ -2178,7 +2502,7 @@
       "keyword": {
         "keyword": "consciente",
         "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
         "alternatives": [
           {
             "keyword": "consciencia",
@@ -2196,37 +2520,43 @@
             "keyword": "más",
             "source": "concept",
             "visualizability": 3,
-            "reason": "CONCEPT_CONCRETE_EVIDENCE"
+            "reason": "DIRECT_TIMED_CONCEPT",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "consciente",
-            "source": "local-token",
+            "source": "scene-keyword",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "documental",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           },
           {
             "keyword": "hacerse",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "menos",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "cosas",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           }
         ]
       },
@@ -2505,9 +2835,9 @@
         ]
       },
       "keyword": {
-        "keyword": "episodios",
+        "keyword": "corrupciones",
         "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
         "alternatives": [
           {
             "keyword": "corrupción",
@@ -2529,58 +2859,57 @@
           },
           {
             "keyword": "corrupciones",
-            "source": "local-token",
+            "source": "scene-keyword",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "dos",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           },
           {
             "keyword": "organización",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "torno",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "FIFA,",
             "source": "local-token",
             "visualizability": 1,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           }
         ]
       },
-      "selectedMetaphor": "direct-concrete-episodios",
-      "selectedCandidate": {
-        "provider": "project-asset",
-        "identity": "openmoji-1f4c4-cdd5b3658ac9",
-        "score": 3,
-        "reason": "PROJECT_ASSET_FIRST",
-        "stableId": "openmoji:1f4c4"
-      },
-      "visualMode": "asset-led",
+      "selectedMetaphor": "direct-concrete-corrupciones",
+      "selectedCandidate": null,
+      "visualMode": "editorial-text",
       "structure": "editorial",
-      "treatment": {
-        "requested": "auto",
-        "effective": "accent-mask",
-        "reason": "SIMPLE_ICON_ACCENT_MASK",
-        "revision": "asset-treatment-v1"
-      },
+      "treatment": null,
       "reasons": [
-        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-episodios",
-        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-episodios",
-        "OPENMOJI_HERO"
+        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-corrupciones",
+        "PROVIDER_NO_USABLE_RESULT"
       ],
-      "warnings": [],
+      "warnings": [
+        {
+          "code": "PROVIDER_NO_USABLE_RESULT",
+          "severity": "warning",
+          "message": "No hay Hero local defendible; se materializa texto editorial."
+        }
+      ],
       "inputFallback": {
         "used": false,
         "code": null
@@ -2600,29 +2929,22 @@
                 "width": 540,
                 "height": 960
               },
-              "hero": {
-                "left": 89.26640319824219,
-                "top": 308.53265380859375,
-                "right": 297.3675537109375,
-                "bottom": 581.146484375,
-                "width": 208.1011505126953,
-                "height": 272.61383056640625
-              },
+              "hero": null,
               "text": {
                 "left": 43.68606948852539,
-                "top": 620.4766845703125,
+                "top": 581.8671875,
                 "right": 496.31393814086914,
                 "bottom": 842.5321044921875,
                 "width": 452.62786865234375,
-                "height": 222.055419921875
+                "height": 260.6649169921875
               },
               "keyword": {
                 "left": 43.68606948852539,
-                "top": 704.7889404296875,
-                "right": 302.44263076782227,
-                "bottom": 744.3658447265625,
-                "width": 258.7565612792969,
-                "height": 39.576904296875
+                "top": 686.7054443359375,
+                "right": 400.527286529541,
+                "bottom": 723.682373046875,
+                "width": 356.8412170410156,
+                "height": 36.9769287109375
               },
               "heroOpacity": 0,
               "keywordOpacity": 0,
@@ -2641,31 +2963,24 @@
                 "width": 540,
                 "height": 960
               },
-              "hero": {
-                "left": 97.67420959472656,
-                "top": 275.72308349609375,
-                "right": 305.7753601074219,
-                "bottom": 548.3369140625,
-                "width": 208.1011505126953,
-                "height": 272.61383056640625
-              },
+              "hero": null,
               "text": {
                 "left": 47.05026626586914,
-                "top": 618.7432250976562,
+                "top": 580.1337280273438,
                 "right": 499.6781349182129,
                 "bottom": 840.7986450195312,
                 "width": 452.62786865234375,
-                "height": 222.055419921875
+                "height": 260.6649169921875
               },
               "keyword": {
                 "left": 47.05026626586914,
-                "top": 699.3221435546875,
-                "right": 340.677188873291,
-                "bottom": 744.2323608398438,
-                "width": 293.6269226074219,
-                "height": 44.91021728515625
+                "top": 681.4838256835938,
+                "right": 451.9798927307129,
+                "bottom": 723.4439086914062,
+                "width": 404.92962646484375,
+                "height": 41.9600830078125
               },
-              "heroOpacity": 1,
+              "heroOpacity": 0,
               "keywordOpacity": 0.578125,
               "textColor": "rgb(242, 244, 247)",
               "textOverflow": false,
@@ -2682,31 +2997,24 @@
                 "width": 540,
                 "height": 960
               },
-              "hero": {
-                "left": 89.26640319824219,
-                "top": 267.52587890625,
-                "right": 297.3675537109375,
-                "bottom": 540.1396484375,
-                "width": 208.1011505126953,
-                "height": 272.61376953125
-              },
+              "hero": null,
               "text": {
                 "left": 43.68606948852539,
-                "top": 615.4654541015625,
+                "top": 576.85595703125,
                 "right": 496.31393814086914,
                 "bottom": 837.5208740234375,
                 "width": 452.62786865234375,
-                "height": 222.055419921875
+                "height": 260.6649169921875
               },
               "keyword": {
                 "left": 43.68606948852539,
-                "top": 696,
-                "right": 337.7276039123535,
-                "bottom": 740.9736328125,
-                "width": 294.0415344238281,
-                "height": 44.9736328125
+                "top": 678.16455078125,
+                "right": 449.187442779541,
+                "bottom": 720.1839599609375,
+                "width": 405.5013732910156,
+                "height": 42.0194091796875
               },
-              "heroOpacity": 1,
+              "heroOpacity": 0,
               "keywordOpacity": 1,
               "textColor": "rgb(242, 244, 247)",
               "textOverflow": false,
@@ -2723,31 +3031,24 @@
                 "width": 540,
                 "height": 960
               },
-              "hero": {
-                "left": 80.1104736328125,
-                "top": 274.7430419921875,
-                "right": 289.7078552246094,
-                "bottom": 549.31689453125,
-                "width": 209.59738159179688,
-                "height": 274.5738525390625
-              },
+              "hero": null,
               "text": {
                 "left": 40.32187271118164,
-                "top": 618.7432250976562,
+                "top": 580.1337280273438,
                 "right": 492.9497413635254,
                 "bottom": 840.7986450195312,
                 "width": 452.62786865234375,
-                "height": 222.055419921875
+                "height": 260.6649169921875
               },
               "keyword": {
                 "left": 40.32187271118164,
-                "top": 699.2777709960938,
-                "right": 334.36340713500977,
-                "bottom": 744.2514038085938,
-                "width": 294.0415344238281,
-                "height": 44.9736328125
+                "top": 681.4423217773438,
+                "right": 445.82324600219727,
+                "bottom": 723.4617309570312,
+                "width": 405.5013732910156,
+                "height": 42.0194091796875
               },
-              "heroOpacity": 1,
+              "heroOpacity": 0,
               "keywordOpacity": 1,
               "textColor": "rgb(242, 244, 247)",
               "textOverflow": false,
@@ -2764,29 +3065,22 @@
                 "width": 540,
                 "height": 960
               },
-              "hero": {
-                "left": 89.26640319824219,
-                "top": 308.53265380859375,
-                "right": 297.3675537109375,
-                "bottom": 581.146484375,
-                "width": 208.1011505126953,
-                "height": 272.61383056640625
-              },
+              "hero": null,
               "text": {
                 "left": 43.68606948852539,
-                "top": 620.4766845703125,
+                "top": 581.8671875,
                 "right": 496.31393814086914,
                 "bottom": 842.5321044921875,
                 "width": 452.62786865234375,
-                "height": 222.055419921875
+                "height": 260.6649169921875
               },
               "keyword": {
                 "left": 43.68606948852539,
-                "top": 704.7889404296875,
-                "right": 302.44263076782227,
-                "bottom": 744.3658447265625,
-                "width": 258.7565612792969,
-                "height": 39.576904296875
+                "top": 686.7054443359375,
+                "right": 400.527286529541,
+                "bottom": 723.682373046875,
+                "width": 356.8412170410156,
+                "height": 36.9769287109375
               },
               "heroOpacity": 0,
               "keywordOpacity": 0,
@@ -2840,15 +3134,16 @@
         ]
       },
       "keyword": {
-        "keyword": "yo",
+        "keyword": "aficionado",
         "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
         "alternatives": [
           {
             "keyword": "aficionado",
             "source": "anchor",
             "visualizability": 3,
-            "reason": "ANCHOR_CONCEPT_EVIDENCE"
+            "reason": "DIRECT_TIMED_ANCHOR",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "pasión",
@@ -2866,57 +3161,69 @@
             "keyword": "dedicado",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "episodios",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "fuerte",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "programa",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           },
           {
             "keyword": "varios",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           }
         ]
       },
-      "selectedMetaphor": "direct-concrete-yo",
-      "selectedCandidate": null,
-      "visualMode": "editorial-text",
+      "selectedMetaphor": "direct-concrete-aficionado",
+      "selectedCandidate": {
+        "provider": "openmoji",
+        "identity": "openmoji:1f464",
+        "score": 3,
+        "reason": "OPENMOJI_PUBLISHED:created",
+        "stableId": "openmoji:1f464",
+        "annotation": "bust in silhouette"
+      },
+      "visualMode": "asset-led",
       "structure": "constelacion",
-      "treatment": null,
+      "treatment": {
+        "requested": "auto",
+        "effective": "accent-mask",
+        "reason": "SIMPLE_ICON_ACCENT_MASK",
+        "revision": "asset-treatment-v1"
+      },
       "reasons": [
-        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-yo",
-        "AMBIGUOUS_ASSET_CANDIDATES"
+        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-aficionado",
+        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-aficionado",
+        "OPENMOJI_HERO"
       ],
-      "warnings": [
-        {
-          "code": "AMBIGUOUS_ASSET_CANDIDATES",
-          "severity": "warning",
-          "message": "Los candidatos visuales empatan; no se elige un Hero en silencio."
-        }
-      ],
+      "warnings": [],
       "inputFallback": {
         "used": false,
         "code": null
       },
       "render": {
         "outcome": "materialized",
-        "file": "materiales/visual/75a97e543fa6.mp4",
+        "file": "materiales/visual/21fd4a6400fd.mp4",
         "qcReport": null
       }
     },
@@ -2952,9 +3259,9 @@
         ]
       },
       "keyword": {
-        "keyword": "fútbol",
+        "keyword": "religión",
         "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
         "alternatives": [
           {
             "keyword": "fútbol",
@@ -2975,67 +3282,65 @@
             "reason": "CONCEPT_CONCRETE_EVIDENCE"
           },
           {
+            "keyword": "religión",
+            "source": "scene-keyword",
+            "visualizability": 2,
+            "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+            "temporalAlignment": "direct"
+          },
+          {
             "keyword": "iglesia",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "misma",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
-          },
-          {
-            "keyword": "religión.",
-            "source": "local-token",
-            "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "el",
             "source": "local-token",
             "visualizability": 0,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           },
           {
             "keyword": "entre",
             "source": "local-token",
             "visualizability": 0,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           }
         ]
       },
-      "selectedMetaphor": "football-soccer-ball",
-      "selectedCandidate": {
-        "provider": "openmoji",
-        "identity": "openmoji:26bd",
-        "score": 3,
-        "reason": "OPENMOJI_PUBLISHED:created",
-        "stableId": "openmoji:26bd",
-        "annotation": "soccer ball"
-      },
-      "visualMode": "asset-led",
+      "selectedMetaphor": "direct-concrete-religion",
+      "selectedCandidate": null,
+      "visualMode": "editorial-text",
       "structure": "constelacion",
-      "treatment": {
-        "requested": "auto",
-        "effective": "accent-mask",
-        "reason": "SIMPLE_ICON_ACCENT_MASK",
-        "revision": "asset-treatment-v1"
-      },
+      "treatment": null,
       "reasons": [
-        "CONCRETE_METAPHOR:football-soccer-ball",
-        "CONCRETE_METAPHOR:football-soccer-ball",
-        "OPENMOJI_HERO"
+        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-religion",
+        "AMBIGUOUS_ASSET_CANDIDATES"
       ],
-      "warnings": [],
+      "warnings": [
+        {
+          "code": "AMBIGUOUS_ASSET_CANDIDATES",
+          "severity": "warning",
+          "message": "Los candidatos visuales empatan; no se elige un Hero en silencio."
+        }
+      ],
       "inputFallback": {
         "used": false,
         "code": null
       },
       "render": {
         "outcome": "materialized",
-        "file": "materiales/visual/007297d3ce05.mp4",
+        "file": "materiales/visual/3b6535821fc0.mp4",
         "qcReport": null
       }
     },
@@ -3071,15 +3376,16 @@
         ]
       },
       "keyword": {
-        "keyword": "da",
+        "keyword": "explicación",
         "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
         "alternatives": [
           {
             "keyword": "gente",
             "source": "anchor",
             "visualizability": 3,
-            "reason": "ANCHOR_CONCEPT_EVIDENCE"
+            "reason": "DIRECT_TIMED_ANCHOR",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "contradicción",
@@ -3094,60 +3400,58 @@
             "reason": "CONCEPT_CONCRETE_EVIDENCE"
           },
           {
+            "keyword": "explicación",
+            "source": "scene-keyword",
+            "visualizability": 2,
+            "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+            "temporalAlignment": "direct"
+          },
+          {
             "keyword": "algo",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "da",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
-          },
-          {
-            "keyword": "explicación",
-            "source": "local-token",
-            "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "puede",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "tanta",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           }
         ]
       },
-      "selectedMetaphor": "direct-concrete-da",
-      "selectedCandidate": {
-        "provider": "openmoji",
-        "identity": "openmoji:1f1f9-1f1e6",
-        "score": 3,
-        "reason": "OPENMOJI_PUBLISHED:created",
-        "stableId": "openmoji:1f1f9-1f1e6",
-        "annotation": "flag: Tristan da Cunha"
-      },
-      "visualMode": "asset-led",
+      "selectedMetaphor": "direct-concrete-explicacion",
+      "selectedCandidate": null,
+      "visualMode": "editorial-text",
       "structure": "marcoPoster",
-      "treatment": {
-        "requested": "auto",
-        "effective": "accent-mask",
-        "reason": "SIMPLE_ICON_ACCENT_MASK",
-        "revision": "asset-treatment-v1"
-      },
+      "treatment": null,
       "reasons": [
-        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-da",
-        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-da",
-        "OPENMOJI_HERO"
+        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-explicacion",
+        "PROVIDER_NO_USABLE_RESULT"
       ],
-      "warnings": [],
+      "warnings": [
+        {
+          "code": "PROVIDER_NO_USABLE_RESULT",
+          "severity": "warning",
+          "message": "No hay Hero local defendible; se materializa texto editorial."
+        }
+      ],
       "inputFallback": {
         "used": false,
         "code": null
@@ -3167,29 +3471,22 @@
                 "width": 540,
                 "height": 960
               },
-              "hero": {
-                "left": 144.60702514648438,
-                "top": 297.04736328125,
-                "right": 330.5804443359375,
-                "bottom": 525.32763671875,
-                "width": 185.97341918945312,
-                "height": 228.2802734375
-              },
+              "hero": null,
               "text": {
                 "left": 44.96875,
-                "top": 617.234375,
+                "top": 578.84375,
                 "right": 495.03125,
                 "bottom": 838.03125,
                 "width": 450.0625,
-                "height": 220.796875
+                "height": 259.1875
               },
               "keyword": {
-                "left": 238.0175018310547,
-                "top": 701.06884765625,
-                "right": 301.9825134277344,
-                "bottom": 740.42138671875,
-                "width": 63.96501159667969,
-                "height": 39.3525390625
+                "left": 119.31282043457031,
+                "top": 683.0877685546875,
+                "right": 420.6715850830078,
+                "bottom": 719.855224609375,
+                "width": 301.3587646484375,
+                "height": 36.7674560546875
               },
               "heroOpacity": 0,
               "keywordOpacity": 0,
@@ -3208,31 +3505,24 @@
                 "width": 540,
                 "height": 960
               },
-              "hero": {
-                "left": 119.9086685180664,
-                "top": 263.5895690917969,
-                "right": 353.3733596801758,
-                "bottom": 550.1648559570312,
-                "width": 233.46469116210938,
-                "height": 286.5752868652344
-              },
+              "hero": null,
               "text": {
                 "left": 42.33588790893555,
-                "top": 617.9255981445312,
+                "top": 579.0858154296875,
                 "right": 497.66413497924805,
                 "bottom": 841.3057861328125,
                 "width": 455.3282470703125,
-                "height": 223.38018798828125
+                "height": 262.219970703125
               },
               "keyword": {
-                "left": 233.2828826904297,
-                "top": 698.9852905273438,
-                "right": 306.71710205078125,
-                "bottom": 744.1634521484375,
-                "width": 73.43421936035156,
-                "height": 45.17816162109375
+                "left": 97.00643920898438,
+                "top": 681.04052734375,
+                "right": 442.977783203125,
+                "bottom": 723.2509765625,
+                "width": 345.9713439941406,
+                "height": 42.21044921875
               },
-              "heroOpacity": 1,
+              "heroOpacity": 0,
               "keywordOpacity": 0.578125,
               "textColor": "rgb(242, 244, 247)",
               "textOverflow": false,
@@ -3249,72 +3539,24 @@
                 "width": 540,
                 "height": 960
               },
-              "hero": {
-                "left": 111.80191040039062,
-                "top": 247.69146728515625,
-                "right": 357.87652587890625,
-                "bottom": 549.7453002929688,
-                "width": 246.07461547851562,
-                "height": 302.0538330078125
-              },
+              "hero": null,
               "text": {
                 "left": 37.317665100097656,
-                "top": 619.2523193359375,
+                "top": 579.556396484375,
                 "right": 502.6823196411133,
                 "bottom": 847.5562744140625,
                 "width": 465.3646545410156,
-                "height": 228.303955078125
+                "height": 267.9998779296875
               },
               "keyword": {
-                "left": 232.42054748535156,
-                "top": 702.0531005859375,
-                "right": 307.5794372558594,
-                "bottom": 748.2923583984375,
-                "width": 75.15888977050781,
-                "height": 46.2392578125
+                "left": 92.94363403320312,
+                "top": 683.7158203125,
+                "right": 447.0401916503906,
+                "bottom": 726.9176025390625,
+                "width": 354.0965576171875,
+                "height": 43.2017822265625
               },
-              "heroOpacity": 1,
-              "keywordOpacity": 1,
-              "textColor": "rgb(242, 244, 247)",
-              "textOverflow": false,
-              "maxLines": "2",
-              "visibleWords": 1
-            },
-            {
-              "normalizedTime": 0.57,
-              "frame": {
-                "left": 0,
-                "top": 8,
-                "right": 540,
-                "bottom": 968,
-                "width": 540,
-                "height": 960
-              },
-              "hero": {
-                "left": 103.206787109375,
-                "top": 232.39117431640625,
-                "right": 366.73736572265625,
-                "bottom": 555.8719482421875,
-                "width": 263.53057861328125,
-                "height": 323.48077392578125
-              },
-              "text": {
-                "left": 37.69573211669922,
-                "top": 619.1508178710938,
-                "right": 502.3042526245117,
-                "bottom": 847.0838012695312,
-                "width": 464.6085205078125,
-                "height": 227.9329833984375
-              },
-              "keyword": {
-                "left": 232.4816131591797,
-                "top": 701.8170776367188,
-                "right": 307.51837158203125,
-                "bottom": 747.9810791015625,
-                "width": 75.03675842285156,
-                "height": 46.16400146484375
-              },
-              "heroOpacity": 1,
+              "heroOpacity": 0,
               "keywordOpacity": 1,
               "textColor": "rgb(242, 244, 247)",
               "textOverflow": false,
@@ -3331,31 +3573,24 @@
                 "width": 540,
                 "height": 960
               },
-              "hero": {
-                "left": 119.9086685180664,
-                "top": 266.58905029296875,
-                "right": 353.3733596801758,
-                "bottom": 553.1643676757812,
-                "width": 233.46469116210938,
-                "height": 286.5753173828125
-              },
+              "hero": null,
               "text": {
                 "left": 42.33588790893555,
-                "top": 617.9255981445312,
+                "top": 579.0858154296875,
                 "right": 497.66413497924805,
                 "bottom": 841.3057861328125,
                 "width": 455.3282470703125,
-                "height": 223.38018798828125
+                "height": 262.219970703125
               },
               "keyword": {
-                "left": 233.2310333251953,
-                "top": 698.940673828125,
-                "right": 306.76898193359375,
-                "bottom": 744.1826171875,
-                "width": 73.53794860839844,
-                "height": 45.241943359375
+                "left": 96.76219177246094,
+                "top": 680.998779296875,
+                "right": 443.22203063964844,
+                "bottom": 723.2688598632812,
+                "width": 346.4598388671875,
+                "height": 42.27008056640625
               },
-              "heroOpacity": 1,
+              "heroOpacity": 0,
               "keywordOpacity": 1,
               "textColor": "rgb(242, 244, 247)",
               "textOverflow": false,
@@ -3372,29 +3607,22 @@
                 "width": 540,
                 "height": 960
               },
-              "hero": {
-                "left": 144.60702514648438,
-                "top": 297.04736328125,
-                "right": 330.5804443359375,
-                "bottom": 525.32763671875,
-                "width": 185.97341918945312,
-                "height": 228.2802734375
-              },
+              "hero": null,
               "text": {
                 "left": 44.96875,
-                "top": 617.234375,
+                "top": 578.84375,
                 "right": 495.03125,
                 "bottom": 838.03125,
                 "width": 450.0625,
-                "height": 220.796875
+                "height": 259.1875
               },
               "keyword": {
-                "left": 238.0175018310547,
-                "top": 701.06884765625,
-                "right": 301.9825134277344,
-                "bottom": 740.42138671875,
-                "width": 63.96501159667969,
-                "height": 39.3525390625
+                "left": 119.31282043457031,
+                "top": 683.0877685546875,
+                "right": 420.6715850830078,
+                "bottom": 719.855224609375,
+                "width": 301.3587646484375,
+                "height": 36.7674560546875
               },
               "heroOpacity": 0,
               "keywordOpacity": 0,
@@ -3447,9 +3675,9 @@
         ]
       },
       "keyword": {
-        "keyword": "ellas",
+        "keyword": "contradictorias",
         "confidence": "medium",
-        "reason": "TIMED_LOCAL_TOKEN",
+        "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
         "alternatives": [
           {
             "keyword": "contradicción",
@@ -3470,44 +3698,49 @@
             "reason": "CONCEPT_CONCRETE_EVIDENCE"
           },
           {
+            "keyword": "contradictorias",
+            "source": "scene-keyword",
+            "visualizability": 2,
+            "reason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+            "temporalAlignment": "direct"
+          },
+          {
             "keyword": "conclusión,",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           },
           {
             "keyword": "ellas",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           },
           {
             "keyword": "muy",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "IMMEDIATE_CONTEXT_TOKEN",
+            "temporalAlignment": "context"
           },
           {
             "keyword": "ninguna",
             "source": "local-token",
             "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
-          },
-          {
-            "keyword": "tengo",
-            "source": "local-token",
-            "visualizability": 2,
-            "reason": "TIMED_LOCAL_TOKEN"
+            "reason": "DIRECT_TIMED_LOCAL_TOKEN",
+            "temporalAlignment": "direct"
           }
         ]
       },
-      "selectedMetaphor": "direct-concrete-ellas",
+      "selectedMetaphor": "direct-concrete-contradictorias",
       "selectedCandidate": null,
       "visualMode": "editorial-text",
       "structure": "constelacion",
       "treatment": null,
       "reasons": [
-        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-ellas",
+        "DIRECT_CONCRETE_EVIDENCE:direct-concrete-contradictorias",
         "PROVIDER_NO_USABLE_RESULT"
       ],
       "warnings": [
@@ -3522,9 +3755,221 @@
         "code": null
       },
       "render": {
-        "outcome": "materialized",
-        "file": "materiales/visual/a94962be8dff.mp4",
-        "qcReport": null
+        "outcome": "qc-rejected",
+        "file": null,
+        "qcReport": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 55.85844421386719,
+                "top": 683.0877685546875,
+                "right": 484.1571502685547,
+                "bottom": 719.855224609375,
+                "width": 428.2987060546875,
+                "height": 36.7674560546875
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(22, 28, 38)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 1
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 26.999374389648438,
+                "top": 679.619384765625,
+                "right": 513.0162200927734,
+                "bottom": 721.3416748046875,
+                "width": 486.016845703125,
+                "height": 41.7222900390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(22, 28, 38)",
+              "textOverflow": true,
+              "maxLines": "2",
+              "visibleWords": 1
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 26.65625,
+                "top": 679.578125,
+                "right": 513.359375,
+                "bottom": 721.359375,
+                "width": 486.703125,
+                "height": 41.78125
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 1,
+              "textColor": "rgb(22, 28, 38)",
+              "textOverflow": true,
+              "maxLines": "2",
+              "visibleWords": 1
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 26.65625,
+                "top": 679.578125,
+                "right": 513.359375,
+                "bottom": 721.359375,
+                "width": 486.703125,
+                "height": 41.78125
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 1,
+              "textColor": "rgb(22, 28, 38)",
+              "textOverflow": true,
+              "maxLines": "2",
+              "visibleWords": 1
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 55.85844421386719,
+                "top": 683.0877685546875,
+                "right": 484.1571502685547,
+                "bottom": 719.855224609375,
+                "width": 428.2987060546875,
+                "height": 36.7674560546875
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(22, 28, 38)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 1
+            }
+          ],
+          "localTextContrast": 11.509456176500207,
+          "findings": [
+            {
+              "code": "VISUAL_QC_TEXT_BOUNDS",
+              "level": "error",
+              "message": "Texto fuera de la zona segura",
+              "normalizedTime": 0.2
+            },
+            {
+              "code": "VISUAL_QC_TEXT_OVERFLOW",
+              "level": "error",
+              "message": "Texto recortado o fuera del presupuesto V1",
+              "normalizedTime": 0.2
+            },
+            {
+              "code": "VISUAL_QC_TEXT_BOUNDS",
+              "level": "error",
+              "message": "Texto fuera de la zona segura",
+              "normalizedTime": 0.5
+            },
+            {
+              "code": "VISUAL_QC_TEXT_OVERFLOW",
+              "level": "error",
+              "message": "Texto recortado o fuera del presupuesto V1",
+              "normalizedTime": 0.5
+            },
+            {
+              "code": "VISUAL_QC_TEXT_BOUNDS",
+              "level": "error",
+              "message": "Texto fuera de la zona segura",
+              "normalizedTime": 0.8
+            },
+            {
+              "code": "VISUAL_QC_TEXT_OVERFLOW",
+              "level": "error",
+              "message": "Texto recortado o fuera del presupuesto V1",
+              "normalizedTime": 0.8
+            }
+          ]
+        }
       }
     }
   ]

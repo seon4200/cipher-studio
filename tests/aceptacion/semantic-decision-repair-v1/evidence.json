@@ -6,16 +6,14 @@
   "realProjectsUntouched": true,
   "actualGeneration": {
     "mockDeepSeekCalls": 1,
-    "diagnosticFile": "materiales/diagnostics/visual-decisions/visual-decisions-1788948481593-150dc3fe-105a-4d82-a025-dcb416219896.json",
+    "diagnosticFile": "materiales/diagnostics/visual-decisions/visual-decisions-1788954061082-d2a835a9-264e-4806-b709-e4eb9230ca74.json",
     "summary": {
       "requestedVisuals": 1,
-      "materializedVisuals": 0,
-      "qcRejectedVisuals": 1,
+      "materializedVisuals": 1,
+      "qcRejectedVisuals": 0,
       "resolverDegradedVisuals": 0,
-      "substitutedWithOriginal": 1,
-      "reasons": {
-        "VISUAL_QC_CONTRAST_LOCAL": 1
-      }
+      "substitutedWithOriginal": 0,
+      "reasons": {}
     },
     "sceneSpecIdentity": "a18ed7da9b5a56ee2c1f70656e4867b7db9a0850f2ae3d07797d92f81019fea3"
   },
@@ -23,9 +21,9 @@
     "attempted": 16,
     "diagnosticFile": "materiales/diagnostics/visual-decisions/forensic-qc-replay-v1.json",
     "qcCategories": {
-      "VISUAL_QC_CONTRAST_LOCAL": 6,
-      "VISUAL_QC_TEXT_BOUNDS": 8,
-      "VISUAL_QC_TEXT_OVERFLOW": 3
+      "VISUAL_QC_TEXT_BOUNDS": 17,
+      "VISUAL_QC_TEXT_OVERFLOW": 15,
+      "VISUAL_QC_CONTRAST_LOCAL": 5
     }
   },
   "reviewSheet": {
@@ -44,6 +42,7 @@
         "after": {
           "localText": "Para el Mundial de 2014 la FIFA le exige a Brasil construir estadios",
           "keyword": "estadio",
+          "keywordReason": "ANCHOR_CONCEPT_EVIDENCE",
           "provider": "openmoji",
           "candidate": "openmoji:1f3df",
           "visualMode": "asset-led",
@@ -73,6 +72,7 @@
         "after": {
           "localText": "vender chupé en los partidos y quien realmente le ganó al Mundial fue la FIFA. En 2018 Rusia",
           "keyword": "partidos",
+          "keywordReason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
           "provider": "openmoji",
           "candidate": "openmoji:1f3df",
           "visualMode": "asset-led",
@@ -100,6 +100,7 @@
         "after": {
           "localText": "fútbol no la fifa, no el país, el fútbol tiene ese poder y se",
           "keyword": "fútbol",
+          "keywordReason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
           "provider": "openmoji",
           "candidate": "openmoji:26bd",
           "visualMode": "asset-led",
@@ -127,6 +128,7 @@
         "after": {
           "localText": "los países donde se va a jugar y se ven aún más estando aquí. Todo esto en el aparte",
           "keyword": "obras",
+          "keywordReason": "CONCEPT_CONCRETE_EVIDENCE",
           "provider": "openmoji",
           "candidate": "openmoji:1f3d7",
           "visualMode": "asset-led",
@@ -156,6 +158,7 @@
         "after": {
           "localText": "la FIFA es su iglesia y la iglesia de pronto incurra en prácticas más",
           "keyword": "iglesia",
+          "keywordReason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
           "provider": "openmoji",
           "candidate": "openmoji:26ea",
           "visualMode": "asset-led",
@@ -182,7 +185,8 @@
         },
         "after": {
           "localText": "tiempo uno como religioso no deja de creer. Creo que esta analogía",
-          "keyword": "fe",
+          "keyword": "religioso",
+          "keywordReason": "DIRECT_TIMED_CONCEPT",
           "provider": "editorial-text",
           "candidate": "sin Hero",
           "visualMode": "editorial-text",
@@ -205,6 +209,7 @@
         "after": {
           "localText": "Un cabrón que hace par de años sufre un accidente con la cabeza que casi le cuesta",
           "keyword": "accidente",
+          "keywordReason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
           "provider": "editorial-text",
           "candidate": "sin Hero",
           "visualMode": "editorial-text",
@@ -231,7 +236,8 @@
         },
         "after": {
           "localText": "entre la emoción por una cosa y la indignación por la otra. Quizás este año",
-          "keyword": "emoción",
+          "keyword": "indignación",
+          "keywordReason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
           "provider": "editorial-text",
           "candidate": "sin Hero",
           "visualMode": "editorial-text",

@@ -22,7 +22,10 @@ por generación. El renderer, hash, canonización, QC, layout y
 `VERSION_PLANTILLAS=12` quedan intactos.
 
 Está comprobado técnicamente en un corpus de 22 escenas: 0 retornos nuevos a
-legacy por input y 13/15 oportunidades concretas con decisión/rechazo trazable.
+legacy por input y 14/14 oportunidades concretas con decisión/rechazo trazable.
+La corrección temporal vigente conserva `INDIGNACIÓN` cuando el transcript la
+alinea al subclip, sin elegir `EMOCIÓN` de la cláusula vecina. Sigue pendiente la
+segunda revisión humana.
 La hoja `tests/aceptacion/semantic-decision-repair-v1/contact-sheet-before-after.png`
 queda en `pending-human-review`. No crear tag ni mergear esta ronda hasta el
 veredicto de Jairo; 4B no se inicia.

@@ -7,8 +7,11 @@
 > hasta 360 caracteres, evita que una escena nueva vuelva a legacy por longitud
 > y persiste traza y report QC fuera de `project-state` y PixelIdentity. En su
 > corpus forense de 22 escenas: 0 caen a legacy por input, 0 ganadores
-> residuales, 11 decisiones OpenMoji y 11 editorial-text; 13/15 oportunidades
-> concretas se evalúan/materializan o rechazan con razón explícita (86,7 %).
+> residuales, 14 decisiones OpenMoji y 8 editorial-text; 14/14 oportunidades
+> concretas se evalúan/materializan o rechazan con razón explícita (100,0 %).
+> Una corrección temporal pendiente de segunda revisión conserva `INDIGNACIÓN`
+> cuando su intervalo contiene esa palabra, sin dejar que `EMOCIÓN`, vecina en
+> la misma cláusula, la desplace.
 > La hoja antes/después, con ocho escenas reales, está pendiente de juicio de
 > Jairo; no declara calidad visual ni cambia renderer, hash, QC, fondos,
 > estructuras, motion o `VERSION_PLANTILLAS=12`. La huella actual de 7

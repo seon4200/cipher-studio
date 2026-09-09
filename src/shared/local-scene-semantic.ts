@@ -13,12 +13,16 @@ export type LocalSceneTokenV1 = {
   start: number
   end: number
   confidence?: number
+  /** Intersects the scene's exact time range, rather than merely supplying nearby clause context. */
+  temporalAlignment: 'direct' | 'context'
 }
 
 export type LocalSceneConceptV1 = {
   label: string
   emoji?: string
   canonicalHint?: string
+  start?: number
+  end?: number
 }
 
 export type DirectConcreteEvidenceV1 = {
@@ -49,8 +53,15 @@ export type LocalSceneSemanticV1 = {
 export type NarrativeKeywordAlternativeV2 = {
   keyword: string
   visualizability: 0 | 1 | 2 | 3
-  source: 'anchor' | 'concept' | 'candidate' | 'local-token'
+  source: 'anchor' | 'concept' | 'candidate' | 'scene-keyword' | 'local-token'
   reason: string
+  temporalAlignment?: LocalSceneTokenV1['temporalAlignment']
+}
+
+/** Optional provenance supplied by the existing semantic subclip, never by global text. */
+export type NarrativeKeywordCandidateV2 = {
+  keyword: string
+  source?: 'scene-semantic' | 'legacy-timed' | 'context'
 }
 
 export type NarrativeKeywordSelectionV2 = {
@@ -73,7 +84,7 @@ export type CreateLocalSceneSemanticInputV1 = {
   globalContextRef?: unknown
 }
 
-type TimedWord = LocalSceneTokenV1 & { order: number }
+type TimedWord = Omit<LocalSceneTokenV1, 'temporalAlignment'> & { order: number }
 
 const MAX_CONCEPTS = 12
 const MAX_DIRECT_EVIDENCE = 24
@@ -147,11 +158,14 @@ function conceptFromUnknown(value: unknown): LocalSceneConceptV1 | null {
   const label = cleanText(value.etiqueta ?? value.label ?? value.name, 'concepto', 120)
   const canonicalHint = cleanText(value.canonicalHint ?? value.icono ?? value.hint, 'canonicalHint', 120)
   const emoji = cleanText(value.emoji, 'emoji', 32)
+  const start = typeof value.start === 'number' && Number.isFinite(value.start) ? value.start : undefined
+  const end = typeof value.end === 'number' && Number.isFinite(value.end) ? value.end : undefined
   if (!label && !canonicalHint) return null
   return {
     label: label ?? canonicalHint!,
     ...(emoji ? { emoji } : {}),
     ...(canonicalHint ? { canonicalHint } : {}),
+    ...(start !== undefined && end !== undefined && end >= start ? { start, end } : {}),
   }
 }
 
@@ -252,7 +266,13 @@ function localWindow(words: readonly TimedWord[], start: number, end: number): {
   let right = last
   while (left > 0 && first - left < CONTEXT_TOKEN_MARGIN && words[left - 1].end >= lower && !isBoundary(words[left - 1])) left--
   while (right + 1 < words.length && right - last < CONTEXT_TOKEN_MARGIN && words[right + 1].start <= upper && !isBoundary(words[right])) right++
-  const tokens = words.slice(left, right + 1).map(({ text, start, end, confidence }) => ({ text, start, end, ...(confidence === undefined ? {} : { confidence }) }))
+  const tokens = words.slice(left, right + 1).map(({ text, start: tokenStart, end: tokenEnd, confidence }) => ({
+    text,
+    start: tokenStart,
+    end: tokenEnd,
+    temporalAlignment: tokenEnd >= start && tokenStart <= end ? 'direct' as const : 'context' as const,
+    ...(confidence === undefined ? {} : { confidence }),
+  }))
   return boundedText(tokens)
 }
 
@@ -372,6 +392,42 @@ function isConcreteConcept(concept: LocalSceneConceptV1): boolean {
   return !!concept.emoji || !!concept.canonicalHint
 }
 
+type NormalizedKeywordCandidateV2 = {
+  keyword: string
+  source: NonNullable<NarrativeKeywordCandidateV2['source']>
+}
+
+function normalizeKeywordCandidateV2(value: unknown): NormalizedKeywordCandidateV2 | null {
+  if (typeof value === 'string') {
+    const keyword = cleanText(value, 'candidate.keyword', 120)
+    return keyword ? { keyword, source: 'context' } : null
+  }
+  if (!isRecord(value)) return null
+  const keyword = cleanText(value.keyword, 'candidate.keyword', 120)
+  if (!keyword) return null
+  const source = value.source === 'scene-semantic' || value.source === 'legacy-timed' || value.source === 'context'
+    ? value.source : 'context'
+  return { keyword, source }
+}
+
+function directTokenTerms(semantic: LocalSceneSemanticV1): Set<string> {
+  return new Set(semantic.localTokens
+    .filter(token => token.temporalAlignment === 'direct')
+    .map(token => canonicalNarrativeTerm(token.text))
+    .filter(Boolean))
+}
+
+function conceptIntersectsSceneWindow(
+  concept: LocalSceneConceptV1,
+  semantic: LocalSceneSemanticV1,
+  directTerms: ReadonlySet<string>,
+): boolean {
+  if (concept.start !== undefined && concept.end !== undefined)
+    return concept.end >= semantic.start && concept.start <= semantic.end
+  return directTerms.has(canonicalNarrativeTerm(concept.label)) ||
+    directTerms.has(canonicalNarrativeTerm(concept.canonicalHint))
+}
+
 /**
  * Chooses a local narrative keyword by visualizability and structured semantic evidence.
  * It intentionally rejects the former "longest illustrative token" heuristic.
@@ -382,28 +438,55 @@ export function selectNarrativeKeywordV2(
 ): NarrativeKeywordSelectionV2 {
   const alternatives: NarrativeKeywordAlternativeV2[] = []
   const localAlternatives: NarrativeKeywordAlternativeV2[] = []
-  const add = (keyword: unknown, source: NarrativeKeywordAlternativeV2['source'], score: 0 | 1 | 2 | 3, reason: string) => {
+  const sceneKeywordAlternatives: NarrativeKeywordAlternativeV2[] = []
+  const directConceptAlternatives: NarrativeKeywordAlternativeV2[] = []
+  const directTerms = directTokenTerms(semantic)
+  const add = (
+    keyword: unknown,
+    source: NarrativeKeywordAlternativeV2['source'],
+    score: 0 | 1 | 2 | 3,
+    reason: string,
+    temporalAlignment?: LocalSceneTokenV1['temporalAlignment'],
+  ) => {
     const clean = cleanText(keyword, 'keyword', 120)
     if (!clean) return
-    const entry = { keyword: clean, source, visualizability: score, reason }
+    const entry = { keyword: clean, source, visualizability: score, reason,
+      ...(temporalAlignment ? { temporalAlignment } : {}) }
     alternatives.push(entry)
     if (source === 'local-token') localAlternatives.push(entry)
+    if (source === 'scene-keyword') sceneKeywordAlternatives.push(entry)
+    if (source === 'concept' && reason === 'DIRECT_TIMED_CONCEPT') directConceptAlternatives.push(entry)
   }
   if (semantic.anchor) {
     const matching = semantic.concepts.find(concept => canonicalNarrativeTerm(concept.label) === canonicalNarrativeTerm(semantic.anchor))
     add(semantic.anchor, 'anchor', matching && isConcreteConcept(matching) ? 3 : 2,
-      matching ? 'ANCHOR_CONCEPT_EVIDENCE' : 'STRUCTURED_ANCHOR')
+      matching && conceptIntersectsSceneWindow(matching, semantic, directTerms)
+        ? 'DIRECT_TIMED_ANCHOR' : (matching ? 'ANCHOR_CONCEPT_EVIDENCE' : 'STRUCTURED_ANCHOR'),
+      directTerms.has(canonicalNarrativeTerm(semantic.anchor)) ? 'direct' : undefined)
   }
   for (const concept of semantic.concepts) {
+    const direct = conceptIntersectsSceneWindow(concept, semantic, directTerms)
     add(concept.label, 'concept', isConcreteConcept(concept) ? 3 : visualizability(concept.label),
-      isConcreteConcept(concept) ? 'CONCEPT_CONCRETE_EVIDENCE' : 'CONCEPT_LABEL')
+      direct ? 'DIRECT_TIMED_CONCEPT' : (isConcreteConcept(concept) ? 'CONCEPT_CONCRETE_EVIDENCE' : 'CONCEPT_LABEL'),
+      direct ? 'direct' : undefined)
   }
-  for (const candidate of candidates) add(candidate, 'candidate', visualizability(String(candidate ?? '')), 'EXISTING_KEYWORD_CANDIDATE')
-  for (const token of semantic.localTokens) add(token.text, 'local-token', localTokenScore(token), 'TIMED_LOCAL_TOKEN')
+  for (const rawCandidate of candidates) {
+    const candidate = normalizeKeywordCandidateV2(rawCandidate)
+    if (!candidate) continue
+    const direct = directTerms.has(canonicalNarrativeTerm(candidate.keyword))
+    const sceneKeyword = candidate.source === 'scene-semantic' && direct
+    add(candidate.keyword, sceneKeyword ? 'scene-keyword' : 'candidate', visualizability(candidate.keyword),
+      sceneKeyword ? 'SCENE_KEYWORD_DIRECT_TIMED_MATCH' : 'EXISTING_KEYWORD_CANDIDATE',
+      direct ? 'direct' : undefined)
+  }
+  for (const token of semantic.localTokens)
+    add(token.text, 'local-token', localTokenScore(token),
+      token.temporalAlignment === 'direct' ? 'DIRECT_TIMED_LOCAL_TOKEN' : 'IMMEDIATE_CONTEXT_TOKEN',
+      token.temporalAlignment)
   if (!alternatives.length) add('escena', 'local-token', 0, 'NO_LOCAL_TOKEN')
   const deduped = new Map<string, NarrativeKeywordAlternativeV2>()
   const sourcePriority: Record<NarrativeKeywordAlternativeV2['source'], number> = {
-    'local-token': 0, anchor: 1, concept: 2, candidate: 3,
+    'scene-keyword': 0, 'local-token': 1, anchor: 2, concept: 3, candidate: 4,
   }
   for (const alternative of alternatives) {
     const key = canonicalNarrativeTerm(alternative.keyword)
@@ -416,12 +499,24 @@ export function selectNarrativeKeywordV2(
   const ordered = [...deduped.values()].sort((a, b) => b.visualizability - a.visualizability ||
     sourcePriority[a.source] - sourcePriority[b.source] ||
     canonicalNarrativeTerm(a.keyword).localeCompare(canonicalNarrativeTerm(b.keyword), 'es'))
-  // The local timed span is the primary authority. A concrete old concept is useful only when
-  // the span itself has no visualizable subject; otherwise a paragraph-level semantic label can
-  // leak from an adjacent subclip and overwrite the scene being rendered.
-  const localWinner = localAlternatives.filter(candidate => candidate.visualizability >= 2)
+  const strongest = (values: readonly NarrativeKeywordAlternativeV2[]) => values
+    .filter(candidate => candidate.visualizability >= 2)
+    // `values` retains the transcript/concept order supplied by the caller. Preserve that
+    // deterministic temporal order for equal scores instead of inventing an alphabetical one.
     .sort((a, b) => b.visualizability - a.visualizability)[0]
-  const winner = localWinner ?? ordered[0]
+  // A scene semantic keyword breaks a tie only when it is also literally present in the exact
+  // timed range. This prevents an earlier direct neighbour from winning a broad visual window,
+  // without allowing an old/global candidate to override local transcript evidence.
+  const directSceneKeyword = strongest(sceneKeywordAlternatives)
+  const directConcept = strongest(directConceptAlternatives)
+  const directLocalToken = strongest(localAlternatives.filter(candidate => candidate.temporalAlignment === 'direct'))
+  const directAnchor = strongest(alternatives.filter(candidate =>
+    candidate.source === 'anchor' && candidate.temporalAlignment === 'direct'))
+  const associatedStructure = strongest(alternatives.filter(candidate =>
+    (candidate.source === 'anchor' || candidate.source === 'concept') && candidate.temporalAlignment !== 'direct'))
+  const immediateContext = strongest(localAlternatives.filter(candidate => candidate.temporalAlignment === 'context'))
+  const ordinaryCandidate = strongest(alternatives.filter(candidate => candidate.source === 'candidate'))
+  const winner = directSceneKeyword ?? directConcept ?? directLocalToken ?? directAnchor ?? associatedStructure ?? immediateContext ?? ordinaryCandidate ?? ordered[0]
   const confidence = winner.visualizability >= 3 ? 'high' : winner.visualizability === 2 ? 'medium' : 'low'
   return {
     keyword: winner.keyword,
