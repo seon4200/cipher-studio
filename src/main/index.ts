@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import { spawn, exec } from 'child_process'
 import { once } from 'events'
-import { createHash } from 'crypto'
+import { createHash, randomUUID } from 'crypto'
 import fs from 'fs'
 import { createProjectFiles, loadProjectFile, saveProjectFile } from './services/project-persistence'
 // Tests exercise the real compiled consumers, never copies of migration or IO.
@@ -17,15 +17,20 @@ export * from './assets/openmoji/publish'
 // before hashing/rendering. It never runs inside the renderer.
 export * from '../shared/asset-intent'
 export * from './assets/asset-resolver'
+export * from '../shared/local-scene-semantic'
+export * from './assets/semantic-decision'
+export * from './services/visual-decision-diagnostics'
 // Productive Visual MVP: the shared scene projection is the single authority for both the
 // file hash and the React tree; filesystem bindings remain a separate main-process concern.
 export * from '../shared/visual-scene-spec'
 export * from './assets/visual-render'
 import { sceneSpecFromGraphicData, sceneSpecPixelIdentity, type RenderBindingsV1 } from '../shared/visual-scene-spec'
-import { createAssetIntentV1 } from '../shared/asset-intent'
-import { createResolverSessionV1, resolveAndCompileVisualSceneV1 } from './assets/asset-resolver'
+import { createLocalSceneSemanticV1, selectNarrativeKeywordV2 } from '../shared/local-scene-semantic'
+import { createResolverSessionV1 } from './assets/asset-resolver'
+import { resolveLocalSemanticVisualSceneV1 } from './assets/semantic-decision'
+import { writeVisualDecisionDiagnostic } from './services/visual-decision-diagnostics'
 import { prepareGraphicForVisualRender, visualRenderRoot } from './assets/visual-render'
-import { runVisualRuntimeQc } from './assets/visual-qc'
+import { runVisualRuntimeQc, VisualRuntimeQcError, type VisualRuntimeQcReport } from './assets/visual-qc'
 export * from './assets/visual-qc'
 import { pathToFileURL } from 'url'
 import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, getVideoDimensions } from './services/ffmpeg'
@@ -1330,6 +1335,8 @@ export async function renderGraphicClip(
     projectRoot?: string;
     /** Locator-only bindings. Never included in hashGrafico or graphicData. */
     renderBindings?: RenderBindingsV1;
+    /** Diagnostics only: a QC rejection remains a rejected render and never changes pixels. */
+    onQcFailure?: (report: VisualRuntimeQcReport) => void | Promise<void>;
   } = {}
 ): Promise<string | null> {
   const ancho = opciones.ancho ?? 1080;
@@ -1586,6 +1593,13 @@ export async function renderGraphicClip(
 
   } catch (e: any) {
     // Se pierde ESTE grafico, no el export. Y se dice por que.
+    if (e instanceof VisualRuntimeQcError && opciones.onQcFailure) {
+      try {
+        await opciones.onQcFailure(e.report);
+      } catch (diagnosticError: any) {
+        await writeDebugLog(`[GRAFICO] No se pudo persistir diagnóstico QC: ${diagnosticError?.message ?? diagnosticError}`);
+      }
+    }
     await writeDebugLog(`[GRAFICO] FALLO (${graphicDataEfectivo?.type}): ${e.message}`);
     try { ff?.kill(); } catch {}
     try { await fs.promises.unlink(destino); } catch {}
@@ -1601,12 +1615,14 @@ export async function renderGraphicClip(
  * La PIEZA 3 necesita saber CUAL falto para poder decir "esperaba 19, compuse 17".
  */
 export async function renderGraphicClipsLote(
-  peticiones: { graphicData: any; duracion?: number; projectRoot?: string; renderBindings?: RenderBindingsV1 }[],
+  peticiones: { graphicData: any; duracion?: number; projectRoot?: string; renderBindings?: RenderBindingsV1;
+    diagnosticSceneId?: string }[],
   opciones: { aspectRatio?: string; resolution?: string;
               fps?: number; modo?: 'overlay' | 'pantalla';
               // Sin esto, un lote de Visuales los renderizaria TODOS con el sistema por
               // defecto y el usuario no podria elegir el color. Estaba anotado como pendiente.
-              sistema?: string } = {},
+              sistema?: string;
+              onQcFailure?: (context: { index: number; sceneId?: string; hash: string }, report: VisualRuntimeQcReport) => void | Promise<void> } = {},
   emitirProgreso?: (p: { index: number; total: number; paragraph: string; type: string }) => void
 ) {
   // El lote no sabe de pixeles: recibe lo mismo que el export —formato y resolucion, que el
@@ -1640,6 +1656,7 @@ export async function renderGraphicClipsLote(
   const proyectoDelLote = activeProjectPath;
 
   const rutas: (string | null)[] = new Array(total).fill(null);
+  const hashes: (string | null)[] = new Array(total).fill(null);
   let aciertos = 0, renderizados = 0, fallos = 0, intentados = 0;
   let cancelado = false, motivo = '';
 
@@ -1670,6 +1687,7 @@ export async function renderGraphicClipsLote(
       const hash = hashGrafico(peticiones[i].graphicData, ancho, alto, duracion, fps, modo,
         (SISTEMAS_VALIDOS as readonly string[]).includes(opciones.sistema ?? '')
           ? opciones.sistema as NombreSistema : 'voltaje');
+      hashes[i] = hash;
       let cacheado = false;
       try {
         // dirDeModo y no dirCache: un lote en modo pantalla buscaria los .mp4 en cache y
@@ -1699,6 +1717,7 @@ export async function renderGraphicClipsLote(
           ancho, alto, fps, duracion, modo, sistema: opciones.sistema,
           projectRoot: peticiones[i].projectRoot,
           renderBindings: peticiones[i].renderBindings,
+          onQcFailure: report => opciones.onQcFailure?.({ index: i, sceneId: peticiones[i].diagnosticSceneId, hash }, report),
         });
 
       rutas[i] = ruta;                      // POSICIONAL: el hueco se queda en su sitio
@@ -1726,7 +1745,7 @@ export async function renderGraphicClipsLote(
     ` — ${((Date.now() - t0) / 1000).toFixed(1)}s` +
     (cancelado ? ` — CANCELADO: ${motivo}` : ''));
 
-  return { rutas, total, renderizados, aciertos, fallos, sinIntentar, cancelado, motivo };
+  return { rutas, hashes, total, renderizados, aciertos, fallos, sinIntentar, cancelado, motivo };
 }
 
 ipcMain.handle('render-graphics-batch', async (event,
@@ -4804,126 +4823,97 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     const COMPOSICION_VISUAL = 'visual_escena';
     const visuales = clipsDecision.filter((c: any) => c.type === 'visual');
     if (visuales.length) {
-      // La palabra se elige AQUI y no en el componente: entra en graphicData y por tanto en la
-      // CLAVE DEL HASH, asi que dos Visuales con la misma palabra comparten fichero.
+      // La unidad semántica del Visual es su ventana temporal real, no el párrafo completo.
+      // `newAudioSegments` puede haberse fusionado para duración; `transcriptSegments` conserva
+      // las palabras/timestamps originales y es la autoridad para localizar el subclip.
+      const transcriptForLocalSemantics = Array.isArray(transcriptSegments) && transcriptSegments.length
+        ? transcriptSegments : newAudioSegments;
       const conPalabra = visuales.map((item: any) => {
         const seg = newAudioSegments[item.phraseIndex];
         const dur = seg ? (seg.end - seg.start) : 0;
         const n = dur > 4.0 ? Math.ceil(dur / 3.0) : 1;
         const ini = seg ? seg.start + dur * item.clipIndexInPhrase / n : 0;
         const fin = seg ? seg.start + dur * (item.clipIndexInPhrase + 1) / n : 0;
+        const pos = `${item.phraseIndex}:${item.clipIndexInPhrase}`;
+        const legacyKeywordCandidate = seg ? palabraIlustrableDelTramo(seg.words, ini, fin) : null;
+        const localSemantic = createLocalSceneSemanticV1({
+          sceneId: `visual-${pos}`,
+          start: ini,
+          end: fin,
+          transcriptSegments: transcriptForLocalSemantics,
+          concepts: item.conceptos ?? [],
+          anchor: item.ancla ?? undefined,
+          relation: item.relacion ?? undefined,
+          globalText: seg?.text ?? '',
+          globalHints: [item.keyword, item.prompt].filter((value): value is string => typeof value === 'string'),
+          globalContextRef: `phrase:${item.phraseIndex}`,
+        });
+        const keywordSelection = selectNarrativeKeywordV2(localSemantic, [legacyKeywordCandidate, item.keyword]);
         return {
           item,
           frase: seg?.text ?? '',
-          palabra: seg ? palabraIlustrableDelTramo(seg.words, ini, fin) : null
+          pos,
+          localSemantic,
+          keywordSelection,
         };
       });
 
-      // Sin palabra con significado en su tramo —menos del 1%, medido— el Visual se DESCARTA y
-      // su hueco cae a 'original'. No se inventa una palabra ni se amplia la ventana: ampliarla
-      // pintaria algo que no suena en ese momento.
-      const sinPalabra = conPalabra.filter(x => !x.palabra);
-      // EL ORIGEN PEDIDO Y EL MOTIVO SE GUARDAN ANTES DE REASIGNAR, y esto es lo que hace que
-      // el resumen no mienta. `type` se muta EN EL SITIO en los seis caminos de respaldo, asi
-      // que al final un Visual caido es indistinguible de un 'original' legitimo: el 25/8 los
-      // clips de stock y los Visuales perdidos habrian salido como 'original' correcto y el
-      // resumen habria dicho que todo cuadraba, igual que dijo la app.
-      //
-      // `??=` Y NO `=`: si un clip cae dos veces, el origen de verdad es el PRIMERO. Con `=` el
-      // segundo lo pisaria y el resumen contaria una caida de stock donde hubo una de Visual.
-      //
-      // ESTOS CAMPOS NO ENTRAN EN NINGUN HASH: `graphicData` se construye con claves EXPLICITAS
-      // y nadie esparce el item. `extra` se construye aparte con pos, conceptos y direccion.
-      for (const x of sinPalabra) {
-        x.item.origenPedido ??= x.item.type;
-        x.item.motivoRespaldo ??= 'visual-sin-palabra';
-        x.item.type = 'original';
-      }
-      if (sinPalabra.length) {
-        await logMessage(`[FASE 3] ${sinPalabra.length} de ${visuales.length} Visuales sin ` +
-          `palabra con significado en su tramo: pasan a original.`);
-      }
-
-      const aRenderizar = conPalabra.filter(x => !!x.palabra);
+      // Una palabra incierta no vuelve al pipeline legacy ni al original por omisión. La
+      // selección V2 la deja como low-confidence y el compilador materializa editorial-text.
+      const aRenderizar = conPalabra;
       if (aRenderizar.length) {
         // All semantic work completes before hashing/rendering. Renderer gets only the
         // materialized SceneSpec and its locator-only bindings; its trace remains diagnostic.
         const resolverSession = createResolverSessionV1();
         const solicitudesGraficas = aRenderizar.map(x => {
-          const value = recortarTexto(x.palabra);
-          const pos = `${x.item.phraseIndex}:${x.item.clipIndexInPhrase}`;
+          const value = recortarTexto(x.keywordSelection.keyword);
+          const pos = x.pos;
           const semilla = semillaVisual(value, pos);
           const direccion = x.item.relacion
             ? direccionParaRelacion(semilla, x.item.relacion,
               { texto: value, frase: x.frase, conceptos: x.item.conceptos ?? [] })
             : direccionDe(semilla,
               { texto: value, frase: x.frase, conceptos: x.item.conceptos ?? [] });
-          const legacyGraphicData = {
-            type: COMPOSICION_VISUAL,
-            value,
-            extra: {
-              pos,
-              semilla,
-              conceptos: x.item.conceptos ?? null,
-              ancla: x.item.ancla ?? null,
-              relacion: x.item.relacion ?? null,
-              direccion,
-            },
-          };
-          try {
-            const intent = createAssetIntentV1({
-              sceneId: `visual-${pos}`,
-              phrase: x.frase || undefined,
-              keyword: value,
-              concepts: x.item.conceptos ?? [],
-              relation: x.item.relacion ?? undefined,
-              anchor: x.item.ancla ?? undefined,
-              searchTerms: [x.item.ancla, ...(x.item.conceptos ?? [])],
-              preferredVisualMode: x.item.sinVisual ? 'editorial-text' : 'auto',
-            });
-            const resolved = resolveAndCompileVisualSceneV1({
-              intent,
-              projectRoot: PROYECTO_VISUAL ?? undefined,
-              sistema: SISTEMA_VISUAL,
-                direction: { ...direccion, semilla },
-              session: resolverSession,
-            });
-            for (const alert of resolved.decision.alerts) {
-              avisar({
-                severidad: alert.severity === 'warning' ? 'aviso' : 'info',
-                codigo: alert.code,
-                origen: 'asset-resolver',
-                mensaje: alert.message,
-                detalle: `scene=${intent.sceneId}`,
-              });
-            }
-            return {
-              graphicData: resolved.compiled.graphicData,
-              renderBindings: resolved.compiled.renderBindings,
-              projectRoot: PROYECTO_VISUAL ?? undefined,
-              resolverTrace: resolved.trace,
-              duracion: x.item.duration,
-            };
-          } catch (error: any) {
-            // Normal no-metaphor/provider failures already produced editorial SceneSpecs. This
-            // last guard exists only for an unexpected internal error and is explicitly visible.
+          const resolved = resolveLocalSemanticVisualSceneV1({
+            localSemantic: x.localSemantic,
+            keywordCandidates: x.keywordSelection.alternatives.map((alternative: any) => alternative.keyword),
+            preferredVisualMode: x.item.sinVisual ? 'editorial-text' : 'auto',
+            projectRoot: PROYECTO_VISUAL ?? undefined,
+            sistema: SISTEMA_VISUAL,
+            direction: { ...direccion, semilla },
+            session: resolverSession,
+          });
+          if (resolved.compiled.graphicData.type !== COMPOSICION_VISUAL)
+            throw new Error('El compilador semántico produjo una composición visual no autorizada');
+          for (const alert of resolved.decision.alerts) {
             avisar({
-              severidad: 'aviso',
-              codigo: 'RESOLVER_DEGRADED',
+              severidad: alert.severity === 'warning' ? 'aviso' : 'info',
+              codigo: alert.code,
               origen: 'asset-resolver',
-              mensaje: 'El resolver visual no pudo materializar esta escena; se conserva el Visual legacy.',
-              detalle: `scene=visual-${pos} code=${error?.code ?? 'UNKNOWN'}`,
+              mensaje: alert.message,
+              detalle: `scene=${resolved.decision.sceneId}`,
             });
-            return {
-              graphicData: legacyGraphicData,
-              projectRoot: PROYECTO_VISUAL ?? undefined,
-              duracion: x.item.duration,
-            };
           }
+          return {
+            graphicData: resolved.compiled.graphicData,
+            renderBindings: resolved.compiled.renderBindings,
+            projectRoot: PROYECTO_VISUAL ?? undefined,
+            diagnosticSceneId: resolved.decision.sceneId,
+            resolverTrace: resolved.trace,
+            localSemantic: resolved.localSemantic,
+            keywordSelection: resolved.keywordSelection,
+            resolverDecision: resolved.decision,
+            inputFallback: resolved.inputFallback,
+            duracion: x.item.duration,
+          };
         });
+        const qcReports = new Map<number, { hash: string; report: VisualRuntimeQcReport }>();
         const resVis = await renderGraphicClipsLote(
           solicitudesGraficas,
-          { aspectRatio, fps: 30, modo: 'pantalla', sistema: SISTEMA_VISUAL },
+          {
+            aspectRatio, fps: 30, modo: 'pantalla', sistema: SISTEMA_VISUAL,
+            onQcFailure: ({ index, hash }, report) => { qcReports.set(index, { hash, report }); },
+          },
           (p) => event.sender.send('generation-progress',
             { index: p.index, total: p.total, paragraph: p.paragraph, type: 'Visual' })
         );
@@ -4932,15 +4922,71 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         // results[index-1] SOLO si el fichero existe. Si no, el hueco se queda y FASE 4 lo
         // rellena duplicando el vecino — un plano repetido, no un clip sin fichero que rompa
         // la aritmetica de frames y se coma el audio por el -shortest del mux.
+        const diagnosticScenes: any[] = [];
+        const diagnosticReasons = new Map<string, number>();
+        let materializedVisuals = 0;
+        let qcRejectedVisuals = 0;
+        let resolverDegradedVisuals = 0;
+        let substitutedWithOriginal = 0;
+        const countDiagnosticReason = (reason: string) =>
+          diagnosticReasons.set(reason, (diagnosticReasons.get(reason) ?? 0) + 1);
         for (let i = 0; i < aRenderizar.length; i++) {
           const ruta = resVis.rutas?.[i];
           const item = aRenderizar[i].item;
+          const request = solicitudesGraficas[i];
+          const qc = qcReports.get(i);
+          const spec = sceneSpecFromGraphicData(request.graphicData);
+          const sceneSpecIdentity = spec
+            ? createHash('sha256').update(sceneSpecPixelIdentity(spec)).digest('hex') : null;
+          const degraded = request.inputFallback.used ||
+            request.resolverDecision.alerts.some((alert: any) => alert.code === 'RESOLVER_DEGRADED');
+          if (degraded) resolverDegradedVisuals++;
           if (!ruta || !(await exists(ruta))) {
             item.origenPedido ??= item.type;
-            item.motivoRespaldo ??= 'visual-sin-fichero';
+            item.motivoRespaldo ??= qc ? 'visual-qc-rechazado' : 'visual-sin-fichero';
             item.type = 'original';
+            substitutedWithOriginal++;
+            if (qc) {
+              qcRejectedVisuals++;
+              for (const finding of qc.report.findings) countDiagnosticReason(finding.code);
+            } else {
+              countDiagnosticReason(item.motivoRespaldo);
+            }
+            diagnosticScenes.push({
+              sceneId: request.diagnosticSceneId,
+              localSemantic: {
+                start: request.localSemantic.start,
+                end: request.localSemantic.end,
+                localText: request.localSemantic.localText,
+                localTokens: request.localSemantic.localTokens,
+                concepts: request.localSemantic.concepts,
+                ...(request.localSemantic.globalContextRef ? { globalContextRef: request.localSemantic.globalContextRef } : {}),
+                globalTextLength: request.localSemantic.globalText?.length ?? 0,
+                globalHints: request.localSemantic.globalHints,
+              },
+              keyword: request.keywordSelection,
+              metaphorCandidates: request.resolverTrace.metaphorCandidates,
+              selectedMetaphor: request.resolverTrace.selectedMetaphor,
+              providerCandidates: request.resolverTrace.providerCandidates,
+              selectedCandidate: request.resolverTrace.selectedCandidate,
+              visualMode: request.resolverDecision.visualMode,
+              treatment: request.resolverTrace.treatment,
+              structure: request.resolverTrace.structure,
+              fallback: request.resolverTrace.fallback,
+              reasons: request.resolverTrace.reasons,
+              warnings: request.resolverDecision.alerts,
+              inputFallback: request.inputFallback,
+              sceneSpecIdentity,
+              render: {
+                outcome: qc ? 'qc-rejected' : 'render-failed',
+                hash: qc?.hash ?? resVis.hashes?.[i] ?? null,
+                ...(qc ? { qcReport: qc.report } : {}),
+                substitutedWithOriginal: true,
+              },
+            });
             continue;
           }
+          materializedVisuals++;
           const durReal = await getVideoDuration(ruta);
           const id = `visual-${item.index}`;
           trazasGraficos.push({ id, graphicData: solicitudesGraficas[i].graphicData,
@@ -4958,6 +5004,65 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             category: 'visual',
             thumbnailUrl: ''
           };
+          diagnosticScenes.push({
+            sceneId: request.diagnosticSceneId,
+            localSemantic: {
+              start: request.localSemantic.start,
+              end: request.localSemantic.end,
+              localText: request.localSemantic.localText,
+              localTokens: request.localSemantic.localTokens,
+              concepts: request.localSemantic.concepts,
+              ...(request.localSemantic.globalContextRef ? { globalContextRef: request.localSemantic.globalContextRef } : {}),
+              globalTextLength: request.localSemantic.globalText?.length ?? 0,
+              globalHints: request.localSemantic.globalHints,
+            },
+            keyword: request.keywordSelection,
+            metaphorCandidates: request.resolverTrace.metaphorCandidates,
+            selectedMetaphor: request.resolverTrace.selectedMetaphor,
+            providerCandidates: request.resolverTrace.providerCandidates,
+            selectedCandidate: request.resolverTrace.selectedCandidate,
+            visualMode: request.resolverDecision.visualMode,
+            treatment: request.resolverTrace.treatment,
+            structure: request.resolverTrace.structure,
+            fallback: request.resolverTrace.fallback,
+            reasons: request.resolverTrace.reasons,
+            warnings: request.resolverDecision.alerts,
+            inputFallback: request.inputFallback,
+            sceneSpecIdentity,
+            render: {
+              outcome: 'materialized',
+              hash: resVis.hashes?.[i] ?? null,
+              durationSeconds: durReal,
+              substitutedWithOriginal: false,
+            },
+          });
+        }
+        if (PROYECTO_VISUAL) {
+          const generationId = `visual-decisions-${Date.now()}-${randomUUID()}`;
+          try {
+            const diagnostic = writeVisualDecisionDiagnostic(PROYECTO_VISUAL, {
+              diagnosticVersion: 1,
+              generationId,
+              createdAt: new Date().toISOString(),
+              summary: {
+                requestedVisuals: aRenderizar.length,
+                materializedVisuals,
+                qcRejectedVisuals,
+                resolverDegradedVisuals,
+                substitutedWithOriginal,
+                reasons: Object.fromEntries([...diagnosticReasons.entries()].sort(([a], [b]) => a.localeCompare(b, 'en'))),
+              },
+              scenes: diagnosticScenes,
+            });
+            await logMessage(`[FASE 3] Diagnóstico visual persistido: ${diagnostic.relativeFile} (${diagnostic.sha256.slice(0, 12)}).`);
+          } catch (diagnosticError: any) {
+            avisar({
+              severidad: 'aviso', codigo: 'RESOLVER_DEGRADED', origen: 'asset-resolver',
+              mensaje: 'No se pudo persistir el diagnóstico de decisiones visuales.',
+              detalle: diagnosticError?.code ?? diagnosticError?.message ?? 'UNKNOWN',
+            });
+            await logMessage(`[FASE 3] Diagnóstico visual no persistido: ${diagnosticError?.code ?? diagnosticError?.message ?? diagnosticError}`);
+          }
         }
         await logMessage(`[FASE 3] Visuales: ${aRenderizar.length} pedidos, ` +
           `${resVis.renderizados} renderizados, ${resVis.aciertos} de cache, ` +

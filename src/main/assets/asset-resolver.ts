@@ -5,6 +5,7 @@ import {
   type AssetIntentInputV1,
   type AssetIntentV1,
 } from '../../shared/asset-intent'
+import type { DirectConcreteEvidenceV1, LocalSceneSemanticV1 } from '../../shared/local-scene-semantic'
 import type { ProjectAssetRecord } from '../../shared/project-state'
 import {
   VISUAL_MVP_STRUCTURES,
@@ -57,9 +58,11 @@ export type MetaphorCandidateV1 = {
   kind: 'simple-icon' | 'complex-illustration'
   score: 2 | 3
   openmojiQuery: string
-  expectedStableId: string
+  expectedStableId?: string
   solarName?: string
   preferProvider: 'openmoji' | 'solar'
+  /** Local semantic evidence is diagnostic/scoring input only; it never reaches RenderSpec. */
+  directEvidence?: readonly DirectConcreteEvidenceV1[]
 }
 
 export type ResolverProviderCandidateV1 = {
@@ -85,6 +88,15 @@ export type ResolverTraceV1 = {
   reuse: { allowedByContinuity: boolean; reusedProjectAsset: boolean; reason: string | null }
   fallback: string | null
   reasons: string[]
+  localContext?: {
+    start: number
+    end: number
+    localText: string
+    globalContextRef?: string
+    globalTextLength: number
+    globalHints: string[]
+    directEvidence: DirectConcreteEvidenceV1[]
+  }
 }
 
 export type ResolvedHeroV1 =
@@ -157,6 +169,8 @@ export type ResolverSessionV1 = {
 
 export type ResolveSceneInputV1 = {
   intent: AssetIntentV1
+  /** Bounded timestamp-local context. Its global text is retained only for diagnostics. */
+  localSemantic?: LocalSceneSemanticV1
   /** Required only if an OpenMoji candidate must be reused or materialized. Never defaults to cwd. */
   projectRoot?: unknown
   sistema: NombreSistema
@@ -187,6 +201,28 @@ function fail(code: string, message: string, details: Record<string, unknown> = 
  * category rules, not scene IDs or a lookup of the human 42-scene decisions.
  */
 const METAPHOR_RULES: ReadonlyArray<MetaphorCandidateV1 & { terms: readonly string[] }> = [
+  // Concrete category rules are deliberately semantic categories, never forensic scene IDs.
+  // They cover vocabulary that is already present in production narration even when its
+  // historical Solar hint was a generic star/settings glyph.
+  { id: 'football-soccer-ball', label: 'fútbol → balón', family: 'icon-monochrome', kind: 'simple-icon', score: 3,
+    terms: ['futbol', 'fútbol', 'balon', 'balón', 'soccer'],
+    openmojiQuery: 'soccer ball', expectedStableId: 'openmoji:26bd', preferProvider: 'openmoji' },
+  { id: 'stadium', label: 'estadio → estadio', family: 'flat-illustration', kind: 'complex-illustration', score: 3,
+    terms: ['estadio', 'estadios'], openmojiQuery: 'stadium', expectedStableId: 'openmoji:1f3df', preferProvider: 'openmoji' },
+  { id: 'construction', label: 'construcción → obra', family: 'flat-illustration', kind: 'complex-illustration', score: 3,
+    terms: ['construir', 'construccion', 'construcción', 'obras'],
+    openmojiQuery: 'building construction', expectedStableId: 'openmoji:1f3d7', preferProvider: 'openmoji' },
+  { id: 'construction-worker', label: 'trabajadores → obrero', family: 'flat-illustration', kind: 'complex-illustration', score: 3,
+    terms: ['trabajador', 'trabajadores', 'obrero', 'obreros'],
+    openmojiQuery: 'construction worker', expectedStableId: 'openmoji:1f477', preferProvider: 'openmoji' },
+  { id: 'beer-mug', label: 'cerveza → tarro', family: 'icon-monochrome', kind: 'simple-icon', score: 3,
+    terms: ['cerveza', 'alcohol', 'beer'], openmojiQuery: 'beer mug', expectedStableId: 'openmoji:1f37a', preferProvider: 'openmoji' },
+  { id: 'protest-flag', label: 'protesta → bandera', family: 'icon-monochrome', kind: 'simple-icon', score: 2,
+    terms: ['protesta', 'protestas', 'manifestacion', 'manifestación'],
+    openmojiQuery: 'triangular flag', expectedStableId: 'openmoji:1f6a9', preferProvider: 'openmoji' },
+  { id: 'mexico-flag', label: 'México → bandera', family: 'icon-monochrome', kind: 'simple-icon', score: 3,
+    terms: ['mexico', 'méxico', 'mexicanos'],
+    openmojiQuery: 'flag mexico', expectedStableId: 'openmoji:1f1f2-1f1fd', preferProvider: 'openmoji' },
   { id: 'birthday-cake', label: 'cumpleaños → pastel', family: 'icon-monochrome', kind: 'simple-icon', score: 3,
     terms: ['cumpleanos', 'cumpleaños', 'birthday', 'pastel', 'torta', 'cake'],
     openmojiQuery: 'birthday cake', expectedStableId: 'openmoji:1f382', preferProvider: 'openmoji' },
@@ -257,15 +293,30 @@ const ABSTRACT_PROCESS_TERMS = [
   'termodinam', 'caos', 'sincroniz', 'oscilador', 'requer', 'caida', 'proceso', 'relacion',
 ]
 
-function narrativeWords(intent: AssetIntentV1, includeConcepts = true): string {
-  const values = [intent.phrase, intent.keyword, intent.anchor, intent.relation,
+// Only deliberate linguistic stems can use prefix matching. Generic words such as `persona`
+// must remain whole words: otherwise `personal` becomes a human-scene veto by accident.
+const CONTROLLED_STEM_TERMS = new Set(['termodinam', 'sincroniz', 'desincron', 'requer'])
+const GENERIC_HUMAN_EVIDENCE = new Set([
+  'persona', 'personas', 'gente', 'hombre', 'mujer', 'religioso', 'multitud', 'aficion',
+  'person', 'people', 'crowd', 'human',
+])
+// These are narrative events/conditions, not visual entities. An upstream generic icon (for
+// example, shield for an accident) may be evaluated but cannot become a strong Hero solely by
+// exact emoji equality.
+const NON_ENTITY_EVIDENCE = new Set([
+  'accidente', 'problema', 'indignacion', 'contradiccion', 'recuperacion', 'estabilidad',
+  'religion', 'religioso', 'vida', 'practicas', 'decisiones', 'fiebre', 'mundialista',
+])
+
+function narrativeWords(intent: AssetIntentV1, localSemantic?: LocalSceneSemanticV1, includeConcepts = true): string {
+  const values = [localSemantic?.localText ?? intent.phrase, intent.keyword, intent.anchor, intent.relation,
     ...(includeConcepts ? intent.concepts : []), ...intent.searchTerms]
   return values.filter((value): value is string => typeof value === 'string')
     .map(canonicalNarrativeTerm).filter(Boolean).join(' ')
 }
 
-function primaryNarrativeWords(intent: AssetIntentV1): string {
-  return [intent.phrase, intent.keyword, intent.anchor, intent.relation]
+function primaryNarrativeWords(intent: AssetIntentV1, localSemantic?: LocalSceneSemanticV1): string {
+  return [localSemantic?.localText ?? intent.phrase, intent.keyword, intent.anchor, intent.relation]
     .filter((value): value is string => typeof value === 'string')
     .map(canonicalNarrativeTerm).filter(Boolean).join(' ')
 }
@@ -278,9 +329,109 @@ function hasTerm(text: string, term: string): boolean {
   if (wanted.length > 1) {
     return words.some((_, start) => wanted.every((word, index) => words[start + index] === word))
   }
-  // A few controlled rules intentionally use a long stem (for example, termodinam).
-  // Short aliases must remain whole words: "sol" may not match "resolver".
-  return words.some(word => word === needle || (needle.length >= 5 && word.startsWith(needle)))
+  return words.some(word => word === needle || (CONTROLLED_STEM_TERMS.has(needle) && word.startsWith(needle)))
+}
+
+function evidenceText(entry: OpenMojiCatalogEntry): string {
+  return [entry.annotation, ...entry.tags, ...entry.aliases].map(canonicalNarrativeTerm).join(' ')
+}
+
+function evidenceMatches(text: string, raw: string | undefined): boolean {
+  const expected = canonicalNarrativeTerm(raw)
+  if (!expected) return false
+  const wanted = expected.split(' ').filter(Boolean)
+  const words = text.split(' ').filter(Boolean)
+  return wanted.length > 0 && wanted.every(word => words.includes(word))
+}
+
+/** Emoji identity ignores text/emoji presentation selectors but never changes asset identity. */
+function emojiIdentity(value: string | undefined): string {
+  return String(value ?? '').normalize('NFC').replace(/[\uFE0E\uFE0F]/g, '')
+}
+
+function emojiQueryVariants(value: string): string[] {
+  const base = emojiIdentity(value)
+  if (!base || /^[\x00-\x7F]+$/.test(base)) return [value]
+  return [...new Set([value, base, base + '\uFE0F'])]
+}
+
+function genericHumanEvidence(evidence: DirectConcreteEvidenceV1): boolean {
+  return GENERIC_HUMAN_EVIDENCE.has(canonicalNarrativeTerm(evidence.label))
+}
+
+function nonEntityEvidence(evidence: DirectConcreteEvidenceV1): boolean {
+  return NON_ENTITY_EVIDENCE.has(canonicalNarrativeTerm(evidence.label))
+}
+
+function directEvidenceRank(evidence: DirectConcreteEvidenceV1): number {
+  // The source is the primary authority: an exact local emoji or label is stronger
+  // evidence than an old anchor that may have been produced for an adjacent clause.
+  // Relevance only breaks ties within the same evidence source.
+  const source = { emoji: 0, label: 1, anchor: 2, 'canonical-hint': 3, keyword: 4 }[evidence.source]
+  const relevance = { anchor: 0, keyword: 1, concept: 2, context: 3 }[evidence.relevance]
+  return source * 10 + relevance
+}
+
+function directEvidenceQueries(evidence: readonly DirectConcreteEvidenceV1[]): string[] {
+  const sourceOrder = { emoji: 0, label: 1, anchor: 2, 'canonical-hint': 3, keyword: 4 } as const
+  const sorted = [...evidence].sort((a, b) => sourceOrder[a.source] - sourceOrder[b.source] ||
+    directEvidenceRank(a) - directEvidenceRank(b) ||
+    canonicalNarrativeTerm(a.query).localeCompare(canonicalNarrativeTerm(b.query), 'es'))
+  const seen = new Set<string>()
+  const output: string[] = []
+  for (const item of sorted) {
+    // canonicalNarrativeTerm deliberately removes emoji; preserve them as search identities.
+    // The metadata may carry VS16 while upstream concepts omit it, so ask the local
+    // catalog for both presentation-equivalent forms without altering its scoring.
+    const variants = item.source === 'emoji' ? emojiQueryVariants(item.query) : [item.query]
+    for (const query of variants) {
+      const key = canonicalNarrativeTerm(query) || 'emoji:' + query.normalize('NFC')
+      if (seen.has(key)) continue
+      seen.add(key)
+      output.push(query)
+    }
+  }
+  return output
+}
+
+function evidenceBelongsToKeyword(evidence: DirectConcreteEvidenceV1, keyword: string): boolean {
+  const target = canonicalNarrativeTerm(keyword)
+  if (!target) return false
+  return [evidence.label, evidence.canonicalHint, evidence.query]
+    .some(value => canonicalNarrativeTerm(value) === target)
+}
+
+function directConcreteMetaphor(localSemantic: LocalSceneSemanticV1 | undefined, keyword: string): MetaphorCandidateV1 | null {
+  const evidence = Array.isArray(localSemantic?.directEvidence) ? [...localSemantic!.directEvidence] : []
+  const useful = evidence.filter(candidate => typeof candidate?.query === 'string' && candidate.query.trim())
+  if (!useful.length) return null
+  // A selected local subject narrows the semantic scope before source priority is applied.
+  // It prevents a neighbouring entity present in the same old concept list (for example,
+  // FIFA) from displacing the local noun that the scene actually names (iglesia).
+  const keywordEvidence = useful.filter(evidence => evidenceBelongsToKeyword(evidence, keyword))
+  const keywordTerm = canonicalNarrativeTerm(keyword)
+  // An event/condition or a generic human label needs its own concrete evidence. It may not
+  // borrow an unrelated old concept merely because that concept happened to be structured in
+  // the same response (for example, indignación inheriting a FIFA office/shield icon).
+  if (!keywordEvidence.length && (NON_ENTITY_EVIDENCE.has(keywordTerm) || GENERIC_HUMAN_EVIDENCE.has(keywordTerm)))
+    return null
+  const scoped = keywordEvidence.length ? keywordEvidence : useful
+  scoped.sort((a, b) => directEvidenceRank(a) - directEvidenceRank(b) ||
+    canonicalNarrativeTerm(a.query).localeCompare(canonicalNarrativeTerm(b.query), 'es'))
+  const lead = scoped[0]
+  const strong = (lead.relevance === 'anchor' || lead.relevance === 'keyword') && !genericHumanEvidence(lead)
+  const complex = /\u200d/u.test(lead.emoji ?? '') || /(?:astronaut|worker|family|couple)/i.test(lead.canonicalHint ?? '')
+  const idStem = canonicalNarrativeTerm(lead.label ?? lead.query).replace(/\s+/g, '-').slice(0, 48) || 'evidence'
+  return {
+    id: 'direct-concrete-' + idStem,
+    label: 'evidencia concreta → ' + (lead.label ?? lead.query),
+    family: complex ? 'flat-illustration' : 'icon-monochrome',
+    kind: complex ? 'complex-illustration' : 'simple-icon',
+    score: strong ? 3 : 2,
+    openmojiQuery: lead.query,
+    preferProvider: 'openmoji',
+    directEvidence: scoped,
+  }
 }
 
 function recent(session: ResolverSessionV1, count: number): HistoryEntry[] {
@@ -329,21 +480,33 @@ function existingOpenMojiAsset(
     : { asset: null, invalid: true, manifestReads: 1 }
 }
 
-function resolveMetaphor(intent: AssetIntentV1): { metaphor: MetaphorCandidateV1 | null; reason: string } {
+function resolveMetaphor(intent: AssetIntentV1, localSemantic?: LocalSceneSemanticV1): { metaphor: MetaphorCandidateV1 | null; reason: string } {
   if (intent.preferredVisualMode === 'editorial-text') return { metaphor: null, reason: 'PREFERRED_EDITORIAL_TEXT' }
-  const all = narrativeWords(intent)
-  const primary = primaryNarrativeWords(intent)
-  // The explicit keyword/anchor is the strongest already-sanitized semantic evidence. A verb
-  // in the phrase ("puente conecta") may describe a relation, but must not displace the
-  // concrete object requested by the scene. Phrase/relation remain a deterministic fallback.
-  // `anchor` is structured scene semantics, so a concrete anchor (for example, mapa) wins
-  // over a merely illustrative visible verb (for example, entenderlo). Keyword remains the
-  // next strongest signal, followed by phrase/relation below.
+  const all = narrativeWords(intent, localSemantic)
+  const primary = primaryNarrativeWords(intent, localSemantic)
+  // The local selector has already discarded residual tokens. For a localized production
+  // input, its keyword represents the timed subclip and must outrank an anchor inherited from
+  // a neighbouring/global semantic response. The old non-local public consumer keeps its
+  // historical anchor-first order for compatibility.
   const anchorWords = canonicalNarrativeTerm(intent.anchor)
   const keywordWords = canonicalNarrativeTerm(intent.keyword)
   const anchorRule = METAPHOR_RULES.find(rule => rule.terms.some(term => hasTerm(anchorWords, term)))
   const keywordRule = METAPHOR_RULES.find(rule => rule.terms.some(term => hasTerm(keywordWords, term)))
-  const directRule = anchorRule ?? keywordRule
+  const localKeywordMustNotBorrowAnchor = NON_ENTITY_EVIDENCE.has(keywordWords) || GENERIC_HUMAN_EVIDENCE.has(keywordWords)
+  const directRule = localSemantic
+    ? (keywordRule ?? (localKeywordMustNotBorrowAnchor ? undefined : anchorRule))
+    : (anchorRule ?? keywordRule)
+  const directEvidence = directConcreteMetaphor(localSemantic, intent.keyword)
+  // A known category rule is already a tested metaphor and therefore outranks a loose old
+  // Solar hint such as `star` for a football scene. Direct evidence remains the second route:
+  // it catches concrete emoji/labels that do not yet need a category rule. Bare abstract
+  // labels such as "tiempo" preserve Solar-first rather than becoming an OpenMoji search.
+  if (directRule) {
+    const { terms: _terms, ...metaphor } = directRule
+    return { metaphor, reason: 'CONCRETE_METAPHOR:' + metaphor.id }
+  }
+  if (directEvidence)
+    return { metaphor: directEvidence, reason: 'DIRECT_CONCRETE_EVIDENCE:' + directEvidence.id }
   if (HUMAN_SCENE_TERMS.some(term => hasTerm(all, term))) return { metaphor: null, reason: 'HUMAN_SCENE_REQUIRES_EDITORIAL' }
   if (HISTORICAL_OR_CONTEXTUAL_TERMS.some(term => hasTerm(primary, term))) return { metaphor: null, reason: 'CONTEXTUAL_HISTORY_REQUIRES_EDITORIAL' }
   // A broad process word in the phrase must not erase an explicit concrete keyword such as
@@ -351,15 +514,43 @@ function resolveMetaphor(intent: AssetIntentV1): { metaphor: MetaphorCandidateV1
   // editorial text rather than a forced generic Hero.
   if (!directRule && ABSTRACT_PROCESS_TERMS.some(term => hasTerm(primary, term)))
     return { metaphor: null, reason: 'ABSTRACT_PROCESS_WITHOUT_OBJECT' }
-  const selected = directRule
-    ?? METAPHOR_RULES.find(rule => rule.terms.some(term => hasTerm(primary, term)))
+  const selected = METAPHOR_RULES.find(rule => rule.terms.some(term => hasTerm(primary, term)))
   if (!selected) return { metaphor: null, reason: 'NO_CONCRETE_METAPHOR' }
   const { terms: _terms, ...metaphor } = selected
   return { metaphor, reason: 'CONCRETE_METAPHOR:' + metaphor.id }
 }
 
 function candidateScore(entry: OpenMojiCatalogEntry, metaphor: MetaphorCandidateV1): ResolverScoreV1 {
-  if (entry.stableId === metaphor.expectedStableId) return 3
+  if (metaphor.expectedStableId && entry.stableId === metaphor.expectedStableId) return 3
+  if (metaphor.directEvidence?.length) {
+    let directScore: ResolverScoreV1 = 1
+    const source = evidenceText(entry)
+    for (const evidence of metaphor.directEvidence) {
+      const exactEmoji = !!evidence.emoji && emojiIdentity(entry.emoji) === emojiIdentity(evidence.emoji)
+      const labelMatch = evidenceMatches(source, evidence.label)
+      const hintMatch = evidenceMatches(source, evidence.canonicalHint)
+      const semanticText = labelMatch || hintMatch
+      // A generic provider hint cannot turn an event/condition into its literal upstream
+      // icon: `accidente` + `shield` is not a defendable Hero. Such evidence needs a real
+      // narrative-label match; otherwise the normal editorial fallback remains available.
+      if (nonEntityEvidence(evidence) && !labelMatch) continue
+      if (genericHumanEvidence(evidence) && !semanticText) continue
+      if (labelMatch) {
+        const score: ResolverScoreV1 = evidence.relevance === 'anchor' || evidence.relevance === 'keyword' ? 3 : 2
+        directScore = Math.max(directScore, score) as ResolverScoreV1
+      } else if (hintMatch) {
+        // A provider-oriented icon hint is useful recall evidence, but cannot outrank the
+        // narrative label that names the concrete object.
+        directScore = Math.max(directScore, 2) as ResolverScoreV1
+      } else if (exactEmoji) {
+        // An exact emoji is evidence worth evaluating, but without a matching label/hint it is
+        // never promoted to a strong metaphor (for example, shield ≠ accident).
+        const score: ResolverScoreV1 = evidence.relevance === 'anchor' || evidence.relevance === 'keyword' ? 3 : 2
+        directScore = Math.max(directScore, score) as ResolverScoreV1
+      }
+    }
+    if (directScore > 1) return directScore
+  }
   const expected = canonicalNarrativeTerm(metaphor.openmojiQuery)
   const annotation = canonicalNarrativeTerm(entry.annotation)
   if (annotation === expected) return 3
@@ -371,6 +562,9 @@ function candidateScore(entry: OpenMojiCatalogEntry, metaphor: MetaphorCandidate
 
 function orderedQueries(intent: AssetIntentV1, metaphor: MetaphorCandidateV1): Array<{ source: string; query: string }> {
   const sources: Array<{ source: string; values: readonly string[] }> = [
+    ...(metaphor.directEvidence
+      ? [{ source: 'direct-concrete-evidence', values: directEvidenceQueries(metaphor.directEvidence) }]
+      : []),
     { source: 'concrete-metaphor', values: [metaphor.openmojiQuery] },
     { source: 'anchor', values: intent.anchor ? [intent.anchor] : [] },
     { source: 'keyword', values: [intent.keyword] },
@@ -381,7 +575,7 @@ function orderedQueries(intent: AssetIntentV1, metaphor: MetaphorCandidateV1): A
   const output: Array<{ source: string; query: string }> = []
   for (const group of sources) for (const raw of group.values) {
     const query = String(raw ?? '').trim()
-    const key = canonicalNarrativeTerm(query)
+    const key = canonicalNarrativeTerm(query) || 'emoji:' + query.normalize('NFC')
     if (!key || seen.has(key)) continue
     seen.add(key)
     output.push({ source: group.source, query })
@@ -592,7 +786,8 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
     fail('ASSET_RESOLVER_INTENT_INVALID', 'AssetIntentV1 no es válido')
   const intent = createAssetIntentV1(input.intent as AssetIntentInputV1)
   const session = usableSession(input.session)
-  const resolvedMetaphor = resolveMetaphor(intent)
+  const localSemantic = input.localSemantic
+  const resolvedMetaphor = resolveMetaphor(intent, localSemantic)
   const structure = selectStructure(intent, resolvedMetaphor.metaphor, session, Number(input.direction?.semilla))
   const trace: ResolverTraceV1 = {
     sceneId: intent.sceneId,
@@ -608,6 +803,17 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
     reuse: { allowedByContinuity: false, reusedProjectAsset: false, reason: null },
     fallback: null,
     reasons: [resolvedMetaphor.reason],
+    ...(localSemantic ? {
+      localContext: {
+        start: localSemantic.start,
+        end: localSemantic.end,
+        localText: localSemantic.localText,
+        ...(localSemantic.globalContextRef ? { globalContextRef: localSemantic.globalContextRef } : {}),
+        globalTextLength: localSemantic.globalText?.length ?? 0,
+        globalHints: [...localSemantic.globalHints],
+        directEvidence: [...localSemantic.directEvidence],
+      },
+    } : {}),
   }
   const metrics = { openMojiQueries: 0, openMojiCandidates: 0, projectAssetsReused: 0, assetsPublished: 0, manifestReads: 0 }
 
