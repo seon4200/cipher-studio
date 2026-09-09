@@ -27,6 +27,7 @@
     "test:openmoji-catalog": "electron tests/openmoji-catalog.js",
     "test:openmoji-asset-roundtrip": "electron tests/openmoji-asset-roundtrip.js",
     "test:visual-asset-mvp": "electron tests/visual-asset-mvp.js",
+    "accept:visual-asset-mvp": "electron tests/aceptacion/visual-asset-mvp/generar.cjs",
     "bench:graficos": "electron tests/rendimiento/graficos.js",
     "test:ventana": "electron tests/ventana.js"
   },

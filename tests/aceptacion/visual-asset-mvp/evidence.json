@@ -1,0 +1,3339 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-09T02:22:30.651Z",
+  "base": "b735f05c8c7df11a5bdc33a1fcf10f4caf4ea903",
+  "renderer": "productive grafico.html / AnimatedGraphic / visual_escena",
+  "project": {
+    "temporary": true,
+    "realProjectsUntouched": true
+  },
+  "assets": {
+    "cake": {
+      "stableId": "openmoji:1f382",
+      "provider": "openmoji",
+      "providerVersion": "17.0.0",
+      "sha256": "7bf070f25b485cbd47dd30ff48711403b6ffc1d7d6011217eb9488270bc60008",
+      "mime": "image/svg+xml",
+      "byteLength": 3913,
+      "sourceUrl": "https://github.com/hfg-gmuend/openmoji",
+      "fileUrl": "https://registry.npmjs.org/openmoji/-/openmoji-17.0.0.tgz",
+      "licenseClaim": "CC-BY-SA-4.0",
+      "licenseUrl": "https://openmoji.org/",
+      "attribution": "OpenMoji 17.0.0 — CC BY-SA 4.0 — https://openmoji.org/"
+    },
+    "astronaut": {
+      "stableId": "openmoji:1f9d1-200d-1f680",
+      "provider": "openmoji",
+      "providerVersion": "17.0.0",
+      "sha256": "e22f2216a981d185e8e9cc4789908475b32648a6c97abd49a52cdf855b2dfda8",
+      "mime": "image/svg+xml",
+      "byteLength": 4744,
+      "sourceUrl": "https://github.com/hfg-gmuend/openmoji",
+      "fileUrl": "https://registry.npmjs.org/openmoji/-/openmoji-17.0.0.tgz",
+      "licenseClaim": "CC-BY-SA-4.0",
+      "licenseUrl": "https://openmoji.org/",
+      "attribution": "OpenMoji 17.0.0 — CC BY-SA 4.0 — https://openmoji.org/"
+    },
+    "compass": {
+      "stableId": "openmoji:1f9ed",
+      "provider": "openmoji",
+      "providerVersion": "17.0.0",
+      "sha256": "e8ab346391122e69bfcaf143616b39a54d864b9603e7dfdf97fbb76d06a237fd",
+      "mime": "image/svg+xml",
+      "byteLength": 1428,
+      "sourceUrl": "https://github.com/hfg-gmuend/openmoji",
+      "fileUrl": "https://registry.npmjs.org/openmoji/-/openmoji-17.0.0.tgz",
+      "licenseClaim": "CC-BY-SA-4.0",
+      "licenseUrl": "https://openmoji.org/",
+      "attribution": "OpenMoji 17.0.0 — CC BY-SA 4.0 — https://openmoji.org/"
+    }
+  },
+  "contactSheet": {
+    "file": "contact-sheet.png",
+    "sha256": "5b0e8d9a67189e33974dcd392201f93cafb4b10b637d3b26905f9b7404a8f254",
+    "cells": [
+      {
+        "id": "cake-const-entry",
+        "title": "Cake · entrada",
+        "asset": "cake",
+        "treatment": "accent-mask",
+        "structure": "constelacion",
+        "system": "editorial",
+        "fontPair": "technical-black",
+        "normalizedTime": 0.12,
+        "effectiveMode": "asset-led",
+        "warnings": [],
+        "qc": {
+          "frame": {
+            "left": 0,
+            "top": 8,
+            "right": 540,
+            "bottom": 968,
+            "width": 540,
+            "height": 960
+          },
+          "hero": {
+            "left": 151.203125,
+            "top": 302.601806640625,
+            "right": 388.796875,
+            "bottom": 580.992431640625,
+            "width": 237.59375,
+            "height": 278.390625
+          },
+          "text": {
+            "left": 44.96875,
+            "top": 617.234375,
+            "right": 495.03125,
+            "bottom": 838.03125,
+            "width": 450.0625,
+            "height": 220.796875
+          },
+          "keyword": {
+            "left": 44.96875,
+            "top": 713.38134765625,
+            "right": 298.5874938964844,
+            "bottom": 752.73388671875,
+            "width": 253.61874389648438,
+            "height": 39.3525390625
+          },
+          "heroOpacity": 0.936,
+          "keywordOpacity": 0,
+          "textColor": "rgb(242, 244, 247)",
+          "textOverflow": false,
+          "maxLines": "2",
+          "visibleWords": 4
+        },
+        "runtimeQc": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 328.88470458984375,
+                "right": 388.796875,
+                "bottom": 607.2753295898438,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 298.5874938964844,
+                "bottom": 752.73388671875,
+                "width": 253.61874389648438,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 297.890869140625,
+                "right": 388.796875,
+                "bottom": 576.281494140625,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.6691284179688,
+                "right": 332.7655029296875,
+                "bottom": 754.3248291015625,
+                "width": 287.7967529296875,
+                "height": 44.65570068359375
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 300.8046875,
+                "right": 388.796875,
+                "bottom": 579.1953125,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 333.171875,
+                "bottom": 754.34375,
+                "width": 288.203125,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 300.8046875,
+                "right": 388.796875,
+                "bottom": 579.1953125,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 333.171875,
+                "bottom": 754.34375,
+                "width": 288.203125,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 328.88470458984375,
+                "right": 388.796875,
+                "bottom": 607.2753295898438,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 298.5874938964844,
+                "bottom": 752.73388671875,
+                "width": 253.61874389648438,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            }
+          ],
+          "localTextContrast": 16.493372918698984,
+          "findings": []
+        }
+      },
+      {
+        "id": "cake-poster-sustain",
+        "title": "Cake · sustain",
+        "asset": "cake",
+        "treatment": "accent-mask",
+        "structure": "marcoPoster",
+        "system": "voltaje",
+        "fontPair": "editorial-black",
+        "normalizedTime": 0.5,
+        "effectiveMode": "asset-led",
+        "warnings": [],
+        "qc": {
+          "frame": {
+            "left": 0,
+            "top": 8,
+            "right": 540,
+            "bottom": 968,
+            "width": 540,
+            "height": 960
+          },
+          "hero": {
+            "left": 124.1953125,
+            "top": 271.9921875,
+            "right": 350.9921875,
+            "bottom": 550.3828125,
+            "width": 226.796875,
+            "height": 278.390625
+          },
+          "text": {
+            "left": 44.96875,
+            "top": 617.234375,
+            "right": 495.03125,
+            "bottom": 838.03125,
+            "width": 450.0625,
+            "height": 220.796875
+          },
+          "keyword": {
+            "left": 44.96875,
+            "top": 709.625,
+            "right": 324.28125,
+            "bottom": 754.34375,
+            "width": 279.3125,
+            "height": 44.71875
+          },
+          "heroOpacity": 1,
+          "keywordOpacity": 1,
+          "textColor": "rgb(250, 250, 250)",
+          "textOverflow": false,
+          "maxLines": "2",
+          "visibleWords": 5
+        },
+        "runtimeQc": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 124.1953125,
+                "top": 300.07220458984375,
+                "right": 350.9921875,
+                "bottom": 578.4628295898438,
+                "width": 226.796875,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 290.76373291015625,
+                "bottom": 752.73388671875,
+                "width": 245.79498291015625,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 124.1953125,
+                "top": 269.078369140625,
+                "right": 350.9921875,
+                "bottom": 547.468994140625,
+                "width": 226.796875,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.6691284179688,
+                "right": 323.8874206542969,
+                "bottom": 754.3248291015625,
+                "width": 278.9186706542969,
+                "height": 44.65570068359375
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 124.1953125,
+                "top": 271.9921875,
+                "right": 350.9921875,
+                "bottom": 550.3828125,
+                "width": 226.796875,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 324.28125,
+                "bottom": 754.34375,
+                "width": 279.3125,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 124.1953125,
+                "top": 271.9921875,
+                "right": 350.9921875,
+                "bottom": 550.3828125,
+                "width": 226.796875,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 324.28125,
+                "bottom": 754.34375,
+                "width": 279.3125,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 124.1953125,
+                "top": 300.07220458984375,
+                "right": 350.9921875,
+                "bottom": 578.4628295898438,
+                "width": 226.796875,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 290.76373291015625,
+                "bottom": 752.73388671875,
+                "width": 245.79498291015625,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            }
+          ],
+          "localTextContrast": 17.80102875579879,
+          "findings": []
+        }
+      },
+      {
+        "id": "cake-editorial-none",
+        "title": "Cake · color original",
+        "asset": "cake",
+        "treatment": "none",
+        "structure": "editorial",
+        "system": "clinico",
+        "fontPair": "technical-black",
+        "normalizedTime": 0.55,
+        "effectiveMode": "asset-led",
+        "warnings": [],
+        "qc": {
+          "frame": {
+            "left": 0,
+            "top": 8,
+            "right": 540,
+            "bottom": 968,
+            "width": 540,
+            "height": 960
+          },
+          "hero": {
+            "left": 91.796875,
+            "top": 272.77850341796875,
+            "right": 296.984375,
+            "bottom": 541.5753784179688,
+            "width": 205.1875,
+            "height": 268.796875
+          },
+          "text": {
+            "left": 44.96875,
+            "top": 617.234375,
+            "right": 495.03125,
+            "bottom": 838.03125,
+            "width": 450.0625,
+            "height": 220.796875
+          },
+          "keyword": {
+            "left": 44.96875,
+            "top": 709.625,
+            "right": 223.671875,
+            "bottom": 754.34375,
+            "width": 178.703125,
+            "height": 44.71875
+          },
+          "heroOpacity": 1,
+          "keywordOpacity": 1,
+          "textColor": "rgb(20, 23, 28)",
+          "textOverflow": false,
+          "maxLines": "2",
+          "visibleWords": 5
+        },
+        "runtimeQc": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 304.86907958984375,
+                "right": 296.984375,
+                "bottom": 573.6659545898438,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 202.2274932861328,
+                "bottom": 752.73388671875,
+                "width": 157.2587432861328,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 273.875244140625,
+                "right": 296.984375,
+                "bottom": 542.672119140625,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.6691284179688,
+                "right": 223.41990661621094,
+                "bottom": 754.3248291015625,
+                "width": 178.45115661621094,
+                "height": 44.65570068359375
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 276.7890625,
+                "right": 296.984375,
+                "bottom": 545.5859375,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 223.671875,
+                "bottom": 754.34375,
+                "width": 178.703125,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 276.7890625,
+                "right": 296.984375,
+                "bottom": 545.5859375,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 223.671875,
+                "bottom": 754.34375,
+                "width": 178.703125,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 304.86907958984375,
+                "right": 296.984375,
+                "bottom": 573.6659545898438,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 202.2274932861328,
+                "bottom": 752.73388671875,
+                "width": 157.2587432861328,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            }
+          ],
+          "localTextContrast": 17.22012637399374,
+          "findings": []
+        }
+      },
+      {
+        "id": "astronaut-const-entry",
+        "title": "Astronaut · entrada",
+        "asset": "astronaut",
+        "treatment": "duotone",
+        "structure": "constelacion",
+        "system": "editorial",
+        "fontPair": "editorial-black",
+        "normalizedTime": 0.18,
+        "effectiveMode": "asset-led",
+        "warnings": [],
+        "qc": {
+          "frame": {
+            "left": 0,
+            "top": 8,
+            "right": 540,
+            "bottom": 968,
+            "width": 540,
+            "height": 960
+          },
+          "hero": {
+            "left": 151.203125,
+            "top": 300.832763671875,
+            "right": 388.796875,
+            "bottom": 579.223388671875,
+            "width": 237.59375,
+            "height": 278.390625
+          },
+          "text": {
+            "left": 44.96875,
+            "top": 617.234375,
+            "right": 495.03125,
+            "bottom": 838.03125,
+            "width": 450.0625,
+            "height": 220.796875
+          },
+          "keyword": {
+            "left": 44.96875,
+            "top": 711.2618408203125,
+            "right": 319.89349365234375,
+            "bottom": 753.6422729492188,
+            "width": 274.92474365234375,
+            "height": 42.38043212890625
+          },
+          "heroOpacity": 0.999,
+          "keywordOpacity": 0.330078,
+          "textColor": "rgb(242, 244, 247)",
+          "textOverflow": false,
+          "maxLines": "2",
+          "visibleWords": 3
+        },
+        "runtimeQc": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 328.88470458984375,
+                "right": 388.796875,
+                "bottom": 607.2753295898438,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 300.2512512207031,
+                "bottom": 752.73388671875,
+                "width": 255.28250122070312,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 3
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 297.890869140625,
+                "right": 388.796875,
+                "bottom": 576.281494140625,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.6691284179688,
+                "right": 334.6534729003906,
+                "bottom": 754.3248291015625,
+                "width": 289.6847229003906,
+                "height": 44.65570068359375
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 3
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 300.8046875,
+                "right": 388.796875,
+                "bottom": 579.1953125,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 335.0625,
+                "bottom": 754.34375,
+                "width": 290.09375,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 3
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 300.8046875,
+                "right": 388.796875,
+                "bottom": 579.1953125,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 335.0625,
+                "bottom": 754.34375,
+                "width": 290.09375,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 3
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 328.88470458984375,
+                "right": 388.796875,
+                "bottom": 607.2753295898438,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 300.2512512207031,
+                "bottom": 752.73388671875,
+                "width": 255.28250122070312,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 3
+            }
+          ],
+          "localTextContrast": 16.493372918698984,
+          "findings": []
+        }
+      },
+      {
+        "id": "astronaut-poster-sustain",
+        "title": "Astronaut · sustain",
+        "asset": "astronaut",
+        "treatment": "duotone",
+        "structure": "marcoPoster",
+        "system": "voltaje",
+        "fontPair": "technical-black",
+        "normalizedTime": 0.5,
+        "effectiveMode": "asset-led",
+        "warnings": [],
+        "qc": {
+          "frame": {
+            "left": 0,
+            "top": 8,
+            "right": 540,
+            "bottom": 968,
+            "width": 540,
+            "height": 960
+          },
+          "hero": {
+            "left": 124.1953125,
+            "top": 271.9921875,
+            "right": 350.9921875,
+            "bottom": 550.3828125,
+            "width": 226.796875,
+            "height": 278.390625
+          },
+          "text": {
+            "left": 44.96875,
+            "top": 617.234375,
+            "right": 495.03125,
+            "bottom": 838.03125,
+            "width": 450.0625,
+            "height": 220.796875
+          },
+          "keyword": {
+            "left": 44.96875,
+            "top": 709.625,
+            "right": 327.5625,
+            "bottom": 754.34375,
+            "width": 282.59375,
+            "height": 44.71875
+          },
+          "heroOpacity": 1,
+          "keywordOpacity": 1,
+          "textColor": "rgb(250, 250, 250)",
+          "textOverflow": false,
+          "maxLines": "2",
+          "visibleWords": 4
+        },
+        "runtimeQc": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 144.60702514648438,
+                "top": 297.04736328125,
+                "right": 330.5804443359375,
+                "bottom": 525.32763671875,
+                "width": 185.97341918945312,
+                "height": 228.2802734375
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 293.6512451171875,
+                "bottom": 752.73388671875,
+                "width": 248.6824951171875,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 125.0106430053711,
+                "top": 272.99298095703125,
+                "right": 350.17684173583984,
+                "bottom": 549.3819580078125,
+                "width": 225.16619873046875,
+                "height": 276.38897705078125
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.6691284179688,
+                "right": 327.1640319824219,
+                "bottom": 754.3248291015625,
+                "width": 282.1952819824219,
+                "height": 44.65570068359375
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 124.1953125,
+                "top": 271.9921875,
+                "right": 350.9921875,
+                "bottom": 550.3828125,
+                "width": 226.796875,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 327.5625,
+                "bottom": 754.34375,
+                "width": 282.59375,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 124.1953125,
+                "top": 271.9921875,
+                "right": 350.9921875,
+                "bottom": 550.3828125,
+                "width": 226.796875,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 327.5625,
+                "bottom": 754.34375,
+                "width": 282.59375,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 144.60702514648438,
+                "top": 297.04736328125,
+                "right": 330.5804443359375,
+                "bottom": 525.32763671875,
+                "width": 185.97341918945312,
+                "height": 228.2802734375
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 293.6512451171875,
+                "bottom": 752.73388671875,
+                "width": 248.6824951171875,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            }
+          ],
+          "localTextContrast": 17.80102875579879,
+          "findings": []
+        }
+      },
+      {
+        "id": "astronaut-editorial-exit",
+        "title": "Astronaut · salida",
+        "asset": "astronaut",
+        "treatment": "duotone",
+        "structure": "editorial",
+        "system": "editorial",
+        "fontPair": "editorial-black",
+        "normalizedTime": 0.88,
+        "effectiveMode": "asset-led",
+        "warnings": [],
+        "qc": {
+          "frame": {
+            "left": 0,
+            "top": 8,
+            "right": 540,
+            "bottom": 968,
+            "width": 540,
+            "height": 960
+          },
+          "hero": {
+            "left": 91.796875,
+            "top": 276.7890625,
+            "right": 296.984375,
+            "bottom": 545.5859375,
+            "width": 205.1875,
+            "height": 268.796875
+          },
+          "text": {
+            "left": 44.96875,
+            "top": 617.234375,
+            "right": 495.03125,
+            "bottom": 838.03125,
+            "width": 450.0625,
+            "height": 220.796875
+          },
+          "keyword": {
+            "left": 44.96875,
+            "top": 709.625,
+            "right": 359.5,
+            "bottom": 754.34375,
+            "width": 314.53125,
+            "height": 44.71875
+          },
+          "heroOpacity": 0.216,
+          "keywordOpacity": 1,
+          "textColor": "rgb(242, 244, 247)",
+          "textOverflow": false,
+          "maxLines": "2",
+          "visibleWords": 4
+        },
+        "runtimeQc": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 304.86907958984375,
+                "right": 296.984375,
+                "bottom": 573.6659545898438,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 321.7562561035156,
+                "bottom": 752.73388671875,
+                "width": 276.7875061035156,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 273.875244140625,
+                "right": 296.984375,
+                "bottom": 542.672119140625,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.6691284179688,
+                "right": 359.0565185546875,
+                "bottom": 754.3248291015625,
+                "width": 314.0877685546875,
+                "height": 44.65570068359375
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 276.7890625,
+                "right": 296.984375,
+                "bottom": 545.5859375,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 359.5,
+                "bottom": 754.34375,
+                "width": 314.53125,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 276.7890625,
+                "right": 296.984375,
+                "bottom": 545.5859375,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 359.5,
+                "bottom": 754.34375,
+                "width": 314.53125,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 304.86907958984375,
+                "right": 296.984375,
+                "bottom": 573.6659545898438,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 321.7562561035156,
+                "bottom": 752.73388671875,
+                "width": 276.7875061035156,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            }
+          ],
+          "localTextContrast": 16.493372918698984,
+          "findings": []
+        }
+      },
+      {
+        "id": "compass-const",
+        "title": "Compass · duotone clínico",
+        "asset": "compass",
+        "treatment": "duotone",
+        "structure": "constelacion",
+        "system": "clinico",
+        "fontPair": "technical-black",
+        "normalizedTime": 0.5,
+        "effectiveMode": "asset-led",
+        "warnings": [],
+        "qc": {
+          "frame": {
+            "left": 0,
+            "top": 8,
+            "right": 540,
+            "bottom": 968,
+            "width": 540,
+            "height": 960
+          },
+          "hero": {
+            "left": 151.203125,
+            "top": 300.8046875,
+            "right": 388.796875,
+            "bottom": 579.1953125,
+            "width": 237.59375,
+            "height": 278.390625
+          },
+          "text": {
+            "left": 44.96875,
+            "top": 617.234375,
+            "right": 495.03125,
+            "bottom": 838.03125,
+            "width": 450.0625,
+            "height": 220.796875
+          },
+          "keyword": {
+            "left": 44.96875,
+            "top": 709.625,
+            "right": 345.6875,
+            "bottom": 754.34375,
+            "width": 300.71875,
+            "height": 44.71875
+          },
+          "heroOpacity": 1,
+          "keywordOpacity": 1,
+          "textColor": "rgb(20, 23, 28)",
+          "textOverflow": false,
+          "maxLines": "2",
+          "visibleWords": 4
+        },
+        "runtimeQc": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 328.88470458984375,
+                "right": 388.796875,
+                "bottom": 607.2753295898438,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 309.60125732421875,
+                "bottom": 752.73388671875,
+                "width": 264.63250732421875,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 297.890869140625,
+                "right": 388.796875,
+                "bottom": 576.281494140625,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.6691284179688,
+                "right": 345.26348876953125,
+                "bottom": 754.3248291015625,
+                "width": 300.29473876953125,
+                "height": 44.65570068359375
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 300.8046875,
+                "right": 388.796875,
+                "bottom": 579.1953125,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 345.6875,
+                "bottom": 754.34375,
+                "width": 300.71875,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 300.8046875,
+                "right": 388.796875,
+                "bottom": 579.1953125,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 345.6875,
+                "bottom": 754.34375,
+                "width": 300.71875,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 151.203125,
+                "top": 328.88470458984375,
+                "right": 388.796875,
+                "bottom": 607.2753295898438,
+                "width": 237.59375,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 309.60125732421875,
+                "bottom": 752.73388671875,
+                "width": 264.63250732421875,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            }
+          ],
+          "localTextContrast": 17.22012637399374,
+          "findings": []
+        }
+      },
+      {
+        "id": "compass-poster-punch",
+        "title": "Compass · duotone punch",
+        "asset": "compass",
+        "treatment": "duotone",
+        "structure": "marcoPoster",
+        "system": "editorial",
+        "fontPair": "technical-black",
+        "normalizedTime": 0.57,
+        "effectiveMode": "asset-led",
+        "warnings": [],
+        "qc": {
+          "frame": {
+            "left": 0,
+            "top": 8,
+            "right": 540,
+            "bottom": 968,
+            "width": 540,
+            "height": 960
+          },
+          "hero": {
+            "left": 115.69042205810547,
+            "top": 256.7508544921875,
+            "right": 359.49706268310547,
+            "bottom": 556.020751953125,
+            "width": 243.806640625,
+            "height": 299.2698974609375
+          },
+          "text": {
+            "left": 44.96875,
+            "top": 617.234375,
+            "right": 495.03125,
+            "bottom": 838.03125,
+            "width": 450.0625,
+            "height": 220.796875
+          },
+          "keyword": {
+            "left": 44.96875,
+            "top": 709.625,
+            "right": 265.40625,
+            "bottom": 754.34375,
+            "width": 220.4375,
+            "height": 44.71875
+          },
+          "heroOpacity": 1,
+          "keywordOpacity": 1,
+          "textColor": "rgb(242, 244, 247)",
+          "textOverflow": false,
+          "maxLines": "2",
+          "visibleWords": 3
+        },
+        "runtimeQc": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 124.1953125,
+                "top": 300.07220458984375,
+                "right": 350.9921875,
+                "bottom": 578.4628295898438,
+                "width": 226.796875,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 238.95375061035156,
+                "bottom": 752.73388671875,
+                "width": 193.98500061035156,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 3
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 124.1953125,
+                "top": 269.078369140625,
+                "right": 350.9921875,
+                "bottom": 547.468994140625,
+                "width": 226.796875,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.6691284179688,
+                "right": 265.0954284667969,
+                "bottom": 754.3248291015625,
+                "width": 220.12667846679688,
+                "height": 44.65570068359375
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 3
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 124.1953125,
+                "top": 271.9921875,
+                "right": 350.9921875,
+                "bottom": 550.3828125,
+                "width": 226.796875,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 265.40625,
+                "bottom": 754.34375,
+                "width": 220.4375,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 3
+            },
+            {
+              "normalizedTime": 0.57,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 115.69042205810547,
+                "top": 256.7508544921875,
+                "right": 359.49706268310547,
+                "bottom": 556.020751953125,
+                "width": 243.806640625,
+                "height": 299.2698974609375
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 265.40625,
+                "bottom": 754.34375,
+                "width": 220.4375,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 3
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 124.1953125,
+                "top": 271.9921875,
+                "right": 350.9921875,
+                "bottom": 550.3828125,
+                "width": 226.796875,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 265.40625,
+                "bottom": 754.34375,
+                "width": 220.4375,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 3
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 124.1953125,
+                "top": 300.07220458984375,
+                "right": 350.9921875,
+                "bottom": 578.4628295898438,
+                "width": 226.796875,
+                "height": 278.390625
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 238.95375061035156,
+                "bottom": 752.73388671875,
+                "width": 193.98500061035156,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 3
+            }
+          ],
+          "localTextContrast": 16.493372918698984,
+          "findings": []
+        }
+      },
+      {
+        "id": "compass-editorial-none",
+        "title": "Compass · original",
+        "asset": "compass",
+        "treatment": "none",
+        "structure": "editorial",
+        "system": "voltaje",
+        "fontPair": "editorial-black",
+        "normalizedTime": 0.5,
+        "effectiveMode": "asset-led",
+        "warnings": [],
+        "qc": {
+          "frame": {
+            "left": 0,
+            "top": 8,
+            "right": 540,
+            "bottom": 968,
+            "width": 540,
+            "height": 960
+          },
+          "hero": {
+            "left": 91.796875,
+            "top": 276.7890625,
+            "right": 296.984375,
+            "bottom": 545.5859375,
+            "width": 205.1875,
+            "height": 268.796875
+          },
+          "text": {
+            "left": 44.96875,
+            "top": 617.234375,
+            "right": 495.03125,
+            "bottom": 838.03125,
+            "width": 450.0625,
+            "height": 220.796875
+          },
+          "keyword": {
+            "left": 44.96875,
+            "top": 709.625,
+            "right": 244.890625,
+            "bottom": 754.34375,
+            "width": 199.921875,
+            "height": 44.71875
+          },
+          "heroOpacity": 1,
+          "keywordOpacity": 1,
+          "textColor": "rgb(250, 250, 250)",
+          "textOverflow": false,
+          "maxLines": "2",
+          "visibleWords": 4
+        },
+        "runtimeQc": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 304.86907958984375,
+                "right": 296.984375,
+                "bottom": 573.6659545898438,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 220.89999389648438,
+                "bottom": 752.73388671875,
+                "width": 175.93124389648438,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 273.875244140625,
+                "right": 296.984375,
+                "bottom": 542.672119140625,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.6691284179688,
+                "right": 244.60873413085938,
+                "bottom": 754.3248291015625,
+                "width": 199.63998413085938,
+                "height": 44.65570068359375
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 276.7890625,
+                "right": 296.984375,
+                "bottom": 545.5859375,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 244.890625,
+                "bottom": 754.34375,
+                "width": 199.921875,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 276.7890625,
+                "right": 296.984375,
+                "bottom": 545.5859375,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 709.625,
+                "right": 244.890625,
+                "bottom": 754.34375,
+                "width": 199.921875,
+                "height": 44.71875
+              },
+              "heroOpacity": 1,
+              "keywordOpacity": 1,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": {
+                "left": 91.796875,
+                "top": 304.86907958984375,
+                "right": 296.984375,
+                "bottom": 573.6659545898438,
+                "width": 205.1875,
+                "height": 268.796875
+              },
+              "text": {
+                "left": 44.96875,
+                "top": 617.234375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 220.796875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 713.38134765625,
+                "right": 220.89999389648438,
+                "bottom": 752.73388671875,
+                "width": 175.93124389648438,
+                "height": 39.3525390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 4
+            }
+          ],
+          "localTextContrast": 17.80102875579879,
+          "findings": []
+        }
+      },
+      {
+        "id": "editorial-only-a",
+        "title": "Editorial sin Hero",
+        "asset": "none",
+        "treatment": "n/a",
+        "structure": "constelacion",
+        "system": "editorial",
+        "fontPair": "technical-black",
+        "normalizedTime": 0.5,
+        "effectiveMode": "editorial-text",
+        "warnings": [],
+        "qc": {
+          "frame": {
+            "left": 0,
+            "top": 8,
+            "right": 540,
+            "bottom": 968,
+            "width": 540,
+            "height": 960
+          },
+          "hero": null,
+          "text": {
+            "left": 44.96875,
+            "top": 578.84375,
+            "right": 495.03125,
+            "bottom": 838.03125,
+            "width": 450.0625,
+            "height": 259.1875
+          },
+          "keyword": {
+            "left": 44.96875,
+            "top": 684.296875,
+            "right": 442.859375,
+            "bottom": 744.546875,
+            "width": 397.890625,
+            "height": 60.25
+          },
+          "heroOpacity": 0,
+          "keywordOpacity": 1,
+          "textColor": "rgb(242, 244, 247)",
+          "textOverflow": false,
+          "maxLines": "2",
+          "visibleWords": 5
+        },
+        "runtimeQc": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 689.3578491210938,
+                "right": 395.11248779296875,
+                "bottom": 742.3778686523438,
+                "width": 350.14373779296875,
+                "height": 53.02001953125
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 684.3563232421875,
+                "right": 442.29833984375,
+                "bottom": 744.5213623046875,
+                "width": 397.32958984375,
+                "height": 60.1650390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 684.296875,
+                "right": 442.859375,
+                "bottom": 744.546875,
+                "width": 397.890625,
+                "height": 60.25
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 1,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 684.296875,
+                "right": 442.859375,
+                "bottom": 744.546875,
+                "width": 397.890625,
+                "height": 60.25
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 1,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 689.3578491210938,
+                "right": 395.11248779296875,
+                "bottom": 742.3778686523438,
+                "width": 350.14373779296875,
+                "height": 53.02001953125
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(242, 244, 247)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            }
+          ],
+          "localTextContrast": 16.493372918698984,
+          "findings": []
+        }
+      },
+      {
+        "id": "editorial-only-b",
+        "title": "Editorial claro",
+        "asset": "none",
+        "treatment": "n/a",
+        "structure": "marcoPoster",
+        "system": "clinico",
+        "fontPair": "editorial-black",
+        "normalizedTime": 0.5,
+        "effectiveMode": "editorial-text",
+        "warnings": [],
+        "qc": {
+          "frame": {
+            "left": 0,
+            "top": 8,
+            "right": 540,
+            "bottom": 968,
+            "width": 540,
+            "height": 960
+          },
+          "hero": null,
+          "text": {
+            "left": 44.96875,
+            "top": 578.84375,
+            "right": 495.03125,
+            "bottom": 838.03125,
+            "width": 450.0625,
+            "height": 259.1875
+          },
+          "keyword": {
+            "left": 44.96875,
+            "top": 684.296875,
+            "right": 472.84375,
+            "bottom": 744.546875,
+            "width": 427.875,
+            "height": 60.25
+          },
+          "heroOpacity": 0,
+          "keywordOpacity": 1,
+          "textColor": "rgb(20, 23, 28)",
+          "textOverflow": false,
+          "maxLines": "2",
+          "visibleWords": 5
+        },
+        "runtimeQc": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 689.3578491210938,
+                "right": 421.4987487792969,
+                "bottom": 742.3778686523438,
+                "width": 376.5299987792969,
+                "height": 53.02001953125
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 684.3563232421875,
+                "right": 472.2404479980469,
+                "bottom": 744.5213623046875,
+                "width": 427.2716979980469,
+                "height": 60.1650390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 684.296875,
+                "right": 472.84375,
+                "bottom": 744.546875,
+                "width": 427.875,
+                "height": 60.25
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 1,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 684.296875,
+                "right": 472.84375,
+                "bottom": 744.546875,
+                "width": 427.875,
+                "height": 60.25
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 1,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 689.3578491210938,
+                "right": 421.4987487792969,
+                "bottom": 742.3778686523438,
+                "width": 376.5299987792969,
+                "height": 53.02001953125
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(20, 23, 28)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            }
+          ],
+          "localTextContrast": 17.188436915507236,
+          "findings": []
+        }
+      },
+      {
+        "id": "missing-fallback",
+        "title": "Missing → editorial",
+        "asset": "missing",
+        "treatment": "n/a",
+        "structure": "editorial",
+        "system": "voltaje",
+        "fontPair": "technical-black",
+        "normalizedTime": 0.5,
+        "effectiveMode": "editorial-text",
+        "warnings": [
+          "VISUAL_HERO_ASSET_MISSING"
+        ],
+        "qc": {
+          "frame": {
+            "left": 0,
+            "top": 8,
+            "right": 540,
+            "bottom": 968,
+            "width": 540,
+            "height": 960
+          },
+          "hero": null,
+          "text": {
+            "left": 44.96875,
+            "top": 578.84375,
+            "right": 495.03125,
+            "bottom": 838.03125,
+            "width": 450.0625,
+            "height": 259.1875
+          },
+          "keyword": {
+            "left": 44.96875,
+            "top": 684.296875,
+            "right": 433.28125,
+            "bottom": 744.546875,
+            "width": 388.3125,
+            "height": 60.25
+          },
+          "heroOpacity": 0,
+          "keywordOpacity": 1,
+          "textColor": "rgb(250, 250, 250)",
+          "textOverflow": false,
+          "maxLines": "2",
+          "visibleWords": 5
+        },
+        "runtimeQc": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 689.3578491210938,
+                "right": 386.6837463378906,
+                "bottom": 742.3778686523438,
+                "width": 341.7149963378906,
+                "height": 53.02001953125
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 684.3563232421875,
+                "right": 432.7337341308594,
+                "bottom": 744.5213623046875,
+                "width": 387.7649841308594,
+                "height": 60.1650390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 684.296875,
+                "right": 433.28125,
+                "bottom": 744.546875,
+                "width": 388.3125,
+                "height": 60.25
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 1,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 684.296875,
+                "right": 433.28125,
+                "bottom": 744.546875,
+                "width": 388.3125,
+                "height": 60.25
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 1,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 44.96875,
+                "top": 689.3578491210938,
+                "right": 386.6837463378906,
+                "bottom": 742.3778686523438,
+                "width": 341.7149963378906,
+                "height": 53.02001953125
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(250, 250, 250)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 5
+            }
+          ],
+          "localTextContrast": 17.80102875579879,
+          "findings": []
+        }
+      }
+    ]
+  },
+  "video": {
+    "file": "production/visual-asset-mvp-v1.mp4",
+    "sha256": "6a98d2b431ec26ee9d716052288d42359923bfa2e9d82e7c7de3d903dbc373a7",
+    "scenes": [
+      {
+        "index": 0,
+        "id": "01-cake",
+        "title": "Cake accent-mask",
+        "asset": "cake",
+        "visualMode": "asset-led",
+        "durationSeconds": 1.6
+      },
+      {
+        "index": 1,
+        "id": "02-astronaut",
+        "title": "Astronaut duotone",
+        "asset": "astronaut",
+        "visualMode": "asset-led",
+        "durationSeconds": 1.6
+      },
+      {
+        "index": 2,
+        "id": "03-editorial",
+        "title": "Editorial text",
+        "asset": "none",
+        "visualMode": "editorial-text",
+        "durationSeconds": 1.6
+      },
+      {
+        "index": 3,
+        "id": "04-compass",
+        "title": "Compass original",
+        "asset": "compass",
+        "visualMode": "asset-led",
+        "durationSeconds": 1.6
+      },
+      {
+        "index": 4,
+        "id": "05-punch",
+        "title": "Cake punch",
+        "asset": "cake",
+        "visualMode": "asset-led",
+        "durationSeconds": 1.6
+      },
+      {
+        "index": 5,
+        "id": "06-missing",
+        "title": "Fallback missing",
+        "asset": "missing",
+        "visualMode": "editorial-text",
+        "durationSeconds": 1.6
+      },
+      {
+        "index": 6,
+        "id": "07-astronaut-exit",
+        "title": "Astronaut scale-down",
+        "asset": "astronaut",
+        "visualMode": "asset-led",
+        "durationSeconds": 1.6
+      }
+    ],
+    "timelineExport": true,
+    "ffprobe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 720,
+          "height": 1280,
+          "pix_fmt": "yuv420p",
+          "duration": "11.200000",
+          "nb_read_frames": "336"
+        }
+      ],
+      "format": {
+        "duration": "11.200000",
+        "size": "1035174"
+      }
+    }
+  },
+  "performance": {
+    "dimensions": "540x960",
+    "fps": 15,
+    "durationSeconds": 1.6,
+    "legacy": {
+      "hash": "b42514a8abed",
+      "type": "visual_escena",
+      "totalFrames": 24,
+      "ancho": 540,
+      "alto": 960,
+      "ms": 563,
+      "intentosTotales": 28,
+      "intentosPorFrame": 1.1666666666666667,
+      "framesEnElTope": 0,
+      "maxIntentosFrame": 5
+    },
+    "assetLed": [
+      {
+        "hash": "e2131d839d37",
+        "type": "visual_escena",
+        "totalFrames": 24,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 859,
+        "intentosTotales": 28,
+        "intentosPorFrame": 1.1666666666666667,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "71dbbcd3006f",
+        "type": "visual_escena",
+        "totalFrames": 24,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 642,
+        "intentosTotales": 28,
+        "intentosPorFrame": 1.1666666666666667,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "20334a74f102",
+        "type": "visual_escena",
+        "totalFrames": 24,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 541,
+        "intentosTotales": 25,
+        "intentosPorFrame": 1.0416666666666667,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "6c19b2e8c5ba",
+        "type": "visual_escena",
+        "totalFrames": 24,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 558,
+        "intentosTotales": 26,
+        "intentosPorFrame": 1.0833333333333333,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "dce7b173b1e7",
+        "type": "visual_escena",
+        "totalFrames": 24,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 553,
+        "intentosTotales": 27,
+        "intentosPorFrame": 1.125,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "651be5723ace",
+        "type": "visual_escena",
+        "totalFrames": 24,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 598,
+        "intentosTotales": 27,
+        "intentosPorFrame": 1.125,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "0bec00f70de7",
+        "type": "visual_escena",
+        "totalFrames": 24,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 591,
+        "intentosTotales": 27,
+        "intentosPorFrame": 1.125,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      }
+    ],
+    "legacyMsPerFrame": 23.458333333333332,
+    "medianAssetMsPerFrame": 24.625,
+    "deltaPercent": 4.973357015985802
+  },
+  "legacyRegression": {
+    "baselineCommit": "b735f05c8c7df11a5bdc33a1fcf10f4caf4ea903",
+    "baseline": "tests/aceptacion/visual-asset-mvp/legacy-baseline-b735.png",
+    "comparison": "pixel tolerance; not byte equality",
+    "thresholds": {
+      "differentPixelRatioMax": 0.03,
+      "meanAbsoluteChannelDeltaMax": 2
+    },
+    "comparisons": [
+      {
+        "expectedFile": "tests/aceptacion/visual-asset-mvp/legacy-baseline-b735.png",
+        "width": 1080,
+        "height": 1920,
+        "differentPixelRatio": 0,
+        "meanAbsoluteChannelDelta": 0
+      }
+    ]
+  },
+  "network": {
+    "startupAttemptsBlocked": 1,
+    "visualAndExportAttempts": 0
+  }
+}
