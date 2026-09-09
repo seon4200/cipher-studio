@@ -182,6 +182,37 @@ async function main () {
   }
   const renderElapsedMs = Number(process.hrtime.bigint() - renderStarted) / 1e6
 
+  // Comparable, bounded cost control: both clips take the normal renderer path and use fresh
+  // identities in the same warmed process. This is not a universal benchmark or a new threshold.
+  const heroRow = resolved.find(row => row.result.decision.visualMode === 'asset-led' && row.result.decision.hero?.provider === 'openmoji')
+  if (!heroRow) throw new Error('Falta Hero OpenMoji para el control de rendimiento')
+  const controlMetrics = []
+  const stopControlObserver = bundle.observarRendimientoGraficos(metric => controlMetrics.push(metric))
+  const controlDirection = { ...heroRow.result.compiled.sceneSpec.direccion, semilla: 97001 }
+  const legacyControl = {
+    type: 'visual_escena', value: heroRow.result.compiled.graphicData.value,
+    extra: { conceptos: [{ etiqueta: 'pastel', emoji: '🎂' }], direccion: controlDirection },
+  }
+  const assetControlSpec = JSON.parse(JSON.stringify(heroRow.result.compiled.sceneSpec))
+  assetControlSpec.direccion.semilla = 97002
+  const assetControl = {
+    type: 'visual_escena', value: heroRow.result.compiled.graphicData.value,
+    extra: { sceneSpec: bundle.validateVisualSceneSpec(assetControlSpec) },
+  }
+  try {
+    const legacyControlPath = await bundle.renderGraphicClip(legacyControl, {
+      ancho: WIDTH, alto: HEIGHT, fps: FPS, duracion: DURATION, modo: 'pantalla', projectRoot: PROJECT_ROOT,
+    })
+    const assetControlPath = await bundle.renderGraphicClip(assetControl, {
+      ancho: WIDTH, alto: HEIGHT, fps: FPS, duracion: DURATION, modo: 'pantalla', projectRoot: PROJECT_ROOT,
+      renderBindings: heroRow.result.compiled.renderBindings,
+    })
+    if (!legacyControlPath || !assetControlPath || controlMetrics.length !== 2)
+      throw new Error('Control de rendimiento incompleto')
+  } finally {
+    stopControlObserver()
+  }
+
   await waitForMainWindow()
   const video = path.join(PRODUCTION, 'asset-resolver-v1.mp4')
   dialog.showSaveDialog = async () => ({ canceled: false, filePath: video })
@@ -259,6 +290,12 @@ async function main () {
       clipDurationSeconds: DURATION,
       totalPreparationAndRenderMs: Number(renderElapsedMs.toFixed(3)),
       clips: renderMetrics,
+    },
+    performance: {
+      method: 'Mismo proceso, mismos 540x960/10fps/1.4s, identidades nuevas; informativo, no benchmark universal.',
+      legacyEquivalent: controlMetrics[0],
+      assetLed: controlMetrics[1],
+      assetLedVsLegacyPct: Number((((controlMetrics[1].ms / controlMetrics[0].ms) - 1) * 100).toFixed(2)),
     },
     video: {
       file: 'production/asset-resolver-v1.mp4',

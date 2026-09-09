@@ -72,6 +72,14 @@ Frente a la puerta visual humana anterior (Solar usable/fuerte 22/42 y OpenMoji 
 
 tests/aceptacion/asset-resolver-v1/ conserva además video real de once Visuales, hoja de contacto de frames medios y evidence.json. El fixture elige sólo semántica: incluye OpenMoji creado/reutilizado, Solar, dos fallbacks editoriales, tres estructuras, dos tratamientos, texto y motion. Termina por renderGraphicClip → export-video, no como overlay de SVG/PNG. Durante resolver/render no hubo intentos de red; un intento de voces de inicialización fue bloqueado antes de medir y se registra por separado.
 
+La ejecución de aceptación registrada en evidence.json resolvió las once escenas
+en 792,867 ms (mediana 69,027 ms/escena; p95 129,451 ms), hizo 27 queries
+locales, publicó cuatro assets y reutilizó uno. El render/export de los once
+clips 540×960/10 fps/1,4 s tomó 6.810,732 ms. El control informativo equivalente
+del mismo proceso midió legacy 568 ms / 1,57 intentos por frame y asset-led
+591 ms / 1,50 intentos por frame (+4,05 %); no es un benchmark universal ni
+activa degradación automática.
+
 ## Límites y ByPeople posterior al MVP
 
     BYPEOPLE_PROVIDER_STATUS = 'planned-not-audited'

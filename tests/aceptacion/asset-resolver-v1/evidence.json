@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-09T05:42:11.784Z",
+  "generatedAt": "2026-09-09T05:45:42.326Z",
   "base": "9f989041478b26cd0e9681b36ef36986ce18b88f",
   "renderer": "AssetIntent -> resolver -> VisualSceneSpecV1 + RenderBindingsV1 -> renderGraphicClip -> export-video",
   "temporaryProject": true,
@@ -117,7 +117,7 @@
           "assetsPublished": 1,
           "manifestReads": 1
         },
-        "elapsedMs": 106.073
+        "elapsedMs": 124.037
       },
       {
         "id": "02-astronaut",
@@ -203,7 +203,7 @@
           "assetsPublished": 1,
           "manifestReads": 1
         },
-        "elapsedMs": 107.324
+        "elapsedMs": 121.173
       },
       {
         "id": "03-time",
@@ -282,7 +282,7 @@
           "assetsPublished": 0,
           "manifestReads": 1
         },
-        "elapsedMs": 62.322
+        "elapsedMs": 61.453
       },
       {
         "id": "04-editorial-solar",
@@ -361,7 +361,7 @@
           "assetsPublished": 0,
           "manifestReads": 1
         },
-        "elapsedMs": 60.776
+        "elapsedMs": 60.829
       },
       {
         "id": "05-bridge",
@@ -441,7 +441,7 @@
           "assetsPublished": 1,
           "manifestReads": 1
         },
-        "elapsedMs": 130.405
+        "elapsedMs": 127.942
       },
       {
         "id": "06-thermo",
@@ -492,7 +492,7 @@
           "assetsPublished": 0,
           "manifestReads": 0
         },
-        "elapsedMs": 0.367
+        "elapsedMs": 0.29
       },
       {
         "id": "07-cake-reuse",
@@ -598,7 +598,7 @@
           "assetsPublished": 0,
           "manifestReads": 1
         },
-        "elapsedMs": 26.202
+        "elapsedMs": 25.776
       },
       {
         "id": "08-magic",
@@ -684,7 +684,7 @@
           "assetsPublished": 1,
           "manifestReads": 1
         },
-        "elapsedMs": 128.989
+        "elapsedMs": 129.451
       },
       {
         "id": "09-pedestrians",
@@ -735,7 +735,7 @@
           "assetsPublished": 0,
           "manifestReads": 0
         },
-        "elapsedMs": 0.229
+        "elapsedMs": 0.195
       },
       {
         "id": "10-discovery",
@@ -814,7 +814,7 @@
           "assetsPublished": 0,
           "manifestReads": 1
         },
-        "elapsedMs": 68.796
+        "elapsedMs": 72.695
       },
       {
         "id": "11-sun",
@@ -893,13 +893,13 @@
           "assetsPublished": 0,
           "manifestReads": 1
         },
-        "elapsedMs": 66.613
+        "elapsedMs": 69.027
       }
     ],
     "timing": {
-      "totalMs": 758.097,
-      "medianMs": 66.613,
-      "p95Ms": 130.405,
+      "totalMs": 792.867,
+      "medianMs": 69.027,
+      "p95Ms": 129.451,
       "queries": 27,
       "publications": 4,
       "reusedAssets": 1,
@@ -912,7 +912,7 @@
     "dimensions": "540x960",
     "fps": 10,
     "clipDurationSeconds": 1.4,
-    "totalPreparationAndRenderMs": 5193.561,
+    "totalPreparationAndRenderMs": 6810.732,
     "clips": [
       {
         "hash": "8b2bf9145090",
@@ -920,9 +920,9 @@
         "totalFrames": 14,
         "ancho": 540,
         "alto": 960,
-        "ms": 665,
-        "intentosTotales": 16,
-        "intentosPorFrame": 1.1428571428571428,
+        "ms": 1108,
+        "intentosTotales": 22,
+        "intentosPorFrame": 1.5714285714285714,
         "framesEnElTope": 0,
         "maxIntentosFrame": 5
       },
@@ -932,9 +932,9 @@
         "totalFrames": 14,
         "ancho": 540,
         "alto": 960,
-        "ms": 415,
-        "intentosTotales": 15,
-        "intentosPorFrame": 1.0714285714285714,
+        "ms": 439,
+        "intentosTotales": 17,
+        "intentosPorFrame": 1.2142857142857142,
         "framesEnElTope": 0,
         "maxIntentosFrame": 5
       },
@@ -944,9 +944,9 @@
         "totalFrames": 14,
         "ancho": 540,
         "alto": 960,
-        "ms": 342,
-        "intentosTotales": 14,
-        "intentosPorFrame": 1,
+        "ms": 408,
+        "intentosTotales": 17,
+        "intentosPorFrame": 1.2142857142857142,
         "framesEnElTope": 0,
         "maxIntentosFrame": 5
       },
@@ -956,9 +956,9 @@
         "totalFrames": 14,
         "ancho": 540,
         "alto": 960,
-        "ms": 493,
-        "intentosTotales": 21,
-        "intentosPorFrame": 1.5,
+        "ms": 525,
+        "intentosTotales": 24,
+        "intentosPorFrame": 1.7142857142857142,
         "framesEnElTope": 0,
         "maxIntentosFrame": 5
       },
@@ -968,9 +968,9 @@
         "totalFrames": 14,
         "ancho": 540,
         "alto": 960,
-        "ms": 393,
-        "intentosTotales": 16,
-        "intentosPorFrame": 1.1428571428571428,
+        "ms": 548,
+        "intentosTotales": 26,
+        "intentosPorFrame": 1.8571428571428572,
         "framesEnElTope": 0,
         "maxIntentosFrame": 5
       },
@@ -980,9 +980,9 @@
         "totalFrames": 14,
         "ancho": 540,
         "alto": 960,
-        "ms": 411,
-        "intentosTotales": 17,
-        "intentosPorFrame": 1.2142857142857142,
+        "ms": 564,
+        "intentosTotales": 24,
+        "intentosPorFrame": 1.7142857142857142,
         "framesEnElTope": 0,
         "maxIntentosFrame": 5
       },
@@ -992,9 +992,9 @@
         "totalFrames": 14,
         "ancho": 540,
         "alto": 960,
-        "ms": 435,
-        "intentosTotales": 18,
-        "intentosPorFrame": 1.2857142857142858,
+        "ms": 563,
+        "intentosTotales": 23,
+        "intentosPorFrame": 1.6428571428571428,
         "framesEnElTope": 0,
         "maxIntentosFrame": 5
       },
@@ -1004,9 +1004,9 @@
         "totalFrames": 14,
         "ancho": 540,
         "alto": 960,
-        "ms": 398,
-        "intentosTotales": 17,
-        "intentosPorFrame": 1.2142857142857142,
+        "ms": 558,
+        "intentosTotales": 22,
+        "intentosPorFrame": 1.5714285714285714,
         "framesEnElTope": 0,
         "maxIntentosFrame": 5
       },
@@ -1016,9 +1016,9 @@
         "totalFrames": 14,
         "ancho": 540,
         "alto": 960,
-        "ms": 402,
-        "intentosTotales": 18,
-        "intentosPorFrame": 1.2857142857142858,
+        "ms": 550,
+        "intentosTotales": 22,
+        "intentosPorFrame": 1.5714285714285714,
         "framesEnElTope": 0,
         "maxIntentosFrame": 5
       },
@@ -1028,9 +1028,9 @@
         "totalFrames": 14,
         "ancho": 540,
         "alto": 960,
-        "ms": 505,
-        "intentosTotales": 18,
-        "intentosPorFrame": 1.2857142857142858,
+        "ms": 592,
+        "intentosTotales": 21,
+        "intentosPorFrame": 1.5,
         "framesEnElTope": 0,
         "maxIntentosFrame": 5
       },
@@ -1040,17 +1040,69 @@
         "totalFrames": 14,
         "ancho": 540,
         "alto": 960,
-        "ms": 485,
+        "ms": 661,
         "intentosTotales": 22,
         "intentosPorFrame": 1.5714285714285714,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "244f060e8236",
+        "type": "visual_escena",
+        "totalFrames": 14,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 568,
+        "intentosTotales": 22,
+        "intentosPorFrame": 1.5714285714285714,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "664be228d011",
+        "type": "visual_escena",
+        "totalFrames": 14,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 591,
+        "intentosTotales": 21,
+        "intentosPorFrame": 1.5,
         "framesEnElTope": 0,
         "maxIntentosFrame": 5
       }
     ]
   },
+  "performance": {
+    "method": "Mismo proceso, mismos 540x960/10fps/1.4s, identidades nuevas; informativo, no benchmark universal.",
+    "legacyEquivalent": {
+      "hash": "244f060e8236",
+      "type": "visual_escena",
+      "totalFrames": 14,
+      "ancho": 540,
+      "alto": 960,
+      "ms": 568,
+      "intentosTotales": 22,
+      "intentosPorFrame": 1.5714285714285714,
+      "framesEnElTope": 0,
+      "maxIntentosFrame": 5
+    },
+    "assetLed": {
+      "hash": "664be228d011",
+      "type": "visual_escena",
+      "totalFrames": 14,
+      "ancho": 540,
+      "alto": 960,
+      "ms": 591,
+      "intentosTotales": 21,
+      "intentosPorFrame": 1.5,
+      "framesEnElTope": 0,
+      "maxIntentosFrame": 5
+    },
+    "assetLedVsLegacyPct": 4.05
+  },
   "video": {
     "file": "production/asset-resolver-v1.mp4",
-    "sha256": "ddd2ee779250f96acac3d790a2c1f646be3587e1fde2c3fe5eba5574b303e2cf",
+    "sha256": "a38906c466f552a15e9a56ff0e235f7ecb4c4ee3f2874baa0f7a2fed2d78383f",
     "durationSeconds": 15.400000000000002,
     "timelineExport": true,
     "ffprobe": {
@@ -1068,13 +1120,13 @@
       ],
       "format": {
         "duration": "15.400000",
-        "size": "3142491"
+        "size": "3146782"
       }
     }
   },
   "contactSheet": {
     "file": "contact-sheet.png",
-    "sha256": "4f6b56ce032fe313f139f39a3c61a3dccc1dda6516c7d4b376412a0e89a7bceb",
+    "sha256": "fe73060c96ca1ae8628d71babb43ee92f4935ef218f91dbe0e645b218cc423da",
     "generatedFrom": "production/asset-resolver-v1.mp4"
   }
 }
