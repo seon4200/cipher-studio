@@ -4,8 +4,8 @@
 > (09/09/2026).** La rama `visual-composition-repair-v1` parte de
 > `v-semantic-decision-repair-v1`. El commit productivo `693af0f` agrupa los
 > cambios de píxel y la única subida `VERSION_PLANTILLAS=12 → 13`; `5c3a6f3`
-> añade la aceptación real-like. Sobre 50 solicitudes forenses: 49 se
-> materializan, 1 se rechaza/sustituye por contraste local, 0 vuelven a legacy;
+> añade la aceptación real-like. Sobre 50 solicitudes forenses: las 50 se
+> materializan, 0 se rechazan/sustituyen y 0 vuelven a legacy;
 > la densidad pasa de 33/34 saturadas a baja 3 · media 31 · alta 16 · saturada 0,
 > los decoradores bajan de 13,74 a 1,66 por escena y los huecos de Hero de 5 a 0.
 > La vía legacy comparada conserva 0 píxeles distintos; V12 y V13 usan hashes de

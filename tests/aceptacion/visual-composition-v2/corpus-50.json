@@ -583,13 +583,11 @@
       "decoratorCount": 2,
       "emptyHeroFrames": 0,
       "treatment": "duotone",
-      "qc": "rejected",
-      "qcErrorCodes": [
-        "VISUAL_QC_CONTRAST_LOCAL"
-      ],
+      "qc": "accepted",
+      "qcErrorCodes": [],
       "qcNeedsReviewCodes": [],
-      "localContrast": 2.6241199443551704,
-      "rendered": false,
+      "localContrast": 15.517615922758148,
+      "rendered": true,
       "duration": 2.4,
       "resolverDegraded": false,
       "fallback": null

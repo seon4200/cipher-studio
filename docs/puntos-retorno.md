@@ -19,8 +19,10 @@ históricas ni se reutilizan sus nombres.
 (`v-semantic-decision-repair-v1`). Cambia la composición productiva de una misma
 `sceneSpec`, por lo que el commit `693af0f` contiene simultáneamente todos los
 cambios de píxel y la única subida `VERSION_PLANTILLAS=12 → 13`. La aceptación
-real-like de `5c3a6f3` reproduce 50 solicitudes: 49 materializadas, 1 rechazada y
-sustituida, 0 legacy nuevas, 0 huecos de Hero y 0 densidades saturadas.
+real-like iniciada en `5c3a6f3` reproduce 50 solicitudes: 50 materializadas, 0
+rechazadas/sustituidas, 0 legacy nuevas, 0 huecos de Hero y 0 densidades
+saturadas. La medición final incluye la barrera de pintura que elimina la carrera
+entre ocultar los glifos y capturar el fondo para contraste local, sin rebajar QC.
 
 Las puertas automáticas, la separación de caché V12/V13 y la regresión legacy
 pasan. La hoja y el vídeo viven en

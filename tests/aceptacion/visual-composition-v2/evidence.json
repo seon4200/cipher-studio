@@ -34,9 +34,9 @@
   },
   "after": {
     "requestedVisuals": 50,
-    "materializedVisuals": 49,
-    "qcRejectedVisuals": 1,
-    "substitutedWithOriginal": 1,
+    "materializedVisuals": 50,
+    "qcRejectedVisuals": 0,
+    "substitutedWithOriginal": 0,
     "resolverDegradedVisuals": 0,
     "densityDistributionAllDecisions": {
       "alta": 16,
@@ -46,16 +46,14 @@
     "densityDistributionMaterialized": {
       "alta": 16,
       "baja": 3,
-      "media": 30
+      "media": 31
     },
     "decoratorTotal": 83,
     "decoratorMean": 1.66,
     "editorialDecoratorMean": 1.23,
     "emptyHeroFrames": 0,
     "deadHeroStructures": 0,
-    "qcCategoryOccurrences": {
-      "VISUAL_QC_CONTRAST_LOCAL": 1
-    },
+    "qcCategoryOccurrences": {},
     "needsReviewOccurrences": {},
     "providers": {
       "editorial-text": 30,
@@ -70,17 +68,17 @@
     "newScenesToLegacy": 0,
     "performance": {
       "scope": "540x960, 10 fps, renders productivos no cacheados aceptados",
-      "measuredRenders": 49,
-      "totalRenderMs": 34080,
-      "medianMsPerFrame": 27.583333333333332,
-      "p95MsPerFrame": 42.15,
-      "meanAttemptsPerFrame": 1.299
+      "measuredRenders": 50,
+      "totalRenderMs": 34808,
+      "medianMsPerFrame": 28.875,
+      "p95MsPerFrame": 37.041666666666664,
+      "meanAttemptsPerFrame": 1.232
     }
   },
   "deltas": {
-    "materializedVisuals": 15,
-    "qcRejectedVisuals": -15,
-    "substitutedWithOriginal": -15,
+    "materializedVisuals": 16,
+    "qcRejectedVisuals": -16,
+    "substitutedWithOriginal": -16,
     "decoratorMean": -12.08,
     "emptyHeroFrames": -5
   },
@@ -367,7 +365,7 @@
       ],
       "format": {
         "duration": "25.233333",
-        "size": "2166931"
+        "size": "2162620"
       }
     }
   },

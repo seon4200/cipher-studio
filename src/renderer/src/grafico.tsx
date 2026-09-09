@@ -250,12 +250,19 @@ const rect = (element: Element | null) => {
   }
 }
 
-;(window as any).__hideVisualTextForQc = (hidden: boolean) => {
+;(window as any).__hideVisualTextForQc = async (hidden: boolean) => {
   const text = document.querySelector('[data-qc-text="true"]') as HTMLElement | null
   if (!text) return
   for (const element of text.querySelectorAll('[data-qc-text-glyph="true"]')) {
     ;(element as HTMLElement).style.visibility = hidden ? 'hidden' : 'visible'
   }
+  // executeJavaScript resolves after the DOM mutation, not necessarily after Chromium has
+  // committed that mutation to the offscreen surface consumed by capturePage(). Without this
+  // paint barrier the contrast probe intermittently sampled the still-visible white glyphs and
+  // reported the exact false p10=2.624 seen by the runner and the real-like replay. Two frames
+  // cover style/layout and compositor publication; no production frame uses this hidden state.
+  void text.offsetHeight
+  await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
 }
 
 ;(window as any).__setT = (t: number) => {

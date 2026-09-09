@@ -225,9 +225,12 @@ app.whenReady().then(async () => {
       assert.equal(bundle.evaluateAssetMotion(motion, 1).opacity, 0)
     })
     await runCase('27 render real supera contraste local/QC', async () => {
+      let qcReport = null
       const output = await bundle.renderGraphicClip(baseGraphic, { ancho: 360, alto: 640, fps: 8, duracion: 1,
-        modo: 'pantalla', projectRoot: root, renderBindings: baseBindings })
-      assert(output && fs.existsSync(output), 'render productivo nulo')
+        modo: 'pantalla', projectRoot: root, renderBindings: baseBindings,
+        onQcReport: report => { qcReport = report }, onQcFailure: report => { qcReport = report } })
+      assert(output && fs.existsSync(output), `render productivo nulo; QC=${JSON.stringify(qcReport)}`)
+      assert(qcReport && qcReport.findings.every(finding => finding.level !== 'error'))
     })
     await runCase('28 las tres estructuras MVP son válidas', () => {
       for (const estructura of ['constelacion', 'marcoPoster', 'editorial'])

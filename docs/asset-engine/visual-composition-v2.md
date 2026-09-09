@@ -96,9 +96,16 @@ Las causas observadas en la reproducción 4A fueron:
 - `VISUAL_QC_TEXT_OVERFLOW`: 15;
 - `VISUAL_QC_CONTRAST_LOCAL`: 5.
 
-En la aceptación V13 queda un único rechazo por
-`VISUAL_QC_CONTRAST_LOCAL`, con p10 2,6241. Se conserva porque está bajo el
-umbral duro; no se oculta ni se contabiliza como materializado.
+La primera verificación final reveló una carrera en la medición: el QC ocultaba
+los glifos y pedía `capturePage()` antes de que Chromium hubiese publicado esa
+mutación en la superficie offscreen. Cuando recibía el frame anterior, los
+propios píxeles claros de la keyword contaminaban el fondo y producían el mismo
+p10 2,6241 visto de forma intermitente en la suite y en la aceptación.
+
+La corrección no cambia umbrales ni píxeles productivos: espera dos barreras de
+pintura antes de capturar el fondo local y antes de restaurar los glifos. El caso
+pasó 10/10 procesos independientes y la aceptación completa quedó en cero
+findings/rechazos QC.
 
 ## Aceptación real-like
 
@@ -111,9 +118,9 @@ de assets manualmente para hacer pasar la muestra.
 | medida | V12 forense | V13 real-like |
 |---|---:|---:|
 | Visuales solicitados | 50 | 50 |
-| materializados | 34 | 49 |
-| rechazados por QC | 16 | 1 |
-| sustituidos por original | 16 | 1 |
+| materializados | 34 | 50 |
+| rechazados por QC | 16 | 0 |
+| sustituidos por original | 16 | 0 |
 | resolver degradado | no medido | 0 |
 | `saturada` | 33/34 | 0/50 |
 | decoradores totales | 467 | 83 |
@@ -123,9 +130,9 @@ de assets manualmente para hacer pasar la muestra.
 | estructuras con reserva muerta | 21 | 0 |
 | escenas nuevas que vuelven a legacy | 6 históricas | 0 |
 
-Distribución V13 sobre las 50 decisiones: baja 3, media 31 y alta 16. Las 49
-materializadas son 30 editorial-text, 18 OpenMoji y 1 Solar; las 19 decisiones
-OpenMoji usan 11 `accent-mask` y 8 `duotone`, y una de ellas es el rechazo QC.
+Distribución V13 sobre las 50 decisiones y materializaciones: baja 3, media 31 y
+alta 16. Son 30 editorial-text, 19 OpenMoji y 1 Solar. Los OpenMoji usan 11
+`accent-mask` y 8 `duotone`.
 
 La hoja de comparación contiene construir, partidos, fútbol, estando, iglesia,
 religioso, accidente e indignación con provider, candidato, estructura,
@@ -142,8 +149,8 @@ distintos 0 y delta absoluto medio por canal 0, dentro de los límites existente
 de 3 % y 2. Es una prueba de regresión de la vía sin `sceneSpec`, no una promesa
 universal sobre todos los Visuales históricos.
 
-El probe V13, a 540×960 y 10 fps, midió 49 renders aceptados no cacheados:
-34.080 ms totales, mediana 27,583 ms/frame, p95 42,15 ms/frame y media 1,299
+El probe V13, a 540×960 y 10 fps, midió 50 renders aceptados no cacheados:
+34.808 ms totales, mediana 28,875 ms/frame, p95 37,042 ms/frame y media 1,232
 intentos/frame. Los logs V12 disponibles son 1080×1920 (mediana 38,269 y p95
 53 ms/frame), por lo que no constituyen una comparación A/B controlada.
 
@@ -159,4 +166,3 @@ legacy dentro de la tolerancia existente.
 Estas puertas prueban integridad y comportamiento medible. No prueban que el
 resultado sea bonito, profesional o visualmente aprobado. La rama debe permanecer
 sin merge y sin tag hasta la revisión de Jairo.
-
