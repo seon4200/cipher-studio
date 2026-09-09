@@ -147,17 +147,7 @@ async function prepararRuntimeAssets(assets: readonly PreparedRenderAssetV1[]): 
   }
 }
 
-;(window as any).__montar = async (
-  graphicData: any,
-  op: Partial<Opciones> = {},
-  preparedAssets: readonly PreparedRenderAssetV1[] = [],
-) => {
-  if (raiz) {
-    raiz.unmount()
-    raiz = null
-  }
-  liberarRuntimeAssets()
-  runtimeAssets = await prepararRuntimeAssets(preparedAssets)
+function montarGraphicData(graphicData: any, op: Partial<Opciones>) {
   opciones = { ...opciones, ...op }
   sonda.style.cssText = `height:${SONDA_ALTO}px;width:100%;background:#000;opacity:1`
   // El margen se calcula en PIXELES desde el alto. Ojo con la tentacion de volver a una clase
@@ -173,6 +163,22 @@ async function prepararRuntimeAssets(assets: readonly PreparedRenderAssetV1[]): 
     ? 'flex'
     : 'flex items-end justify-center'
   datos = graphicData
+
+  // A fresh root per clip is the existing invariant documented below.
+  raiz = createRoot(lienzo)
+  ;(window as any).__setT(0)
+}
+
+;(window as any).__montar = (
+  graphicData: any,
+  op: Partial<Opciones> = {},
+  preparedAssets: readonly PreparedRenderAssetV1[] = [],
+) => {
+  if (raiz) {
+    raiz.unmount()
+    raiz = null
+  }
+  liberarRuntimeAssets()
 
   // ── SE DESMONTA Y SE VUELVE A MONTAR EN CADA CLIP ────────────────────────────────────
   //
@@ -203,8 +209,17 @@ async function prepararRuntimeAssets(assets: readonly PreparedRenderAssetV1[]): 
   // Y basta con esto: esta medido que desmontar el subarbol arregla el frame. No hace falta
   // recargar la pagina ni tirar la ventana, que es lo caro —~150 ms de arranque— y es
   // justamente lo que la ventana reutilizada existe para evitar.
-  raiz = createRoot(lienzo)
-  ;(window as any).__setT(0)
+  // Legacy had a synchronous __montar contract. Keep it exactly: callers that mount and setT
+  // in the same script must not acquire a microtask delay merely because the productive path
+  // can decode an asset. Only a scene with prepared bytes returns a Promise.
+  if (!preparedAssets.length) {
+    montarGraphicData(graphicData, op)
+    return undefined
+  }
+  return prepararRuntimeAssets(preparedAssets).then(prepared => {
+    runtimeAssets = prepared
+    montarGraphicData(graphicData, op)
+  })
 }
 
 const rect = (element: Element | null) => {
