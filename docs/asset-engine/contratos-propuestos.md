@@ -6,11 +6,12 @@ ProjectSubstrate, ProjectStateV1, ProjectAssetRecord y AssetManifestV1 tienen
 autoridad productiva en src/shared/project-state.ts. El manifest mínimo usa
 source/validation anidados por archivo, no las tablas con refs del ejemplo futuro.
 Estado y manifest no duplican metadata. Ver persistencia-assets-v1.md.
-No existen adquisición, descarga, Recipe compiler, RenderSpec ni renderer nuevo.
 La propuesta individual extra.hero sigue sustituida por una única proyección
-`extra.sceneSpec`. Desde el Visual MVP productivo, su subconjunto V1 sí tiene
-autoridad ejecutable en `src/shared/visual-scene-spec.ts`; los contratos más
-amplios de Recipe/Resolver continúan documentales.
+`extra.sceneSpec`. Desde el Visual MVP productivo, su subconjunto V1 tiene
+autoridad ejecutable en `src/shared/visual-scene-spec.ts`. El Resolver V1
+materializa `AssetIntentV1 → ResolvedSceneDecisionV1 → sceneSpec + bindings`
+antes del hash. Recipe completo, adquisición remota y providers posteriores
+continúan fuera del código productivo.
 
 ## Catálogo de aplicación OpenMoji — 3.4B
 
@@ -25,8 +26,9 @@ una única autoridad en `attribution.ts`.
 El catálogo sólo devuelve candidatos y una ruta local confinada. No crea
 `ProjectAssetRecord`, no escribe `materiales/assets/manifest.json`, no devuelve
 una URL remota de render y no contiene geometría, SceneRecipe, motion, timeline
-ni RenderSpec. Cuando 3.4C publique un SVG concreto, su SHA/estado/tinte efectivo
-pasarán a la identidad visual; su ruta relativa seguirá siendo sólo un locator.
+ni RenderSpec. 3.4C publica un SVG concreto y el Resolver V1 lo puede reutilizar:
+SHA, estado y tinte efectivo pasan a identidad visual; su ruta relativa sigue
+siendo sólo un locator.
 Ver `openmoji-catalog-v1.md` para la API, errores y recurso offline.
 
 ## 3.4C — ProjectAsset OpenMoji materializado, sin escena
@@ -68,9 +70,29 @@ como `sceneSpecReactKey`. Provider, URL, licencia, atribución, fecha, path,
 candidato y AttentionIntent no entran al hash.
 
 V1 certifica un solo Hero OpenMoji, tres estructuras, tres tratamientos, dos
-pares tipográficos, motion acotado y fallback editorial. No implementa
-SceneRecipe compiler ni Asset Resolver. Evidencia y límites:
-`visual-asset-mvp-v1.md`.
+pares tipográficos, motion acotado y fallback editorial. El Resolver V1 posterior
+usa este subconjunto sin ampliarlo; no implementa el compiler completo de
+SceneRecipe. Evidencia y límites: `visual-asset-mvp-v1.md`.
+
+## Resolver V1 — decisión materializada antes de render
+
+`AssetIntentV1` tiene autoridad ejecutable en `src/shared/asset-intent.ts` y
+contiene sólo la necesidad narrativa (`sceneId`, phrase opcional, keyword,
+conceptos, relación, ancla, términos y modo preferido). No contiene provider,
+URL, path, SHA, assetId, tratamiento ni geometría.
+
+`ResolvedSceneDecisionV1` vive en `src/main/assets/asset-resolver.ts`. Separa
+metáfora, candidatos, selección, reuse, estructura, tratamiento, fallback y
+avisos. Sólo su compilador único produce `VisualSceneSpecV1 + RenderBindingsV1`.
+La traza detallada es diagnóstica: no está en `graphicData.extra.sceneSpec`, no
+participa en `hashGrafico` y no llega al renderer.
+
+El renderer continúa sin semántica: no busca OpenMoji, aliases, providers ni
+metáforas. Para un ProjectAsset recibe bytes ya verificados desde el binding; para
+Solar recibe el nombre canónico ya elegido como `procedural` en el spec. Sólo los
+valores visuales materializados (estado, SHA si aplica, tratamiento, fit, bounds,
+motion, texto y revisiones) determinan PixelIdentity. Locator, provider, URL,
+licencia, atribución, candidatos y score no lo hacen.
 
 ## Responsabilidades separadas
 
@@ -81,7 +103,7 @@ SceneRecipe compiler ni Asset Resolver. Evidencia y límites:
 | ProjectSubstrate | estilo estable por vídeo, paleta/par tipográfico por ID | inventario de assets o hex por escena |
 | SceneAssetSlot | rol, intención, clase preferida, importancia, opcionalidad, fallback | asset real/posición |
 | AssetMotionRecipe | entry/sustain/emphasis/exit/visibility normalizados | segundos, CSS, amplitudes libres |
-| AssetIntent | solicitud de adquisición derivada del slot e intención | píxeles, geometría |
+| AssetIntentV1 | necesidad narrativa ejecutable del resolver | provider, URL, path, SHA, tratamiento, geometría |
 | AssetCandidate | posibilidad remota | aprobación o uso en escena |
 | DownloadRequest | URL candidata y límites de una operación | composición |
 | DownloadedAsset | temporal recibido, tamaño/estado de descarga | aprobación/identidad visual |
@@ -91,6 +113,7 @@ SceneRecipe compiler ni Asset Resolver. Evidencia y límites:
 | AssetManifest | inventario de assets/validaciones/procedencia por proyecto | ProjectSubstrate/timeline |
 | SubjectBounds | contenido visible dentro del archivo, revisión de medición | posición de escena |
 | ResolvedScenePlan | assets por slot, refs, SHA/MIME/bounds y decisiones/fallback | React/CSS libre o geometría paralela |
+| ResolvedSceneDecisionV1 | resultado local de metáfora, candidatos, reuse, fallback y avisos | traza dentro de PixelIdentity o CSS/React |
 | RenderSpec | resultado visual efectivo y revisiones; único input visual nuevo | selección semántica/proveedor/ruta |
 | RenderAssetIdentity | estado/SHA/ajuste/tinte/motion efectivo | assetId administrativo/ruta |
 | RenderAssetLocator | slotId/assetId/relativeFile para bytes | identidad visual |
@@ -158,23 +181,25 @@ El manifest V1 vive en `materiales/assets/manifest.json`; `relativeFile` es
 relativo a la raíz del proyecto. El estado versionado guarda `schemaVersion`,
 `projectSubstrate` y referencias de uso/timeline, no otra copia de archivos.
 3.4A ya comprobó migración/default legacy, guardado recuperable y recuperación
-por backup. Esta forma ampliada queda para adquisición, referencias separadas y
-validación de assets reales; no existen todavía proveedor, descarga ni Hero.
+por backup. La forma ampliada de adquisición remota continúa propuesta. Hoy sí
+existen catálogo OpenMoji local, publicación sin red y un Hero productivo; el
+Resolver V1 sólo selecciona ProjectAsset, OpenMoji local, Solar o editorial-text.
 
 ## Lifecycle y hash
 
-1. SceneIntent + ProjectSubstrate → Recipe (metáfora/slots o editorial-text).
-2. Adquisición deriva AssetIntent; busca inventario local válido antes de provider.
-3. Candidate → DownloadRequest → temporal, sin publicar aún.
-4. Validar MIME/magic, límites, dimensiones, SVG/alpha, SHA y riesgo.
-5. Publicar archivo + inventario recuperables de forma atómica por proyecto.
-6. ResolvedScenePlan registra slots y decisiones de densidad/paleta/fuentes/fallback.
-7. Compilar RenderSpec + RenderBindings: identidad y localización separadas.
-8. Verificar locators contra SHA, retener bytes verificados, hashear
+1. Semántica saneada → AssetIntentV1 → metáfora concreta o editorial-text.
+2. Resolver V1 busca inventario ProjectAsset válido antes del catálogo OpenMoji local.
+3. Sólo el candidato OpenMoji seleccionado se publica con la validación/SHA de 3.4C;
+   Solar queda procedural y no se descarga.
+4. ResolvedSceneDecisionV1 registra selección, reuse, estructura, tratamiento,
+   fallback y avisos fuera de PixelIdentity.
+5. El compilador único materializa RenderSpec + RenderBindings: identidad y
+   localización separadas.
+6. Verificar locators contra SHA, retener bytes verificados, hashear
    graphicData.extra.sceneSpec y clave React correspondiente.
-9. visual_escena pinta el resultado ya elegido dentro de geometría de estructura;
+7. visual_escena pinta el resultado ya elegido dentro de geometría de estructura;
    el Visual termina como vídeo en timeline, no clip PNG paralelo.
-10. Si faltan/cambian bytes, aviso y rechazo de captura o recompilación/fallback
+8. Si faltan/cambian bytes, aviso y rechazo de captura o recompilación/fallback
     con nueva identidad. Nunca present sin archivo bajo el mismo hash.
 
 SHA final representa bytes dibujados, original en procedencia si hubo derivado.
@@ -191,5 +216,7 @@ sanitización/rasterización determinista si corresponde, SHA de bytes finales.
 ProviderPolicy permanece ejemplo separado en ../spike-hero/provider-contract.ts.example;
 capacidad técnica, permiso y habilitación no son equivalentes.
 
-No ResolvedAsset gigante ni inventario global nuevo. OpenMoji primero; PurePNG
-condicionado, PNGImages pendiente, APIs/removedor/ByPeople/IA posteriores.
+No ResolvedAsset gigante ni inventario global nuevo. OpenMoji es el único
+provider de archivo activo; PurePNG/PNGImages/APIs/removedor/IA siguen fuera del
+resolver. ByPeople es la primera expansión post-MVP, pero permanece
+`planned-not-audited` hasta inspeccionar la biblioteca real.
