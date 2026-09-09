@@ -68,6 +68,11 @@ El corpus físico de 42 Visuales es tests/aceptacion/mvp-paso7/video.json; no pe
 
 La evidencia actual del corpus registra 20/42 asset-led (8 OpenMoji, 12 Solar) y 22/42 editorial-text. Es una política deliberadamente conservadora: evita fingir personas, archivo, contexto histórico o relaciones abstractas con emoji. Hay un empate editorial y las tres barreras críticas quedan activas: termodinámica no recibe mobile phone off, peatones no recibe no pedestrians y mástil no recibe mastodon.
 
+La corrida final del corpus tomó 2.447,629 ms en total (mediana 1,522 ms por
+escena; p95 171,836 ms), con 84 queries locales de OpenMoji, ocho publicaciones
+en el proyecto temporal y veinte lecturas de manifest. Es una medición del host y
+del corpus concreto, no un presupuesto universal de producción.
+
 Frente a la puerta visual humana anterior (Solar usable/fuerte 22/42 y OpenMoji usable/fuerte 28/42), esta primera política automática no intenta igualar toda la cobertura de candidatos. Materializa sólo decisiones que puede defender sin resolver más rico: el cuello de botella pendiente es selección/metáfora y representación de escenas humanas, archivo y relaciones, no ausencia de segunda fuente de iconos.
 
 tests/aceptacion/asset-resolver-v1/ conserva además video real de once Visuales, hoja de contacto de frames medios y evidence.json. El fixture elige sólo semántica: incluye OpenMoji creado/reutilizado, Solar, dos fallbacks editoriales, tres estructuras, dos tratamientos, texto y motion. Termina por renderGraphicClip → export-video, no como overlay de SVG/PNG. Durante resolver/render no hubo intentos de red; un intento de voces de inicialización fue bloqueado antes de medir y se registra por separado.

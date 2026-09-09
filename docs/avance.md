@@ -1,5 +1,26 @@
 # AVANCE — dónde vamos
 
+> **Asset Resolver V1 integrado localmente (09/09/2026).** El merge
+> `de9f6087` incorpora `AssetIntentV1`, metáfora antes de asset, resolver local
+> y compilador único a `VisualSceneSpecV1 + RenderBindingsV1`. Las únicas fuentes
+> activas son ProjectAsset reutilizable, OpenMoji local, Solar procedimental y
+> editorial-text; no hay red, IA ni provider nuevo. El corpus físico de 42 escenas
+> resolvió 20 asset-led (8 OpenMoji, 12 Solar) y 22 editorial-text, con las tres
+> barreras críticas activas: termodinámica no recibe *mobile phone off*, peatones
+> no recibe *no pedestrians* y mástil no recibe *mastodon*. Un vídeo automático de
+> once Visuales termina por `renderGraphicClip → export-video`, con Hero, texto,
+> motion, tres estructuras y fallback trazable; no hay selección manual de assets.
+> La suite nueva pasa 40/40 y el runner pasa 14/14 en el repo y en un clon nuevo
+> del árbol de código final. Legacy sin `sceneSpec` no se recompila al abrir;
+> `VERSION_PLANTILLAS=12` se conserva porque la identidad nueva queda delimitada
+> por `sceneSpec`, revisiones y SHA, sin cambiar píxeles legacy. Los tres proyectos
+> reales conservaron su huella y no recibieron assets. ByPeople sigue
+> `planned-not-audited`: no es candidato activo. Retorno: `v-asset-resolver-v1`.
+> Próxima acción: usar Cipher en vídeos reales y recoger evidencia, no iniciar otra
+> fase lineal automáticamente. Evidencia:
+> `docs/asset-engine/asset-resolver-v1.md` y
+> `tests/aceptacion/asset-resolver-v1/`.
+
 > **Visual MVP productivo integrado localmente (08/09/2026).** El merge
 > `471476ac` incorpora desde una rama limpia el primer Visual productivo con
 > ProjectAsset OpenMoji verificado, texto editorial, tratamientos por familia,
@@ -167,7 +188,7 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 | 6 | Resto del vocabulario | ✅ piezas portadas; calibración perceptiva pendiente |
 | 7 | La IA elige | 🟨 relación/contrato/fallback implementados; calidad no certificada |
 | 8 | Moduladores | 🟨 4 paletas por proyecto + 10 tipografías; sin acabado |
-| 9 | Imágenes | 🟨 Visual MVP productivo; resolver automático pendiente |
+| 9 | Imágenes | ✅ Visual MVP + Asset Resolver V1 local; validar uso en vídeos reales |
 | 10 | YouTube 16:9 | ⬜ 0/4 |
 
 El texto posterior conserva el plan y sus mediciones intermedias. Las marcas `0/…`,

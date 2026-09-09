@@ -12,6 +12,48 @@ de publicarse; queda registrado como excepción previa a esta regla y conserva s
 target final `a9d109ece77c9b552a8e84e3cd248e25ba7fa3a8`. No se reescriben etiquetas
 históricas ni se reutilizan sus nombres.
 
+## `v-asset-resolver-v1`
+
+Merge local **`de9f6087eb89ec02fbfd23b333abe5bc49e56ef7`** de
+`asset-resolver-v1`; la etiqueta apunta al cierre documental posterior al merge.
+No mueve `v-visual-asset-mvp-v1` ni ninguna etiqueta histórica.
+
+**Qué contiene:** `AssetIntentV1` narrativo, reglas de metáfora antes de asset,
+scoring cerrado 0–3, ProjectAsset-first, búsqueda OpenMoji local, Solar
+procedimental y editorial-text; una sesión acotada de continuidad/variedad,
+traza diagnóstica y avisos, más un único compilador a
+`VisualSceneSpecV1 + RenderBindingsV1`. El renderer recibe sólo la decisión ya
+materializada: no busca proveedores ni interpreta aliases. La integración usa la
+semántica existente antes de hash/render y produce un vídeo automático por el
+camino real.
+
+**Qué está comprobado:** el corpus físico de 42 escenas resolvió 20 asset-led
+(8 OpenMoji y 12 Solar) y 22 editorial-text, sin lookup de las decisiones humanas
+previas; hay un empate editorial explícito y cero falsos positivos críticos
+conocidos (`mobile phone off`/termodinámica, `no pedestrians`/peatones y
+`mastodon`/mástil). El resolver funciona sin red, no recorre todos los SVG y
+publica/reutiliza sólo el OpenMoji seleccionado en proyectos temporales. La
+aceptación genera once Visuales y un MP4 real con ProjectAsset, Solar,
+editorial-text, tres estructuras, dos tratamientos, texto y motion; no hay
+selección manual. La suite nueva pasa 40/40; catálogo 30/30, Visual MVP 40/40 y
+runner 14/14 pasaron en el repo y en un clon nuevo del árbol ejecutable final.
+Legacy sin `sceneSpec` no se re-resuelve al abrir y conserva su identidad
+registrada. Los tres proyectos reales mantuvieron ruta, SHA, tamaño y fecha; no
+recibieron SVG ni manifest.
+
+**Qué NO está comprobado:** calidad y selección sobre vídeos reales de usuario,
+ByPeople/photo-cutout, nuevos providers, AttentionIntent, Support/collage,
+archivo/vintage, sincronía de voz, transiciones, 16:9, UI de assets ni rendimiento
+universal. `BYPEOPLE_PROVIDER_STATUS = 'planned-not-audited'`: sólo podrá entrar
+después de auditar la biblioteca adquirida, no como candidato actual.
+
+**Volver aquí:** conserva el flujo offline semántica → decisión → ProjectAsset o
+Solar/editorial-text → `sceneSpec`/bindings → render, sin ampliar proveedores.
+Después de este punto no se abre otra ronda automáticamente: se usa Cipher en
+vídeos reales y se registra evidencia de selección antes de ampliar el sistema.
+
+---
+
 ## `v-visual-asset-mvp-v1`
 
 Merge local **`471476acbf1053796374d231fde54164aa917a45`** de
