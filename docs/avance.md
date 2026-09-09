@@ -1,5 +1,25 @@
 # AVANCE — dónde vamos
 
+> **Visual MVP productivo integrado localmente (08/09/2026).** El merge
+> `471476ac` incorpora desde una rama limpia el primer Visual productivo con
+> ProjectAsset OpenMoji verificado, texto editorial, tratamientos por familia,
+> motion mínimo y QC. `extra.sceneSpec` es la única vía nueva; su ausencia
+> conserva legacy. RenderBindings y rutas quedan fuera de PixelIdentity, mientras
+> SHA/estado/tratamiento/fit/bounds/motion/texto/revisiones gobiernan tanto
+> `hashGrafico` como la clave React. Se certifican `constelacion`, `marcoPoster` y
+> `editorial`; `accent-mask` para icono simple, `duotone` para ilustración
+> compleja y `none` como excepción explícita. La hoja productiva contiene doce
+> casos y el vídeo real siete Visuales/11,2 s por `renderGraphicClip` → timeline/
+> export. QC: cero findings y contraste local p10 16,49–17,80. Regresión legacy
+> contra `b735f05`: 0%/0 de diferencia bajo el mismo runtime. Rendimiento medido:
+> +4,97% mediano, bajo la puerta de +25%. La suite nueva pasa 40/40; runner
+> 13/13 en el repo y en clon nuevo. Los tres proyectos reales conservaron huella
+> y no recibieron SVG/manifest. `VERSION_PLANTILLAS=12`: la nueva identidad está
+> completamente versionada y legacy no cambió. Retorno:
+> `v-visual-asset-mvp-v1`. Siguiente: Asset Resolver mínimo automático, no nuevos
+> providers. Evidencia: `docs/asset-engine/visual-asset-mvp-v1.md` y
+> `tests/aceptacion/visual-asset-mvp/`.
+
 > **3.4C — round trip OpenMoji integrado localmente (08/09/2026).** El merge
 > local `04cba197` integra `openmoji-asset-roundtrip-3-4c`; el retorno
 > `v-openmoji-asset-roundtrip-v1` queda sobre el cierre documental de este
@@ -147,7 +167,7 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 | 6 | Resto del vocabulario | ✅ piezas portadas; calibración perceptiva pendiente |
 | 7 | La IA elige | 🟨 relación/contrato/fallback implementados; calidad no certificada |
 | 8 | Moduladores | 🟨 4 paletas por proyecto + 10 tipografías; sin acabado |
-| 9 | Imágenes | ⬜ 0/8 |
+| 9 | Imágenes | 🟨 Visual MVP productivo; resolver automático pendiente |
 | 10 | YouTube 16:9 | ⬜ 0/4 |
 
 El texto posterior conserva el plan y sus mediciones intermedias. Las marcas `0/…`,
@@ -176,7 +196,7 @@ mitad del vídeo se degrada: avisos tipados con código estable y contador, resu
 por origen con la columna respaldo desglosada por motivo, y sale **también si la
 generación aborta**.
 
-**El suelo de las pruebas.** `npm test` corre las nueve y devuelve error si alguna
+**El suelo de las pruebas.** `npm test` corre las trece y devuelve error si alguna
 falla, con un seguro que salta si alguien añade una suite sin engancharla. Los
 arneses de aceptación versionados, con su propio fixture. Y un comparador de
 capturas con tolerancia.

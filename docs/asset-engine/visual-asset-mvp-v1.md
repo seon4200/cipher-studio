@@ -2,10 +2,11 @@
 
 ## Decisión
 
-**MERGE recomendado.** La hoja y el vídeo productivos conservan o mejoran la
-puerta visual experimental. El primer Visual de Cipher con imagen externa
-persistida, texto editorial y movimiento funciona por el renderer real, sin
-resolver automático y sin alterar la vía legacy.
+**MERGE realizado localmente (`471476ac`).** La hoja y el vídeo productivos
+conservan o mejoran la puerta visual experimental. El primer Visual de Cipher
+con imagen externa persistida, texto editorial y movimiento funciona por el
+renderer real, sin resolver automático y sin alterar la vía legacy. El retorno
+inmutable de este cierre es `v-visual-asset-mvp-v1`.
 
 Este cierre no convierte OpenMoji en respuesta universal. Se certifica como
 Hero para objetos, comida, ciencia y símbolos concretos. Para una silueta simple

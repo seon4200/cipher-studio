@@ -3,7 +3,10 @@
 Base documental `291069e`, tag `v-auditoria-pipeline-assets`; ejecución actualizada
 con el merge 3.4A `8760491`. Hecho documental no significa función implementada.
 3.3.5 integrada con merge local `1d8415a` y cierre
-`v-scene-recipe-editorial-v1`; su aceptación visual aún no se ha realizado.
+`v-scene-recipe-editorial-v1`; el Visual MVP materializa su subconjunto mínimo,
+pero el compilador completo de Scene Recipe aún no existe.
+El Visual MVP productivo se integra con merge local `471476ac`; su cierre es
+`v-visual-asset-mvp-v1` y no incluye resolver automático.
 
 - [x] 3.3 — Auditoría de pipeline, integrada con `993a123`; cierre `291069e`.
 - [x] 3.3.5 — Especificación documental cerrada en `v-scene-recipe-editorial-v1`: Scene Recipe + ProjectSubstrate, 18 ejemplos y validador; sin renderer nuevo.

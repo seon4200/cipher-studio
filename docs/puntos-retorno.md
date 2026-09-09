@@ -12,6 +12,44 @@ de publicarse; queda registrado como excepción previa a esta regla y conserva s
 target final `a9d109ece77c9b552a8e84e3cd248e25ba7fa3a8`. No se reescriben etiquetas
 históricas ni se reutilizan sus nombres.
 
+## `v-visual-asset-mvp-v1`
+
+Merge local **`471476acbf1053796374d231fde54164aa917a45`** de
+`visual-mvp-productivo`; la etiqueta apunta al commit documental final posterior
+al merge. No mueve ni reutiliza los tags de catálogo o round trip OpenMoji.
+
+**Qué contiene:** `VisualSceneSpecV1` productivo en `extra.sceneSpec`,
+RenderBindings fuera del hash, verificación previa de ProjectAsset, transporte
+efímero por Blob URL, Hero OpenMoji, tratamientos `none`/`accent-mask`/`duotone`,
+texto editorial con dos pares incluidos, tres estructuras certificadas, siete
+presets mínimos de motion y QC de contenido/bounds/texto/contraste. La vía termina
+en el MOV/MP4 del Visual y timeline existentes; no crea overlay ni renderer
+paralelo.
+
+**Qué está comprobado:** birthday cake, astronaut y compass publicados sólo en
+proyecto temporal; hoja productiva de doce celdas revisada; vídeo de siete
+escenas/11,2 s por el export real; missing recompila a editorial-text con nueva
+identidad; SHA/estado/tratamiento/motion cambian identidad y path no; hash y clave
+React comparten la proyección canónica; cero red/provider lookup durante render;
+QC de doce casos sin findings y contraste local p10 16,49–17,80; salida legacy
+del fixture idéntica visualmente a `b735f05` bajo el mismo runtime; coste mediano
+observado +4,97%, bajo +25%. La suite específica pasó 40/40 y el runner 13/13 en
+el repo y en un clon nuevo real de `8650885`; typecheck y build también pasaron.
+El merge no modifica ese árbol de código. Los tres proyectos actuales conservaron
+ruta/SHA/tamaño/fecha y contienen cero SVG nuevos.
+
+**Qué NO está comprobado:** Asset Resolver, selección automática, AttentionIntent,
+Photo/cutout, archivo/vintage productivo, providers adicionales, segundo Support,
+collage, sincronía exacta con voz, transiciones entre escenas, 16:9, UI de assets,
+calidad fuera de los tres assets/estructuras certificados ni rendimiento universal.
+
+**Volver aquí:** conserva el primer Hero externo persistido y renderizado con
+texto/motion/QC, pero todavía exige que el fixture o consumidor elija manualmente
+el ProjectAsset y compile `sceneSpec`. El siguiente bloque es Asset Resolver
+mínimo automático.
+
+---
+
 ## `v-openmoji-asset-roundtrip-v1`
 
 Merge local **`04cba197a92dad52aead4fc303811a2a47ecedbc`** de
