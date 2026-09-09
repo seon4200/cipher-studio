@@ -1,4 +1,4 @@
-# Plan V1 — orden de ejecución después de 3.4C
+# Plan V1 — orden de ejecución después del Visual MVP productivo
 
 Base documental `291069e`, tag `v-auditoria-pipeline-assets`; ejecución actualizada
 con el merge 3.4A `8760491`. Hecho documental no significa función implementada.
@@ -10,13 +10,14 @@ con el merge 3.4A `8760491`. Hecho documental no significa función implementada
 - [x] 3.4A — Persistencia mínima integrada con merge `8760491` y retorno `v-persistencia-assets-v1`. Código `6b8dddf`: schema/migración, ProjectSubstrate, manifest V1, rutas confinadas y backup; clon nuevo con npm ci, tsc, build y 10/10. Evidencia: persistencia-assets-v1.md. No incluye catálogo ni asset real.
 - [x] 3.4B — Catálogo OpenMoji oficial pinneado, integrado con merge `5bf8635` y cierre de aislamiento `23ed2c2`; retorno `v-openmoji-catalog-v1`. Metadata local, SVG color, nombres/grupos/aliases, atribución y búsqueda offline. La validación exhaustiva queda en build; carga/búsqueda runtime no inspeccionan SVG y la resolución valida sólo el SVG elegido. Reconciliación 3.4B.1: fixtures bajo `%TEMP%`, 30/30 casos, 11/11 suites y los tres proyectos actuales con huella idéntica antes/después. No copia assets a proyectos ni implementa Hero. Evidencia: `openmoji-catalog-v1.md`.
 - [x] 3.4C — Round trip OpenMoji integrado con merge `04cba197` y retorno `v-openmoji-asset-roundtrip-v1`: birthday cake/1F382, validación profunda, SHA, publicación atómica, AssetManifest real e inspección offline en proyecto temporal. Un clon nuevo pasó catálogo 30/30, round trip 50/50 y runner 12/12. No dibuja ni publica assets en proyectos reales. Evidencia: `openmoji-asset-roundtrip-v1.md`.
-- [ ] 3.4D — Spike visual inmediato en el banco: tres OpenMoji elegidos manualmente, original frente a accent mask, hoja de seis celdas y evaluación humana; sin resolver automático.
-- [ ] 3.5B — Asset Resolver mínimo: proyecto primero, OpenMoji, continuidad/variedad y fallback trazable; sin ampliar proveedores todavía.
-- [ ] 3.6A — Hero estático productivo: una ranura real, bytes presentes, RenderSpec y coherencia de ambas cachés; sin nuevos movimientos ni transiciones.
-- [ ] 3.6B — Motion Envelope: presets acotados y ciclo legal, bounds durante todo el movimiento, sin geometría duplicada.
-- [ ] 3.6C — QC Hero: hoja visual del renderer real, SHA/ausencia/contraste/bounds y aceptación perceptiva.
+- [x] Puerta visual / 3.4D — La rama experimental midió 42 escenas y tratamientos; no se fusiona su ruta data URI. La aceptación productiva posterior confirma la decisión con ProjectAsset real.
+- [x] 3.6A — Hero estático productivo mínimo: una ranura OpenMoji, bytes verificados, RenderSpec/RenderBindings y coherencia de hash + clave React; sin resolver automático.
+- [x] 3.6B — Motion MVP: `fade-slide`, `scale-in`, `float`, `breathe`, `fade-out`, `scale-down` y un `punch`; no cierra el contrato de motion completo.
+- [x] 3.6C — QC mínimo de frame roto: archivo/SHA/MIME, bounds durante motion, texto, solape y contraste local; hoja y vídeo productivos revisados.
+- [x] 3.7A — Texto editorial MVP: connector/keyword/closing, dos pares existentes, ocho palabras y dos líneas. Sin sincronía exacta de voz.
+- [ ] 3.5B — **Siguiente: GRAN RONDA 3/3.** Asset Resolver mínimo: proyecto primero, OpenMoji, continuidad/variedad y fallback trazable; sin ampliar proveedores todavía.
 - [ ] 3.5A — AttentionIntent calibrado después de evidencia visual: pregunta del espectador, emoción objetivo, mecanismo de atención, restricción de verdad, propósito y texto; sin llamada IA en 3.4B–3.4D.
-- [ ] 3.7 — Texto editorial: pares medidos, presupuesto, legibilidad y keyword sincronizable.
+- [ ] 3.7B — Texto editorial posterior: sincronía de keyword con voz, calibración ampliada y más pares sólo con evidencia.
 - [ ] 3.8 — Support: jerarquía y presupuesto semántico, sin competir con Hero.
 - [ ] 3.9 — Collage/layouts: compatibilidad entre intents y las estructuras, texturas/decoradores y density roles; recalibrar límites con evidencia.
 - [ ] 3.10 — Sincronización con narración: hit de palabra, entrada y pausa; audio/ducking fuera de Recipe.
@@ -39,8 +40,10 @@ real del proyecto y un manifest V1 vacío para proyectos nuevos. No valida bytes
 no copia materiales en Guardar como y no hace transacción conjunta entre ambos
 JSON. 3.4B ya está integrado: catálogo OpenMoji oficial pinneado,
 metadata/aliases/atribución offline, validación de build y carga runtime ligera.
-3.4C está integrado y certificado en proyecto temporal: el siguiente límite es
-3.4D, un spike visual humano en el banco. Sigue sin Hero productivo todavía.
+3.4C está integrado y certificado en proyecto temporal. La puerta visual y el
+Visual MVP productivo ya prueban, sin resolver automático, ProjectAsset →
+RenderSpec/Bindings → visual_escena → vídeo/timeline, con Hero, texto, motion y
+QC mínimos. El siguiente límite es 3.5B, Asset Resolver mínimo automático.
 
 ## Límites de no-regresión
 

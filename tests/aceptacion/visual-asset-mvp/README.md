@@ -44,4 +44,3 @@ electron capturar-legacy-baseline.cjs CHECKOUT_B735 RUTA_SALIDA_PNG
 
 La evaluación humana, arquitectura y límites están en
 `docs/asset-engine/visual-asset-mvp-v1.md`.
-

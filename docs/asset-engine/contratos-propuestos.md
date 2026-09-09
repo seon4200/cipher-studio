@@ -7,8 +7,10 @@ autoridad productiva en src/shared/project-state.ts. El manifest mínimo usa
 source/validation anidados por archivo, no las tablas con refs del ejemplo futuro.
 Estado y manifest no duplican metadata. Ver persistencia-assets-v1.md.
 No existen adquisición, descarga, Recipe compiler, RenderSpec ni renderer nuevo.
-La propuesta individual extra.hero sigue sustituida conceptualmente por
-extra.sceneSpec para la fase de render, no implementada en 3.4A.
+La propuesta individual extra.hero sigue sustituida por una única proyección
+`extra.sceneSpec`. Desde el Visual MVP productivo, su subconjunto V1 sí tiene
+autoridad ejecutable en `src/shared/visual-scene-spec.ts`; los contratos más
+amplios de Recipe/Resolver continúan documentales.
 
 ## Catálogo de aplicación OpenMoji — 3.4B
 
@@ -49,6 +51,26 @@ La forma actual de ProjectAssetRecord sigue siendo la autoridad; no se convierte
 el ejemplo relacional de abajo en schema productivo. Ver
 `openmoji-asset-roundtrip-v1.md` para la política SVG, errores, orden atómico e
 idempotencia.
+
+## Visual MVP — RenderSpec y RenderBindings materializados
+
+El Visual MVP implementa el mínimo certificado de RenderSpec como
+`VisualSceneSpecV1`, proyectado únicamente en `graphicData.extra.sceneSpec`.
+Ausencia de ese campo conserva la vía legacy; presencia inválida se rechaza. El
+spec incluye sólo estado visual efectivo, SHA, MIME, kind, SubjectBounds, fit,
+tratamiento, motion, texto, sistema/dirección y revisiones.
+
+`RenderBindingsV1` conserva `slotId`, `assetId` y `relativeFile` fuera de
+PixelIdentity. Main resuelve el locator contra un `projectRoot` explícito,
+verifica el ProjectAsset y entrega bytes efímeros; React recibe una Blob URL, no
+una ruta ni procedencia. `sceneSpecPixelIdentity` gobierna tanto `hashGrafico`
+como `sceneSpecReactKey`. Provider, URL, licencia, atribución, fecha, path,
+candidato y AttentionIntent no entran al hash.
+
+V1 certifica un solo Hero OpenMoji, tres estructuras, tres tratamientos, dos
+pares tipográficos, motion acotado y fallback editorial. No implementa
+SceneRecipe compiler ni Asset Resolver. Evidencia y límites:
+`visual-asset-mvp-v1.md`.
 
 ## Responsabilidades separadas
 
