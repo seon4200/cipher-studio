@@ -12,6 +12,24 @@ de publicarse; queda registrado como excepción previa a esta regla y conserva s
 target final `a9d109ece77c9b552a8e84e3cd248e25ba7fa3a8`. No se reescriben etiquetas
 históricas ni se reutilizan sus nombres.
 
+## Ronda 4A — rama sin checkpoint
+
+`semantic-decision-repair-v1` parte de `ec255f0fe6b10502c260faa21e375256004f01ed`
+(`v-asset-resolver-v1`) y no tiene merge ni tag. Implementa contexto semántico
+local temporizado, keyword V2, reglas de evidencia concreta, fallback
+`editorial-text` sin retorno nuevo a legacy y diagnóstico atómico de decisiones
+por generación. El renderer, hash, canonización, QC, layout y
+`VERSION_PLANTILLAS=12` quedan intactos.
+
+Está comprobado técnicamente en un corpus de 22 escenas: 0 retornos nuevos a
+legacy por input y 14/14 oportunidades concretas con decisión/rechazo trazable.
+La corrección temporal vigente conserva `INDIGNACIÓN` cuando el transcript la
+alinea al subclip, sin elegir `EMOCIÓN` de la cláusula vecina. Sigue pendiente la
+segunda revisión humana.
+La hoja `tests/aceptacion/semantic-decision-repair-v1/contact-sheet-before-after.png`
+queda en `pending-human-review`. No crear tag ni mergear esta ronda hasta el
+veredicto de Jairo; 4B no se inicia.
+
 ## `v-asset-resolver-v1`
 
 Merge local **`de9f6087eb89ec02fbfd23b333abe5bc49e56ef7`** de

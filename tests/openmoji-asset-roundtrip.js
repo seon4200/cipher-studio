@@ -59,6 +59,45 @@ function snapshotProjectFiles() {
 }
 
 const projectBaseline = JSON.stringify(snapshotProjectFiles())
+
+// Proyectos reales pueden conservar SVG publicados antes de esta suite. La garantía de
+// aislamiento no es que el inventario histórico sea cero, sino que esta ejecución no cambie
+// ninguno ni añada otro. Así la prueba sigue detectando una fuga hacia proyectos/ sin borrar
+// ni negar material preexistente del usuario.
+function snapshotProjectSvgFiles() {
+  const projects = path.join(REPO_ROOT, 'proyectos')
+  const rows = []
+  const walk = dir => {
+    if (!fs.existsSync(dir)) return
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const target = path.join(dir, entry.name)
+      if (entry.isDirectory()) walk(target)
+      else if (entry.isFile() && entry.name.toLowerCase().endsWith('.svg')) {
+        const stat = fs.statSync(target)
+        rows.push([path.relative(REPO_ROOT, target).replace(/\\/g, '/'), sha256(target), stat.size, stat.mtimeMs])
+      }
+    }
+  }
+  walk(projects)
+  return rows.sort((a, b) => a[0].localeCompare(b[0]))
+}
+
+const projectSvgBaseline = JSON.stringify(snapshotProjectSvgFiles())
+
+function countSvgFiles(root) {
+  let count = 0
+  const walk = dir => {
+    if (!fs.existsSync(dir)) return
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const target = path.join(dir, entry.name)
+      if (entry.isDirectory()) walk(target)
+      else if (entry.isFile() && entry.name.toLowerCase().endsWith('.svg')) count += 1
+    }
+  }
+  walk(root)
+  return count
+}
+
 const rootStateFiles = [
   path.join(REPO_ROOT, 'project-state.json'),
   path.join(REPO_ROOT, 'project-state.json.bak'),
@@ -80,20 +119,6 @@ function expectCode(fn, expected) {
 
 function svg(body = '<path d="M0 0"/>', attrs = 'viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"') {
   return Buffer.from('<svg ' + attrs + '>' + body + '</svg>', 'utf8')
-}
-
-function countSvgFiles(root) {
-  let count = 0
-  const walk = dir => {
-    if (!fs.existsSync(dir)) return
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const target = path.join(dir, entry.name)
-      if (entry.isDirectory()) walk(target)
-      else if (entry.isFile() && entry.name.toLowerCase().endsWith('.svg')) count += 1
-    }
-  }
-  walk(root)
-  return count
 }
 
 app.whenReady().then(() => {
@@ -271,14 +296,14 @@ app.whenReady().then(() => {
     })
     test('44 no fetch, http or https request was attempted', () => assert.equal(networkAttempts, 0))
     test('45 no root project-state files were created', () => assertNoRepositoryState())
-    test('46 the three real project states and manifests stay byte-identical', () => assert.equal(JSON.stringify(snapshotProjectFiles()), projectBaseline))
+    test('46 real project states and manifests stay byte-identical', () => assert.equal(JSON.stringify(snapshotProjectFiles()), projectBaseline))
     test('47 no SVG under proyectos is tracked by Git', () => {
       const listed = childProcess.spawnSync('git', ['ls-files', '--', 'proyectos'], { cwd: REPO_ROOT, encoding: 'utf8' })
       assert.equal(listed.status, 0)
       assert(!String(listed.stdout).split(/\r?\n/).some(line => line.toLowerCase().endsWith('.svg')))
     })
-    test('48 temporary publication did not add an SVG to a real project', () => {
-      assert.equal(countSvgFiles(path.join(REPO_ROOT, 'proyectos')), 0)
+    test('48 temporary publication did not alter SVGs in a real project', () => {
+      assert.equal(JSON.stringify(snapshotProjectSvgFiles()), projectSvgBaseline)
     })
     test('49 the manifest remains structurally and physically valid', () => {
       const storage = b.readAssetStorage(validProject)

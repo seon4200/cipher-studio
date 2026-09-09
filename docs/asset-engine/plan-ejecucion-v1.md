@@ -10,6 +10,12 @@ El Visual MVP productivo se integra con merge local `471476ac`; su cierre es
 su cierre es `v-asset-resolver-v1`: materializa decisiones antes del hash, no
 amplía providers y deja la siguiente acción en uso real, no en otra fase lineal.
 
+- [ ] 4A — Reparación semántica local y trazabilidad: rama
+  `semantic-decision-repair-v1`, sin merge/tag hasta revisión humana. Contexto de
+  subclip, keyword V2, evidencia concreta, fallback `editorial-text` no legacy y
+  report QC persistido; no cambia renderer/píxeles de una misma sceneSpec ni
+  `VERSION_PLANTILLAS=12`. Evidencia: `semantic-decision-repair-v1.md`.
+
 - [x] 3.3 — Auditoría de pipeline, integrada con `993a123`; cierre `291069e`.
 - [x] 3.3.5 — Especificación documental cerrada en `v-scene-recipe-editorial-v1`: Scene Recipe + ProjectSubstrate, 18 ejemplos y validador; sin renderer nuevo.
 - [x] 3.4A — Persistencia mínima integrada con merge `8760491` y retorno `v-persistencia-assets-v1`. Código `6b8dddf`: schema/migración, ProjectSubstrate, manifest V1, rutas confinadas y backup; clon nuevo con npm ci, tsc, build y 10/10. Evidencia: persistencia-assets-v1.md. No incluye catálogo ni asset real.

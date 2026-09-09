@@ -1,0 +1,253 @@
+{
+  "evidenceVersion": 1,
+  "source": "audit-last-real-video-20260909",
+  "temporaryProjectsOnly": true,
+  "noNetwork": true,
+  "realProjectsUntouched": true,
+  "actualGeneration": {
+    "mockDeepSeekCalls": 1,
+    "diagnosticFile": "materiales/diagnostics/visual-decisions/visual-decisions-1788954061082-d2a835a9-264e-4806-b709-e4eb9230ca74.json",
+    "summary": {
+      "requestedVisuals": 1,
+      "materializedVisuals": 1,
+      "qcRejectedVisuals": 0,
+      "resolverDegradedVisuals": 0,
+      "substitutedWithOriginal": 0,
+      "reasons": {}
+    },
+    "sceneSpecIdentity": "a18ed7da9b5a56ee2c1f70656e4867b7db9a0850f2ae3d07797d92f81019fea3"
+  },
+  "qcReplay": {
+    "attempted": 16,
+    "diagnosticFile": "materiales/diagnostics/visual-decisions/forensic-qc-replay-v1.json",
+    "qcCategories": {
+      "VISUAL_QC_TEXT_BOUNDS": 17,
+      "VISUAL_QC_TEXT_OVERFLOW": 15,
+      "VISUAL_QC_CONTRAST_LOCAL": 5
+    }
+  },
+  "reviewSheet": {
+    "file": "contact-sheet-before-after.png",
+    "order": [
+      {
+        "keyword": "construir",
+        "before": {
+          "index": 1,
+          "pos": "0:0",
+          "keyword": "construir",
+          "provider": "editorial-text",
+          "candidate": null,
+          "mode": "editorial-text"
+        },
+        "after": {
+          "localText": "Para el Mundial de 2014 la FIFA le exige a Brasil construir estadios",
+          "keyword": "estadio",
+          "keywordReason": "ANCHOR_CONCEPT_EVIDENCE",
+          "provider": "openmoji",
+          "candidate": "openmoji:1f3df",
+          "visualMode": "asset-led",
+          "structure": "marcoPoster",
+          "treatment": {
+            "requested": "auto",
+            "effective": "duotone",
+            "reason": "COMPLEX_ILLUSTRATION_DUOTONE",
+            "revision": "asset-treatment-v1"
+          },
+          "rendered": false,
+          "qcFindingCodes": [
+            "VISUAL_QC_CONTRAST_LOCAL"
+          ]
+        }
+      },
+      {
+        "keyword": "partidos",
+        "before": {
+          "index": 5,
+          "pos": "1:1",
+          "keyword": "partidos",
+          "provider": "editorial-text",
+          "candidate": null,
+          "mode": "editorial-text"
+        },
+        "after": {
+          "localText": "vender chupé en los partidos y quien realmente le ganó al Mundial fue la FIFA. En 2018 Rusia",
+          "keyword": "partidos",
+          "keywordReason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+          "provider": "openmoji",
+          "candidate": "openmoji:1f3df",
+          "visualMode": "asset-led",
+          "structure": "marcoPoster",
+          "treatment": {
+            "requested": "auto",
+            "effective": "duotone",
+            "reason": "COMPLEX_ILLUSTRATION_DUOTONE",
+            "revision": "asset-treatment-v1"
+          },
+          "rendered": true,
+          "qcFindingCodes": []
+        }
+      },
+      {
+        "keyword": "fútbol",
+        "before": {
+          "index": 25,
+          "pos": "8:3",
+          "keyword": "fútbol",
+          "provider": "editorial-text",
+          "candidate": null,
+          "mode": "editorial-text"
+        },
+        "after": {
+          "localText": "fútbol no la fifa, no el país, el fútbol tiene ese poder y se",
+          "keyword": "fútbol",
+          "keywordReason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+          "provider": "openmoji",
+          "candidate": "openmoji:26bd",
+          "visualMode": "asset-led",
+          "structure": "constelacion",
+          "treatment": {
+            "requested": "auto",
+            "effective": "accent-mask",
+            "reason": "SIMPLE_ICON_ACCENT_MASK",
+            "revision": "asset-treatment-v1"
+          },
+          "rendered": true,
+          "qcFindingCodes": []
+        }
+      },
+      {
+        "keyword": "estando",
+        "before": {
+          "index": 32,
+          "pos": "10:1",
+          "keyword": "estando",
+          "provider": "editorial-text",
+          "candidate": null,
+          "mode": "editorial-text"
+        },
+        "after": {
+          "localText": "los países donde se va a jugar y se ven aún más estando aquí. Todo esto en el aparte",
+          "keyword": "obras",
+          "keywordReason": "CONCEPT_CONCRETE_EVIDENCE",
+          "provider": "openmoji",
+          "candidate": "openmoji:1f3d7",
+          "visualMode": "asset-led",
+          "structure": "marcoPoster",
+          "treatment": {
+            "requested": "auto",
+            "effective": "duotone",
+            "reason": "COMPLEX_ILLUSTRATION_DUOTONE",
+            "revision": "asset-treatment-v1"
+          },
+          "rendered": false,
+          "qcFindingCodes": [
+            "VISUAL_QC_CONTRAST_LOCAL"
+          ]
+        }
+      },
+      {
+        "keyword": "iglesia",
+        "before": {
+          "index": 74,
+          "pos": "20:1",
+          "keyword": "iglesia",
+          "provider": "Solar V1",
+          "candidate": "stopwatch-bold-duotone",
+          "mode": "asset-led"
+        },
+        "after": {
+          "localText": "la FIFA es su iglesia y la iglesia de pronto incurra en prácticas más",
+          "keyword": "iglesia",
+          "keywordReason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+          "provider": "openmoji",
+          "candidate": "openmoji:26ea",
+          "visualMode": "asset-led",
+          "structure": "constelacion",
+          "treatment": {
+            "requested": "auto",
+            "effective": "accent-mask",
+            "reason": "SIMPLE_ICON_ACCENT_MASK",
+            "revision": "asset-treatment-v1"
+          },
+          "rendered": true,
+          "qcFindingCodes": []
+        }
+      },
+      {
+        "keyword": "religioso",
+        "before": {
+          "index": 76,
+          "pos": "20:3",
+          "keyword": "religioso",
+          "provider": "Solar V1",
+          "candidate": "stopwatch-bold-duotone",
+          "mode": "asset-led"
+        },
+        "after": {
+          "localText": "tiempo uno como religioso no deja de creer. Creo que esta analogía",
+          "keyword": "religioso",
+          "keywordReason": "DIRECT_TIMED_CONCEPT",
+          "provider": "editorial-text",
+          "candidate": "sin Hero",
+          "visualMode": "editorial-text",
+          "structure": "constelacion",
+          "treatment": null,
+          "rendered": true,
+          "qcFindingCodes": []
+        }
+      },
+      {
+        "keyword": "accidente",
+        "before": {
+          "index": 37,
+          "pos": "12:0",
+          "keyword": "accidente",
+          "provider": "Solar V1",
+          "candidate": "calendar-bold-duotone",
+          "mode": "asset-led"
+        },
+        "after": {
+          "localText": "Un cabrón que hace par de años sufre un accidente con la cabeza que casi le cuesta",
+          "keyword": "accidente",
+          "keywordReason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+          "provider": "editorial-text",
+          "candidate": "sin Hero",
+          "visualMode": "editorial-text",
+          "structure": "editorial",
+          "treatment": null,
+          "rendered": false,
+          "qcFindingCodes": [
+            "VISUAL_QC_TEXT_BOUNDS",
+            "VISUAL_QC_TEXT_BOUNDS",
+            "VISUAL_QC_TEXT_BOUNDS",
+            "VISUAL_QC_CONTRAST_LOCAL"
+          ]
+        }
+      },
+      {
+        "keyword": "indignación",
+        "before": {
+          "index": 27,
+          "pos": "8:5",
+          "keyword": "indignación",
+          "provider": "editorial-text",
+          "candidate": null,
+          "mode": "editorial-text"
+        },
+        "after": {
+          "localText": "entre la emoción por una cosa y la indignación por la otra. Quizás este año",
+          "keyword": "indignación",
+          "keywordReason": "SCENE_KEYWORD_DIRECT_TIMED_MATCH",
+          "provider": "editorial-text",
+          "candidate": "sin Hero",
+          "visualMode": "editorial-text",
+          "structure": "constelacion",
+          "treatment": null,
+          "rendered": true,
+          "qcFindingCodes": []
+        }
+      }
+    ],
+    "visualVerdict": "pending-human-review"
+  }
+}
