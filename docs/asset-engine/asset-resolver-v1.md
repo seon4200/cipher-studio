@@ -1,8 +1,8 @@
 # Asset Resolver V1 — decisión automática offline
 
-## Extensión 4A pendiente de revisión humana
+## Extensión 4A integrada
 
-La rama no integrada `semantic-decision-repair-v1` añade una entrada local
+La extensión cerrada por `v-semantic-decision-repair-v1` añade una entrada local
 temporizada (`LocalSceneSemanticV1`) antes de `AssetIntentV1`. `localText` tiene
 un máximo de 360 caracteres; `globalText` queda como referencia diagnóstica y no
 puede dominar la metáfora. Una entrada inválida se materializa como
@@ -15,8 +15,8 @@ razones, resumen requested/materialized/rejected/substituted y el report QC
 completo si aplica. No cambia el renderer ni la identidad de una `sceneSpec`
 existente. Detalle y evidencia: `semantic-decision-repair-v1.md`.
 
-No es un checkpoint: el corpus técnico pasa, pero la hoja antes/después exige
-revisión humana de Jairo antes de merge/tag y antes de iniciar 4B.
+Jairo aprobó la corrección temporal antes del merge/tag de 4A. Esa aprobación es
+semántica; la composición visual se evalúa separadamente en Ronda 4B.
 
 ## Alcance
 

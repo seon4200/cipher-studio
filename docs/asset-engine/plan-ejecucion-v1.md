@@ -10,11 +10,18 @@ El Visual MVP productivo se integra con merge local `471476ac`; su cierre es
 su cierre es `v-asset-resolver-v1`: materializa decisiones antes del hash, no
 amplía providers y deja la siguiente acción en uso real, no en otra fase lineal.
 
-- [ ] 4A — Reparación semántica local y trazabilidad: rama
-  `semantic-decision-repair-v1`, sin merge/tag hasta revisión humana. Contexto de
+- [x] 4A — Reparación semántica local y trazabilidad, integrada en `d701b5b` y
+  cerrada por `v-semantic-decision-repair-v1` tras revisión humana. Contexto de
   subclip, keyword V2, evidencia concreta, fallback `editorial-text` no legacy y
   report QC persistido; no cambia renderer/píxeles de una misma sceneSpec ni
   `VERSION_PLANTILLAS=12`. Evidencia: `semantic-decision-repair-v1.md`.
+
+- [ ] 4B — Composición visual V2: implementación y puertas automáticas completas
+  en `visual-composition-repair-v1`, todavía sin merge/tag. Editorial V2,
+  densidad local, presupuesto de decoradores, tratamientos reconocibles y QC de
+  composición elevan `VERSION_PLANTILLAS` una sola vez a 13. La hoja y el vídeo
+  están pendientes de juicio humano: `visualVerdict=pending-human-review`.
+  Evidencia: `visual-composition-v2.md`.
 
 - [x] 3.3 — Auditoría de pipeline, integrada con `993a123`; cierre `291069e`.
 - [x] 3.3.5 — Especificación documental cerrada en `v-scene-recipe-editorial-v1`: Scene Recipe + ProjectSubstrate, 18 ejemplos y validador; sin renderer nuevo.

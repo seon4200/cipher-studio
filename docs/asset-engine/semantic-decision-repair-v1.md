@@ -3,9 +3,10 @@
 ## Estado de esta evidencia
 
 Esta especificación corresponde a la rama `semantic-decision-repair-v1`, nacida
-de `ec255f0fe6b10502c260faa21e375256004f01ed`. No es un checkpoint, no mueve
-ninguna etiqueta y no autoriza un merge: la hoja de contactos queda pendiente de
-revisión humana de Jairo.
+de `ec255f0fe6b10502c260faa21e375256004f01ed`. Jairo aprobó la segunda hoja tras
+la corrección temporal; la ronda se integró en el merge
+`d701b5ba3de52a0437bfb56250ff8beb521dc75e` y quedó cerrada por el tag inmutable
+`v-semantic-decision-repair-v1` sobre ese mismo commit.
 
 La ronda modifica la decisión que materializa una escena nueva. No modifica el
 renderer, `hashGrafico`, `canonizar`, fondos, estructuras, movimiento, QC,
@@ -169,9 +170,9 @@ para el subclip histórico de `INDIGNACIÓN`. La hoja vigente ya conserva
 `INDIGNACIÓN` con la razón temporal explícita anterior. Sigue siendo evidencia
 para revisión humana, no una aprobación estética.
 
-La hoja no es una aprobación estética. Su campo de evidencia es
-`visualVerdict: pending-human-review`; Jairo debe revisar los frames antes de
-cualquier merge o etiqueta de 4A.
+La revisión humana aprobó la decisión semántica: `INDIGNACIÓN` permanece alineada
+al subclip y las demás puertas no regresaron. No aprobó estética, composición,
+tratamientos ni QC; esas materias quedaron expresamente para Ronda 4B.
 
 ## Límites intactos
 
@@ -180,4 +181,5 @@ modificación de AssetManifest real, SVG en proyectos reales ni cambios a
 renderer/hash/canonizar/paletas/fondos/estructuras/motion/QC. Los proyectos reales
 se leen para huella; las reproducciones crean proyectos marcados bajo `%TEMP%`.
 
-Ronda 4B no se inicia hasta la revisión humana de esta evidencia.
+Ronda 4B se desarrolla por separado en `visual-composition-repair-v1`; su
+evidencia y su veredicto humano no alteran el cierre semántico de 4A.

@@ -1,23 +1,37 @@
 # AVANCE — dónde vamos
 
-> **Ronda 4A — reparación semántica local, pendiente de revisión humana
-> (09/09/2026).** La rama `semantic-decision-repair-v1` parte de
-> `v-asset-resolver-v1` y todavía no está mergeada ni etiquetada. Sustituye el
+> **Ronda 4B — composición visual V2, pendiente de revisión humana
+> (09/09/2026).** La rama `visual-composition-repair-v1` parte de
+> `v-semantic-decision-repair-v1`. El commit productivo `693af0f` agrupa los
+> cambios de píxel y la única subida `VERSION_PLANTILLAS=12 → 13`; `5c3a6f3`
+> añade la aceptación real-like. Sobre 50 solicitudes forenses: 49 se
+> materializan, 1 se rechaza/sustituye por contraste local, 0 vuelven a legacy;
+> la densidad pasa de 33/34 saturadas a baja 3 · media 31 · alta 16 · saturada 0,
+> los decoradores bajan de 13,74 a 1,66 por escena y los huecos de Hero de 5 a 0.
+> La vía legacy comparada conserva 0 píxeles distintos; V12 y V13 usan hashes de
+> caché diferentes. La hoja V12/V13 y el vídeo productivo de 12 clips están en
+> `tests/aceptacion/visual-composition-v2/`. Las puertas automáticas pasan, pero
+> no constituyen aprobación estética: `visualVerdict=pending-human-review`.
+> No hay merge ni tag de 4B, y no se inicia otra ronda.
+>
+> **Ronda 4A — reparación semántica local integrada (09/09/2026).** El merge
+> `d701b5b` y el tag inmutable `v-semantic-decision-repair-v1` cerraron la ronda
+> tras aprobación humana de la corrección temporal. Sustituye el
 > párrafo global como entrada de AssetIntent por contexto temporizado local de
 > hasta 360 caracteres, evita que una escena nueva vuelva a legacy por longitud
 > y persiste traza y report QC fuera de `project-state` y PixelIdentity. En su
 > corpus forense de 22 escenas: 0 caen a legacy por input, 0 ganadores
 > residuales, 14 decisiones OpenMoji y 8 editorial-text; 14/14 oportunidades
 > concretas se evalúan/materializan o rechazan con razón explícita (100,0 %).
-> Una corrección temporal pendiente de segunda revisión conserva `INDIGNACIÓN`
+> La corrección temporal conserva `INDIGNACIÓN`
 > cuando su intervalo contiene esa palabra, sin dejar que `EMOCIÓN`, vecina en
 > la misma cláusula, la desplace.
-> La hoja antes/después, con ocho escenas reales, está pendiente de juicio de
-> Jairo; no declara calidad visual ni cambia renderer, hash, QC, fondos,
-> estructuras, motion o `VERSION_PLANTILLAS=12`. La huella actual de 7
+> La revisión humana aprobó la decisión semántica, no los problemas visuales que
+> quedaron expresamente para 4B. 4A no cambió renderer, hash, QC, fondos,
+> estructuras, motion o `VERSION_PLANTILLAS=12`. La huella de 7
 > `project-state.json` se conserva sólo como lectura. Evidencia:
 > `docs/asset-engine/semantic-decision-repair-v1.md` y
-> `tests/aceptacion/semantic-decision-repair-v1/`. Ronda 4B no se inicia.
+> `tests/aceptacion/semantic-decision-repair-v1/`.
 
 > **Asset Resolver V1 integrado localmente (09/09/2026).** El merge
 > `de9f6087` incorpora `AssetIntentV1`, metáfora antes de asset, resolver local
@@ -226,8 +240,10 @@ instancia y `combinacionesLegales()` devolviendo **dos** números.
 
 El interruptor es `COMPOSICION_VISUAL` en `src/main/index.ts`, hoy `'visual_escena'`.
 La dirección entra en `extra` y en el hash desde `v-fase4f-interruptor`; la versión
-vigente es 12 tras los merges `d4e11ce` (9), `16bf7a6` (10), `44ca34a` (11) y el
-checkpoint de densidad/Solar (12).
+vigente en esta rama es 13: los merges `d4e11ce` (9), `16bf7a6` (10),
+`44ca34a` (11) y el checkpoint de densidad/Solar (12) preceden al cambio visual
+atómico `693af0f` (13). El master etiquetado de 4A conserva 12 hasta que 4B tenga
+revisión humana y, sólo entonces, pueda integrarse.
 A.0 incorporo el lote `84062d7` con merge `d0dae0d`: tres estructuras de prueba,
 fuera del sorteo. El plan A-F posterior se trabaja en `plan-A-cajas`; A no esta cerrada.
 
@@ -236,7 +252,7 @@ mitad del vídeo se degrada: avisos tipados con código estable y contador, resu
 por origen con la columna respaldo desglosada por motivo, y sale **también si la
 generación aborta**.
 
-**El suelo de las pruebas.** `npm test` corre las trece y devuelve error si alguna
+**El suelo de las pruebas.** `npm test` corre las dieciséis y devuelve error si alguna
 falla, con un seguro que salta si alguien añade una suite sin engancharla. Los
 arneses de aceptación versionados, con su propio fixture. Y un comparador de
 capturas con tolerancia.
@@ -266,7 +282,7 @@ Capturas: `tests/aceptacion/tono-oscuro-claro.png`, `trama-tejida-lab-pieza.png`
 `capas-pareja-*.png`. El grano mas marcado y la calibracion pendiente estan documentados.
 Aquella etiqueta tenia `visual_mapa`; el interruptor se movio despues, en `8f7004c`.
 Hoy `COMPOSICION_VISUAL='visual_escena'`; `5388088` está integrado y
-`VERSION_PLANTILLAS=12`.
+`VERSION_PLANTILLAS=13` en la rama 4B pendiente de revisión humana.
 
 **Coste vigente (A.0, condiciones y JSON en `tests/rendimiento/README-m7.md`):**
 40,84 ms/frame y 1,644 intentos/frame en regimen; seis clips completos, 0/540

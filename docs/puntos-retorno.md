@@ -12,10 +12,26 @@ de publicarse; queda registrado como excepción previa a esta regla y conserva s
 target final `a9d109ece77c9b552a8e84e3cd248e25ba7fa3a8`. No se reescriben etiquetas
 históricas ni se reutilizan sus nombres.
 
-## Ronda 4A — rama sin checkpoint
+## Ronda 4B — rama sin checkpoint
 
-`semantic-decision-repair-v1` parte de `ec255f0fe6b10502c260faa21e375256004f01ed`
-(`v-asset-resolver-v1`) y no tiene merge ni tag. Implementa contexto semántico
+`visual-composition-repair-v1` parte de
+`d701b5ba3de52a0437bfb56250ff8beb521dc75e`
+(`v-semantic-decision-repair-v1`). Cambia la composición productiva de una misma
+`sceneSpec`, por lo que el commit `693af0f` contiene simultáneamente todos los
+cambios de píxel y la única subida `VERSION_PLANTILLAS=12 → 13`. La aceptación
+real-like de `5c3a6f3` reproduce 50 solicitudes: 49 materializadas, 1 rechazada y
+sustituida, 0 legacy nuevas, 0 huecos de Hero y 0 densidades saturadas.
+
+Las puertas automáticas, la separación de caché V12/V13 y la regresión legacy
+pasan. La hoja y el vídeo viven en
+`tests/aceptacion/visual-composition-v2/`, pero la estética no está aprobada:
+`visualVerdict=pending-human-review`. No hay merge, tag ni punto de retorno de 4B
+hasta el veredicto de Jairo.
+
+## `v-semantic-decision-repair-v1`
+
+El merge local **`d701b5ba3de52a0437bfb56250ff8beb521dc75e`** cerró 4A y la
+etiqueta inmutable apunta al mismo commit. Implementa contexto semántico
 local temporizado, keyword V2, reglas de evidencia concreta, fallback
 `editorial-text` sin retorno nuevo a legacy y diagnóstico atómico de decisiones
 por generación. El renderer, hash, canonización, QC, layout y
@@ -23,12 +39,13 @@ por generación. El renderer, hash, canonización, QC, layout y
 
 Está comprobado técnicamente en un corpus de 22 escenas: 0 retornos nuevos a
 legacy por input y 14/14 oportunidades concretas con decisión/rechazo trazable.
-La corrección temporal vigente conserva `INDIGNACIÓN` cuando el transcript la
+La corrección temporal conserva `INDIGNACIÓN` cuando el transcript la
 alinea al subclip, sin elegir `EMOCIÓN` de la cláusula vecina. Sigue pendiente la
-segunda revisión humana.
+composición visual, no la decisión semántica.
 La hoja `tests/aceptacion/semantic-decision-repair-v1/contact-sheet-before-after.png`
-queda en `pending-human-review`. No crear tag ni mergear esta ronda hasta el
-veredicto de Jairo; 4B no se inicia.
+fue revisada por Jairo antes del merge/tag. La aprobación cubre la corrección
+semántica de 4A; tratamiento, composición, densidad, decoradores y QC quedaron
+fuera y se trabajan separadamente en 4B.
 
 ## `v-asset-resolver-v1`
 
