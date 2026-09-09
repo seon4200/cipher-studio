@@ -265,10 +265,21 @@ app.whenReady().then(async () => {
       assert.equal(m.emphasis.preset, 'punch'); assert(!Array.isArray(m.emphasis))
     })
     await runCase('37 render no intenta red', () => assert.equal(networkAttempts, visualNetworkBaseline))
-    await runCase('38 render no consulta catálogo/provider', () => {
+    await runCase('38 render no consulta catálogo/provider ni reinterpreta Solar', () => {
       bundle.clearOpenMojiCatalogCacheForTests()
       const prepared = bundle.prepareGraphicForVisualRender({ graphicData: baseGraphic, projectRoot: root, renderBindings: baseBindings })
       assert.equal(prepared.kind, 'scene-spec')
+      const solar = clone(base)
+      solar.slots = [{
+        slotId: 'hero', role: 'hero', state: 'procedural', kind: 'simple-icon',
+        solarIcon: 'sun-bold-duotone', solarStyle: 'bold-duotone',
+        bounds: base.slots[0].bounds, fitPolicy: 'contain', tint: { treatment: 'none' },
+        motion: base.slots[0].motion,
+      }]
+      const solarSpec = bundle.validateVisualSceneSpec(solar)
+      assert.equal(bundle.prepareGraphicForVisualRender({ graphicData: graphicFor(solarSpec), projectRoot: root, renderBindings: { assets: [] } }).kind, 'scene-spec')
+      solar.slots[0].solarIcon = 'sparkles'
+      expectCode(() => bundle.validateVisualSceneSpec(solar), 'VISUAL_SCENE_SLOT_INVALID')
     })
     await runCase('39 ningún proyecto real fue modificado', () => {
       assert.equal(JSON.stringify(snapshotRealProjects()), realProjectsBefore)

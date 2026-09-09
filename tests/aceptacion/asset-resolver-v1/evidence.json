@@ -1,0 +1,1080 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-09T05:42:11.784Z",
+  "base": "9f989041478b26cd0e9681b36ef36986ce18b88f",
+  "renderer": "AssetIntent -> resolver -> VisualSceneSpecV1 + RenderBindingsV1 -> renderGraphicClip -> export-video",
+  "temporaryProject": true,
+  "realProjectsUntouched": true,
+  "offline": {
+    "startupAttemptsBlocked": 1,
+    "resolverAndRenderAttempts": 0
+  },
+  "resolver": {
+    "version": 1,
+    "scenes": [
+      {
+        "id": "01-cake",
+        "keyword": "cumpleaños",
+        "visualMode": "asset-led",
+        "provider": "openmoji",
+        "structure": "constelacion",
+        "treatment": "accent-mask",
+        "fallback": null,
+        "trace": {
+          "sceneId": "01-cake",
+          "input": {
+            "version": 1,
+            "sceneId": "01-cake",
+            "phrase": "El cumpleaños marca un momento",
+            "keyword": "cumpleaños",
+            "concepts": [
+              "pastel"
+            ],
+            "searchTerms": [
+              "cumpleaños",
+              "pastel"
+            ],
+            "preferredVisualMode": "auto"
+          },
+          "metaphorCandidates": [
+            {
+              "id": "birthday-cake",
+              "score": 3,
+              "reason": "CONCRETE_METAPHOR:birthday-cake"
+            }
+          ],
+          "selectedMetaphor": "birthday-cake",
+          "providerCandidates": [
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:1f382",
+              "score": 3,
+              "reason": "concrete-metaphor:annotation-exact",
+              "query": "birthday cake",
+              "stableId": "openmoji:1f382",
+              "annotation": "birthday cake"
+            },
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:1f382",
+              "score": 3,
+              "reason": "keyword:alias-exact",
+              "query": "cumpleaños",
+              "stableId": "openmoji:1f382",
+              "annotation": "birthday cake"
+            },
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:1f382",
+              "score": 3,
+              "reason": "concept:alias-exact",
+              "query": "pastel",
+              "stableId": "openmoji:1f382",
+              "annotation": "birthday cake"
+            },
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:1f370",
+              "score": 1,
+              "reason": "concept:alias-exact",
+              "query": "pastel",
+              "stableId": "openmoji:1f370",
+              "annotation": "shortcake"
+            }
+          ],
+          "selectedCandidate": {
+            "provider": "openmoji",
+            "identity": "openmoji:1f382",
+            "score": 3,
+            "reason": "OPENMOJI_PUBLISHED:created",
+            "stableId": "openmoji:1f382",
+            "annotation": "birthday cake"
+          },
+          "visualMode": "asset-led",
+          "treatment": {
+            "requested": "auto",
+            "effective": "accent-mask",
+            "reason": "SIMPLE_ICON_ACCENT_MASK",
+            "revision": "asset-treatment-v1"
+          },
+          "structure": "constelacion",
+          "reuse": {
+            "allowedByContinuity": false,
+            "reusedProjectAsset": false,
+            "reason": null
+          },
+          "fallback": null,
+          "reasons": [
+            "CONCRETE_METAPHOR:birthday-cake",
+            "CONCRETE_METAPHOR:birthday-cake",
+            "OPENMOJI_HERO"
+          ]
+        },
+        "metrics": {
+          "openMojiQueries": 3,
+          "openMojiCandidates": 2,
+          "projectAssetsReused": 0,
+          "assetsPublished": 1,
+          "manifestReads": 1
+        },
+        "elapsedMs": 106.073
+      },
+      {
+        "id": "02-astronaut",
+        "keyword": "universo",
+        "visualMode": "asset-led",
+        "provider": "openmoji",
+        "structure": "marcoPoster",
+        "treatment": "duotone",
+        "fallback": null,
+        "trace": {
+          "sceneId": "02-astronaut",
+          "input": {
+            "version": 1,
+            "sceneId": "02-astronaut",
+            "phrase": "El universo pide exploración",
+            "keyword": "universo",
+            "concepts": [
+              "astronauta"
+            ],
+            "searchTerms": [
+              "universo",
+              "astronauta"
+            ],
+            "preferredVisualMode": "auto"
+          },
+          "metaphorCandidates": [
+            {
+              "id": "universe-astronaut",
+              "score": 3,
+              "reason": "CONCRETE_METAPHOR:universe-astronaut"
+            }
+          ],
+          "selectedMetaphor": "universe-astronaut",
+          "providerCandidates": [
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:1f9d1-200d-1f680",
+              "score": 3,
+              "reason": "concrete-metaphor:annotation-exact",
+              "query": "astronaut",
+              "stableId": "openmoji:1f9d1-200d-1f680",
+              "annotation": "astronaut"
+            },
+            {
+              "provider": "solar",
+              "identity": "telescope-bold-duotone",
+              "score": 2,
+              "reason": "SOLAR_RESOLVED:exacto"
+            }
+          ],
+          "selectedCandidate": {
+            "provider": "openmoji",
+            "identity": "openmoji:1f9d1-200d-1f680",
+            "score": 3,
+            "reason": "OPENMOJI_PUBLISHED:created",
+            "stableId": "openmoji:1f9d1-200d-1f680",
+            "annotation": "astronaut"
+          },
+          "visualMode": "asset-led",
+          "treatment": {
+            "requested": "auto",
+            "effective": "duotone",
+            "reason": "COMPLEX_ILLUSTRATION_DUOTONE",
+            "revision": "asset-treatment-v1"
+          },
+          "structure": "marcoPoster",
+          "reuse": {
+            "allowedByContinuity": false,
+            "reusedProjectAsset": false,
+            "reason": null
+          },
+          "fallback": null,
+          "reasons": [
+            "CONCRETE_METAPHOR:universe-astronaut",
+            "CONCRETE_METAPHOR:universe-astronaut",
+            "OPENMOJI_HERO"
+          ]
+        },
+        "metrics": {
+          "openMojiQueries": 3,
+          "openMojiCandidates": 1,
+          "projectAssetsReused": 0,
+          "assetsPublished": 1,
+          "manifestReads": 1
+        },
+        "elapsedMs": 107.324
+      },
+      {
+        "id": "03-time",
+        "keyword": "tiempo",
+        "visualMode": "asset-led",
+        "provider": "solar",
+        "structure": "constelacion",
+        "treatment": "none",
+        "fallback": null,
+        "trace": {
+          "sceneId": "03-time",
+          "input": {
+            "version": 1,
+            "sceneId": "03-time",
+            "phrase": "El tiempo ordena el proceso",
+            "keyword": "tiempo",
+            "concepts": [
+              "reloj"
+            ],
+            "searchTerms": [
+              "tiempo",
+              "reloj"
+            ],
+            "preferredVisualMode": "auto"
+          },
+          "metaphorCandidates": [
+            {
+              "id": "time-stopwatch",
+              "score": 3,
+              "reason": "CONCRETE_METAPHOR:time-stopwatch"
+            }
+          ],
+          "selectedMetaphor": "time-stopwatch",
+          "providerCandidates": [
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:23f1",
+              "score": 3,
+              "reason": "concrete-metaphor:annotation-exact",
+              "query": "stopwatch",
+              "stableId": "openmoji:23f1",
+              "annotation": "stopwatch"
+            },
+            {
+              "provider": "solar",
+              "identity": "stopwatch-bold-duotone",
+              "score": 3,
+              "reason": "SOLAR_RESOLVED:exacto"
+            }
+          ],
+          "selectedCandidate": {
+            "provider": "solar",
+            "identity": "stopwatch-bold-duotone",
+            "score": 3,
+            "reason": "ABSTRACT_SOLAR_PREFERRED"
+          },
+          "visualMode": "asset-led",
+          "treatment": null,
+          "structure": "constelacion",
+          "reuse": {
+            "allowedByContinuity": false,
+            "reusedProjectAsset": false,
+            "reason": null
+          },
+          "fallback": null,
+          "reasons": [
+            "CONCRETE_METAPHOR:time-stopwatch",
+            "CONCRETE_METAPHOR:time-stopwatch",
+            "SOLAR_HERO"
+          ]
+        },
+        "metrics": {
+          "openMojiQueries": 3,
+          "openMojiCandidates": 1,
+          "projectAssetsReused": 0,
+          "assetsPublished": 0,
+          "manifestReads": 1
+        },
+        "elapsedMs": 62.322
+      },
+      {
+        "id": "04-editorial-solar",
+        "keyword": "sol y mar",
+        "visualMode": "asset-led",
+        "provider": "solar",
+        "structure": "editorial",
+        "treatment": "none",
+        "fallback": null,
+        "trace": {
+          "sceneId": "04-editorial-solar",
+          "input": {
+            "version": 1,
+            "sceneId": "04-editorial-solar",
+            "phrase": "El sol dibuja el rumbo",
+            "keyword": "sol y mar",
+            "concepts": [
+              "órbita"
+            ],
+            "searchTerms": [
+              "sol y mar",
+              "órbita"
+            ],
+            "preferredVisualMode": "auto"
+          },
+          "metaphorCandidates": [
+            {
+              "id": "sun",
+              "score": 3,
+              "reason": "CONCRETE_METAPHOR:sun"
+            }
+          ],
+          "selectedMetaphor": "sun",
+          "providerCandidates": [
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:2600",
+              "score": 3,
+              "reason": "concrete-metaphor:annotation-exact",
+              "query": "sun",
+              "stableId": "openmoji:2600",
+              "annotation": "sun"
+            },
+            {
+              "provider": "solar",
+              "identity": "sun-bold-duotone",
+              "score": 3,
+              "reason": "SOLAR_RESOLVED:exacto"
+            }
+          ],
+          "selectedCandidate": {
+            "provider": "solar",
+            "identity": "sun-bold-duotone",
+            "score": 3,
+            "reason": "ABSTRACT_SOLAR_PREFERRED"
+          },
+          "visualMode": "asset-led",
+          "treatment": null,
+          "structure": "editorial",
+          "reuse": {
+            "allowedByContinuity": false,
+            "reusedProjectAsset": false,
+            "reason": null
+          },
+          "fallback": null,
+          "reasons": [
+            "CONCRETE_METAPHOR:sun",
+            "CONCRETE_METAPHOR:sun",
+            "SOLAR_HERO"
+          ]
+        },
+        "metrics": {
+          "openMojiQueries": 3,
+          "openMojiCandidates": 1,
+          "projectAssetsReused": 0,
+          "assetsPublished": 0,
+          "manifestReads": 1
+        },
+        "elapsedMs": 60.776
+      },
+      {
+        "id": "05-bridge",
+        "keyword": "puente",
+        "visualMode": "asset-led",
+        "provider": "openmoji",
+        "structure": "marcoPoster",
+        "treatment": "duotone",
+        "fallback": null,
+        "trace": {
+          "sceneId": "05-bridge",
+          "input": {
+            "version": 1,
+            "sceneId": "05-bridge",
+            "phrase": "El puente conecta ideas",
+            "keyword": "puente",
+            "concepts": [
+              "conexión"
+            ],
+            "searchTerms": [
+              "puente",
+              "conexión"
+            ],
+            "preferredVisualMode": "auto"
+          },
+          "metaphorCandidates": [
+            {
+              "id": "bridge",
+              "score": 2,
+              "reason": "CONCRETE_METAPHOR:bridge"
+            }
+          ],
+          "selectedMetaphor": "bridge",
+          "providerCandidates": [
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:1f309",
+              "score": 3,
+              "reason": "concrete-metaphor:all-tokens",
+              "query": "bridge",
+              "stableId": "openmoji:1f309",
+              "annotation": "bridge at night"
+            }
+          ],
+          "selectedCandidate": {
+            "provider": "openmoji",
+            "identity": "openmoji:1f309",
+            "score": 3,
+            "reason": "OPENMOJI_PUBLISHED:created",
+            "stableId": "openmoji:1f309",
+            "annotation": "bridge at night"
+          },
+          "visualMode": "asset-led",
+          "treatment": {
+            "requested": "auto",
+            "effective": "duotone",
+            "reason": "COMPLEX_ILLUSTRATION_DUOTONE",
+            "revision": "asset-treatment-v1"
+          },
+          "structure": "marcoPoster",
+          "reuse": {
+            "allowedByContinuity": false,
+            "reusedProjectAsset": false,
+            "reason": null
+          },
+          "fallback": null,
+          "reasons": [
+            "CONCRETE_METAPHOR:bridge",
+            "CONCRETE_METAPHOR:bridge",
+            "OPENMOJI_HERO"
+          ]
+        },
+        "metrics": {
+          "openMojiQueries": 3,
+          "openMojiCandidates": 1,
+          "projectAssetsReused": 0,
+          "assetsPublished": 1,
+          "manifestReads": 1
+        },
+        "elapsedMs": 130.405
+      },
+      {
+        "id": "06-thermo",
+        "keyword": "termodinámica",
+        "visualMode": "editorial-text",
+        "provider": null,
+        "structure": "constelacion",
+        "treatment": "none",
+        "fallback": "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+        "trace": {
+          "sceneId": "06-thermo",
+          "input": {
+            "version": 1,
+            "sceneId": "06-thermo",
+            "phrase": "La termodinámica explica el caos",
+            "keyword": "termodinámica",
+            "concepts": [
+              "caos"
+            ],
+            "searchTerms": [
+              "termodinámica",
+              "caos"
+            ],
+            "preferredVisualMode": "auto"
+          },
+          "metaphorCandidates": [],
+          "selectedMetaphor": null,
+          "providerCandidates": [],
+          "selectedCandidate": null,
+          "visualMode": "editorial-text",
+          "treatment": null,
+          "structure": "constelacion",
+          "reuse": {
+            "allowedByContinuity": false,
+            "reusedProjectAsset": false,
+            "reason": null
+          },
+          "fallback": "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+          "reasons": [
+            "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+            "ABSTRACT_PROCESS_WITHOUT_OBJECT"
+          ]
+        },
+        "metrics": {
+          "openMojiQueries": 0,
+          "openMojiCandidates": 0,
+          "projectAssetsReused": 0,
+          "assetsPublished": 0,
+          "manifestReads": 0
+        },
+        "elapsedMs": 0.367
+      },
+      {
+        "id": "07-cake-reuse",
+        "keyword": "pastel",
+        "visualMode": "asset-led",
+        "provider": "openmoji",
+        "structure": "constelacion",
+        "treatment": "accent-mask",
+        "fallback": null,
+        "trace": {
+          "sceneId": "07-cake-reuse",
+          "input": {
+            "version": 1,
+            "sceneId": "07-cake-reuse",
+            "phrase": "El pastel vuelve como continuidad",
+            "keyword": "pastel",
+            "concepts": [
+              "cumpleaños"
+            ],
+            "searchTerms": [
+              "pastel",
+              "cumpleaños"
+            ],
+            "preferredVisualMode": "auto"
+          },
+          "metaphorCandidates": [
+            {
+              "id": "birthday-cake",
+              "score": 3,
+              "reason": "CONCRETE_METAPHOR:birthday-cake"
+            }
+          ],
+          "selectedMetaphor": "birthday-cake",
+          "providerCandidates": [
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:1f382",
+              "score": 3,
+              "reason": "concrete-metaphor:annotation-exact",
+              "query": "birthday cake",
+              "stableId": "openmoji:1f382",
+              "annotation": "birthday cake"
+            },
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:1f382",
+              "score": 3,
+              "reason": "keyword:alias-exact",
+              "query": "pastel",
+              "stableId": "openmoji:1f382",
+              "annotation": "birthday cake"
+            },
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:1f370",
+              "score": 1,
+              "reason": "keyword:alias-exact",
+              "query": "pastel",
+              "stableId": "openmoji:1f370",
+              "annotation": "shortcake"
+            },
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:1f382",
+              "score": 3,
+              "reason": "concept:alias-exact",
+              "query": "cumpleaños",
+              "stableId": "openmoji:1f382",
+              "annotation": "birthday cake"
+            }
+          ],
+          "selectedCandidate": {
+            "provider": "project-asset",
+            "identity": "openmoji-1f382-7bf070f25b48",
+            "score": 3,
+            "reason": "PROJECT_ASSET_FIRST",
+            "stableId": "openmoji:1f382"
+          },
+          "visualMode": "asset-led",
+          "treatment": {
+            "requested": "auto",
+            "effective": "accent-mask",
+            "reason": "SIMPLE_ICON_ACCENT_MASK",
+            "revision": "asset-treatment-v1"
+          },
+          "structure": "constelacion",
+          "reuse": {
+            "allowedByContinuity": false,
+            "reusedProjectAsset": true,
+            "reason": "PROJECT_ASSET_FIRST"
+          },
+          "fallback": null,
+          "reasons": [
+            "CONCRETE_METAPHOR:birthday-cake",
+            "CONCRETE_METAPHOR:birthday-cake",
+            "OPENMOJI_HERO"
+          ]
+        },
+        "metrics": {
+          "openMojiQueries": 3,
+          "openMojiCandidates": 2,
+          "projectAssetsReused": 1,
+          "assetsPublished": 0,
+          "manifestReads": 1
+        },
+        "elapsedMs": 26.202
+      },
+      {
+        "id": "08-magic",
+        "keyword": "magia",
+        "visualMode": "asset-led",
+        "provider": "openmoji",
+        "structure": "marcoPoster",
+        "treatment": "accent-mask",
+        "fallback": null,
+        "trace": {
+          "sceneId": "08-magic",
+          "input": {
+            "version": 1,
+            "sceneId": "08-magic",
+            "phrase": "A veces parece magia",
+            "keyword": "magia",
+            "concepts": [
+              "destellos"
+            ],
+            "searchTerms": [
+              "magia",
+              "destellos"
+            ],
+            "preferredVisualMode": "auto"
+          },
+          "metaphorCandidates": [
+            {
+              "id": "magic-sparkles",
+              "score": 2,
+              "reason": "CONCRETE_METAPHOR:magic-sparkles"
+            }
+          ],
+          "selectedMetaphor": "magic-sparkles",
+          "providerCandidates": [
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:2728",
+              "score": 3,
+              "reason": "concrete-metaphor:annotation-exact",
+              "query": "sparkles",
+              "stableId": "openmoji:2728",
+              "annotation": "sparkles"
+            },
+            {
+              "provider": "solar",
+              "identity": "star-bold-duotone",
+              "score": 2,
+              "reason": "SOLAR_RESOLVED:exacto"
+            }
+          ],
+          "selectedCandidate": {
+            "provider": "openmoji",
+            "identity": "openmoji:2728",
+            "score": 3,
+            "reason": "OPENMOJI_PUBLISHED:created",
+            "stableId": "openmoji:2728",
+            "annotation": "sparkles"
+          },
+          "visualMode": "asset-led",
+          "treatment": {
+            "requested": "auto",
+            "effective": "accent-mask",
+            "reason": "SIMPLE_ICON_ACCENT_MASK",
+            "revision": "asset-treatment-v1"
+          },
+          "structure": "marcoPoster",
+          "reuse": {
+            "allowedByContinuity": false,
+            "reusedProjectAsset": false,
+            "reason": null
+          },
+          "fallback": null,
+          "reasons": [
+            "CONCRETE_METAPHOR:magic-sparkles",
+            "CONCRETE_METAPHOR:magic-sparkles",
+            "OPENMOJI_HERO"
+          ]
+        },
+        "metrics": {
+          "openMojiQueries": 3,
+          "openMojiCandidates": 1,
+          "projectAssetsReused": 0,
+          "assetsPublished": 1,
+          "manifestReads": 1
+        },
+        "elapsedMs": 128.989
+      },
+      {
+        "id": "09-pedestrians",
+        "keyword": "peatones",
+        "visualMode": "editorial-text",
+        "provider": null,
+        "structure": "constelacion",
+        "treatment": "none",
+        "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+        "trace": {
+          "sceneId": "09-pedestrians",
+          "input": {
+            "version": 1,
+            "sceneId": "09-pedestrians",
+            "phrase": "Los peatones atraviesan la ciudad",
+            "keyword": "peatones",
+            "concepts": [
+              "puente"
+            ],
+            "searchTerms": [
+              "peatones",
+              "puente"
+            ],
+            "preferredVisualMode": "auto"
+          },
+          "metaphorCandidates": [],
+          "selectedMetaphor": null,
+          "providerCandidates": [],
+          "selectedCandidate": null,
+          "visualMode": "editorial-text",
+          "treatment": null,
+          "structure": "constelacion",
+          "reuse": {
+            "allowedByContinuity": false,
+            "reusedProjectAsset": false,
+            "reason": null
+          },
+          "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+          "reasons": [
+            "HUMAN_SCENE_REQUIRES_EDITORIAL",
+            "HUMAN_SCENE_REQUIRES_EDITORIAL"
+          ]
+        },
+        "metrics": {
+          "openMojiQueries": 0,
+          "openMojiCandidates": 0,
+          "projectAssetsReused": 0,
+          "assetsPublished": 0,
+          "manifestReads": 0
+        },
+        "elapsedMs": 0.229
+      },
+      {
+        "id": "10-discovery",
+        "keyword": "descubrió",
+        "visualMode": "asset-led",
+        "provider": "solar",
+        "structure": "constelacion",
+        "treatment": "none",
+        "fallback": null,
+        "trace": {
+          "sceneId": "10-discovery",
+          "input": {
+            "version": 1,
+            "sceneId": "10-discovery",
+            "phrase": "El descubrimiento queda en notas",
+            "keyword": "descubrió",
+            "concepts": [
+              "cuaderno"
+            ],
+            "searchTerms": [
+              "descubrió",
+              "cuaderno"
+            ],
+            "preferredVisualMode": "auto"
+          },
+          "metaphorCandidates": [
+            {
+              "id": "discovery-notebook",
+              "score": 3,
+              "reason": "CONCRETE_METAPHOR:discovery-notebook"
+            }
+          ],
+          "selectedMetaphor": "discovery-notebook",
+          "providerCandidates": [
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:1f4d3",
+              "score": 3,
+              "reason": "concrete-metaphor:annotation-exact",
+              "query": "notebook",
+              "stableId": "openmoji:1f4d3",
+              "annotation": "notebook"
+            },
+            {
+              "provider": "solar",
+              "identity": "book-bold-duotone",
+              "score": 3,
+              "reason": "SOLAR_RESOLVED:exacto"
+            }
+          ],
+          "selectedCandidate": {
+            "provider": "solar",
+            "identity": "book-bold-duotone",
+            "score": 3,
+            "reason": "ABSTRACT_SOLAR_PREFERRED"
+          },
+          "visualMode": "asset-led",
+          "treatment": null,
+          "structure": "constelacion",
+          "reuse": {
+            "allowedByContinuity": false,
+            "reusedProjectAsset": false,
+            "reason": null
+          },
+          "fallback": null,
+          "reasons": [
+            "CONCRETE_METAPHOR:discovery-notebook",
+            "CONCRETE_METAPHOR:discovery-notebook",
+            "SOLAR_HERO"
+          ]
+        },
+        "metrics": {
+          "openMojiQueries": 3,
+          "openMojiCandidates": 1,
+          "projectAssetsReused": 0,
+          "assetsPublished": 0,
+          "manifestReads": 1
+        },
+        "elapsedMs": 68.796
+      },
+      {
+        "id": "11-sun",
+        "keyword": "sol",
+        "visualMode": "asset-led",
+        "provider": "solar",
+        "structure": "marcoPoster",
+        "treatment": "none",
+        "fallback": null,
+        "trace": {
+          "sceneId": "11-sun",
+          "input": {
+            "version": 1,
+            "sceneId": "11-sun",
+            "phrase": "El sol marca la ruta",
+            "keyword": "sol",
+            "concepts": [
+              "órbita"
+            ],
+            "searchTerms": [
+              "sol",
+              "órbita"
+            ],
+            "preferredVisualMode": "auto"
+          },
+          "metaphorCandidates": [
+            {
+              "id": "sun",
+              "score": 3,
+              "reason": "CONCRETE_METAPHOR:sun"
+            }
+          ],
+          "selectedMetaphor": "sun",
+          "providerCandidates": [
+            {
+              "provider": "openmoji",
+              "identity": "openmoji:2600",
+              "score": 3,
+              "reason": "concrete-metaphor:annotation-exact",
+              "query": "sun",
+              "stableId": "openmoji:2600",
+              "annotation": "sun"
+            },
+            {
+              "provider": "solar",
+              "identity": "sun-bold-duotone",
+              "score": 3,
+              "reason": "SOLAR_RESOLVED:exacto"
+            }
+          ],
+          "selectedCandidate": {
+            "provider": "solar",
+            "identity": "sun-bold-duotone",
+            "score": 3,
+            "reason": "ABSTRACT_SOLAR_PREFERRED"
+          },
+          "visualMode": "asset-led",
+          "treatment": null,
+          "structure": "marcoPoster",
+          "reuse": {
+            "allowedByContinuity": false,
+            "reusedProjectAsset": false,
+            "reason": null
+          },
+          "fallback": null,
+          "reasons": [
+            "CONCRETE_METAPHOR:sun",
+            "CONCRETE_METAPHOR:sun",
+            "SOLAR_HERO"
+          ]
+        },
+        "metrics": {
+          "openMojiQueries": 3,
+          "openMojiCandidates": 1,
+          "projectAssetsReused": 0,
+          "assetsPublished": 0,
+          "manifestReads": 1
+        },
+        "elapsedMs": 66.613
+      }
+    ],
+    "timing": {
+      "totalMs": 758.097,
+      "medianMs": 66.613,
+      "p95Ms": 130.405,
+      "queries": 27,
+      "publications": 4,
+      "reusedAssets": 1,
+      "manifestReads": 9,
+      "fallbacks": 2,
+      "needsReview": 0
+    }
+  },
+  "render": {
+    "dimensions": "540x960",
+    "fps": 10,
+    "clipDurationSeconds": 1.4,
+    "totalPreparationAndRenderMs": 5193.561,
+    "clips": [
+      {
+        "hash": "8b2bf9145090",
+        "type": "visual_escena",
+        "totalFrames": 14,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 665,
+        "intentosTotales": 16,
+        "intentosPorFrame": 1.1428571428571428,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "431a89d5fa92",
+        "type": "visual_escena",
+        "totalFrames": 14,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 415,
+        "intentosTotales": 15,
+        "intentosPorFrame": 1.0714285714285714,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "120f589cd301",
+        "type": "visual_escena",
+        "totalFrames": 14,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 342,
+        "intentosTotales": 14,
+        "intentosPorFrame": 1,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "497cb6501aa4",
+        "type": "visual_escena",
+        "totalFrames": 14,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 493,
+        "intentosTotales": 21,
+        "intentosPorFrame": 1.5,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "6451d2149d82",
+        "type": "visual_escena",
+        "totalFrames": 14,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 393,
+        "intentosTotales": 16,
+        "intentosPorFrame": 1.1428571428571428,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "23b53c347ddb",
+        "type": "visual_escena",
+        "totalFrames": 14,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 411,
+        "intentosTotales": 17,
+        "intentosPorFrame": 1.2142857142857142,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "36bf53d2b9a8",
+        "type": "visual_escena",
+        "totalFrames": 14,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 435,
+        "intentosTotales": 18,
+        "intentosPorFrame": 1.2857142857142858,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "0ff3c21677fa",
+        "type": "visual_escena",
+        "totalFrames": 14,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 398,
+        "intentosTotales": 17,
+        "intentosPorFrame": 1.2142857142857142,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "2ee2ae56be1a",
+        "type": "visual_escena",
+        "totalFrames": 14,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 402,
+        "intentosTotales": 18,
+        "intentosPorFrame": 1.2857142857142858,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "0b0e82824cd4",
+        "type": "visual_escena",
+        "totalFrames": 14,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 505,
+        "intentosTotales": 18,
+        "intentosPorFrame": 1.2857142857142858,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      },
+      {
+        "hash": "ebdeeb37f07d",
+        "type": "visual_escena",
+        "totalFrames": 14,
+        "ancho": 540,
+        "alto": 960,
+        "ms": 485,
+        "intentosTotales": 22,
+        "intentosPorFrame": 1.5714285714285714,
+        "framesEnElTope": 0,
+        "maxIntentosFrame": 5
+      }
+    ]
+  },
+  "video": {
+    "file": "production/asset-resolver-v1.mp4",
+    "sha256": "ddd2ee779250f96acac3d790a2c1f646be3587e1fde2c3fe5eba5574b303e2cf",
+    "durationSeconds": 15.400000000000002,
+    "timelineExport": true,
+    "ffprobe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 720,
+          "height": 1280,
+          "pix_fmt": "yuv420p",
+          "duration": "15.400000",
+          "nb_read_frames": "462"
+        }
+      ],
+      "format": {
+        "duration": "15.400000",
+        "size": "3142491"
+      }
+    }
+  },
+  "contactSheet": {
+    "file": "contact-sheet.png",
+    "sha256": "4f6b56ce032fe313f139f39a3c61a3dccc1dda6516c7d4b376412a0e89a7bceb",
+    "generatedFrom": "production/asset-resolver-v1.mp4"
+  }
+}
