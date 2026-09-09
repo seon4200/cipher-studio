@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-09T05:42:01.064Z",
+  "generatedAt": "2026-09-09T06:02:49.861Z",
   "source": {
     "trace": "tests/aceptacion/mvp-paso7/video.json",
     "sha256": "2a76e93cfe036d38bbab349f387925c23cc0b69fdcde68c13fb04c33826d1dd9",
@@ -33,9 +33,9 @@
       "pedestrians": true,
       "mast": true
     },
-    "totalMs": 2412.787,
-    "medianMs": 2.008,
-    "p95Ms": 169.23,
+    "totalMs": 2447.629,
+    "medianMs": 1.522,
+    "p95Ms": 171.836,
     "openMojiQueries": 84,
     "publications": 8,
     "reusedAssets": 0,
@@ -105,7 +105,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 2.008
+      "elapsedMs": 1.522
     },
     {
       "sceneIndex": 2,
@@ -222,7 +222,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 138.022
+      "elapsedMs": 132.774
     },
     {
       "sceneIndex": 3,
@@ -320,7 +320,7 @@
         "assetsPublished": 1,
         "manifestReads": 1
       },
-      "elapsedMs": 119.292
+      "elapsedMs": 121.695
     },
     {
       "sceneIndex": 4,
@@ -385,7 +385,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.242
+      "elapsedMs": 0.238
     },
     {
       "sceneIndex": 5,
@@ -483,7 +483,7 @@
         "assetsPublished": 1,
         "manifestReads": 1
       },
-      "elapsedMs": 122.622
+      "elapsedMs": 125.05
     },
     {
       "sceneIndex": 6,
@@ -581,7 +581,7 @@
         "assetsPublished": 1,
         "manifestReads": 1
       },
-      "elapsedMs": 135.094
+      "elapsedMs": 135.159
     },
     {
       "sceneIndex": 7,
@@ -646,7 +646,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.202
+      "elapsedMs": 0.193
     },
     {
       "sceneIndex": 8,
@@ -709,7 +709,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.169
+      "elapsedMs": 0.168
     },
     {
       "sceneIndex": 9,
@@ -772,7 +772,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.154
+      "elapsedMs": 0.15
     },
     {
       "sceneIndex": 10,
@@ -835,7 +835,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.148
+      "elapsedMs": 0.131
     },
     {
       "sceneIndex": 11,
@@ -898,7 +898,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.222
+      "elapsedMs": 0.258
     },
     {
       "sceneIndex": 12,
@@ -987,7 +987,7 @@
         "assetsPublished": 0,
         "manifestReads": 1
       },
-      "elapsedMs": 83.225
+      "elapsedMs": 89.929
     },
     {
       "sceneIndex": 13,
@@ -1075,7 +1075,7 @@
         "assetsPublished": 0,
         "manifestReads": 1
       },
-      "elapsedMs": 90.824
+      "elapsedMs": 85.694
     },
     {
       "sceneIndex": 14,
@@ -1138,7 +1138,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.141
+      "elapsedMs": 0.151
     },
     {
       "sceneIndex": 15,
@@ -1203,7 +1203,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.103
+      "elapsedMs": 0.117
     },
     {
       "sceneIndex": 16,
@@ -1268,7 +1268,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.086
+      "elapsedMs": 0.088
     },
     {
       "sceneIndex": 17,
@@ -1463,7 +1463,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.068
+      "elapsedMs": 0.07
     },
     {
       "sceneIndex": 20,
@@ -1528,7 +1528,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.091
+      "elapsedMs": 0.092
     },
     {
       "sceneIndex": 21,
@@ -1593,7 +1593,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.09
+      "elapsedMs": 0.092
     },
     {
       "sceneIndex": 22,
@@ -1658,7 +1658,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.082
+      "elapsedMs": 0.08
     },
     {
       "sceneIndex": 23,
@@ -1723,7 +1723,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.096
+      "elapsedMs": 0.099
     },
     {
       "sceneIndex": 24,
@@ -1814,7 +1814,7 @@
         "assetsPublished": 0,
         "manifestReads": 1
       },
-      "elapsedMs": 83.67
+      "elapsedMs": 85.34
     },
     {
       "sceneIndex": 25,
@@ -1905,7 +1905,7 @@
         "assetsPublished": 0,
         "manifestReads": 1
       },
-      "elapsedMs": 84.444
+      "elapsedMs": 85.132
     },
     {
       "sceneIndex": 26,
@@ -2003,7 +2003,7 @@
         "assetsPublished": 1,
         "manifestReads": 1
       },
-      "elapsedMs": 149.077
+      "elapsedMs": 153.83
     },
     {
       "sceneIndex": 27,
@@ -2094,7 +2094,7 @@
         "assetsPublished": 0,
         "manifestReads": 1
       },
-      "elapsedMs": 87.862
+      "elapsedMs": 89.663
     },
     {
       "sceneIndex": 28,
@@ -2194,7 +2194,7 @@
         "assetsPublished": 0,
         "manifestReads": 1
       },
-      "elapsedMs": 74.925
+      "elapsedMs": 77.421
     },
     {
       "sceneIndex": 29,
@@ -2285,7 +2285,7 @@
         "assetsPublished": 0,
         "manifestReads": 1
       },
-      "elapsedMs": 85.552
+      "elapsedMs": 88.624
     },
     {
       "sceneIndex": 30,
@@ -2376,7 +2376,7 @@
         "assetsPublished": 0,
         "manifestReads": 1
       },
-      "elapsedMs": 85.051
+      "elapsedMs": 87.94
     },
     {
       "sceneIndex": 31,
@@ -2441,7 +2441,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.152
+      "elapsedMs": 0.153
     },
     {
       "sceneIndex": 32,
@@ -2533,7 +2533,7 @@
         "assetsPublished": 1,
         "manifestReads": 1
       },
-      "elapsedMs": 156.612
+      "elapsedMs": 161.252
     },
     {
       "sceneIndex": 33,
@@ -2598,7 +2598,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.16
+      "elapsedMs": 0.159
     },
     {
       "sceneIndex": 34,
@@ -2690,7 +2690,7 @@
         "assetsPublished": 1,
         "manifestReads": 1
       },
-      "elapsedMs": 169.23
+      "elapsedMs": 171.836
     },
     {
       "sceneIndex": 35,
@@ -2799,7 +2799,7 @@
         "assetsPublished": 0,
         "manifestReads": 1
       },
-      "elapsedMs": 82.099
+      "elapsedMs": 84.519
     },
     {
       "sceneIndex": 36,
@@ -2888,7 +2888,7 @@
         "assetsPublished": 0,
         "manifestReads": 1
       },
-      "elapsedMs": 95.121
+      "elapsedMs": 96.314
     },
     {
       "sceneIndex": 37,
@@ -2977,7 +2977,7 @@
         "assetsPublished": 0,
         "manifestReads": 1
       },
-      "elapsedMs": 91.599
+      "elapsedMs": 95.355
     },
     {
       "sceneIndex": 38,
@@ -3067,7 +3067,7 @@
         "assetsPublished": 1,
         "manifestReads": 1
       },
-      "elapsedMs": 181.466
+      "elapsedMs": 184.576
     },
     {
       "sceneIndex": 39,
@@ -3132,7 +3132,7 @@
         "assetsPublished": 0,
         "manifestReads": 0
       },
-      "elapsedMs": 0.228
+      "elapsedMs": 0.222
     },
     {
       "sceneIndex": 40,
@@ -3288,7 +3288,7 @@
         "assetsPublished": 0,
         "manifestReads": 1
       },
-      "elapsedMs": 97.116
+      "elapsedMs": 98.805
     },
     {
       "sceneIndex": 42,
@@ -3386,7 +3386,7 @@
         "assetsPublished": 1,
         "manifestReads": 1
       },
-      "elapsedMs": 195.122
+      "elapsedMs": 192.418
     }
   ]
 }
