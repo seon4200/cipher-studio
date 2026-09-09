@@ -1,5 +1,23 @@
 # Asset Resolver V1 — decisión automática offline
 
+## Extensión 4A pendiente de revisión humana
+
+La rama no integrada `semantic-decision-repair-v1` añade una entrada local
+temporizada (`LocalSceneSemanticV1`) antes de `AssetIntentV1`. `localText` tiene
+un máximo de 360 caracteres; `globalText` queda como referencia diagnóstica y no
+puede dominar la metáfora. Una entrada inválida se materializa como
+`editorial-text` trazable, nunca como un Visual legacy nuevo.
+
+La traza productiva queda separada en
+`materiales/diagnostics/visual-decisions/<generationId>.json`, fuera de
+`project-state`, AssetManifest y PixelIdentity. Incluye decisión, candidatos,
+razones, resumen requested/materialized/rejected/substituted y el report QC
+completo si aplica. No cambia el renderer ni la identidad de una `sceneSpec`
+existente. Detalle y evidencia: `semantic-decision-repair-v1.md`.
+
+No es un checkpoint: el corpus técnico pasa, pero la hoja antes/después exige
+revisión humana de Jairo antes de merge/tag y antes de iniciar 4B.
+
 ## Alcance
 
 El resolver V1 convierte semántica existente en una decisión materializada antes de calcular el hash y antes de capturar el Visual:
@@ -28,7 +46,13 @@ La API de integración es resolveAndCompileVisualSceneV1({ intent, projectRoot, 
 
 ## Política V1
 
-La metáfora precede al archivo. El orden de evidencia es ancla semántica estructurada, keyword visible y, finalmente, frase/relación. Así mapa no es desplazado por el verbo entenderlo, y puente no se vuelve enlace sólo porque la frase diga “conecta”. Las guardias de contexto humano, archivo/historia y proceso abstracto pueden decidir editorial-text antes de buscar un icono.
+La metáfora precede al archivo. El consumidor histórico conserva ancla, keyword
+y frase/relación; la extensión 4A usa primero el sujeto del intervalo local y
+sólo después conceptos/ancla. Dentro de su evidencia concreta, el orden es emoji
+exacto, label, ancla, hint canónico, keyword y término de metáfora. Así una
+palabra global incidental no desplaza la cláusula que se está narrando. Las
+guardias de contexto humano, archivo/historia y proceso abstracto pueden decidir
+editorial-text antes de buscar un icono.
 
 El score es cerrado: 3 metáfora fuerte, 2 usable, 1 genérica/débil y 0 incorrecta. Sólo 2–3 habilitan Hero. Un empate de candidatos utilizables termina en editorial-text con AMBIGUOUS_ASSET_CANDIDATES; no hay desempate silencioso.
 

@@ -1,5 +1,21 @@
 # AVANCE — dónde vamos
 
+> **Ronda 4A — reparación semántica local, pendiente de revisión humana
+> (09/09/2026).** La rama `semantic-decision-repair-v1` parte de
+> `v-asset-resolver-v1` y todavía no está mergeada ni etiquetada. Sustituye el
+> párrafo global como entrada de AssetIntent por contexto temporizado local de
+> hasta 360 caracteres, evita que una escena nueva vuelva a legacy por longitud
+> y persiste traza y report QC fuera de `project-state` y PixelIdentity. En su
+> corpus forense de 22 escenas: 0 caen a legacy por input, 0 ganadores
+> residuales, 11 decisiones OpenMoji y 11 editorial-text; 13/15 oportunidades
+> concretas se evalúan/materializan o rechazan con razón explícita (86,7 %).
+> La hoja antes/después, con ocho escenas reales, está pendiente de juicio de
+> Jairo; no declara calidad visual ni cambia renderer, hash, QC, fondos,
+> estructuras, motion o `VERSION_PLANTILLAS=12`. La huella actual de 7
+> `project-state.json` se conserva sólo como lectura. Evidencia:
+> `docs/asset-engine/semantic-decision-repair-v1.md` y
+> `tests/aceptacion/semantic-decision-repair-v1/`. Ronda 4B no se inicia.
+
 > **Asset Resolver V1 integrado localmente (09/09/2026).** El merge
 > `de9f6087` incorpora `AssetIntentV1`, metáfora antes de asset, resolver local
 > y compilador único a `VisualSceneSpecV1 + RenderBindingsV1`. Las únicas fuentes
