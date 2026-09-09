@@ -1,0 +1,407 @@
+{
+  "schemaVersion": 1,
+  "base": "d701b5ba3de52a0437bfb56250ff8beb521dc75e",
+  "version": {
+    "before": 12,
+    "after": 13
+  },
+  "source": "forensic last-real-video evidence plus human-approved V4A decisions",
+  "before": {
+    "requestedVisuals": 50,
+    "materializedVisuals": 34,
+    "qcRejectedVisuals": 16,
+    "substitutedWithOriginal": 16,
+    "densityScope": "34 Visuales materializados del último video real V12",
+    "densityDistribution": {
+      "media": 1,
+      "saturada": 33
+    },
+    "decoratorTotal": 467,
+    "decoratorMean": 13.74,
+    "emptyHeroFrames": 5,
+    "deadHeroStructures": 21,
+    "qcCategoryOccurrences": {
+      "VISUAL_QC_TEXT_BOUNDS": 17,
+      "VISUAL_QC_TEXT_OVERFLOW": 15,
+      "VISUAL_QC_CONTRAST_LOCAL": 5
+    },
+    "performance": {
+      "scope": "logs del export real V12, 1080x1920; no es una comparación controlada con el probe V13",
+      "successfulRenders": 34,
+      "medianMsPerFrame": 38.26923076923077,
+      "p95MsPerFrame": 53
+    }
+  },
+  "after": {
+    "requestedVisuals": 50,
+    "materializedVisuals": 49,
+    "qcRejectedVisuals": 1,
+    "substitutedWithOriginal": 1,
+    "resolverDegradedVisuals": 0,
+    "densityDistributionAllDecisions": {
+      "alta": 16,
+      "baja": 3,
+      "media": 31
+    },
+    "densityDistributionMaterialized": {
+      "alta": 16,
+      "baja": 3,
+      "media": 30
+    },
+    "decoratorTotal": 83,
+    "decoratorMean": 1.66,
+    "editorialDecoratorMean": 1.23,
+    "emptyHeroFrames": 0,
+    "deadHeroStructures": 0,
+    "qcCategoryOccurrences": {
+      "VISUAL_QC_CONTRAST_LOCAL": 1
+    },
+    "needsReviewOccurrences": {},
+    "providers": {
+      "editorial-text": 30,
+      "openmoji": 19,
+      "solar": 1
+    },
+    "treatments": {
+      "accent-mask": 11,
+      "duotone": 8
+    },
+    "longGlobalInputs": 6,
+    "newScenesToLegacy": 0,
+    "performance": {
+      "scope": "540x960, 10 fps, renders productivos no cacheados aceptados",
+      "measuredRenders": 49,
+      "totalRenderMs": 34080,
+      "medianMsPerFrame": 27.583333333333332,
+      "p95MsPerFrame": 42.15,
+      "meanAttemptsPerFrame": 1.299
+    }
+  },
+  "deltas": {
+    "materializedVisuals": 15,
+    "qcRejectedVisuals": -15,
+    "substitutedWithOriginal": -15,
+    "decoratorMean": -12.08,
+    "emptyHeroFrames": -5
+  },
+  "soccerBall": {
+    "stableId": "openmoji:26bd",
+    "candidateUnchanged": true,
+    "sha256": "f3d7e883a1d7a0776e5aa16ea857530884a3c12b192475fb116d351241f0bc8a",
+    "sourceShapeElements": 14,
+    "sourceDistinctPaintValues": 4,
+    "treatmentBefore": "accent-mask",
+    "treatmentAfter": "duotone",
+    "structuralReason": "INTERIOR_DETAIL_DUOTONE",
+    "v12Behavior": "alpha mask collapsed every opaque internal layer into one accent surface",
+    "v13Behavior": "luminance-preserving duotone transfer retains internal light/dark separation"
+  },
+  "cacheProof": {
+    "versionBefore": 12,
+    "versionAfter": 13,
+    "sameSceneV12Hash": "aa33a377598d",
+    "sameSceneV13Hash": "54248358d464",
+    "hashesDiffer": true,
+    "returnedV13Hash": "54248358d464",
+    "v12SentinelPreserved": true
+  },
+  "legacyRegression": {
+    "baseline": "tests/aceptacion/visual-asset-mvp/legacy-baseline-b735.png",
+    "thresholds": {
+      "differentPixelRatioMax": 0.03,
+      "meanAbsoluteChannelDeltaMax": 2
+    },
+    "width": 1080,
+    "height": 1920,
+    "differentPixelRatio": 0,
+    "meanAbsoluteChannelDelta": 0,
+    "passed": true
+  },
+  "reviewSheet": {
+    "file": "contact-sheet-v12-v13.png",
+    "cells": [
+      {
+        "keyword": "construir",
+        "v12": {
+          "provider": "openmoji",
+          "candidate": "openmoji:1f3df",
+          "visualMode": "asset-led",
+          "structure": "marcoPoster",
+          "density": "alta",
+          "decoratorCount": 8,
+          "qc": "rejected",
+          "qcErrorCodes": [
+            "VISUAL_QC_CONTRAST_LOCAL"
+          ]
+        },
+        "v13": {
+          "provider": "openmoji",
+          "candidate": "openmoji:1f3df",
+          "visualMode": "asset-led",
+          "structure": "marcoPoster",
+          "density": "alta",
+          "decoratorCount": 3,
+          "treatment": {
+            "requested": "auto",
+            "effective": "duotone",
+            "reason": "COMPLEX_ILLUSTRATION_DUOTONE",
+            "revision": "asset-treatment-v2"
+          },
+          "qc": "accepted",
+          "qcErrorCodes": []
+        }
+      },
+      {
+        "keyword": "partidos",
+        "v12": {
+          "provider": "openmoji",
+          "candidate": "openmoji:1f3df",
+          "visualMode": "asset-led",
+          "structure": "marcoPoster",
+          "density": "media",
+          "decoratorCount": 5,
+          "qc": "accepted",
+          "qcErrorCodes": []
+        },
+        "v13": {
+          "provider": "openmoji",
+          "candidate": "openmoji:1f3df",
+          "visualMode": "asset-led",
+          "structure": "marcoPoster",
+          "density": "media",
+          "decoratorCount": 2,
+          "treatment": {
+            "requested": "auto",
+            "effective": "duotone",
+            "reason": "COMPLEX_ILLUSTRATION_DUOTONE",
+            "revision": "asset-treatment-v2"
+          },
+          "qc": "accepted",
+          "qcErrorCodes": []
+        }
+      },
+      {
+        "keyword": "fútbol",
+        "v12": {
+          "provider": "openmoji",
+          "candidate": "openmoji:26bd",
+          "visualMode": "asset-led",
+          "structure": "constelacion",
+          "density": "baja",
+          "decoratorCount": 3,
+          "qc": "accepted",
+          "qcErrorCodes": []
+        },
+        "v13": {
+          "provider": "openmoji",
+          "candidate": "openmoji:26bd",
+          "visualMode": "asset-led",
+          "structure": "constelacion",
+          "density": "media",
+          "decoratorCount": 2,
+          "treatment": {
+            "requested": "auto",
+            "effective": "duotone",
+            "reason": "INTERIOR_DETAIL_DUOTONE",
+            "revision": "asset-treatment-v2"
+          },
+          "qc": "accepted",
+          "qcErrorCodes": []
+        }
+      },
+      {
+        "keyword": "estando",
+        "v12": {
+          "provider": "openmoji",
+          "candidate": "openmoji:1f3d7",
+          "visualMode": "asset-led",
+          "structure": "marcoPoster",
+          "density": "alta",
+          "decoratorCount": 8,
+          "qc": "rejected",
+          "qcErrorCodes": [
+            "VISUAL_QC_CONTRAST_LOCAL"
+          ]
+        },
+        "v13": {
+          "provider": "openmoji",
+          "candidate": "openmoji:1f3d7",
+          "visualMode": "asset-led",
+          "structure": "marcoPoster",
+          "density": "alta",
+          "decoratorCount": 3,
+          "treatment": {
+            "requested": "auto",
+            "effective": "duotone",
+            "reason": "COMPLEX_ILLUSTRATION_DUOTONE",
+            "revision": "asset-treatment-v2"
+          },
+          "qc": "accepted",
+          "qcErrorCodes": []
+        }
+      },
+      {
+        "keyword": "iglesia",
+        "v12": {
+          "provider": "openmoji",
+          "candidate": "openmoji:26ea",
+          "visualMode": "asset-led",
+          "structure": "constelacion",
+          "density": "media",
+          "decoratorCount": 5,
+          "qc": "accepted",
+          "qcErrorCodes": []
+        },
+        "v13": {
+          "provider": "openmoji",
+          "candidate": "openmoji:26ea",
+          "visualMode": "asset-led",
+          "structure": "constelacion",
+          "density": "media",
+          "decoratorCount": 2,
+          "treatment": {
+            "requested": "auto",
+            "effective": "accent-mask",
+            "reason": "SILHOUETTE_SAFE_ACCENT_MASK",
+            "revision": "asset-treatment-v2"
+          },
+          "qc": "accepted",
+          "qcErrorCodes": []
+        }
+      },
+      {
+        "keyword": "religioso",
+        "v12": {
+          "provider": "editorial-text",
+          "candidate": "sin Hero",
+          "visualMode": "editorial-text",
+          "structure": "constelacion",
+          "density": "baja",
+          "decoratorCount": 3,
+          "qc": "accepted",
+          "qcErrorCodes": []
+        },
+        "v13": {
+          "provider": "editorial-text",
+          "candidate": "sin Hero",
+          "visualMode": "editorial-text",
+          "structure": "editorial",
+          "density": "media",
+          "decoratorCount": 1,
+          "treatment": null,
+          "qc": "accepted",
+          "qcErrorCodes": []
+        }
+      },
+      {
+        "keyword": "accidente",
+        "v12": {
+          "provider": "editorial-text",
+          "candidate": "sin Hero",
+          "visualMode": "editorial-text",
+          "structure": "editorial",
+          "density": "alta",
+          "decoratorCount": 8,
+          "qc": "rejected",
+          "qcErrorCodes": [
+            "VISUAL_QC_TEXT_BOUNDS",
+            "VISUAL_QC_TEXT_BOUNDS",
+            "VISUAL_QC_TEXT_BOUNDS",
+            "VISUAL_QC_CONTRAST_LOCAL"
+          ]
+        },
+        "v13": {
+          "provider": "editorial-text",
+          "candidate": "sin Hero",
+          "visualMode": "editorial-text",
+          "structure": "editorial",
+          "density": "alta",
+          "decoratorCount": 2,
+          "treatment": null,
+          "qc": "accepted",
+          "qcErrorCodes": []
+        }
+      },
+      {
+        "keyword": "indignación",
+        "v12": {
+          "provider": "editorial-text",
+          "candidate": "sin Hero",
+          "visualMode": "editorial-text",
+          "structure": "constelacion",
+          "density": "media",
+          "decoratorCount": 5,
+          "qc": "accepted",
+          "qcErrorCodes": []
+        },
+        "v13": {
+          "provider": "editorial-text",
+          "candidate": "sin Hero",
+          "visualMode": "editorial-text",
+          "structure": "editorial",
+          "density": "media",
+          "decoratorCount": 1,
+          "treatment": null,
+          "qc": "accepted",
+          "qcErrorCodes": []
+        }
+      }
+    ],
+    "visualVerdict": "pending-human-review"
+  },
+  "acceptanceVideo": {
+    "file": "production/visual-composition-v2.mp4",
+    "timeline": "production/timeline.json",
+    "clipCount": 12,
+    "durationSeconds": 25.226665999999994,
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 720,
+          "height": 1280,
+          "r_frame_rate": "30/1"
+        }
+      ],
+      "format": {
+        "duration": "25.233333",
+        "size": "2166931"
+      }
+    }
+  },
+  "controls": {
+    "solar": {
+      "provider": "solar",
+      "candidate": "document-bold-duotone"
+    },
+    "missing": {
+      "visualMode": "editorial-text",
+      "warnings": [
+        "VISUAL_HERO_FALLBACK:PROJECT_ASSET_MISSING"
+      ]
+    },
+    "networkAttemptsDuringAcceptance": 0,
+    "temporaryProjectOnly": true,
+    "realProjectsUntouched": true
+  },
+  "automaticGates": {
+    "versionExactly13": true,
+    "emptyMarcoPosterEditorialZero": true,
+    "noDeadHeroReservation": true,
+    "saturatedNotMassDefault": true,
+    "editorialDecoratorsReduced": true,
+    "qcRejectRateReduced": true,
+    "requestedMaterializedSubstitutedMeasured": true,
+    "cacheV12NotReusedByV13": true,
+    "noNewLegacy": true,
+    "soccerBallKeepsInternalDetailPath": true,
+    "contactSheetCreated": true,
+    "endToEndVideoCreated": true,
+    "noRuntimeNetwork": true,
+    "realProjectsUntouched": true,
+    "legacyIntactWithinExistingTolerance": true
+  },
+  "visualVerdict": "pending-human-review"
+}
