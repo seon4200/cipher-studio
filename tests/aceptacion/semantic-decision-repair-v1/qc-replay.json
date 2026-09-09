@@ -4,8 +4,8 @@
   "method": "V4A local-semantic replay from preserved phrase, timed transcript and recorded conceptsLog; original discarded QC reports are not reconstructed as historical facts.",
   "attempted": 16,
   "qcCategories": {
+    "VISUAL_QC_CONTRAST_LOCAL": 6,
     "VISUAL_QC_TEXT_BOUNDS": 8,
-    "VISUAL_QC_CONTRAST_LOCAL": 5,
     "VISUAL_QC_TEXT_OVERFLOW": 3
   },
   "replayDiagnostic": "materiales/diagnostics/visual-decisions/forensic-qc-replay-v1.json",
@@ -117,9 +117,190 @@
         "code": null
       },
       "render": {
-        "outcome": "materialized",
-        "file": "materiales/visual/93a633d6577c.mp4",
-        "qcReport": null
+        "outcome": "qc-rejected",
+        "file": null,
+        "qcReport": {
+          "snapshots": [
+            {
+              "normalizedTime": 0,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 194.36032104492188,
+                "top": 675.4047241210938,
+                "right": 345.62408447265625,
+                "bottom": 728.4247436523438,
+                "width": 151.26376342773438,
+                "height": 53.02001953125
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(22, 28, 38)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 1
+            },
+            {
+              "normalizedTime": 0.2,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 184.16806030273438,
+                "top": 670.4031982421875,
+                "right": 355.8163146972656,
+                "bottom": 730.5682373046875,
+                "width": 171.64825439453125,
+                "height": 60.1650390625
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0.578125,
+              "textColor": "rgb(22, 28, 38)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 1
+            },
+            {
+              "normalizedTime": 0.5,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 184.046875,
+                "top": 670.34375,
+                "right": 355.9375,
+                "bottom": 730.59375,
+                "width": 171.890625,
+                "height": 60.25
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 1,
+              "textColor": "rgb(22, 28, 38)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 1
+            },
+            {
+              "normalizedTime": 0.8,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 184.046875,
+                "top": 670.34375,
+                "right": 355.9375,
+                "bottom": 730.59375,
+                "width": 171.890625,
+                "height": 60.25
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 1,
+              "textColor": "rgb(22, 28, 38)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 1
+            },
+            {
+              "normalizedTime": 1,
+              "frame": {
+                "left": 0,
+                "top": 8,
+                "right": 540,
+                "bottom": 968,
+                "width": 540,
+                "height": 960
+              },
+              "hero": null,
+              "text": {
+                "left": 44.96875,
+                "top": 578.84375,
+                "right": 495.03125,
+                "bottom": 838.03125,
+                "width": 450.0625,
+                "height": 259.1875
+              },
+              "keyword": {
+                "left": 194.36032104492188,
+                "top": 675.4047241210938,
+                "right": 345.62408447265625,
+                "bottom": 728.4247436523438,
+                "width": 151.26376342773438,
+                "height": 53.02001953125
+              },
+              "heroOpacity": 0,
+              "keywordOpacity": 0,
+              "textColor": "rgb(22, 28, 38)",
+              "textOverflow": false,
+              "maxLines": "2",
+              "visibleWords": 1
+            }
+          ],
+          "localTextContrast": 1,
+          "findings": [
+            {
+              "code": "VISUAL_QC_CONTRAST_LOCAL",
+              "level": "error",
+              "message": "Contraste local p10=1.00 < 3"
+            }
+          ]
+        }
       }
     },
     {

@@ -6,7 +6,7 @@
   "realProjectsUntouched": true,
   "actualGeneration": {
     "mockDeepSeekCalls": 1,
-    "diagnosticFile": "materiales/diagnostics/visual-decisions/visual-decisions-1788947738279-4cae9ab9-67ff-49b5-8e50-d0099c77d1ea.json",
+    "diagnosticFile": "materiales/diagnostics/visual-decisions/visual-decisions-1788948481593-150dc3fe-105a-4d82-a025-dcb416219896.json",
     "summary": {
       "requestedVisuals": 1,
       "materializedVisuals": 0,
@@ -17,14 +17,14 @@
         "VISUAL_QC_CONTRAST_LOCAL": 1
       }
     },
-    "sceneSpecIdentity": "f4ccd739f2575a3c631bdde228187b3460def0fd4c0417e8e066ace95d7920dd"
+    "sceneSpecIdentity": "a18ed7da9b5a56ee2c1f70656e4867b7db9a0850f2ae3d07797d92f81019fea3"
   },
   "qcReplay": {
     "attempted": 16,
     "diagnosticFile": "materiales/diagnostics/visual-decisions/forensic-qc-replay-v1.json",
     "qcCategories": {
+      "VISUAL_QC_CONTRAST_LOCAL": 6,
       "VISUAL_QC_TEXT_BOUNDS": 8,
-      "VISUAL_QC_CONTRAST_LOCAL": 5,
       "VISUAL_QC_TEXT_OVERFLOW": 3
     }
   },
