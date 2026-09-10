@@ -88,30 +88,32 @@ app.whenReady().then(async () => {
   const soccer = bundle.publishOpenMojiAsset({ projectRoot, stableId: 'openmoji:26bd' }).asset
 
   try {
-    await runCase('1 VERSION_PLANTILLAS es exactamente 13', () => {
-      assert.equal(bundle.VERSION_PLANTILLAS, 13)
+    await runCase('1 VERSION_PLANTILLAS es exactamente 14', () => {
+      assert.equal(bundle.VERSION_PLANTILLAS, 14)
     })
-    await runCase('2 V13 invalida el hash V12 para la misma sceneSpec', () => {
+    await runCase('2 V14 invalida el hash V13 para la misma sceneSpec', () => {
       const spec = sceneSpec(bundle, cake)
       const graphic = graphicFor(spec)
       const v12 = bundle.hashGraficoConVersionPlantillas(graphic, 540, 960, 1, 8, 'pantalla', 'editorial', 12)
       const v13 = bundle.hashGraficoConVersionPlantillas(graphic, 540, 960, 1, 8, 'pantalla', 'editorial', 13)
+      const v14 = bundle.hashGrafico(graphic, 540, 960, 1, 8, 'pantalla', 'editorial')
       assert.notEqual(v12, v13)
-      assert.equal(v13, bundle.hashGrafico(graphic, 540, 960, 1, 8, 'pantalla', 'editorial'))
+      assert.notEqual(v13, v14)
     })
     await runCase('3 clave React conserva la autoridad PixelIdentity', () => {
       const spec = sceneSpec(bundle, cake)
       assert.equal(bundle.sceneSpecReactKey(spec), 'scene-v1|' + bundle.sceneSpecPixelIdentity(spec))
     })
     await runCase('4 sceneSpec persistida con revisiones V1 sigue siendo válida', () => {
-      const spec = sceneSpec(bundle, cake)
+      const spec = sceneSpec(bundle, cake, { version13: true, estructura: 'constelacion' })
       spec.revisions = bundle.legacyVisualMvpRevisions()
       assert.deepEqual(bundle.validateVisualSceneSpec(spec).revisions, bundle.legacyVisualMvpRevisions())
     })
-    await runCase('5 nuevas sceneSpec declaran layout/text/treatment V2', () => {
+    await runCase('5 nuevas sceneSpec declaran layout/text/font V14', () => {
       const revisions = bundle.visualMvpRevisions()
-      assert.equal(revisions.layoutRevision, 'visual-asset-layout-v2')
-      assert.equal(revisions.textRevision, 'editorial-text-v2')
+      assert.equal(revisions.layoutRevision, 'visual-asset-layout-v3')
+      assert.equal(revisions.textRevision, 'editorial-text-v3')
+      assert.equal(revisions.fontRevision, 'cipher-typography-looks-v2')
       assert.equal(revisions.treatmentRevision, 'asset-treatment-v2')
     })
     await runCase('6 editorial local simple resuelve densidad baja', () => {
@@ -163,14 +165,14 @@ app.whenReady().then(async () => {
       assert(!Object.prototype.hasOwnProperty.call(text, 'closing'))
       assert.equal(text.maxLines, 2)
     })
-    await runCase('14 fallback editorial usa la estructura editorial', () => {
+    await runCase('14 fallback editorial usa una familia text-only certificada', () => {
       const result = bundle.resolveAndCompileVisualSceneV1({
         intent: intent(bundle, 'editorial-structure', 'la indignación por la otra', 'indignación'),
         projectRoot, sistema: 'editorial', direction: direction(42014),
       })
       assert.equal(result.decision.visualMode, 'editorial-text')
-      assert.equal(result.decision.structure, 'editorial')
-      assert.equal(result.compiled.sceneSpec.direccion.estructura, 'editorial')
+      assert(['editorial', 'cintaDiagonal', 'rayosImpacto', 'cuaderno'].includes(result.decision.structure))
+      assert.equal(result.compiled.sceneSpec.layout.heroPlacement, 'none')
     })
     await runCase('15 detalle interno exige duotono aunque el icono sea simple', () => {
       const treatment = bundle.resolveAssetTreatment({ kind: 'simple-icon', detailReliance: 'interior-detail' })

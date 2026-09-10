@@ -224,19 +224,18 @@ app.whenReady().then(async () => {
     await runCase('20 ilustración compleja resuelve duotone', () => {
       assert.equal(bundle.resolveAssetTreatment({ kind: 'complex-illustration' }).effective, 'duotone')
     })
-    await runCase('21 sólo se seleccionan las tres estructuras certificadas', () => {
+    await runCase('21 sólo se seleccionan estructuras V14 certificadas', () => {
       for (const keyword of ['pastel', 'puente', 'universo', 'tiempo']) {
         const result = resolve(intent('structure-' + keyword, keyword))
-        assert(['constelacion', 'marcoPoster', 'editorial'].includes(result.decision.structure))
+        assert(bundle.MODERN_LAYOUT_STRUCTURES_V3.includes(result.decision.structure))
       }
     })
     await runCase('22 anti-repetición evita tres estructuras consecutivas iguales', () => {
       const session = bundle.createResolverSessionV1()
-      const one = resolve(intent('anti-1', 'pastel'), { session, seed: 703 })
-      const two = resolve(intent('anti-2', 'pastel'), { session, seed: 703 })
-      const three = resolve(intent('anti-3', 'pastel'), { session, seed: 703 })
-      assert.equal(one.decision.structure, two.decision.structure)
-      assert.notEqual(three.decision.structure, two.decision.structure)
+      const structures = Array.from({ length: 8 }, (_, index) =>
+        resolve(intent('anti-' + index, 'pastel'), { session, seed: 703 }).decision.structure)
+      assert(!structures.some((structure, index) => index >= 2 &&
+        structures[index - 1] === structure && structures[index - 2] === structure))
     })
     await runCase('23 reuso dentro de tres escenas se marca como continuidad', () => {
       const session = bundle.createResolverSessionV1()

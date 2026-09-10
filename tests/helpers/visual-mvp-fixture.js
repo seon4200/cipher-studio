@@ -1,6 +1,10 @@
 /** Data-only fixture builder. Validation, identity, motion and rendering remain product code. */
 function sceneSpec (bundle, asset, options = {}) {
   const visualMode = options.visualMode || (asset ? 'asset-led' : 'editorial-text')
+  const revisions = options.revisions || (options.version13
+    ? bundle.visualCompositionV2Revisions() : bundle.visualMvpRevisions())
+  const latestLayout = revisions.layoutRevision === 'visual-asset-layout-v3'
+  const estructura = options.estructura || (visualMode === 'editorial-text' ? 'editorial' : 'marcoPoster')
   const connector = options.connector === undefined ? 'La señal es' : options.connector
   const keyword = options.keyword || 'EVIDENCIA'
   const closing = options.closing
@@ -10,7 +14,9 @@ function sceneSpec (bundle, asset, options = {}) {
     ...(closing ? { closing } : {}),
     alignment: options.alignment || 'left',
     maxLines: 2,
-    fontPairId: options.fontPairId || 'technical-black',
+    ...(latestLayout
+      ? { typographyLookId: options.typographyLookId || 'editorial-strong' }
+      : { fontPairId: options.fontPairId || 'technical-black' }),
     timing: {
       connectorStart: .04,
       keywordStart: .16,
@@ -24,13 +30,15 @@ function sceneSpec (bundle, asset, options = {}) {
     sistema: options.sistema || 'editorial',
     direccion: {
       fondo: options.fondo || 'ondas',
-      estructura: options.estructura || 'constelacion',
+      estructura,
       camara: options.camara || 'quieto',
       densidad: options.densidad || 'media',
       ritmo: options.ritmo || 'simultaneo',
       semilla: options.semilla || 73041,
     },
-    text,
+    ...(latestLayout ? { layout: bundle.createVisualLayoutV3(estructura, visualMode, options.semilla || 73041) } : {}),
+    text: latestLayout ? { ...text, alignment: bundle.createVisualLayoutV3(
+      estructura, visualMode, options.semilla || 73041).textAlignment } : text,
     slots: visualMode === 'asset-led' ? [{
       slotId: 'hero',
       role: 'hero',
@@ -48,7 +56,7 @@ function sceneSpec (bundle, asset, options = {}) {
         !!options.emphasis,
       ),
     }] : (options.missingSlot ? [{ slotId: 'hero', role: 'hero', state: 'missing' }] : []),
-    revisions: bundle.visualMvpRevisions(),
+    revisions,
     fallbackVisual: 'editorial-text',
   })
 }

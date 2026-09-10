@@ -232,9 +232,14 @@ app.whenReady().then(async () => {
       assert(output && fs.existsSync(output), `render productivo nulo; QC=${JSON.stringify(qcReport)}`)
       assert(qcReport && qcReport.findings.every(finding => finding.level !== 'error'))
     })
-    await runCase('28 las tres estructuras MVP son válidas', () => {
-      for (const estructura of ['constelacion', 'marcoPoster', 'editorial'])
-        assert.equal(sceneSpec(bundle, cake, { estructura }).direccion.estructura, estructura)
+    await runCase('28 las siete estructuras V14 certificadas son válidas en su modo', () => {
+      for (const estructura of bundle.MODERN_LAYOUT_STRUCTURES_V3) {
+        const editorial = estructura === 'editorial'
+        const spec = sceneSpec(bundle, editorial ? null : cake, {
+          estructura, ...(editorial ? { visualMode: 'editorial-text' } : {}),
+        })
+        assert.equal(spec.direccion.estructura, estructura)
+      }
     })
     await runCase('29 fuera de allowlist no fuerza Hero y se rechaza como sceneSpec', () => {
       const bad = clone(base); bad.direccion.estructura = 'capasApiladas'
@@ -287,16 +292,17 @@ app.whenReady().then(async () => {
     await runCase('39 ningún proyecto real fue modificado', () => {
       assert.equal(JSON.stringify(snapshotRealProjects()), realProjectsBefore)
     })
-    await runCase('40 legacy conserva proyección y V13 invalida caché V12', () => {
+    await runCase('40 legacy conserva proyección y V14 invalida caché V13', () => {
       const legacy = { type: 'visual_escena', value: 'memoria', extra: { conceptos: [
         { emoji: '🧠', etiqueta: 'recuerdo' }, { emoji: '🗂️', etiqueta: 'archivo' }, { emoji: '🔗', etiqueta: 'conexion' }],
         direccion: { fondo: 'ondas', estructura: 'constelacion', camara: 'quieto', densidad: 'media', ritmo: 'simultaneo', tipografia: 'archivo' } } }
       const hashV12 = bundle.hashGraficoConVersionPlantillas(legacy, 1080, 1920, 3, 30, 'pantalla', 'editorial', 12)
-      const hashV13 = bundle.hashGrafico(legacy, 1080, 1920, 3, 30, 'pantalla', 'editorial')
-      assert.equal(bundle.VERSION_PLANTILLAS, 13)
+      const hashV13 = bundle.hashGraficoConVersionPlantillas(legacy, 1080, 1920, 3, 30, 'pantalla', 'editorial', 13)
+      const hashV14 = bundle.hashGrafico(legacy, 1080, 1920, 3, 30, 'pantalla', 'editorial')
+      assert.equal(bundle.VERSION_PLANTILLAS, 14)
       assert.equal(hashV12, 'aaaacd306d51')
       assert.equal(hashV13, '3beef56a9943')
-      assert.notEqual(hashV12, hashV13)
+      assert.notEqual(hashV13, hashV14)
       assert.equal(bundle.prepareGraphicForVisualRender({ graphicData: legacy }).kind, 'legacy')
     })
 
