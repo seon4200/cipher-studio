@@ -16,7 +16,12 @@ export * from './assets/openmoji/publish'
 // Resolver V1 consumes already-sanitized generation semantics and materializes a SceneSpec
 // before hashing/rendering. It never runs inside the renderer.
 export * from '../shared/asset-intent'
+export * from '../shared/visual-concepts'
+export * from '../shared/concept-lexicon'
 export * from './assets/asset-resolver'
+export * from './assets/visual-retrieval'
+export * from './assets/solar-index'
+export * from './assets/pixabay-images'
 export * from '../shared/local-scene-semantic'
 export * from './assets/semantic-decision'
 export * from './assets/modern-visual-generation'
@@ -5009,6 +5014,12 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               keyword: request.keywordSelection,
               metaphorCandidates: request.resolverTrace.metaphorCandidates,
               selectedMetaphor: request.resolverTrace.selectedMetaphor,
+              visualConcepts: request.resolverTrace.retrieval?.concepts ?? null,
+              searchPlans: request.resolverTrace.retrieval?.plans ?? [],
+              retrievalCandidates: request.resolverTrace.retrieval?.candidates ?? [],
+              selectedSupport: request.resolverTrace.retrieval?.selectedSupport ?? [],
+              deferredCandidates: request.resolverTrace.retrieval?.deferredCandidates ?? [],
+              retrievalEditorialReason: request.resolverTrace.retrieval?.editorialReason ?? null,
               providerCandidates: request.resolverTrace.providerCandidates,
               selectedCandidate: request.resolverTrace.selectedCandidate,
               visualMode: request.resolverDecision.visualMode,
@@ -5064,6 +5075,12 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             keyword: request.keywordSelection,
             metaphorCandidates: request.resolverTrace.metaphorCandidates,
             selectedMetaphor: request.resolverTrace.selectedMetaphor,
+            visualConcepts: request.resolverTrace.retrieval?.concepts ?? null,
+            searchPlans: request.resolverTrace.retrieval?.plans ?? [],
+            retrievalCandidates: request.resolverTrace.retrieval?.candidates ?? [],
+            selectedSupport: request.resolverTrace.retrieval?.selectedSupport ?? [],
+            deferredCandidates: request.resolverTrace.retrieval?.deferredCandidates ?? [],
+            retrievalEditorialReason: request.resolverTrace.retrieval?.editorialReason ?? null,
             providerCandidates: request.resolverTrace.providerCandidates,
             selectedCandidate: request.resolverTrace.selectedCandidate,
             visualMode: request.resolverDecision.visualMode,

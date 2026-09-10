@@ -35,7 +35,11 @@ import {
   requireAssetProjectRoot,
   verifyProjectAssetContent,
 } from './openmoji/publish'
-import { searchOpenMoji, type OpenMojiCatalogEntry } from './openmoji/catalog'
+import { getOpenMojiEntry, searchOpenMoji, type OpenMojiCatalogEntry } from './openmoji/catalog'
+import {
+  resolveVisualRetrievalV1,
+  type VisualRetrievalDecisionV1,
+} from './visual-retrieval'
 
 export const ASSET_RESOLVER_VERSION = 1 as const
 export const MAX_OPENMOJI_QUERIES_V1 = 4
@@ -43,7 +47,7 @@ export const MAX_OPENMOJI_RESULTS_PER_QUERY_V1 = 3
 export const MAX_OPENMOJI_CANDIDATES_V1 = 6
 
 export type ResolverScoreV1 = 0 | 1 | 2 | 3
-export type ResolverProviderV1 = 'project-asset' | 'openmoji' | 'solar' | 'editorial-text'
+export type ResolverProviderV1 = 'project-asset' | 'openmoji' | 'solar' | 'pixabay-images' | 'editorial-text'
 export type ResolverVisualModeV1 = 'asset-led' | 'editorial-text'
 export type ResolverAlertCodeV1 =
   | 'NO_VISUAL_METAPHOR'
@@ -111,6 +115,8 @@ export type ResolverTraceV1 = {
     globalHints: string[]
     directEvidence: DirectConcreteEvidenceV1[]
   }
+  /** Retrieval-only evidence: deliberately outside sceneSpec, bindings and PixelIdentity. */
+  retrieval?: VisualRetrievalDecisionV1
 }
 
 export type ResolvedHeroV1 =
@@ -489,8 +495,50 @@ function existingOpenMojiAsset(
     : { asset: null, invalid: true, manifestReads: 1 }
 }
 
-function resolveMetaphor(intent: AssetIntentV1, localSemantic?: LocalSceneSemanticV1): { metaphor: MetaphorCandidateV1 | null; reason: string } {
-  if (intent.preferredVisualMode === 'editorial-text') return { metaphor: null, reason: 'PREFERRED_EDITORIAL_TEXT' }
+function retrievalMetaphor(retrieval: VisualRetrievalDecisionV1): MetaphorCandidateV1 | null {
+  const selected = retrieval.selectedHero
+  const primary = retrieval.concepts.primary
+  if (!selected || !primary) return null
+  const complex = primary.subject === 'place' || primary.subject === 'event' ||
+    /(?:astronaut|worker|construction|stadium|bridge|hospital|building)/i.test(primary.normalizedTerm)
+  const interiorDetail = /(?:football|soccer|ball|stadium|bridge|construction)/i.test(primary.normalizedTerm)
+  return {
+    id: 'retrieval-' + primary.normalizedTerm.replace(/\s+/g, '-').slice(0, 56),
+    label: 'recuperación visual → ' + primary.originalTerm,
+    family: complex ? 'flat-illustration' : 'icon-monochrome',
+    kind: complex ? 'complex-illustration' : 'simple-icon',
+    score: selected.score === 3 ? 3 : 2,
+    openmojiQuery: selected.query ?? primary.normalizedTerm,
+    ...(selected.provider === 'openmoji' && selected.stableId ? { expectedStableId: selected.stableId } : {}),
+    ...(selected.provider === 'solar' && selected.solarBase ? { solarName: selected.solarBase } : {}),
+    preferProvider: selected.provider === 'solar' ? 'solar' : 'openmoji',
+    ...(interiorDetail ? { detailReliance: 'interior-detail' as const } : { detailReliance: 'silhouette' as const }),
+  }
+}
+
+function retrievalTraceCandidates(retrieval: VisualRetrievalDecisionV1): ResolverProviderCandidateV1[] {
+  return [...retrieval.candidates, ...retrieval.deferredCandidates].map(candidate => ({
+    provider: candidate.provider,
+    identity: candidate.identity,
+    score: candidate.score,
+    reason: candidate.reason,
+    ...(candidate.query ? { query: candidate.query } : {}),
+    ...(candidate.stableId ? { stableId: candidate.stableId } : {}),
+    ...(candidate.annotation ? { annotation: candidate.annotation } : {}),
+  }))
+}
+
+type ResolvedMetaphorV1 = {
+  metaphor: MetaphorCandidateV1 | null
+  reason: string
+  retrieval: VisualRetrievalDecisionV1
+}
+
+function resolveMetaphor(intent: AssetIntentV1, localSemantic?: LocalSceneSemanticV1): ResolvedMetaphorV1 {
+  const retrieval = resolveVisualRetrievalV1({ intent, localSemantic })
+  if (intent.preferredVisualMode === 'editorial-text') return { metaphor: null, reason: 'PREFERRED_EDITORIAL_TEXT', retrieval }
+  const retrieved = retrievalMetaphor(retrieval)
+  if (retrieved) return { metaphor: retrieved, reason: 'VISUAL_RETRIEVAL:' + retrieved.id, retrieval }
   const all = narrativeWords(intent, localSemantic)
   const primary = primaryNarrativeWords(intent, localSemantic)
   // The local selector has already discarded residual tokens. For a localized production
@@ -512,21 +560,21 @@ function resolveMetaphor(intent: AssetIntentV1, localSemantic?: LocalSceneSemant
   // labels such as "tiempo" preserve Solar-first rather than becoming an OpenMoji search.
   if (directRule) {
     const { terms: _terms, ...metaphor } = directRule
-    return { metaphor, reason: 'CONCRETE_METAPHOR:' + metaphor.id }
+    return { metaphor, reason: 'CONCRETE_METAPHOR:' + metaphor.id, retrieval }
   }
   if (directEvidence)
-    return { metaphor: directEvidence, reason: 'DIRECT_CONCRETE_EVIDENCE:' + directEvidence.id }
-  if (HUMAN_SCENE_TERMS.some(term => hasTerm(all, term))) return { metaphor: null, reason: 'HUMAN_SCENE_REQUIRES_EDITORIAL' }
-  if (HISTORICAL_OR_CONTEXTUAL_TERMS.some(term => hasTerm(primary, term))) return { metaphor: null, reason: 'CONTEXTUAL_HISTORY_REQUIRES_EDITORIAL' }
+    return { metaphor: directEvidence, reason: 'DIRECT_CONCRETE_EVIDENCE:' + directEvidence.id, retrieval }
+  if (HUMAN_SCENE_TERMS.some(term => hasTerm(all, term))) return { metaphor: null, reason: 'HUMAN_SCENE_REQUIRES_EDITORIAL', retrieval }
+  if (HISTORICAL_OR_CONTEXTUAL_TERMS.some(term => hasTerm(primary, term))) return { metaphor: null, reason: 'CONTEXTUAL_HISTORY_REQUIRES_EDITORIAL', retrieval }
   // A broad process word in the phrase must not erase an explicit concrete keyword such as
   // "tiempo" or an explicit anchor. Without that signal, an abstract process remains valid
   // editorial text rather than a forced generic Hero.
   if (!directRule && ABSTRACT_PROCESS_TERMS.some(term => hasTerm(primary, term)))
-    return { metaphor: null, reason: 'ABSTRACT_PROCESS_WITHOUT_OBJECT' }
+    return { metaphor: null, reason: 'ABSTRACT_PROCESS_WITHOUT_OBJECT', retrieval }
   const selected = METAPHOR_RULES.find(rule => rule.terms.some(term => hasTerm(primary, term)))
-  if (!selected) return { metaphor: null, reason: 'NO_CONCRETE_METAPHOR' }
+  if (!selected) return { metaphor: null, reason: 'NO_CONCRETE_METAPHOR', retrieval }
   const { terms: _terms, ...metaphor } = selected
-  return { metaphor, reason: 'CONCRETE_METAPHOR:' + metaphor.id }
+  return { metaphor, reason: 'CONCRETE_METAPHOR:' + metaphor.id, retrieval }
 }
 
 function candidateScore(entry: OpenMojiCatalogEntry, metaphor: MetaphorCandidateV1): ResolverScoreV1 {
@@ -600,6 +648,24 @@ function openMojiCandidates(intent: AssetIntentV1, metaphor: MetaphorCandidateV1
 } {
   const unique = new Map<string, { entry: OpenMojiCatalogEntry; score: ResolverScoreV1; query: string }>()
   const trace: ResolverProviderCandidateV1[] = []
+  // Retrieval V1 already ranked this local catalog entry. Re-resolving its Unicode query through
+  // the historical text search would create a second authority (and loses pictographs that the
+  // text normalizer intentionally strips). Existing pre-C metaphor rules retain their old path.
+  if (metaphor.id.startsWith('retrieval-') && metaphor.preferProvider === 'solar') {
+    // The retrieval layer has already selected a certified Solar base. Do not re-open an
+    // unrelated OpenMoji query merely to manufacture an ambiguity before the Solar fallback.
+    return { candidates: [], trace, queries: 0 }
+  }
+  if (metaphor.id.startsWith('retrieval-') && metaphor.expectedStableId) {
+    const entry = getOpenMojiEntry(metaphor.expectedStableId)
+    if (entry) {
+      unique.set(entry.stableId, { entry, score: 3, query: metaphor.expectedStableId })
+      trace.push({ provider: 'openmoji', identity: entry.stableId, score: 3,
+        reason: 'RETRIEVAL_STABLE_ID', query: metaphor.expectedStableId,
+        stableId: entry.stableId, annotation: entry.annotation })
+      return { candidates: [...unique.values()], trace, queries: 0 }
+    }
+  }
   const queries = orderedQueries(intent, metaphor)
   for (const request of queries) {
     const results = searchOpenMoji(request.query, { limit: MAX_OPENMOJI_RESULTS_PER_QUERY_V1 })
@@ -974,7 +1040,7 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
     metaphorCandidates: resolvedMetaphor.metaphor
       ? [{ id: resolvedMetaphor.metaphor.id, score: resolvedMetaphor.metaphor.score, reason: resolvedMetaphor.reason }] : [],
     selectedMetaphor: resolvedMetaphor.metaphor?.id ?? null,
-    providerCandidates: [],
+    providerCandidates: retrievalTraceCandidates(resolvedMetaphor.retrieval),
     selectedCandidate: null,
     visualMode: 'editorial-text',
     treatment: null,
@@ -986,6 +1052,7 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
     reuse: { allowedByContinuity: false, reusedProjectAsset: false, reason: null },
     fallback: null,
     reasons: [resolvedMetaphor.reason],
+    retrieval: resolvedMetaphor.retrieval,
     ...(localSemantic ? {
       localContext: {
         start: localSemantic.start,
