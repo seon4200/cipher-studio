@@ -1,5 +1,19 @@
 # AVANCE — dónde vamos
 
+> **Ronda D — Motion Graphics productivo V15, pendiente de revisión humana
+> (10/09/2026).** La rama acumulativa `motion-graphics-productivo-v15` parte del
+> HEAD de C `754ac864`. El commit `3b310af` contiene el cambio productivo y el
+> único salto `VERSION_PLANTILLAS=14 → 15`; `c29996f` fija pruebas y evidencia.
+> SceneSpec/Bindings V2 materializan hasta un Hero y dos Supports, Pixabay sólo
+> como ProjectAsset local verificado, OpenMoji original-color, Solar system-tint,
+> VideoVisualStyle por vídeo, motion por rol y QC multiasset dentro del único
+> renderer `visual_escena`. La aceptación pasa 17/17 familias y 20/20 escenas;
+> V14 y legacy tienen `pixelDiff=0`. El holdout congelado es deliberadamente
+> adverso y revela deuda de Retrieval: Top-1 0/72, Top-5 5/72, 67 sin resultado.
+> No se ajustó el lexicón después de verlo. Las hojas y el MP4 están en
+> `tests/aceptacion/motion-graphics-v15/`; `technicalVerdict=PASS` y
+> `visualVerdict=PENDING_HUMAN_REVIEW`. No hay merge, tag ni push.
+
 > **Ronda 4B — composición visual V2, pendiente de revisión humana
 > (09/09/2026).** La rama `visual-composition-repair-v1` parte de
 > `v-semantic-decision-repair-v1`. El commit productivo `693af0f` agrupa los

@@ -31,6 +31,17 @@ amplía providers y deja la siguiente acción en uso real, no en otra fase linea
   `VisualSceneSpec`, RenderBindings, PixelIdentity, hash, renderer ni
   `VERSION_PLANTILLAS`. Evidencia técnica: `visual-retrieval-engine-v1.md`.
 
+- [ ] Ronda D — Motion Graphics productivo V15: puertas técnicas completas en
+  `motion-graphics-productivo-v15`, todavía sin merge/tag y con
+  `visualVerdict=PENDING_HUMAN_REVIEW`. Añade SceneSpec/Bindings V2 con Hero +
+  dos Supports, raster Pixabay convertido a ProjectAsset antes del render,
+  OpenMoji original-color, VideoVisualStyle por vídeo, motion por rol, QC
+  multiasset y adapters elegibles para las 17 familias. El único incremento
+  `VERSION_PLANTILLAS=14 → 15` vive en el commit productivo atómico `3b310af`;
+  V14 y legacy conservan `pixelDiff=0`. El holdout congelado descubrió una deuda
+  de generalización de Retrieval C (Top-1 0/72, Top-5 5/72), sin retocar el
+  lexicón para ocultarla. Evidencia: `motion-graphics-v15.md`.
+
 - [x] 3.3 — Auditoría de pipeline, integrada con `993a123`; cierre `291069e`.
 - [x] 3.3.5 — Especificación documental cerrada en `v-scene-recipe-editorial-v1`: Scene Recipe + ProjectSubstrate, 18 ejemplos y validador; sin renderer nuevo.
 - [x] 3.4A — Persistencia mínima integrada con merge `8760491` y retorno `v-persistencia-assets-v1`. Código `6b8dddf`: schema/migración, ProjectSubstrate, manifest V1, rutas confinadas y backup; clon nuevo con npm ci, tsc, build y 10/10. Evidencia: persistencia-assets-v1.md. No incluye catálogo ni asset real.

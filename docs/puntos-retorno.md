@@ -12,6 +12,21 @@ de publicarse; queda registrado como excepción previa a esta regla y conserva s
 target final `a9d109ece77c9b552a8e84e3cd248e25ba7fa3a8`. No se reescriben etiquetas
 históricas ni se reutilizan sus nombres.
 
+## Ronda D — rama sin checkpoint
+
+`motion-graphics-productivo-v15` parte de
+`754ac864bab05f9cecd13702a1426ce0b2ac795d`, HEAD de C. El commit productivo
+`3b310af` contiene SceneSpec/Bindings V2, renderer multiasset y el único salto
+`VERSION_PLANTILLAS=14 → 15`; `c29996f` contiene pruebas y evidencia. Las puertas
+técnicas pasan: 17/17 familias, secuencia 20/20, Pixabay preparado como
+ProjectAsset antes de bloquear red, separación V14/V15 de caché y `pixelDiff=0`
+para V14 y legacy.
+
+No es todavía un punto de retorno etiquetado. La revisión estética corresponde a
+Jairo (`visualVerdict=PENDING_HUMAN_REVIEW`) y el holdout congelado deja una
+deuda explícita de Retrieval C: Top-1 0/72 y Top-5 5/72. No hay merge, tag ni
+push hasta esa revisión.
+
 ## Ronda 4B — rama sin checkpoint
 
 `visual-composition-repair-v1` parte de
