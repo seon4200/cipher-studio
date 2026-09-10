@@ -23,6 +23,14 @@ amplía providers y deja la siguiente acción en uso real, no en otra fase linea
   están pendientes de juicio humano: `visualVerdict=pending-human-review`.
   Evidencia: `visual-composition-v2.md`.
 
+- [ ] Ronda C — Visual Retrieval Engine: rama de trabajo
+  `visual-retrieval-engine-v1`, todavía sin merge/tag. Recupera hasta tres
+  conceptos locales, usa un lexicón ES/EN y planes específicos para OpenMoji,
+  Solar y Pixabay Images. Pixabay se consulta/prepara sólo de forma explícita y
+  queda fuera del renderer V14; ByPeople sigue `planned-not-audited`. No cambia
+  `VisualSceneSpec`, RenderBindings, PixelIdentity, hash, renderer ni
+  `VERSION_PLANTILLAS`. Evidencia técnica: `visual-retrieval-engine-v1.md`.
+
 - [x] 3.3 — Auditoría de pipeline, integrada con `993a123`; cierre `291069e`.
 - [x] 3.3.5 — Especificación documental cerrada en `v-scene-recipe-editorial-v1`: Scene Recipe + ProjectSubstrate, 18 ejemplos y validador; sin renderer nuevo.
 - [x] 3.4A — Persistencia mínima integrada con merge `8760491` y retorno `v-persistencia-assets-v1`. Código `6b8dddf`: schema/migración, ProjectSubstrate, manifest V1, rutas confinadas y backup; clon nuevo con npm ci, tsc, build y 10/10. Evidencia: persistencia-assets-v1.md. No incluye catálogo ni asset real.
