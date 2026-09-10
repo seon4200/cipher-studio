@@ -33,6 +33,7 @@
     "test:visual-functional-baseline-v1": "electron tests/visual-functional-baseline-v1.js",
     "test:visual-layout-typography-v3": "electron tests/visual-layout-typography-v3.js",
     "test:visual-retrieval-engine-v1": "electron tests/visual-retrieval-engine-v1.js",
+    "test:motion-graphics-v15": "electron tests/motion-graphics-v15.js",
     "accept:visual-asset-mvp": "electron tests/aceptacion/visual-asset-mvp/generar.cjs",
     "accept:asset-resolver-v1": "electron tests/aceptacion/asset-resolver-v1/generar.cjs",
     "accept:asset-resolver-corpus": "electron tests/aceptacion/asset-resolver-v1/medir-corpus.cjs",
@@ -41,6 +42,7 @@
     "accept:visual-variety-v1": "electron tests/aceptacion/visual-variety-v1/generar.cjs",
     "accept:visual-layout-typography-v3": "electron tests/aceptacion/visual-layout-typography-v3/generar.cjs",
     "accept:visual-retrieval-engine-v1": "node tests/aceptacion/visual-retrieval-engine-v1/probe-pixabay.cjs",
+    "accept:motion-graphics-v15": "electron tests/aceptacion/motion-graphics-v15/generar.cjs",
     "bench:graficos": "electron tests/rendimiento/graficos.js",
     "test:ventana": "electron tests/ventana.js"
   },

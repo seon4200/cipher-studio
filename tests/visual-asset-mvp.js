@@ -292,17 +292,17 @@ app.whenReady().then(async () => {
     await runCase('39 ningún proyecto real fue modificado', () => {
       assert.equal(JSON.stringify(snapshotRealProjects()), realProjectsBefore)
     })
-    await runCase('40 legacy conserva proyección y V14 invalida caché V13', () => {
+    await runCase('40 legacy conserva proyección y la versión actual invalida caché V13', () => {
       const legacy = { type: 'visual_escena', value: 'memoria', extra: { conceptos: [
         { emoji: '🧠', etiqueta: 'recuerdo' }, { emoji: '🗂️', etiqueta: 'archivo' }, { emoji: '🔗', etiqueta: 'conexion' }],
         direccion: { fondo: 'ondas', estructura: 'constelacion', camara: 'quieto', densidad: 'media', ritmo: 'simultaneo', tipografia: 'archivo' } } }
       const hashV12 = bundle.hashGraficoConVersionPlantillas(legacy, 1080, 1920, 3, 30, 'pantalla', 'editorial', 12)
       const hashV13 = bundle.hashGraficoConVersionPlantillas(legacy, 1080, 1920, 3, 30, 'pantalla', 'editorial', 13)
-      const hashV14 = bundle.hashGrafico(legacy, 1080, 1920, 3, 30, 'pantalla', 'editorial')
-      assert.equal(bundle.VERSION_PLANTILLAS, 14)
+      const hashCurrent = bundle.hashGrafico(legacy, 1080, 1920, 3, 30, 'pantalla', 'editorial')
+      assert.equal(bundle.VERSION_PLANTILLAS, 15)
       assert.equal(hashV12, 'aaaacd306d51')
       assert.equal(hashV13, '3beef56a9943')
-      assert.notEqual(hashV13, hashV14)
+      assert.notEqual(hashV13, hashCurrent)
       assert.equal(bundle.prepareGraphicForVisualRender({ graphicData: legacy }).kind, 'legacy')
     })
 

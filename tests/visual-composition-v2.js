@@ -88,17 +88,17 @@ app.whenReady().then(async () => {
   const soccer = bundle.publishOpenMojiAsset({ projectRoot, stableId: 'openmoji:26bd' }).asset
 
   try {
-    await runCase('1 VERSION_PLANTILLAS es exactamente 14', () => {
-      assert.equal(bundle.VERSION_PLANTILLAS, 14)
+    await runCase('1 VERSION_PLANTILLAS global es exactamente 15', () => {
+      assert.equal(bundle.VERSION_PLANTILLAS, 15)
     })
-    await runCase('2 V14 invalida el hash V13 para la misma sceneSpec', () => {
+    await runCase('2 la versión actual invalida el hash V13 para la misma sceneSpec', () => {
       const spec = sceneSpec(bundle, cake)
       const graphic = graphicFor(spec)
       const v12 = bundle.hashGraficoConVersionPlantillas(graphic, 540, 960, 1, 8, 'pantalla', 'editorial', 12)
       const v13 = bundle.hashGraficoConVersionPlantillas(graphic, 540, 960, 1, 8, 'pantalla', 'editorial', 13)
-      const v14 = bundle.hashGrafico(graphic, 540, 960, 1, 8, 'pantalla', 'editorial')
+      const current = bundle.hashGrafico(graphic, 540, 960, 1, 8, 'pantalla', 'editorial')
       assert.notEqual(v12, v13)
-      assert.notEqual(v13, v14)
+      assert.notEqual(v13, current)
     })
     await runCase('3 clave React conserva la autoridad PixelIdentity', () => {
       const spec = sceneSpec(bundle, cake)

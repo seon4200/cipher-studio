@@ -392,7 +392,7 @@ app.whenReady().then(async () => {
       const graphic = graphicFor(spec)
       const first = bundle.hashGrafico(graphic, 540, 960, 1, 8, 'pantalla', 'editorial')
       const second = bundle.hashGrafico(JSON.parse(JSON.stringify(graphic)), 540, 960, 1, 8, 'pantalla', 'editorial')
-      assert.equal(bundle.VERSION_PLANTILLAS, 14)
+      assert.equal(bundle.VERSION_PLANTILLAS, 15)
       assert.equal(first, second)
     })
     await runCase('23 benchmark fijo tiene al menos 100 conceptos y mejora recuperación directa anterior', () => {
