@@ -8,6 +8,9 @@ Corpus: los mismos 50 pedidos Visuales usados por la línea base oficial V13.
 | dominantStructureShare | 60% | 26% |
 | distinctHeroPlacements | 2 | 7 |
 | distinctKeywordTypefaces | 1 | 6 |
+| consecutiveSameStructure | 9 | 2 |
+| consecutiveSameHeroPlacement | 9 | 9 |
+| consecutiveSameKeywordTypeface | 50 | 2 |
 
 Visuales materializados: 50/50.
 QC rechazados: 0.

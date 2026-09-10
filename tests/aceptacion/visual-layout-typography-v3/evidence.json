@@ -356,7 +356,10 @@
       "keywordTypefaceDistribution": {
         "Archivo Black": 50
       },
-      "nonMaterializedStructureIds": []
+      "nonMaterializedStructureIds": [],
+      "consecutiveSameStructure": 9,
+      "consecutiveSameHeroPlacement": 9,
+      "consecutiveSameKeywordTypeface": 50
     },
     "after": {
       "version": 1,
@@ -453,9 +456,9 @@
   },
   "performance": {
     "measuredRenders": 50,
-    "totalRenderMs": 28125,
-    "medianMsPerFrame": 29.058823529411764,
-    "p95MsPerFrame": 36.75
+    "totalRenderMs": 27787,
+    "medianMsPerFrame": 28.894736842105264,
+    "p95MsPerFrame": 35.8235294117647
   },
   "cacheProof": {
     "versionBefore": 13,

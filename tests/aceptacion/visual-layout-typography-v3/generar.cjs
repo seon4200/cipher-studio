@@ -113,6 +113,20 @@ function treatmentFor (spec) {
   return spec.slots.find(slot => slot.role === 'hero')?.tint?.treatment || 'none'
 }
 
+function v13VarietyObservation (row) {
+  const heroState = row.provider === 'openmoji' ? 'present' : row.provider === 'solar' ? 'procedural' : null
+  return {
+    materialized: row.rendered === true,
+    sceneSpec: {
+      visualMode: row.visualMode,
+      direccion: { estructura: row.structure },
+      text: { fontPairId: row.structure === 'editorial' ? 'editorial-black' : 'technical-black',
+        alignment: row.structure === 'editorial' ? 'left' : 'center' },
+      slots: heroState ? [{ role: 'hero', state: heroState }] : [],
+    },
+  }
+}
+
 function compactRow (entry) {
   const spec = entry.resolved.compiled.sceneSpec
   const layout = bundle.effectiveSceneLayoutGeometry(spec)
@@ -446,7 +460,10 @@ function writeReports (evidence, fontAudit) {
     `| distinctStructures | ${before.distinctStructures} | ${after.distinctStructures} |`,
     `| dominantStructureShare | ${before.dominantStructureShare}% | ${after.dominantStructureShare}% |`,
     `| distinctHeroPlacements | ${before.distinctHeroPlacements} | ${after.distinctHeroPlacements} |`,
-    `| distinctKeywordTypefaces | ${before.distinctKeywordTypefaces} | ${after.distinctKeywordTypefaces} |`, '',
+    `| distinctKeywordTypefaces | ${before.distinctKeywordTypefaces} | ${after.distinctKeywordTypefaces} |`,
+    `| consecutiveSameStructure | ${before.consecutiveSameStructure} | ${after.consecutiveSameStructure} |`,
+    `| consecutiveSameHeroPlacement | ${before.consecutiveSameHeroPlacement} | ${after.consecutiveSameHeroPlacement} |`,
+    `| consecutiveSameKeywordTypeface | ${before.consecutiveSameKeywordTypeface} | ${after.consecutiveSameKeywordTypeface} |`, '',
     `Visuales materializados: ${after.materializedVisuals}/50.`,
     `QC rechazados: ${evidence.qc.rejected}.`,
     `Regresión legacy: ${evidence.legacyRegression.passed ? 'dentro de tolerancia' : 'fuera de tolerancia'}.`, '',
@@ -498,6 +515,10 @@ app.whenReady().then(async () => {
     const loaded = await invoke('load-project', { projectPath: PROJECT_ROOT })
     if (!loaded.success) throw new Error('No se pudo abrir el proyecto temporal: ' + loaded.error)
 
+    const beforeMetrics = bundle.measureVisualVarietyV1(v13Corpus.rows.map(v13VarietyObservation))
+    for (const [field, expected] of Object.entries(expectedBefore)) {
+      if (beforeMetrics[field] !== expected) throw new Error(`RECALCULATED_BASELINE_V13_CHANGED:${field}:${beforeMetrics[field]}`)
+    }
     const corpus = await renderCorpus(audit, v13Corpus.rows)
     const coverage = renderCoverageSheet(corpus)
     const sequence = renderSequenceSheet(corpus)
@@ -536,7 +557,7 @@ app.whenReady().then(async () => {
       certifiedFamilies: bundle.MODERN_LAYOUT_STRUCTURES_V3,
       typographyLooks: bundle.TYPOGRAPHY_LOOKS_V3,
       fontAudit,
-      variety: { before: baseline.metric, after: corpus.variety,
+      variety: { before: beforeMetrics, after: corpus.variety,
         distributions: { structures: corpus.variety.effectiveStructureDistribution,
           heroPlacements: corpus.variety.heroPlacementDistribution,
           keywordTypefaces: corpus.variety.keywordTypefaceDistribution,
