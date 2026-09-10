@@ -8,7 +8,6 @@ import {
 import type { DirectConcreteEvidenceV1, LocalSceneSemanticV1 } from '../../shared/local-scene-semantic'
 import type { ProjectAssetRecord } from '../../shared/project-state'
 import {
-  VISUAL_MVP_STRUCTURES,
   VISUAL_MVP_TREATMENT_REVISION,
   createMvpMotion,
   resolveSceneDensityV2,
@@ -23,6 +22,12 @@ import {
 } from '../../shared/visual-scene-spec'
 import type { NombreSistema } from '../../shared/sistemas'
 import { resolverSolarDetallado } from '../../shared/iconos-solar'
+import {
+  selectVisualPresentationV3,
+  type ModernLayoutStructureV3,
+  type TypographyLookIdV3,
+  type VisualPresentationV3,
+} from '../../shared/visual-layout-v3'
 import { readAssetStorage } from '../services/project-persistence'
 import {
   OpenMojiAssetError,
@@ -90,6 +95,10 @@ export type ResolverTraceV1 = {
   visualMode: ResolverVisualModeV1
   treatment: { requested: string; effective: string; reason: string; revision: string } | null
   structure: VisualMvpStructure
+  layoutFamily: string
+  heroPlacement: string
+  textRegion: string
+  typographyLookId: TypographyLookIdV3
   reuse: { allowedByContinuity: boolean; reusedProjectAsset: boolean; reason: string | null }
   fallback: string | null
   reasons: string[]
@@ -131,6 +140,7 @@ export type ResolvedSceneDecisionV1 = {
   metaphor: MetaphorCandidateV1 | null
   hero: ResolvedHeroV1 | null
   structure: VisualMvpStructure
+  presentation: VisualPresentationV3
   reasons: string[]
   fallback: string | null
   alerts: ResolverAlertV1[]
@@ -165,6 +175,8 @@ type HistoryEntry = {
   assetIdentity: string | null
   structure: VisualMvpStructure
   treatment: string | null
+  heroPlacement: string
+  typographyLookId: TypographyLookIdV3
 }
 
 export type ResolverSessionV1 = {
@@ -444,15 +456,6 @@ function recent(session: ResolverSessionV1, count: number): HistoryEntry[] {
   return session.history.slice(Math.max(0, session.history.length - count))
 }
 
-function stableHash(value: string): number {
-  let hash = 2166136261
-  for (const char of value) {
-    hash ^= char.codePointAt(0) ?? 0
-    hash = Math.imul(hash, 16777619)
-  }
-  return hash >>> 0
-}
-
 function emptyBindings(): RenderBindingsV1 {
   return { assets: [] }
 }
@@ -679,18 +682,33 @@ function treatmentForMetaphor(metaphor: MetaphorCandidateV1) {
   return resolveAssetTreatment({ kind: metaphor.kind, detailReliance: metaphor.detailReliance })
 }
 
-function selectStructure(intent: AssetIntentV1, metaphor: MetaphorCandidateV1 | null, session: ResolverSessionV1, seed: number): VisualMvpStructure {
-  const keywordWords = canonicalNarrativeTerm(intent.keyword).split(' ').filter(Boolean).length
-  const first: VisualMvpStructure = metaphor?.kind === 'complex-illustration'
-    ? 'marcoPoster' : keywordWords > 2 ? 'editorial' : 'constelacion'
-  const rotated = [...VISUAL_MVP_STRUCTURES]
-  const offset = stableHash(intent.sceneId + '|' + seed) % rotated.length
-  const candidates = [first, ...rotated.slice(offset), ...rotated.slice(0, offset)]
-    .filter((value, index, values): value is VisualMvpStructure => values.indexOf(value) === index)
-  const recentStructures = recent(session, 2).map(entry => entry.structure)
-  if (recentStructures.length === 2 && recentStructures.every(structure => structure === candidates[0]))
-    return candidates.find(structure => structure !== candidates[0]) ?? candidates[0]
-  return candidates[0]
+function selectPresentation(
+  input: ResolveSceneInputV1,
+  intent: AssetIntentV1,
+  metaphor: MetaphorCandidateV1 | null,
+  visualMode: ResolverVisualModeV1,
+  session: ResolverSessionV1,
+): VisualPresentationV3 {
+  const seed = Number(input.direction?.semilla)
+  const visibleWordCount = [intent.keyword, intent.phrase]
+    .filter(Boolean).join(' ').trim().split(/\s+/).filter(Boolean).slice(0, 8).length
+  const density = ['minima', 'baja', 'media', 'alta', 'saturada'].includes(String(input.direction?.densidad))
+    ? input.direction.densidad as VisualDirectionV1['densidad'] : 'media'
+  const rhythm = ['simultaneo', 'regular', 'acelerando', 'frenando', 'golpeSeco'].includes(String(input.direction?.ritmo))
+    ? input.direction.ritmo as VisualDirectionV1['ritmo'] : 'simultaneo'
+  return selectVisualPresentationV3({
+    sceneId: intent.sceneId,
+    visualMode,
+    ...(metaphor ? { heroKind: metaphor.kind } : {}),
+    ...(intent.relation ? { relation: intent.relation } : {}),
+    visibleWordCount,
+    keywordLength: Array.from(intent.keyword).length,
+    density,
+    rhythm,
+    seed,
+    recentStructures: recent(session, 2).map(entry => entry.structure as ModernLayoutStructureV3),
+    recentTypographyLooks: recent(session, 2).map(entry => entry.typographyLookId),
+  })
 }
 
 function motionForDensity(densidad: unknown) {
@@ -734,6 +752,7 @@ export function deriveEditorialTextV2(input: {
   keyword: string
   visualMode: ResolverVisualModeV1
   structure: VisualMvpStructure
+  presentation?: VisualPresentationV3
 }): VisualSceneSpecV1['text'] {
   const keyword = clipWords(input.keyword)
   const source = String(input.localText ?? '').trim()
@@ -786,19 +805,21 @@ export function deriveEditorialTextV2(input: {
   const connector = connectorWords.map(word => word.value).join(' ')
   const closing = closingWords.map(word => word.value).join(' ')
   const maxLines: 2 | 3 = input.visualMode === 'editorial-text' && connector && closing ? 3 : 2
-  return {
+  const base = {
     ...(connector ? { connector } : {}),
     keyword,
     ...(closing ? { closing } : {}),
-    alignment: input.structure === 'editorial' ? 'left' : 'center',
+    alignment: input.presentation?.layout.textAlignment ?? (input.structure === 'editorial' ? 'left' : 'center'),
     maxLines,
-    fontPairId: input.structure === 'editorial' ? 'editorial-black' : 'technical-black',
     timing: {
       connectorStart: 0.04,
       keywordStart: 0.16,
       ...(closing ? { closingStart: 0.32 } : {}),
     },
   }
+  return input.presentation
+    ? { ...base, typographyLookId: input.presentation.typographyLookId }
+    : { ...base, fontPairId: input.structure === 'editorial' ? 'editorial-black' : 'technical-black' }
 }
 
 function directionFor(
@@ -825,6 +846,7 @@ function compileDecision(input: ResolveSceneInputV1, decision: ResolvedSceneDeci
     keyword: decision.intent.keyword,
     visualMode: decision.visualMode,
     structure: decision.structure,
+    presentation: decision.presentation,
   })
   const heroState: SceneSlotV1['state'] | 'none' = decision.hero
     ? (decision.hero.provider === 'solar' ? 'procedural' : 'present') : 'none'
@@ -867,6 +889,7 @@ function compileDecision(input: ResolveSceneInputV1, decision: ResolvedSceneDeci
     renderTier: 'standard',
     sistema: input.sistema,
     direccion: direction,
+    layout: decision.presentation.layout,
     text,
     slots,
     revisions: visualMvpRevisions(),
@@ -887,6 +910,8 @@ function addHistory(session: ResolverSessionV1, decision: ResolvedSceneDecisionV
       : decision.hero?.provider === 'solar' ? 'solar:' + decision.hero.solarName : null,
     structure: decision.structure,
     treatment: decision.hero?.provider === 'openmoji' ? decision.hero.treatment : null,
+    heroPlacement: decision.presentation.layout.heroPlacement,
+    typographyLookId: decision.presentation.typographyLookId,
   })
   if (session.history.length > 18) session.history.splice(0, session.history.length - 18)
 }
@@ -894,7 +919,7 @@ function addHistory(session: ResolverSessionV1, decision: ResolvedSceneDecisionV
 function editorialDecision(
   intent: AssetIntentV1,
   metaphor: MetaphorCandidateV1 | null,
-  _structure: VisualMvpStructure,
+  presentation: VisualPresentationV3,
   reason: string,
   alerts: ResolverAlertV1[],
 ): ResolvedSceneDecisionV1 {
@@ -906,7 +931,8 @@ function editorialDecision(
     metaphor,
     hero: null,
     // Text is the Hero in this mode. The V2 renderer must not reserve an empty asset slot.
-    structure: 'editorial',
+    structure: presentation.structure,
+    presentation,
     reasons: [reason],
     fallback: reason,
     alerts,
@@ -935,7 +961,13 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
   const session = usableSession(input.session)
   const localSemantic = input.localSemantic
   const resolvedMetaphor = resolveMetaphor(intent, localSemantic)
-  const structure = selectStructure(intent, resolvedMetaphor.metaphor, session, Number(input.direction?.semilla))
+  const initialPresentation = selectPresentation(
+    input,
+    intent,
+    resolvedMetaphor.metaphor,
+    resolvedMetaphor.metaphor ? 'asset-led' : 'editorial-text',
+    session,
+  )
   const trace: ResolverTraceV1 = {
     sceneId: intent.sceneId,
     input: intent,
@@ -946,7 +978,11 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
     selectedCandidate: null,
     visualMode: 'editorial-text',
     treatment: null,
-    structure,
+    structure: initialPresentation.structure,
+    layoutFamily: initialPresentation.layout.family,
+    heroPlacement: initialPresentation.layout.heroPlacement,
+    textRegion: initialPresentation.layout.textRegion,
+    typographyLookId: initialPresentation.typographyLookId,
     reuse: { allowedByContinuity: false, reusedProjectAsset: false, reason: null },
     fallback: null,
     reasons: [resolvedMetaphor.reason],
@@ -965,11 +1001,16 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
   const metrics = { openMojiQueries: 0, openMojiCandidates: 0, projectAssetsReused: 0, assetsPublished: 0, manifestReads: 0 }
 
   if (!resolvedMetaphor.metaphor) {
-    const decision = editorialDecision(intent, null, structure, resolvedMetaphor.reason, [{
+    const presentation = selectPresentation(input, intent, null, 'editorial-text', session)
+    const decision = editorialDecision(intent, null, presentation, resolvedMetaphor.reason, [{
       code: 'NO_VISUAL_METAPHOR', severity: 'info', message: 'La escena no tiene una metáfora concreta defendible; se usa texto editorial.',
     }])
     trace.visualMode = decision.visualMode
     trace.structure = decision.structure
+    trace.layoutFamily = presentation.layout.family
+    trace.heroPlacement = presentation.layout.heroPlacement
+    trace.textRegion = presentation.layout.textRegion
+    trace.typographyLookId = presentation.typographyLookId
     trace.fallback = decision.fallback
     trace.reasons.push(...decision.reasons)
     const compiled = compileDecision(input, decision)
@@ -986,11 +1027,16 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
     identity: candidate.entry.stableId, score: candidate.score, candidate,
   })))
   if (semantic.reason === 'ambiguous') {
-    const decision = editorialDecision(intent, metaphor, structure, 'AMBIGUOUS_ASSET_CANDIDATES', [{
+    const presentation = selectPresentation(input, intent, metaphor, 'editorial-text', session)
+    const decision = editorialDecision(intent, metaphor, presentation, 'AMBIGUOUS_ASSET_CANDIDATES', [{
       code: 'AMBIGUOUS_ASSET_CANDIDATES', severity: 'warning', message: 'Los candidatos visuales empatan; no se elige un Hero en silencio.',
     }])
     trace.visualMode = decision.visualMode
     trace.structure = decision.structure
+    trace.layoutFamily = presentation.layout.family
+    trace.heroPlacement = presentation.layout.heroPlacement
+    trace.textRegion = presentation.layout.textRegion
+    trace.typographyLookId = presentation.typographyLookId
     trace.fallback = decision.fallback
     trace.reasons.push(...decision.reasons)
     const compiled = compileDecision(input, decision)
@@ -1080,9 +1126,14 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
       severity: reason === 'FALLBACK_EDITORIAL' ? 'info' : 'warning',
       message: 'No hay Hero local defendible; se materializa texto editorial.',
     })
-    const decision = editorialDecision(intent, metaphor, structure, reason, alerts)
+    const presentation = selectPresentation(input, intent, metaphor, 'editorial-text', session)
+    const decision = editorialDecision(intent, metaphor, presentation, reason, alerts)
     trace.visualMode = decision.visualMode
     trace.structure = decision.structure
+    trace.layoutFamily = presentation.layout.family
+    trace.heroPlacement = presentation.layout.heroPlacement
+    trace.textRegion = presentation.layout.textRegion
+    trace.typographyLookId = presentation.typographyLookId
     trace.fallback = decision.fallback
     trace.reasons.push(...decision.reasons)
     const compiled = compileDecision(input, decision)
@@ -1091,6 +1142,7 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
   }
 
   const treatment = hero.provider === 'openmoji' ? treatmentForMetaphor(metaphor) : null
+  const presentation = selectPresentation(input, intent, metaphor, 'asset-led', session)
   const decision: ResolvedSceneDecisionV1 = {
     version: ASSET_RESOLVER_VERSION,
     sceneId: intent.sceneId,
@@ -1098,12 +1150,18 @@ export function resolveAndCompileVisualSceneV1(input: ResolveSceneInputV1): Reso
     visualMode: 'asset-led',
     metaphor,
     hero,
-    structure,
+    structure: presentation.structure,
+    presentation,
     reasons: [resolvedMetaphor.reason, hero.provider === 'openmoji' ? 'OPENMOJI_HERO' : 'SOLAR_HERO'],
     fallback: null,
     alerts,
   }
   trace.visualMode = decision.visualMode
+  trace.structure = presentation.structure
+  trace.layoutFamily = presentation.layout.family
+  trace.heroPlacement = presentation.layout.heroPlacement
+  trace.textRegion = presentation.layout.textRegion
+  trace.typographyLookId = presentation.typographyLookId
   trace.treatment = treatment
   trace.reasons.push(...decision.reasons)
   const compiled = compileDecision(input, decision)

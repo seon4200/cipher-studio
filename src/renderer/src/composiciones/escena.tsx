@@ -37,6 +37,7 @@ import {
 } from '../../../shared/escena'
 import {
   decoratorBudgetV2,
+  effectiveSceneLayoutGeometry,
   sceneSpecReactKey,
   type PresentHeroSlotV1,
   type ProceduralHeroSlotV1,
@@ -819,6 +820,88 @@ function estructuraMvpV2(kf: Kf, spec: VisualSceneSpecV1, hasHero: boolean): Rea
   }} />
 }
 
+/** V14 adapters materialize seven distinct grammars without invoking legacy JSX or fake nodes. */
+function estructuraMvpV3(kf: Kf, spec: VisualSceneSpecV1, hasHero: boolean): React.ReactNode {
+  const layout = effectiveSceneLayoutGeometry(spec)
+  const hero = layout.heroEnvelope
+  const entrada = kf('estructura-v3-' + layout.family, 25, value => {
+    const p = Math.min(1, value / .3)
+    return `opacity:${(.08 + p * .34).toFixed(3)};transform:scale(${(.96 + p * .04).toFixed(3)})`
+  })
+  const base: React.CSSProperties = { ...usa(entrada), position: 'absolute', pointerEvents: 'none' }
+  if (layout.family === 'editorial') {
+    return <div data-qc-structure-mark="editorial-v3" style={{ ...base,
+      left: `${layout.textBounds.x - 1.5}%`, top: `${layout.textBounds.y + 4}%`,
+      width: '.7cqmin', height: `${layout.textBounds.height - 8}%`,
+      background: 'var(--acento)', transformOrigin: '50% 50%',
+    }} />
+  }
+  if (layout.family === 'poster' && hasHero && hero) {
+    return <div data-qc-structure-mark="poster-v3" style={{ ...base,
+      left: `${hero.x - 3}%`, top: `${hero.y - 2}%`, width: `${hero.width + 6}%`, height: `${hero.height + 4}%`,
+      boxSizing: 'border-box', border: '.62cqmin solid var(--acento)',
+      boxShadow: 'inset 0 0 0 .18cqmin color-mix(in srgb,var(--apoyo) 52%,transparent)',
+      transformOrigin: '50% 50%',
+    }} />
+  }
+  if (layout.family === 'split' && hasHero) {
+    const heroLeft = layout.heroPlacement === 'left-dominant'
+    return <>
+      <div data-qc-structure-mark="split-field-v3" style={{ ...base,
+        left: heroLeft ? '8.33%' : '50%', top: '14%', width: '41.67%', height: '72%',
+        background: 'color-mix(in srgb,var(--sup) 70%,transparent)',
+        borderRight: heroLeft ? '.32cqmin solid var(--acento)' : undefined,
+        borderLeft: heroLeft ? undefined : '.32cqmin solid var(--acento)',
+        transformOrigin: heroLeft ? '100% 50%' : '0 50%',
+      }} />
+      <div style={{ ...base, left: '49.84%', top: '18%', width: '.32cqmin', height: '64%', background: 'var(--acento)' }} />
+    </>
+  }
+  if (layout.family === 'diagonal') {
+    return <div data-qc-structure-mark="diagonal-axis-v3" style={{ ...base,
+      left: '-10%', top: '41%', width: '120%', height: '12%',
+      background: 'color-mix(in srgb,var(--acento) 38%,transparent)',
+      borderTop: '.22cqmin solid var(--acento)', borderBottom: '.12cqmin solid var(--apoyo)',
+      transform: 'rotate(-16deg)', transformOrigin: '50% 50%',
+    }} />
+  }
+  if (layout.family === 'focus' && hasHero && hero) {
+    const centerX = hero.x + hero.width / 2
+    const centerY = hero.y + hero.height / 2
+    return <div data-qc-structure-mark="focus-rings-v3" style={{ ...base,
+      left: `${centerX}%`, top: `${centerY}%`, width: `${hero.width + 12}%`, height: `${hero.height + 8}%`,
+      border: '.34cqmin solid var(--acento)', borderRadius: '50%',
+      boxShadow: '0 0 0 2.2cqmin color-mix(in srgb,var(--apoyo) 18%,transparent), ' +
+        '0 0 0 4.4cqmin color-mix(in srgb,var(--acento) 12%,transparent)',
+      transform: 'translate(-50%,-50%)', transformOrigin: '50% 50%',
+    }} />
+  }
+  if (layout.family === 'impact') {
+    const centerX = hero ? hero.x + hero.width / 2 : layout.textBounds.x + layout.textBounds.width / 2
+    const centerY = hero ? hero.y + hero.height / 2 : layout.textBounds.y + layout.textBounds.height / 2
+    return <div data-qc-structure-mark="impact-rays-v3" style={{ ...base,
+      left: `${centerX}%`, top: `${centerY}%`, width: '74%', height: '52%', borderRadius: '50%',
+      background: 'repeating-conic-gradient(from 4deg,var(--acento) 0deg 2deg,transparent 2deg 17deg)',
+      opacity: .22, transform: 'translate(-50%,-50%)', transformOrigin: '50% 50%',
+      maskImage: 'radial-gradient(circle,transparent 0 34%,#000 35% 72%,transparent 73%)',
+    }} />
+  }
+  if (layout.family === 'document') {
+    return <div data-qc-structure-mark="document-v3" style={{ ...base,
+      left: '7.5%', top: '14.5%', width: '85%', height: '71%', boxSizing: 'border-box',
+      border: '.18cqmin solid color-mix(in srgb,var(--apoyo) 68%,transparent)',
+      background: 'repeating-linear-gradient(to bottom,transparent 0 6.8cqmin,color-mix(in srgb,var(--apoyo) 19%,transparent) 6.8cqmin 6.96cqmin)',
+      boxShadow: '1.2cqmin 1.2cqmin 0 color-mix(in srgb,var(--acento) 22%,transparent)',
+      transformOrigin: '50% 50%',
+    }} />
+  }
+  return null
+}
+
+function estructuraMvp(kf: Kf, spec: VisualSceneSpecV1, hasHero: boolean): React.ReactNode {
+  return spec.layout ? estructuraMvpV3(kf, spec, hasHero) : estructuraMvpV2(kf, spec, hasHero)
+}
+
 /** A bounded SceneSpec decorator layer. The legacy 1/3/5/8/14 budget remains untouched. */
 function decoradoresMvpV2(
   kf: Kf,
@@ -850,9 +933,8 @@ function decoradoresMvpV2(
 }
 
 /**
- * Productive asset-led/editorial path. It deliberately reuses the current background,
- * structure, camera and decorator registries: sceneSpec selects a certified structure but does
- * not carry a second set of coordinates. Hero placement still comes from HeroEstructura.
+ * Productive asset-led/editorial path. V13 specs retain their historical geometry; V14 specs
+ * carry the certified layout relation used by renderer, QC and PixelIdentity.
  */
 function construirMvp(
   spec: VisualSceneSpecV1,
@@ -884,7 +966,7 @@ function construirMvp(
 
   const capaFondo = DIBUJO_FONDOS[spec.direccion.fondo]({ kf, params: instancia.fondo })
   const capaEstructura = <>
-    {estructuraMvpV2(kf, spec, hasHero)}
+    {estructuraMvp(kf, spec, hasHero)}
     {heroSlot && runtimeHero &&
       <ProjectAssetHero spec={spec} slot={heroSlot} runtimeAsset={runtimeHero} u={u} />}
     {solarHeroSlot && <ProceduralSolarHero spec={spec} slot={solarHeroSlot} u={u} />}
@@ -904,7 +986,8 @@ function construirMvp(
 
   return (
     <div key={sceneSpecReactKey(spec)} data-visual-mvp="true"
-      data-visual-composition="v2"
+      data-visual-composition={spec.layout ? 'v3' : 'v2'}
+      data-qc-layout-family={spec.layout?.family ?? spec.direccion.estructura}
       data-visual-density={spec.direccion.densidad}
       data-qc-decorator-count={nDeco}
       data-qc-empty-hero-frames="0"

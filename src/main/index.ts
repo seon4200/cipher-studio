@@ -23,6 +23,7 @@ export * from './assets/modern-visual-generation'
 export * from './services/visual-decision-diagnostics'
 export * from './services/original-clip-segmentation'
 export * from './services/visual-variety-metrics'
+export * from '../shared/visual-layout-v3'
 // Productive Visual MVP: the shared scene projection is the single authority for both the
 // file hash and the React tree; filesystem bindings remain a separate main-process concern.
 export * from '../shared/visual-scene-spec'
@@ -1111,7 +1112,7 @@ const canonizar = (v: any): string => {
 // El contraste efectivo y el resolvedor Solar pueden cambiar píxeles sin modificar el
 // graphicData ya cacheado; esta subida impide servirlo con apariencia antigua. También
 // invalida tarjetas: coste aceptado para mantener una sola clave de versión global.
-export const VERSION_PLANTILLAS = 13;
+export const VERSION_PLANTILLAS = 14;
 
 // EL FORMATO LO DECIDE EL MODO, y se dice AQUI una sola vez. Las tres cosas —codec, pix_fmt y
 // extension— tienen que ir juntas o el fichero sale mintiendo sobre si mismo: un .mp4 con

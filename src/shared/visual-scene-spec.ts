@@ -14,6 +14,19 @@ import {
 } from './escena'
 import { CONTRASTE_MINIMO_ESCENA, SISTEMAS, contrasteTextoEscena, type NombreSistema } from './sistemas'
 import { esNombreSolarCanonico, type EstiloSolar } from './iconos-solar'
+import {
+  HERO_PLACEMENTS_V3,
+  LAYOUT_FAMILIES_V3,
+  MODERN_LAYOUT_STRUCTURES_V3,
+  TEXT_REGIONS_V3,
+  TYPOGRAPHY_LOOK_IDS_V3,
+  TYPOGRAPHY_LOOKS_V3,
+  createVisualLayoutV3,
+  type ModernLayoutStructureV3,
+  type PercentRectV3,
+  type TypographyLookIdV3,
+  type VisualLayoutV3,
+} from './visual-layout-v3'
 
 /**
  * Productive V1 projection for an asset-led Visual.
@@ -26,16 +39,22 @@ export const VISUAL_RENDER_SPEC_VERSION = 1 as const
 export const VISUAL_MVP_LAYOUT_REVISION_V1 = 'visual-asset-layout-v1' as const
 export const VISUAL_MVP_TEXT_REVISION_V1 = 'editorial-text-v1' as const
 export const VISUAL_MVP_TREATMENT_REVISION_V1 = 'asset-treatment-v1' as const
-export const VISUAL_MVP_LAYOUT_REVISION = 'visual-asset-layout-v2' as const
-export const VISUAL_MVP_TEXT_REVISION = 'editorial-text-v2' as const
+export const VISUAL_MVP_LAYOUT_REVISION_V2 = 'visual-asset-layout-v2' as const
+export const VISUAL_MVP_TEXT_REVISION_V2 = 'editorial-text-v2' as const
+export const VISUAL_MVP_LAYOUT_REVISION = 'visual-asset-layout-v3' as const
+export const VISUAL_MVP_TEXT_REVISION = 'editorial-text-v3' as const
 export const VISUAL_MVP_MOTION_REVISION = 'asset-motion-v1' as const
 export const VISUAL_MVP_TREATMENT_REVISION = 'asset-treatment-v2' as const
 export const VISUAL_MVP_BOUNDS_REVISION = 'subject-bounds-v1' as const
-export const VISUAL_MVP_FONT_REVISION = 'cipher-font-pairs-v1' as const
+export const VISUAL_MVP_FONT_REVISION_V1 = 'cipher-font-pairs-v1' as const
+export const VISUAL_MVP_FONT_REVISION = 'cipher-typography-looks-v2' as const
 export const VISUAL_MVP_PALETTE_REVISION = 'cipher-palettes-v1' as const
 
-export const VISUAL_MVP_STRUCTURES = ['constelacion', 'marcoPoster', 'editorial'] as const
+export const VISUAL_MVP_STRUCTURES_V13 = ['constelacion', 'marcoPoster', 'editorial'] as const
+export type VisualMvpStructureV13 = typeof VISUAL_MVP_STRUCTURES_V13[number]
+export const VISUAL_MVP_STRUCTURES = MODERN_LAYOUT_STRUCTURES_V3
 export type VisualMvpStructure = typeof VISUAL_MVP_STRUCTURES[number]
+export type VisualSceneStructure = VisualMvpStructure | VisualMvpStructureV13
 export const VISUAL_MVP_FONT_PAIRS = ['technical-black', 'editorial-black'] as const
 export type VisualMvpFontPair = typeof VISUAL_MVP_FONT_PAIRS[number]
 export const VISUAL_MVP_TREATMENTS = ['none', 'accent-mask', 'duotone'] as const
@@ -123,9 +142,10 @@ export type EditorialTextV1 = {
   connector?: string
   keyword: string
   closing?: string
-  alignment: 'left' | 'center'
+  alignment: 'left' | 'center' | 'right'
   maxLines: 2 | 3
-  fontPairId: VisualMvpFontPair
+  fontPairId?: VisualMvpFontPair
+  typographyLookId?: TypographyLookIdV3
   timing: {
     connectorStart: number
     keywordStart: number
@@ -135,7 +155,7 @@ export type EditorialTextV1 = {
 
 export type VisualDirectionV1 = {
   fondo: IdFondo
-  estructura: VisualMvpStructure
+  estructura: VisualSceneStructure
   camara: IdCamara
   densidad: Densidad
   ritmo: Ritmo
@@ -150,7 +170,7 @@ export type SceneDensityInputV2 = {
   visibleWordCount: number
   lineCount: 2 | 3
   rhythm: Ritmo
-  structure: VisualMvpStructure
+  structure: VisualSceneStructure
   supportCount: number
 }
 
@@ -187,12 +207,12 @@ export function decoratorBudgetV2(
 }
 
 export type VisualRevisionsV1 = {
-  layoutRevision: typeof VISUAL_MVP_LAYOUT_REVISION | typeof VISUAL_MVP_LAYOUT_REVISION_V1
-  textRevision: typeof VISUAL_MVP_TEXT_REVISION | typeof VISUAL_MVP_TEXT_REVISION_V1
+  layoutRevision: typeof VISUAL_MVP_LAYOUT_REVISION | typeof VISUAL_MVP_LAYOUT_REVISION_V2 | typeof VISUAL_MVP_LAYOUT_REVISION_V1
+  textRevision: typeof VISUAL_MVP_TEXT_REVISION | typeof VISUAL_MVP_TEXT_REVISION_V2 | typeof VISUAL_MVP_TEXT_REVISION_V1
   motionRevision: typeof VISUAL_MVP_MOTION_REVISION
   treatmentRevision: typeof VISUAL_MVP_TREATMENT_REVISION | typeof VISUAL_MVP_TREATMENT_REVISION_V1
   boundsRevision: typeof VISUAL_MVP_BOUNDS_REVISION
-  fontRevision: typeof VISUAL_MVP_FONT_REVISION
+  fontRevision: typeof VISUAL_MVP_FONT_REVISION | typeof VISUAL_MVP_FONT_REVISION_V1
   paletteRevision: typeof VISUAL_MVP_PALETTE_REVISION
 }
 
@@ -202,6 +222,7 @@ export type VisualSceneSpecV1 = {
   renderTier: 'standard'
   sistema: NombreSistema
   direccion: VisualDirectionV1
+  layout?: VisualLayoutV3
   text: EditorialTextV1
   slots: SceneSlotV1[]
   revisions: VisualRevisionsV1
@@ -247,17 +268,27 @@ const REVISIONS: VisualRevisionsV1 = {
 }
 
 const SUPPORTED_REVISIONS: { [K in keyof VisualRevisionsV1]: readonly VisualRevisionsV1[K][] } = {
-  layoutRevision: [VISUAL_MVP_LAYOUT_REVISION_V1, VISUAL_MVP_LAYOUT_REVISION],
-  textRevision: [VISUAL_MVP_TEXT_REVISION_V1, VISUAL_MVP_TEXT_REVISION],
+  layoutRevision: [VISUAL_MVP_LAYOUT_REVISION_V1, VISUAL_MVP_LAYOUT_REVISION_V2, VISUAL_MVP_LAYOUT_REVISION],
+  textRevision: [VISUAL_MVP_TEXT_REVISION_V1, VISUAL_MVP_TEXT_REVISION_V2, VISUAL_MVP_TEXT_REVISION],
   motionRevision: [VISUAL_MVP_MOTION_REVISION],
   treatmentRevision: [VISUAL_MVP_TREATMENT_REVISION_V1, VISUAL_MVP_TREATMENT_REVISION],
   boundsRevision: [VISUAL_MVP_BOUNDS_REVISION],
-  fontRevision: [VISUAL_MVP_FONT_REVISION],
+  fontRevision: [VISUAL_MVP_FONT_REVISION_V1, VISUAL_MVP_FONT_REVISION],
   paletteRevision: [VISUAL_MVP_PALETTE_REVISION],
 }
 
 export function visualMvpRevisions(): VisualRevisionsV1 {
   return { ...REVISIONS }
+}
+
+/** Exact productive revisions used by V13, retained for A/B evidence and persisted projects. */
+export function visualCompositionV2Revisions(): VisualRevisionsV1 {
+  return {
+    ...REVISIONS,
+    layoutRevision: VISUAL_MVP_LAYOUT_REVISION_V2,
+    textRevision: VISUAL_MVP_TEXT_REVISION_V2,
+    fontRevision: VISUAL_MVP_FONT_REVISION_V1,
+  }
 }
 
 /** Kept only to prove that persisted V1 sceneSpecs remain readable after the V13 renderer. */
@@ -267,6 +298,7 @@ export function legacyVisualMvpRevisions(): VisualRevisionsV1 {
     layoutRevision: VISUAL_MVP_LAYOUT_REVISION_V1,
     textRevision: VISUAL_MVP_TEXT_REVISION_V1,
     treatmentRevision: VISUAL_MVP_TREATMENT_REVISION_V1,
+    fontRevision: VISUAL_MVP_FONT_REVISION_V1,
   }
 }
 
@@ -384,18 +416,27 @@ function validateMotion(value: unknown): asserts value is AssetMotionRecipeV1 {
   }
 }
 
-function validateText(value: unknown): asserts value is EditorialTextV1 {
+function validateText(value: unknown, revisions: VisualRevisionsV1): asserts value is EditorialTextV1 {
   const code = 'VISUAL_SCENE_TEXT_INVALID'
   object(value, code, 'text')
-  exactKeys(value, ['connector', 'keyword', 'closing', 'alignment', 'maxLines', 'fontPairId', 'timing'], code, 'text')
+  exactKeys(value, ['connector', 'keyword', 'closing', 'alignment', 'maxLines', 'fontPairId', 'typographyLookId', 'timing'], code, 'text')
   const connector = Object.prototype.hasOwnProperty.call(value, 'connector')
     ? nonempty(value.connector, code, 'connector') : ''
   const keyword = nonempty(value.keyword, code, 'keyword')
   const closing = Object.prototype.hasOwnProperty.call(value, 'closing')
     ? nonempty(value.closing, code, 'closing') : ''
-  oneOf(value.alignment, ['left', 'center'], code, 'alignment')
-  if (value.maxLines !== 2 && value.maxLines !== 3) fail(code, 'Editorial V2 admite maxLines=2 o 3')
-  oneOf(value.fontPairId, VISUAL_MVP_FONT_PAIRS, code, 'fontPairId')
+  oneOf(value.alignment, revisions.fontRevision === VISUAL_MVP_FONT_REVISION
+    ? ['left', 'center', 'right'] : ['left', 'center'], code, 'alignment')
+  if (value.maxLines !== 2 && value.maxLines !== 3) fail(code, 'Editorial admite maxLines=2 o 3')
+  if (revisions.fontRevision === VISUAL_MVP_FONT_REVISION) {
+    if (Object.prototype.hasOwnProperty.call(value, 'fontPairId'))
+      fail(code, 'TypographyLook V14 no puede conservar el fontPair V13')
+    oneOf(value.typographyLookId, TYPOGRAPHY_LOOK_IDS_V3, code, 'typographyLookId')
+  } else {
+    if (Object.prototype.hasOwnProperty.call(value, 'typographyLookId'))
+      fail(code, 'Una sceneSpec V13 no admite TypographyLook V14')
+    oneOf(value.fontPairId, VISUAL_MVP_FONT_PAIRS, code, 'fontPairId')
+  }
   const words = [connector, keyword, closing].filter(Boolean).join(' ').split(/\s+/).filter(Boolean)
   if (words.length > 8) fail(code, 'El texto editorial supera ocho palabras visibles', { words: words.length })
   object(value.timing, code, 'text.timing')
@@ -412,12 +453,13 @@ function validateText(value: unknown): asserts value is EditorialTextV1 {
   }
 }
 
-function validateDirection(value: unknown): asserts value is VisualDirectionV1 {
+function validateDirection(value: unknown, revisions: VisualRevisionsV1): asserts value is VisualDirectionV1 {
   const code = 'VISUAL_SCENE_DIRECTION_INVALID'
   object(value, code, 'direccion')
   exactKeys(value, ['fondo', 'estructura', 'camara', 'densidad', 'ritmo', 'semilla'], code, 'direccion')
   if (typeof value.fondo !== 'string' || !(value.fondo in FONDOS)) fail(code, 'Fondo no registrado')
-  const estructura = oneOf(value.estructura, VISUAL_MVP_STRUCTURES, code, 'estructura')
+  const estructura = oneOf(value.estructura, revisions.layoutRevision === VISUAL_MVP_LAYOUT_REVISION
+    ? VISUAL_MVP_STRUCTURES : VISUAL_MVP_STRUCTURES_V13, code, 'estructura')
   if (typeof value.camara !== 'string' || !(value.camara in CAMARAS)) fail(code, 'Cámara no registrada')
   oneOf(value.densidad, DENSIDADES, code, 'densidad')
   oneOf(value.ritmo, RITMOS, code, 'ritmo')
@@ -427,6 +469,55 @@ function validateDirection(value: unknown): asserts value is VisualDirectionV1 {
   const camara = CAMARAS[value.camara as IdCamara]
   if (fondo.energia + camara.energia > 3) fail(code, 'El par fondo/cámara supera la energía permitida')
   if (!(estructura in ESTRUCTURAS)) fail(code, 'Estructura no registrada')
+}
+
+function validatePercentRect(value: unknown, name: string): asserts value is PercentRectV3 {
+  const code = 'VISUAL_SCENE_LAYOUT_INVALID'
+  object(value, code, name)
+  exactKeys(value, ['x', 'y', 'width', 'height'], code, name)
+  const x = finite(value.x, code, `${name}.x`)
+  const y = finite(value.y, code, `${name}.y`)
+  const width = finite(value.width, code, `${name}.width`)
+  const height = finite(value.height, code, `${name}.height`)
+  if (x < 0 || y < 0 || width <= 0 || height <= 0 || x + width > 100 || y + height > 100)
+    fail(code, `${name} debe ser un rectángulo porcentual confinado`)
+}
+
+function sameRect(left: PercentRectV3 | null, right: PercentRectV3 | null): boolean {
+  if (left === null || right === null) return left === right
+  return left.x === right.x && left.y === right.y && left.width === right.width && left.height === right.height
+}
+
+function validateLayout(
+  value: unknown,
+  direction: VisualDirectionV1,
+  visualMode: VisualModeV1,
+  revisions: VisualRevisionsV1,
+): asserts value is VisualLayoutV3 | undefined {
+  const code = 'VISUAL_SCENE_LAYOUT_INVALID'
+  if (revisions.layoutRevision !== VISUAL_MVP_LAYOUT_REVISION) {
+    if (value !== undefined) fail(code, 'Una sceneSpec anterior a V14 no admite layout materializado V3')
+    return
+  }
+  object(value, code, 'layout')
+  exactKeys(value, ['version', 'family', 'heroPlacement', 'heroEnvelope', 'textRegion', 'textBounds', 'textAlignment'], code, 'layout')
+  if (value.version !== 1) fail(code, 'Versión de layout no soportada')
+  oneOf(value.family, LAYOUT_FAMILIES_V3, code, 'layout.family')
+  oneOf(value.heroPlacement, HERO_PLACEMENTS_V3, code, 'layout.heroPlacement')
+  oneOf(value.textRegion, TEXT_REGIONS_V3, code, 'layout.textRegion')
+  oneOf(value.textAlignment, ['left', 'center', 'right'], code, 'layout.textAlignment')
+  if (value.heroEnvelope !== null) validatePercentRect(value.heroEnvelope, 'layout.heroEnvelope')
+  validatePercentRect(value.textBounds, 'layout.textBounds')
+  const expected = createVisualLayoutV3(
+    direction.estructura as ModernLayoutStructureV3,
+    visualMode,
+    direction.semilla,
+  )
+  if (value.family !== expected.family || value.heroPlacement !== expected.heroPlacement ||
+      value.textRegion !== expected.textRegion || value.textAlignment !== expected.textAlignment ||
+      !sameRect(value.heroEnvelope as PercentRectV3 | null, expected.heroEnvelope) ||
+      !sameRect(value.textBounds as PercentRectV3, expected.textBounds))
+    fail(code, 'El layout no coincide con la geometría certificada de su familia')
 }
 
 function validateSlot(value: unknown): asserts value is SceneSlotV1 {
@@ -478,19 +569,22 @@ function validateRevisions(value: unknown): asserts value is VisualRevisionsV1 {
 export function validateVisualSceneSpec(value: unknown): VisualSceneSpecV1 {
   const code = 'VISUAL_SCENE_SPEC_INVALID'
   object(value, code, 'sceneSpec')
-  exactKeys(value, ['renderSpecVersion', 'visualMode', 'renderTier', 'sistema', 'direccion', 'text', 'slots', 'revisions', 'fallbackVisual'], code, 'sceneSpec')
+  exactKeys(value, ['renderSpecVersion', 'visualMode', 'renderTier', 'sistema', 'direccion', 'layout', 'text', 'slots', 'revisions', 'fallbackVisual'], code, 'sceneSpec')
   if (value.renderSpecVersion !== VISUAL_RENDER_SPEC_VERSION) fail(code, 'renderSpecVersion no soportada')
   const visualMode = oneOf(value.visualMode, ['asset-led', 'editorial-text'], code, 'visualMode')
   if (value.renderTier !== 'standard') fail(code, 'El MVP no degrada silenciosamente el renderTier')
   oneOf(value.sistema, Object.keys(SISTEMAS) as NombreSistema[], code, 'sistema')
-  validateDirection(value.direccion)
-  validateText(value.text)
+  validateRevisions(value.revisions)
+  validateDirection(value.direccion, value.revisions)
+  validateLayout(value.layout, value.direccion, visualMode, value.revisions)
+  validateText(value.text, value.revisions)
+  if (value.layout && value.text.alignment !== value.layout.textAlignment)
+    fail('VISUAL_SCENE_LAYOUT_INVALID', 'La alineación del texto debe coincidir con la región materializada')
   if (!Array.isArray(value.slots) || value.slots.length > 1) fail(code, 'El MVP admite como máximo un slot')
   for (const slot of value.slots) validateSlot(slot)
   const activeHero = value.slots.filter(slot => ['present', 'procedural'].includes((slot as { state?: unknown }).state as string))
   if (visualMode === 'asset-led' && activeHero.length !== 1) fail('VISUAL_SCENE_HERO_REQUIRED', 'asset-led exige un Hero present o procedural')
   if (visualMode === 'editorial-text' && activeHero.length !== 0) fail(code, 'editorial-text no puede contener un Hero')
-  validateRevisions(value.revisions)
   if (value.fallbackVisual !== 'editorial-text') fail(code, 'El único fallback del MVP es editorial-text')
   return value as VisualSceneSpecV1
 }
@@ -541,6 +635,18 @@ export function sceneSpecReactKey(spec: VisualSceneSpecV1): string {
 
 export function editorialFallbackSpec(spec: VisualSceneSpecV1): VisualSceneSpecV1 {
   const hero = spec.slots.find(slot => slot.role === 'hero')
+  if (spec.revisions.layoutRevision === VISUAL_MVP_LAYOUT_REVISION) {
+    const structure: ModernLayoutStructureV3 = 'editorial'
+    const layout = createVisualLayoutV3(structure, 'editorial-text', spec.direccion.semilla)
+    return validateVisualSceneSpec({
+      ...spec,
+      visualMode: 'editorial-text',
+      direccion: { ...spec.direccion, estructura: structure },
+      layout,
+      text: { ...spec.text, alignment: layout.textAlignment },
+      slots: hero ? [{ slotId: 'hero', role: 'hero', state: 'missing' }] : [],
+    })
+  }
   return validateVisualSceneSpec({
     ...spec,
     visualMode: 'editorial-text',
@@ -635,10 +741,49 @@ export function motionQcTimes(motion: AssetMotionRecipeV1): number[] {
 }
 
 /** Position comes from HeroEstructura; only the fit envelope is certified here. */
-export const VISUAL_MVP_HERO_ENVELOPES: Record<VisualMvpStructure, { widthPct: number; heightPct: number }> = {
+export const VISUAL_MVP_HERO_ENVELOPES: Record<VisualMvpStructureV13, { widthPct: number; heightPct: number }> = {
   constelacion: { widthPct: 44, heightPct: 29 },
   marcoPoster: { widthPct: 42, heightPct: 29 },
   editorial: { widthPct: 38, heightPct: 28 },
+}
+
+export type EffectiveSceneLayoutGeometry = {
+  family: string
+  heroPlacement: string
+  heroEnvelope: PercentRectV3 | null
+  textRegion: string
+  textBounds: PercentRectV3
+  textAlignment: 'left' | 'center' | 'right'
+}
+
+/** Shared geometry authority for renderer, QC and diagnostics. */
+export function effectiveSceneLayoutGeometry(spec: VisualSceneSpecV1): EffectiveSceneLayoutGeometry {
+  validateVisualSceneSpec(spec)
+  if (spec.layout) return { ...spec.layout }
+  const structure = spec.direccion.estructura as VisualMvpStructureV13
+  const anchor = ESTRUCTURAS[structure].heroe
+  const envelope = VISUAL_MVP_HERO_ENVELOPES[structure]
+  const editorial = spec.visualMode === 'editorial-text'
+  return {
+    family: structure,
+    heroPlacement: editorial ? 'none' : structure,
+    heroEnvelope: editorial ? null : {
+      x: anchor.x - envelope.widthPct / 2,
+      y: anchor.y - envelope.heightPct / 2,
+      width: envelope.widthPct,
+      height: envelope.heightPct,
+    },
+    textRegion: editorial ? 'center-editorial' : 'bottom',
+    textBounds: editorial
+      ? { x: 11.5, y: 27, width: 77, height: 48 }
+      : { x: 11.5, y: 60.5, width: 77, height: 25 },
+    textAlignment: spec.text.alignment,
+  }
+}
+
+export function typographyLookForSceneSpec(spec: VisualSceneSpecV1) {
+  validateVisualSceneSpec(spec)
+  return spec.text.typographyLookId ? TYPOGRAPHY_LOOKS_V3[spec.text.typographyLookId] : null
 }
 
 export type VisualMvpQcIssue = {
@@ -659,16 +804,22 @@ export function evaluateVisualMvpQc(spec: VisualSceneSpecV1): VisualMvpQcIssue[]
   const hero = spec.slots.find((slot): slot is PresentHeroSlotV1 | ProceduralHeroSlotV1 =>
     slot.state === 'present' || slot.state === 'procedural')
   if (!hero) return issues
-  const meta = ESTRUCTURAS[spec.direccion.estructura].heroe
-  const envelope = VISUAL_MVP_HERO_ENVELOPES[spec.direccion.estructura]
+  const geometry = effectiveSceneLayoutGeometry(spec)
+  const envelope = geometry.heroEnvelope
+  if (!envelope) {
+    issues.push({ code: 'VISUAL_QC_HERO_LAYOUT_MISSING', level: 'error', message: 'Hero activo sin envelope materializado' })
+    return issues
+  }
   for (const u of motionQcTimes(hero.motion)) {
     const motion = evaluateAssetMotion(hero.motion, u)
-    const width = envelope.widthPct * motion.scale
-    const height = envelope.heightPct * motion.scale
+    const width = envelope.width * motion.scale
+    const height = envelope.height * motion.scale
     // cqmin is one percent of width on 9:16; in Y that is 9/16 percent of the frame.
-    const left = meta.x + motion.translateXCqmin - width / 2
-    const right = meta.x + motion.translateXCqmin + width / 2
-    const centerY = meta.y + motion.translateYCqmin * 9 / 16
+    const centerX = envelope.x + envelope.width / 2
+    const centerBaseY = envelope.y + envelope.height / 2
+    const left = centerX + motion.translateXCqmin - width / 2
+    const right = centerX + motion.translateXCqmin + width / 2
+    const centerY = centerBaseY + motion.translateYCqmin * 9 / 16
     const top = centerY - height / 2
     const bottom = centerY + height / 2
     if (left < ZONA_X_MIN || right > ZONA_X_MAX || top < ZONA_Y_MIN || bottom > 71.5) {
