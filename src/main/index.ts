@@ -19,16 +19,22 @@ export * from '../shared/asset-intent'
 export * from './assets/asset-resolver'
 export * from '../shared/local-scene-semantic'
 export * from './assets/semantic-decision'
+export * from './assets/modern-visual-generation'
 export * from './services/visual-decision-diagnostics'
+export * from './services/original-clip-segmentation'
+export * from './services/visual-variety-metrics'
 // Productive Visual MVP: the shared scene projection is the single authority for both the
 // file hash and the React tree; filesystem bindings remain a separate main-process concern.
 export * from '../shared/visual-scene-spec'
 export * from './assets/visual-render'
 import { sceneSpecFromGraphicData, sceneSpecPixelIdentity, type RenderBindingsV1 } from '../shared/visual-scene-spec'
 import { createLocalSceneSemanticV1, selectNarrativeKeywordV2 } from '../shared/local-scene-semantic'
-import { createResolverSessionV1 } from './assets/asset-resolver'
-import { resolveLocalSemanticVisualSceneV1 } from './assets/semantic-decision'
+import {
+  createModernVisualGenerationContextV1,
+  resolveModernVisualGenerationBatchV1,
+} from './assets/modern-visual-generation'
 import { writeVisualDecisionDiagnostic } from './services/visual-decision-diagnostics'
+import { prepareOriginalClipSegmentation } from './services/original-clip-segmentation'
 import { prepareGraphicForVisualRender, visualRenderRoot } from './assets/visual-render'
 import { runVisualRuntimeQc, VisualRuntimeQcError, type VisualRuntimeQcReport } from './assets/visual-qc'
 export * from './assets/visual-qc'
@@ -2491,23 +2497,18 @@ ipcMain.handle('cut-video-clips', async (_event, { videoPath, timestamps }) => {
     const useActiveProj = !!activeProjectPath
     const outDir = useActiveProj ? dirMat(activeProjectPath!, 'originales') : path.join(bankDir, 'originales')
     const thumbnailDir = useActiveProj ? dirCache(activeProjectPath!, 'thumbnails') : path.join(bankDir, 'thumbnails')
-    
-    if (!(await exists(outDir))) {
-      await fs.promises.mkdir(outDir, { recursive: true })
-    }
+
+    // The input can be the user's persisted `fuente_recortada.mp4` inside
+    // materiales/originales. Verify it before cleanup and remove only stale
+    // segment outputs; broad directory cleanup would delete the input itself.
+    const segmentacion = await prepareOriginalClipSegmentation({ inputPath: videoPath, outputDir: outDir })
     if (!(await exists(thumbnailDir))) {
       await fs.promises.mkdir(thumbnailDir, { recursive: true })
     }
+    await writeDebugLog(`[cut-video-clips] Limpieza segura: ${segmentacion.removedClipOutputs.length} clip(s) previos; ` +
+      `input protegido=${segmentacion.preservedInputInsideOutputDir}.`)
 
-    // Clean up any existing clips in outDir first to avoid mixing projects
-    const existingFiles = await fs.promises.readdir(outDir)
-    for (const file of existingFiles) {
-      try {
-        await fs.promises.unlink(path.join(outDir, file))
-      } catch (e) {}
-    }
-
-    const escapedVideo = videoPath.replace(/"/g, '\\"')
+    const escapedVideo = segmentacion.inputPath.replace(/"/g, '\\"')
 
     if (timestamps && Array.isArray(timestamps) && timestamps.length > 0) {
       for (let i = 0; i < timestamps.length; i++) {
@@ -4892,10 +4893,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // selección V2 la deja como low-confidence y el compilador materializa editorial-text.
       const aRenderizar = conPalabra;
       if (aRenderizar.length) {
-        // All semantic work completes before hashing/rendering. Renderer gets only the
-        // materialized SceneSpec and its locator-only bindings; its trace remains diagnostic.
-        const resolverSession = createResolverSessionV1();
-        const solicitudesGraficas = aRenderizar.map(x => {
+        // Capture the reproducible semantic input before resolving. The same
+        // context is persisted with a new Visual and is the only input accepted
+        // by explicit modern regeneration; neither path asks an LLM again.
+        const contextosModernos = aRenderizar.map(x => {
           const value = recortarTexto(x.keywordSelection.keyword);
           const pos = x.pos;
           const semilla = semillaVisual(value, pos);
@@ -4904,15 +4905,23 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               { texto: value, frase: x.frase, conceptos: x.item.conceptos ?? [] })
             : direccionDe(semilla,
               { texto: value, frase: x.frase, conceptos: x.item.conceptos ?? [] });
-          const resolved = resolveLocalSemanticVisualSceneV1({
+          return createModernVisualGenerationContextV1({
+            sceneId: x.localSemantic.sceneId,
+            duration: x.item.duration,
             localSemantic: x.localSemantic,
             keywordCandidates: x.keywordCandidates,
             preferredVisualMode: x.item.sinVisual ? 'editorial-text' : 'auto',
-            projectRoot: PROYECTO_VISUAL ?? undefined,
             sistema: SISTEMA_VISUAL,
             direction: { ...direccion, semilla },
-            session: resolverSession,
           });
+        });
+        // All semantic work completes before hashing/rendering. Renderer gets only the
+        // materialized SceneSpec and its locator-only bindings; its trace remains diagnostic.
+        const resueltosModernos = resolveModernVisualGenerationBatchV1({
+          contexts: contextosModernos,
+          projectRoot: PROYECTO_VISUAL ?? undefined,
+        });
+        const solicitudesGraficas = resueltosModernos.map(({ context, resolved }) => {
           if (resolved.compiled.graphicData.type !== COMPOSICION_VISUAL)
             throw new Error('El compilador semántico produjo una composición visual no autorizada');
           for (const alert of resolved.decision.alerts) {
@@ -4934,7 +4943,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             keywordSelection: resolved.keywordSelection,
             resolverDecision: resolved.decision,
             inputFallback: resolved.inputFallback,
-            duracion: x.item.duration,
+            // Diagnostic/state-only context. It stays outside sceneSpec, hash and renderer.
+            visualRegeneration: context,
+            duracion: context.duration,
           };
         });
         const qcReports = new Map<number, { hash: string; report: VisualRuntimeQcReport }>();
@@ -5032,6 +5043,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             // tocar una sola linea del export. Y category lo hace contable en la auditoria.
             type: 'video',
             category: 'visual',
+            // Minimum persisted context for deterministic explicit regeneration.
+            // It is administrative/semantic input only and never reaches extra.sceneSpec.
+            visualRegeneration: request.visualRegeneration,
             thumbnailUrl: ''
           };
           diagnosticScenes.push({
@@ -5059,6 +5073,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             warnings: request.resolverDecision.alerts,
             inputFallback: request.inputFallback,
             sceneSpecIdentity,
+            visualRegeneration: request.visualRegeneration,
             render: {
               outcome: 'materialized',
               hash: resVis.hashes?.[i] ?? null,
@@ -5688,7 +5703,88 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
   }
 });
 
-ipcMain.handle('regenerate-graphics', async (_event, params: any) => {
+/**
+ * Explicit regeneration for modern full-screen Visuals. This intentionally
+ * bypasses the historical DeepSeek/card path: a modern clip already stores the
+ * bounded semantic context that originally produced its SceneSpec.
+ */
+async function regenerateModernVisuals(event: any, params: any) {
+  if (!activeProjectPath) return { success: false, error: 'No hay proyecto activo para regenerar Visuales modernos.' }
+  if (!Array.isArray(params?.modernVisuals) || params.modernVisuals.length === 0)
+    return { success: false, error: 'No se recibió contexto de Visuales modernos.' }
+
+  try {
+    const requested: Array<{ clipId: string; context: unknown }> = params.modernVisuals.map((entry: any, index: number) => ({
+      clipId: typeof entry?.clipId === 'string' && entry.clipId
+        ? entry.clipId : `modern-visual-${index + 1}`,
+      context: entry?.context ?? entry?.visualRegeneration ?? entry,
+    }))
+    const resolved = resolveModernVisualGenerationBatchV1({
+      contexts: requested.map(entry => entry.context),
+      projectRoot: activeProjectPath,
+    })
+    const outputs: any[] = new Array(resolved.length)
+    const groups = new Map<string, Array<{ index: number; context: any; resolved: any }>>()
+    for (let index = 0; index < resolved.length; index++) {
+      const entry = resolved[index]
+      const key = entry.context.sistema
+      const group = groups.get(key) ?? []
+      group.push({ index, ...entry })
+      groups.set(key, group)
+    }
+
+    for (const [sistema, group] of groups) {
+      const rendered = await renderGraphicClipsLote(
+        group.map(entry => ({
+          graphicData: entry.resolved.compiled.graphicData,
+          renderBindings: entry.resolved.compiled.renderBindings,
+          projectRoot: activeProjectPath!,
+          diagnosticSceneId: entry.resolved.decision.sceneId,
+          duracion: entry.context.duration,
+        })),
+        { aspectRatio: params.aspectRatio, resolution: params.resolution, fps: 30, modo: 'pantalla', sistema },
+        (progress) => event.sender?.send?.('generation-progress', {
+          ...progress,
+          type: 'Visual regenerado',
+        }),
+      )
+      for (let offset = 0; offset < group.length; offset++) {
+        const entry = group[offset]
+        const ruta = rendered.rutas?.[offset] ?? null
+        if (!ruta || !(await exists(ruta))) {
+          outputs[entry.index] = {
+            id: requested[entry.index].clipId,
+            success: false,
+            sceneId: entry.resolved.decision.sceneId,
+            error: 'VISUAL_REGENERATION_RENDER_FAILED',
+            visualRegeneration: entry.context,
+          }
+          continue
+        }
+        outputs[entry.index] = {
+          id: requested[entry.index].clipId,
+          success: true,
+          sceneId: entry.resolved.decision.sceneId,
+          name: path.basename(ruta),
+          path: ruta,
+          url: urlDeRuta(ruta),
+          durationSeconds: await getVideoDuration(ruta),
+          type: 'video',
+          category: 'visual',
+          visualRegeneration: entry.context,
+        }
+      }
+    }
+    await writeDebugLog(`[regenerate-graphics] Modernos: ${outputs.filter(entry => entry?.success).length}/${outputs.length} regenerados sin LLM.`)
+    return { success: true, mode: 'modern-visual', clips: outputs }
+  } catch (error: any) {
+    await writeDebugLog(`[regenerate-graphics] Modernos fallaron: ${error?.code ?? error?.message ?? error}`)
+    return { success: false, error: error?.message ?? 'No se pudo regenerar el Visual moderno.', code: error?.code }
+  }
+}
+
+ipcMain.handle('regenerate-graphics', async (event, params: any) => {
+  if (params?.mode === 'modern-visual') return regenerateModernVisuals(event, params)
   const { clips, graphicsPercent } = params;
   const logMessage = async (msg: string) => {
     console.log(msg);

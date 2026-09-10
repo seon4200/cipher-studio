@@ -68,6 +68,8 @@ interface TimelineClip {
   category?: string;
   originalCategory?: string;
   thumbnailUrl?: string;
+  /** Semantic-only context used to regenerate a modern full-screen Visual without an LLM. */
+  visualRegeneration?: any;
 }
 
 interface GeneratedVoiceVersion {
@@ -2559,7 +2561,7 @@ ${res.filePath}`);
               });
             } else {
               newVideoClips.push({
-                id: `timeline-${Math.random()}`,
+                id: clipInfo.id || `timeline-${Math.random()}`,
                 name: clipInfo.name,
                 startSeconds: clipInfo.startSeconds || 0,
                 phraseIdx: clipInfo.phraseIdx ?? -1,
@@ -2568,6 +2570,7 @@ ${res.filePath}`);
                 url: clipInfo.url,
                 path: clipInfo.path,
                 category: clipInfo.category || item.type,
+                visualRegeneration: clipInfo.visualRegeneration,
                 thumbnailUrl: clipInfo.thumbnailUrl || ''
               });
             }
@@ -2777,7 +2780,6 @@ ${res.filePath}`);
 
   const handleRegenerateGraphics = async () => {
     const textToUse = aiScript.trim() || originalTranscriptText.trim();
-    if (!textToUse) return;
     const voiceClip = timelineVideoClips.find(
       c => c.type === 'audio');
     const audioPath = voiceClip?.path || '';
@@ -2790,38 +2792,41 @@ ${res.filePath}`);
     const videoClips = perfectSyncMode && v2Clips.length > 0
       ? [...v1Clips, ...v2Clips]
       : v1Clips;
-    if (videoClips.length === 0) return;
+    // A modern full-screen Visual has its bounded semantic context persisted.
+    // It must never be sent through the historical DeepSeek/card generator.
+    const modernVisualClips = videoClips.filter(c =>
+      c.category === 'visual' && Boolean(c.visualRegeneration));
+    const legacyVideoClips = videoClips.filter(c => c.category !== 'visual');
+    if (legacyVideoClips.length === 0 && modernVisualClips.length === 0) return;
     setIsGeneratingAssets(true);
     // Se captura al EMPEZAR, no justo antes del lote: asi la ventana de riesgo cubre tambien
     // la llamada a DeepSeek, que son decenas de segundos.
     const proyectoAlEmpezar = activeProjectPathRef.current;
     try {
-      const res = await window.electronAPI.regenerateGraphics({
-        scriptText: textToUse,
-        audioPath: audioPath,
-        clips: videoClips.map(c => ({ 
-          id: c.id, 
-          name: c.name,
-          startSeconds: c.startSeconds,
-          phraseIdx: (c as any).phraseIdx ?? -1
-        })),
-        graphicsPercent: graphicsPercent,
-        audioSegments: newAudioSegments && newAudioSegments.length > 0 
-          ? newAudioSegments 
-          : transcriptSegments
-      });
-      if (res && res.success && res.clips) {
+      // Legacy cards retain their compatible path. They are deliberately fed
+      // only legacy source clips, so they cannot replace a modern sceneSpec.
+      if (legacyVideoClips.length > 0 && textToUse) {
+        const res = await window.electronAPI.regenerateGraphics({
+          scriptText: textToUse,
+          audioPath: audioPath,
+          clips: legacyVideoClips.map(c => ({
+            id: c.id,
+            name: c.name,
+            startSeconds: c.startSeconds,
+            phraseIdx: (c as any).phraseIdx ?? -1
+          })),
+          graphicsPercent: graphicsPercent,
+          audioSegments: newAudioSegments && newAudioSegments.length > 0
+            ? newAudioSegments
+            : transcriptSegments
+        });
+        if (res && res.success && res.clips) {
         const nonGraphicClips = timelineVideoClips.filter(c => c.type !== 'graphic');
-        // Las dos protecciones viven en `colocarYFiltrarTarjetas`, no aqui: los Visuales fuera del
-        // emparejamiento y el descarte de las que caen encima. `videoClips` es la MISMA lista
-        // que se mando al backend, asi que los ids casan, y lleva los Visuales dentro para que
-        // la funcion pueda separarlos.
-        //
-        // Aqui el descarte va ANTES de sellar, al reves que en el camino de generar: alli las
-        // tarjetas llegan ya renderizadas y aqui la lista esta completa antes de renderizar, asi
-        // que no cuesta nada ahorrarse el trabajo.
+        // Here the legacy source list is exactly the list sent to the
+        // historical backend. Modern Visuals remain in nonGraphicClips but
+        // cannot acquire a legacy card through this branch.
         const { quedan, descartadas, aviso, total, conRespaldo } =
-          colocarYFiltrarTarjetas(res.clips as any[], videoClips as any[]);
+          colocarYFiltrarTarjetas(res.clips as any[], legacyVideoClips as any[]);
         anunciarExclusion(aviso, descartadas as any[]);
         console.log('[DIAG-GRAFICO]', { camino: 'regenerar', total, conRespaldo, descartadas: descartadas.length });
         const graficosQueQuedan = quedan.map((t) => ({
@@ -2839,13 +2844,44 @@ ${res.filePath}`);
         // null = el proyecto cambio a mitad. No se escribe nada: los MOV hechos siguen en
         // cache/graficos del proyecto correcto y volver a pulsar ⟳ alli los recupera a ~2 ms
         // cada uno por la cache, asi que no se pierde trabajo.
-        if (!sellados) return;
+        if (sellados) {
+          // The timeline is written only after card MOVs exist on disk.
+          setTimelineVideoClips([...nonGraphicClips, ...sellados]);
+          setIsDirty(true);
+        }
+        }
+      }
 
-        // El timeline se escribe UNA vez, al final. Meter los clips antes y completarlos
-        // despues dispararia el autoguardado con clips sin MOV en disco, y la PIEZA 3 no
-        // podria distinguir "fallo" de "aun renderizando".
-        setTimelineVideoClips([...nonGraphicClips, ...sellados]);
-        setIsDirty(true);
+      if (modernVisualClips.length > 0) {
+        const modern = await window.electronAPI.regenerateGraphics({
+          mode: 'modern-visual',
+          aspectRatio,
+          resolution: exportResolution,
+          modernVisuals: modernVisualClips.map(clip => ({
+            clipId: clip.id,
+            context: clip.visualRegeneration,
+          })),
+        });
+        if (modern?.success && modern.clips) {
+          const replacements = new Map(modern.clips
+            .filter((clip: any) => clip?.success && typeof clip.id === 'string')
+            .map((clip: any) => [clip.id, clip]));
+          if (replacements.size > 0) {
+            setTimelineVideoClips(previous => previous.map(clip => {
+              const replacement = replacements.get(clip.id);
+              return replacement ? {
+                ...clip,
+                name: replacement.name,
+                path: replacement.path,
+                url: replacement.url,
+                durationSeconds: replacement.durationSeconds,
+                category: 'visual',
+                visualRegeneration: replacement.visualRegeneration,
+              } : clip;
+            }));
+            setIsDirty(true);
+          }
+        }
       }
     } catch (err) {
       console.error('Error regenerando gráficos:', err);

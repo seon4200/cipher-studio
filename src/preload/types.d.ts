@@ -45,7 +45,18 @@ export interface IElectronAPI {
   clearGlobalStockCache: () => Promise<{ success: boolean; error?: string }>;
   readFileAsBlob: (params: { filePath: string }) => Promise<{ success: boolean; buffer?: Uint8Array; error?: string }>;
   generateThumbnail: (videoPath: string) => Promise<{ success: boolean; thumbnail?: string; error?: string }>;
-  regenerateGraphics: (params: { scriptText: string; clips: any[]; graphicsPercent: number; totalPhrases?: number; audioSegments?: any[]; audioPath?: string }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
+  regenerateGraphics: (params: {
+    scriptText?: string;
+    clips?: any[];
+    graphicsPercent?: number;
+    totalPhrases?: number;
+    audioSegments?: any[];
+    audioPath?: string;
+    mode?: 'modern-visual';
+    modernVisuals?: { clipId: string; context: any }[];
+    aspectRatio?: string;
+    resolution?: string;
+  }) => Promise<{ success: boolean; mode?: string; clips?: any[]; error?: string; code?: string }>;
 }
 
 declare global {
