@@ -32,9 +32,11 @@ capas visuales hasta la Ronda D.
 - `src/shared/concept-lexicon.ts`: `ConceptLexiconV1` reusable ES/EN. Sus
   expansiones son `exact`, `synonym`, `related` y `context`. Hero favorece los
   dos primeros; related sirve como alternativa y context no desplaza una
-  representación concreta.
+  representación concreta. La normalización comparte una equivalencia
+  determinista singular/plural para que evidencia local como `estadios` y un
+  concepto estructurado como `estadio` no compitan como sujetos distintos.
 - `src/main/assets/visual-retrieval.ts`: construye planes, consulta sólo índices
-  locales de OpenMoji/Solar, rankea candidatos y deja Pixbay como preparación
+  locales de OpenMoji/Solar, rankea candidatos y deja Pixabay como preparación
   on-demand. La traza se adjunta al diagnóstico, nunca al spec visual.
 - `src/main/assets/solar-index.ts`: indexa todos los nombres Solar instalados por
   concepto base y separa variantes (`linear`, `outline`, `bold-duotone`, etc.).
