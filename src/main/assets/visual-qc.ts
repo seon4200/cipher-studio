@@ -6,6 +6,12 @@ import {
   type ProceduralHeroSlotV1,
   type VisualSceneSpecV1,
 } from '../../shared/visual-scene-spec'
+import {
+  motionQcTimesV2,
+  type SceneSlotV2,
+  type VisualSceneSpecAny,
+  type VisualSceneSpecV2,
+} from '../../shared/visual-scene-spec-v2'
 
 export type VisualQcRect = {
   left: number
@@ -31,6 +37,15 @@ export type VisualDomQcSnapshot = {
   visibleWords: number
   decoratorCount: number
   emptyHeroFrames: number
+  assets?: Array<{
+    slotId: string
+    role: string
+    rect: VisualQcRect | null
+    opacity: number
+    zIndex: number
+    alphaMode: string | null
+  }>
+  backgroundMotion?: string | null
 }
 
 export type VisualRuntimeQcFinding = {
@@ -66,7 +81,7 @@ function overlapRatio(a: VisualQcRect, b: VisualQcRect): number {
 }
 
 /** Pure policy over actual DOM rectangles sampled after camera, fit and motion. */
-export function evaluateVisualDomQc(
+function evaluateVisualDomQcV1(
   spec: VisualSceneSpecV1,
   snapshots: readonly VisualDomQcSnapshot[],
 ): VisualRuntimeQcFinding[] {
@@ -118,6 +133,81 @@ export function evaluateVisualDomQc(
     }
   }
   return findings
+}
+
+function evaluateVisualDomQcV2(
+  spec: VisualSceneSpecV2,
+  snapshots: readonly VisualDomQcSnapshot[],
+): VisualRuntimeQcFinding[] {
+  const findings: VisualRuntimeQcFinding[] = []
+  const active = spec.slots.filter((slot): slot is Extract<SceneSlotV2, { state: 'present' | 'procedural' }> =>
+    slot.state === 'present' || slot.state === 'procedural')
+  for (const snapshot of snapshots) {
+    const at = snapshot.normalizedTime
+    if (!snapshot.frame) {
+      findings.push({ code: 'VISUAL_QC_FRAME_MISSING', level: 'error', message: 'No existe lienzo medible', normalizedTime: at })
+      continue
+    }
+    if (!snapshot.text || !snapshot.keyword) {
+      findings.push({ code: 'VISUAL_QC_TEXT_MISSING', level: 'error', message: 'Falta texto narrativo o keyword', normalizedTime: at })
+      continue
+    }
+    const frame = snapshot.frame
+    const safeText: VisualQcRect = {
+      left: frame.left + frame.width * .06, right: frame.right - frame.width * .06,
+      top: frame.top + frame.height * .08, bottom: frame.bottom - frame.height * .08,
+      width: frame.width * .88, height: frame.height * .84,
+    }
+    if (!inside(snapshot.text, frame) || !inside(snapshot.keyword, safeText))
+      findings.push({ code: 'VISUAL_QC_TEXT_BOUNDS', level: 'error', message: 'Texto V15 fuera de safe area', normalizedTime: at })
+    if (snapshot.textOverflow || snapshot.keywordOverflow || !['2', '3'].includes(snapshot.maxLines ?? '') || snapshot.visibleWords > 8)
+      findings.push({ code: 'VISUAL_QC_TEXT_OVERFLOW', level: 'error', message: 'Texto V15 recortado o fuera de presupuesto', normalizedTime: at })
+    if (snapshot.decoratorCount !== 0)
+      findings.push({ code: 'VISUAL_QC_DECORATOR_BUDGET', level: 'error', message: 'V15 no admite decoradores arbitrarios', normalizedTime: at })
+    if (!['none', 'subtle'].includes(snapshot.backgroundMotion ?? ''))
+      findings.push({ code: 'VISUAL_QC_BACKGROUND_MOTION', level: 'error', message: 'Motion de fondo no permitido', normalizedTime: at })
+
+    const domAssets = snapshot.assets ?? []
+    const domIds = domAssets.map(asset => asset.slotId)
+    if (new Set(domIds).size !== domIds.length)
+      findings.push({ code: 'VISUAL_QC_DUPLICATE_SLOT', level: 'error', message: 'Slot duplicado en DOM', normalizedTime: at })
+    for (const slot of active) {
+      const dom = domAssets.find(asset => asset.slotId === slot.slotId)
+      const layout = spec.layout.slotLayouts.find(value => value.slotId === slot.slotId)
+      if (!dom?.rect || !layout) {
+        findings.push({ code: 'VISUAL_QC_ASSET_MISSING', level: 'error', message: `No se materializó ${slot.slotId}`, normalizedTime: at })
+        continue
+      }
+      if (!inside(dom.rect, frame, 2.5))
+        findings.push({ code: 'VISUAL_QC_ASSET_CLIPPING', level: 'error', message: `${slot.slotId} sale del frame`, normalizedTime: at })
+      if (dom.zIndex !== layout.zIndex)
+        findings.push({ code: 'VISUAL_QC_Z_ORDER', level: 'error', message: `${slot.slotId} no respeta z-order`, normalizedTime: at })
+      const areaShare = dom.rect.width * dom.rect.height / Math.max(1, frame.width * frame.height)
+      if (slot.role === 'hero' && dom.opacity > .5 && areaShare < .07)
+        findings.push({ code: 'VISUAL_QC_HERO_TOO_SMALL', level: 'error', message: 'Hero demasiado pequeño', normalizedTime: at })
+      if (slot.role !== 'hero' && dom.opacity > .5 && areaShare < .012)
+        findings.push({ code: 'VISUAL_QC_SUPPORT_TOO_SMALL', level: 'error', message: `${slot.slotId} ilegible`, normalizedTime: at })
+      if (dom.opacity > .5 && snapshot.keywordOpacity > .5 && overlapRatio(dom.rect, snapshot.keyword) > (slot.role === 'hero' ? .2 : .3))
+        findings.push({ code: 'VISUAL_QC_ASSET_TEXT_OVERLAP', level: 'error', message: `${slot.slotId} tapa la keyword`, normalizedTime: at })
+    }
+    const hero = domAssets.find(asset => asset.role === 'hero')
+    if (hero?.rect) for (const support of domAssets.filter(asset => asset.role !== 'hero' && asset.rect && asset.opacity > .5)) {
+      const heroArea = hero.rect.width * hero.rect.height
+      const supportArea = support.rect!.width * support.rect!.height
+      if (supportArea > heroArea * .82)
+        findings.push({ code: 'VISUAL_QC_SUPPORT_DOMINATES_HERO', level: 'error', message: `${support.slotId} domina al Hero`, normalizedTime: at })
+    }
+    if (spec.visualMode === 'editorial-text' && domAssets.length)
+      findings.push({ code: 'VISUAL_QC_EDITORIAL_HAS_ASSET', level: 'error', message: 'Editorial V15 contiene assets', normalizedTime: at })
+  }
+  return findings
+}
+
+export function evaluateVisualDomQc(
+  spec: VisualSceneSpecAny,
+  snapshots: readonly VisualDomQcSnapshot[],
+): VisualRuntimeQcFinding[] {
+  return spec.renderSpecVersion === 2 ? evaluateVisualDomQcV2(spec, snapshots) : evaluateVisualDomQcV1(spec, snapshots)
 }
 
 function srgb(channel: number): number {
@@ -176,12 +266,16 @@ async function localKeywordContrast(
 /** Executes the productive QC against the exact DOM that will feed FFmpeg. */
 export async function runVisualRuntimeQc(
   window: BrowserWindow,
-  spec: VisualSceneSpecV1,
+  spec: VisualSceneSpecAny,
   duration: number,
 ): Promise<VisualRuntimeQcReport> {
-  const hero = spec.slots.find((slot): slot is PresentHeroSlotV1 | ProceduralHeroSlotV1 =>
-    slot.state === 'present' || slot.state === 'procedural')
-  const times = hero ? motionQcTimes(hero.motion) : [0, .2, .5, .8, 1]
+  const times = spec.renderSpecVersion === 2
+    ? motionQcTimesV2(spec)
+    : (() => {
+        const hero = spec.slots.find((slot): slot is PresentHeroSlotV1 | ProceduralHeroSlotV1 =>
+          slot.state === 'present' || slot.state === 'procedural')
+        return hero ? motionQcTimes(hero.motion) : [0, .2, .5, .8, 1]
+      })()
   const snapshots: VisualDomQcSnapshot[] = []
   for (const normalizedTime of times) {
     await window.webContents.executeJavaScript(`window.__setT(${normalizedTime * duration})`)

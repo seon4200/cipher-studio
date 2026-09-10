@@ -8,7 +8,7 @@ import { flushSync } from 'react-dom'
 import { AnimatedGraphic } from './AnimatedGraphic'
 import { NombreSistema } from './sistemas'
 import { FUENTES_RENDER, MUESTRA_FUENTES, faltaLaFuentePorAncho } from './fuentes-render'
-import type { PreparedRenderAssetV1, RuntimeRenderAssetV1 } from '../../shared/visual-scene-spec'
+import type { PreparedRenderAssetAny, RuntimeRenderAssetAny } from '../../shared/visual-scene-spec-v2'
 import './styles/globals.css'
 
 // Franja de la SONDA, encima del lienzo. El proceso principal codifica ahi el indice de
@@ -77,7 +77,7 @@ const sonda = document.getElementById('sonda') as HTMLDivElement
 const lienzo = document.getElementById('lienzo') as HTMLDivElement
 let raiz: Root | null = null
 let datos: any = null
-let runtimeAssets: RuntimeRenderAssetV1[] = []
+let runtimeAssets: RuntimeRenderAssetAny[] = []
 
 // La escala va en un ENVOLTORIO propio, no sobre la tarjeta.
 //
@@ -122,11 +122,12 @@ function liberarRuntimeAssets() {
   runtimeAssets = []
 }
 
-async function prepararRuntimeAssets(assets: readonly PreparedRenderAssetV1[]): Promise<RuntimeRenderAssetV1[]> {
-  const preparados: RuntimeRenderAssetV1[] = []
+async function prepararRuntimeAssets(assets: readonly PreparedRenderAssetAny[]): Promise<RuntimeRenderAssetAny[]> {
+  const preparados: RuntimeRenderAssetAny[] = []
   try {
     for (const asset of assets) {
-      if (asset.slotId !== 'hero' || asset.mime !== 'image/svg+xml' || !asset.bytesBase64)
+      if (!['hero', 'support-1', 'support-2'].includes(asset.slotId) ||
+          !['image/svg+xml', 'image/png', 'image/jpeg', 'image/webp'].includes(asset.mime) || !asset.bytesBase64)
         throw new Error('Render asset efímero inválido')
       const binary = atob(asset.bytesBase64)
       const bytes = new Uint8Array(binary.length)
@@ -172,7 +173,7 @@ function montarGraphicData(graphicData: any, op: Partial<Opciones>) {
 ;(window as any).__montar = (
   graphicData: any,
   op: Partial<Opciones> = {},
-  preparedAssets: readonly PreparedRenderAssetV1[] = [],
+  preparedAssets: readonly PreparedRenderAssetAny[] = [],
 ) => {
   if (raiz) {
     raiz.unmount()
@@ -234,6 +235,15 @@ const rect = (element: Element | null) => {
   const hero = document.querySelector('[data-qc-hero="true"]')
   const text = document.querySelector('[data-qc-text="true"]') as HTMLElement | null
   const keyword = document.querySelector('[data-qc-keyword="true"]') as HTMLElement | null
+  const assets = [...document.querySelectorAll('[data-qc-asset="true"]')].map(element => {
+    const html = element as HTMLElement
+    return {
+      slotId: html.dataset.qcSlot ?? '', role: html.dataset.qcRole ?? '', rect: rect(element),
+      opacity: Number(getComputedStyle(element).opacity), zIndex: Number(getComputedStyle(element).zIndex),
+      alphaMode: html.dataset.qcAlphaMode ?? null,
+    }
+  })
+  const background = document.querySelector('[data-qc-background-motion]') as HTMLElement | null
   return {
     frame: rect(lienzo), hero: rect(hero), text: rect(text), keyword: rect(keyword),
     heroOpacity: hero ? Number(getComputedStyle(hero).opacity) : 0,
@@ -247,6 +257,8 @@ const rect = (element: Element | null) => {
     visibleWords: Number(text?.dataset.qcVisibleWords ?? 0),
     decoratorCount: document.querySelectorAll('[data-qc-decorator="true"]').length,
     emptyHeroFrames: document.querySelectorAll('[data-qc-empty-hero-frame="true"]').length,
+    assets,
+    backgroundMotion: background?.dataset.qcBackgroundMotion ?? null,
   }
 }
 

@@ -11,6 +11,14 @@ import {
   resolveLocalSemanticVisualSceneV1,
   type LocalSemanticVisualDecisionResultV1,
 } from './semantic-decision'
+import type { VideoVisualStyleIdV1 } from '../../shared/visual-style-v1'
+import {
+  createMotionGraphicsResolverSessionV2,
+  resolveMotionGraphicsSceneV2,
+  type LockedVisualChoiceV2,
+  type MotionGraphicsProviderHooksV2,
+  type MotionGraphicsResolutionV2,
+} from './motion-graphics-resolver'
 
 /**
  * Persisted, non-pixel input required to reproduce one modern Visual decision.
@@ -33,6 +41,21 @@ export type ModernVisualGenerationContextV1 = {
 export type ResolvedModernVisualGenerationV1 = {
   context: ModernVisualGenerationContextV1
   resolved: LocalSemanticVisualDecisionResultV1
+}
+
+export const MODERN_VISUAL_GENERATION_CONTEXT_VERSION_V2 = 2 as const
+
+export type ModernVisualGenerationContextV2 = Omit<ModernVisualGenerationContextV1, 'version'> & {
+  version: typeof MODERN_VISUAL_GENERATION_CONTEXT_VERSION_V2
+  /** Selected once per video and persisted with every scene for deterministic regeneration. */
+  videoStyleId: VideoVisualStyleIdV1
+  /** Provider decisions are administrative locators and remain outside SceneSpec/PixelIdentity. */
+  lockedChoices: LockedVisualChoiceV2[]
+}
+
+export type ResolvedModernVisualGenerationV2 = {
+  context: ModernVisualGenerationContextV2
+  resolved: MotionGraphicsResolutionV2
 }
 
 export class ModernVisualGenerationContextError extends Error {
@@ -129,6 +152,44 @@ export function createModernVisualGenerationContextV1(input: {
   }
 }
 
+function lockedChoices(value: unknown): LockedVisualChoiceV2[] {
+  if (value === undefined) return []
+  if (!Array.isArray(value) || value.length > 3) fail('MODERN_VISUAL_CONTEXT_INVALID', 'lockedChoices no es válido')
+  const slots = new Set<string>()
+  return value.map(raw => {
+    if (!isRecord(raw) || !['hero', 'support-1', 'support-2'].includes(String(raw.slotId)) ||
+        !['openmoji', 'pixabay-images', 'solar'].includes(String(raw.provider)) ||
+        typeof raw.concept !== 'string' || !raw.concept.trim() || typeof raw.reason !== 'string' ||
+        ![2, 3].includes(Number(raw.score)) || !isRecord(raw.bounds) || typeof raw.kind !== 'string' ||
+        !['vector', 'useful-alpha', 'opaque-rectangle'].includes(String(raw.alphaMode)) || slots.has(String(raw.slotId)))
+      fail('MODERN_VISUAL_CONTEXT_INVALID', 'lockedChoices contiene una decisión inválida')
+    slots.add(String(raw.slotId))
+    return raw as unknown as LockedVisualChoiceV2
+  })
+}
+
+export function createModernVisualGenerationContextV2(input: {
+  sceneId: unknown
+  duration: unknown
+  localSemantic: unknown
+  keywordCandidates?: unknown
+  preferredVisualMode?: unknown
+  sistema: unknown
+  direction: unknown
+  videoStyleId: unknown
+  lockedChoices?: unknown
+}): ModernVisualGenerationContextV2 {
+  const base = createModernVisualGenerationContextV1(input)
+  if (input.videoStyleId !== 'cream-editorial' && input.videoStyleId !== 'ink-technical')
+    fail('MODERN_VISUAL_CONTEXT_INVALID', 'videoStyleId no es válido')
+  return {
+    ...base,
+    version: MODERN_VISUAL_GENERATION_CONTEXT_VERSION_V2,
+    videoStyleId: input.videoStyleId,
+    lockedChoices: lockedChoices(input.lockedChoices),
+  }
+}
+
 /**
  * Single authority shared by ordinary generation and explicit regeneration.
  * A fresh resolver session is intentionally created per ordered batch; with the
@@ -152,4 +213,46 @@ export function resolveModernVisualGenerationBatchV1(input: {
     })
     return { context, resolved }
   })
+}
+
+/**
+ * V15 generation and explicit regeneration share this single ordered authority.  Provider IO is
+ * complete before SceneSpec reaches hash/render; locked choices make regeneration independent of
+ * changing remote search order while every local byte is verified again.
+ */
+export async function resolveModernVisualGenerationBatchV2(input: {
+  contexts: readonly unknown[]
+  projectRoot: unknown
+  pixabayApiKey?: string
+  hooks?: MotionGraphicsProviderHooksV2
+}): Promise<ResolvedModernVisualGenerationV2[]> {
+  const semanticSession = createResolverSessionV1()
+  const visualSession = createMotionGraphicsResolverSessionV2()
+  const output: ResolvedModernVisualGenerationV2[] = []
+  for (const raw of input.contexts) {
+    const context = createModernVisualGenerationContextV2(raw as Parameters<typeof createModernVisualGenerationContextV2>[0])
+    const base = resolveLocalSemanticVisualSceneV1({
+      localSemantic: context.localSemantic,
+      keywordCandidates: context.keywordCandidates,
+      preferredVisualMode: context.preferredVisualMode,
+      projectRoot: input.projectRoot,
+      sistema: context.sistema,
+      direction: context.direction,
+      session: semanticSession,
+    })
+    const resolved = await resolveMotionGraphicsSceneV2({
+      base,
+      projectRoot: String(input.projectRoot),
+      videoStyleId: context.videoStyleId,
+      session: visualSession,
+      ...(input.pixabayApiKey ? { pixabayApiKey: input.pixabayApiKey } : {}),
+      ...(context.lockedChoices.length ? { lockedChoices: context.lockedChoices } : {}),
+      ...(input.hooks ? { hooks: input.hooks } : {}),
+    })
+    output.push({
+      context: { ...context, lockedChoices: resolved.lockedChoices },
+      resolved,
+    })
+  }
+  return output
 }

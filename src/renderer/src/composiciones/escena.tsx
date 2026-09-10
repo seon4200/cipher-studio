@@ -44,8 +44,10 @@ import {
   type RuntimeRenderAssetV1,
   type VisualSceneSpecV1,
 } from '../../../shared/visual-scene-spec'
+import type { RuntimeRenderAssetV2 } from '../../../shared/visual-scene-spec-v2'
 import type { Composicion, PropsComposicion } from './index'
 import { EditorialText, ProceduralSolarHero, ProjectAssetHero } from './VisualAssetMvp'
+import { MotionGraphicV15 } from './MotionGraphicV15'
 
 const TAU = 6.283185307
 
@@ -1006,7 +1008,9 @@ function construirMvp(
 function render({
   u, texto, conceptos, ancla, direccion, sistema, semilla, sceneSpec, runtimeAssets = [],
 }: PropsComposicion): React.ReactNode {
-  if (sceneSpec) return construirMvp(sceneSpec, runtimeAssets, u)
+  if (sceneSpec?.renderSpecVersion === 2)
+    return <MotionGraphicV15 spec={sceneSpec} runtimeAssets={runtimeAssets as readonly RuntimeRenderAssetV2[]} u={u} />
+  if (sceneSpec) return construirMvp(sceneSpec, runtimeAssets as readonly RuntimeRenderAssetV1[], u)
   const value = texto ?? ''
   const cs: Concepto[] = Array.isArray(conceptos) ? conceptos.slice(0, CUANTOS_CONCEPTOS).filter(Boolean) : []
   const semillaUsada = Number.isInteger(semilla) && semilla > 0 ? semilla : semillaDe(value)

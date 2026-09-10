@@ -9,6 +9,7 @@ import {
 } from '../../shared/concept-lexicon'
 import type { ProjectAssetRecord } from '../../shared/project-state'
 import type { VisualConceptV1 } from '../../shared/visual-concepts'
+import { fullSubjectBounds, type SubjectBoundsV1 } from '../../shared/visual-scene-spec'
 import {
   readAssetStorage,
   resolveProjectRelativePath,
@@ -173,6 +174,55 @@ function requestJson(url: URL): Promise<unknown> {
     request.once('timeout', () => request.destroy(new PixabayImageError('PIXABAY_IMAGE_TIMEOUT', 'Pixabay excedió el tiempo límite')))
     request.once('error', reject)
   })
+}
+
+function requestBytes(url: URL, redirects = 0): Promise<Buffer> {
+  if (redirects > 3) return Promise.reject(new PixabayImageError('PIXABAY_IMAGE_REDIRECT_LIMIT', 'Demasiadas redirecciones'))
+  return new Promise((resolve, reject) => {
+    const request = https.get(url, { timeout: 15_000, headers: { Accept: 'image/png,image/jpeg,image/webp' } }, response => {
+      const status = response.statusCode ?? 500
+      if (status >= 300 && status < 400 && response.headers.location) {
+        response.resume()
+        let next: URL
+        try { next = new URL(response.headers.location, url) }
+        catch { return reject(new PixabayImageError('PIXABAY_IMAGE_INVALID_URL', 'Redirección Pixabay inválida')) }
+        if (next.protocol !== 'https:') return reject(new PixabayImageError('PIXABAY_IMAGE_INVALID_URL', 'Redirección no HTTPS'))
+        requestBytes(next, redirects + 1).then(resolve, reject)
+        return
+      }
+      if (status < 200 || status >= 300) {
+        response.resume()
+        reject(new PixabayImageError('PIXABAY_IMAGE_DOWNLOAD_HTTP', 'Descarga Pixabay respondió HTTP ' + status))
+        return
+      }
+      const chunks: Buffer[] = []
+      let length = 0
+      response.on('data', chunk => {
+        const bytes = Buffer.from(chunk)
+        length += bytes.length
+        if (length > PIXABAY_MAX_IMAGE_BYTES) {
+          request.destroy(new PixabayImageError('PIXABAY_IMAGE_TOO_LARGE', 'Imagen Pixabay excede el límite'))
+          return
+        }
+        chunks.push(bytes)
+      })
+      response.once('error', reject)
+      response.once('end', () => resolve(Buffer.concat(chunks)))
+    })
+    request.once('timeout', () => request.destroy(new PixabayImageError('PIXABAY_IMAGE_TIMEOUT', 'Descarga Pixabay excedió el tiempo límite')))
+    request.once('error', reject)
+  })
+}
+
+/** Explicit pre-render download. It is dependency-injectable so tests can prove renderer/network separation. */
+export async function downloadPixabayImageBytesV1(input: {
+  candidate: PixabayImageCandidateV1
+  requestBytes?: (url: URL) => Promise<Buffer>
+}): Promise<Buffer> {
+  const url = new URL(safeUrl(input.candidate.downloadUrl, 'candidate.downloadUrl'))
+  const bytes = await (input.requestBytes ?? requestBytes)(url)
+  inspectPixabayRasterImageV1(bytes)
+  return bytes
 }
 
 function parsedHits(value: unknown): unknown[] {
@@ -404,6 +454,75 @@ export function inspectPixabayRasterImageV1(bytes: Buffer): RasterImageInspectio
   fail('PIXABAY_IMAGE_UNSUPPORTED_MIME', 'Formato de imagen no admitido')
 }
 
+function paeth(left: number, up: number, upLeft: number): number {
+  const p = left + up - upLeft
+  const pa = Math.abs(p - left), pb = Math.abs(p - up), pc = Math.abs(p - upLeft)
+  return pa <= pb && pa <= pc ? left : pb <= pc ? up : upLeft
+}
+
+/**
+ * Derives actual useful alpha bounds for the PNG formats that V1 can prove. Opaque rasters and
+ * undecoded WebP alpha intentionally use the full canvas rather than inventing a subject crop.
+ */
+export function subjectBoundsFromPixabayRasterV1(bytes: Buffer): SubjectBoundsV1 {
+  const inspection = inspectPixabayRasterImageV1(bytes)
+  const full = fullSubjectBounds(inspection.width / inspection.height)
+  if (inspection.mime !== 'image/png' || !inspection.alphaUseful) return full
+  let offset = 8, width = 0, height = 0, bitDepth = 0, colorType = 0, interlace = 0
+  const idat: Buffer[] = []
+  while (offset + 12 <= bytes.length) {
+    const length = bytes.readUInt32BE(offset); offset += 4
+    const type = bytes.subarray(offset, offset + 4).toString('ascii'); offset += 4
+    const data = bytes.subarray(offset, offset + length); offset += length + 4
+    if (type === 'IHDR') {
+      width = data.readUInt32BE(0); height = data.readUInt32BE(4); bitDepth = data[8]; colorType = data[9]; interlace = data[12]
+    } else if (type === 'IDAT') idat.push(data)
+    else if (type === 'IEND') break
+  }
+  if (bitDepth !== 8 || interlace !== 0 || (colorType !== 4 && colorType !== 6) || !idat.length) return full
+  const channels = colorType === 6 ? 4 : 2
+  const rowBytes = width * channels
+  let data: Buffer
+  try { data = inflateSync(Buffer.concat(idat)) } catch { return full }
+  if (data.length !== height * (rowBytes + 1)) return full
+  let prior = Buffer.alloc(rowBytes), cursor = 0
+  let minX = width, minY = height, maxX = -1, maxY = -1, alphaWeight = 0, weightedX = 0, weightedY = 0
+  for (let y = 0; y < height; y++) {
+    const filter = data[cursor++]
+    const current = Buffer.from(data.subarray(cursor, cursor + rowBytes)); cursor += rowBytes
+    for (let x = 0; x < rowBytes; x++) {
+      const left = x >= channels ? current[x - channels] : 0
+      const up = prior[x]
+      const upLeft = x >= channels ? prior[x - channels] : 0
+      if (filter === 1) current[x] = (current[x] + left) & 255
+      else if (filter === 2) current[x] = (current[x] + up) & 255
+      else if (filter === 3) current[x] = (current[x] + Math.floor((left + up) / 2)) & 255
+      else if (filter === 4) current[x] = (current[x] + paeth(left, up, upLeft)) & 255
+      else if (filter !== 0) return full
+    }
+    for (let x = 0; x < width; x++) {
+      const alpha = current[x * channels + channels - 1]
+      if (alpha <= 3) continue
+      minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y)
+      alphaWeight += alpha; weightedX += x * alpha; weightedY += y * alpha
+    }
+    prior = current
+  }
+  if (maxX < minX || maxY < minY || !alphaWeight) return full
+  const x = minX / width, y = minY / height
+  const visibleWidthRatio = (maxX - minX + 1) / width
+  const visibleHeightRatio = (maxY - minY + 1) / height
+  return {
+    revision: 'subject-bounds-v1',
+    alphaBounds: { x, y, width: visibleWidthRatio, height: visibleHeightRatio },
+    visibleWidthRatio, visibleHeightRatio,
+    centerOfMass: { x: (weightedX / alphaWeight + .5) / width, y: (weightedY / alphaWeight + .5) / height },
+    aspectRatio: width / height,
+    transparentPadding: { top: y, right: 1 - x - visibleWidthRatio,
+      bottom: 1 - y - visibleHeightRatio, left: x },
+  }
+}
+
 function sha256(bytes: Buffer): string { return createHash('sha256').update(bytes).digest('hex') }
 
 function regularFile(target: string): void {
@@ -412,17 +531,45 @@ function regularFile(target: string): void {
 }
 
 export function verifyPixabayImageAssetContentV1(projectRoot: unknown, asset: ProjectAssetRecord): RasterImageInspectionV1 {
+  return readVerifiedPixabayImageAssetContentV1(projectRoot, asset).inspection
+}
+
+/**
+ * Provider-neutral raster gate used by the renderer. A future local-library adapter (for
+ * example ByPeople after its audit) can publish the same ProjectAsset contract without adding
+ * a provider-specific drawing path. Provider adapters still own provenance and publication;
+ * the renderer only proves confined bytes, identity, MIME and raster structure.
+ */
+export function readVerifiedRasterProjectAssetContentV1(projectRoot: unknown, asset: ProjectAssetRecord): {
+  bytes: Buffer
+  inspection: RasterImageInspectionV1
+  absoluteFile: string
+} {
   const root = requireAssetProjectRoot(projectRoot)
-  if (!asset || asset.provider !== 'pixabay') fail('PIXABAY_IMAGE_ASSET_INVALID', 'ProjectAsset no corresponde a Pixabay')
+  if (!asset || !['image/png', 'image/jpeg', 'image/webp'].includes(asset.mime))
+    fail('RASTER_PROJECT_ASSET_INVALID', 'ProjectAsset no declara un MIME raster soportado')
   const absoluteFile = resolveProjectRelativePath(root, asset.relativeFile, true)
-  if (!fs.existsSync(absoluteFile)) fail('PROJECT_ASSET_MISSING', 'Asset Pixabay no existe')
+  if (!fs.existsSync(absoluteFile)) fail('PROJECT_ASSET_MISSING', 'Asset raster no existe')
   regularFile(absoluteFile)
   const bytes = fs.readFileSync(absoluteFile)
-  if (bytes.length !== asset.byteLength) fail('PROJECT_ASSET_SIZE_MISMATCH', 'Tamaño Pixabay no coincide')
-  if (sha256(bytes) !== asset.sha256) fail('PROJECT_ASSET_SHA_MISMATCH', 'SHA Pixabay no coincide')
+  if (bytes.length !== asset.byteLength) fail('PROJECT_ASSET_SIZE_MISMATCH', 'Tamaño raster no coincide')
+  if (sha256(bytes) !== asset.sha256) fail('PROJECT_ASSET_SHA_MISMATCH', 'SHA raster no coincide')
   const inspection = inspectPixabayRasterImageV1(bytes)
-  if (inspection.mime !== asset.mime) fail('PROJECT_ASSET_MIME_MISMATCH', 'MIME Pixabay no coincide')
-  return inspection
+  if (inspection.mime !== asset.mime) fail('PROJECT_ASSET_MIME_MISMATCH', 'MIME raster no coincide')
+  return { bytes, inspection, absoluteFile }
+}
+
+/**
+ * Reads once and returns the exact bytes that may be transported to the renderer.  Keeping the
+ * verified buffer avoids a verify/read race in which the file could change between two reads.
+ */
+export function readVerifiedPixabayImageAssetContentV1(projectRoot: unknown, asset: ProjectAssetRecord): {
+  bytes: Buffer
+  inspection: RasterImageInspectionV1
+  absoluteFile: string
+} {
+  if (!asset || asset.provider !== 'pixabay') fail('PIXABAY_IMAGE_ASSET_INVALID', 'ProjectAsset no corresponde a Pixabay')
+  return readVerifiedRasterProjectAssetContentV1(projectRoot, asset)
 }
 
 /**

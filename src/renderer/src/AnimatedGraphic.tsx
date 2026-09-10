@@ -5,10 +5,10 @@ import { cicloValido } from '../../shared/ciclo'
 import { semillaDe } from '../../shared/semilla'
 import { composicion } from './composiciones'
 import {
-  sceneSpecFromGraphicData,
-  sceneSpecReactKey,
-  type RuntimeRenderAssetV1,
-} from '../../shared/visual-scene-spec'
+  sceneSpecFromGraphicDataAny,
+  sceneSpecReactKeyAny,
+  type RuntimeRenderAssetAny,
+} from '../../shared/visual-scene-spec-v2'
 
 /* --------------------------------------------------------------
    AnimatedGraphic – Fase 2
@@ -111,10 +111,10 @@ export const AnimatedGraphic: React.FC<{
    */
   ciclo?: number
   /** Ephemeral Blob URLs prepared from already-verified ProjectAsset bytes. */
-  runtimeAssets?: readonly RuntimeRenderAssetV1[]
+  runtimeAssets?: readonly RuntimeRenderAssetAny[]
 }> = ({ graphic, t, modo = 'overlay', sistema = 'voltaje', ciclo = 2, runtimeAssets = [] }) => {
   const { type, value, label, unit, emoji, extra } = graphic
-  const sceneSpec = sceneSpecFromGraphicData(graphic)
+  const sceneSpec = sceneSpecFromGraphicDataAny(graphic)
   const sistemaEfectivo = sceneSpec?.sistema ?? sistema
   const [internalAuto, setInternalAuto] = useState<number>(0)
   const raizRef = React.useRef<HTMLDivElement>(null)
@@ -599,7 +599,7 @@ export const AnimatedGraphic: React.FC<{
           style={{ ...vars, backgroundColor: 'var(--fondo)' }}
           className="w-full h-full relative overflow-hidden"
         >
-          <React.Fragment key={sceneSpec ? sceneSpecReactKey(sceneSpec) : undefined}>
+          <React.Fragment key={sceneSpec ? sceneSpecReactKeyAny(sceneSpec) : undefined}>
             {comp.render({ u: cicloUsado > 0 ? ((t ?? 0) / cicloUsado) % 1 : 0,
                            ciclo: cicloUsado, sistema: sistemaEfectivo, texto: palabra,
                            conceptos, ancla, direccion, semilla, sceneSpec, runtimeAssets })}

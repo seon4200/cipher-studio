@@ -29,15 +29,24 @@ export * from './services/visual-decision-diagnostics'
 export * from './services/original-clip-segmentation'
 export * from './services/visual-variety-metrics'
 export * from '../shared/visual-layout-v3'
+export * from '../shared/visual-layout-v4'
+export * from '../shared/visual-style-v1'
 // Productive Visual MVP: the shared scene projection is the single authority for both the
 // file hash and the React tree; filesystem bindings remain a separate main-process concern.
 export * from '../shared/visual-scene-spec'
+export * from '../shared/visual-scene-spec-v2'
 export * from './assets/visual-render'
-import { sceneSpecFromGraphicData, sceneSpecPixelIdentity, type RenderBindingsV1 } from '../shared/visual-scene-spec'
+export * from './assets/motion-graphics-resolver'
+import {
+  sceneSpecFromGraphicDataAny,
+  sceneSpecPixelIdentityAny,
+  type RenderBindingsAny,
+} from '../shared/visual-scene-spec-v2'
 import { createLocalSceneSemanticV1, selectNarrativeKeywordV2 } from '../shared/local-scene-semantic'
 import {
-  createModernVisualGenerationContextV1,
+  createModernVisualGenerationContextV2,
   resolveModernVisualGenerationBatchV1,
+  resolveModernVisualGenerationBatchV2,
 } from './assets/modern-visual-generation'
 import { writeVisualDecisionDiagnostic } from './services/visual-decision-diagnostics'
 import { prepareOriginalClipSegmentation } from './services/original-clip-segmentation'
@@ -1117,7 +1126,12 @@ const canonizar = (v: any): string => {
 // El contraste efectivo y el resolvedor Solar pueden cambiar píxeles sin modificar el
 // graphicData ya cacheado; esta subida impide servirlo con apariencia antigua. También
 // invalida tarjetas: coste aceptado para mantener una sola clave de versión global.
-export const VERSION_PLANTILLAS = 14;
+// 15 — el contrato moderno V2 incorpora Hero + hasta dos Supports, raster ProjectAsset,
+// original-color, VideoVisualStyle, geometría de 17 familias y motion coordinado por rol.
+// Todo ello puede cambiar píxeles para una generación moderna aunque conserve semántica. El
+// incremento vive en el mismo commit atómico que renderer/schema/layout; V1/V14 persisted specs
+// siguen despachándose por su implementación histórica y no se migran al abrir.
+export const VERSION_PLANTILLAS = 15;
 
 // EL FORMATO LO DECIDE EL MODO, y se dice AQUI una sola vez. Las tres cosas —codec, pix_fmt y
 // extension— tienen que ir juntas o el fichero sale mintiendo sobre si mismo: un .mp4 con
@@ -1206,13 +1220,13 @@ export function hashGraficoConVersionPlantillas(
   if (!Number.isSafeInteger(versionPlantillas) || versionPlantillas < 1)
     throw new Error('VERSION_PLANTILLAS inválida para identidad de caché');
   const g = graphicData || {};
-  const sceneSpec = sceneSpecFromGraphicData(g);
+  const sceneSpec = sceneSpecFromGraphicDataAny(g);
   // Legacy keeps its byte-for-byte identity projection. The productive scene path ignores
   // value/label/emoji and unrelated extra fields because it paints only sceneSpec. This is the
   // explicit PixelIdentity boundary: adding a path or provider beside sceneSpec cannot poison
   // the cache, and changing a visual field cannot evade it.
   const contenido = sceneSpec
-    ? [canonizar(g.type), 'sceneSpec=' + sceneSpecPixelIdentity(sceneSpec)]
+    ? [canonizar(g.type), 'sceneSpec=' + sceneSpecPixelIdentityAny(sceneSpec)]
     : [canonizar(g.type), canonizar(g.value), canonizar(g.label),
         canonizar(g.unit), canonizar(g.emoji), canonizar(g.extra)];
   const partes = [
@@ -1363,7 +1377,7 @@ export async function renderGraphicClip(
     /** Mandatory for extra.sceneSpec; legacy deliberately retains its current active project. */
     projectRoot?: string;
     /** Locator-only bindings. Never included in hashGrafico or graphicData. */
-    renderBindings?: RenderBindingsV1;
+    renderBindings?: RenderBindingsAny;
     /** Diagnostics only: a QC rejection remains a rejected render and never changes pixels. */
     onQcFailure?: (report: VisualRuntimeQcReport) => void | Promise<void>;
     /** Diagnostics only: exposes the measured successful report without changing acceptance. */
@@ -1647,7 +1661,7 @@ export async function renderGraphicClip(
  * La PIEZA 3 necesita saber CUAL falto para poder decir "esperaba 19, compuse 17".
  */
 export async function renderGraphicClipsLote(
-  peticiones: { graphicData: any; duracion?: number; projectRoot?: string; renderBindings?: RenderBindingsV1;
+  peticiones: { graphicData: any; duracion?: number; projectRoot?: string; renderBindings?: RenderBindingsAny;
     diagnosticSceneId?: string }[],
   opciones: { aspectRatio?: string; resolution?: string;
               fps?: number; modo?: 'overlay' | 'pantalla';
@@ -4802,7 +4816,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     // Evidencia de aceptacion separada del timeline: `finalClips` borra `graphic` a proposito
     // porque el MP4 ya sustituye la especificacion. Esta traza conserva la entrada exacta que
     // produjo cada hash sin reintroducir graphicData en el estado persistido del proyecto.
-    const trazasGraficos: Array<{ id: string, graphicData: any, resolverTrace?: unknown }> = [];
+    const trazasGraficos: Array<{ id: string, graphicData: any, resolverTrace?: unknown, motionGraphicsTrace?: unknown }> = [];
     // Fuentes de stock ya usadas en esta generacion (provider_id, la misma identidad que el
     // fichero de cache) y cuantas veces. Keywords distintas pueden rankear el mismo video
     // generico: medido, uno llego a aparecer 4 veces en el mismo montaje.
@@ -4911,7 +4925,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               { texto: value, frase: x.frase, conceptos: x.item.conceptos ?? [] })
             : direccionDe(semilla,
               { texto: value, frase: x.frase, conceptos: x.item.conceptos ?? [] });
-          return createModernVisualGenerationContextV1({
+          return createModernVisualGenerationContextV2({
             sceneId: x.localSemantic.sceneId,
             duration: x.item.duration,
             localSemantic: x.localSemantic,
@@ -4919,36 +4933,44 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             preferredVisualMode: x.item.sinVisual ? 'editorial-text' : 'auto',
             sistema: SISTEMA_VISUAL,
             direction: { ...direccion, semilla },
+            // Product authority selected once for this video. Individual scenes vary only
+            // within this coherent family; regeneration persists the same value.
+            videoStyleId: 'cream-editorial',
           });
         });
         // All semantic work completes before hashing/rendering. Renderer gets only the
         // materialized SceneSpec and its locator-only bindings; its trace remains diagnostic.
-        const resueltosModernos = resolveModernVisualGenerationBatchV1({
+        if (!PROYECTO_VISUAL) throw new Error('La generación V15 requiere projectRoot explícito');
+        const resueltosModernos = await resolveModernVisualGenerationBatchV2({
           contexts: contextosModernos,
-          projectRoot: PROYECTO_VISUAL ?? undefined,
+          projectRoot: PROYECTO_VISUAL,
+          pixabayApiKey: process.env.PIXABAY_API_KEY || undefined,
         });
         const solicitudesGraficas = resueltosModernos.map(({ context, resolved }) => {
+          const base = resolved.base;
           if (resolved.compiled.graphicData.type !== COMPOSICION_VISUAL)
             throw new Error('El compilador semántico produjo una composición visual no autorizada');
-          for (const alert of resolved.decision.alerts) {
+          for (const alert of base.decision.alerts) {
             avisar({
               severidad: alert.severity === 'warning' ? 'aviso' : 'info',
               codigo: alert.code,
               origen: 'asset-resolver',
               mensaje: alert.message,
-              detalle: `scene=${resolved.decision.sceneId}`,
+              detalle: `scene=${base.decision.sceneId}`,
             });
           }
           return {
             graphicData: resolved.compiled.graphicData,
             renderBindings: resolved.compiled.renderBindings,
             projectRoot: PROYECTO_VISUAL ?? undefined,
-            diagnosticSceneId: resolved.decision.sceneId,
-            resolverTrace: resolved.trace,
-            localSemantic: resolved.localSemantic,
-            keywordSelection: resolved.keywordSelection,
-            resolverDecision: resolved.decision,
-            inputFallback: resolved.inputFallback,
+            diagnosticSceneId: base.decision.sceneId,
+            resolverTrace: base.trace,
+            motionGraphicsTrace: resolved.trace,
+            motionGraphicsMetrics: resolved.metrics,
+            localSemantic: base.localSemantic,
+            keywordSelection: base.keywordSelection,
+            resolverDecision: base.decision,
+            inputFallback: base.inputFallback,
             // Diagnostic/state-only context. It stays outside sceneSpec, hash and renderer.
             visualRegeneration: context,
             duracion: context.duration,
@@ -4982,9 +5004,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           const item = aRenderizar[i].item;
           const request = solicitudesGraficas[i];
           const qc = qcReports.get(i);
-          const spec = sceneSpecFromGraphicData(request.graphicData);
+          const spec = sceneSpecFromGraphicDataAny(request.graphicData);
           const sceneSpecIdentity = spec
-            ? createHash('sha256').update(sceneSpecPixelIdentity(spec)).digest('hex') : null;
+            ? createHash('sha256').update(sceneSpecPixelIdentityAny(spec)).digest('hex') : null;
           const degraded = request.inputFallback.used ||
             request.resolverDecision.alerts.some((alert: any) => alert.code === 'RESOLVER_DEGRADED');
           if (degraded) resolverDegradedVisuals++;
@@ -5029,6 +5051,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               reasons: request.resolverTrace.reasons,
               warnings: request.resolverDecision.alerts,
               inputFallback: request.inputFallback,
+              motionGraphics: request.motionGraphicsTrace,
+              motionGraphicsMetrics: request.motionGraphicsMetrics,
               sceneSpecIdentity,
               render: {
                 outcome: qc ? 'qc-rejected' : 'render-failed',
@@ -5043,7 +5067,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           const durReal = await getVideoDuration(ruta);
           const id = `visual-${item.index}`;
           trazasGraficos.push({ id, graphicData: solicitudesGraficas[i].graphicData,
-            resolverTrace: solicitudesGraficas[i].resolverTrace });
+            resolverTrace: solicitudesGraficas[i].resolverTrace,
+            motionGraphicsTrace: solicitudesGraficas[i].motionGraphicsTrace });
           results[item.index - 1] = {
             id,
             name: path.basename(ruta),
@@ -5090,6 +5115,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             reasons: request.resolverTrace.reasons,
             warnings: request.resolverDecision.alerts,
             inputFallback: request.inputFallback,
+            motionGraphics: request.motionGraphicsTrace,
+            motionGraphicsMetrics: request.motionGraphicsMetrics,
             sceneSpecIdentity,
             visualRegeneration: request.visualRegeneration,
             render: {
@@ -5732,32 +5759,55 @@ async function regenerateModernVisuals(event: any, params: any) {
     return { success: false, error: 'No se recibió contexto de Visuales modernos.' }
 
   try {
+    loadEnv(true);
     const requested: Array<{ clipId: string; context: unknown }> = params.modernVisuals.map((entry: any, index: number) => ({
       clipId: typeof entry?.clipId === 'string' && entry.clipId
         ? entry.clipId : `modern-visual-${index + 1}`,
       context: entry?.context ?? entry?.visualRegeneration ?? entry,
     }))
-    const resolved = resolveModernVisualGenerationBatchV1({
-      contexts: requested.map(entry => entry.context),
-      projectRoot: activeProjectPath,
-    })
-    const outputs: any[] = new Array(resolved.length)
-    const groups = new Map<string, Array<{ index: number; context: any; resolved: any }>>()
-    for (let index = 0; index < resolved.length; index++) {
-      const entry = resolved[index]
+    const normalized: Array<{ index: number; context: any; compiled: any; sceneId: string }> = [];
+    const v1Indexes = requested.map((entry, index) => ({ entry, index }))
+      .filter(value => (value.entry.context as any)?.version !== 2);
+    const v2Indexes = requested.map((entry, index) => ({ entry, index }))
+      .filter(value => (value.entry.context as any)?.version === 2);
+    if (v1Indexes.length) {
+      const v1 = resolveModernVisualGenerationBatchV1({
+        contexts: v1Indexes.map(value => value.entry.context),
+        projectRoot: activeProjectPath,
+      });
+      v1.forEach((entry, offset) => normalized.push({
+        index: v1Indexes[offset].index, context: entry.context, compiled: entry.resolved.compiled,
+        sceneId: entry.resolved.decision.sceneId,
+      }));
+    }
+    if (v2Indexes.length) {
+      const v2 = await resolveModernVisualGenerationBatchV2({
+        contexts: v2Indexes.map(value => value.entry.context),
+        projectRoot: activeProjectPath,
+        pixabayApiKey: process.env.PIXABAY_API_KEY || undefined,
+      });
+      v2.forEach((entry, offset) => normalized.push({
+        index: v2Indexes[offset].index, context: entry.context, compiled: entry.resolved.compiled,
+        sceneId: entry.resolved.base.decision.sceneId,
+      }));
+    }
+    normalized.sort((a, b) => a.index - b.index);
+    const outputs: any[] = new Array(normalized.length)
+    const groups = new Map<string, Array<{ index: number; context: any; compiled: any; sceneId: string }>>()
+    for (const entry of normalized) {
       const key = entry.context.sistema
       const group = groups.get(key) ?? []
-      group.push({ index, ...entry })
+      group.push(entry)
       groups.set(key, group)
     }
 
     for (const [sistema, group] of groups) {
       const rendered = await renderGraphicClipsLote(
         group.map(entry => ({
-          graphicData: entry.resolved.compiled.graphicData,
-          renderBindings: entry.resolved.compiled.renderBindings,
+          graphicData: entry.compiled.graphicData,
+          renderBindings: entry.compiled.renderBindings,
           projectRoot: activeProjectPath!,
-          diagnosticSceneId: entry.resolved.decision.sceneId,
+          diagnosticSceneId: entry.sceneId,
           duracion: entry.context.duration,
         })),
         { aspectRatio: params.aspectRatio, resolution: params.resolution, fps: 30, modo: 'pantalla', sistema },
@@ -5773,7 +5823,7 @@ async function regenerateModernVisuals(event: any, params: any) {
           outputs[entry.index] = {
             id: requested[entry.index].clipId,
             success: false,
-            sceneId: entry.resolved.decision.sceneId,
+            sceneId: entry.sceneId,
             error: 'VISUAL_REGENERATION_RENDER_FAILED',
             visualRegeneration: entry.context,
           }
@@ -5782,7 +5832,7 @@ async function regenerateModernVisuals(event: any, params: any) {
         outputs[entry.index] = {
           id: requested[entry.index].clipId,
           success: true,
-          sceneId: entry.resolved.decision.sceneId,
+          sceneId: entry.sceneId,
           name: path.basename(ruta),
           path: ruta,
           url: urlDeRuta(ruta),
