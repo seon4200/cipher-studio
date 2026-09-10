@@ -134,7 +134,7 @@ app.whenReady().then(async () => {
       assert.equal(result.decision.hero.provider, 'openmoji')
       assert.equal(result.decision.hero.kind, 'complex-illustration')
       const anchored = resolve(intent('map-anchor-priority', 'entenderlo', { anchor: { etiqueta: 'mapa' } }))
-      assert.equal(anchored.decision.hero.provider, 'solar')
+      assert.equal(anchored.decision.hero?.provider, 'solar', JSON.stringify(anchored.trace))
       assert.equal(anchored.decision.hero.solarName, 'map-bold-duotone')
     })
     await runCase('7 candidato genérico no activa Hero', () => {
@@ -254,7 +254,8 @@ app.whenReady().then(async () => {
     await runCase('25 traza conserva decisión y razones fuera del RenderSpec', () => {
       const result = resolve(intent('trace', 'pastel'))
       assert.equal(result.trace.sceneId, 'trace')
-      assert.equal(result.trace.selectedMetaphor, 'birthday-cake')
+      assert.equal(result.trace.selectedMetaphor, 'retrieval-birthday-cake')
+      assert.equal(result.trace.retrieval.selectedHero.stableId, 'openmoji:1f382')
       assert(!JSON.stringify(result.compiled.sceneSpec).includes('providerCandidates'))
     })
     await runCase('26 traza no modifica PixelIdentity', () => {

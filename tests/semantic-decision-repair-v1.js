@@ -219,7 +219,7 @@ app.whenReady().then(async () => {
       const result = resolve(scene('forensic-accidente'))
       assert.notEqual(result.decision.metaphor?.id, 'calendar')
       assert(!result.trace.providerCandidates.some(candidate => /calendar/i.test(candidate.identity)))
-      assert.equal(result.decision.visualMode, 'editorial-text')
+      assert.equal(result.decision.visualMode, 'editorial-text', JSON.stringify(result.trace))
       const indignation = resolve(scene('forensic-indignacion'))
       assert.equal(indignation.keywordSelection.keyword.toLocaleLowerCase('es'), 'indignación')
       assert.equal(indignation.keywordSelection.reason, 'SCENE_KEYWORD_DIRECT_TIMED_MATCH')
@@ -247,14 +247,17 @@ app.whenReady().then(async () => {
     await runCase('12 opportunity hit rate registra materialización o rechazo explícito', () => {
       const opportunities = corpus.scenes.filter(item => item.mustEvaluate.length)
       let hits = 0
+      const misses = []
       for (const item of opportunities) {
         const result = resolve(item)
         const evaluated = item.mustEvaluate.every(id => candidateIds(result).includes(id))
         const explicit = result.decision.hero !== null || result.decision.fallback !== null || result.trace.reasons.length > 0
         if (evaluated && explicit) hits++
+        else misses.push({ sceneId: item.sceneId, expected: item.mustEvaluate, candidates: candidateIds(result) })
       }
       const rate = hits / opportunities.length
       console.log(`CONCRETE_OPPORTUNITY_HIT_RATE=${hits}/${opportunities.length}=${(rate * 100).toFixed(1)}%`)
+      console.log('CONCRETE_OPPORTUNITY_MISSES=' + JSON.stringify(misses))
       assert(rate >= .8)
     })
     await runCase('13 decisión local es determinista con sesión e inventario equivalentes', () => {
