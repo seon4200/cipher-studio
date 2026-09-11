@@ -65,11 +65,11 @@ function definition(
 
 export const COLOR_PALETTE_FAMILIES_V1: Readonly<Record<ColorPaletteFamilyIdV1, ColorPaletteFamilyDefinitionV1>> =
   Object.freeze({
-    'blue-tech': definition('blue-tech', 'BLUE TECH', ['cyan-digital', 'purple-cosmic'], {
+    'blue-tech': definition('blue-tech', 'BLUE TECH', ['cyan-digital', 'purple-cosmic', 'silver-industrial', 'yellow-energy'], {
       accentPrimary: '#2F7BFF', accentSecondary: '#00D4FF', accentBright: '#70E1FF',
       accentSoft: '#6A9EFF', accentGlow: '#00B8FF', accentDark: '#123A8C',
     }),
-    'cyan-digital': definition('cyan-digital', 'CYAN DIGITAL', ['blue-tech', 'green-nature'], {
+    'cyan-digital': definition('cyan-digital', 'CYAN DIGITAL', ['blue-tech', 'green-nature', 'purple-cosmic'], {
       accentPrimary: '#00E5FF', accentSecondary: '#23F0C7', accentBright: '#84FFFF',
       accentSoft: '#4FBBC5', accentGlow: '#00B8D4', accentDark: '#075966',
     }),
@@ -77,19 +77,19 @@ export const COLOR_PALETTE_FAMILIES_V1: Readonly<Record<ColorPaletteFamilyIdV1, 
       accentPrimary: '#39E75F', accentSecondary: '#00E6A7', accentBright: '#B4FF4A',
       accentSoft: '#45B96B', accentGlow: '#00FF88', accentDark: '#0D6332',
     }),
-    'sunset-energy': definition('sunset-energy', 'SUNSET ENERGY', ['red-alert', 'yellow-energy'], {
+    'sunset-energy': definition('sunset-energy', 'SUNSET ENERGY', ['red-alert', 'yellow-energy', 'magenta-creative'], {
       accentPrimary: '#FF6B35', accentSecondary: '#FF3D71', accentBright: '#FFD23F',
       accentSoft: '#E6805C', accentGlow: '#FF7A3D', accentDark: '#7A2A1B',
     }),
-    'purple-cosmic': definition('purple-cosmic', 'PURPLE COSMIC', ['blue-tech', 'magenta-creative'], {
+    'purple-cosmic': definition('purple-cosmic', 'PURPLE COSMIC', ['blue-tech', 'cyan-digital', 'magenta-creative'], {
       accentPrimary: '#9B5CFF', accentSecondary: '#5B8CFF', accentBright: '#D47CFF',
       accentSoft: '#8A6BC9', accentGlow: '#B44CFF', accentDark: '#3D1C78',
     }),
-    'red-alert': definition('red-alert', 'RED ALERT', ['sunset-energy', 'yellow-energy'], {
+    'red-alert': definition('red-alert', 'RED ALERT', ['sunset-energy', 'yellow-energy', 'magenta-creative'], {
       accentPrimary: '#FF334F', accentSecondary: '#FF6B35', accentBright: '#FF8A80',
       accentSoft: '#D75A68', accentGlow: '#FF1744', accentDark: '#7A1326',
     }),
-    'magenta-creative': definition('magenta-creative', 'MAGENTA CREATIVE', ['purple-cosmic', 'sunset-energy'], {
+    'magenta-creative': definition('magenta-creative', 'MAGENTA CREATIVE', ['purple-cosmic', 'sunset-energy', 'red-alert'], {
       accentPrimary: '#FF2DAA', accentSecondary: '#B44CFF', accentBright: '#FF75D8',
       accentSoft: '#C65AA0', accentGlow: '#FF2BC2', accentDark: '#6A1652',
     }),
@@ -97,7 +97,7 @@ export const COLOR_PALETTE_FAMILIES_V1: Readonly<Record<ColorPaletteFamilyIdV1, 
       accentPrimary: '#C8D7E8', accentSecondary: '#45C8FF', accentBright: '#F5FAFF',
       accentSoft: '#91A9C2', accentGlow: '#7FDBFF', accentDark: '#39495C',
     }),
-    'yellow-energy': definition('yellow-energy', 'YELLOW ENERGY', ['blue-tech', 'green-nature'], {
+    'yellow-energy': definition('yellow-energy', 'YELLOW ENERGY', ['blue-tech', 'green-nature', 'sunset-energy', 'red-alert'], {
       accentPrimary: '#FFE14A', accentSecondary: '#C8FF3D', accentBright: '#FFF59D',
       accentSoft: '#D7C85A', accentGlow: '#F6FF00', accentDark: '#665A00',
     }),
@@ -121,6 +121,8 @@ function validateFamilyList(value: unknown, primary: ColorPaletteFamilyIdV1): Co
     throw new Error('COLOR_PALETTE_PLAN_INVALID')
   const families = value as ColorPaletteFamilyIdV1[]
   if (new Set(families).size !== families.length || families.includes(primary))
+    throw new Error('COLOR_PALETTE_PLAN_INVALID')
+  if (families.some(family => !COLOR_PALETTE_FAMILIES_V1[primary].compatibleFamilies.includes(family)))
     throw new Error('COLOR_PALETTE_PLAN_INVALID')
   return families
 }
