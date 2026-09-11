@@ -1,0 +1,1234 @@
+{
+  "schemaVersion": 1,
+  "versionPlantillas": 15,
+  "backgroundProfile": {
+    "version": 1,
+    "id": "solid-black-v1",
+    "revision": "background-profile-v1"
+  },
+  "paletteFamilies": [
+    "blue-tech",
+    "cyan-digital",
+    "green-nature",
+    "sunset-energy",
+    "purple-cosmic",
+    "red-alert",
+    "magenta-creative",
+    "silver-industrial",
+    "yellow-energy"
+  ],
+  "familyCoverage": {
+    "rendered": 17,
+    "total": 17,
+    "palettesVisible": 9,
+    "rows": [
+      {
+        "family": "editorial",
+        "theme": "technology",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "blue-tech",
+          "compatibleFamilies": [
+            "cyan-digital",
+            "purple-cosmic"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "blue-tech",
+          "videoCompatibleFamilies": [
+            "cyan-digital",
+            "purple-cosmic"
+          ],
+          "family": "cyan-digital",
+          "variant": "secondary-led",
+          "tokens": {
+            "accentPrimary": "#23F0C7",
+            "accentSecondary": "#00E5FF",
+            "accentBright": "#84FFFF",
+            "accentSoft": "#4FBBC5",
+            "accentGlow": "#00B8D4",
+            "accentDark": "#075966"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [],
+        "qcErrors": []
+      },
+      {
+        "family": "marcoPoster",
+        "theme": "technology",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "blue-tech",
+          "compatibleFamilies": [
+            "cyan-digital",
+            "purple-cosmic"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "blue-tech",
+          "videoCompatibleFamilies": [
+            "cyan-digital",
+            "purple-cosmic"
+          ],
+          "family": "purple-cosmic",
+          "variant": "bright-led",
+          "tokens": {
+            "accentPrimary": "#D47CFF",
+            "accentSecondary": "#5B8CFF",
+            "accentBright": "#9B5CFF",
+            "accentSoft": "#8A6BC9",
+            "accentGlow": "#B44CFF",
+            "accentDark": "#3D1C78"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "partidoVertical",
+        "theme": "technology",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "blue-tech",
+          "compatibleFamilies": [
+            "cyan-digital",
+            "purple-cosmic"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "blue-tech",
+          "videoCompatibleFamilies": [
+            "cyan-digital",
+            "purple-cosmic"
+          ],
+          "family": "blue-tech",
+          "variant": "bright-led",
+          "tokens": {
+            "accentPrimary": "#70E1FF",
+            "accentSecondary": "#00D4FF",
+            "accentBright": "#2F7BFF",
+            "accentSoft": "#6A9EFF",
+            "accentGlow": "#00B8FF",
+            "accentDark": "#123A8C"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "cintaDiagonal",
+        "theme": "nature",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "green-nature",
+          "compatibleFamilies": [
+            "cyan-digital",
+            "yellow-energy"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "green-nature",
+          "videoCompatibleFamilies": [
+            "cyan-digital",
+            "yellow-energy"
+          ],
+          "family": "green-nature",
+          "variant": "primary-led",
+          "tokens": {
+            "accentPrimary": "#39E75F",
+            "accentSecondary": "#00E6A7",
+            "accentBright": "#B4FF4A",
+            "accentSoft": "#45B96B",
+            "accentGlow": "#00FF88",
+            "accentDark": "#0D6332"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "anillosConcentricos",
+        "theme": "nature",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "green-nature",
+          "compatibleFamilies": [
+            "cyan-digital",
+            "yellow-energy"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "green-nature",
+          "videoCompatibleFamilies": [
+            "cyan-digital",
+            "yellow-energy"
+          ],
+          "family": "cyan-digital",
+          "variant": "primary-led",
+          "tokens": {
+            "accentPrimary": "#00E5FF",
+            "accentSecondary": "#23F0C7",
+            "accentBright": "#84FFFF",
+            "accentSoft": "#4FBBC5",
+            "accentGlow": "#00B8D4",
+            "accentDark": "#075966"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "rayosImpacto",
+        "theme": "nature",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "green-nature",
+          "compatibleFamilies": [
+            "cyan-digital",
+            "yellow-energy"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "green-nature",
+          "videoCompatibleFamilies": [
+            "cyan-digital",
+            "yellow-energy"
+          ],
+          "family": "yellow-energy",
+          "variant": "primary-led",
+          "tokens": {
+            "accentPrimary": "#FFE14A",
+            "accentSecondary": "#C8FF3D",
+            "accentBright": "#FFF59D",
+            "accentSoft": "#D7C85A",
+            "accentGlow": "#F6FF00",
+            "accentDark": "#665A00"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "cuaderno",
+        "theme": "alert-conflict",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "red-alert",
+          "compatibleFamilies": [
+            "sunset-energy",
+            "yellow-energy"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "red-alert",
+          "videoCompatibleFamilies": [
+            "sunset-energy",
+            "yellow-energy"
+          ],
+          "family": "red-alert",
+          "variant": "secondary-led",
+          "tokens": {
+            "accentPrimary": "#FF6B35",
+            "accentSecondary": "#FF334F",
+            "accentBright": "#FF8A80",
+            "accentSoft": "#D75A68",
+            "accentGlow": "#FF1744",
+            "accentDark": "#7A1326"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "constelacion",
+        "theme": "alert-conflict",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "red-alert",
+          "compatibleFamilies": [
+            "sunset-energy",
+            "yellow-energy"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "red-alert",
+          "videoCompatibleFamilies": [
+            "sunset-energy",
+            "yellow-energy"
+          ],
+          "family": "sunset-energy",
+          "variant": "bright-led",
+          "tokens": {
+            "accentPrimary": "#FFD23F",
+            "accentSecondary": "#FF3D71",
+            "accentBright": "#FF6B35",
+            "accentSoft": "#E6805C",
+            "accentGlow": "#FF7A3D",
+            "accentDark": "#7A2A1B"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "capasApiladas",
+        "theme": "alert-conflict",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "red-alert",
+          "compatibleFamilies": [
+            "sunset-energy",
+            "yellow-energy"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "red-alert",
+          "videoCompatibleFamilies": [
+            "sunset-energy",
+            "yellow-energy"
+          ],
+          "family": "yellow-energy",
+          "variant": "secondary-led",
+          "tokens": {
+            "accentPrimary": "#C8FF3D",
+            "accentSecondary": "#FFE14A",
+            "accentBright": "#FFF59D",
+            "accentSoft": "#D7C85A",
+            "accentGlow": "#F6FF00",
+            "accentDark": "#665A00"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "redNodos",
+        "theme": "creative",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "magenta-creative",
+          "compatibleFamilies": [
+            "purple-cosmic",
+            "sunset-energy"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "magenta-creative",
+          "videoCompatibleFamilies": [
+            "purple-cosmic",
+            "sunset-energy"
+          ],
+          "family": "magenta-creative",
+          "variant": "primary-led",
+          "tokens": {
+            "accentPrimary": "#FF2DAA",
+            "accentSecondary": "#B44CFF",
+            "accentBright": "#FF75D8",
+            "accentSoft": "#C65AA0",
+            "accentGlow": "#FF2BC2",
+            "accentDark": "#6A1652"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "lineaTiempo",
+        "theme": "creative",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "magenta-creative",
+          "compatibleFamilies": [
+            "purple-cosmic",
+            "sunset-energy"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "magenta-creative",
+          "videoCompatibleFamilies": [
+            "purple-cosmic",
+            "sunset-energy"
+          ],
+          "family": "purple-cosmic",
+          "variant": "bright-led",
+          "tokens": {
+            "accentPrimary": "#D47CFF",
+            "accentSecondary": "#5B8CFF",
+            "accentBright": "#9B5CFF",
+            "accentSoft": "#8A6BC9",
+            "accentGlow": "#B44CFF",
+            "accentDark": "#3D1C78"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "corteTransversal",
+        "theme": "creative",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "magenta-creative",
+          "compatibleFamilies": [
+            "purple-cosmic",
+            "sunset-energy"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "magenta-creative",
+          "videoCompatibleFamilies": [
+            "purple-cosmic",
+            "sunset-energy"
+          ],
+          "family": "sunset-energy",
+          "variant": "secondary-led",
+          "tokens": {
+            "accentPrimary": "#FF3D71",
+            "accentSecondary": "#FF6B35",
+            "accentBright": "#FFD23F",
+            "accentSoft": "#E6805C",
+            "accentGlow": "#FF7A3D",
+            "accentDark": "#7A2A1B"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "abanicoTarjetas",
+        "theme": "industrial",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "silver-industrial",
+          "compatibleFamilies": [
+            "blue-tech",
+            "yellow-energy"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "silver-industrial",
+          "videoCompatibleFamilies": [
+            "blue-tech",
+            "yellow-energy"
+          ],
+          "family": "blue-tech",
+          "variant": "secondary-led",
+          "tokens": {
+            "accentPrimary": "#00D4FF",
+            "accentSecondary": "#2F7BFF",
+            "accentBright": "#70E1FF",
+            "accentSoft": "#6A9EFF",
+            "accentGlow": "#00B8FF",
+            "accentDark": "#123A8C"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "engranajes",
+        "theme": "industrial",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "silver-industrial",
+          "compatibleFamilies": [
+            "blue-tech",
+            "yellow-energy"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "silver-industrial",
+          "videoCompatibleFamilies": [
+            "blue-tech",
+            "yellow-energy"
+          ],
+          "family": "yellow-energy",
+          "variant": "bright-led",
+          "tokens": {
+            "accentPrimary": "#FFF59D",
+            "accentSecondary": "#C8FF3D",
+            "accentBright": "#FFE14A",
+            "accentSoft": "#D7C85A",
+            "accentGlow": "#F6FF00",
+            "accentDark": "#665A00"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "cascada",
+        "theme": "industrial",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "silver-industrial",
+          "compatibleFamilies": [
+            "blue-tech",
+            "yellow-energy"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "silver-industrial",
+          "videoCompatibleFamilies": [
+            "blue-tech",
+            "yellow-energy"
+          ],
+          "family": "silver-industrial",
+          "variant": "primary-led",
+          "tokens": {
+            "accentPrimary": "#C8D7E8",
+            "accentSecondary": "#45C8FF",
+            "accentBright": "#F5FAFF",
+            "accentSoft": "#91A9C2",
+            "accentGlow": "#7FDBFF",
+            "accentDark": "#39495C"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "mundoIsometrico",
+        "theme": "education",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "yellow-energy",
+          "compatibleFamilies": [
+            "blue-tech",
+            "green-nature"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "yellow-energy",
+          "videoCompatibleFamilies": [
+            "blue-tech",
+            "green-nature"
+          ],
+          "family": "blue-tech",
+          "variant": "secondary-led",
+          "tokens": {
+            "accentPrimary": "#00D4FF",
+            "accentSecondary": "#2F7BFF",
+            "accentBright": "#70E1FF",
+            "accentSoft": "#6A9EFF",
+            "accentGlow": "#00B8FF",
+            "accentDark": "#123A8C"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "procedural",
+            "treatment": "system-tint"
+          }
+        ],
+        "qcErrors": []
+      },
+      {
+        "family": "pilaVertical",
+        "theme": "education",
+        "videoPlan": {
+          "version": 1,
+          "primaryFamily": "yellow-energy",
+          "compatibleFamilies": [
+            "blue-tech",
+            "green-nature"
+          ],
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "sceneColor": {
+          "version": 1,
+          "videoPrimaryFamily": "yellow-energy",
+          "videoCompatibleFamilies": [
+            "blue-tech",
+            "green-nature"
+          ],
+          "family": "green-nature",
+          "variant": "bright-led",
+          "tokens": {
+            "accentPrimary": "#B4FF4A",
+            "accentSecondary": "#00E6A7",
+            "accentBright": "#39E75F",
+            "accentSoft": "#45B96B",
+            "accentGlow": "#00FF88",
+            "accentDark": "#0D6332"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "qcErrors": []
+      }
+    ]
+  },
+  "singleTheme": {
+    "theme": "technology",
+    "plan": {
+      "version": 1,
+      "primaryFamily": "blue-tech",
+      "compatibleFamilies": [
+        "cyan-digital",
+        "purple-cosmic"
+      ],
+      "revision": "vivid-thematic-accents-v1"
+    },
+    "rows": [
+      {
+        "family": "marcoPoster",
+        "color": {
+          "version": 1,
+          "videoPrimaryFamily": "blue-tech",
+          "videoCompatibleFamilies": [
+            "cyan-digital",
+            "purple-cosmic"
+          ],
+          "family": "cyan-digital",
+          "variant": "primary-led",
+          "tokens": {
+            "accentPrimary": "#00E5FF",
+            "accentSecondary": "#23F0C7",
+            "accentBright": "#84FFFF",
+            "accentSoft": "#4FBBC5",
+            "accentGlow": "#00B8D4",
+            "accentDark": "#075966"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "keyword": "IA",
+        "assets": 3
+      },
+      {
+        "family": "partidoVertical",
+        "color": {
+          "version": 1,
+          "videoPrimaryFamily": "blue-tech",
+          "videoCompatibleFamilies": [
+            "cyan-digital",
+            "purple-cosmic"
+          ],
+          "family": "purple-cosmic",
+          "variant": "secondary-led",
+          "tokens": {
+            "accentPrimary": "#5B8CFF",
+            "accentSecondary": "#9B5CFF",
+            "accentBright": "#D47CFF",
+            "accentSoft": "#8A6BC9",
+            "accentGlow": "#B44CFF",
+            "accentDark": "#3D1C78"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "keyword": "ROBOTS",
+        "assets": 1
+      },
+      {
+        "family": "cintaDiagonal",
+        "color": {
+          "version": 1,
+          "videoPrimaryFamily": "blue-tech",
+          "videoCompatibleFamilies": [
+            "cyan-digital",
+            "purple-cosmic"
+          ],
+          "family": "cyan-digital",
+          "variant": "bright-led",
+          "tokens": {
+            "accentPrimary": "#84FFFF",
+            "accentSecondary": "#23F0C7",
+            "accentBright": "#00E5FF",
+            "accentSoft": "#4FBBC5",
+            "accentGlow": "#00B8D4",
+            "accentDark": "#075966"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "keyword": "REDES",
+        "assets": 2
+      },
+      {
+        "family": "anillosConcentricos",
+        "color": {
+          "version": 1,
+          "videoPrimaryFamily": "blue-tech",
+          "videoCompatibleFamilies": [
+            "cyan-digital",
+            "purple-cosmic"
+          ],
+          "family": "cyan-digital",
+          "variant": "secondary-led",
+          "tokens": {
+            "accentPrimary": "#23F0C7",
+            "accentSecondary": "#00E5FF",
+            "accentBright": "#84FFFF",
+            "accentSoft": "#4FBBC5",
+            "accentGlow": "#00B8D4",
+            "accentDark": "#075966"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "keyword": "DATOS",
+        "assets": 3
+      },
+      {
+        "family": "rayosImpacto",
+        "color": {
+          "version": 1,
+          "videoPrimaryFamily": "blue-tech",
+          "videoCompatibleFamilies": [
+            "cyan-digital",
+            "purple-cosmic"
+          ],
+          "family": "purple-cosmic",
+          "variant": "primary-led",
+          "tokens": {
+            "accentPrimary": "#9B5CFF",
+            "accentSecondary": "#5B8CFF",
+            "accentBright": "#D47CFF",
+            "accentSoft": "#8A6BC9",
+            "accentGlow": "#B44CFF",
+            "accentDark": "#3D1C78"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "keyword": "SOFTWARE",
+        "assets": 1
+      },
+      {
+        "family": "cuaderno",
+        "color": {
+          "version": 1,
+          "videoPrimaryFamily": "blue-tech",
+          "videoCompatibleFamilies": [
+            "cyan-digital",
+            "purple-cosmic"
+          ],
+          "family": "blue-tech",
+          "variant": "secondary-led",
+          "tokens": {
+            "accentPrimary": "#00D4FF",
+            "accentSecondary": "#2F7BFF",
+            "accentBright": "#70E1FF",
+            "accentSoft": "#6A9EFF",
+            "accentGlow": "#00B8FF",
+            "accentDark": "#123A8C"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "keyword": "FUTURO",
+        "assets": 2
+      },
+      {
+        "family": "capasApiladas",
+        "color": {
+          "version": 1,
+          "videoPrimaryFamily": "blue-tech",
+          "videoCompatibleFamilies": [
+            "cyan-digital",
+            "purple-cosmic"
+          ],
+          "family": "blue-tech",
+          "variant": "bright-led",
+          "tokens": {
+            "accentPrimary": "#70E1FF",
+            "accentSecondary": "#00D4FF",
+            "accentBright": "#2F7BFF",
+            "accentSoft": "#6A9EFF",
+            "accentGlow": "#00B8FF",
+            "accentDark": "#123A8C"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "keyword": "NUBE",
+        "assets": 3
+      },
+      {
+        "family": "redNodos",
+        "color": {
+          "version": 1,
+          "videoPrimaryFamily": "blue-tech",
+          "videoCompatibleFamilies": [
+            "cyan-digital",
+            "purple-cosmic"
+          ],
+          "family": "cyan-digital",
+          "variant": "secondary-led",
+          "tokens": {
+            "accentPrimary": "#23F0C7",
+            "accentSecondary": "#00E5FF",
+            "accentBright": "#84FFFF",
+            "accentSoft": "#4FBBC5",
+            "accentGlow": "#00B8D4",
+            "accentDark": "#075966"
+          },
+          "revision": "vivid-thematic-accents-v1"
+        },
+        "keyword": "AUTOMATIZAR",
+        "assets": 3
+      }
+    ],
+    "distinctAccents": 7,
+    "maxIdenticalAccentStreak": 1
+  },
+  "multiTheme": [
+    {
+      "label": "TECHNOLOGY",
+      "selectedTheme": "technology",
+      "plan": {
+        "version": 1,
+        "primaryFamily": "blue-tech",
+        "compatibleFamilies": [
+          "cyan-digital",
+          "purple-cosmic"
+        ],
+        "revision": "vivid-thematic-accents-v1"
+      },
+      "sceneColor": {
+        "version": 1,
+        "videoPrimaryFamily": "blue-tech",
+        "videoCompatibleFamilies": [
+          "cyan-digital",
+          "purple-cosmic"
+        ],
+        "family": "purple-cosmic",
+        "variant": "secondary-led",
+        "tokens": {
+          "accentPrimary": "#5B8CFF",
+          "accentSecondary": "#9B5CFF",
+          "accentBright": "#D47CFF",
+          "accentSoft": "#8A6BC9",
+          "accentGlow": "#B44CFF",
+          "accentDark": "#3D1C78"
+        },
+        "revision": "vivid-thematic-accents-v1"
+      }
+    },
+    {
+      "label": "NATURE",
+      "selectedTheme": "nature",
+      "plan": {
+        "version": 1,
+        "primaryFamily": "green-nature",
+        "compatibleFamilies": [
+          "cyan-digital",
+          "yellow-energy"
+        ],
+        "revision": "vivid-thematic-accents-v1"
+      },
+      "sceneColor": {
+        "version": 1,
+        "videoPrimaryFamily": "green-nature",
+        "videoCompatibleFamilies": [
+          "cyan-digital",
+          "yellow-energy"
+        ],
+        "family": "yellow-energy",
+        "variant": "bright-led",
+        "tokens": {
+          "accentPrimary": "#FFF59D",
+          "accentSecondary": "#C8FF3D",
+          "accentBright": "#FFE14A",
+          "accentSoft": "#D7C85A",
+          "accentGlow": "#F6FF00",
+          "accentDark": "#665A00"
+        },
+        "revision": "vivid-thematic-accents-v1"
+      }
+    },
+    {
+      "label": "SPACE",
+      "selectedTheme": "space",
+      "plan": {
+        "version": 1,
+        "primaryFamily": "purple-cosmic",
+        "compatibleFamilies": [
+          "blue-tech",
+          "cyan-digital"
+        ],
+        "revision": "vivid-thematic-accents-v1"
+      },
+      "sceneColor": {
+        "version": 1,
+        "videoPrimaryFamily": "purple-cosmic",
+        "videoCompatibleFamilies": [
+          "blue-tech",
+          "cyan-digital"
+        ],
+        "family": "blue-tech",
+        "variant": "primary-led",
+        "tokens": {
+          "accentPrimary": "#2F7BFF",
+          "accentSecondary": "#00D4FF",
+          "accentBright": "#70E1FF",
+          "accentSoft": "#6A9EFF",
+          "accentGlow": "#00B8FF",
+          "accentDark": "#123A8C"
+        },
+        "revision": "vivid-thematic-accents-v1"
+      }
+    },
+    {
+      "label": "ALERT / CONFLICT",
+      "selectedTheme": "alert-conflict",
+      "plan": {
+        "version": 1,
+        "primaryFamily": "red-alert",
+        "compatibleFamilies": [
+          "sunset-energy",
+          "yellow-energy"
+        ],
+        "revision": "vivid-thematic-accents-v1"
+      },
+      "sceneColor": {
+        "version": 1,
+        "videoPrimaryFamily": "red-alert",
+        "videoCompatibleFamilies": [
+          "sunset-energy",
+          "yellow-energy"
+        ],
+        "family": "red-alert",
+        "variant": "secondary-led",
+        "tokens": {
+          "accentPrimary": "#FF6B35",
+          "accentSecondary": "#FF334F",
+          "accentBright": "#FF8A80",
+          "accentSoft": "#D75A68",
+          "accentGlow": "#FF1744",
+          "accentDark": "#7A1326"
+        },
+        "revision": "vivid-thematic-accents-v1"
+      }
+    },
+    {
+      "label": "CREATIVE",
+      "selectedTheme": "creative",
+      "plan": {
+        "version": 1,
+        "primaryFamily": "magenta-creative",
+        "compatibleFamilies": [
+          "purple-cosmic",
+          "sunset-energy"
+        ],
+        "revision": "vivid-thematic-accents-v1"
+      },
+      "sceneColor": {
+        "version": 1,
+        "videoPrimaryFamily": "magenta-creative",
+        "videoCompatibleFamilies": [
+          "purple-cosmic",
+          "sunset-energy"
+        ],
+        "family": "magenta-creative",
+        "variant": "secondary-led",
+        "tokens": {
+          "accentPrimary": "#B44CFF",
+          "accentSecondary": "#FF2DAA",
+          "accentBright": "#FF75D8",
+          "accentSoft": "#C65AA0",
+          "accentGlow": "#FF2BC2",
+          "accentDark": "#6A1652"
+        },
+        "revision": "vivid-thematic-accents-v1"
+      }
+    },
+    {
+      "label": "EDUCATION",
+      "selectedTheme": "education",
+      "plan": {
+        "version": 1,
+        "primaryFamily": "yellow-energy",
+        "compatibleFamilies": [
+          "blue-tech",
+          "green-nature"
+        ],
+        "revision": "vivid-thematic-accents-v1"
+      },
+      "sceneColor": {
+        "version": 1,
+        "videoPrimaryFamily": "yellow-energy",
+        "videoCompatibleFamilies": [
+          "blue-tech",
+          "green-nature"
+        ],
+        "family": "blue-tech",
+        "variant": "primary-led",
+        "tokens": {
+          "accentPrimary": "#2F7BFF",
+          "accentSecondary": "#00D4FF",
+          "accentBright": "#70E1FF",
+          "accentSoft": "#6A9EFF",
+          "accentGlow": "#00B8FF",
+          "accentDark": "#123A8C"
+        },
+        "revision": "vivid-thematic-accents-v1"
+      }
+    }
+  ],
+  "openMojiOriginalColor": true,
+  "solarSystemTint": true,
+  "rendererOffline": true,
+  "realProjectsUntouched": true,
+  "artifacts": {
+    "contactSheet": "contact-sheet-17-before-after.png",
+    "after17": "contact-sheet-17-vivid.png",
+    "singleTheme": "single-theme-technology.png",
+    "multiTheme": "multi-theme-selection.png",
+    "evidence": "evidence.json"
+  }
+}

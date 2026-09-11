@@ -36,6 +36,7 @@
     "test:motion-graphics-v15": "electron tests/motion-graphics-v15.js",
     "test:production-retrieval-final": "electron tests/production-retrieval-final.js",
     "test:background-black-foundation-v1": "electron tests/background-black-foundation-v1.js",
+    "test:v15-color-system-v1": "electron tests/v15-color-system-v1.js",
     "accept:visual-asset-mvp": "electron tests/aceptacion/visual-asset-mvp/generar.cjs",
     "accept:asset-resolver-v1": "electron tests/aceptacion/asset-resolver-v1/generar.cjs",
     "accept:asset-resolver-corpus": "electron tests/aceptacion/asset-resolver-v1/medir-corpus.cjs",
@@ -47,6 +48,7 @@
     "accept:motion-graphics-v15": "electron tests/aceptacion/motion-graphics-v15/generar.cjs",
     "accept:production-retrieval-final": "electron tests/aceptacion/production-retrieval-final/generar.cjs",
     "accept:background-black-foundation-v1": "electron tests/aceptacion/background-black-foundation-v1/generar.cjs",
+    "accept:v15-color-system-v1": "electron tests/aceptacion/v15-color-system-v1/generar.cjs",
     "probe:pixabay-images": "electron tests/aceptacion/production-retrieval-final/pixabay-live-probe.cjs",
     "bench:graficos": "electron tests/rendimiento/graficos.js",
     "test:ventana": "electron tests/ventana.js"

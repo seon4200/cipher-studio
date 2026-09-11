@@ -63,8 +63,9 @@ function compareImages (leftFile, rightFile) {
 }
 
 function frameFromVideo (video, output) {
-  execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-ss', '0.55', '-i', video,
-    '-frames:v', '1', '-vf', 'scale=540:960', output], { stdio: 'pipe', maxBuffer: 32 * 1024 * 1024 })
+  execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', video,
+    '-vf', 'select=eq(n\\,5),scale=540:960', '-vsync', '0', '-frames:v', '1', output],
+  { stdio: 'pipe', maxBuffer: 32 * 1024 * 1024 })
 }
 
 function modernContext (bundle) {

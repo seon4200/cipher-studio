@@ -53,6 +53,7 @@ function sceneSpecV15 (bundle, descriptors = [], options = {}) {
     ...(options.backgroundProfileId
       ? { backgroundProfile: bundle.materializeBackgroundProfileV1(options.backgroundProfileId) }
       : {}),
+    ...(options.colorPalette ? { colorPalette: bundle.validateSceneColorPaletteV1(options.colorPalette) } : {}),
     layout, text, slots, revisions: bundle.visualRevisionsV2(), fallbackVisual: 'editorial-text',
   })
 }
