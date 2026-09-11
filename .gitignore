@@ -11,3 +11,5 @@ scratch/
 .commit-temp/
 temp-*.mp4
 hyperframes-project/compositions/
+# Bytecode created by the isolated local photo-cutout worker remains external.
+tools/photo-cutout-spike/__pycache__/
