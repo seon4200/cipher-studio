@@ -55,6 +55,8 @@ export const PIXABAY_IMAGE_REQUEST_HEADERS_V1: Readonly<Record<string, string>> 
 })
 
 export type PixabayImageRoleV1 = 'hero' | 'support'
+/** How this provider result will be used after byte validation, never a renderer contract. */
+export type PixabayImageRepresentationV1 = 'photo-cutout' | 'full-raster'
 export type PixabayImageResolutionTierV1 = 'low' | 'usable' | 'strong'
 export type PixabayImageTransparencyStateV1 = 'not-requested' | 'requested-unverified' | 'verified-useful' | 'verified-absent'
 
@@ -83,6 +85,7 @@ export type PixabayImageSearchPlanV1 = {
   concept: string
   role: PixabayImageRoleV1
   subject: VisualConceptV1['subject']
+  representation: PixabayImageRepresentationV1
   query: string
   language: 'es' | 'en'
   imageType: 'photo' | 'illustration' | 'vector'
@@ -154,7 +157,13 @@ function safeUrl(value: unknown, field: string): string {
   return url.toString()
 }
 
-function imageTypeFor(concept: VisualConceptV1): PixabayImageSearchPlanV1['imageType'] {
+function imageTypeFor(
+  concept: VisualConceptV1,
+  representation?: PixabayImageRepresentationV1,
+): PixabayImageSearchPlanV1['imageType'] {
+  // A physical raster requested for either a cutout or contextual full-frame treatment must ask
+  // Pixabay for a photograph even when the concept's icon-oriented lexicon entry is an object.
+  if (representation) return 'photo'
   return concept.subject === 'person' || concept.subject === 'place' || concept.subject === 'event' ? 'photo' : 'illustration'
 }
 
@@ -164,6 +173,7 @@ export function buildPixabayImageSearchPlansV1(input: {
   lexicon?: ConceptLexiconEntryV1
   level: ConceptExpansionLevelV1
   role?: PixabayImageRoleV1
+  representation?: PixabayImageRepresentationV1
   maxPlans?: number
 }): readonly PixabayImageSearchPlanV1[] {
   const maxPlans = Math.min(Math.max(Math.trunc(input.maxPlans ?? 3), 1), 4)
@@ -173,7 +183,8 @@ export function buildPixabayImageSearchPlansV1(input: {
   const sourceTerms = lexiconEnglish ? input.lexicon!.pixabayTerms :
     [input.concept.originalTerm, input.concept.normalizedTerm, ...input.concept.aliases]
   const terms = [...new Set(sourceTerms.map(canonical).filter(Boolean))]
-  const imageType = imageTypeFor(input.concept)
+  const representation = input.representation ?? 'photo-cutout'
+  const imageType = imageTypeFor(input.concept, input.representation)
   const role = input.role ?? 'hero'
   const language: 'es' | 'en' = lexiconEnglish ? 'en' : 'es'
   const queryCandidates: Array<{ query: string; transparent: boolean; reason: string }> = []
@@ -184,21 +195,40 @@ export function buildPixabayImageSearchPlansV1(input: {
   }
   const lead = terms[0]
   if (lead) {
-    if (input.concept.subject === 'person') {
-      add(`${lead} ${language === 'en' ? 'isolated' : 'aislada'}`, true, 'PIXABAY_PERSON_ISOLATED')
-      add(`${lead} ${language === 'en' ? 'portrait isolated' : 'retrato aislado'}`, true, 'PIXABAY_PERSON_PORTRAIT')
-      add(`${lead} ${language === 'en' ? 'transparent' : 'transparente'}`, true, 'PIXABAY_PERSON_TRANSPARENT')
-    } else if (input.concept.subject !== 'place' && input.concept.subject !== 'event') {
-      add(`${lead} ${language === 'en' ? 'isolated' : 'aislado'}`, true, 'PIXABAY_ISOLATED_PRIMARY')
-      add(`${lead} ${language === 'en' ? 'transparent' : 'transparente'}`, true, 'PIXABAY_TRANSPARENT_VARIANT')
-    } else add(lead, false, 'PIXABAY_PROVIDER_TERM')
+    if (!input.representation) {
+      // Compatibility path for the already-certified retrieval engine.  Modern motion graphics
+      // passes an explicit representation below; callers from V15 retrieval V1 keep their prior
+      // plans and transparency semantics unchanged.
+      if (input.concept.subject === 'person') {
+        add(`${lead} ${language === 'en' ? 'isolated' : 'aislada'}`, true, 'PIXABAY_PERSON_ISOLATED')
+        add(`${lead} ${language === 'en' ? 'portrait isolated' : 'retrato aislado'}`, true, 'PIXABAY_PERSON_PORTRAIT')
+        add(`${lead} ${language === 'en' ? 'transparent' : 'transparente'}`, true, 'PIXABAY_PERSON_TRANSPARENT')
+      } else if (input.concept.subject !== 'place' && input.concept.subject !== 'event') {
+        add(`${lead} ${language === 'en' ? 'isolated' : 'aislado'}`, true, 'PIXABAY_ISOLATED_PRIMARY')
+        add(`${lead} ${language === 'en' ? 'transparent' : 'transparente'}`, true, 'PIXABAY_TRANSPARENT_VARIANT')
+      } else add(lead, false, 'PIXABAY_PROVIDER_TERM')
+    } else if (representation === 'full-raster') {
+      // Contextual full rasters deliberately do not pretend to have alpha.  They retain the
+      // provider composition when place/event/context is the narrative resource.
+      add(lead, false, 'PIXABAY_FULL_RASTER_CONTEXT')
+      if (input.concept.subject === 'place' || input.concept.subject === 'event')
+        add(`${lead} ${language === 'en' ? 'scene' : 'escena'}`, false, 'PIXABAY_FULL_RASTER_SCENE')
+    } else if (input.concept.subject === 'person') {
+      // `colors=transparent` is a retrieval preference, not a prerequisite: V1 can derive alpha
+      // locally from an opaque photo and therefore must not reject good photo candidates early.
+      add(`${lead} ${language === 'en' ? 'isolated' : 'aislada'}`, false, 'PIXABAY_CUTOUT_PERSON_ISOLATED')
+      add(`${lead} ${language === 'en' ? 'portrait isolated' : 'retrato aislado'}`, false, 'PIXABAY_CUTOUT_PERSON_PORTRAIT')
+    } else {
+      add(`${lead} ${language === 'en' ? 'isolated' : 'aislado'}`, false, 'PIXABAY_CUTOUT_PHOTO_ISOLATED')
+      add(lead, false, 'PIXABAY_CUTOUT_PHOTO_TERM')
+    }
   }
   for (const term of terms.slice(1)) add(term, false, 'PIXABAY_LEXICON_TERM')
   const plans: PixabayImageSearchPlanV1[] = []
   for (const value of queryCandidates.slice(0, maxPlans)) {
     plans.push(Object.freeze({
       provider: 'pixabay-images', concept: input.concept.normalizedTerm, query: value.query,
-      role, subject: input.concept.subject,
+      role, subject: input.concept.subject, representation,
       language, imageType, orientation: 'all', transparentRequested: value.transparent,
       level: input.level, reason: value.reason,
       parameters: Object.freeze({ q: value.query, lang: language, image_type: imageType,
@@ -652,14 +682,18 @@ export function subjectBoundsFromPixabayRasterV1(bytes: Buffer): SubjectBoundsV1
   const x = minX / width, y = minY / height
   const visibleWidthRatio = (maxX - minX + 1) / width
   const visibleHeightRatio = (maxY - minY + 1) / height
+  // Adjacent integer pixel ratios can sum to 1.0000000000000002 in JS.  SubjectBounds is a
+  // visible contract, so normalize only floating-point residue rather than passing a negative
+  // transparent padding into SceneSpec validation for an otherwise valid cutout.
+  const unit = (value: number) => Math.max(0, Math.min(1, value))
   return {
     revision: 'subject-bounds-v1',
-    alphaBounds: { x, y, width: visibleWidthRatio, height: visibleHeightRatio },
-    visibleWidthRatio, visibleHeightRatio,
+    alphaBounds: { x: unit(x), y: unit(y), width: unit(visibleWidthRatio), height: unit(visibleHeightRatio) },
+    visibleWidthRatio: unit(visibleWidthRatio), visibleHeightRatio: unit(visibleHeightRatio),
     centerOfMass: { x: (weightedX / alphaWeight + .5) / width, y: (weightedY / alphaWeight + .5) / height },
     aspectRatio: width / height,
-    transparentPadding: { top: y, right: 1 - x - visibleWidthRatio,
-      bottom: 1 - y - visibleHeightRatio, left: x },
+    transparentPadding: { top: unit(y), right: unit(1 - x - visibleWidthRatio),
+      bottom: unit(1 - y - visibleHeightRatio), left: unit(x) },
   }
 }
 
@@ -762,6 +796,67 @@ function writeAtomically(finalFile: string, bytes: Buffer): 'created' | 'reused'
   }
 }
 
+/**
+ * Provider-neutral raster publication.  Pixabay owns its retrieval metadata, while a local
+ * transform (for example photo-cutout) may publish verified derived bytes through exactly the
+ * same ProjectAsset contract.  The renderer remains provider-neutral after this boundary.
+ */
+export function publishRasterProjectAssetV1(input: {
+  projectRoot: unknown
+  provider: string
+  assetId: string
+  bytes: Buffer
+  source: ProjectAssetRecord['source']
+  validationRevision: string
+  requireUsefulAlpha?: boolean
+  validationWarnings?: readonly string[]
+  hooks?: { beforeManifestWrite?: () => void }
+}): { status: 'created' | 'reused'; asset: ProjectAssetRecord; absoluteFile: string; warnings: readonly string[] } {
+  const root = requireAssetProjectRoot(input.projectRoot)
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(input.provider))
+    fail('RASTER_PROJECT_ASSET_PROVIDER_INVALID', 'Provider raster inválido')
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(input.assetId))
+    fail('RASTER_PROJECT_ASSET_ID_INVALID', 'ID raster inválido')
+  const inspection = inspectPixabayRasterImageV1(input.bytes)
+  if (input.requireUsefulAlpha && !inspection.alphaUseful)
+    fail('RASTER_PROJECT_ASSET_ALPHA_REQUIRED', 'El raster derivado requiere alpha útil')
+  const contentSha = sha256(input.bytes)
+  const storage = readAssetStorage(root)
+  if (storage.status !== 'absent' && storage.status !== 'valid' && storage.status !== 'recovered-from-backup')
+    fail('RASTER_PROJECT_ASSET_MANIFEST_INVALID', 'Manifest existente no se puede usar')
+  const existing = storage.status === 'absent' ? undefined : storage.manifest!.assets.find(asset =>
+    asset.provider === input.provider && asset.sha256 === contentSha && asset.mime === inspection.mime &&
+    asset.validation.status === 'accepted')
+  if (existing) {
+    readVerifiedRasterProjectAssetContentV1(root, existing)
+    return { status: 'reused', asset: existing,
+      absoluteFile: resolveProjectRelativePath(root, existing.relativeFile, true),
+      warnings: Object.freeze([...inspection.warnings, ...(input.validationWarnings ?? [])]) }
+  }
+  const relativeFile = `materiales/assets/${input.provider}/${contentSha}.${inspection.extension}`
+  const absoluteFile = resolveProjectRelativePath(root, relativeFile, true)
+  fs.mkdirSync(path.dirname(absoluteFile), { recursive: true })
+  const status = writeAtomically(absoluteFile, input.bytes)
+  const warnings = [...inspection.warnings, ...(input.validationWarnings ?? [])]
+  const asset: ProjectAssetRecord = {
+    id: input.assetId, provider: input.provider, relativeFile, sha256: contentSha,
+    mime: inspection.mime, byteLength: input.bytes.length, source: { ...input.source },
+    validation: { status: 'accepted', validatedAt: new Date().toISOString(), width: inspection.width,
+      height: inspection.height, hasAlpha: inspection.hasAlpha, alphaUseful: inspection.alphaUseful,
+      validationRevision: input.validationRevision, warnings },
+  }
+  try {
+    input.hooks?.beforeManifestWrite?.()
+    const prior = storage.status === 'absent' ? [] : storage.manifest!.assets
+    saveAssetManifest(root, { assetManifestVersion: 1, assets: [...prior, asset] })
+    readVerifiedRasterProjectAssetContentV1(root, asset)
+    return { status, asset, absoluteFile, warnings: Object.freeze(warnings) }
+  } catch (error) {
+    if (status === 'created') try { fs.unlinkSync(absoluteFile) } catch { /* orphan detection remains a later concern */ }
+    throw error
+  }
+}
+
 /** Publishes already-downloaded bytes only after validation; normal resolver search never invokes this automatically. */
 export function publishPixabayImageAssetV1(input: {
   projectRoot: unknown
@@ -770,46 +865,23 @@ export function publishPixabayImageAssetV1(input: {
   fetchedAt?: string
   hooks?: { beforeManifestWrite?: () => void }
 }): { status: 'created' | 'reused'; asset: ProjectAssetRecord; absoluteFile: string; warnings: readonly string[] } {
-  const root = requireAssetProjectRoot(input.projectRoot)
   const inspection = inspectPixabayRasterImageV1(input.bytes)
   if (input.candidate.transparentRequested && !inspection.alphaUseful)
     fail('PIXABAY_IMAGE_ALPHA_REQUIRED', 'La consulta pidió aislamiento pero los bytes no tienen alpha útil')
   const contentSha = sha256(input.bytes)
-  const storage = readAssetStorage(root)
-  if (storage.status !== 'absent' && storage.status !== 'valid' && storage.status !== 'recovered-from-backup')
-    fail('PIXABAY_IMAGE_MANIFEST_INVALID', 'Manifest existente no se puede usar')
-  const existing = storage.status === 'absent' ? undefined : storage.manifest!.assets.find(asset =>
-    asset.provider === 'pixabay' && asset.sha256 === contentSha && asset.mime === inspection.mime && asset.validation.status === 'accepted')
-  if (existing) {
-    verifyPixabayImageAssetContentV1(root, existing)
-    return { status: 'reused', asset: existing, absoluteFile: resolveProjectRelativePath(root, existing.relativeFile, true), warnings: inspection.warnings }
-  }
-  const relativeFile = `materiales/assets/pixabay/${contentSha}.${inspection.extension}`
-  const absoluteFile = resolveProjectRelativePath(root, relativeFile, true)
-  fs.mkdirSync(path.dirname(absoluteFile), { recursive: true })
-  const status = writeAtomically(absoluteFile, input.bytes)
   const candidate = input.candidate
-  const asset: ProjectAssetRecord = {
-    id: `pixabay-${candidate.id.replace(/[^a-z0-9_-]/gi, '').toLowerCase().slice(0, 36)}-${contentSha.slice(0, 12)}`,
-    provider: 'pixabay', relativeFile, sha256: contentSha, mime: inspection.mime, byteLength: input.bytes.length,
+  return publishRasterProjectAssetV1({
+    projectRoot: input.projectRoot,
+    provider: 'pixabay',
+    assetId: `pixabay-${candidate.id.replace(/[^a-z0-9_-]/gi, '').toLowerCase().slice(0, 36)}-${contentSha.slice(0, 12)}`,
+    bytes: input.bytes,
     source: {
       sourceUrl: safeUrl(candidate.pageUrl, 'candidate.pageUrl'), fileUrl: safeUrl(candidate.downloadUrl, 'candidate.downloadUrl'),
       providerVersion: PIXABAY_IMAGES_PROVIDER_VERSION, licenseClaim: 'Pixabay Content License',
       licenseUrl: 'https://pixabay.com/service/license-summary/', attribution: 'Pixabay image ' + candidate.id,
       fetchedAt: input.fetchedAt ?? new Date().toISOString(),
     },
-    validation: { status: 'accepted', validatedAt: new Date().toISOString(), width: inspection.width, height: inspection.height,
-      hasAlpha: inspection.hasAlpha, alphaUseful: inspection.alphaUseful, validationRevision: PIXABAY_IMAGE_VALIDATION_REVISION,
-      warnings: [...inspection.warnings] },
-  }
-  try {
-    input.hooks?.beforeManifestWrite?.()
-    const prior = storage.status === 'absent' ? [] : storage.manifest!.assets
-    saveAssetManifest(root, { assetManifestVersion: 1, assets: [...prior, asset] })
-    verifyPixabayImageAssetContentV1(root, asset)
-    return { status, asset, absoluteFile, warnings: inspection.warnings }
-  } catch (error) {
-    if (status === 'created') try { fs.unlinkSync(absoluteFile) } catch { /* orphan detection remains a later concern */ }
-    throw error
-  }
+    validationRevision: PIXABAY_IMAGE_VALIDATION_REVISION,
+    ...(input.hooks ? { hooks: input.hooks } : {}),
+  })
 }
