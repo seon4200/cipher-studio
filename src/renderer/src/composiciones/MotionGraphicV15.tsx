@@ -10,11 +10,16 @@ import {
 import { typographyLookV3 } from '../../../shared/visual-layout-v3'
 import type { SlotLayoutV4 } from '../../../shared/visual-layout-v4'
 import { videoVisualStylePaletteV1 } from '../../../shared/visual-style-v1'
+import { applyBackgroundProfileV1 } from '../../../shared/background-profile-v1'
 import { IconoSolar } from './IconoSolar'
 
 function clamp01(value: number): number { return Math.min(1, Math.max(0, value)) }
 function ease(value: number): number { const p = clamp01(value); return 1 - Math.pow(1 - p, 3) }
 function phase(u: number, start: number, duration: number): number { return ease((u - start) / duration) }
+
+function scenePalette(spec: VisualSceneSpecV2): ReturnType<typeof videoVisualStylePaletteV1> {
+  return applyBackgroundProfileV1(videoVisualStylePaletteV1(spec.videoStyle), spec.backgroundProfile)
+}
 
 function normalizedViewBox(slot: PresentSceneSlotV2): string {
   const aspect = Math.max(.01, slot.bounds.aspectRatio)
@@ -90,7 +95,7 @@ const SceneAssetSlot: React.FC<{
   runtime?: RuntimeRenderAssetV2
   u: number
 }> = ({ spec, slot, layout, runtime, u }) => {
-  const palette = videoVisualStylePaletteV1(spec.videoStyle)
+  const palette = scenePalette(spec)
   const motion = evaluateAssetMotion(slot.motion, u)
   if (slot.state === 'present' && !runtime) throw new Error(`VISUAL_RUNTIME_SLOT_REQUIRED:${slot.slotId}`)
   return <div
@@ -125,7 +130,7 @@ function center(layout: SlotLayoutV4): [number, number] {
 }
 
 const StructureGrammar: React.FC<{ spec: VisualSceneSpecV2 }> = ({ spec }) => {
-  const palette = videoVisualStylePaletteV1(spec.videoStyle)
+  const palette = scenePalette(spec)
   const slots = spec.layout.slotLayouts
   const points = slots.map(center)
   const hero = points[0] ?? [50, 40]
@@ -192,10 +197,11 @@ const StructureGrammar: React.FC<{ spec: VisualSceneSpecV2 }> = ({ spec }) => {
 }
 
 const QuietBackground: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ spec, u }) => {
-  const palette = videoVisualStylePaletteV1(spec.videoStyle)
+  const palette = scenePalette(spec)
   const subtle = spec.videoStyle.backgroundMotion === 'subtle'
   const shift = subtle ? Math.sin(u * Math.PI * 2) * .7 : 0
   return <div data-qc-background-family={spec.videoStyle.backgroundVariant}
+    data-qc-background-profile={spec.backgroundProfile?.id ?? 'historical-video-style'}
     data-qc-background-motion={spec.videoStyle.backgroundMotion} style={{
       position: 'absolute', inset: '-2%', zIndex: 0,
       backgroundColor: palette.background,
@@ -209,7 +215,7 @@ const QuietBackground: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ spe
 const NarrativeTextV15: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ spec, u }) => {
   const text = spec.text
   const look = typographyLookV3(text.typographyLookId)
-  const palette = videoVisualStylePaletteV1(spec.videoStyle)
+  const palette = scenePalette(spec)
   const connectorP = phase(u, text.timing.connectorStart, .13)
   const keywordP = phase(u, text.timing.keywordStart, .17)
   const closingP = text.closing && text.timing.closingStart !== undefined ? phase(u, text.timing.closingStart, .14) : 0

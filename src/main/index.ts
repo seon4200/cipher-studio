@@ -32,6 +32,7 @@ export * from './services/visual-variety-metrics'
 export * from '../shared/visual-layout-v3'
 export * from '../shared/visual-layout-v4'
 export * from '../shared/visual-style-v1'
+export * from '../shared/background-profile-v1'
 // Productive Visual MVP: the shared scene projection is the single authority for both the
 // file hash and the React tree; filesystem bindings remain a separate main-process concern.
 export * from '../shared/visual-scene-spec'
