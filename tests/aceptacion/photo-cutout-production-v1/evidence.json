@@ -1,0 +1,381 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Photo Cutout Production V1 real bounded acceptance; final render is offline.",
+  "base": {
+    "versionPlantillas": 15,
+    "defaultModel": "u2netp",
+    "licenseDebt": "PENDING_BEFORE_COMMERCIAL_DISTRIBUTION"
+  },
+  "frozenCorpus": {
+    "total": 20,
+    "selectedSceneIds": [
+      "person-microphone",
+      "object-camera",
+      "symbol-clock",
+      "place-hospital",
+      "editorial-recovery"
+    ]
+  },
+  "manuallyConstructedFinalSceneSpecs": 0,
+  "materializationMs": 9822.194500000001,
+  "metrics": {
+    "visualScenes": 5,
+    "photoCutoutHero": 1,
+    "photoCutoutSupport": 2,
+    "fullRasterHero": 1,
+    "fullRasterSupport": 0,
+    "openMojiHero": 1,
+    "openMojiSupport": 1,
+    "solarHero": 1,
+    "solarSupport": 0,
+    "editorialOnly": 1,
+    "cutoutAttempted": 2,
+    "cutoutUsable": 3,
+    "cutoutSuspicious": 2,
+    "cutoutFailed": 0,
+    "cutoutCacheHit": 0,
+    "averageCutoutMs": 136.0045,
+    "p95CutoutMs": 139.877
+  },
+  "rendererOffline": true,
+  "networkAttemptsAfterRenderGate": 0,
+  "realProjectsUntouched": true,
+  "scenes": [
+    {
+      "sceneId": "person-microphone",
+      "keyword": "persona",
+      "visualMode": "asset-led",
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "photo-cutout",
+          "representation": "photo-cutout",
+          "assetId": "cutout-02f411e2c545463adc2f-u2netp-541a3dcd",
+          "sha256": "20de1cc5d697ed8c06a3191eac2978538277b9a24289ad25fd555f30c313077d",
+          "solarIcon": null,
+          "treatment": "original-color"
+        },
+        {
+          "role": "support-1",
+          "provider": "openmoji",
+          "representation": "icon",
+          "assetId": "openmoji-1f3a4-616dfc2ef5e4",
+          "sha256": "616dfc2ef5e40efb29f8ee4004ef0ab445b2eed95f72984297a2dc0bed549d04",
+          "solarIcon": null,
+          "treatment": "original-color"
+        }
+      ],
+      "trace": {
+        "representation": [
+          {
+            "role": "hero",
+            "concept": "person",
+            "preference": "photo-cutout",
+            "reason": "REPRESENTATION_PERSON_CUTOUT_PREFERRED",
+            "outcome": "MATERIALIZED:photo-cutout:photo-cutout"
+          },
+          {
+            "role": "support-1",
+            "concept": "microphone",
+            "preference": "icon",
+            "reason": "REPRESENTATION_EXPLICIT_EMOJI_ICON_FIRST",
+            "outcome": "MATERIALIZED:openmoji:icon"
+          },
+          {
+            "role": "support-2",
+            "concept": "alza",
+            "preference": "auto",
+            "reason": "REPRESENTATION_PHYSICAL_OBJECT_SUPPORT_AUTO",
+            "outcome": "WEAK_LOCAL_TOKEN_OMITTED_WHILE_STRUCTURED_CONCEPTS_EXIST"
+          }
+        ],
+        "pixabay": [
+          {
+            "concept": "person",
+            "query": "persona aislada",
+            "candidates": 20,
+            "selected": "1171761",
+            "outcome": "CANDIDATE_SELECTED"
+          },
+          {
+            "concept": "person",
+            "query": "persona aislada",
+            "candidates": 20,
+            "selected": "1171761",
+            "outcome": "PHOTO_CUTOUT_FALLBACK_FULL_RASTER:CUTOUT_SOURCE_ALREADY_HAS_ALPHA:CUTOUT_BOUNDS_OR_TRANSPARENCY_SUSPICIOUS"
+          },
+          {
+            "concept": "person",
+            "query": "persona aislada",
+            "candidates": 20,
+            "selected": "1176659",
+            "outcome": "PHOTO_CUTOUT_FALLBACK_FULL_RASTER:CUTOUT_SOURCE_ALREADY_HAS_ALPHA:CUTOUT_BOUNDS_OR_TRANSPARENCY_SUSPICIOUS"
+          },
+          {
+            "concept": "person",
+            "query": "persona retrato aislado",
+            "candidates": 20,
+            "selected": "1160979",
+            "outcome": "CANDIDATE_SELECTED"
+          },
+          {
+            "concept": "person",
+            "query": "persona retrato aislado",
+            "candidates": 20,
+            "selected": "1160979",
+            "outcome": "PHOTO_CUTOUT_USABLE"
+          }
+        ]
+      },
+      "qcErrors": [],
+      "renderMs": 1135.4668999999994
+    },
+    {
+      "sceneId": "object-camera",
+      "keyword": "cámara",
+      "visualMode": "asset-led",
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "openmoji",
+          "representation": "icon",
+          "assetId": "openmoji-1f4f7-9e3990ec197b",
+          "sha256": "9e3990ec197bcbad99beed791e7605def1d64c8ac80f276dfb61580fd4badbc3",
+          "solarIcon": null,
+          "treatment": "original-color"
+        },
+        {
+          "role": "support-1",
+          "provider": "photo-cutout",
+          "representation": "photo-cutout",
+          "assetId": "pixabay-1186137-25ce5b05976e",
+          "sha256": "25ce5b05976ef841409b3d79e982443235e9ee139ef8405312bd921a10732349",
+          "solarIcon": null,
+          "treatment": "original-color"
+        }
+      ],
+      "trace": {
+        "representation": [
+          {
+            "role": "hero",
+            "concept": "camera",
+            "preference": "icon",
+            "reason": "REPRESENTATION_EXPLICIT_EMOJI_ICON_FIRST",
+            "outcome": "MATERIALIZED:openmoji:icon"
+          },
+          {
+            "role": "support-1",
+            "concept": "woman",
+            "preference": "photo-cutout",
+            "reason": "REPRESENTATION_PERSON_CUTOUT_PREFERRED",
+            "outcome": "MATERIALIZED:photo-cutout:photo-cutout"
+          },
+          {
+            "role": "support-2",
+            "concept": "registra",
+            "preference": "auto",
+            "reason": "REPRESENTATION_PHYSICAL_OBJECT_SUPPORT_AUTO",
+            "outcome": "WEAK_LOCAL_TOKEN_OMITTED_WHILE_STRUCTURED_CONCEPTS_EXIST"
+          }
+        ],
+        "pixabay": [
+          {
+            "concept": "woman",
+            "query": "mujer aislada",
+            "candidates": 20,
+            "selected": "1186137",
+            "outcome": "CANDIDATE_SELECTED"
+          },
+          {
+            "concept": "woman",
+            "query": "mujer aislada",
+            "candidates": 20,
+            "selected": "1186137",
+            "outcome": "PHOTO_CUTOUT_USABLE"
+          }
+        ]
+      },
+      "qcErrors": [],
+      "renderMs": 720.6162999999997
+    },
+    {
+      "sceneId": "symbol-clock",
+      "keyword": "reloj",
+      "visualMode": "asset-led",
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "solar",
+          "representation": "symbolic",
+          "assetId": null,
+          "sha256": null,
+          "solarIcon": "stopwatch-bold-duotone",
+          "treatment": "original-color"
+        }
+      ],
+      "trace": {
+        "representation": [
+          {
+            "role": "hero",
+            "concept": "clock",
+            "preference": "symbolic",
+            "reason": "REPRESENTATION_SYMBOLIC_CONCEPT",
+            "outcome": "MATERIALIZED:solar:symbolic"
+          },
+          {
+            "role": "support-1",
+            "concept": "decision",
+            "preference": "symbolic",
+            "reason": "REPRESENTATION_ABSTRACT_NOMINAL_SYMBOL_OR_EDITORIAL",
+            "outcome": "EDITORIAL_FALLBACK"
+          },
+          {
+            "role": "support-2",
+            "concept": "marca",
+            "preference": "auto",
+            "reason": "REPRESENTATION_PHYSICAL_OBJECT_SUPPORT_AUTO",
+            "outcome": "WEAK_LOCAL_TOKEN_OMITTED_WHILE_STRUCTURED_CONCEPTS_EXIST"
+          }
+        ],
+        "pixabay": []
+      },
+      "qcErrors": [],
+      "renderMs": 668.2230999999992
+    },
+    {
+      "sceneId": "place-hospital",
+      "keyword": "hospital",
+      "visualMode": "asset-led",
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "pixabay-images",
+          "representation": "full-raster",
+          "assetId": "pixabay-1338585-c9717181808f",
+          "sha256": "c9717181808f81e3c0f20bec070367a1c7509a7802fa1f06c4abd998e3e3ee6e",
+          "solarIcon": null,
+          "treatment": "original-color"
+        },
+        {
+          "role": "support-1",
+          "provider": "photo-cutout",
+          "representation": "photo-cutout",
+          "assetId": "cutout-c07f1b7b9ae65c45adae-u2netp-541a3dcd",
+          "sha256": "5e6e9a2d1437b71623cc84f4144f2061cfc4af663eb6ffa76f32be7ef67f8401",
+          "solarIcon": null,
+          "treatment": "original-color"
+        }
+      ],
+      "trace": {
+        "representation": [
+          {
+            "role": "hero",
+            "concept": "hospital",
+            "preference": "full-raster",
+            "reason": "REPRESENTATION_CONTEXT_RETAINS_MEANING",
+            "outcome": "MATERIALIZED:pixabay-images:full-raster"
+          },
+          {
+            "role": "support-1",
+            "concept": "enfermera",
+            "preference": "photo-cutout",
+            "reason": "REPRESENTATION_PERSON_CUTOUT_PREFERRED",
+            "outcome": "MATERIALIZED:photo-cutout:photo-cutout"
+          },
+          {
+            "role": "support-2",
+            "concept": "recibe",
+            "preference": "auto",
+            "reason": "REPRESENTATION_PHYSICAL_OBJECT_SUPPORT_AUTO",
+            "outcome": "WEAK_LOCAL_TOKEN_OMITTED_WHILE_STRUCTURED_CONCEPTS_EXIST"
+          }
+        ],
+        "pixabay": [
+          {
+            "concept": "hospital",
+            "query": "hospital",
+            "candidates": 20,
+            "selected": "1338585",
+            "outcome": "CANDIDATE_SELECTED"
+          },
+          {
+            "concept": "enfermera",
+            "query": "enfermera aislada",
+            "candidates": 20,
+            "selected": "1106916",
+            "outcome": "CANDIDATE_SELECTED"
+          },
+          {
+            "concept": "enfermera",
+            "query": "enfermera aislada",
+            "candidates": 20,
+            "selected": "1106916",
+            "outcome": "PHOTO_CUTOUT_USABLE"
+          }
+        ]
+      },
+      "qcErrors": [],
+      "renderMs": 879.9221999999991
+    },
+    {
+      "sceneId": "editorial-recovery",
+      "keyword": "RECUPERACIÓN",
+      "visualMode": "editorial-text",
+      "choices": [],
+      "trace": {
+        "representation": [
+          {
+            "role": "hero",
+            "concept": "recuperacion",
+            "preference": "editorial",
+            "reason": "REPRESENTATION_ABSTRACT_OR_CONTEXTUAL",
+            "outcome": "EDITORIAL_INTENTIONAL"
+          },
+          {
+            "role": "support-1",
+            "concept": "ocurre",
+            "preference": "auto",
+            "reason": "REPRESENTATION_PHYSICAL_OBJECT_SUPPORT_AUTO",
+            "outcome": "EDITORIAL_INTENTIONAL"
+          },
+          {
+            "role": "support-2",
+            "concept": "sola",
+            "preference": "auto",
+            "reason": "REPRESENTATION_PHYSICAL_OBJECT_SUPPORT_AUTO",
+            "outcome": "EDITORIAL_INTENTIONAL"
+          }
+        ],
+        "pixabay": []
+      },
+      "qcErrors": [],
+      "renderMs": 553.6002999999982
+    }
+  ],
+  "artifacts": {
+    "video": {
+      "file": "photo-cutout-production-v1.mp4",
+      "sha256": "6693aea59fcab71a5c48b7a48a1e6649aee7e6bcda423abca02eec5a5838e3e5",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 540,
+            "height": 960,
+            "r_frame_rate": "12/1"
+          }
+        ],
+        "format": {
+          "duration": "7.083333",
+          "size": "176298"
+        }
+      }
+    },
+    "contactSheet": {
+      "file": "contact-sheet-photo-cutout-production-v1.png",
+      "sha256": "316ddc5e19b1b223b399bd4bbf6a6703303b47412746e19017715608032d17f4"
+    }
+  }
+}

@@ -385,7 +385,11 @@ app.whenReady().then(async () => {
             type: 'illustration', tags: 'fotografa, retrato, aislada' }] } : { hits: [] },
           downloadRequestBytes: async () => png,
         } }))[0].resolved
-      assert.equal(result.choices[0].provider, 'pixabay-images')
+      // The fixture bytes already contain useful alpha. Photo Cutout Production V1 may promote
+      // that verified local raster to the semantic cutout role without invoking a second renderer
+      // or a Python transform; historical V15 SceneSpecs are covered separately by pixel parity.
+      assert.equal(result.choices[0].provider, 'photo-cutout')
+      assert.equal(result.choices[0].representation, 'photo-cutout')
       assert.equal(result.compiled.sceneSpec.renderSpecVersion, 2)
       assert.equal(result.compiled.renderBindings.version, 2)
       assert.equal(result.compiled.sceneSpec.slots[0].tint.treatment, 'original-color')
