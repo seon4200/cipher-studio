@@ -1,0 +1,497 @@
+{
+  "schemaVersion": 1,
+  "baseHead": "a9542545d17b4ebd29724a71e7a50be08ed48d25",
+  "versionPlantillas": 15,
+  "backgroundProfile": {
+    "version": 1,
+    "id": "solid-black-v1",
+    "revision": "background-profile-v1"
+  },
+  "definition": {
+    "id": "solid-black-v1",
+    "family": "solid",
+    "baseColor": "#0D0D0F",
+    "surfaceColor": "#1A1A1E",
+    "textColor": "#F5F2EA",
+    "lineColor": "#AAA69F",
+    "shadowColor": "rgba(0,0,0,.58)",
+    "minimumAccentContrast": 3
+  },
+  "historicalCompatibility": {
+    "sameDimensions": true,
+    "differentPixels": 0
+  },
+  "families": {
+    "rendered": 17,
+    "total": 17,
+    "rows": [
+      {
+        "family": "editorial",
+        "visualMode": "editorial-text",
+        "activeSlots": [],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "center-editorial",
+        "typographyLookId": "editorial-strong",
+        "qcErrors": []
+      },
+      {
+        "family": "marcoPoster",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "bottom",
+        "typographyLookId": "impact-condensed",
+        "qcErrors": []
+      },
+      {
+        "family": "partidoVertical",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "right",
+        "typographyLookId": "sport-condensed",
+        "qcErrors": []
+      },
+      {
+        "family": "cintaDiagonal",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "bottom",
+        "typographyLookId": "technical-condensed",
+        "qcErrors": []
+      },
+      {
+        "family": "anillosConcentricos",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "bottom",
+        "typographyLookId": "elegant-serif",
+        "qcErrors": []
+      },
+      {
+        "family": "rayosImpacto",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "bottom",
+        "typographyLookId": "poster-condensed",
+        "qcErrors": []
+      },
+      {
+        "family": "cuaderno",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "document-margin",
+        "typographyLookId": "editorial-strong",
+        "qcErrors": []
+      },
+      {
+        "family": "constelacion",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "bottom",
+        "typographyLookId": "impact-condensed",
+        "qcErrors": []
+      },
+      {
+        "family": "capasApiladas",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "right",
+        "typographyLookId": "sport-condensed",
+        "qcErrors": []
+      },
+      {
+        "family": "redNodos",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "bottom",
+        "typographyLookId": "technical-condensed",
+        "qcErrors": []
+      },
+      {
+        "family": "lineaTiempo",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "timeline-caption",
+        "typographyLookId": "elegant-serif",
+        "qcErrors": []
+      },
+      {
+        "family": "corteTransversal",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "right",
+        "typographyLookId": "poster-condensed",
+        "qcErrors": []
+      },
+      {
+        "family": "abanicoTarjetas",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "top",
+        "typographyLookId": "editorial-strong",
+        "qcErrors": []
+      },
+      {
+        "family": "engranajes",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "bottom",
+        "typographyLookId": "impact-condensed",
+        "qcErrors": []
+      },
+      {
+        "family": "cascada",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "top",
+        "typographyLookId": "sport-condensed",
+        "qcErrors": []
+      },
+      {
+        "family": "mundoIsometrico",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-2",
+            "state": "procedural",
+            "treatment": "system-tint"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "top",
+        "typographyLookId": "technical-condensed",
+        "qcErrors": []
+      },
+      {
+        "family": "pilaVertical",
+        "visualMode": "asset-led",
+        "activeSlots": [
+          {
+            "role": "hero",
+            "state": "present",
+            "treatment": "original-color"
+          },
+          {
+            "role": "support-1",
+            "state": "present",
+            "treatment": "original-color"
+          }
+        ],
+        "backgroundProfile": {
+          "version": 1,
+          "id": "solid-black-v1",
+          "revision": "background-profile-v1"
+        },
+        "backgroundMotion": "none",
+        "textRegion": "right",
+        "typographyLookId": "elegant-serif",
+        "qcErrors": []
+      }
+    ]
+  },
+  "slots": {
+    "heroOnly": 2,
+    "heroSupport": 4,
+    "heroTwoSupports": 10
+  },
+  "originalColorOpenMoji": true,
+  "rendererOffline": true,
+  "realProjectsUntouched": true,
+  "artifacts": {
+    "contactSheet": "contact-sheet-black-foundation.png",
+    "historicalCurrent": "historical-v15-current.png",
+    "evidence": "evidence.json"
+  }
+}

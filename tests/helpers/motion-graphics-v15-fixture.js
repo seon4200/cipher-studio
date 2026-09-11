@@ -50,6 +50,9 @@ function sceneSpecV15 (bundle, descriptors = [], options = {}) {
     videoStyle: bundle.materializeVideoVisualStyleV1({
       videoStyleId: options.videoStyleId || 'cream-editorial', sceneId: options.sceneId || 'fixture-v15', seed,
     }),
+    ...(options.backgroundProfileId
+      ? { backgroundProfile: bundle.materializeBackgroundProfileV1(options.backgroundProfileId) }
+      : {}),
     layout, text, slots, revisions: bundle.visualRevisionsV2(), fallbackVisual: 'editorial-text',
   })
 }

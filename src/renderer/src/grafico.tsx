@@ -259,6 +259,8 @@ const rect = (element: Element | null) => {
     emptyHeroFrames: document.querySelectorAll('[data-qc-empty-hero-frame="true"]').length,
     assets,
     backgroundMotion: background?.dataset.qcBackgroundMotion ?? null,
+    backgroundProfile: background?.dataset.qcBackgroundProfile ?? null,
+    backgroundColor: background ? getComputedStyle(background).backgroundColor : null,
   }
 }
 
