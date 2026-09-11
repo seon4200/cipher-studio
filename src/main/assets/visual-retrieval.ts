@@ -291,11 +291,16 @@ function candidateEvidenceRank(candidate: VisualRetrievalCandidateV1): number {
 }
 
 function chooseCandidate(candidates: readonly VisualRetrievalCandidateV1[], providerBias: string | undefined): VisualRetrievalCandidateV1 | null {
-  const eligible = candidates.filter(candidate => candidate.role === 'hero' && candidate.score >= 2 && candidate.provider !== 'pixabay-images')
+  const eligible = candidates.filter(candidate => candidate.role !== 'editorial' && candidate.score >= 2 && candidate.provider !== 'pixabay-images')
   const ranked = [...eligible].sort((a, b) => {
     const providerA = a.provider === providerBias ? 0 : a.provider === 'openmoji' ? 1 : 2
     const providerB = b.provider === providerBias ? 0 : b.provider === 'openmoji' ? 1 : 2
-    return b.score - a.score || providerA - providerB || candidateEvidenceRank(b) - candidateEvidenceRank(a) ||
+    const evidenceA = candidateEvidenceRank(a)
+    const evidenceB = candidateEvidenceRank(b)
+    // Provider policy settles comparable evidence. A weak lexical Solar hit cannot, however,
+    // outrank literal OpenMoji metadata or an exact emoji merely because Solar was preferred.
+    const decisiveEvidence = Math.abs(evidenceA - evidenceB) >= 2 ? evidenceB - evidenceA : 0
+    return b.score - a.score || decisiveEvidence || providerA - providerB || evidenceB - evidenceA ||
       LEVEL_RANK[a.level] - LEVEL_RANK[b.level] || a.identity.localeCompare(b.identity, 'en')
   })
   if (!ranked.length) return null
@@ -330,10 +335,21 @@ export function resolveVisualRetrievalV1(input: {
     candidates.push(...solarCandidates(value))
     pixabayPlans += prepared.plans.filter(plan => plan.provider === 'pixabay-images' && plan.concept === value.concept.normalizedTerm).flatMap(plan => plan.pixabayPlans ?? []).length
   }
-  const primary = prepared.enriched[0]
-  const selectedHero = primary && primary.role === 'hero' ? chooseCandidate(candidates.filter(candidate => candidate.concept === primary.concept.normalizedTerm), primary.lexicon?.providerBias) : null
-  const selectedSupport = candidates.filter(candidate => candidate.role === 'support' && candidate.score >= 2)
-    .sort((a, b) => b.score - a.score || a.identity.localeCompare(b.identity, 'en')).slice(0, 2)
+  const selectedByConcept = prepared.enriched.map(value => value.role === 'editorial' ? null :
+    chooseCandidate(candidates.filter(candidate => candidate.concept === value.concept.normalizedTerm), value.lexicon?.providerBias))
+  const heroConceptIndex = selectedByConcept.findIndex(candidate => !!candidate)
+  const rawHero = heroConceptIndex >= 0 ? selectedByConcept[heroConceptIndex] : null
+  const selectedHero = rawHero ? Object.freeze({
+    ...rawHero,
+    role: 'hero' as const,
+    reason: heroConceptIndex === 0 ? rawHero.reason :
+      `HERO_PROMOTED_FROM_${heroConceptIndex === 1 ? 'SECONDARY' : 'TERTIARY'}:${rawHero.reason}`,
+  }) : null
+  const selectedSupport = selectedByConcept.flatMap((candidate, index) => {
+    if (!candidate || index === heroConceptIndex) return []
+    if (selectedHero && candidate.provider === selectedHero.provider && candidate.identity === selectedHero.identity) return []
+    return [Object.freeze({ ...candidate, role: 'support' as const })]
+  }).slice(0, 2)
   const deferredCandidates: VisualRetrievalCandidateV1[] = []
   for (const plan of prepared.plans.filter(plan => plan.provider === 'pixabay-images')) {
     deferredCandidates.push({ provider: 'pixabay-images', role: plan.role, concept: plan.concept,
@@ -344,7 +360,8 @@ export function resolveVisualRetrievalV1(input: {
     version: VISUAL_RETRIEVAL_ENGINE_VERSION, concepts: prepared.concepts, plans: prepared.plans,
     candidates: Object.freeze(candidates.sort((a, b) => b.score - a.score || a.provider.localeCompare(b.provider, 'en') || a.identity.localeCompare(b.identity, 'en'))),
     selectedHero, selectedSupport: Object.freeze(selectedSupport), deferredCandidates: Object.freeze(deferredCandidates),
-    editorialReason: selectedHero ? null : primary?.role === 'editorial' ? 'CONCEPT_EDITORIAL_ROLE' : 'NO_LOCAL_RENDERABLE_CANDIDATE',
+    editorialReason: selectedHero ? null : prepared.enriched.length > 0 && prepared.enriched.every(value => value.role === 'editorial')
+      ? 'CONCEPT_EDITORIAL_ROLE' : 'NO_LOCAL_RENDERABLE_CANDIDATE',
     metrics: { openMojiQueries, openMojiCandidates: candidates.filter(candidate => candidate.provider === 'openmoji').length,
       solarCandidates: candidates.filter(candidate => candidate.provider === 'solar').length, pixabayPlans },
   }

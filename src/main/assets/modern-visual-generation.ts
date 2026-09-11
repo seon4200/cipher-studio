@@ -185,6 +185,16 @@ export function createModernVisualGenerationContextV2(input: {
   return {
     ...base,
     version: MODERN_VISUAL_GENERATION_CONTEXT_VERSION_V2,
+    // DeepSeek emits these concepts inside this exact visualClip. Persist that source scope
+    // explicitly so an unspoken but valid visual concept is not mistaken for paragraph-wide
+    // context. Existing timestamps and an explicit `context` scope remain authoritative.
+    localSemantic: {
+      ...base.localSemantic,
+      concepts: base.localSemantic.concepts.map(concept => ({
+        ...concept,
+        scope: concept.scope ?? 'scene',
+      })),
+    },
     videoStyleId: input.videoStyleId,
     lockedChoices: lockedChoices(input.lockedChoices),
   }

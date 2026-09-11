@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { canonicalNarrativeTerm } from '../../shared/asset-intent'
 import type { ProjectAssetRecord } from '../../shared/project-state'
 import { readAssetStorage } from '../services/project-persistence'
 import {
@@ -308,7 +309,37 @@ function roleConcepts(base: LocalSemanticVisualDecisionResultV1): Array<{
 }> {
   const set = base.trace.retrieval?.concepts
   const values = [set?.primary, set?.secondary, set?.tertiary].filter((value): value is VisualConceptV1 => !!value)
-  return values.map((concept, index) => ({ slotId: index === 0 ? 'hero' : index === 1 ? 'support-1' : 'support-2', concept }))
+  const selectedConcept = base.trace.retrieval?.selectedHero?.concept
+  const promoted = selectedConcept ? values.find(concept => concept.normalizedTerm === selectedConcept) : undefined
+  const ordered = promoted ? [promoted, ...values.filter(concept => concept !== promoted)] : values
+  return ordered.map((concept, index) => ({ slotId: index === 0 ? 'hero' : index === 1 ? 'support-1' : 'support-2', concept }))
+}
+
+function lockedConceptBelongsToScene(base: LocalSemanticVisualDecisionResultV1, roleInputs: ReturnType<typeof roleConcepts>, concept: string): boolean {
+  const expected = canonicalNarrativeTerm(concept)
+  if (!expected) return false
+  return roleInputs.some(role => role.concept.normalizedTerm === expected) ||
+    base.localSemantic.concepts.some(value => canonicalNarrativeTerm(value.label) === expected) ||
+    base.localSemantic.localTokens.some(value => canonicalNarrativeTerm(value.text) === expected) ||
+    canonicalNarrativeTerm(base.keywordSelection.keyword) === expected
+}
+
+function promoteBestSupportToHero(choices: readonly MaterializedVisualChoiceV2[]): MaterializedVisualChoiceV2[] {
+  const existingHero = choices.find(choice => choice.slotId === 'hero')
+  if (existingHero) {
+    return [existingHero, ...choices.filter(choice => choice !== existingHero)
+      .sort((a, b) => a.slotId.localeCompare(b.slotId, 'en'))
+      .map((choice, index) => ({ ...choice, slotId: index === 0 ? 'support-1' as const : 'support-2' as const }))]
+  }
+  const support = [...choices].sort((a, b) => b.score - a.score ||
+    (a.provider === 'openmoji' ? -1 : b.provider === 'openmoji' ? 1 : 0) ||
+    a.slotId.localeCompare(b.slotId, 'en'))[0]
+  if (!support) return []
+  const remaining = choices.filter(choice => choice !== support)
+  return [
+    { ...support, slotId: 'hero', reason: `HERO_PROMOTED_FROM_${support.slotId.toUpperCase()}:${support.reason}` },
+    ...remaining.map((choice, index) => ({ ...choice, slotId: index === 0 ? 'support-1' as const : 'support-2' as const })),
+  ]
 }
 
 function textFor(
@@ -429,7 +460,8 @@ export async function resolveMotionGraphicsSceneV2(input: {
   if (input.lockedChoices?.length) {
     for (const locked of input.lockedChoices) {
       const expected = roleInputs.find(role => role.slotId === locked.slotId)
-      if (!expected || expected.concept.normalizedTerm !== locked.concept)
+      if ((!expected || expected.concept.normalizedTerm !== locked.concept) &&
+          !lockedConceptBelongsToScene(input.base, roleInputs, locked.concept))
         fail('MOTION_GRAPHICS_LOCKED_CONTEXT_MISMATCH', 'La elección persistida no pertenece al contexto semántico actual', {
           slotId: locked.slotId,
         })
@@ -452,22 +484,26 @@ export async function resolveMotionGraphicsSceneV2(input: {
         if (v1Hero?.provider === 'openmoji') {
           const asset = recordForV1Hero(input.projectRoot, input.base)
           if (asset) choice = { slotId: 'hero', concept: role.concept.normalizedTerm, provider: 'openmoji',
-            reason: 'C_PRIMARY_OPENMOJI_REUSED', score: 3, asset, stableId: v1Hero.stableId,
+            reason: input.base.trace.retrieval?.selectedHero?.reason?.startsWith('HERO_PROMOTED_')
+              ? `C_PRIMARY_OPENMOJI_REUSED:${input.base.trace.retrieval.selectedHero.reason}` : 'C_PRIMARY_OPENMOJI_REUSED',
+            score: 3, asset, stableId: v1Hero.stableId,
             bounds: fullSubjectBounds(), kind: v1Hero.kind, alphaMode: 'vector' }
         } else if (v1Hero?.provider === 'solar') {
           choice = { slotId: 'hero', concept: role.concept.normalizedTerm, provider: 'solar',
-            reason: 'C_PRIMARY_SOLAR', score: 3, solarIcon: v1Hero.solarName, solarStyle: v1Hero.solarStyle,
+            reason: input.base.trace.retrieval?.selectedHero?.reason?.startsWith('HERO_PROMOTED_')
+              ? `C_PRIMARY_SOLAR:${input.base.trace.retrieval.selectedHero.reason}` : 'C_PRIMARY_SOLAR',
+            score: 3, solarIcon: v1Hero.solarName, solarStyle: v1Hero.solarStyle,
             bounds: fullSubjectBounds(), kind: 'simple-icon', alphaMode: 'vector' }
         }
-        if (!choice && choices.filter(value => value.provider === 'pixabay-images').length < 2 &&
-            ['person', 'place', 'event', 'object'].includes(role.concept.subject))
-          choice = await pixabayChoice({ projectRoot: input.projectRoot, slotId: role.slotId, concept: role.concept,
-            apiKey: input.pixabayApiKey, hooks: input.hooks, trace: trace.pixabay, metrics })
         if (!choice) {
           const candidate = localCandidate(input.base, role.concept)
           if (candidate?.provider === 'openmoji') choice = openMojiChoice({ projectRoot: input.projectRoot, ...role, candidate })
           else if (candidate?.provider === 'solar') choice = solarChoice({ ...role, candidate })
         }
+        if (!choice && choices.filter(value => value.provider === 'pixabay-images').length < 2 &&
+            ['person', 'place', 'event', 'object'].includes(role.concept.subject))
+          choice = await pixabayChoice({ projectRoot: input.projectRoot, slotId: role.slotId, concept: role.concept,
+            apiKey: input.pixabayApiKey, hooks: input.hooks, trace: trace.pixabay, metrics })
       } else {
         const candidate = localCandidate(input.base, role.concept)
         if (candidate?.provider === 'openmoji') choice = openMojiChoice({ projectRoot: input.projectRoot, ...role, candidate })
@@ -491,9 +527,16 @@ export async function resolveMotionGraphicsSceneV2(input: {
         reason: choice?.reason ?? 'NO_DEFENDIBLE_RESOURCE', score: choice?.score ?? null })
     }
   }
-  // Supports cannot outlive a missing Hero; that state is a legitimate editorial result.
-  const hasHero = choices.some(choice => choice.slotId === 'hero')
-  const effectiveChoices = hasHero ? choices : []
+  // A semantically strong secondary/tertiary resource may anchor the scene when the first
+  // concept has no defendible asset. Promotion stays within the same subclip and is persisted.
+  const effectiveChoices = promoteBestSupportToHero(choices)
+  const hasHero = effectiveChoices.some(choice => choice.slotId === 'hero')
+  if (!choices.some(choice => choice.slotId === 'hero') && hasHero) {
+    const promoted = effectiveChoices.find(choice => choice.slotId === 'hero')!
+    trace.roleDecisions.push({ role: 'hero', concept: promoted.concept, provider: promoted.provider,
+      identity: promoted.asset?.sha256 ?? promoted.solarIcon ?? null, reason: promoted.reason, score: promoted.score })
+    trace.warnings.push('HERO_PROMOTED_FROM_VALID_SAME_SCENE_CONCEPT')
+  }
   metrics.supportsMaterialized = effectiveChoices.filter(choice => choice.slotId !== 'hero').length
   if (!hasHero) trace.fallback = 'EDITORIAL_NO_DEFENDIBLE_HERO'
   const compiled = compileV2({ base: input.base, choices: effectiveChoices, videoStyleId: input.videoStyleId, session })

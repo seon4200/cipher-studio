@@ -1,6 +1,7 @@
 import { canonicalNarrativeTerm, type AssetIntentV1 } from './asset-intent'
 import type { LocalSceneSemanticV1 } from './local-scene-semantic'
 import { narrativeTermsEquivalentV1 } from './narrative-term-forms'
+import { isSpanishVisualStopwordV1, visualNarrativeTermStrengthV1 } from './visual-term-filter'
 
 /**
  * Narrative-only concept roles.  They describe retrieval intent and deliberately stay
@@ -47,11 +48,15 @@ type ConceptInput = {
 
 const EDITORIAL_TERMS = new Set([
   'caos', 'contradiccion', 'indignacion', 'estabilidad', 'recuperacion', 'requerimiento',
-  'proceso', 'relacion', 'historia', 'religioso', 'religion', 'multitud', 'personas', 'gente',
+  'proceso', 'relacion', 'historia', 'religioso', 'religion',
 ])
 const PERSON_TERMS = new Set([
   'persona', 'personas', 'gente', 'multitud', 'policia', 'trabajador', 'trabajadores',
-  'hombre', 'mujer', 'human', 'person', 'people', 'user', 'usuario', 'usuarios', 'crowd',
+  'hombre', 'hombres', 'mujer', 'mujeres', 'esposa', 'esposo', 'nino', 'nina', 'ninos',
+  'ninas', 'adolescente', 'adolescentes', 'enfermera', 'enfermero', 'maestra', 'maestro',
+  'cientifica', 'cientifico', 'fotografa', 'fotografo', 'viajera', 'viajero', 'human',
+  'person', 'people', 'woman', 'women', 'man', 'men', 'worker', 'user', 'usuario',
+  'usuarios', 'crowd',
 ])
 const PLACE_TERMS = new Set(['estadio', 'hospital', 'escuela', 'iglesia', 'puente', 'mexico', 'mexico'])
 const SYMBOL_TERMS = new Set([
@@ -77,7 +82,7 @@ function subjectFor(term: string): VisualConceptSubjectV1 {
 }
 
 function roleFor(subject: VisualConceptSubjectV1): VisualConceptRoleV1 {
-  if (subject === 'person' || subject === 'process' || subject === 'context' || subject === 'unknown') return 'editorial'
+  if (subject === 'process' || subject === 'context' || subject === 'unknown') return 'editorial'
   return 'hero'
 }
 
@@ -86,12 +91,16 @@ function clean(value: unknown): string {
 }
 
 function isDirectTimedConcept(
-  concept: { label: string; canonicalHint?: string; start?: number; end?: number },
+  concept: { label: string; canonicalHint?: string; start?: number; end?: number; scope?: 'scene' | 'context' },
   semantic: LocalSceneSemanticV1,
   directTokens: ReadonlySet<string>,
 ): boolean {
+  if (concept.scope === 'scene') return true
+  if (concept.scope === 'context') return false
   if (concept.start !== undefined && concept.end !== undefined)
     return concept.end >= semantic.start && concept.start <= semantic.end
+  // Unscoped historical evidence keeps the temporal safeguard from 4A. New V15
+  // contexts explicitly mark DeepSeek concepts emitted by the same visualClip.
   return [...directTokens].some(token => narrativeTermsEquivalentV1(concept.label, token) ||
     narrativeTermsEquivalentV1(concept.canonicalHint, token))
 }
@@ -100,7 +109,11 @@ function candidateToConcept(candidate: ConceptInput): VisualConceptV1 | null {
   const originalTerm = clean(candidate.originalTerm)
   const normalizedTerm = canonicalNarrativeTerm(originalTerm)
   if (!originalTerm || !normalizedTerm) return null
-  const subject = subjectFor(normalizedTerm)
+  const strength = visualNarrativeTermStrengthV1(originalTerm)
+  const explicitVisualEvidence = !!candidate.emoji || !!candidate.canonicalHint
+  if (strength === 0 && !explicitVisualEvidence) return null
+  const subject = strength === 1 && !explicitVisualEvidence ? 'process' : subjectFor(normalizedTerm)
+  const importance = strength === 1 && !explicitVisualEvidence ? 1 : candidate.importance
   return {
     originalTerm,
     normalizedTerm,
@@ -108,7 +121,7 @@ function candidateToConcept(candidate: ConceptInput): VisualConceptV1 | null {
     ...(candidate.emoji ? { emoji: candidate.emoji } : {}),
     subject,
     ...(candidate.relation ? { relation: candidate.relation } : {}),
-    importance: candidate.importance,
+    importance,
     preferredRole: roleFor(subject),
     evidence: candidate.evidence,
   }
@@ -127,9 +140,8 @@ export function createVisualConceptSetV1(input: {
   const directTokens = new Set((semantic?.localTokens ?? [])
     .filter(token => token.temporalAlignment === 'direct')
     .map(token => canonicalNarrativeTerm(token.text)).filter(Boolean))
-  // Keyword V2 is already temporally selected by LocalSceneSemantic. It is the only direct
-  // token promoted above other words in the same window; structured direct concepts remain
-  // strong but cannot displace that locally aligned selection just by appearing earlier.
+  // The on-screen keyword remains independent. Retrieval starts from structured scene concepts;
+  // a pronounced token is only a fallback when DeepSeek supplied no stronger visual evidence.
   const preferredDirectTerms = new Set([canonicalNarrativeTerm(input.intent.keyword)].filter(Boolean))
   const candidates: ConceptInput[] = []
   for (const concept of semantic?.concepts ?? []) {
@@ -148,6 +160,7 @@ export function createVisualConceptSetV1(input: {
   }
   for (const token of semantic?.localTokens ?? []) {
     if (token.temporalAlignment !== 'direct') continue
+    if (isSpanishVisualStopwordV1(token.text)) continue
     const normalized = canonicalNarrativeTerm(token.text)
     candidates.push({ originalTerm: token.text, importance: preferredDirectTerms.has(normalized) ? 3 : 1, evidence: 'direct-timed-token',
       ...(semantic?.relation ? { relation: semantic.relation } : {}) })
@@ -156,7 +169,7 @@ export function createVisualConceptSetV1(input: {
     originalTerm: semantic?.anchor || input.intent.anchor || '', importance: 2, evidence: 'anchor',
     ...(semantic?.relation || input.intent.relation ? { relation: semantic?.relation || input.intent.relation } : {}),
   })
-  candidates.push({ originalTerm: input.intent.keyword, importance: 2, evidence: 'keyword',
+  if (!isSpanishVisualStopwordV1(input.intent.keyword)) candidates.push({ originalTerm: input.intent.keyword, importance: 2, evidence: 'keyword',
     ...(input.intent.relation ? { relation: input.intent.relation } : {}) })
   for (const concept of input.intent.concepts) candidates.push({ originalTerm: concept, importance: 1,
     evidence: 'contextual-concept', ...(input.intent.relation ? { relation: input.intent.relation } : {}) })

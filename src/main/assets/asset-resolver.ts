@@ -497,18 +497,19 @@ function existingOpenMojiAsset(
 
 function retrievalMetaphor(retrieval: VisualRetrievalDecisionV1): MetaphorCandidateV1 | null {
   const selected = retrieval.selectedHero
-  const primary = retrieval.concepts.primary
-  if (!selected || !primary) return null
-  const complex = primary.subject === 'place' || primary.subject === 'event' ||
-    /(?:astronaut|worker|construction|stadium|bridge|hospital|building)/i.test(primary.normalizedTerm)
-  const interiorDetail = /(?:football|soccer|ball|stadium|bridge|construction)/i.test(primary.normalizedTerm)
+  const concept = [retrieval.concepts.primary, retrieval.concepts.secondary, retrieval.concepts.tertiary]
+    .find(value => value?.normalizedTerm === selected?.concept)
+  if (!selected || !concept) return null
+  const complex = concept.subject === 'place' || concept.subject === 'event' ||
+    /(?:astronaut|worker|construction|stadium|bridge|hospital|building)/i.test(concept.normalizedTerm)
+  const interiorDetail = /(?:football|soccer|ball|stadium|bridge|construction)/i.test(concept.normalizedTerm)
   return {
-    id: 'retrieval-' + primary.normalizedTerm.replace(/\s+/g, '-').slice(0, 56),
-    label: 'recuperación visual → ' + primary.originalTerm,
+    id: 'retrieval-' + concept.normalizedTerm.replace(/\s+/g, '-').slice(0, 56),
+    label: 'recuperación visual → ' + concept.originalTerm,
     family: complex ? 'flat-illustration' : 'icon-monochrome',
     kind: complex ? 'complex-illustration' : 'simple-icon',
     score: selected.score === 3 ? 3 : 2,
-    openmojiQuery: selected.query ?? primary.normalizedTerm,
+    openmojiQuery: selected.query ?? concept.normalizedTerm,
     ...(selected.provider === 'openmoji' && selected.stableId ? { expectedStableId: selected.stableId } : {}),
     ...(selected.provider === 'solar' && selected.solarBase ? { solarName: selected.solarBase } : {}),
     preferProvider: selected.provider === 'solar' ? 'solar' : 'openmoji',

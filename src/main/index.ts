@@ -17,6 +17,7 @@ export * from './assets/openmoji/publish'
 // before hashing/rendering. It never runs inside the renderer.
 export * from '../shared/asset-intent'
 export * from '../shared/visual-concepts'
+export * from '../shared/visual-term-filter'
 export * from '../shared/concept-lexicon'
 export * from './assets/asset-resolver'
 export * from './assets/visual-retrieval'

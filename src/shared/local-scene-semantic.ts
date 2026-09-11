@@ -23,6 +23,8 @@ export type LocalSceneConceptV1 = {
   canonicalHint?: string
   start?: number
   end?: number
+  /** Explicit origin scope; modern V15 contexts mark same-visualClip concepts as `scene`. */
+  scope?: 'scene' | 'context'
 }
 
 export type DirectConcreteEvidenceV1 = {
@@ -160,12 +162,14 @@ function conceptFromUnknown(value: unknown): LocalSceneConceptV1 | null {
   const emoji = cleanText(value.emoji, 'emoji', 32)
   const start = typeof value.start === 'number' && Number.isFinite(value.start) ? value.start : undefined
   const end = typeof value.end === 'number' && Number.isFinite(value.end) ? value.end : undefined
+  const scope = value.scope === 'context' ? 'context' : value.scope === 'scene' ? 'scene' : undefined
   if (!label && !canonicalHint) return null
   return {
     label: label ?? canonicalHint!,
     ...(emoji ? { emoji } : {}),
     ...(canonicalHint ? { canonicalHint } : {}),
     ...(start !== undefined && end !== undefined && end >= start ? { start, end } : {}),
+    ...(scope ? { scope } : {}),
   }
 }
 
