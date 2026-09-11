@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "base": "e6aae78e399419417e029eca0d35490d9effd961",
+  "sourceFixtureSha256": "53d88e5282ef9f66ed3c37d4ac4bbc718b08dbd518e7c5e7f347d1c06e6f0c91",
+  "projectType": "temporary-.cipher-test-fixture",
+  "manuallyConstructedSceneSpecs": 0,
+  "manuallyPublishedAssets": 0,
+  "scenes": [
+    {
+      "sceneId": "visual-20:1",
+      "keyword": "potencial",
+      "concepts": [
+        "seedling",
+        "water",
+        "luz"
+      ],
+      "choices": [
+        {
+          "slotId": "hero",
+          "concept": "seedling",
+          "provider": "openmoji",
+          "stableId": "openmoji:1f331",
+          "assetId": "openmoji-1f331-5f7b280dd043",
+          "reason": "C_PRIMARY_OPENMOJI_REUSED"
+        },
+        {
+          "slotId": "support-1",
+          "concept": "water",
+          "provider": "openmoji",
+          "stableId": "openmoji:1f4a7",
+          "assetId": "openmoji-1f4a7-ec3895fbd787",
+          "reason": "OPENMOJI_DIRECT_EMOJI:created"
+        },
+        {
+          "slotId": "support-2",
+          "concept": "luz",
+          "provider": "openmoji",
+          "stableId": "openmoji:2600",
+          "assetId": "openmoji-2600-cf039475b1c7",
+          "reason": "OPENMOJI_DIRECT_EMOJI:created"
+        }
+      ],
+      "sceneSpecVersion": 2,
+      "bindingsVersion": 2,
+      "treatments": [
+        "original-color",
+        "original-color",
+        "original-color"
+      ],
+      "qc": [],
+      "pixelIdentity": "{\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"marcoPoster\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":159500},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"marcoPoster\",\"relationStyle\":\"frame\",\"slotLayouts\":[{\"backing\":\"neutral-plate\",\"crop\":\"none\",\"envelope\":{\"height\":48,\"width\":66,\"x\":17,\"y\":15},\"opacity\":1,\"placement\":\"framed\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":17,\"width\":22,\"x\":9,\"y\":48},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":-5,\"slotId\":\"support-1\",\"zIndex\":6},{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":17,\"width\":22,\"x\":69,\"y\":48},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":5,\"slotId\":\"support-2\",\"zIndex\":6}],\"textAlignment\":\"center\",\"textBounds\":{\"height\":17,\"width\":78,\"x\":11,\"y\":69},\"textRegion\":\"bottom\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"5f7b280dd0435ea429e6086f18f11a4e02ce46b2497c2231a115feca40634513\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"ec3895fbd78797679bad1be852d05e659977a010764a7b049822ef7c687ae18c\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.16},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":5,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.33999999999999997},\"visibility\":{\"end\":1,\"start\":0.16}},\"role\":\"support-2\",\"sha256\":\"cf039475b1c737bd355572478013138e602814dae141928f7d50d819080ac4ab\",\"slotId\":\"support-2\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"center\",\"connector\":\"con el\",\"keyword\":\"potencial\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"editorial-strong\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"soft-sand\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}"
+    },
+    {
+      "sceneId": "visual-0:1",
+      "keyword": "redes",
+      "concepts": [
+        "mobile phone",
+        "viral",
+        "popular"
+      ],
+      "choices": [
+        {
+          "slotId": "hero",
+          "concept": "mobile phone",
+          "provider": "openmoji",
+          "stableId": "openmoji:1f4f1",
+          "assetId": "openmoji-1f4f1-a69cdc48cf92",
+          "reason": "C_PRIMARY_OPENMOJI_REUSED"
+        },
+        {
+          "slotId": "support-1",
+          "concept": "viral",
+          "provider": "openmoji",
+          "stableId": "openmoji:1f517",
+          "assetId": "openmoji-1f517-80ee4d83227a",
+          "reason": "OPENMOJI_DIRECT_EMOJI:created"
+        },
+        {
+          "slotId": "support-2",
+          "concept": "popular",
+          "provider": "openmoji",
+          "stableId": "openmoji:2b50",
+          "assetId": "openmoji-2b50-0927c3818e30",
+          "reason": "OPENMOJI_DIRECT_EMOJI:created"
+        }
+      ],
+      "sceneSpecVersion": 2,
+      "bindingsVersion": 2,
+      "treatments": [
+        "original-color",
+        "original-color",
+        "original-color"
+      ],
+      "qc": [],
+      "pixelIdentity": "{\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"partidoVertical\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":159501},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"partidoVertical\",\"relationStyle\":\"split-axis\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":50,\"width\":43,\"x\":48,\"y\":19},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":18,\"width\":23,\"x\":15,\"y\":57},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":5},{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":15,\"width\":18,\"x\":12,\"y\":13.8},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"support-2\",\"zIndex\":5}],\"textAlignment\":\"right\",\"textBounds\":{\"height\":54,\"width\":34,\"x\":9,\"y\":20},\"textRegion\":\"left\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"a69cdc48cf92ad4d52a58847393a2403c469673d2738fd88de01273817a6f9ab\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"80ee4d83227a8aa2b7f4f0efb2c3fad0c11bf231f1e8c0206364650b27239574\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.16},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":5,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.33999999999999997},\"visibility\":{\"end\":1,\"start\":0.16}},\"role\":\"support-2\",\"sha256\":\"0927c3818e30711a17aa2a14b6b7383f4aab767c865d8f88ad491e91b0de49f0\",\"slotId\":\"support-2\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"right\",\"connector\":\"en\",\"keyword\":\"redes\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"elegant-serif\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"paper\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}"
+    },
+    {
+      "sceneId": "visual-2:1",
+      "keyword": "nombrados",
+      "concepts": [
+        "woman",
+        "expediente",
+        "encarcelada"
+      ],
+      "choices": [
+        {
+          "slotId": "hero",
+          "concept": "woman",
+          "provider": "openmoji",
+          "stableId": "openmoji:1f469",
+          "assetId": "openmoji-1f469-d84f2fac09bb",
+          "reason": "C_PRIMARY_OPENMOJI_REUSED"
+        },
+        {
+          "slotId": "support-1",
+          "concept": "expediente",
+          "provider": "openmoji",
+          "stableId": "openmoji:1f4c1",
+          "assetId": "openmoji-1f4c1-dcf60816cfc6",
+          "reason": "OPENMOJI_DIRECT_EMOJI:created"
+        },
+        {
+          "slotId": "support-2",
+          "concept": "encarcelada",
+          "provider": "openmoji",
+          "stableId": "openmoji:1f512",
+          "assetId": "openmoji-1f512-32cef5a4ec41",
+          "reason": "OPENMOJI_DIRECT_EMOJI:created"
+        }
+      ],
+      "sceneSpecVersion": 2,
+      "bindingsVersion": 2,
+      "treatments": [
+        "original-color",
+        "original-color",
+        "original-color"
+      ],
+      "qc": [],
+      "pixelIdentity": "{\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"rayosImpacto\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":159502},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"rayosImpacto\",\"relationStyle\":\"impact\",\"slotLayouts\":[{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":46,\"width\":62,\"x\":19,\"y\":16},\"opacity\":1,\"placement\":\"center-dominant\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":5},{\"backing\":\"neutral-plate\",\"crop\":\"none\",\"envelope\":{\"height\":17,\"width\":22,\"x\":8.5,\"y\":45},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":-7,\"slotId\":\"support-1\",\"zIndex\":6},{\"backing\":\"neutral-plate\",\"crop\":\"none\",\"envelope\":{\"height\":17,\"width\":22,\"x\":69.5,\"y\":45},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":7,\"slotId\":\"support-2\",\"zIndex\":6}],\"textAlignment\":\"center\",\"textBounds\":{\"height\":22,\"width\":82,\"x\":9,\"y\":64},\"textRegion\":\"bottom\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"d84f2fac09bbff1d876ea9b49a1129678ee063c76e78a9ddb6b49e876f36b4f2\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"dcf60816cfc6c22da70dbb2d27cad84bd5e80b7fefb2177e8621cf4fd0f9c0ef\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.16},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":5,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.33999999999999997},\"visibility\":{\"end\":1,\"start\":0.16}},\"role\":\"support-2\",\"sha256\":\"32cef5a4ec414512b909302b4d93520575bbeda2e249ec2f2a0855c295bfefb2\",\"slotId\":\"support-2\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"center\",\"connector\":\"los\",\"keyword\":\"nombrados\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"scale-punch\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"impact-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"warm-cream\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}"
+    },
+    {
+      "sceneId": "visual-3:2",
+      "keyword": "ejemplo",
+      "concepts": [
+        "estados",
+        "hambre",
+        "aguda"
+      ],
+      "choices": [],
+      "sceneSpecVersion": 2,
+      "bindingsVersion": 2,
+      "treatments": [],
+      "qc": [],
+      "pixelIdentity": "{\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"editorial\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":159503},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"editorial\",\"relationStyle\":\"none\",\"slotLayouts\":[],\"textAlignment\":\"left\",\"textBounds\":{\"height\":56,\"width\":80,\"x\":10,\"y\":22},\"textRegion\":\"center-editorial\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[],\"text\":{\"alignment\":\"left\",\"closing\":\"el hambre aguda alcanza\",\"connector\":\"que por\",\"keyword\":\"ejemplo\",\"maxLines\":3,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"closingStart\":0.32,\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"sport-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"ivory\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"editorial-text\"}"
+    },
+    {
+      "sceneId": "visual-7:0",
+      "keyword": "sociales",
+      "concepts": [
+        "mente",
+        "artificial intelligence",
+        "conexion"
+      ],
+      "choices": [
+        {
+          "slotId": "hero",
+          "concept": "mente",
+          "provider": "openmoji",
+          "stableId": "openmoji:1f9e0",
+          "assetId": "openmoji-1f9e0-c8fa6dea0788",
+          "reason": "C_PRIMARY_OPENMOJI_REUSED"
+        },
+        {
+          "slotId": "support-1",
+          "concept": "artificial intelligence",
+          "provider": "openmoji",
+          "stableId": "openmoji:2699",
+          "assetId": "openmoji-2699-4d3cebb81481",
+          "reason": "OPENMOJI_DIRECT_EMOJI:created"
+        },
+        {
+          "slotId": "support-2",
+          "concept": "conexion",
+          "provider": "openmoji",
+          "stableId": "openmoji:1f517",
+          "assetId": "openmoji-1f517-80ee4d83227a",
+          "reason": "OPENMOJI_DIRECT_EMOJI:reused"
+        }
+      ],
+      "sceneSpecVersion": 2,
+      "bindingsVersion": 2,
+      "treatments": [
+        "original-color",
+        "original-color",
+        "original-color"
+      ],
+      "qc": [],
+      "pixelIdentity": "{\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"engranajes\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":159504},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"engranajes\",\"relationStyle\":\"interlock\",\"slotLayouts\":[{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":31,\"width\":38,\"x\":31,\"y\":19.5},\"opacity\":1,\"placement\":\"center-dominant\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":6},{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":25,\"width\":30,\"x\":9,\"y\":46},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":5},{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":25,\"width\":30,\"x\":61,\"y\":46},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":0,\"slotId\":\"support-2\",\"zIndex\":5}],\"textAlignment\":\"center\",\"textBounds\":{\"height\":15,\"width\":76,\"x\":12,\"y\":71},\"textRegion\":\"bottom\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"c8fa6dea0788e42b8446f648d95dfe7af875dada28d8361f48be294fc36836e8\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"4d3cebb814816b75ca093010d17564b4f7a350edce40625c22067a8cf5d562df\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.16},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":5,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.33999999999999997},\"visibility\":{\"end\":1,\"start\":0.16}},\"role\":\"support-2\",\"sha256\":\"80ee4d83227a8aa2b7f4f0efb2c3fad0c11bf231f1e8c0206364650b27239574\",\"slotId\":\"support-2\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"center\",\"closing\":\"está en\",\"keyword\":\"sociales\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"closingStart\":0.32,\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"technical-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"soft-sand\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}"
+    },
+    {
+      "sceneId": "visual-8:1",
+      "keyword": "hacemos",
+      "concepts": [
+        "writing",
+        "texto",
+        "pantalla"
+      ],
+      "choices": [
+        {
+          "slotId": "hero",
+          "concept": "writing",
+          "provider": "openmoji",
+          "stableId": "openmoji:2328",
+          "assetId": "openmoji-2328-f9b4c287ecb2",
+          "reason": "C_PRIMARY_OPENMOJI_REUSED"
+        },
+        {
+          "slotId": "support-1",
+          "concept": "texto",
+          "provider": "openmoji",
+          "stableId": "openmoji:1f4dd",
+          "assetId": "openmoji-1f4dd-a5abbf351011",
+          "reason": "OPENMOJI_DIRECT_EMOJI:created"
+        },
+        {
+          "slotId": "support-2",
+          "concept": "pantalla",
+          "provider": "openmoji",
+          "stableId": "openmoji:1f5a5",
+          "assetId": "openmoji-1f5a5-14855ea42b28",
+          "reason": "OPENMOJI_DIRECT_EMOJI:created"
+        }
+      ],
+      "sceneSpecVersion": 2,
+      "bindingsVersion": 2,
+      "treatments": [
+        "original-color",
+        "original-color",
+        "original-color"
+      ],
+      "qc": [],
+      "pixelIdentity": "{\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"cuaderno\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":159505},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"cuaderno\",\"relationStyle\":\"document\",\"slotLayouts\":[{\"backing\":\"frame\",\"crop\":\"none\",\"envelope\":{\"height\":35,\"width\":38,\"x\":50,\"y\":18},\"opacity\":1,\"placement\":\"document-field\",\"rotationDeg\":2,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":21,\"width\":26,\"x\":11,\"y\":20},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":-3,\"slotId\":\"support-1\",\"zIndex\":5},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":19,\"width\":23,\"x\":63,\"y\":56},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":4,\"slotId\":\"support-2\",\"zIndex\":5}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":26,\"width\":49,\"x\":10,\"y\":58},\"textRegion\":\"document-margin\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"f9b4c287ecb256d2784d53f63aeee4f0db98d96340bbd330117f90520291fa90\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"a5abbf3510114c62e2544c689a35efe8bf1c3e1fa9914df0db3a598385eb7006\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.16},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":5,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.33999999999999997},\"visibility\":{\"end\":1,\"start\":0.16}},\"role\":\"support-2\",\"sha256\":\"14855ea42b283517da6932c7868e51f7868a5d9500607aa47956d634668276e0\",\"slotId\":\"support-2\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"connector\":\"lo que\",\"keyword\":\"hacemos\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"underline-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"sport-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"paper\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}"
+    },
+    {
+      "sceneId": "acceptance-photographer",
+      "keyword": "fotógrafa",
+      "concepts": [
+        "fotografa",
+        "documenta",
+        "retrato"
+      ],
+      "choices": [
+        {
+          "slotId": "hero",
+          "concept": "fotografa",
+          "provider": "pixabay-images",
+          "stableId": null,
+          "assetId": "pixabay-15915-83539d3adb41",
+          "reason": "PIXABAY_PREPARED:created"
+        }
+      ],
+      "sceneSpecVersion": 2,
+      "bindingsVersion": 2,
+      "treatments": [
+        "original-color"
+      ],
+      "qc": [],
+      "pixelIdentity": "{\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"anillosConcentricos\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":159506},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"anillosConcentricos\",\"relationStyle\":\"radial\",\"slotLayouts\":[{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":42,\"width\":52,\"x\":24,\"y\":19},\"opacity\":1,\"placement\":\"radial-center\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4}],\"textAlignment\":\"center\",\"textBounds\":{\"height\":22,\"width\":78,\"x\":11,\"y\":64},\"textRegion\":\"bottom\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"useful-alpha\",\"bounds\":{\"alphaBounds\":{\"height\":0.81875,\"width\":0.63125,\"x\":0.1875,\"y\":0.09375},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.503125,\"y\":0.503125},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0.08750000000000002,\"left\":0.1875,\"right\":0.18125000000000002,\"top\":0.09375},\"visibleHeightRatio\":0.81875,\"visibleWidthRatio\":0.63125},\"fitPolicy\":\"subject-contain\",\"kind\":\"photo-cutout\",\"mime\":\"image/png\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"83539d3adb41c911dc12afc8a1302c2413f4e9f55d01a05b91cef872cbb76248\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"center\",\"connector\":\"la\",\"keyword\":\"fotógrafa\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"impact-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"paper\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}"
+    }
+  ],
+  "summary": {
+    "scenes": 7,
+    "withHero": 6,
+    "editorialOnly": 1,
+    "providers": {
+      "openmoji": 15,
+      "pixabay-images": 1
+    },
+    "originalColorOpenMoji": 15,
+    "originalColorRaster": 1,
+    "qcRejected": 0
+  },
+  "video": {
+    "file": "production-retrieval-final.mp4",
+    "sha256": "a21c12d1b1fc371d79dd8f7edd2a93e527a27f42e18651dc93605e9ecbfb393a",
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 360,
+        "height": 640,
+        "r_frame_rate": "8/1"
+      }
+    ],
+    "format": {
+      "duration": "7.000000",
+      "size": "168748"
+    }
+  },
+  "sheet": {
+    "file": "production-retrieval-final.png",
+    "sha256": "a65839ba809da81aab20641c966416fbe4608f77fa83e81bd87d3d10d6356a29"
+  },
+  "forbiddenRenderNetworkAttempts": 0
+}

@@ -280,11 +280,12 @@ app.whenReady().then(async () => {
       assert(result.selectedSupport.every(candidate => candidate.role === 'support'))
       assert(result.deferredCandidates.every(candidate => candidate.deferredUntilRendererSupport))
     })
-    await runCase('11 escena humana/contextual puede quedar editorial de forma explícita', () => {
+    await runCase('11 una persona concreta puede producir Hero defendible', () => {
       const intent = bundle.createAssetIntentV1({ sceneId: 'police', keyword: 'policía', concepts: ['policía'] })
       const result = bundle.resolveVisualRetrievalV1({ intent })
-      assert.equal(result.selectedHero, null)
-      assert.equal(result.editorialReason, 'CONCEPT_EDITORIAL_ROLE')
+      assert.equal(result.selectedHero.provider, 'openmoji')
+      assert.match(result.selectedHero.stableId, /^openmoji:1f46e/)
+      assert.equal(result.editorialReason, null)
     })
     await runCase('12 errores históricos no entran como Hero', () => {
       for (const keyword of ['termodinámica', 'peatones', 'mástil']) {

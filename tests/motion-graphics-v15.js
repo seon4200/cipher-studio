@@ -79,7 +79,7 @@ function semanticContext (bundle, options = {}) {
   const sceneId = options.sceneId || 'motion-v15-context'
   const localSemantic = bundle.createLocalSceneSemanticV1({
     sceneId, start: 10, end: 13,
-    transcriptSegments: [{ start: 9.8, end: 13.2, text: options.text || 'el fútbol conecta el estadio y la celebración', words: [
+    transcriptSegments: [{ start: 9.8, end: 13.2, text: options.text || 'el fútbol conecta el estadio y la celebración', words: options.words || [
       { word: 'el', start: 9.9, end: 10.05 }, { word: options.keyword || 'fútbol', start: 10.1, end: 10.65 },
       { word: 'conecta', start: 10.7, end: 11.15 }, { word: 'estadio', start: 11.2, end: 11.8 },
       { word: 'celebración', start: 11.9, end: 12.7 },
@@ -377,16 +377,20 @@ app.whenReady().then(async () => {
       assert.equal(regenerated.resolved.trace.roleDecisions.length, regenerated.resolved.choices.length)
     })
     await runCase('31 Pixabay se busca y descarga antes del SceneSpec; render sólo recibe ProjectAsset', async () => {
-      const context = semanticContext(bundle, { sceneId: 'pixabay-person', keyword: 'policía', anchor: 'policía',
-        text: 'la policía protege el acceso', relation: 'protege', concepts: [{ label: 'policía', start: 10.1, end: 10.65 }] })
+      const context = semanticContext(bundle, { sceneId: 'pixabay-person', keyword: 'fotógrafa', anchor: 'fotógrafa',
+        text: 'la fotógrafa prepara el retrato', relation: 'documenta',
+        words: [{ word: 'la', start: 9.9, end: 10.05 }, { word: 'fotógrafa', start: 10.1, end: 10.65 },
+          { word: 'prepara', start: 10.7, end: 11.15 }, { word: 'el', start: 11.2, end: 11.35 },
+          { word: 'retrato', start: 11.4, end: 12.1 }],
+        concepts: [{ label: 'fotógrafa', start: 10.1, end: 10.65 }] })
       let searches = 0; let downloads = 0
       const result = (await bundle.resolveModernVisualGenerationBatchV2({ contexts: [context], projectRoot,
         pixabayApiKey: 'fixture-key',
         hooks: {
-          searchRequestJson: async () => { searches++; return { hits: [{ id: 7001,
-            pageURL: 'https://pixabay.com/illustrations/police-officer-7001/',
-            largeImageURL: 'https://cdn.pixabay.com/police-officer-7001.png', imageWidth: 1200, imageHeight: 900,
-            type: 'illustration', tags: 'police officer, isolated, uniform' }] } },
+          searchRequestJson: async url => { searches++; return /fotografa/i.test(url.searchParams.get('q') || '') ? { hits: [{ id: 7001,
+            pageURL: 'https://pixabay.com/illustrations/photographer-7001/',
+            largeImageURL: 'https://cdn.pixabay.com/photographer-7001.png', imageWidth: 1200, imageHeight: 900,
+            type: 'illustration', tags: 'fotografa, aislada, retrato' }] } : { hits: [] } },
           downloadRequestBytes: async () => { downloads++; return pngRgba(0) },
         } }))[0].resolved
       console.log('PIXABAY_MATERIALIZATION_PROBE=' + JSON.stringify({ searches, downloads,

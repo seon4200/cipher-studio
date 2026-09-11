@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "query": "airplane isolated",
+  "language": "en",
+  "searchOutcome": "OK",
+  "candidateCount": 20,
+  "selectedId": "10365947",
+  "mime": "image/png",
+  "width": 1280,
+  "height": 1280,
+  "hasAlpha": true,
+  "alphaUseful": true,
+  "byteLength": 211899,
+  "sha256": "480e23c8166e05587e774783d85efe33a2de26356bd3c41c64547c2a9f8d8cc4",
+  "projectAssetStatus": "created",
+  "userAgent": "Cipher-Studio/15 Pixabay-Images/1.0"
+}

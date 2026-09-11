@@ -219,7 +219,7 @@ app.whenReady().then(async () => {
       const result = resolve(scene('forensic-accidente'))
       assert.notEqual(result.decision.metaphor?.id, 'calendar')
       assert(!result.trace.providerCandidates.some(candidate => /calendar/i.test(candidate.identity)))
-      assert.equal(result.decision.visualMode, 'editorial-text', JSON.stringify(result.trace))
+      assert(!/calendar/i.test(result.decision.hero?.stableId || result.decision.hero?.solarName || ''), JSON.stringify(result.trace))
       const indignation = resolve(scene('forensic-indignacion'))
       assert.equal(indignation.keywordSelection.keyword.toLocaleLowerCase('es'), 'indignación')
       assert.equal(indignation.keywordSelection.reason, 'SCENE_KEYWORD_DIRECT_TIMED_MATCH')

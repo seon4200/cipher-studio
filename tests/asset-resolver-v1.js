@@ -210,13 +210,13 @@ app.whenReady().then(async () => {
     })
     await runCase('17 peatones no reciben no pedestrians', () => {
       const result = resolve(intent('pedestrians', 'peatones', { concepts: [{ etiqueta: 'puente' }] }))
-      assert.equal(result.decision.visualMode, 'editorial-text')
       assert(!result.trace.providerCandidates.some(candidate => /no pedestrians/i.test(candidate.annotation ?? candidate.identity)))
+      assert(!/no pedestrians/i.test(result.decision.hero?.stableId || result.decision.hero?.solarName || ''))
     })
     await runCase('18 mástil no recibe mastodon', () => {
       const result = resolve(intent('mast', 'mástil', { concepts: [{ etiqueta: 'barco' }] }))
-      assert.equal(result.decision.visualMode, 'editorial-text')
       assert(!result.trace.providerCandidates.some(candidate => /mastodon/i.test(candidate.annotation ?? candidate.identity)))
+      assert(!/mastodon/i.test(result.decision.hero?.stableId || result.decision.hero?.solarName || ''))
     })
     await runCase('19 icono simple resuelve accent-mask', () => {
       assert.equal(bundle.resolveAssetTreatment({ kind: 'simple-icon' }).effective, 'accent-mask')
