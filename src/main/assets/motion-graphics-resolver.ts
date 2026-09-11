@@ -30,6 +30,7 @@ import {
   materializeVideoVisualStyleV1,
   type VideoVisualStyleIdV1,
 } from '../../shared/visual-style-v1'
+import { materializeBackgroundProfileV1 } from '../../shared/background-profile-v1'
 import type { VisualConceptV1 } from '../../shared/visual-concepts'
 import type { LocalSemanticVisualDecisionResultV1 } from './semantic-decision'
 import {
@@ -430,6 +431,7 @@ function compileV2(input: {
     direccion: direction,
     videoStyle: materializeVideoVisualStyleV1({ videoStyleId: input.videoStyleId,
       sceneId: input.base.decision.sceneId, seed: directionV1.semilla }),
+    backgroundProfile: materializeBackgroundProfileV1('solid-black-v1'),
     layout: presentation.layout, text, slots, revisions: visualRevisionsV2(), fallbackVisual: 'editorial-text',
   })
   const renderBindings: RenderBindingsV2 = { version: 2, assets: input.choices.filter(choice => choice.asset).map(choice => ({
