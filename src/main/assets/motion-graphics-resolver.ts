@@ -47,6 +47,9 @@ import {
   subjectBoundsFromPixabayRasterV1,
   verifyPixabayImageAssetContentV1,
   type PixabayImageCandidateV1,
+  type PixabayRequestBytesV1,
+  type PixabayRequestJsonV1,
+  type PixabayTransportOutcomeV1,
 } from './pixabay-images'
 
 export const MOTION_GRAPHICS_RESOLVER_VERSION = 2 as const
@@ -127,8 +130,8 @@ export type MotionGraphicsResolutionV2 = {
 }
 
 export type MotionGraphicsProviderHooksV2 = {
-  searchRequestJson?: (url: URL) => Promise<unknown>
-  downloadRequestBytes?: (url: URL) => Promise<Buffer>
+  searchRequestJson?: PixabayRequestJsonV1
+  downloadRequestBytes?: PixabayRequestBytesV1
 }
 
 export class MotionGraphicsResolverError extends Error {
@@ -140,6 +143,12 @@ export class MotionGraphicsResolverError extends Error {
 
 function fail(code: string, message: string, details: Record<string, unknown> = {}): never {
   throw new MotionGraphicsResolverError(code, message, details)
+}
+
+function pixabayOutcome(error: unknown): Exclude<PixabayTransportOutcomeV1, 'OK' | 'NO_RESULTS' | 'NO_USABLE_RESULT'> {
+  const code = error && typeof error === 'object' && 'code' in error ? String((error as { code: unknown }).code) : ''
+  if (code === 'HTTP_429' || code === 'TIMEOUT' || code === 'INVALID_RESPONSE') return code
+  return 'NETWORK_ERROR'
 }
 
 export function createMotionGraphicsResolverSessionV2(): MotionGraphicsResolverSessionV2 {
@@ -230,20 +239,20 @@ async function pixabayChoice(input: {
     role: input.slotId === 'hero' ? 'hero' : 'support', maxPlans: 3 })
   for (const plan of plans.slice(0, 2)) {
     let searched
+    input.metrics.pixabayQueries++
     try {
       searched = await searchPixabayImagesV1({ plan, apiKey: input.apiKey,
         ...(input.hooks?.searchRequestJson ? { requestJson: input.hooks.searchRequestJson } : {}) })
-      input.metrics.pixabayQueries++
-    } catch {
+    } catch (error) {
       input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query, candidates: 0,
-        selected: null, outcome: 'SEARCH_FAILED' })
+        selected: null, outcome: pixabayOutcome(error) })
       continue
     }
     const ranked = searched.candidates.filter(candidate => candidate.score >= 2).slice(0, 3)
     const selected = selectPixabayImageCandidateV1(ranked)
     input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query,
       candidates: searched.candidates.length, selected: selected?.id ?? null,
-      outcome: selected ? 'CANDIDATE_SELECTED' : 'NO_USABLE_CANDIDATE' })
+      outcome: selected ? 'CANDIDATE_SELECTED' : searched.outcome })
     if (!selected) continue
     const candidates: PixabayImageCandidateV1[] = [selected, ...ranked.filter(candidate => candidate.id !== selected.id)].slice(0, 2)
     for (const candidate of candidates) {
@@ -275,9 +284,11 @@ async function pixabayChoice(input: {
           kind: published.asset.validation.alphaUseful ? 'photo-cutout' : 'raster-image',
           alphaMode: published.asset.validation.alphaUseful ? 'useful-alpha' : 'opaque-rectangle',
         }
-      } catch {
+      } catch (error) {
         input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query,
-          candidates: searched.candidates.length, selected: candidate.id, outcome: 'DOWNLOAD_OR_VALIDATION_REJECTED' })
+          candidates: searched.candidates.length, selected: candidate.id,
+          outcome: error && typeof error === 'object' && 'code' in error
+            ? String((error as { code: unknown }).code) : 'NETWORK_ERROR' })
       }
     }
   }

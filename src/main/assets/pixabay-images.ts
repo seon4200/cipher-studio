@@ -22,6 +22,37 @@ export const PIXABAY_IMAGES_PROVIDER_VERSION = 'api-v1' as const
 export const PIXABAY_IMAGE_VALIDATION_REVISION = 'pixabay-raster-v1' as const
 export const PIXABAY_MAX_IMAGE_BYTES = 20 * 1024 * 1024
 export const PIXABAY_MAX_DIMENSION = 16_384
+export const PIXABAY_MAX_CONCURRENT_REQUESTS = 2
+export const PIXABAY_MAX_RATE_LIMIT_RETRIES = 2
+export const PIXABAY_MAX_RETRY_WAIT_MS = 2_000
+export const PIXABAY_USER_AGENT = 'Cipher-Studio/15 Pixabay-Images/1.0'
+
+export type PixabayTransportOutcomeV1 =
+  | 'OK'
+  | 'HTTP_429'
+  | 'TIMEOUT'
+  | 'NETWORK_ERROR'
+  | 'NO_RESULTS'
+  | 'INVALID_RESPONSE'
+  | 'NO_USABLE_RESULT'
+
+export type PixabayRequestContextV1 = {
+  attempt: number
+  headers: Readonly<Record<string, string>>
+}
+
+export type PixabayRequestJsonV1 = (url: URL, context?: PixabayRequestContextV1) => Promise<unknown>
+export type PixabayRequestBytesV1 = (url: URL, context?: PixabayRequestContextV1) => Promise<Buffer>
+
+export const PIXABAY_JSON_REQUEST_HEADERS_V1: Readonly<Record<string, string>> = Object.freeze({
+  Accept: 'application/json',
+  'User-Agent': PIXABAY_USER_AGENT,
+})
+
+export const PIXABAY_IMAGE_REQUEST_HEADERS_V1: Readonly<Record<string, string>> = Object.freeze({
+  Accept: 'image/png,image/jpeg,image/webp',
+  'User-Agent': PIXABAY_USER_AGENT,
+})
 
 export type PixabayImageRoleV1 = 'hero' | 'support'
 export type PixabayImageResolutionTierV1 = 'low' | 'usable' | 'strong'
@@ -84,6 +115,7 @@ export type PixabaySearchResultV1 = {
   plan: PixabayImageSearchPlanV1
   candidates: readonly PixabayImageCandidateV1[]
   warnings: readonly string[]
+  outcome: Extract<PixabayTransportOutcomeV1, 'OK' | 'NO_RESULTS' | 'NO_USABLE_RESULT'>
 }
 
 export type RasterImageInspectionV1 = {
@@ -135,64 +167,102 @@ export function buildPixabayImageSearchPlansV1(input: {
   maxPlans?: number
 }): readonly PixabayImageSearchPlanV1[] {
   const maxPlans = Math.min(Math.max(Math.trunc(input.maxPlans ?? 3), 1), 4)
-  const sourceTerms = input.lexicon?.pixabayTerms?.length ? input.lexicon.pixabayTerms :
-    [input.concept.normalizedTerm, ...input.concept.aliases]
-  const terms = [...new Set(sourceTerms.map(canonical).filter(Boolean))].slice(0, maxPlans)
+  // `pixabayTerms` is the provider-facing EN vocabulary of ConceptLexicon. Without a
+  // lexicon hit the narrative term stays Spanish; ASCII characters are not language proof.
+  const lexiconEnglish = !!input.lexicon?.pixabayTerms?.length
+  const sourceTerms = lexiconEnglish ? input.lexicon!.pixabayTerms :
+    [input.concept.originalTerm, input.concept.normalizedTerm, ...input.concept.aliases]
+  const terms = [...new Set(sourceTerms.map(canonical).filter(Boolean))]
   const imageType = imageTypeFor(input.concept)
   const role = input.role ?? 'hero'
+  const language: 'es' | 'en' = lexiconEnglish ? 'en' : 'es'
+  const queryCandidates: Array<{ query: string; transparent: boolean; reason: string }> = []
+  const add = (query: string, transparent: boolean, reason: string) => {
+    const normalized = canonical(query)
+    if (!normalized || queryCandidates.some(value => canonical(value.query) === normalized)) return
+    queryCandidates.push({ query: normalized, transparent, reason })
+  }
+  const lead = terms[0]
+  if (lead) {
+    if (input.concept.subject === 'person') {
+      add(`${lead} ${language === 'en' ? 'isolated' : 'aislada'}`, true, 'PIXABAY_PERSON_ISOLATED')
+      add(`${lead} ${language === 'en' ? 'portrait isolated' : 'retrato aislado'}`, true, 'PIXABAY_PERSON_PORTRAIT')
+      add(`${lead} ${language === 'en' ? 'transparent' : 'transparente'}`, true, 'PIXABAY_PERSON_TRANSPARENT')
+    } else if (input.concept.subject !== 'place' && input.concept.subject !== 'event') {
+      add(`${lead} ${language === 'en' ? 'isolated' : 'aislado'}`, true, 'PIXABAY_ISOLATED_PRIMARY')
+      add(`${lead} ${language === 'en' ? 'transparent' : 'transparente'}`, true, 'PIXABAY_TRANSPARENT_VARIANT')
+    } else add(lead, false, 'PIXABAY_PROVIDER_TERM')
+  }
+  for (const term of terms.slice(1)) add(term, false, 'PIXABAY_LEXICON_TERM')
   const plans: PixabayImageSearchPlanV1[] = []
-  for (let index = 0; index < terms.length; index++) {
-    const term = terms[index]
-    const english = /^[a-z0-9 ]+$/i.test(term)
-    const isolated = index === 0 && input.concept.subject !== 'place' && input.concept.subject !== 'event'
-    const query = isolated ? term + ' isolated' : term
+  for (const value of queryCandidates.slice(0, maxPlans)) {
     plans.push(Object.freeze({
-      provider: 'pixabay-images', concept: input.concept.normalizedTerm, query,
+      provider: 'pixabay-images', concept: input.concept.normalizedTerm, query: value.query,
       role, subject: input.concept.subject,
-      language: english ? 'en' : 'es', imageType, orientation: 'all', transparentRequested: isolated,
-      level: input.level, reason: isolated ? 'PIXABAY_ISOLATED_PRIMARY' : 'PIXABAY_LEXICON_TERM',
-      parameters: Object.freeze({ q: query, lang: english ? 'en' : 'es', image_type: imageType,
-        orientation: 'all', safesearch: 'true', per_page: '20', ...(isolated ? { colors: 'transparent' } : {}) }),
+      language, imageType, orientation: 'all', transparentRequested: value.transparent,
+      level: input.level, reason: value.reason,
+      parameters: Object.freeze({ q: value.query, lang: language, image_type: imageType,
+        orientation: 'all', safesearch: 'true', per_page: '20', ...(value.transparent ? { colors: 'transparent' } : {}) }),
     }))
   }
   return Object.freeze(plans)
 }
 
-function requestJson(url: URL): Promise<unknown> {
+function retryAfterMilliseconds(value: string | string[] | undefined): number | undefined {
+  const raw = Array.isArray(value) ? value[0] : value
+  if (!raw) return undefined
+  const seconds = Number(raw)
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds * 1_000)
+  const timestamp = Date.parse(raw)
+  return Number.isFinite(timestamp) ? Math.max(0, timestamp - Date.now()) : undefined
+}
+
+function requestJson(url: URL, context?: PixabayRequestContextV1): Promise<unknown> {
   return new Promise((resolve, reject) => {
-    const request = https.get(url, { timeout: 10_000, headers: { Accept: 'application/json' } }, response => {
+    const request = https.get(url, { timeout: 10_000, headers: context?.headers ?? PIXABAY_JSON_REQUEST_HEADERS_V1 }, response => {
       const chunks: Buffer[] = []
       response.on('data', chunk => chunks.push(Buffer.from(chunk)))
       response.on('error', reject)
       response.on('end', () => {
-        if ((response.statusCode ?? 500) < 200 || (response.statusCode ?? 500) >= 300)
-          return reject(new PixabayImageError('PIXABAY_IMAGE_HTTP', 'Pixabay respondió HTTP ' + response.statusCode))
+        const status = response.statusCode ?? 500
+        if (status === 429) return reject(new PixabayImageError('HTTP_429', 'Pixabay limitó temporalmente las búsquedas', {
+          status, retryAfterMs: retryAfterMilliseconds(response.headers['retry-after']),
+        }))
+        if (status < 200 || status >= 300)
+          return reject(new PixabayImageError('NETWORK_ERROR', 'Pixabay respondió HTTP ' + status, { status }))
         try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))) }
-        catch { reject(new PixabayImageError('PIXABAY_IMAGE_RESPONSE_INVALID', 'Pixabay devolvió JSON inválido')) }
+        catch { reject(new PixabayImageError('INVALID_RESPONSE', 'Pixabay devolvió JSON inválido')) }
       })
     })
-    request.once('timeout', () => request.destroy(new PixabayImageError('PIXABAY_IMAGE_TIMEOUT', 'Pixabay excedió el tiempo límite')))
+    request.once('timeout', () => request.destroy(new PixabayImageError('TIMEOUT', 'Pixabay excedió el tiempo límite')))
     request.once('error', reject)
   })
 }
 
-function requestBytes(url: URL, redirects = 0): Promise<Buffer> {
-  if (redirects > 3) return Promise.reject(new PixabayImageError('PIXABAY_IMAGE_REDIRECT_LIMIT', 'Demasiadas redirecciones'))
+function requestBytes(url: URL, context?: PixabayRequestContextV1, redirects = 0): Promise<Buffer> {
+  if (redirects > 3) return Promise.reject(new PixabayImageError('INVALID_RESPONSE', 'Demasiadas redirecciones'))
   return new Promise((resolve, reject) => {
-    const request = https.get(url, { timeout: 15_000, headers: { Accept: 'image/png,image/jpeg,image/webp' } }, response => {
+    const request = https.get(url, { timeout: 15_000, headers: context?.headers ?? PIXABAY_IMAGE_REQUEST_HEADERS_V1 }, response => {
       const status = response.statusCode ?? 500
       if (status >= 300 && status < 400 && response.headers.location) {
         response.resume()
         let next: URL
         try { next = new URL(response.headers.location, url) }
-        catch { return reject(new PixabayImageError('PIXABAY_IMAGE_INVALID_URL', 'Redirección Pixabay inválida')) }
-        if (next.protocol !== 'https:') return reject(new PixabayImageError('PIXABAY_IMAGE_INVALID_URL', 'Redirección no HTTPS'))
-        requestBytes(next, redirects + 1).then(resolve, reject)
+        catch { return reject(new PixabayImageError('INVALID_RESPONSE', 'Redirección Pixabay inválida')) }
+        if (next.protocol !== 'https:') return reject(new PixabayImageError('INVALID_RESPONSE', 'Redirección no HTTPS'))
+        requestBytes(next, context, redirects + 1).then(resolve, reject)
+        return
+      }
+      if (status === 429) {
+        response.resume()
+        reject(new PixabayImageError('HTTP_429', 'Pixabay limitó temporalmente la descarga', {
+          status, retryAfterMs: retryAfterMilliseconds(response.headers['retry-after']),
+        }))
         return
       }
       if (status < 200 || status >= 300) {
         response.resume()
-        reject(new PixabayImageError('PIXABAY_IMAGE_DOWNLOAD_HTTP', 'Descarga Pixabay respondió HTTP ' + status))
+        reject(new PixabayImageError('NETWORK_ERROR', 'Descarga Pixabay respondió HTTP ' + status, { status }))
         return
       }
       const chunks: Buffer[] = []
@@ -209,25 +279,90 @@ function requestBytes(url: URL, redirects = 0): Promise<Buffer> {
       response.once('error', reject)
       response.once('end', () => resolve(Buffer.concat(chunks)))
     })
-    request.once('timeout', () => request.destroy(new PixabayImageError('PIXABAY_IMAGE_TIMEOUT', 'Descarga Pixabay excedió el tiempo límite')))
+    request.once('timeout', () => request.destroy(new PixabayImageError('TIMEOUT', 'Descarga Pixabay excedió el tiempo límite')))
     request.once('error', reject)
   })
+}
+
+let activePixabayRequests = 0
+const pixabayRequestQueue: Array<() => void> = []
+
+async function acquirePixabayRequestSlot(): Promise<void> {
+  if (activePixabayRequests < PIXABAY_MAX_CONCURRENT_REQUESTS) {
+    activePixabayRequests++
+    return
+  }
+  await new Promise<void>(resolve => pixabayRequestQueue.push(resolve))
+}
+
+function releasePixabayRequestSlot(): void {
+  const next = pixabayRequestQueue.shift()
+  if (next) next()
+  else activePixabayRequests--
+}
+
+function transportError(error: unknown): PixabayImageError {
+  if (error instanceof PixabayImageError) return error
+  const value = error && typeof error === 'object' ? error as { code?: unknown; details?: unknown; message?: unknown } : undefined
+  const code = typeof value?.code === 'string' ? value.code : ''
+  if (code === 'HTTP_429') return new PixabayImageError('HTTP_429', String(value?.message ?? 'Pixabay limitó la petición'),
+    value?.details && typeof value.details === 'object' ? value.details as Record<string, unknown> : {})
+  if (code === 'ETIMEDOUT' || code === 'ESOCKETTIMEDOUT' || code === 'TIMEOUT')
+    return new PixabayImageError('TIMEOUT', 'Pixabay excedió el tiempo límite', { transportCode: code })
+  return new PixabayImageError('NETWORK_ERROR', 'No se pudo conectar con Pixabay', {
+    ...(code ? { transportCode: code } : {}),
+  })
+}
+
+function boundedRetryDelay(error: PixabayImageError, attempt: number): number | null {
+  const declared = Number(error.details.retryAfterMs)
+  const fallback = 250 * 2 ** attempt
+  const delay = Number.isFinite(declared) && declared >= 0 ? declared : fallback
+  return delay <= PIXABAY_MAX_RETRY_WAIT_MS ? delay : null
+}
+
+async function runPixabayRequestV1<T>(input: {
+  url: URL
+  headers: Readonly<Record<string, string>>
+  request: (url: URL, context?: PixabayRequestContextV1) => Promise<T>
+  wait?: (milliseconds: number) => Promise<void>
+}): Promise<T> {
+  await acquirePixabayRequestSlot()
+  try {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await input.request(input.url, { attempt: attempt + 1, headers: input.headers })
+      } catch (raw) {
+        const error = transportError(raw)
+        if (error.code !== 'HTTP_429' || attempt >= PIXABAY_MAX_RATE_LIMIT_RETRIES) throw error
+        const delay = boundedRetryDelay(error, attempt)
+        if (delay === null) throw new PixabayImageError('HTTP_429', error.message, {
+          ...error.details, retryDeferred: true, maxWaitMs: PIXABAY_MAX_RETRY_WAIT_MS,
+        })
+        await (input.wait ?? (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds))))(delay)
+      }
+    }
+  } finally {
+    releasePixabayRequestSlot()
+  }
 }
 
 /** Explicit pre-render download. It is dependency-injectable so tests can prove renderer/network separation. */
 export async function downloadPixabayImageBytesV1(input: {
   candidate: PixabayImageCandidateV1
-  requestBytes?: (url: URL) => Promise<Buffer>
+  requestBytes?: PixabayRequestBytesV1
+  wait?: (milliseconds: number) => Promise<void>
 }): Promise<Buffer> {
   const url = new URL(safeUrl(input.candidate.downloadUrl, 'candidate.downloadUrl'))
-  const bytes = await (input.requestBytes ?? requestBytes)(url)
+  const bytes = await runPixabayRequestV1({ url, headers: PIXABAY_IMAGE_REQUEST_HEADERS_V1,
+    request: input.requestBytes ?? requestBytes, ...(input.wait ? { wait: input.wait } : {}) })
   inspectPixabayRasterImageV1(bytes)
   return bytes
 }
 
 function parsedHits(value: unknown): unknown[] {
   if (!value || typeof value !== 'object' || !Array.isArray((value as { hits?: unknown }).hits))
-    fail('PIXABAY_IMAGE_RESPONSE_INVALID', 'Respuesta de Pixabay sin hits')
+    fail('INVALID_RESPONSE', 'Respuesta de Pixabay sin hits')
   return (value as { hits: unknown[] }).hits
 }
 
@@ -335,17 +470,22 @@ function candidateFromHit(hit: unknown, plan: PixabayImageSearchPlanV1): Pixabay
 export async function searchPixabayImagesV1(input: {
   plan: PixabayImageSearchPlanV1
   apiKey?: string
-  requestJson?: (url: URL) => Promise<unknown>
+  requestJson?: PixabayRequestJsonV1
+  wait?: (milliseconds: number) => Promise<void>
 }): Promise<PixabaySearchResultV1> {
   const apiKey = typeof input.apiKey === 'string' ? input.apiKey.trim() : ''
-  if (!apiKey) return { plan: input.plan, candidates: [], warnings: ['PIXABAY_IMAGE_API_KEY_ABSENT'] }
+  if (!apiKey) return { plan: input.plan, candidates: [], warnings: ['PIXABAY_IMAGE_API_KEY_ABSENT'], outcome: 'NO_RESULTS' }
   const url = new URL('https://pixabay.com/api/')
   for (const [key, value] of Object.entries(input.plan.parameters)) url.searchParams.set(key, value)
   url.searchParams.set('key', apiKey)
-  const response = await (input.requestJson ?? requestJson)(url)
-  const candidates = rankPixabayImageCandidatesV1(parsedHits(response).map(hit => candidateFromHit(hit, input.plan))
+  const response = await runPixabayRequestV1({ url, headers: PIXABAY_JSON_REQUEST_HEADERS_V1,
+    request: input.requestJson ?? requestJson, ...(input.wait ? { wait: input.wait } : {}) })
+  const hits = parsedHits(response)
+  const candidates = rankPixabayImageCandidatesV1(hits.map(hit => candidateFromHit(hit, input.plan))
     .filter((value): value is PixabayImageCandidateV1 => !!value)).slice(0, 40)
-  return { plan: input.plan, candidates: Object.freeze(candidates), warnings: Object.freeze([]) }
+  const outcome: PixabaySearchResultV1['outcome'] = !hits.length ? 'NO_RESULTS'
+    : candidates.some(candidate => candidate.score >= 2) ? 'OK' : 'NO_USABLE_RESULT'
+  return { plan: input.plan, candidates: Object.freeze(candidates), warnings: Object.freeze([]), outcome }
 }
 
 function readUInt24LE(bytes: Buffer, offset: number): number {
