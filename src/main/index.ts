@@ -21,8 +21,10 @@ export * from '../shared/visual-term-filter'
 export * from '../shared/concept-lexicon'
 export * from './assets/asset-resolver'
 export * from './assets/visual-retrieval'
+export * from './assets/asset-representation'
 export * from './assets/solar-index'
 export * from './assets/pixabay-images'
+export * from './assets/cutout-transform'
 export * from '../shared/local-scene-semantic'
 export * from './assets/semantic-decision'
 export * from './assets/modern-visual-generation'
@@ -52,6 +54,7 @@ import {
   resolveModernVisualGenerationBatchV1,
   resolveModernVisualGenerationBatchV2,
 } from './assets/modern-visual-generation'
+import { summarizeMotionGraphicsVideoMetricsV2 } from './assets/motion-graphics-resolver'
 import { writeVisualDecisionDiagnostic } from './services/visual-decision-diagnostics'
 import { prepareOriginalClipSegmentation } from './services/original-clip-segmentation'
 import { prepareGraphicForVisualRender, visualRenderRoot } from './assets/visual-render'
@@ -5131,6 +5134,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             },
           });
         }
+        const motionGraphicsVideoMetrics = summarizeMotionGraphicsVideoMetricsV2(
+          resueltosModernos.map(({ resolved }) => resolved),
+        );
         if (PROYECTO_VISUAL) {
           const generationId = `visual-decisions-${Date.now()}-${randomUUID()}`;
           try {
@@ -5145,6 +5151,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
                 resolverDegradedVisuals,
                 substitutedWithOriginal,
                 reasons: Object.fromEntries([...diagnosticReasons.entries()].sort(([a], [b]) => a.localeCompare(b, 'en'))),
+                motionGraphics: motionGraphicsVideoMetrics,
               },
               scenes: diagnosticScenes,
             });

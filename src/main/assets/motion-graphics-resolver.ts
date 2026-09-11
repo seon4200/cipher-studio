@@ -1,5 +1,3 @@
-import fs from 'fs'
-import path from 'path'
 import { canonicalNarrativeTerm } from '../../shared/asset-intent'
 import type { ProjectAssetRecord } from '../../shared/project-state'
 import { readAssetStorage } from '../services/project-persistence'
@@ -47,16 +45,24 @@ import {
   deriveEditorialTextV2,
 } from './asset-resolver'
 import type { VisualRetrievalCandidateV1 } from './visual-retrieval'
+import {
+  resolveAssetRepresentationPreferenceV1,
+  type AssetRepresentationPreferenceV1,
+} from './asset-representation'
+import {
+  materializePhotoCutoutV1,
+  type CutoutRuntimeConfigV1,
+  type CutoutTransformHooksV1,
+} from './cutout-transform'
 import { publishOpenMojiAsset, verifyProjectAssetContent } from './openmoji/publish'
 import {
   buildPixabayImageSearchPlansV1,
   downloadPixabayImageBytesV1,
   findReusablePixabayImageAssetV1,
   publishPixabayImageAssetV1,
+  readVerifiedRasterProjectAssetContentV1,
   searchPixabayImagesV1,
   selectPixabayImageCandidateV1,
-  subjectBoundsFromPixabayRasterV1,
-  verifyPixabayImageAssetContentV1,
   type PixabayImageCandidateV1,
   type PixabayRequestBytesV1,
   type PixabayRequestJsonV1,
@@ -68,7 +74,8 @@ export const MOTION_GRAPHICS_RESOLVER_VERSION = 2 as const
 export type MaterializedVisualChoiceV2 = {
   slotId: 'hero' | 'support-1' | 'support-2'
   concept: string
-  provider: 'openmoji' | 'pixabay-images' | 'solar'
+  provider: 'openmoji' | 'pixabay-images' | 'photo-cutout' | 'solar'
+  representation: AssetRepresentationPreferenceV1
   reason: string
   score: 2 | 3
   asset?: ProjectAssetRecord
@@ -84,6 +91,8 @@ export type LockedVisualChoiceV2 = {
   slotId: MaterializedVisualChoiceV2['slotId']
   concept: string
   provider: MaterializedVisualChoiceV2['provider']
+  /** Absent only on V15 contexts persisted before Photo Cutout Production V1. */
+  representation?: AssetRepresentationPreferenceV1
   reason: string
   score: 2 | 3
   assetId?: string
@@ -113,6 +122,7 @@ export type MotionGraphicsTraceV2 = {
   sceneId: string
   concepts: Array<{ role: 'hero' | 'support-1' | 'support-2'; concept: string; subject: string; evidence: string }>
   roleDecisions: Array<{ role: string; concept: string; provider: string | null; identity: string | null; reason: string; score: number | null }>
+  representation: Array<{ role: string; concept: string; preference: AssetRepresentationPreferenceV1; reason: string; outcome: string }>
   pixabay: Array<{ concept: string; query: string; candidates: number; selected: string | null; outcome: string }>
   family: ModernLayoutStructureV4
   videoStyleId: VideoVisualStyleIdV1
@@ -146,12 +156,79 @@ export type MotionGraphicsResolutionV2 = {
     openMojiPublished: number
     openMojiReused: number
     supportsMaterialized: number
+    photoCutoutHero: number
+    photoCutoutSupport: number
+    fullRasterHero: number
+    fullRasterSupport: number
+    openMojiHero: number
+    openMojiSupport: number
+    solarHero: number
+    solarSupport: number
+    editorialOnly: number
+    cutoutAttempted: number
+    cutoutUsable: number
+    cutoutSuspicious: number
+    cutoutFailed: number
+    cutoutCacheHit: number
+    cutoutProcessingMs: number[]
   }
+}
+
+/**
+ * Project-local diagnostics only.  It deliberately aggregates decisions after resolution and is
+ * never copied into SceneSpec, RenderBindings, PixelIdentity or the renderer cache key.
+ */
+export type MotionGraphicsVideoMetricsV2 = {
+  visualScenes: number
+  photoCutoutHero: number
+  photoCutoutSupport: number
+  fullRasterHero: number
+  fullRasterSupport: number
+  openMojiHero: number
+  openMojiSupport: number
+  solarHero: number
+  solarSupport: number
+  editorialOnly: number
+  cutoutAttempted: number
+  cutoutUsable: number
+  cutoutSuspicious: number
+  cutoutFailed: number
+  cutoutCacheHit: number
+  averageCutoutMs: number | null
+  p95CutoutMs: number | null
+}
+
+export function summarizeMotionGraphicsVideoMetricsV2(
+  resolutions: readonly Pick<MotionGraphicsResolutionV2, 'metrics'>[],
+): MotionGraphicsVideoMetricsV2 {
+  const totals = {
+    visualScenes: resolutions.length,
+    photoCutoutHero: 0, photoCutoutSupport: 0, fullRasterHero: 0, fullRasterSupport: 0,
+    openMojiHero: 0, openMojiSupport: 0, solarHero: 0, solarSupport: 0, editorialOnly: 0,
+    cutoutAttempted: 0, cutoutUsable: 0, cutoutSuspicious: 0, cutoutFailed: 0, cutoutCacheHit: 0,
+  }
+  const times: number[] = []
+  for (const { metrics } of resolutions) {
+    totals.photoCutoutHero += metrics.photoCutoutHero; totals.photoCutoutSupport += metrics.photoCutoutSupport
+    totals.fullRasterHero += metrics.fullRasterHero; totals.fullRasterSupport += metrics.fullRasterSupport
+    totals.openMojiHero += metrics.openMojiHero; totals.openMojiSupport += metrics.openMojiSupport
+    totals.solarHero += metrics.solarHero; totals.solarSupport += metrics.solarSupport
+    totals.editorialOnly += metrics.editorialOnly; totals.cutoutAttempted += metrics.cutoutAttempted
+    totals.cutoutUsable += metrics.cutoutUsable; totals.cutoutSuspicious += metrics.cutoutSuspicious
+    totals.cutoutFailed += metrics.cutoutFailed; totals.cutoutCacheHit += metrics.cutoutCacheHit
+    times.push(...metrics.cutoutProcessingMs.filter(value => Number.isFinite(value) && value >= 0))
+  }
+  const sorted = [...times].sort((a, b) => a - b)
+  const averageCutoutMs = sorted.length ? sorted.reduce((sum, value) => sum + value, 0) / sorted.length : null
+  const p95CutoutMs = sorted.length ? sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * .95) - 1)] : null
+  return { ...totals, averageCutoutMs, p95CutoutMs }
 }
 
 export type MotionGraphicsProviderHooksV2 = {
   searchRequestJson?: PixabayRequestJsonV1
   downloadRequestBytes?: PixabayRequestBytesV1
+  cutout?: CutoutTransformHooksV1
+  cutoutRuntime?: CutoutRuntimeConfigV1 | null
 }
 
 export class MotionGraphicsResolverError extends Error {
@@ -194,7 +271,7 @@ function manifestAsset(projectRoot: string, assetId: string): ProjectAssetRecord
 function lockChoice(choice: MaterializedVisualChoiceV2): LockedVisualChoiceV2 {
   return {
     slotId: choice.slotId, concept: choice.concept, provider: choice.provider, reason: choice.reason,
-    score: choice.score, ...(choice.asset ? { assetId: choice.asset.id, relativeFile: choice.asset.relativeFile,
+    representation: choice.representation, score: choice.score, ...(choice.asset ? { assetId: choice.asset.id, relativeFile: choice.asset.relativeFile,
       sha256: choice.asset.sha256, mime: choice.asset.mime } : {}),
     ...(choice.stableId ? { stableId: choice.stableId } : {}),
     ...(choice.solarIcon ? { solarIcon: choice.solarIcon, solarStyle: choice.solarStyle } : {}),
@@ -205,16 +282,18 @@ function lockChoice(choice: MaterializedVisualChoiceV2): LockedVisualChoiceV2 {
 function restoreLockedChoice(projectRoot: string, locked: LockedVisualChoiceV2): MaterializedVisualChoiceV2 | null {
   if (locked.provider === 'solar') {
     if (!locked.solarIcon || !locked.solarStyle) return null
-    return { ...locked, provider: 'solar', solarIcon: locked.solarIcon, solarStyle: locked.solarStyle }
+    return { ...locked, provider: 'solar', representation: locked.representation ?? 'symbolic',
+      solarIcon: locked.solarIcon, solarStyle: locked.solarStyle }
   }
   if (!locked.assetId || !locked.relativeFile || !locked.sha256 || !locked.mime) return null
   const asset = manifestAsset(projectRoot, locked.assetId)
   if (!asset || asset.relativeFile !== locked.relativeFile || asset.sha256 !== locked.sha256 || asset.mime !== locked.mime) return null
   try {
     if (locked.provider === 'openmoji') verifyProjectAssetContent(projectRoot, asset)
-    else verifyPixabayImageAssetContentV1(projectRoot, asset)
+    else readVerifiedRasterProjectAssetContentV1(projectRoot, asset)
   } catch { return null }
-  return { ...locked, asset }
+  return { ...locked, representation: locked.representation ??
+    (locked.provider === 'pixabay-images' ? 'full-raster' : 'photo-cutout'), asset }
 }
 
 function kindForConcept(concept: VisualConceptV1): VisualAssetKindV2 {
@@ -227,12 +306,14 @@ function openMojiChoice(input: {
   slotId: MaterializedVisualChoiceV2['slotId']
   concept: VisualConceptV1
   candidate: VisualRetrievalCandidateV1
+  representation?: Extract<AssetRepresentationPreferenceV1, 'icon' | 'symbolic'>
 }): MaterializedVisualChoiceV2 | null {
   if (!input.candidate.stableId) return null
   try {
     const published = publishOpenMojiAsset({ projectRoot: input.projectRoot, stableId: input.candidate.stableId })
     return {
       slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'openmoji',
+      representation: input.representation ?? 'icon',
       reason: `${input.candidate.reason}:${published.status}`, score: input.candidate.score >= 3 ? 3 : 2,
       asset: published.asset, stableId: input.candidate.stableId, bounds: fullSubjectBounds(),
       kind: kindForConcept(input.concept), alphaMode: 'vector',
@@ -244,11 +325,13 @@ function solarChoice(input: {
   slotId: MaterializedVisualChoiceV2['slotId']
   concept: VisualConceptV1
   candidate: VisualRetrievalCandidateV1
+  representation?: Extract<AssetRepresentationPreferenceV1, 'icon' | 'symbolic'>
 }): MaterializedVisualChoiceV2 | null {
   const icon = input.candidate.solarVariant
   if (!icon) return null
   return {
     slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'solar',
+    representation: input.representation ?? 'symbolic',
     reason: input.candidate.reason, score: input.candidate.score >= 3 ? 3 : 2,
     solarIcon: icon, solarStyle: icon.endsWith('-bold-duotone') ? 'bold-duotone' : 'linear',
     bounds: fullSubjectBounds(), kind: 'simple-icon', alphaMode: 'vector',
@@ -259,6 +342,7 @@ async function pixabayChoice(input: {
   projectRoot: string
   slotId: MaterializedVisualChoiceV2['slotId']
   concept: VisualConceptV1
+  representation: 'photo-cutout' | 'full-raster'
   apiKey?: string
   hooks?: MotionGraphicsProviderHooksV2
   trace: MotionGraphicsTraceV2['pixabay']
@@ -266,7 +350,13 @@ async function pixabayChoice(input: {
 }): Promise<MaterializedVisualChoiceV2 | null> {
   if (!input.apiKey && !input.hooks?.searchRequestJson) return null
   const plans = buildPixabayImageSearchPlansV1({ concept: input.concept, level: 'exact',
-    role: input.slotId === 'hero' ? 'hero' : 'support', maxPlans: 3 })
+    role: input.slotId === 'hero' ? 'hero' : 'support', representation: input.representation, maxPlans: 3 })
+  // A cutout that fails the cheap alpha gate does not prove that every photo candidate for the
+  // concept is unusable. Keep one honest full-raster fallback, but first try the other bounded,
+  // already-ranked candidates. This remains a small on-demand search; it never harvests.
+  let fallbackRaster: MaterializedVisualChoiceV2 | null = null
+  const preparedSources = new Map<string, ProjectAssetRecord>()
+  const evaluatedCutoutSources = new Set<string>()
   for (const plan of plans.slice(0, 2)) {
     let searched
     input.metrics.pixabayQueries++
@@ -286,43 +376,94 @@ async function pixabayChoice(input: {
     if (!selected) continue
     const candidates: PixabayImageCandidateV1[] = [selected, ...ranked.filter(candidate => candidate.id !== selected.id)].slice(0, 2)
     for (const candidate of candidates) {
-      const reusable = findReusablePixabayImageAssetV1(input.projectRoot, candidate)
-      if (reusable.asset) {
-        const absolute = path.resolve(input.projectRoot, reusable.asset.relativeFile)
-        const bytes = fs.readFileSync(absolute)
+      let sourceAsset: ProjectAssetRecord
+      let sourceReused = false
+      const sourceKey = `${candidate.pageUrl}\n${candidate.downloadUrl}`
+      const prepared = preparedSources.get(sourceKey)
+      if (prepared) {
+        readVerifiedRasterProjectAssetContentV1(input.projectRoot, prepared)
+        sourceAsset = prepared
+        sourceReused = true
         input.metrics.pixabayReused++
+      } else {
+        const reusable = findReusablePixabayImageAssetV1(input.projectRoot, candidate)
+        if (reusable.asset) {
+          readVerifiedRasterProjectAssetContentV1(input.projectRoot, reusable.asset)
+          sourceAsset = reusable.asset
+          sourceReused = true
+          input.metrics.pixabayReused++
+        } else {
+          if (reusable.invalid) continue
+          try {
+            const sourceBytes = await downloadPixabayImageBytesV1({ candidate,
+              ...(input.hooks?.downloadRequestBytes ? { requestBytes: input.hooks.downloadRequestBytes } : {}) })
+            input.metrics.pixabayDownloads++
+            const published = publishPixabayImageAssetV1({ projectRoot: input.projectRoot, candidate, bytes: sourceBytes })
+            input.metrics.pixabayPublished += published.status === 'created' ? 1 : 0
+            input.metrics.pixabayReused += published.status === 'reused' ? 1 : 0
+            sourceReused = published.status === 'reused'
+            sourceAsset = published.asset
+          } catch (error) {
+            input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query,
+              candidates: searched.candidates.length, selected: candidate.id,
+              outcome: error && typeof error === 'object' && 'code' in error
+                ? String((error as { code: unknown }).code) : 'NETWORK_ERROR' })
+            continue
+          }
+        }
+        preparedSources.set(sourceKey, sourceAsset)
+      }
+      const score = candidate.score >= 3 ? 3 as const : 2 as const
+      if (input.representation === 'full-raster') {
         return {
           slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'pixabay-images',
-          reason: 'PIXABAY_PROJECT_ASSET_REUSED', score: candidate.score >= 3 ? 3 : 2,
-          asset: reusable.asset, bounds: subjectBoundsFromPixabayRasterV1(bytes),
-          kind: reusable.asset.validation.alphaUseful ? 'photo-cutout' : 'raster-image',
-          alphaMode: reusable.asset.validation.alphaUseful ? 'useful-alpha' : 'opaque-rectangle',
+          representation: 'full-raster', reason: sourceReused ? 'PIXABAY_FULL_RASTER_REUSED' : 'PIXABAY_FULL_RASTER_PREPARED',
+          score, asset: sourceAsset, bounds: fullSubjectBounds(), kind: 'raster-image', alphaMode: 'opaque-rectangle',
         }
       }
-      if (reusable.invalid) continue
-      try {
-        const bytes = await downloadPixabayImageBytesV1({ candidate,
-          ...(input.hooks?.downloadRequestBytes ? { requestBytes: input.hooks.downloadRequestBytes } : {}) })
-        input.metrics.pixabayDownloads++
-        const published = publishPixabayImageAssetV1({ projectRoot: input.projectRoot, candidate, bytes })
-        input.metrics.pixabayPublished += published.status === 'created' ? 1 : 0
-        input.metrics.pixabayReused += published.status === 'reused' ? 1 : 0
-        return {
-          slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'pixabay-images',
-          reason: 'PIXABAY_PREPARED:' + published.status, score: candidate.score >= 3 ? 3 : 2,
-          asset: published.asset, bounds: subjectBoundsFromPixabayRasterV1(bytes),
-          kind: published.asset.validation.alphaUseful ? 'photo-cutout' : 'raster-image',
-          alphaMode: published.asset.validation.alphaUseful ? 'useful-alpha' : 'opaque-rectangle',
-        }
-      } catch (error) {
+      if (evaluatedCutoutSources.has(sourceAsset.sha256)) {
         input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query,
           candidates: searched.candidates.length, selected: candidate.id,
-          outcome: error && typeof error === 'object' && 'code' in error
-            ? String((error as { code: unknown }).code) : 'NETWORK_ERROR' })
+          outcome: 'PHOTO_CUTOUT_SOURCE_ALREADY_EVALUATED' })
+        continue
+      }
+      evaluatedCutoutSources.add(sourceAsset.sha256)
+      const cutout = await materializePhotoCutoutV1({ projectRoot: input.projectRoot, sourceAsset,
+        ...(input.hooks?.cutoutRuntime !== undefined ? { runtime: input.hooks.cutoutRuntime } : {}),
+        ...(input.hooks?.cutout ? { hooks: input.hooks.cutout } : {}) })
+      if (cutout.attempted) input.metrics.cutoutAttempted++
+      if (cutout.quality === 'CUTOUT_USABLE') input.metrics.cutoutUsable++
+      else if (cutout.quality === 'CUTOUT_SUSPICIOUS') input.metrics.cutoutSuspicious++
+      else input.metrics.cutoutFailed++
+      if (cutout.cacheHit) input.metrics.cutoutCacheHit++
+      // Alpha already present and cache hits do not run inference; keep their outcome counters
+      // but exclude zero milliseconds from the actual CutoutTransform timing distribution.
+      if (cutout.attempted && !cutout.cacheHit && cutout.processingMs !== null)
+        input.metrics.cutoutProcessingMs.push(cutout.processingMs)
+      if (cutout.status === 'usable' && cutout.asset && cutout.bounds) {
+        input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query,
+          candidates: searched.candidates.length, selected: candidate.id,
+          outcome: cutout.cacheHit ? 'PHOTO_CUTOUT_CACHE_REUSED' : 'PHOTO_CUTOUT_USABLE' })
+        return {
+          slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'photo-cutout',
+          representation: 'photo-cutout', reason: `PHOTO_CUTOUT:${cutout.reason}`,
+          score, asset: cutout.asset, bounds: cutout.bounds, kind: 'photo-cutout', alphaMode: 'useful-alpha',
+        }
+      }
+      // V1 deliberately does not auto-run ISNet after a suspicious or failed transform.  The
+      // provider source remains a valid, original-colour contextual resource when the family can
+      // honestly render a full raster, so the scene never becomes broken merely because alpha did.
+      input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query,
+        candidates: searched.candidates.length, selected: candidate.id,
+        outcome: `PHOTO_CUTOUT_FALLBACK_FULL_RASTER:${cutout.reason}` })
+      fallbackRaster ??= {
+        slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'pixabay-images',
+        representation: 'full-raster', reason: `PHOTO_CUTOUT_FALLBACK_FULL_RASTER:${cutout.reason}`,
+        score, asset: sourceAsset, bounds: fullSubjectBounds(), kind: 'raster-image', alphaMode: 'opaque-rectangle',
       }
     }
   }
-  return null
+  return fallbackRaster
 }
 
 function localCandidate(
@@ -345,6 +486,70 @@ function recordForV1Hero(projectRoot: string, base: LocalSemanticVisualDecisionR
   try { verifyProjectAssetContent(projectRoot, record); return record } catch { return null }
 }
 
+function v1HeroChoice(input: {
+  projectRoot: string
+  base: LocalSemanticVisualDecisionResultV1
+  role: { slotId: MaterializedVisualChoiceV2['slotId']; concept: VisualConceptV1 }
+  representation: 'icon' | 'symbolic'
+}): MaterializedVisualChoiceV2 | null {
+  if (input.role.slotId !== 'hero') return null
+  const selected = input.base.trace.retrieval?.selectedHero
+  if (selected?.concept !== input.role.concept.normalizedTerm) return null
+  const hero = input.base.decision.hero
+  if (!hero) return null
+  if (input.representation === 'icon' && hero.provider === 'openmoji') {
+    const asset = recordForV1Hero(input.projectRoot, input.base)
+    if (!asset) return null
+    return {
+      slotId: 'hero', concept: input.role.concept.normalizedTerm, provider: 'openmoji', representation: 'icon',
+      reason: selected.reason?.startsWith('HERO_PROMOTED_')
+        ? `C_PRIMARY_OPENMOJI_REUSED:${selected.reason}` : 'C_PRIMARY_OPENMOJI_REUSED',
+      score: 3, asset, stableId: hero.stableId, bounds: fullSubjectBounds(), kind: hero.kind, alphaMode: 'vector',
+    }
+  }
+  if (input.representation === 'symbolic' && hero.provider === 'solar') {
+    return {
+      slotId: 'hero', concept: input.role.concept.normalizedTerm, provider: 'solar', representation: 'symbolic',
+      reason: selected.reason?.startsWith('HERO_PROMOTED_')
+        ? `C_PRIMARY_SOLAR:${selected.reason}` : 'C_PRIMARY_SOLAR',
+      score: 3, solarIcon: hero.solarName, solarStyle: hero.solarStyle,
+      bounds: fullSubjectBounds(), kind: 'simple-icon', alphaMode: 'vector',
+    }
+  }
+  return null
+}
+
+function localChoiceForRepresentation(input: {
+  projectRoot: string
+  base: LocalSemanticVisualDecisionResultV1
+  role: { slotId: MaterializedVisualChoiceV2['slotId']; concept: VisualConceptV1 }
+  representation: 'icon' | 'symbolic'
+}): MaterializedVisualChoiceV2 | null {
+  const remembered = v1HeroChoice(input)
+  if (remembered) return remembered
+  const providerOrder: Array<'openmoji' | 'solar'> = input.representation === 'icon'
+    ? ['openmoji', 'solar'] : ['solar', 'openmoji']
+  for (const provider of providerOrder) {
+    const candidate = localCandidate(input.base, input.role.concept, provider)
+    if (!candidate) continue
+    const choice = provider === 'openmoji'
+      ? openMojiChoice({ projectRoot: input.projectRoot, ...input.role, candidate, representation: input.representation })
+      : solarChoice({ ...input.role, candidate, representation: input.representation })
+    if (choice) return choice
+  }
+  return null
+}
+
+function isRasterChoice(choice: MaterializedVisualChoiceV2): boolean {
+  return choice.provider === 'pixabay-images' || choice.provider === 'photo-cutout'
+}
+
+function hasDuplicateChoice(choices: readonly MaterializedVisualChoiceV2[], candidate: MaterializedVisualChoiceV2): boolean {
+  const identity = candidate.asset?.sha256 ?? candidate.solarIcon
+  return choices.some(existing => existing.provider === candidate.provider &&
+    (existing.asset?.sha256 ?? existing.solarIcon) === identity)
+}
+
 function roleConcepts(base: LocalSemanticVisualDecisionResultV1): Array<{
   slotId: MaterializedVisualChoiceV2['slotId']; concept: VisualConceptV1
 }> {
@@ -354,6 +559,20 @@ function roleConcepts(base: LocalSemanticVisualDecisionResultV1): Array<{
   const promoted = selectedConcept ? values.find(concept => concept.normalizedTerm === selectedConcept) : undefined
   const ordered = promoted ? [promoted, ...values.filter(concept => concept !== promoted)] : values
   return ordered.map((concept, index) => ({ slotId: index === 0 ? 'hero' : index === 1 ? 'support-1' : 'support-2', concept }))
+}
+
+/**
+ * A local transcript token is useful when semantic analysis had no stronger scene concept, but
+ * it must not become a third photo merely because it is a searchable verb beside two structured
+ * concepts from the same subclip.  This is a materialisation gate, not a mutation of semantic
+ * selection: the token remains traceable and can still be used when it is the only local evidence.
+ */
+function weakTokenShadowedByStructuredConcept(
+  role: { slotId: MaterializedVisualChoiceV2['slotId']; concept: VisualConceptV1 },
+  allRoles: readonly { slotId: MaterializedVisualChoiceV2['slotId']; concept: VisualConceptV1 }[],
+): boolean {
+  return role.concept.evidence === 'direct-timed-token' && role.concept.importance === 1 &&
+    allRoles.some(other => other !== role && other.concept.evidence === 'direct-timed-concept')
 }
 
 function lockedConceptBelongsToScene(base: LocalSemanticVisualDecisionResultV1, roleInputs: ReturnType<typeof roleConcepts>, concept: string): boolean {
@@ -525,7 +744,7 @@ export async function resolveMotionGraphicsSceneV2(input: {
     version: 2, sceneId: input.base.decision.sceneId,
     concepts: roleInputs.map(value => ({ role: value.slotId, concept: value.concept.normalizedTerm,
       subject: value.concept.subject, evidence: value.concept.evidence })),
-    roleDecisions: [], pixabay: [], family: 'editorial', videoStyleId: input.videoStyleId,
+    roleDecisions: [], representation: [], pixabay: [], family: 'editorial', videoStyleId: input.videoStyleId,
     colorPalette: {
       videoPrimaryFamily: colorPalette.videoPrimaryFamily,
       family: colorPalette.family,
@@ -537,6 +756,10 @@ export async function resolveMotionGraphicsSceneV2(input: {
   const metrics: MotionGraphicsResolutionV2['metrics'] = {
     pixabayQueries: 0, pixabayDownloads: 0, pixabayPublished: 0, pixabayReused: 0,
     openMojiPublished: 0, openMojiReused: 0, supportsMaterialized: 0,
+    photoCutoutHero: 0, photoCutoutSupport: 0, fullRasterHero: 0, fullRasterSupport: 0,
+    openMojiHero: 0, openMojiSupport: 0, solarHero: 0, solarSupport: 0, editorialOnly: 0,
+    cutoutAttempted: 0, cutoutUsable: 0, cutoutSuspicious: 0, cutoutFailed: 0,
+    cutoutCacheHit: 0, cutoutProcessingMs: [],
   }
   const choices: MaterializedVisualChoiceV2[] = []
 
@@ -553,51 +776,63 @@ export async function resolveMotionGraphicsSceneV2(input: {
       choices.push(restored)
       trace.roleDecisions.push({ role: locked.slotId, concept: locked.concept, provider: locked.provider,
         identity: restored.asset?.sha256 ?? restored.solarIcon ?? null, reason: `LOCKED:${locked.reason}`, score: locked.score })
+      trace.representation.push({ role: locked.slotId, concept: locked.concept,
+        preference: restored.representation, reason: 'LOCKED_REPRESENTATION', outcome: 'LOCKED_RESTORED' })
     }
-    if (choices.filter(choice => choice.provider === 'pixabay-images').length > 2)
+    if (choices.filter(isRasterChoice).length > 2)
       fail('MOTION_GRAPHICS_RASTER_BUDGET_EXCEEDED', 'Una escena admite máximo dos assets raster')
     const identities = choices.map(choice => choice.asset?.sha256 ?? `solar:${choice.solarIcon}`)
     if (new Set(identities).size !== identities.length)
       fail('MOTION_GRAPHICS_DUPLICATE_ASSET', 'Una elección persistida repite el mismo asset en varios slots')
+  } else if (input.base.decision.intent.preferredVisualMode === 'editorial-text') {
+    // Only an explicitly editorial intent is authoritative here. The older V1 resolver can
+    // label an AUTO scene editorial because it had no one-Hero result; V15 must still let its
+    // structured same-subclip concepts try the modern resource cascade in that case.
+    for (const role of roleInputs) {
+      const representation = resolveAssetRepresentationPreferenceV1({ concept: role.concept, role: role.slotId })
+      trace.representation.push({ role: role.slotId, concept: role.concept.normalizedTerm,
+        preference: representation.preference, reason: representation.reason, outcome: 'EDITORIAL_INTENTIONAL' })
+      trace.roleDecisions.push({ role: role.slotId, concept: role.concept.normalizedTerm, provider: null,
+        identity: null, reason: 'EDITORIAL_INTENTIONAL', score: null })
+    }
+    trace.fallback = 'EDITORIAL_INTENTIONAL'
   } else {
     for (const role of roleInputs) {
       let choice: MaterializedVisualChoiceV2 | null = null
-      if (role.slotId === 'hero') {
-        const v1Hero = input.base.decision.hero
-        if (v1Hero?.provider === 'openmoji') {
-          const asset = recordForV1Hero(input.projectRoot, input.base)
-          if (asset) choice = { slotId: 'hero', concept: role.concept.normalizedTerm, provider: 'openmoji',
-            reason: input.base.trace.retrieval?.selectedHero?.reason?.startsWith('HERO_PROMOTED_')
-              ? `C_PRIMARY_OPENMOJI_REUSED:${input.base.trace.retrieval.selectedHero.reason}` : 'C_PRIMARY_OPENMOJI_REUSED',
-            score: 3, asset, stableId: v1Hero.stableId,
-            bounds: fullSubjectBounds(), kind: v1Hero.kind, alphaMode: 'vector' }
-        } else if (v1Hero?.provider === 'solar') {
-          choice = { slotId: 'hero', concept: role.concept.normalizedTerm, provider: 'solar',
-            reason: input.base.trace.retrieval?.selectedHero?.reason?.startsWith('HERO_PROMOTED_')
-              ? `C_PRIMARY_SOLAR:${input.base.trace.retrieval.selectedHero.reason}` : 'C_PRIMARY_SOLAR',
-            score: 3, solarIcon: v1Hero.solarName, solarStyle: v1Hero.solarStyle,
-            bounds: fullSubjectBounds(), kind: 'simple-icon', alphaMode: 'vector' }
-        }
-        if (!choice) {
-          const candidate = localCandidate(input.base, role.concept)
-          if (candidate?.provider === 'openmoji') choice = openMojiChoice({ projectRoot: input.projectRoot, ...role, candidate })
-          else if (candidate?.provider === 'solar') choice = solarChoice({ ...role, candidate })
-        }
-        if (!choice && choices.filter(value => value.provider === 'pixabay-images').length < 2 &&
-            ['person', 'place', 'event', 'object'].includes(role.concept.subject))
-          choice = await pixabayChoice({ projectRoot: input.projectRoot, slotId: role.slotId, concept: role.concept,
-            apiKey: input.pixabayApiKey, hooks: input.hooks, trace: trace.pixabay, metrics })
-      } else {
-        const candidate = localCandidate(input.base, role.concept)
-        if (candidate?.provider === 'openmoji') choice = openMojiChoice({ projectRoot: input.projectRoot, ...role, candidate })
-        else if (candidate?.provider === 'solar') choice = solarChoice({ ...role, candidate })
-        if (!choice && choices.filter(value => value.provider === 'pixabay-images').length < 2 &&
-            ['person', 'place', 'event', 'object'].includes(role.concept.subject))
-          choice = await pixabayChoice({ projectRoot: input.projectRoot, slotId: role.slotId, concept: role.concept,
-            apiKey: input.pixabayApiKey, hooks: input.hooks, trace: trace.pixabay, metrics })
+      const representation = resolveAssetRepresentationPreferenceV1({ concept: role.concept, role: role.slotId })
+      if (weakTokenShadowedByStructuredConcept(role, roleInputs)) {
+        trace.representation.push({ role: role.slotId, concept: role.concept.normalizedTerm,
+          preference: representation.preference, reason: representation.reason,
+          outcome: 'WEAK_LOCAL_TOKEN_OMITTED_WHILE_STRUCTURED_CONCEPTS_EXIST' })
+        trace.roleDecisions.push({ role: role.slotId, concept: role.concept.normalizedTerm, provider: null,
+          identity: null, reason: 'WEAK_LOCAL_TOKEN_OMITTED_WHILE_STRUCTURED_CONCEPTS_EXIST', score: null })
+        continue
       }
-      if (choice && !choices.some(existing => existing.provider === choice!.provider &&
-        (existing.asset?.sha256 ?? existing.solarIcon) === (choice!.asset?.sha256 ?? choice!.solarIcon))) {
+      let outcome = 'NO_DEFENDIBLE_RESOURCE'
+      for (const attempt of representation.attemptOrder) {
+        if (attempt === 'editorial') {
+          outcome = choice ? 'MATERIALIZED' : 'EDITORIAL_FALLBACK'
+          break
+        }
+        if (attempt === 'photo-cutout' || attempt === 'full-raster') {
+          if (choices.filter(isRasterChoice).length >= 2) {
+            outcome = 'RASTER_BUDGET_EXHAUSTED'
+            continue
+          }
+          choice = await pixabayChoice({ projectRoot: input.projectRoot, slotId: role.slotId, concept: role.concept,
+            representation: attempt, apiKey: input.pixabayApiKey, hooks: input.hooks, trace: trace.pixabay, metrics })
+        } else if (attempt === 'icon' || attempt === 'symbolic') {
+          choice = localChoiceForRepresentation({ projectRoot: input.projectRoot, base: input.base, role, representation: attempt })
+        }
+        if (choice) {
+          outcome = `MATERIALIZED:${choice.provider}:${choice.representation}`
+          break
+        }
+        outcome = `NO_${attempt.toUpperCase().replace('-', '_')}_RESOURCE`
+      }
+      trace.representation.push({ role: role.slotId, concept: role.concept.normalizedTerm,
+        preference: representation.preference, reason: representation.reason, outcome })
+      if (choice && !hasDuplicateChoice(choices, choice)) {
         choices.push(choice)
         session.preparedByConcept.set(role.concept.normalizedTerm, choice)
         if (choice.provider === 'openmoji') {
@@ -621,6 +856,19 @@ export async function resolveMotionGraphicsSceneV2(input: {
     trace.warnings.push('HERO_PROMOTED_FROM_VALID_SAME_SCENE_CONCEPT')
   }
   metrics.supportsMaterialized = effectiveChoices.filter(choice => choice.slotId !== 'hero').length
+  for (const choice of effectiveChoices) {
+    const hero = choice.slotId === 'hero'
+    if (choice.provider === 'photo-cutout') {
+      if (hero) metrics.photoCutoutHero++; else metrics.photoCutoutSupport++
+    } else if (choice.provider === 'pixabay-images') {
+      if (hero) metrics.fullRasterHero++; else metrics.fullRasterSupport++
+    } else if (choice.provider === 'openmoji') {
+      if (hero) metrics.openMojiHero++; else metrics.openMojiSupport++
+    } else if (choice.provider === 'solar') {
+      if (hero) metrics.solarHero++; else metrics.solarSupport++
+    }
+  }
+  metrics.editorialOnly = hasHero ? 0 : 1
   if (!hasHero) trace.fallback = 'EDITORIAL_NO_DEFENDIBLE_HERO'
   const compiled = compileV2({ base: input.base, choices: effectiveChoices, videoStyleId: input.videoStyleId,
     colorPalette, session })

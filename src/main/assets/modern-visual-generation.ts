@@ -171,10 +171,12 @@ function lockedChoices(value: unknown): LockedVisualChoiceV2[] {
   const slots = new Set<string>()
   return value.map(raw => {
     if (!isRecord(raw) || !['hero', 'support-1', 'support-2'].includes(String(raw.slotId)) ||
-        !['openmoji', 'pixabay-images', 'solar'].includes(String(raw.provider)) ||
+        !['openmoji', 'pixabay-images', 'photo-cutout', 'solar'].includes(String(raw.provider)) ||
         typeof raw.concept !== 'string' || !raw.concept.trim() || typeof raw.reason !== 'string' ||
         ![2, 3].includes(Number(raw.score)) || !isRecord(raw.bounds) || typeof raw.kind !== 'string' ||
-        !['vector', 'useful-alpha', 'opaque-rectangle'].includes(String(raw.alphaMode)) || slots.has(String(raw.slotId)))
+        !['vector', 'useful-alpha', 'opaque-rectangle'].includes(String(raw.alphaMode)) ||
+        (raw.representation !== undefined && !['photo-cutout', 'full-raster', 'icon', 'symbolic', 'editorial', 'auto'].includes(String(raw.representation))) ||
+        slots.has(String(raw.slotId)))
       fail('MODERN_VISUAL_CONTEXT_INVALID', 'lockedChoices contiene una decisión inválida')
     slots.add(String(raw.slotId))
     return raw as unknown as LockedVisualChoiceV2

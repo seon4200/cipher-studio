@@ -17,6 +17,8 @@ export type PersistedVisualDecisionDiagnosticV1 = {
     resolverDegradedVisuals: number
     substitutedWithOriginal: number
     reasons: Record<string, number>
+    /** Additive, project-local metrics from the modern motion-graphics materializer. */
+    motionGraphics?: Record<string, number | null>
   }
   scenes: unknown[]
 }
