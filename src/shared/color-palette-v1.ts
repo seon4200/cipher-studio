@@ -155,3 +155,70 @@ export function validateSceneColorPaletteV1(value: unknown): SceneColorPaletteV1
   validateColorPaletteTokensV1(value.tokens)
   return value as SceneColorPaletteV1
 }
+
+export type ColorPaletteConsumerV1 = {
+  background: string
+  surface: string
+  text: string
+  accent: string
+  support: string
+  line: string
+  shadow: string
+}
+
+export type SceneColorRoleTokensV1 = {
+  primaryLine: string
+  secondaryLine: string
+  underline: string
+  particle: string
+  halo: string
+  connector: string
+  border: string
+  surfaceHighlight: string
+  solar: string
+}
+
+/** Historical specs receive their original palette object by reference and therefore by pixel. */
+export function applySceneColorPaletteV1<T extends ColorPaletteConsumerV1>(
+  palette: T,
+  sceneColor?: SceneColorPaletteV1,
+): T {
+  if (sceneColor === undefined) return palette
+  const value = validateSceneColorPaletteV1(sceneColor)
+  return {
+    ...palette,
+    accent: value.tokens.accentPrimary,
+    support: value.tokens.accentSecondary,
+    line: value.tokens.accentSoft,
+  }
+}
+
+/** Semantic color roles keep vivid accents distributed instead of painting every mark identically. */
+export function sceneColorRoleTokensV1(
+  palette: ColorPaletteConsumerV1,
+  sceneColor?: SceneColorPaletteV1,
+): SceneColorRoleTokensV1 {
+  if (sceneColor === undefined) return {
+    primaryLine: palette.accent,
+    secondaryLine: palette.line,
+    underline: palette.accent,
+    particle: palette.accent,
+    halo: palette.surface,
+    connector: palette.text,
+    border: palette.accent,
+    surfaceHighlight: palette.support,
+    solar: palette.accent,
+  }
+  const value = validateSceneColorPaletteV1(sceneColor)
+  return {
+    primaryLine: value.tokens.accentPrimary,
+    secondaryLine: value.tokens.accentSecondary,
+    underline: value.tokens.accentBright,
+    particle: value.tokens.accentPrimary,
+    halo: value.tokens.accentGlow,
+    connector: value.tokens.accentSoft,
+    border: value.tokens.accentPrimary,
+    surfaceHighlight: value.tokens.accentDark,
+    solar: value.tokens.accentPrimary,
+  }
+}

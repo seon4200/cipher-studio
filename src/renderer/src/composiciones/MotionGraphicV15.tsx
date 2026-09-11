@@ -11,6 +11,10 @@ import { typographyLookV3 } from '../../../shared/visual-layout-v3'
 import type { SlotLayoutV4 } from '../../../shared/visual-layout-v4'
 import { videoVisualStylePaletteV1 } from '../../../shared/visual-style-v1'
 import { applyBackgroundProfileV1 } from '../../../shared/background-profile-v1'
+import {
+  applySceneColorPaletteV1,
+  sceneColorRoleTokensV1,
+} from '../../../shared/color-palette-v1'
 import { IconoSolar } from './IconoSolar'
 
 function clamp01(value: number): number { return Math.min(1, Math.max(0, value)) }
@@ -18,7 +22,10 @@ function ease(value: number): number { const p = clamp01(value); return 1 - Math
 function phase(u: number, start: number, duration: number): number { return ease((u - start) / duration) }
 
 function scenePalette(spec: VisualSceneSpecV2): ReturnType<typeof videoVisualStylePaletteV1> {
-  return applyBackgroundProfileV1(videoVisualStylePaletteV1(spec.videoStyle), spec.backgroundProfile)
+  return applySceneColorPaletteV1(
+    applyBackgroundProfileV1(videoVisualStylePaletteV1(spec.videoStyle), spec.backgroundProfile),
+    spec.colorPalette,
+  )
 }
 
 function normalizedViewBox(slot: PresentSceneSlotV2): string {
@@ -72,17 +79,24 @@ const ProjectAssetVisual: React.FC<{
   </svg>
 }
 
-function backingStyle(layout: SlotLayoutV4, palette: ReturnType<typeof videoVisualStylePaletteV1>): React.CSSProperties {
+function backingStyle(
+  layout: SlotLayoutV4,
+  palette: ReturnType<typeof videoVisualStylePaletteV1>,
+  sceneColor: VisualSceneSpecV2['colorPalette'],
+): React.CSSProperties {
+  const roles = sceneColorRoleTokensV1(palette, sceneColor)
   if (layout.backing === 'neutral-plate') return {
     background: palette.surface, borderRadius: '2.2cqmin', border: `.15cqmin solid ${palette.line}55`,
     boxShadow: `0 1.1cqmin 2.8cqmin ${palette.shadow}`, padding: '1.6cqmin',
   }
   if (layout.backing === 'frame') return {
-    border: `.48cqmin solid ${palette.accent}`, boxShadow: `inset 0 0 0 .16cqmin ${palette.line}55`,
+    border: `.48cqmin solid ${roles.border}`, boxShadow: `inset 0 0 0 .16cqmin ${palette.line}55`,
     padding: '1.6cqmin', background: `${palette.surface}B8`,
   }
   if (layout.backing === 'halo') return {
-    borderRadius: '999cqmin', background: `radial-gradient(circle,${palette.surface}F2 0 48%,${palette.surface}00 72%)`,
+    borderRadius: '999cqmin', background: sceneColor
+      ? `radial-gradient(circle,${roles.halo}38 0 24%,${palette.surface}F2 48%,${palette.surface}00 72%)`
+      : `radial-gradient(circle,${palette.surface}F2 0 48%,${palette.surface}00 72%)`,
     padding: '1.2cqmin',
   }
   return {}
@@ -96,6 +110,7 @@ const SceneAssetSlot: React.FC<{
   u: number
 }> = ({ spec, slot, layout, runtime, u }) => {
   const palette = scenePalette(spec)
+  const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
   const motion = evaluateAssetMotion(slot.motion, u)
   if (slot.state === 'present' && !runtime) throw new Error(`VISUAL_RUNTIME_SLOT_REQUIRED:${slot.slotId}`)
   return <div
@@ -113,11 +128,12 @@ const SceneAssetSlot: React.FC<{
       willChange: 'transform,opacity', overflow: layout.crop === 'cover-safe' ? 'hidden' : 'visible',
       filter: slot.role === 'hero' ? `drop-shadow(0 1.2cqmin 2.4cqmin ${palette.shadow})`
         : `drop-shadow(0 .7cqmin 1.5cqmin ${palette.shadow})`,
-      ...backingStyle(layout, palette),
+      ...backingStyle(layout, palette, spec.colorPalette),
     }}>
     {slot.state === 'present' && runtime && <ProjectAssetVisual slot={slot} runtime={runtime}
       accent={palette.accent} support={palette.support} />}
-    {slot.state === 'procedural' && <div style={{ width: '100%', height: '100%', color: palette.accent }}>
+    {slot.state === 'procedural' && <div data-qc-solar-tint={roles.solar}
+      style={{ width: '100%', height: '100%', color: roles.solar }}>
       <IconoSolar concepto={{ emoji: '', etiqueta: slot.solarIcon, icono: slot.solarIcon }}
         estilo={slot.solarStyle} canonicalId={slot.solarIcon} className="es-svg"
         titulo={`${slot.role} Solar ${slot.solarIcon}`} />
@@ -131,12 +147,13 @@ function center(layout: SlotLayoutV4): [number, number] {
 
 const StructureGrammar: React.FC<{ spec: VisualSceneSpecV2 }> = ({ spec }) => {
   const palette = scenePalette(spec)
+  const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
   const slots = spec.layout.slotLayouts
   const points = slots.map(center)
   const hero = points[0] ?? [50, 40]
-  const line = { fill: 'none', stroke: palette.line, strokeWidth: .38, opacity: .55,
+  const line = { fill: 'none', stroke: roles.secondaryLine, strokeWidth: .38, opacity: .55,
     vectorEffect: 'non-scaling-stroke' as const }
-  const accent = { ...line, stroke: palette.accent, opacity: .65 }
+  const accent = { ...line, stroke: roles.primaryLine, opacity: .65 }
   const links = points.slice(1).map((point, index) => <line key={index} x1={hero[0]} y1={hero[1]}
     x2={point[0]} y2={point[1]} {...line} />)
   const family = spec.layout.family
@@ -216,6 +233,7 @@ const NarrativeTextV15: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ sp
   const text = spec.text
   const look = typographyLookV3(text.typographyLookId)
   const palette = scenePalette(spec)
+  const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
   const connectorP = phase(u, text.timing.connectorStart, .13)
   const keywordP = phase(u, text.timing.keywordStart, .17)
   const closingP = text.closing && text.timing.closingStart !== undefined ? phase(u, text.timing.closingStart, .14) : 0
@@ -248,6 +266,7 @@ const NarrativeTextV15: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ sp
       fontFamily: `${look.connectorFamily},serif`, fontWeight: look.connectorWeight,
       fontSize: spec.visualMode === 'editorial-text' ? '4.0cqmin' : '3.45cqmin', lineHeight: 1.08,
       opacity: connectorP, transform: `translateY(${((1 - connectorP) * 1.2).toFixed(4)}cqmin)`,
+      color: spec.colorPalette ? roles.connector : undefined,
       whiteSpace: 'normal', overflowWrap: 'break-word',
     }}>{text.connector}</div>}
     <span data-qc-keyword="true" data-qc-text-glyph="true" style={{
@@ -266,7 +285,7 @@ const NarrativeTextV15: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ sp
     }}>{text.closing}</div>}
     <div data-qc-text-glyph="true" style={{ height: '.48cqmin', width: text.motion.keywordPreset === 'underline-reveal' ? '18cqmin' : '10cqmin',
       margin: align === 'left' ? '.4cqmin 0 0' : align === 'right' ? '.4cqmin 0 0 auto' : '.4cqmin auto 0',
-      background: palette.accent, transform: `scaleX(${keywordP.toFixed(4)})`,
+      background: roles.underline, transform: `scaleX(${keywordP.toFixed(4)})`,
       transformOrigin: align === 'left' ? '0 50%' : align === 'right' ? '100% 50%' : '50% 50%' }} />
   </div>
 }
@@ -282,6 +301,9 @@ export const MotionGraphicV15: React.FC<{
   return <div key={sceneSpecReactKeyAny(spec)} data-visual-mvp="true" data-visual-composition="v15"
     data-qc-layout-family={spec.layout.family} data-visual-density={spec.direccion.densidad}
     data-qc-decorator-count="0" data-qc-empty-hero-frames="0" data-qc-video-style={spec.videoStyle.id}
+    data-qc-color-palette={spec.colorPalette?.family ?? 'historical-video-style'}
+    data-qc-color-variant={spec.colorPalette?.variant ?? 'historical'}
+    data-qc-accent-primary={spec.colorPalette?.tokens.accentPrimary ?? ''}
     style={{ position: 'absolute', inset: 0, containerType: 'size', overflow: 'hidden' }}>
     <QuietBackground spec={spec} u={u} />
     <StructureGrammar spec={spec} />

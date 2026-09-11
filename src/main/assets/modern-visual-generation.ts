@@ -13,6 +13,13 @@ import {
 } from './semantic-decision'
 import type { VideoVisualStyleIdV1 } from '../../shared/visual-style-v1'
 import {
+  validateSceneColorPaletteV1,
+  validateVideoColorPalettePlanV1,
+  type SceneColorPaletteV1,
+  type VideoColorPalettePlanV1,
+} from '../../shared/color-palette-v1'
+import { selectVideoColorPalettePlanV1 } from '../../shared/color-palette-selection-v1'
+import {
   createMotionGraphicsResolverSessionV2,
   resolveMotionGraphicsSceneV2,
   type LockedVisualChoiceV2,
@@ -51,6 +58,12 @@ export type ModernVisualGenerationContextV2 = Omit<ModernVisualGenerationContext
   videoStyleId: VideoVisualStyleIdV1
   /** Provider decisions are administrative locators and remain outside SceneSpec/PixelIdentity. */
   lockedChoices: LockedVisualChoiceV2[]
+  /** Persisted once per video so isolated regeneration keeps the same compatible gamut. */
+  colorPalettePlan?: VideoColorPalettePlanV1
+  /** Stable position inside the original ordered generation. */
+  colorSceneIndex?: number
+  /** Exact pixel-affecting choice copied into SceneSpec during deterministic regeneration. */
+  lockedColorPalette?: SceneColorPaletteV1
 }
 
 export type ResolvedModernVisualGenerationV2 = {
@@ -168,6 +181,21 @@ function lockedChoices(value: unknown): LockedVisualChoiceV2[] {
   })
 }
 
+function optionalColorPlan(value: unknown): VideoColorPalettePlanV1 | undefined {
+  return value === undefined ? undefined : validateVideoColorPalettePlanV1(value)
+}
+
+function optionalSceneColor(value: unknown): SceneColorPaletteV1 | undefined {
+  return value === undefined ? undefined : validateSceneColorPaletteV1(value)
+}
+
+function optionalSceneIndex(value: unknown): number | undefined {
+  if (value === undefined) return undefined
+  if (!Number.isSafeInteger(value) || Number(value) < 0)
+    fail('MODERN_VISUAL_CONTEXT_INVALID', 'colorSceneIndex debe ser un entero no negativo')
+  return Number(value)
+}
+
 export function createModernVisualGenerationContextV2(input: {
   sceneId: unknown
   duration: unknown
@@ -178,6 +206,9 @@ export function createModernVisualGenerationContextV2(input: {
   direction: unknown
   videoStyleId: unknown
   lockedChoices?: unknown
+  colorPalettePlan?: unknown
+  colorSceneIndex?: unknown
+  lockedColorPalette?: unknown
 }): ModernVisualGenerationContextV2 {
   const base = createModernVisualGenerationContextV1(input)
   if (input.videoStyleId !== 'cream-editorial' && input.videoStyleId !== 'ink-technical')
@@ -197,7 +228,20 @@ export function createModernVisualGenerationContextV2(input: {
     },
     videoStyleId: input.videoStyleId,
     lockedChoices: lockedChoices(input.lockedChoices),
+    ...(input.colorPalettePlan === undefined ? {} : { colorPalettePlan: optionalColorPlan(input.colorPalettePlan) }),
+    ...(input.colorSceneIndex === undefined ? {} : { colorSceneIndex: optionalSceneIndex(input.colorSceneIndex) }),
+    ...(input.lockedColorPalette === undefined ? {} : { lockedColorPalette: optionalSceneColor(input.lockedColorPalette) }),
   }
+}
+
+function colorTermsForContext(context: ModernVisualGenerationContextV2): string[] {
+  return [
+    ...context.localSemantic.concepts.map(value => value.label),
+    context.localSemantic.anchor,
+    context.localSemantic.relation,
+    context.localSemantic.localText,
+    ...context.localSemantic.globalHints,
+  ].filter((value): value is string => typeof value === 'string' && !!value.trim())
 }
 
 /**
@@ -236,11 +280,22 @@ export async function resolveModernVisualGenerationBatchV2(input: {
   pixabayApiKey?: string
   hooks?: MotionGraphicsProviderHooksV2
 }): Promise<ResolvedModernVisualGenerationV2[]> {
+  const contexts = input.contexts.map(raw => createModernVisualGenerationContextV2(
+    raw as Parameters<typeof createModernVisualGenerationContextV2>[0]))
+  const persistedPlans = contexts.map(context => context.colorPalettePlan).filter(
+    (value): value is VideoColorPalettePlanV1 => !!value)
+  if (persistedPlans.some(plan => JSON.stringify(plan) !== JSON.stringify(persistedPlans[0])))
+    fail('MODERN_VISUAL_COLOR_PLAN_MISMATCH', 'La regeneración contiene gamas de vídeo incompatibles')
+  const colorPalettePlan = persistedPlans[0] ?? selectVideoColorPalettePlanV1({
+    terms: contexts.flatMap(colorTermsForContext),
+    seed: Number(contexts[0]?.direction.semilla ?? 1),
+  }).plan
   const semanticSession = createResolverSessionV1()
-  const visualSession = createMotionGraphicsResolverSessionV2()
+  const visualSession = createMotionGraphicsResolverSessionV2(colorPalettePlan)
   const output: ResolvedModernVisualGenerationV2[] = []
-  for (const raw of input.contexts) {
-    const context = createModernVisualGenerationContextV2(raw as Parameters<typeof createModernVisualGenerationContextV2>[0])
+  for (let index = 0; index < contexts.length; index++) {
+    const context = contexts[index]
+    const colorSceneIndex = context.colorSceneIndex ?? index
     const base = resolveLocalSemanticVisualSceneV1({
       localSemantic: context.localSemantic,
       keywordCandidates: context.keywordCandidates,
@@ -255,12 +310,21 @@ export async function resolveModernVisualGenerationBatchV2(input: {
       projectRoot: String(input.projectRoot),
       videoStyleId: context.videoStyleId,
       session: visualSession,
+      colorPalettePlan,
+      sceneIndex: colorSceneIndex,
+      ...(context.lockedColorPalette ? { lockedColorPalette: context.lockedColorPalette } : {}),
       ...(input.pixabayApiKey ? { pixabayApiKey: input.pixabayApiKey } : {}),
       ...(context.lockedChoices.length ? { lockedChoices: context.lockedChoices } : {}),
       ...(input.hooks ? { hooks: input.hooks } : {}),
     })
     output.push({
-      context: { ...context, lockedChoices: resolved.lockedChoices },
+      context: {
+        ...context,
+        lockedChoices: resolved.lockedChoices,
+        colorPalettePlan,
+        colorSceneIndex,
+        lockedColorPalette: resolved.compiled.sceneSpec.colorPalette,
+      },
       resolved,
     })
   }

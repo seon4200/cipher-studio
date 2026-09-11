@@ -31,6 +31,16 @@ import {
   type VideoVisualStyleIdV1,
 } from '../../shared/visual-style-v1'
 import { materializeBackgroundProfileV1 } from '../../shared/background-profile-v1'
+import {
+  materializeSceneColorPaletteV1,
+  selectVideoColorPalettePlanV1,
+} from '../../shared/color-palette-selection-v1'
+import {
+  validateSceneColorPaletteV1,
+  validateVideoColorPalettePlanV1,
+  type SceneColorPaletteV1,
+  type VideoColorPalettePlanV1,
+} from '../../shared/color-palette-v1'
 import type { VisualConceptV1 } from '../../shared/visual-concepts'
 import type { LocalSemanticVisualDecisionResultV1 } from './semantic-decision'
 import {
@@ -92,6 +102,9 @@ export type MotionGraphicsResolverSessionV2 = {
   version: typeof MOTION_GRAPHICS_RESOLVER_VERSION
   recentFamilies: ModernLayoutStructureV4[]
   recentTypographyLooks: import('../../shared/visual-layout-v3').TypographyLookIdV3[]
+  colorPalettePlan?: VideoColorPalettePlanV1
+  recentAccentPrimaries: string[]
+  scenesResolved: number
   preparedByConcept: Map<string, MaterializedVisualChoiceV2>
 }
 
@@ -103,6 +116,12 @@ export type MotionGraphicsTraceV2 = {
   pixabay: Array<{ concept: string; query: string; candidates: number; selected: string | null; outcome: string }>
   family: ModernLayoutStructureV4
   videoStyleId: VideoVisualStyleIdV1
+  colorPalette: {
+    videoPrimaryFamily: string
+    family: string
+    variant: string
+    accentPrimary: string
+  }
   fallback: string | null
   warnings: string[]
 }
@@ -152,8 +171,18 @@ function pixabayOutcome(error: unknown): Exclude<PixabayTransportOutcomeV1, 'OK'
   return 'NETWORK_ERROR'
 }
 
-export function createMotionGraphicsResolverSessionV2(): MotionGraphicsResolverSessionV2 {
-  return { version: MOTION_GRAPHICS_RESOLVER_VERSION, recentFamilies: [], recentTypographyLooks: [], preparedByConcept: new Map() }
+export function createMotionGraphicsResolverSessionV2(
+  colorPalettePlan?: VideoColorPalettePlanV1,
+): MotionGraphicsResolverSessionV2 {
+  return {
+    version: MOTION_GRAPHICS_RESOLVER_VERSION,
+    recentFamilies: [],
+    recentTypographyLooks: [],
+    ...(colorPalettePlan ? { colorPalettePlan: validateVideoColorPalettePlanV1(colorPalettePlan) } : {}),
+    recentAccentPrimaries: [],
+    scenesResolved: 0,
+    preparedByConcept: new Map(),
+  }
 }
 
 function manifestAsset(projectRoot: string, assetId: string): ProjectAssetRecord | null {
@@ -378,6 +407,7 @@ function compileV2(input: {
   base: LocalSemanticVisualDecisionResultV1
   choices: MaterializedVisualChoiceV2[]
   videoStyleId: VideoVisualStyleIdV1
+  colorPalette: SceneColorPaletteV1
   session: MotionGraphicsResolverSessionV2
 }): MotionGraphicsCompiledV2 {
   const hero = input.choices.find(choice => choice.slotId === 'hero')
@@ -432,6 +462,7 @@ function compileV2(input: {
     videoStyle: materializeVideoVisualStyleV1({ videoStyleId: input.videoStyleId,
       sceneId: input.base.decision.sceneId, seed: directionV1.semilla }),
     backgroundProfile: materializeBackgroundProfileV1('solid-black-v1'),
+    colorPalette: input.colorPalette,
     layout: presentation.layout, text, slots, revisions: visualRevisionsV2(), fallbackVisual: 'editorial-text',
   })
   const renderBindings: RenderBindingsV2 = { version: 2, assets: input.choices.filter(choice => choice.asset).map(choice => ({
@@ -450,6 +481,9 @@ export async function resolveMotionGraphicsSceneV2(input: {
   projectRoot: string
   videoStyleId: VideoVisualStyleIdV1
   session?: MotionGraphicsResolverSessionV2
+  colorPalettePlan?: VideoColorPalettePlanV1
+  sceneIndex?: number
+  lockedColorPalette?: SceneColorPaletteV1
   pixabayApiKey?: string
   lockedChoices?: readonly LockedVisualChoiceV2[]
   hooks?: MotionGraphicsProviderHooksV2
@@ -457,11 +491,47 @@ export async function resolveMotionGraphicsSceneV2(input: {
   const session = input.session ?? createMotionGraphicsResolverSessionV2()
   if (session.version !== 2) fail('MOTION_GRAPHICS_SESSION_INVALID', 'Sesión V15 inválida')
   const roleInputs = roleConcepts(input.base)
+  const colorTerms = [
+    ...roleInputs.map(value => value.concept.normalizedTerm),
+    ...input.base.localSemantic.concepts.map(value => value.label),
+    input.base.localSemantic.anchor,
+    input.base.localSemantic.relation,
+    input.base.localSemantic.localText,
+  ].filter((value): value is string => typeof value === 'string' && !!value.trim())
+  const lockedPlan = input.lockedColorPalette ? validateSceneColorPaletteV1(input.lockedColorPalette) : undefined
+  const inferredFromLocked: VideoColorPalettePlanV1 | undefined = lockedPlan ? {
+    version: 1,
+    primaryFamily: lockedPlan.videoPrimaryFamily,
+    compatibleFamilies: [...lockedPlan.videoCompatibleFamilies],
+    revision: lockedPlan.revision,
+  } : undefined
+  const colorPalettePlan = validateVideoColorPalettePlanV1(input.colorPalettePlan ?? session.colorPalettePlan ??
+    inferredFromLocked ?? selectVideoColorPalettePlanV1({ terms: colorTerms, seed: input.base.compiled.sceneSpec.direccion.semilla }).plan)
+  if (session.colorPalettePlan && JSON.stringify(session.colorPalettePlan) !== JSON.stringify(colorPalettePlan))
+    fail('MOTION_GRAPHICS_COLOR_PLAN_MISMATCH', 'Una sesión V15 no puede mezclar gamas de vídeo')
+  session.colorPalettePlan = colorPalettePlan
+  const sceneIndex = input.sceneIndex ?? session.scenesResolved
+  const colorPalette = lockedPlan ?? materializeSceneColorPaletteV1({
+    plan: colorPalettePlan,
+    sceneId: input.base.decision.sceneId,
+    sceneIndex,
+    terms: colorTerms,
+    recentAccentPrimaries: session.recentAccentPrimaries,
+  })
+  if (colorPalette.videoPrimaryFamily !== colorPalettePlan.primaryFamily ||
+      JSON.stringify(colorPalette.videoCompatibleFamilies) !== JSON.stringify(colorPalettePlan.compatibleFamilies))
+    fail('MOTION_GRAPHICS_COLOR_PLAN_MISMATCH', 'La decisión cromática persistida no pertenece a la gama del vídeo')
   const trace: MotionGraphicsTraceV2 = {
     version: 2, sceneId: input.base.decision.sceneId,
     concepts: roleInputs.map(value => ({ role: value.slotId, concept: value.concept.normalizedTerm,
       subject: value.concept.subject, evidence: value.concept.evidence })),
     roleDecisions: [], pixabay: [], family: 'editorial', videoStyleId: input.videoStyleId,
+    colorPalette: {
+      videoPrimaryFamily: colorPalette.videoPrimaryFamily,
+      family: colorPalette.family,
+      variant: colorPalette.variant,
+      accentPrimary: colorPalette.tokens.accentPrimary,
+    },
     fallback: null, warnings: [],
   }
   const metrics: MotionGraphicsResolutionV2['metrics'] = {
@@ -552,7 +622,11 @@ export async function resolveMotionGraphicsSceneV2(input: {
   }
   metrics.supportsMaterialized = effectiveChoices.filter(choice => choice.slotId !== 'hero').length
   if (!hasHero) trace.fallback = 'EDITORIAL_NO_DEFENDIBLE_HERO'
-  const compiled = compileV2({ base: input.base, choices: effectiveChoices, videoStyleId: input.videoStyleId, session })
+  const compiled = compileV2({ base: input.base, choices: effectiveChoices, videoStyleId: input.videoStyleId,
+    colorPalette, session })
+  session.recentAccentPrimaries.push(colorPalette.tokens.accentPrimary)
+  if (session.recentAccentPrimaries.length > 12) session.recentAccentPrimaries.shift()
+  session.scenesResolved++
   trace.family = compiled.sceneSpec.layout.family
   return { base: input.base, choices: effectiveChoices, lockedChoices: effectiveChoices.map(lockChoice),
     compiled, trace, metrics }

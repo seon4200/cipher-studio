@@ -37,6 +37,10 @@ import {
   type BackgroundProfileV1,
 } from './background-profile-v1'
 import {
+  validateSceneColorPaletteV1,
+  type SceneColorPaletteV1,
+} from './color-palette-v1'
+import {
   VISUAL_MVP_BOUNDS_REVISION,
   editorialFallbackSpec,
   evaluateAssetMotion,
@@ -151,6 +155,8 @@ export type VisualSceneSpecV2 = {
   videoStyle: VideoVisualStyleV1
   /** Omitted only by historical V15 specs; new generation materializes an explicit profile. */
   backgroundProfile?: BackgroundProfileV1
+  /** Omitted by historical V15 specs; explicit values are authoritative for new-scene pixels. */
+  colorPalette?: SceneColorPaletteV1
   layout: VisualLayoutV4
   text: EditorialTextV2
   slots: SceneSlotV2[]
@@ -396,7 +402,7 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
 export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   const code = 'VISUAL_SCENE_SPEC_V2_INVALID'
   record(value, code, 'sceneSpec')
-  exactKeys(value, ['renderSpecVersion', 'visualMode', 'renderTier', 'sistema', 'direccion', 'videoStyle', 'backgroundProfile', 'layout', 'text', 'slots', 'revisions', 'fallbackVisual'], code, 'sceneSpec')
+  exactKeys(value, ['renderSpecVersion', 'visualMode', 'renderTier', 'sistema', 'direccion', 'videoStyle', 'backgroundProfile', 'colorPalette', 'layout', 'text', 'slots', 'revisions', 'fallbackVisual'], code, 'sceneSpec')
   if (value.renderSpecVersion !== VISUAL_RENDER_SPEC_VERSION_V2 ||
       !['asset-led', 'editorial-text'].includes(String(value.visualMode)) || value.renderTier !== 'standard' ||
       !Object.keys(SISTEMAS).includes(String(value.sistema)) || value.fallbackVisual !== 'editorial-text')
@@ -404,6 +410,7 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   validateDirection(value.direccion)
   validateVideoVisualStyleV1(value.videoStyle)
   if (value.backgroundProfile !== undefined) validateBackgroundProfileV1(value.backgroundProfile)
+  if (value.colorPalette !== undefined) validateSceneColorPaletteV1(value.colorPalette)
   validateText(value.text)
   if (!Array.isArray(value.slots) || value.slots.length > 3) fail(code, 'V15 admite máximo tres slots')
   value.slots.forEach(validateSlot)
