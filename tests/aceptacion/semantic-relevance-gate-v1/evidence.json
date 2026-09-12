@@ -1,0 +1,772 @@
+{
+ "acceptanceVersion": 1,
+ "gateVersion": 1,
+ "generatedAt": "2026-09-12T08:06:00.791Z",
+ "thresholds": {
+  "descriptorWindow": 12,
+  "focusMedium": 0.045454545454545456,
+  "focusHigh": 0.18181818181818182
+ },
+ "calibration": {
+  "label": "CALIBRATION",
+  "counters": {
+   "candidatesEvaluated": 21,
+   "exact": 2,
+   "strong": 8,
+   "related": 4,
+   "weak": 0,
+   "unrelated": 7,
+   "rejected": 7,
+   "acceptedHero": 10,
+   "acceptedSupport": 4,
+   "photoRejectedBeforeCutout": 7,
+   "photoCutoutAttempted": 14,
+   "editorialOnly": 0
+  },
+  "agreement": 1,
+  "agreed": 21,
+  "total": 21,
+  "BAD_ASSET_RATE_BEFORE": 0.333,
+  "BAD_ASSET_RATE_AFTER": 0,
+  "admittedBefore": 21,
+  "admittedAfter": 14,
+  "badAdmittedBefore": 7,
+  "badAdmittedAfter": 0,
+  "detail": [
+   {
+    "id": "prod-desperanza-arbol",
+    "concept": "desperanza",
+    "pixabayId": "1511604",
+    "expected": "reject",
+    "legacyScore": 2,
+    "legacyAccepted": true,
+    "relevanceClass": "UNRELATED",
+    "relevanceFocus": 0,
+    "matchLevel": "none",
+    "rejectionReason": "UNRELATED_CANDIDATE",
+    "relevanceEvidence": [
+     "NO_MATCHING_DESCRIPTOR"
+    ],
+    "decision": "reject"
+   },
+   {
+    "id": "prod-trabajar-nube-palabras",
+    "concept": "trabajar",
+    "pixabayId": "2696823",
+    "expected": "reject",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "UNRELATED",
+    "relevanceFocus": 0,
+    "matchLevel": "none",
+    "rejectionReason": "UNRELATED_CANDIDATE",
+    "relevanceEvidence": [
+     "NO_MATCHING_DESCRIPTOR"
+    ],
+    "decision": "reject"
+   },
+   {
+    "id": "neg-desperanza-anzuelo",
+    "concept": "desperanza",
+    "pixabayId": "7418284",
+    "expected": "reject",
+    "legacyScore": 2,
+    "legacyAccepted": true,
+    "relevanceClass": "UNRELATED",
+    "relevanceFocus": 0,
+    "matchLevel": "none",
+    "rejectionReason": "UNRELATED_CANDIDATE",
+    "relevanceEvidence": [
+     "NO_MATCHING_DESCRIPTOR"
+    ],
+    "decision": "reject"
+   },
+   {
+    "id": "neg-desperanza-cabana",
+    "concept": "desperanza",
+    "pixabayId": "2955582",
+    "expected": "reject",
+    "legacyScore": 2,
+    "legacyAccepted": true,
+    "relevanceClass": "UNRELATED",
+    "relevanceFocus": 0,
+    "matchLevel": "none",
+    "rejectionReason": "UNRELATED_CANDIDATE",
+    "relevanceEvidence": [
+     "NO_MATCHING_DESCRIPTOR"
+    ],
+    "decision": "reject"
+   },
+   {
+    "id": "neg-potencial-anzuelo",
+    "concept": "potencial",
+    "pixabayId": "7418284",
+    "expected": "reject",
+    "legacyScore": 2,
+    "legacyAccepted": true,
+    "relevanceClass": "UNRELATED",
+    "relevanceFocus": 0,
+    "matchLevel": "none",
+    "rejectionReason": "UNRELATED_CANDIDATE",
+    "relevanceEvidence": [
+     "NO_MATCHING_DESCRIPTOR"
+    ],
+    "decision": "reject"
+   },
+   {
+    "id": "neg-trabajar-rompecabezas",
+    "concept": "trabajar",
+    "pixabayId": "20333",
+    "expected": "reject",
+    "legacyScore": 2,
+    "legacyAccepted": true,
+    "relevanceClass": "UNRELATED",
+    "relevanceFocus": 0,
+    "matchLevel": "none",
+    "rejectionReason": "UNRELATED_CANDIDATE",
+    "relevanceEvidence": [
+     "NO_MATCHING_DESCRIPTOR"
+    ],
+    "decision": "reject"
+   },
+   {
+    "id": "neg-libertad-pajaro",
+    "concept": "libertad",
+    "pixabayId": "10324879",
+    "expected": "reject",
+    "legacyScore": 2,
+    "legacyAccepted": true,
+    "relevanceClass": "UNRELATED",
+    "relevanceFocus": 0,
+    "matchLevel": "none",
+    "rejectionReason": "UNRELATED_CANDIDATE",
+    "relevanceEvidence": [
+     "NO_MATCHING_DESCRIPTOR"
+    ],
+    "decision": "reject"
+   },
+   {
+    "id": "pos-perro-labrador",
+    "concept": "perro",
+    "pixabayId": "2253166",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.336,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@3:perro",
+     "DOMAIN@4:animal",
+     "EXACT@5:perro de raza pura"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "pos-camara-digital",
+    "concept": "camara",
+    "pixabayId": "1362419",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "EXACT",
+    "relevanceFocus": 0.695,
+    "matchLevel": "exact",
+    "rejectionReason": "EXACT_CONCEPT",
+    "relevanceEvidence": [
+     "EXACT@0:camara",
+     "EXACT@9:camara",
+     "EXACT@10:camara",
+     "EXACT@11:camara"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "pos-tren-locomotora",
+    "concept": "tren",
+    "pixabayId": "2501397",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.273,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@3:tren",
+     "EXACT@5:modelo de tren",
+     "EXACT@11:tren"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "pos-reloj-pulsera",
+    "concept": "reloj",
+    "pixabayId": "3230523",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "EXACT",
+    "relevanceFocus": 0.818,
+    "matchLevel": "exact",
+    "rejectionReason": "EXACT_CONCEPT",
+    "relevanceEvidence": [
+     "EXACT@0:reloj",
+     "EXACT@1:reloj de pulsera"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "pos-pan-blanco",
+    "concept": "pan",
+    "pixabayId": "3277831",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.916,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@1:pan",
+     "EXACT@2:pan blanco",
+     "EXACT@4:pan",
+     "EXACT@5:pan",
+     "EXACT@6:pan",
+     "EXACT@7:pan"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "pos-hospital-quirofano",
+    "concept": "hospital",
+    "pixabayId": "1807543",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.259,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@4:hospital",
+     "EXACT@9:trabajadores del hospital",
+     "EXACT@10:hospital",
+     "EXACT@11:hospital"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "pos-protesta-manifestacion",
+    "concept": "protesta",
+    "pixabayId": "5963963",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.182,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@2:protesta"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "pos-bicicleta-deporte",
+    "concept": "bicicleta",
+    "pixabayId": "2677579",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.483,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@1:bicicleta",
+     "EXACT@8:bicicleta",
+     "EXACT@9:bicicleta",
+     "EXACT@10:bicicleta",
+     "EXACT@11:bicicleta"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "meta-tecnologia-camara",
+    "concept": "tecnologia",
+    "pixabayId": "1362419",
+    "expected": "support",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "RELATED",
+    "relevanceFocus": 0.136,
+    "matchLevel": "exact",
+    "rejectionReason": "RELATED_CONTEXT",
+    "relevanceEvidence": [
+     "EXACT@3:tecnologia"
+    ],
+    "decision": "support"
+   },
+   {
+    "id": "meta-tecnologia-brazo-robotico",
+    "concept": "tecnologia",
+    "pixabayId": "2658318",
+    "expected": "support",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.182,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@2:tecnologia"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "meta-tecnologia-equipo",
+    "concept": "tecnologia",
+    "pixabayId": "3251165",
+    "expected": "support",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "RELATED",
+    "relevanceFocus": 0.136,
+    "matchLevel": "exact",
+    "rejectionReason": "RELATED_CONTEXT",
+    "relevanceEvidence": [
+     "EXACT@3:tecnologia"
+    ],
+    "decision": "support"
+   },
+   {
+    "id": "meta-potencial-bombilla",
+    "concept": "potencial",
+    "pixabayId": "4827304",
+    "expected": "support",
+    "legacyScore": 2,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.182,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@3:potencial",
+     "EXACT@11:potencial"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "meta-crecimiento-bonsai",
+    "concept": "crecimiento",
+    "pixabayId": "1868109",
+    "expected": "support",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "RELATED",
+    "relevanceFocus": 0.045,
+    "matchLevel": "exact",
+    "rejectionReason": "RELATED_CONTEXT",
+    "relevanceEvidence": [
+     "EXACT@11:crecimiento"
+    ],
+    "decision": "support"
+   },
+   {
+    "id": "meta-brote-gotas",
+    "concept": "brote",
+    "pixabayId": "7351888",
+    "expected": "support",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "RELATED",
+    "relevanceFocus": 0.136,
+    "matchLevel": "exact",
+    "rejectionReason": "RELATED_CONTEXT",
+    "relevanceEvidence": [
+     "EXACT@3:brote"
+    ],
+    "decision": "support"
+   }
+  ]
+ },
+ "holdout": {
+  "label": "HOLDOUT",
+  "counters": {
+   "candidatesEvaluated": 20,
+   "exact": 7,
+   "strong": 8,
+   "related": 2,
+   "weak": 0,
+   "unrelated": 3,
+   "rejected": 3,
+   "acceptedHero": 15,
+   "acceptedSupport": 2,
+   "photoRejectedBeforeCutout": 3,
+   "photoCutoutAttempted": 17,
+   "editorialOnly": 0
+  },
+  "agreement": 0.85,
+  "agreed": 17,
+  "total": 20,
+  "BAD_ASSET_RATE_BEFORE": 0.263,
+  "BAD_ASSET_RATE_AFTER": 0.176,
+  "admittedBefore": 19,
+  "admittedAfter": 17,
+  "badAdmittedBefore": 5,
+  "badAdmittedAfter": 3,
+  "detail": [
+   {
+    "id": "hold-abeja-flor",
+    "concept": "abeja",
+    "pixabayId": "1502283",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "EXACT",
+    "relevanceFocus": 1,
+    "matchLevel": "exact",
+    "rejectionReason": "EXACT_CONCEPT",
+    "relevanceEvidence": [
+     "EXACT@0:abeja",
+     "EXACT@1:miel de abeja",
+     "EXACT@2:abeja en flor amarilla",
+     "EXACT@3:abeja y flor",
+     "EXACT@4:abeja en flor aislado"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "hold-abeja-avispon",
+    "concept": "abeja",
+    "pixabayId": "8457976",
+    "expected": "support",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.182,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@2:abeja"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "hold-ambulancia-vendedor",
+    "concept": "ambulancia",
+    "pixabayId": "123965",
+    "expected": "reject",
+    "legacyScore": 2,
+    "legacyAccepted": true,
+    "relevanceClass": "UNRELATED",
+    "relevanceFocus": 0,
+    "matchLevel": "none",
+    "rejectionReason": "UNRELATED_CANDIDATE",
+    "relevanceEvidence": [
+     "NO_MATCHING_DESCRIPTOR"
+    ],
+    "decision": "reject"
+   },
+   {
+    "id": "hold-ambulancia-historica",
+    "concept": "ambulancia",
+    "pixabayId": "3600613",
+    "expected": "support",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.245,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@3:historico de la ambulancia",
+     "EXACT@4:ambulancia"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "hold-barco-velero",
+    "concept": "barco",
+    "pixabayId": "1330746",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "EXACT",
+    "relevanceFocus": 0.824,
+    "matchLevel": "exact",
+    "rejectionReason": "EXACT_CONCEPT",
+    "relevanceEvidence": [
+     "EXACT@0:barco",
+     "EXACT@7:barco",
+     "EXACT@8:barco",
+     "EXACT@9:barco",
+     "EXACT@10:barco",
+     "EXACT@11:barco"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "hold-barco-grua",
+    "concept": "barco",
+    "pixabayId": "2648672",
+    "expected": "support",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.182,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@2:grua de barco"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "hold-bastante-puente",
+    "concept": "bastante",
+    "pixabayId": "4457345",
+    "expected": "reject",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.273,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@1:bastante"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "hold-costumbre-pantalones",
+    "concept": "costumbre",
+    "pixabayId": "2903226",
+    "expected": "support",
+    "legacyScore": 2,
+    "legacyAccepted": true,
+    "relevanceClass": "RELATED",
+    "relevanceFocus": 0.109,
+    "matchLevel": "exact",
+    "rejectionReason": "RELATED_CONTEXT",
+    "relevanceEvidence": [
+     "EXACT@4:costumbres regionales"
+    ],
+    "decision": "support"
+   },
+   {
+    "id": "hold-equilibrio-piedras",
+    "concept": "equilibrio",
+    "pixabayId": "242223",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "EXACT",
+    "relevanceFocus": 0.545,
+    "matchLevel": "exact",
+    "rejectionReason": "EXACT_CONCEPT",
+    "relevanceEvidence": [
+     "EXACT@0:equilibrio"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "hold-guitarra-acustica",
+    "concept": "guitarra",
+    "pixabayId": "2119",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "EXACT",
+    "relevanceFocus": 0.745,
+    "matchLevel": "exact",
+    "rejectionReason": "EXACT_CONCEPT",
+    "relevanceEvidence": [
+     "EXACT@0:guitarra",
+     "EXACT@4:guitarra acustica",
+     "EXACT@5:de madera de la guitarra"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "hold-justicia-balanza",
+    "concept": "justicia",
+    "pixabayId": "2532037",
+    "expected": "support",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.288,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@6:justicia",
+     "EXACT@8:justicia",
+     "EXACT@9:justicia",
+     "EXACT@10:justicia",
+     "EXACT@11:justicia"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "hold-llave-inglesa",
+    "concept": "llave",
+    "pixabayId": "789887",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "EXACT",
+    "relevanceFocus": 0.727,
+    "matchLevel": "exact",
+    "rejectionReason": "EXACT_CONCEPT",
+    "relevanceEvidence": [
+     "EXACT@0:llave inglesa",
+     "EXACT@2:llave francesa"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "hold-memoria-usb",
+    "concept": "memoria",
+    "pixabayId": "1306886",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "EXACT",
+    "relevanceFocus": 1,
+    "matchLevel": "exact",
+    "rejectionReason": "EXACT_CONCEPT",
+    "relevanceEvidence": [
+     "EXACT@0:memoria flash",
+     "EXACT@1:memoria usb",
+     "EXACT@2:tarjeta de memoria",
+     "EXACT@10:memoria blanca",
+     "EXACT@11:memoria usb"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "hold-mercado-modelo3d",
+    "concept": "mercado",
+    "pixabayId": "1834122",
+    "expected": "reject",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "RELATED",
+    "relevanceFocus": 0.128,
+    "matchLevel": "exact",
+    "rejectionReason": "RELATED_CONTEXT",
+    "relevanceEvidence": [
+     "EXACT@6:mercado",
+     "EXACT@10:puesto en el mercado"
+    ],
+    "decision": "support"
+   },
+   {
+    "id": "hold-montana-pajaro",
+    "concept": "montana",
+    "pixabayId": "10324879",
+    "expected": "support",
+    "legacyScore": 2,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.273,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@1:montana"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "hold-paraguas-animal",
+    "concept": "paraguas",
+    "pixabayId": "1238983",
+    "expected": "reject",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "UNRELATED",
+    "relevanceFocus": 0,
+    "matchLevel": "none",
+    "rejectionReason": "UNRELATED_CANDIDATE",
+    "relevanceEvidence": [
+     "NO_MATCHING_DESCRIPTOR"
+    ],
+    "decision": "reject"
+   },
+   {
+    "id": "hold-puente-fulda",
+    "concept": "puente",
+    "pixabayId": "2527577",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "EXACT",
+    "relevanceFocus": 0.915,
+    "matchLevel": "exact",
+    "rejectionReason": "EXACT_CONCEPT",
+    "relevanceEvidence": [
+     "EXACT@0:puente",
+     "EXACT@5:puente de arco",
+     "EXACT@7:puente",
+     "EXACT@8:puente",
+     "EXACT@9:puente",
+     "EXACT@10:puente"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "hold-resulta-calculadora",
+    "concept": "resulta",
+    "pixabayId": "2825179",
+    "expected": "reject",
+    "legacyScore": 2,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.273,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@1:resulta"
+    ],
+    "decision": "hero"
+   },
+   {
+    "id": "hold-silencio-lago",
+    "concept": "silencio",
+    "pixabayId": "4487292",
+    "expected": "reject",
+    "legacyScore": 1,
+    "legacyAccepted": false,
+    "relevanceClass": "UNRELATED",
+    "relevanceFocus": 0,
+    "matchLevel": "none",
+    "rejectionReason": "UNRELATED_CANDIDATE",
+    "relevanceEvidence": [
+     "NO_MATCHING_DESCRIPTOR"
+    ],
+    "decision": "reject"
+   },
+   {
+    "id": "hold-telescopio-mirador",
+    "concept": "telescopio",
+    "pixabayId": "2731792",
+    "expected": "hero",
+    "legacyScore": 3,
+    "legacyAccepted": true,
+    "relevanceClass": "STRONG",
+    "relevanceFocus": 0.382,
+    "matchLevel": "exact",
+    "rejectionReason": "STRONG_SYNONYM",
+    "relevanceEvidence": [
+     "EXACT@1:telescopio",
+     "EXACT@4:telescopio de monedas"
+    ],
+    "decision": "hero"
+   }
+  ]
+ },
+ "visualVerdict": "PENDING_HUMAN_REVIEW"
+}
