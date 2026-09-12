@@ -32,16 +32,27 @@ export type RelevanceRoleV1 = 'hero' | 'support'
  */
 export const RELEVANCE_DESCRIPTOR_WINDOW_V1 = 12
 
+
 /** Salience normaliser: matching the first three descriptors already saturates the measure. */
 const FOCUS_NORMALISER = 1 + 1 / 2 + 1 / 3
 
 /**
- * Calibrated against tests/fixtures/semantic-relevance-gate-calibration-v1.js and then frozen.
- * They are two constants on purpose: a per-case threshold is an overfitted rule wearing a
- * number's clothes.
+ * The two thresholds are DERIVED FROM DESCRIPTOR POSITIONS, not fitted to cases. Stating them as
+ * positions is what keeps them from becoming numbers tuned until a particular fixture passed.
+ *
+ * HIGH  — "the concept is the subject": one match among the first three descriptors, or several
+ *         matches further down that corroborate each other. Equals a lone match at index 2.
+ * MEDIUM— "the concept is present at all": a lone match at the last position still inside the
+ *         window. Below it the evidence exists but is not what the asset is about.
+ *
+ * Rejection of genuinely unrelated candidates does NOT depend on these numbers: an unrelated
+ * candidate has no matching descriptor at all and is UNRELATED whatever the thresholds say.
  */
-export const RELEVANCE_FOCUS_MEDIUM_V1 = 0.1
-export const RELEVANCE_FOCUS_HIGH_V1 = 0.3
+export const RELEVANCE_FOCUS_HIGH_V1 = (1 / 3) / FOCUS_NORMALISER
+export const RELEVANCE_FOCUS_MEDIUM_V1 = (1 / RELEVANCE_DESCRIPTOR_WINDOW_V1) / FOCUS_NORMALISER
+
+/** Positions produce exact threshold values; compare with tolerance so equality is inclusive. */
+const FOCUS_EPSILON = 1e-9
 
 /**
  * Stock-production vocabulary. These terms describe how a file was produced, not what it shows.
@@ -234,8 +245,8 @@ export function evaluateSemanticRelevanceV1(
   // is not. Only the untrusted side is subject to the concentration cap.
   const trusted = evidence.authority === 'curated-local' || declaredBelongs
   if (base !== 'UNRELATED' && !trusted) {
-    if (focus < RELEVANCE_FOCUS_MEDIUM_V1) value = 'WEAK'
-    else if (focus < RELEVANCE_FOCUS_HIGH_V1) value = weakest(base, 'RELATED')
+    if (focus + FOCUS_EPSILON < RELEVANCE_FOCUS_MEDIUM_V1) value = 'WEAK'
+    else if (focus + FOCUS_EPSILON < RELEVANCE_FOCUS_HIGH_V1) value = weakest(base, 'RELATED')
     else if (base === 'EXACT' && !leadBelongs) value = 'STRONG'
   }
   if (!window.length && !declaredBelongs) {

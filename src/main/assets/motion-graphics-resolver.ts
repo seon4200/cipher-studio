@@ -39,6 +39,11 @@ import {
   type SceneColorPaletteV1,
   type VideoColorPalettePlanV1,
 } from '../../shared/color-palette-v1'
+import {
+  relevanceAdmitsRoleV1,
+  relevanceAllowsHeroPromotionV1,
+  type RelevanceVerdictV1,
+} from '../../shared/semantic-relevance-gate-v1'
 import type { VisualConceptV1 } from '../../shared/visual-concepts'
 import type { LocalSemanticVisualDecisionResultV1 } from './semantic-decision'
 import {
@@ -61,6 +66,7 @@ import {
   findReusablePixabayImageAssetV1,
   publishPixabayImageAssetV1,
   readVerifiedRasterProjectAssetContentV1,
+  pixabayCandidateAdmissibleV1,
   searchPixabayImagesV1,
   selectPixabayImageCandidateV1,
   type PixabayImageCandidateV1,
@@ -72,6 +78,14 @@ import {
 export const MOTION_GRAPHICS_RESOLVER_VERSION = 2 as const
 
 export type MaterializedVisualChoiceV2 = {
+  /**
+   * Semantic Asset Relevance Gate V1 verdict that admitted this choice.  Diagnostics only:
+   * `compileV2` builds every SceneSlot field by field and `lockChoice` enumerates what it
+   * persists, so this never reaches SceneSpec, RenderBindings, PixelIdentity or project state.
+   * Absent means the choice came from a path that carries its own verification (a restored
+   * locked choice), not that it was judged and passed.
+   */
+  relevance?: RelevanceVerdictV1
   slotId: 'hero' | 'support-1' | 'support-2'
   concept: string
   provider: 'openmoji' | 'pixabay-images' | 'photo-cutout' | 'solar'
@@ -121,9 +135,11 @@ export type MotionGraphicsTraceV2 = {
   version: typeof MOTION_GRAPHICS_RESOLVER_VERSION
   sceneId: string
   concepts: Array<{ role: 'hero' | 'support-1' | 'support-2'; concept: string; subject: string; evidence: string }>
-  roleDecisions: Array<{ role: string; concept: string; provider: string | null; identity: string | null; reason: string; score: number | null }>
+  roleDecisions: Array<{ role: string; concept: string; provider: string | null; identity: string | null; reason: string; score: number | null
+    relevanceClass?: string; relevanceFocus?: number; relevanceEvidence?: readonly string[]; rejectionReason?: string | null }>
   representation: Array<{ role: string; concept: string; preference: AssetRepresentationPreferenceV1; reason: string; outcome: string }>
-  pixabay: Array<{ concept: string; query: string; candidates: number; selected: string | null; outcome: string }>
+  pixabay: Array<{ concept: string; query: string; candidates: number; selected: string | null; outcome: string
+    relevanceClass?: string; relevanceFocus?: number; rejectedByRelevance?: number }>
   family: ModernLayoutStructureV4
   videoStyleId: VideoVisualStyleIdV1
   colorPalette: {
@@ -171,6 +187,19 @@ export type MotionGraphicsResolutionV2 = {
     cutoutFailed: number
     cutoutCacheHit: number
     cutoutProcessingMs: number[]
+    /** Semantic Asset Relevance Gate V1. Diagnostics; never part of any cache key. */
+    candidatesEvaluated: number
+    relevanceExact: number
+    relevanceStrong: number
+    relevanceRelated: number
+    relevanceWeak: number
+    relevanceUnrelated: number
+    relevanceRejected: number
+    acceptedHero: number
+    acceptedSupport: number
+    photoRejectedBeforeCutout: number
+    photoCutoutAttempted: number
+    heroPromotionBlockedByRelevance: number
   }
 }
 
@@ -312,6 +341,7 @@ function openMojiChoice(input: {
   try {
     const published = publishOpenMojiAsset({ projectRoot: input.projectRoot, stableId: input.candidate.stableId })
     return {
+      ...(input.candidate.relevance ? { relevance: input.candidate.relevance } : {}),
       slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'openmoji',
       representation: input.representation ?? 'icon',
       reason: `${input.candidate.reason}:${published.status}`, score: input.candidate.score >= 3 ? 3 : 2,
@@ -330,6 +360,7 @@ function solarChoice(input: {
   const icon = input.candidate.solarVariant
   if (!icon) return null
   return {
+    ...(input.candidate.relevance ? { relevance: input.candidate.relevance } : {}),
     slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'solar',
     representation: input.representation ?? 'symbolic',
     reason: input.candidate.reason, score: input.candidate.score >= 3 ? 3 : 2,
@@ -342,6 +373,7 @@ async function pixabayChoice(input: {
   projectRoot: string
   slotId: MaterializedVisualChoiceV2['slotId']
   concept: VisualConceptV1
+  siblingConcepts: readonly VisualConceptV1[]
   representation: 'photo-cutout' | 'full-raster'
   apiKey?: string
   hooks?: MotionGraphicsProviderHooksV2
@@ -350,7 +382,8 @@ async function pixabayChoice(input: {
 }): Promise<MaterializedVisualChoiceV2 | null> {
   if (!input.apiKey && !input.hooks?.searchRequestJson) return null
   const plans = buildPixabayImageSearchPlansV1({ concept: input.concept, level: 'exact',
-    role: input.slotId === 'hero' ? 'hero' : 'support', representation: input.representation, maxPlans: 3 })
+    role: input.slotId === 'hero' ? 'hero' : 'support', representation: input.representation, maxPlans: 3,
+    siblingConcepts: input.siblingConcepts })
   // A cutout that fails the cheap alpha gate does not prove that every photo candidate for the
   // concept is unusable. Keep one honest full-raster fallback, but first try the other bounded,
   // already-ranked candidates. This remains a small on-demand search; it never harvests.
@@ -368,11 +401,30 @@ async function pixabayChoice(input: {
         selected: null, outcome: pixabayOutcome(error) })
       continue
     }
-    const ranked = searched.candidates.filter(candidate => candidate.score >= 2).slice(0, 3)
+    // SEMANTIC ASSET RELEVANCE GATE V1.  Admission happens here, on the raw hit, so an
+    // irrelevant photo costs neither a download nor a background-removal pass.  The gate only
+    // removes candidates; `rankPixabayImageCandidatesV1` still decides the order of survivors.
+    input.metrics.candidatesEvaluated += searched.candidates.length
+    for (const candidate of searched.candidates) {
+      const verdict = candidate.ranking.relevance.relevanceClass
+      if (verdict === 'EXACT') input.metrics.relevanceExact++
+      else if (verdict === 'STRONG') input.metrics.relevanceStrong++
+      else if (verdict === 'RELATED') input.metrics.relevanceRelated++
+      else if (verdict === 'WEAK') input.metrics.relevanceWeak++
+      else input.metrics.relevanceUnrelated++
+    }
+    const admissible = searched.candidates.filter(pixabayCandidateAdmissibleV1)
+    const rejectedHere = searched.candidates.length - admissible.length
+    input.metrics.relevanceRejected += rejectedHere
+    if (input.representation === 'photo-cutout') input.metrics.photoRejectedBeforeCutout += rejectedHere
+    const ranked = admissible.slice(0, 3)
     const selected = selectPixabayImageCandidateV1(ranked)
     input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query,
       candidates: searched.candidates.length, selected: selected?.id ?? null,
-      outcome: selected ? 'CANDIDATE_SELECTED' : searched.outcome })
+      outcome: selected ? 'CANDIDATE_SELECTED' : searched.outcome,
+      rejectedByRelevance: rejectedHere,
+      ...(selected ? { relevanceClass: selected.ranking.relevance.relevanceClass,
+        relevanceFocus: selected.ranking.relevance.relevanceFocus } : {}) })
     if (!selected) continue
     const candidates: PixabayImageCandidateV1[] = [selected, ...ranked.filter(candidate => candidate.id !== selected.id)].slice(0, 2)
     for (const candidate of candidates) {
@@ -416,6 +468,7 @@ async function pixabayChoice(input: {
       const score = candidate.score >= 3 ? 3 as const : 2 as const
       if (input.representation === 'full-raster') {
         return {
+          relevance: candidate.ranking.relevance,
           slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'pixabay-images',
           representation: 'full-raster', reason: sourceReused ? 'PIXABAY_FULL_RASTER_REUSED' : 'PIXABAY_FULL_RASTER_PREPARED',
           score, asset: sourceAsset, bounds: fullSubjectBounds(), kind: 'raster-image', alphaMode: 'opaque-rectangle',
@@ -431,7 +484,7 @@ async function pixabayChoice(input: {
       const cutout = await materializePhotoCutoutV1({ projectRoot: input.projectRoot, sourceAsset,
         ...(input.hooks?.cutoutRuntime !== undefined ? { runtime: input.hooks.cutoutRuntime } : {}),
         ...(input.hooks?.cutout ? { hooks: input.hooks.cutout } : {}) })
-      if (cutout.attempted) input.metrics.cutoutAttempted++
+      if (cutout.attempted) { input.metrics.cutoutAttempted++; input.metrics.photoCutoutAttempted++ }
       if (cutout.quality === 'CUTOUT_USABLE') input.metrics.cutoutUsable++
       else if (cutout.quality === 'CUTOUT_SUSPICIOUS') input.metrics.cutoutSuspicious++
       else input.metrics.cutoutFailed++
@@ -445,6 +498,7 @@ async function pixabayChoice(input: {
           candidates: searched.candidates.length, selected: candidate.id,
           outcome: cutout.cacheHit ? 'PHOTO_CUTOUT_CACHE_REUSED' : 'PHOTO_CUTOUT_USABLE' })
         return {
+          relevance: candidate.ranking.relevance,
           slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'photo-cutout',
           representation: 'photo-cutout', reason: `PHOTO_CUTOUT:${cutout.reason}`,
           score, asset: cutout.asset, bounds: cutout.bounds, kind: 'photo-cutout', alphaMode: 'useful-alpha',
@@ -457,6 +511,7 @@ async function pixabayChoice(input: {
         candidates: searched.candidates.length, selected: candidate.id,
         outcome: `PHOTO_CUTOUT_FALLBACK_FULL_RASTER:${cutout.reason}` })
       fallbackRaster ??= {
+        relevance: candidate.ranking.relevance,
         slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'pixabay-images',
         representation: 'full-raster', reason: `PHOTO_CUTOUT_FALLBACK_FULL_RASTER:${cutout.reason}`,
         score, asset: sourceAsset, bounds: fullSubjectBounds(), kind: 'raster-image', alphaMode: 'opaque-rectangle',
@@ -469,10 +524,15 @@ async function pixabayChoice(input: {
 function localCandidate(
   base: LocalSemanticVisualDecisionResultV1,
   concept: VisualConceptV1,
+  role: MaterializedVisualChoiceV2['slotId'],
   provider?: 'openmoji' | 'solar',
 ): VisualRetrievalCandidateV1 | null {
+  // A retrieval candidate without a verdict predates the gate (or came from a path that does not
+  // emit one); it keeps its previous behaviour instead of being rejected for missing evidence.
+  const admissible = (candidate: VisualRetrievalCandidateV1): boolean => candidate.relevance === undefined ||
+    relevanceAdmitsRoleV1(candidate.relevance.relevanceClass, role === 'hero' ? 'hero' : 'support')
   const candidates = (base.trace.retrieval?.candidates ?? []).filter(candidate =>
-    candidate.concept === concept.normalizedTerm && candidate.score >= 2 &&
+    candidate.concept === concept.normalizedTerm && candidate.score >= 2 && admissible(candidate) &&
     (!provider || candidate.provider === provider) && candidate.provider !== 'pixabay-images')
   return [...candidates].sort((a, b) => b.score - a.score ||
     (a.provider === 'openmoji' ? -1 : 1) || a.identity.localeCompare(b.identity, 'en'))[0] ?? null
@@ -495,12 +555,16 @@ function v1HeroChoice(input: {
   if (input.role.slotId !== 'hero') return null
   const selected = input.base.trace.retrieval?.selectedHero
   if (selected?.concept !== input.role.concept.normalizedTerm) return null
+  // The V1 engine chose this before the gate existed; it may only be reused as a Hero when the
+  // gate would have admitted it as one.  A missing verdict keeps the prior behaviour.
+  if (selected.relevance && !relevanceAdmitsRoleV1(selected.relevance.relevanceClass, 'hero')) return null
   const hero = input.base.decision.hero
   if (!hero) return null
   if (input.representation === 'icon' && hero.provider === 'openmoji') {
     const asset = recordForV1Hero(input.projectRoot, input.base)
     if (!asset) return null
     return {
+      ...(selected.relevance ? { relevance: selected.relevance } : {}),
       slotId: 'hero', concept: input.role.concept.normalizedTerm, provider: 'openmoji', representation: 'icon',
       reason: selected.reason?.startsWith('HERO_PROMOTED_')
         ? `C_PRIMARY_OPENMOJI_REUSED:${selected.reason}` : 'C_PRIMARY_OPENMOJI_REUSED',
@@ -509,6 +573,7 @@ function v1HeroChoice(input: {
   }
   if (input.representation === 'symbolic' && hero.provider === 'solar') {
     return {
+      ...(selected.relevance ? { relevance: selected.relevance } : {}),
       slotId: 'hero', concept: input.role.concept.normalizedTerm, provider: 'solar', representation: 'symbolic',
       reason: selected.reason?.startsWith('HERO_PROMOTED_')
         ? `C_PRIMARY_SOLAR:${selected.reason}` : 'C_PRIMARY_SOLAR',
@@ -530,7 +595,7 @@ function localChoiceForRepresentation(input: {
   const providerOrder: Array<'openmoji' | 'solar'> = input.representation === 'icon'
     ? ['openmoji', 'solar'] : ['solar', 'openmoji']
   for (const provider of providerOrder) {
-    const candidate = localCandidate(input.base, input.role.concept, provider)
+    const candidate = localCandidate(input.base, input.role.concept, input.role.slotId, provider)
     if (!candidate) continue
     const choice = provider === 'openmoji'
       ? openMojiChoice({ projectRoot: input.projectRoot, ...input.role, candidate, representation: input.representation })
@@ -591,9 +656,15 @@ function promoteBestSupportToHero(choices: readonly MaterializedVisualChoiceV2[]
       .sort((a, b) => a.slotId.localeCompare(b.slotId, 'en'))
       .map((choice, index) => ({ ...choice, slotId: index === 0 ? 'support-1' as const : 'support-2' as const }))]
   }
-  const support = [...choices].sort((a, b) => b.score - a.score ||
+  // SEMANTIC ASSET RELEVANCE GATE V1.  Only EXACT|STRONG may be promoted.  A RELATED asset is
+  // an honest Support, but promoting it would make the weakest admissible evidence carry the
+  // whole scene, which is precisely the filler the product rule rejects.
+  const promotable = choices.filter(choice => relevanceAllowsHeroPromotionV1(choice.relevance?.relevanceClass))
+  const support = [...promotable].sort((a, b) => b.score - a.score ||
     (a.provider === 'openmoji' ? -1 : b.provider === 'openmoji' ? 1 : 0) ||
     a.slotId.localeCompare(b.slotId, 'en'))[0]
+  // Supports exist to support a Hero.  With nothing defendible enough to anchor the scene, V15
+  // says so and renders editorial text rather than assembling a scene out of secondary material.
   if (!support) return []
   const remaining = choices.filter(choice => choice !== support)
   return [
@@ -760,6 +831,10 @@ export async function resolveMotionGraphicsSceneV2(input: {
     openMojiHero: 0, openMojiSupport: 0, solarHero: 0, solarSupport: 0, editorialOnly: 0,
     cutoutAttempted: 0, cutoutUsable: 0, cutoutSuspicious: 0, cutoutFailed: 0,
     cutoutCacheHit: 0, cutoutProcessingMs: [],
+    candidatesEvaluated: 0, relevanceExact: 0, relevanceStrong: 0, relevanceRelated: 0,
+    relevanceWeak: 0, relevanceUnrelated: 0, relevanceRejected: 0,
+    acceptedHero: 0, acceptedSupport: 0, photoRejectedBeforeCutout: 0, photoCutoutAttempted: 0,
+    heroPromotionBlockedByRelevance: 0,
   }
   const choices: MaterializedVisualChoiceV2[] = []
 
@@ -820,6 +895,7 @@ export async function resolveMotionGraphicsSceneV2(input: {
             continue
           }
           choice = await pixabayChoice({ projectRoot: input.projectRoot, slotId: role.slotId, concept: role.concept,
+            siblingConcepts: roleInputs.filter(other => other !== role).map(other => other.concept),
             representation: attempt, apiKey: input.pixabayApiKey, hooks: input.hooks, trace: trace.pixabay, metrics })
         } else if (attempt === 'icon' || attempt === 'symbolic') {
           choice = localChoiceForRepresentation({ projectRoot: input.projectRoot, base: input.base, role, representation: attempt })
@@ -842,13 +918,21 @@ export async function resolveMotionGraphicsSceneV2(input: {
       } else if (choice) trace.warnings.push('DUPLICATE_SEMANTIC_ASSET_OMITTED:' + role.slotId)
       trace.roleDecisions.push({ role: role.slotId, concept: role.concept.normalizedTerm,
         provider: choice?.provider ?? null, identity: choice?.asset?.sha256 ?? choice?.solarIcon ?? null,
-        reason: choice?.reason ?? 'NO_DEFENDIBLE_RESOURCE', score: choice?.score ?? null })
+        reason: choice?.reason ?? 'NO_DEFENDIBLE_RESOURCE', score: choice?.score ?? null,
+        ...(choice?.relevance ? { relevanceClass: choice.relevance.relevanceClass,
+          relevanceFocus: choice.relevance.relevanceFocus,
+          relevanceEvidence: choice.relevance.relevanceEvidence,
+          rejectionReason: choice.relevance.rejectionReason } : {}) })
     }
   }
   // A semantically strong secondary/tertiary resource may anchor the scene when the first
   // concept has no defendible asset. Promotion stays within the same subclip and is persisted.
   const effectiveChoices = promoteBestSupportToHero(choices)
   const hasHero = effectiveChoices.some(choice => choice.slotId === 'hero')
+  if (choices.length && !effectiveChoices.length) {
+    metrics.heroPromotionBlockedByRelevance++
+    trace.warnings.push('HERO_PROMOTION_BLOCKED_BY_RELEVANCE_GATE')
+  }
   if (!choices.some(choice => choice.slotId === 'hero') && hasHero) {
     const promoted = effectiveChoices.find(choice => choice.slotId === 'hero')!
     trace.roleDecisions.push({ role: 'hero', concept: promoted.concept, provider: promoted.provider,
@@ -856,6 +940,8 @@ export async function resolveMotionGraphicsSceneV2(input: {
     trace.warnings.push('HERO_PROMOTED_FROM_VALID_SAME_SCENE_CONCEPT')
   }
   metrics.supportsMaterialized = effectiveChoices.filter(choice => choice.slotId !== 'hero').length
+  metrics.acceptedHero = effectiveChoices.filter(choice => choice.slotId === 'hero').length
+  metrics.acceptedSupport = metrics.supportsMaterialized
   for (const choice of effectiveChoices) {
     const hero = choice.slotId === 'hero'
     if (choice.provider === 'photo-cutout') {

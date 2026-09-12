@@ -6,6 +6,12 @@ import {
   type ConceptLexiconEntryV1,
 } from '../../shared/concept-lexicon'
 import type { LocalSceneSemanticV1 } from '../../shared/local-scene-semantic'
+import {
+  evaluateSemanticRelevanceV1,
+  relevanceConceptContextV1,
+  type RelevanceConceptContextV1,
+  type RelevanceVerdictV1,
+} from '../../shared/semantic-relevance-gate-v1'
 import { createVisualConceptSetV1, type VisualConceptSetV1, type VisualConceptV1 } from '../../shared/visual-concepts'
 import { loadOpenMojiCatalog, searchOpenMoji, type OpenMojiCatalogEntry } from './openmoji/catalog'
 import { buildPixabayImageSearchPlansV1, type PixabayImageSearchPlanV1 } from './pixabay-images'
@@ -67,6 +73,11 @@ export type VisualRetrievalCandidateV1 = {
   solarBase?: string
   solarVariant?: string
   deferredUntilRendererSupport?: boolean
+  /**
+   * Semantic Asset Relevance Gate V1 verdict for this concrete catalogue entry. Diagnostics and
+   * admission only: it never reaches SceneSpec, RenderBindings or PixelIdentity.
+   */
+  relevance?: RelevanceVerdictV1
 }
 
 export type VisualRetrievalDecisionV1 = {
@@ -87,6 +98,22 @@ type EnrichedConcept = {
   lexicon?: ConceptLexiconEntryV1
   level: ConceptExpansionLevelV1
   role: VisualRetrievalRoleV1
+}
+
+/**
+ * OpenMoji and Solar are curated local catalogues, so their metadata is vetted evidence rather
+ * than an uploader's tag list. The gate still runs on them: it is the same decision boundary for
+ * every provider, and it is what lets a weak filename-token Solar hit be told apart from a real
+ * lexicon-declared base.
+ */
+function openMojiEvidence(entry: OpenMojiCatalogEntry, declared: string | undefined) {
+  return {
+    provider: 'openmoji' as const,
+    descriptors: [entry.annotation, ...entry.aliases, ...entry.tags, entry.group ?? '', entry.subgroup ?? '']
+      .map(value => String(value ?? '')).filter(Boolean),
+    ...(declared ? { declaredIdentity: declared } : {}),
+    authority: 'curated-local' as const,
+  }
 }
 
 type OpenMojiIndex = {
@@ -208,6 +235,7 @@ export function buildVisualSearchPlansV1(input: {
         lexicon: value.lexicon,
         level: value.level,
         role: value.role === 'support' ? 'support' : 'hero',
+        siblingConcepts: enriched.filter(other => other !== value).map(other => other.concept),
       })
       plans.push({ version: VISUAL_RETRIEVAL_ENGINE_VERSION, provider: 'pixabay-images', concept: value.concept.normalizedTerm,
         role: value.role, queries: pixabayPlans.map(plan => ({ text: plan.query, level: plan.level, reason: plan.reason })), pixabayPlans })
@@ -221,7 +249,7 @@ function addUnique(map: Map<string, VisualRetrievalCandidateV1>, value: VisualRe
   if (!existing || value.score > existing.score || (value.score === existing.score && LEVEL_RANK[value.level] < LEVEL_RANK[existing.level])) map.set(value.provider + '|' + value.identity, value)
 }
 
-function openMojiCandidates(value: EnrichedConcept, plan: VisualSearchPlanV1): {
+function openMojiCandidates(value: EnrichedConcept, plan: VisualSearchPlanV1, context: RelevanceConceptContextV1): {
   candidates: readonly VisualRetrievalCandidateV1[]
   uncertainSearches: number
 } {
@@ -259,7 +287,11 @@ function openMojiCandidates(value: EnrichedConcept, plan: VisualSearchPlanV1): {
       const metadataStrength = directEmoji || exactHex || annotationExact || aliasExact ? 3 : tagExact ? 2 : groupExact || tokenMatch ? 1 : 0
       const score = directEmoji || exactHex ? 3 : Math.min(metadataStrength, scoreFor(query.level))
       if (score === 0) continue
+      // A direct Unicode/hex hit means the narration or the lexicon named this exact pictograph;
+      // that is a system declaration, not a guessed metadata match.
+      const declared = directEmoji || exactHex ? value.concept.normalizedTerm : undefined
       addUnique(found, {
+        relevance: evaluateSemanticRelevanceV1(openMojiEvidence(entry, declared), context),
         provider: 'openmoji', role: value.role, concept: value.concept.normalizedTerm, identity: entry.stableId,
         stableId: entry.stableId, annotation: entry.annotation, score: score as 0 | 1 | 2 | 3, level: query.level,
         reason: directEmoji ? 'OPENMOJI_DIRECT_EMOJI' : annotationExact || aliasExact || exactHex ? 'OPENMOJI_METADATA_EXACT' :
@@ -274,9 +306,16 @@ function openMojiCandidates(value: EnrichedConcept, plan: VisualSearchPlanV1): {
   }
 }
 
-function solarCandidates(value: EnrichedConcept): VisualRetrievalCandidateV1[] {
+function solarCandidates(value: EnrichedConcept, context: RelevanceConceptContextV1): VisualRetrievalCandidateV1[] {
   return searchSolarAssetIndexV1({ concept: value.concept, lexicon: value.lexicon, level: value.level })
     .map((candidate: SolarSearchCandidateV1) => ({
+      // A lexicon-declared base is the system's own mapping; a filename token match is not.
+      relevance: evaluateSemanticRelevanceV1({
+        provider: 'solar' as const,
+        descriptors: candidate.base.split('-').filter(Boolean),
+        ...(candidate.reason === 'LEXICON_SOLAR_BASE' ? { declaredIdentity: candidate.base } : {}),
+        authority: 'curated-local' as const,
+      }, context),
       provider: 'solar' as const, role: value.role, concept: value.concept.normalizedTerm,
       identity: candidate.variant, solarBase: candidate.base, solarVariant: candidate.variant,
       score: candidate.score, level: candidate.level, reason: candidate.reason,
@@ -326,13 +365,21 @@ export function resolveVisualRetrievalV1(input: {
   let openMojiQueries = 0
   let pixabayPlans = 0
   for (const value of prepared.enriched) {
+    // The concept side is resolved once per concept, including its scene siblings: a defendible
+    // metaphor is usually defendible because ANOTHER concept of the same scene explains it.
+    const context = relevanceConceptContextV1({
+      concept: value.concept,
+      ...(value.lexicon ? { lexicon: value.lexicon } : {}),
+      level: value.level,
+      siblingConcepts: prepared.enriched.filter(other => other !== value).map(other => other.concept),
+    })
     const openPlan = prepared.plans.find(plan => plan.provider === 'openmoji' && plan.concept === value.concept.normalizedTerm && plan.role === value.role)
     if (openPlan) {
-      const local = openMojiCandidates(value, openPlan)
+      const local = openMojiCandidates(value, openPlan, context)
       openMojiQueries += local.uncertainSearches
       candidates.push(...local.candidates)
     }
-    candidates.push(...solarCandidates(value))
+    candidates.push(...solarCandidates(value, context))
     pixabayPlans += prepared.plans.filter(plan => plan.provider === 'pixabay-images' && plan.concept === value.concept.normalizedTerm).flatMap(plan => plan.pixabayPlans ?? []).length
   }
   const selectedByConcept = prepared.enriched.map(value => value.role === 'editorial' ? null :

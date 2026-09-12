@@ -8,6 +8,13 @@ import {
   type ConceptExpansionLevelV1,
 } from '../../shared/concept-lexicon'
 import type { ProjectAssetRecord } from '../../shared/project-state'
+import {
+  evaluateSemanticRelevanceV1,
+  relevanceAdmitsRoleV1,
+  relevanceConceptContextV1,
+  type RelevanceConceptContextV1,
+  type RelevanceVerdictV1,
+} from '../../shared/semantic-relevance-gate-v1'
 import type { VisualConceptV1 } from '../../shared/visual-concepts'
 import { fullSubjectBounds, type SubjectBoundsV1 } from '../../shared/visual-scene-spec'
 import {
@@ -78,6 +85,11 @@ export type PixabayImageRankingV1 = {
   previousSuccess: false
   total: number
   reasons: readonly string[]
+  /**
+   * Semantic Asset Relevance Gate V1 verdict for THIS concrete hit. It gates admission only; it
+   * never participates in `total`, because the gate is a filter and not a second ranker.
+   */
+  relevance: RelevanceVerdictV1
 }
 
 export type PixabayImageSearchPlanV1 = {
@@ -95,6 +107,14 @@ export type PixabayImageSearchPlanV1 = {
   reason: string
   /** Public query parameters only. API credentials are never copied into a plan or trace. */
   parameters: Readonly<Record<string, string>>
+  /**
+   * The concept side of the relevance comparison, resolved once when the plan is built. It
+   * deliberately travels with the plan so every hit is judged against the CONCEPT, never against
+   * the query text: the query carries retrieval decoration ("isolated"/"aislado") that stock
+   * uploaders also tag, and matching decoration to decoration is how an unrelated illustration
+   * was accepted in production.
+   */
+  relevanceContext: RelevanceConceptContextV1
 }
 
 export type PixabayImageCandidateV1 = {
@@ -175,6 +195,8 @@ export function buildPixabayImageSearchPlansV1(input: {
   role?: PixabayImageRoleV1
   representation?: PixabayImageRepresentationV1
   maxPlans?: number
+  /** The other concepts of the same scene; they keep defendible metaphors alive in the gate. */
+  siblingConcepts?: readonly VisualConceptV1[]
 }): readonly PixabayImageSearchPlanV1[] {
   const maxPlans = Math.min(Math.max(Math.trunc(input.maxPlans ?? 3), 1), 4)
   // `pixabayTerms` is the provider-facing EN vocabulary of ConceptLexicon. Without a
@@ -224,13 +246,19 @@ export function buildPixabayImageSearchPlansV1(input: {
     }
   }
   for (const term of terms.slice(1)) add(term, false, 'PIXABAY_LEXICON_TERM')
+  const relevanceContext = relevanceConceptContextV1({
+    concept: input.concept,
+    ...(input.lexicon ? { lexicon: input.lexicon } : {}),
+    level: input.level,
+    ...(input.siblingConcepts ? { siblingConcepts: input.siblingConcepts } : {}),
+  })
   const plans: PixabayImageSearchPlanV1[] = []
   for (const value of queryCandidates.slice(0, maxPlans)) {
     plans.push(Object.freeze({
       provider: 'pixabay-images', concept: input.concept.normalizedTerm, query: value.query,
       role, subject: input.concept.subject, representation,
       language, imageType, orientation: 'all', transparentRequested: value.transparent,
-      level: input.level, reason: value.reason,
+      level: input.level, reason: value.reason, relevanceContext,
       parameters: Object.freeze({ q: value.query, lang: language, image_type: imageType,
         orientation: 'all', safesearch: 'true', per_page: '20', ...(value.transparent ? { colors: 'transparent' } : {}) }),
     }))
@@ -410,6 +438,7 @@ function unverifiedRanking(input: {
   plan: PixabayImageSearchPlanV1
   width: number
   height: number
+  relevance: RelevanceVerdictV1
 }): PixabayImageRankingV1 {
   const resolution = resolutionTier(input.width, input.height)
   const heroSuitability: 0 | 1 | 2 | 3 = input.plan.role === 'hero'
@@ -426,6 +455,7 @@ function unverifiedRanking(input: {
     input.plan.transparentRequested ? 'TRANSPARENCY_REQUESTED_UNVERIFIED' : 'TRANSPARENCY_NOT_REQUESTED',
     'COMPOSITION_UNVERIFIED',
     'PREVIOUS_SUCCESS_UNAVAILABLE',
+    'RELEVANCE_' + input.relevance.relevanceClass,
   ]
   // Semantic relevance dominates. Quality signals are deliberately modest until bytes are read.
   const total = input.semantic * 100 + heroSuitability * 10 + supportSuitability * 4 +
@@ -435,7 +465,7 @@ function unverifiedRanking(input: {
     heroSuitability, supportSuitability, resolution,
     transparency: input.plan.transparentRequested ? 'requested-unverified' : 'not-requested',
     composition: 'unverified', providerConfidence: 1, previousSuccess: false, total,
-    reasons: Object.freeze(reasons),
+    reasons: Object.freeze(reasons), relevance: input.relevance,
   })
 }
 
@@ -445,9 +475,20 @@ export function rankPixabayImageCandidatesV1(candidates: readonly PixabayImageCa
     b.score - a.score || a.id.localeCompare(b.id, 'en')))
 }
 
-/** Only semantically usable candidates may progress to download/byte validation. */
+/**
+ * Admission for one concrete hit, by the Semantic Asset Relevance Gate V1. Hero takes
+ * EXACT|STRONG, Support additionally takes RELATED; WEAK and UNRELATED never progress.
+ */
+export function pixabayCandidateAdmissibleV1(candidate: PixabayImageCandidateV1): boolean {
+  return relevanceAdmitsRoleV1(candidate.ranking.relevance.relevanceClass, candidate.ranking.role)
+}
+
+/**
+ * Only relevant candidates may progress to download/byte validation. Ordering still comes from
+ * the existing ranker: the gate removes candidates, it never reorders the survivors.
+ */
 export function selectPixabayImageCandidateV1(candidates: readonly PixabayImageCandidateV1[]): PixabayImageCandidateV1 | null {
-  return rankPixabayImageCandidatesV1(candidates).find(candidate => candidate.ranking.semantic >= 2) ?? null
+  return rankPixabayImageCandidatesV1(candidates).find(pixabayCandidateAdmissibleV1) ?? null
 }
 
 /** Re-ranks a downloaded candidate with observed alpha, without pretending to judge composition. */
@@ -487,12 +528,18 @@ function candidateFromHit(hit: unknown, plan: PixabayImageSearchPlanV1): Pixabay
   const matching = target.filter(word => tagWords.has(word)).length
   const score = matching === target.length && target.length ? levelScore(plan.level) : matching ? 2 : 1
   const semantic = score as 0 | 1 | 2 | 3
+  // The gate runs HERE, on the raw hit, before any byte is downloaded and long before any
+  // background removal is attempted. Tag order is preserved: on Pixabay it carries salience,
+  // and a term appearing late is not what the image is about.
+  const relevance = evaluateSemanticRelevanceV1({
+    provider: 'pixabay-images', descriptors: tags, authority: 'third-party-tags',
+  }, plan.relevanceContext)
   return {
     provider: 'pixabay-images', id, pageUrl: safePage, downloadUrl: safeDownload, tags: Object.freeze(tags),
     width, height, imageType: kind, score: semantic,
     reason: matching === target.length && target.length ? 'PIXABAY_TAGS_MATCH_PLAN' : matching ? 'PIXABAY_PARTIAL_TAG_MATCH' : 'PIXABAY_PROVIDER_RESULT',
     query: plan.query, transparentRequested: plan.transparentRequested, requiresDownloadValidation: true,
-    ranking: unverifiedRanking({ semantic, plan, width, height }),
+    ranking: unverifiedRanking({ semantic, plan, width, height, relevance }),
   }
 }
 
@@ -514,7 +561,7 @@ export async function searchPixabayImagesV1(input: {
   const candidates = rankPixabayImageCandidatesV1(hits.map(hit => candidateFromHit(hit, input.plan))
     .filter((value): value is PixabayImageCandidateV1 => !!value)).slice(0, 40)
   const outcome: PixabaySearchResultV1['outcome'] = !hits.length ? 'NO_RESULTS'
-    : candidates.some(candidate => candidate.score >= 2) ? 'OK' : 'NO_USABLE_RESULT'
+    : candidates.some(pixabayCandidateAdmissibleV1) ? 'OK' : 'NO_USABLE_RESULT'
   return { plan: input.plan, candidates: Object.freeze(candidates), warnings: Object.freeze([]), outcome }
 }
 
