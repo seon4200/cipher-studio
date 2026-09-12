@@ -89,3 +89,74 @@ La conclusion de diseno no cambia, se refuerza: hay que medir **que proporcion d
 la evidencia del candidato pertenece al concepto**, comparando terminos del
 concepto contra descriptores del candidato — **nunca palabras de la query contra
 tags**, porque la query lleva adornos que no significan nada.
+
+---
+
+# Resultados
+
+## CALIBRATION (21 casos, congelados antes de calibrar)
+
+| | antes (regla de 88ee9ed) | despues (gate) |
+|---|---|---|
+| candidatos admitidos | 21 / 21 | 14 / 21 |
+| admitidos que eran malos | 7 | **0** |
+| BAD_ASSET_RATE | 0.333 | **0.000** |
+
+Acuerdo con el veredicto de producto: **21/21 (1.000)**.
+Clases: EXACT 2 · STRONG 8 · RELATED 4 · WEAK 0 · UNRELATED 7.
+
+La regla anterior admitia **todos** los candidatos del corpus, incluidos los siete
+conocidos como malos. Los siete quedan en UNRELATED con focus 0: no los rechaza un
+umbral, los rechaza la ausencia total de descriptor coincidente.
+
+## HOLDOUT (20 casos, conceptos disjuntos, congelado antes del primer run)
+
+Barra declarada ANTES de ejecutarlo: 0.80 de acuerdo.
+
+| | antes | despues |
+|---|---|---|
+| candidatos admitidos | 19 / 20 | 17 / 20 |
+| admitidos que eran malos | 5 | 3 |
+| BAD_ASSET_RATE | 0.263 | **0.176** |
+
+Acuerdo: **17/20 = 0.850**. Tras observarlo no se ha tocado ningun umbral, regla,
+lexicon ni scoring.
+
+### Los tres fallos del holdout dicen todos lo mismo
+
+`hold-bastante-puente`, `hold-resulta-calculadora` y `hold-mercado-modelo3d`.
+
+Los dos primeros son **conceptos basura**: el adverbio *"bastante"* y la forma verbal
+*"resulta"*, tomados como concepto. Pixabay devuelve imagenes literalmente etiquetadas
+con esas palabras, y el gate —correctamente— dice que candidato y concepto coinciden.
+
+**El gate comprueba si el candidato corresponde al concepto; no puede arreglar un
+concepto que no deberia existir.** Es el mismo fallo de raiz que la reconstruccion de
+arriba: con `localSemantic.concepts` vacio el sistema cae a tokens crudos del
+transcript. Eso es seleccion de concepto, aguas arriba de esta fase.
+
+### Sesgo observado hacia Hero
+
+Cinco casos que se esperaban Support salieron Hero (`abeja-avispon`,
+`ambulancia-historica`, `barco-grua`, `justicia-balanza`, `montana-pajaro`). Cuentan
+como acuerdo —se admiten, que es la decision binaria que mide el holdout— pero indican
+que el gate es mas generoso que el criterio editorial al repartir Hero vs Support.
+
+## Estado de las suites de render historico
+
+`test:v15-color-system-v1` caso 15 (*D-Final historico mantiene pixelDiff cero*) es
+**inestable en la rama base**, antes de este cambio:
+
+- base `88ee9ed` en solitario: 2 verdes / 2 rojas (diffs 7782 y 47854)
+- con el gate en solitario: 3 verdes / 2 rojas (diffs **7782 y 47854**, identicos)
+
+El gate no puede alcanzar ese render: el caso construye la SceneSpec con el helper de
+fixture sobre assets OpenMoji publicados a mano, sin pasar por retrieval. Los valores
+de fallo coinciden exactamente con los de la base.
+
+`test:background-black-foundation-v1` en solitario: **4/4 verdes con
+HISTORICAL_PIXEL_DIFF=0**; solo cae dentro de la pasada completa, igual que la anterior.
+
+Suite completa con el gate: una pasada **26/26 verdes**, otras dos con una de esas dos
+suites en rojo. Es inestabilidad de entorno preexistente en los dos tests de render
+historico, no una regresion. No se arregla aqui: tocar el renderer esta fuera de fase.
