@@ -262,6 +262,25 @@ app.whenReady().then(async () => {
       const football = evaluateRow(bundle, VISUAL_CONCEPT_HYGIENE_CALIBRATION_V1.find(value => value.id === 'structured-football'))
       assert.equal(football.concept.originalTerm, 'fútbol')
       assert.equal(football.concept.emoji, '⚽')
+      const clockSemantic = bundle.createLocalSceneSemanticV1({
+        sceneId: 'symbol-clock-contract', start: 0, end: 1,
+        transcriptSegments: [{ start: 0, end: 1, text: 'el reloj marca una decisión', words: [
+          { word: 'el', start: 0, end: .1 }, { word: 'reloj', start: .2, end: .36 },
+          { word: 'marca', start: .4, end: .56 }, { word: 'una', start: .6, end: .68 }, { word: 'decisión', start: .72, end: .94 },
+        ] }],
+        concepts: [{ label: 'reloj', emoji: '⏱️', canonicalHint: 'clock', start: .2, end: .36, scope: 'scene' }],
+        globalText: 'el reloj marca una decisión', globalHints: [], globalContextRef: 'fixture:symbol-clock-contract',
+      })
+      const clockIntent = bundle.createAssetIntentV1({ sceneId: 'symbol-clock-contract', keyword: 'TIEMPO', concepts: ['reloj'] })
+      const clock = bundle.resolveVisualRetrievalV1({ intent: clockIntent, localSemantic: clockSemantic })
+      const clockConcept = clock.concepts.primary
+      const clockRepresentation = bundle.resolveAssetRepresentationPreferenceV1({ concept: clockConcept, role: 'hero' })
+      assert.equal(clockConcept.hygiene, undefined)
+      assert.equal(clockConcept.hygieneAuthority, 'structured-semantic')
+      assert.equal(clockRepresentation.preference, 'symbolic')
+      assert.deepEqual(clockRepresentation.attemptOrder, ['symbolic', 'icon', 'editorial'])
+      assert.equal(clock.selectedHero?.provider, 'solar')
+      assert.equal(clock.selectedHero?.identity, 'stopwatch-bold-duotone')
     })
 
     await runCase('8 evidencia explícita conserva el contrato BASE de conceptos estructurados y hexcode directo', () => {
