@@ -40,6 +40,7 @@
     "test:photo-cutout-spike-v1": "electron tests/photo-cutout-spike-v1.js",
     "test:photo-cutout-production-v1": "electron tests/photo-cutout-production-v1.js",
     "test:semantic-relevance-gate-v1": "electron tests/semantic-relevance-gate-v1.js",
+    "test:visual-concept-hygiene-v1": "electron tests/visual-concept-hygiene-v1.js",
     "accept:visual-asset-mvp": "electron tests/aceptacion/visual-asset-mvp/generar.cjs",
     "accept:asset-resolver-v1": "electron tests/aceptacion/asset-resolver-v1/generar.cjs",
     "accept:asset-resolver-corpus": "electron tests/aceptacion/asset-resolver-v1/medir-corpus.cjs",
