@@ -1,4 +1,5 @@
 import type { VisualConceptV1 } from '../../shared/visual-concepts'
+import { expandConceptLexiconV1 } from '../../shared/concept-lexicon'
 
 /**
  * The representation choice is a retrieval/materialisation preference, never a pixel contract.
@@ -34,6 +35,22 @@ function likelyAbstractNominalWithoutLiteralCue(concept: VisualConceptV1): boole
   return /(?:cion|sion|dad|encia|miento|ismo|idad)$/u.test(concept.normalizedTerm)
 }
 
+function strongestLexiconSubject(concept: VisualConceptV1): VisualConceptV1['subject'] | null {
+  const expansions = [...expandConceptLexiconV1(concept.normalizedTerm), ...expandConceptLexiconV1(concept.originalTerm)]
+  return expansions[0]?.entry.subject ?? null
+}
+
+/**
+ * `object` is a historical broad default, not proof of a physical subject.  A real-photo route
+ * requires either a lexicon-backed physical class or Hygiene's concrete lexical evidence.
+ */
+function hasConcretePhysicalRepresentationEvidence(concept: VisualConceptV1): boolean {
+  const lexiconSubject = strongestLexiconSubject(concept)
+  if (lexiconSubject === 'person' || lexiconSubject === 'object') return true
+  if (concept.subject === 'person') return true
+  return concept.subject === 'object' && concept.hygiene?.visuality === 'concrete-visual'
+}
+
 /**
  * Chooses a resource *class*, not a particular provider result.  The resolver still requires a
  * semantically ranked candidate and can promote another concept from the same scene.  Physical
@@ -44,6 +61,8 @@ export function resolveAssetRepresentationPreferenceV1(input: {
   concept: VisualConceptV1
   role: 'hero' | 'support-1' | 'support-2'
 }): AssetRepresentationDecisionV1 {
+  // Subject/provenance remain whatever Visual Retrieval produced. Lexicon is consulted below
+  // only as evidence of physicality; it does not rewrite the concept at this decision boundary.
   const subject = input.concept.subject
   const hygiene = input.concept.hygiene
   // Concept Hygiene is the authority before retrieval. A word that did not earn visual-subject
@@ -96,23 +115,41 @@ export function resolveAssetRepresentationPreferenceV1(input: {
       attemptOrder: Object.freeze(['symbolic', 'icon', 'editorial'] as const), cutoutEligible: false,
       fullRasterEligible: false, reason: 'REPRESENTATION_ABSTRACT_NOMINAL_SYMBOL_OR_EDITORIAL' })
   }
-  // An explicit emoji is direct evidence that the narration already has a compact, literal icon
-  // representation.  It wins first for simple objects; a photo cutout still remains a valid
-  // fallback when no defendible icon actually materialises.
+  // A direct hexcode/emoji fallback is provider evidence, not merely a semantic hint. Persisted
+  // user/provider choices are even stronger and bypass this selector through `lockedChoices`.
+  if (input.concept.hygieneAuthority === 'explicit-visual-evidence') {
+    return Object.freeze({ version: ASSET_REPRESENTATION_DECISION_VERSION, preference: 'icon',
+      attemptOrder: Object.freeze(['icon', 'symbolic', 'editorial'] as const),
+      cutoutEligible: false, fullRasterEligible: false, reason: 'REPRESENTATION_DIRECT_ICON_EVIDENCE' })
+  }
+  const physical = hasConcretePhysicalRepresentationEvidence(input.concept)
+  // DeepSeek/local semantics may attach an emoji as a compact clue for a physical concept. That
+  // clue remains a valid icon fallback, but it is not a user command to skip a real-photo option.
+  if (input.concept.emoji && physical) {
+    return Object.freeze({ version: ASSET_REPRESENTATION_DECISION_VERSION, preference: 'photo-cutout',
+      attemptOrder: Object.freeze(['photo-cutout', 'icon', 'symbolic', 'full-raster', 'editorial'] as const),
+      cutoutEligible: true, fullRasterEligible: true,
+      reason: 'REPRESENTATION_PHYSICAL_CONCEPT_WITH_SEMANTIC_EMOJI_HINT' })
+  }
+  // Non-physical emoji evidence remains an icon/symbol route. It never creates a photo query on
+  // its own, and therefore cannot turn a symbol or an unknown noun into decorative stock imagery.
   if (input.concept.emoji) {
     return Object.freeze({ version: ASSET_REPRESENTATION_DECISION_VERSION, preference: 'icon',
-      attemptOrder: Object.freeze(['icon', 'photo-cutout', 'symbolic', 'full-raster', 'editorial'] as const),
-      cutoutEligible: true, fullRasterEligible: true, reason: 'REPRESENTATION_EXPLICIT_EMOJI_ICON_FIRST' })
+      attemptOrder: Object.freeze(['icon', 'symbolic', 'editorial'] as const),
+      cutoutEligible: false, fullRasterEligible: false, reason: 'REPRESENTATION_SEMANTIC_EMOJI_ICON_FIRST' })
   }
   // `object` includes animals, tools, devices, vehicles, food and products.  Its exact resource
   // depends on the role: a primary physical subject can gain a real cutout, whereas supports do
   // not pay that cost when a literal icon already communicates the same idea.
-  if (input.role === 'hero') {
+  if (physical) {
     return Object.freeze({ version: ASSET_REPRESENTATION_DECISION_VERSION, preference: 'auto',
       attemptOrder: Object.freeze(['photo-cutout', 'icon', 'symbolic', 'full-raster', 'editorial'] as const),
-      cutoutEligible: true, fullRasterEligible: true, reason: 'REPRESENTATION_PHYSICAL_OBJECT_HERO_AUTO' })
+      cutoutEligible: true, fullRasterEligible: true,
+      reason: input.role === 'hero' ? 'REPRESENTATION_PHYSICAL_OBJECT_HERO_AUTO' : 'REPRESENTATION_PHYSICAL_OBJECT_SUPPORT_AUTO' })
   }
+  // A broad structured noun that is not backed by a physical lexicon class must not inherit the
+  // historical object→photo default. Local symbolic candidates may still represent it honestly.
   return Object.freeze({ version: ASSET_REPRESENTATION_DECISION_VERSION, preference: 'auto',
-    attemptOrder: Object.freeze(['icon', 'photo-cutout', 'symbolic', 'full-raster', 'editorial'] as const),
-    cutoutEligible: true, fullRasterEligible: true, reason: 'REPRESENTATION_PHYSICAL_OBJECT_SUPPORT_AUTO' })
+    attemptOrder: Object.freeze(['icon', 'symbolic', 'editorial'] as const),
+    cutoutEligible: false, fullRasterEligible: false, reason: 'REPRESENTATION_OBJECT_WITHOUT_PHYSICAL_EVIDENCE' })
 }

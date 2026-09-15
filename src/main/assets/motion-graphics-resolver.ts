@@ -78,6 +78,15 @@ import {
 
 export const MOTION_GRAPHICS_RESOLVER_VERSION = 2 as const
 
+/** Shared per-scene limits. Provider adapters retain their narrower per-call limits. */
+export const PHOTO_SCENE_BUDGET_V1 = Object.freeze({ requests: 4, downloads: 4, transforms: 2 })
+
+type PhotoSceneBudgetStateV1 = {
+  requests: number
+  downloads: number
+  transforms: number
+}
+
 export type MaterializedVisualChoiceV2 = {
   /**
    * Semantic Asset Relevance Gate V1 verdict that admitted this choice.  Diagnostics only:
@@ -206,6 +215,15 @@ export type MotionGraphicsResolutionV2 = {
     photoRejectedBeforeCutout: number
     photoCutoutAttempted: number
     heroPromotionBlockedByRelevance: number
+    photoOpportunities: number
+    photoPlans: number
+    photoRequests: number
+    photoRetriesObserved: number
+    photoDownloads: number
+    photoTransformCalls: number
+    photoBudgetExhausted: number
+    photoNetworkMs: number[]
+    finalPhotoAssetShas: string[]
   }
 }
 
@@ -234,6 +252,18 @@ export type MotionGraphicsVideoMetricsV2 = {
   cutoutCacheHit: number
   averageCutoutMs: number | null
   p95CutoutMs: number | null
+  photoOpportunities: number
+  photoPlans: number
+  photoRequests: number
+  photoRetriesObserved: number
+  photoDownloads: number
+  photoTransformCalls: number
+  photoBudgetExhausted: number
+  candidatesEvaluated: number
+  relevanceRejected: number
+  uniquePhotoAssets: number
+  reusedPhotoAssets: number
+  averagePhotoNetworkMs: number | null
 }
 
 export function summarizeMotionGraphicsVideoMetricsV2(
@@ -245,8 +275,13 @@ export function summarizeMotionGraphicsVideoMetricsV2(
     openMojiHero: 0, openMojiSupport: 0, solarHero: 0, solarSupport: 0, editorialOnly: 0,
     cutoutAttempted: 0, cutoutInferenceExecuted: 0, cutoutSourceAlphaReused: 0, cutoutRuntimeErrors: 0,
     cutoutUsable: 0, cutoutSuspicious: 0, cutoutFailed: 0, cutoutCacheHit: 0,
+    photoOpportunities: 0, photoPlans: 0, photoRequests: 0, photoRetriesObserved: 0,
+    photoDownloads: 0, photoTransformCalls: 0, photoBudgetExhausted: 0,
+    candidatesEvaluated: 0, relevanceRejected: 0,
   }
   const times: number[] = []
+  const networkTimes: number[] = []
+  const photoAssets: string[] = []
   for (const { metrics } of resolutions) {
     totals.photoCutoutHero += metrics.photoCutoutHero; totals.photoCutoutSupport += metrics.photoCutoutSupport
     totals.fullRasterHero += metrics.fullRasterHero; totals.fullRasterSupport += metrics.fullRasterSupport
@@ -258,12 +293,23 @@ export function summarizeMotionGraphicsVideoMetricsV2(
     totals.cutoutRuntimeErrors += metrics.cutoutRuntimeErrors
     totals.cutoutUsable += metrics.cutoutUsable; totals.cutoutSuspicious += metrics.cutoutSuspicious
     totals.cutoutFailed += metrics.cutoutFailed; totals.cutoutCacheHit += metrics.cutoutCacheHit
+    totals.photoOpportunities += metrics.photoOpportunities; totals.photoPlans += metrics.photoPlans
+    totals.photoRequests += metrics.photoRequests; totals.photoRetriesObserved += metrics.photoRetriesObserved
+    totals.photoDownloads += metrics.photoDownloads; totals.photoTransformCalls += metrics.photoTransformCalls
+    totals.photoBudgetExhausted += metrics.photoBudgetExhausted
+    totals.candidatesEvaluated += metrics.candidatesEvaluated; totals.relevanceRejected += metrics.relevanceRejected
     times.push(...metrics.cutoutProcessingMs.filter(value => Number.isFinite(value) && value >= 0))
+    networkTimes.push(...metrics.photoNetworkMs.filter(value => Number.isFinite(value) && value >= 0))
+    photoAssets.push(...metrics.finalPhotoAssetShas)
   }
   const sorted = [...times].sort((a, b) => a - b)
   const averageCutoutMs = sorted.length ? sorted.reduce((sum, value) => sum + value, 0) / sorted.length : null
   const p95CutoutMs = sorted.length ? sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * .95) - 1)] : null
-  return { ...totals, averageCutoutMs, p95CutoutMs }
+  const averagePhotoNetworkMs = networkTimes.length
+    ? networkTimes.reduce((sum, value) => sum + value, 0) / networkTimes.length : null
+  const uniquePhotoAssets = new Set(photoAssets).size
+  return { ...totals, averageCutoutMs, p95CutoutMs, uniquePhotoAssets,
+    reusedPhotoAssets: Math.max(0, photoAssets.length - uniquePhotoAssets), averagePhotoNetworkMs }
 }
 
 export type MotionGraphicsProviderHooksV2 = {
@@ -392,27 +438,47 @@ async function pixabayChoice(input: {
   hooks?: MotionGraphicsProviderHooksV2
   trace: MotionGraphicsTraceV2['pixabay']
   metrics: MotionGraphicsResolutionV2['metrics']
+  budget: PhotoSceneBudgetStateV1
 }): Promise<MaterializedVisualChoiceV2 | null> {
   if (!input.apiKey && !input.hooks?.searchRequestJson) return null
   const plans = buildPixabayImageSearchPlansV1({ concept: input.concept, level: 'exact',
     role: input.slotId === 'hero' ? 'hero' : 'support', representation: input.representation, maxPlans: 3,
     siblingConcepts: input.siblingConcepts })
+  const boundedPlans = plans.slice(0, 2)
+  input.metrics.photoPlans += boundedPlans.length
   // A cutout that fails the cheap alpha gate does not prove that every photo candidate for the
   // concept is unusable. Keep one honest full-raster fallback, but first try the other bounded,
   // already-ranked candidates. This remains a small on-demand search; it never harvests.
   let fallbackRaster: MaterializedVisualChoiceV2 | null = null
   const preparedSources = new Map<string, ProjectAssetRecord>()
   const evaluatedCutoutSources = new Set<string>()
-  for (const plan of plans.slice(0, 2)) {
+  for (const plan of boundedPlans) {
+    if (input.budget.requests >= PHOTO_SCENE_BUDGET_V1.requests) {
+      input.metrics.photoBudgetExhausted++
+      input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query, candidates: 0,
+        selected: null, outcome: 'PHOTO_REQUEST_BUDGET_EXHAUSTED' })
+      break
+    }
     let searched
+    input.budget.requests++
+    input.metrics.photoRequests++
     input.metrics.pixabayQueries++
+    const searchStarted = Date.now()
     try {
+      const requestJson = input.hooks?.searchRequestJson
+        ? async (url: URL, context?: Parameters<PixabayRequestJsonV1>[1]) => {
+            if ((context?.attempt ?? 1) > 1) input.metrics.photoRetriesObserved++
+            return await input.hooks!.searchRequestJson!(url, context)
+          }
+        : undefined
       searched = await searchPixabayImagesV1({ plan, apiKey: input.apiKey,
-        ...(input.hooks?.searchRequestJson ? { requestJson: input.hooks.searchRequestJson } : {}) })
+        ...(requestJson ? { requestJson } : {}) })
     } catch (error) {
       input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query, candidates: 0,
         selected: null, outcome: pixabayOutcome(error) })
       continue
+    } finally {
+      input.metrics.photoNetworkMs.push(Date.now() - searchStarted)
     }
     // SEMANTIC ASSET RELEVANCE GATE V1.  Admission happens here, on the raw hit, so an
     // irrelevant photo costs neither a download nor a background-removal pass.  The gate only
@@ -459,9 +525,25 @@ async function pixabayChoice(input: {
           input.metrics.pixabayReused++
         } else {
           if (reusable.invalid) continue
+          if (input.budget.downloads >= PHOTO_SCENE_BUDGET_V1.downloads) {
+            input.metrics.photoBudgetExhausted++
+            input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query,
+              candidates: searched.candidates.length, selected: candidate.id,
+              outcome: 'PHOTO_DOWNLOAD_BUDGET_EXHAUSTED' })
+            continue
+          }
+          input.budget.downloads++
+          input.metrics.photoDownloads++
+          const downloadStarted = Date.now()
           try {
+            const requestBytes = input.hooks?.downloadRequestBytes
+              ? async (url: URL, context?: Parameters<PixabayRequestBytesV1>[1]) => {
+                  if ((context?.attempt ?? 1) > 1) input.metrics.photoRetriesObserved++
+                  return await input.hooks!.downloadRequestBytes!(url, context)
+                }
+              : undefined
             const sourceBytes = await downloadPixabayImageBytesV1({ candidate,
-              ...(input.hooks?.downloadRequestBytes ? { requestBytes: input.hooks.downloadRequestBytes } : {}) })
+              ...(requestBytes ? { requestBytes } : {}) })
             input.metrics.pixabayDownloads++
             const published = publishPixabayImageAssetV1({ projectRoot: input.projectRoot, candidate, bytes: sourceBytes })
             input.metrics.pixabayPublished += published.status === 'created' ? 1 : 0
@@ -474,6 +556,8 @@ async function pixabayChoice(input: {
               outcome: error && typeof error === 'object' && 'code' in error
                 ? String((error as { code: unknown }).code) : 'NETWORK_ERROR' })
             continue
+          } finally {
+            input.metrics.photoNetworkMs.push(Date.now() - downloadStarted)
           }
         }
         preparedSources.set(sourceKey, sourceAsset)
@@ -494,15 +578,31 @@ async function pixabayChoice(input: {
         continue
       }
       evaluatedCutoutSources.add(sourceAsset.sha256)
+      if (input.budget.transforms >= PHOTO_SCENE_BUDGET_V1.transforms) {
+        input.metrics.photoBudgetExhausted++
+        input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query,
+          candidates: searched.candidates.length, selected: candidate.id,
+          outcome: 'PHOTO_TRANSFORM_BUDGET_EXHAUSTED' })
+        fallbackRaster ??= {
+          relevance: candidate.ranking.relevance,
+          slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'pixabay-images',
+          representation: 'full-raster', reason: 'PHOTO_TRANSFORM_BUDGET_EXHAUSTED',
+          score, asset: sourceAsset, bounds: fullSubjectBounds(), kind: 'raster-image', alphaMode: 'opaque-rectangle',
+        }
+        continue
+      }
+      input.budget.transforms++
+      input.metrics.photoTransformCalls++
       const cutout = await materializePhotoCutoutV1({ projectRoot: input.projectRoot, sourceAsset,
         ...(input.hooks?.cutoutRuntime !== undefined ? { runtime: input.hooks.cutoutRuntime } : {}),
         ...(input.hooks?.cutout ? { hooks: input.hooks.cutout } : {}) })
       if (cutout.attempted) { input.metrics.cutoutAttempted++; input.metrics.photoCutoutAttempted++ }
       if (cutout.inferenceExecuted) input.metrics.cutoutInferenceExecuted++
       if (cutout.reason.startsWith('CUTOUT_SOURCE_ALREADY_HAS_ALPHA:')) input.metrics.cutoutSourceAlphaReused++
-      if (cutout.warnings.some(value => value === 'CUTOUT_RUNTIME_UNAVAILABLE' ||
-          value.startsWith('CUTOUT_INTERPRETER_') || value.startsWith('CUTOUT_WORKER_') ||
-          value.startsWith('CUTOUT_MODEL_') || value === 'CUTOUT_RUNTIME_NOT_CONFIGURED'))
+      if (cutout.warnings.some(value => ['CUTOUT_RUNTIME_UNAVAILABLE', 'CUTOUT_RUNTIME_NOT_CONFIGURED',
+        'CUTOUT_INTERPRETER_NOT_FOUND', 'CUTOUT_INTERPRETER_NOT_REGULAR',
+        'CUTOUT_WORKER_NOT_FOUND', 'CUTOUT_WORKER_NOT_REGULAR',
+        'CUTOUT_MODEL_NOT_INSTALLED', 'CUTOUT_MODEL_NOT_REGULAR'].includes(value)))
         input.metrics.cutoutRuntimeErrors++
       if (cutout.quality === 'CUTOUT_USABLE') input.metrics.cutoutUsable++
       else if (cutout.quality === 'CUTOUT_SUSPICIOUS') input.metrics.cutoutSuspicious++
@@ -860,8 +960,12 @@ export async function resolveMotionGraphicsSceneV2(input: {
     relevanceWeak: 0, relevanceUnrelated: 0, relevanceRejected: 0,
     acceptedHero: 0, acceptedSupport: 0, photoRejectedBeforeCutout: 0, photoCutoutAttempted: 0,
     heroPromotionBlockedByRelevance: 0,
+    photoOpportunities: 0, photoPlans: 0, photoRequests: 0, photoRetriesObserved: 0,
+    photoDownloads: 0, photoTransformCalls: 0, photoBudgetExhausted: 0,
+    photoNetworkMs: [], finalPhotoAssetShas: [],
   }
   const choices: MaterializedVisualChoiceV2[] = []
+  const photoBudget: PhotoSceneBudgetStateV1 = { requests: 0, downloads: 0, transforms: 0 }
 
   if (input.lockedChoices?.length) {
     for (const locked of input.lockedChoices) {
@@ -908,6 +1012,8 @@ export async function resolveMotionGraphicsSceneV2(input: {
           identity: null, reason: 'WEAK_LOCAL_TOKEN_OMITTED_WHILE_STRUCTURED_CONCEPTS_EXIST', score: null })
         continue
       }
+      if (representation.attemptOrder.some(value => value === 'photo-cutout' || value === 'full-raster'))
+        metrics.photoOpportunities++
       let outcome = 'NO_DEFENDIBLE_RESOURCE'
       for (const attempt of representation.attemptOrder) {
         if (attempt === 'editorial') {
@@ -921,7 +1027,8 @@ export async function resolveMotionGraphicsSceneV2(input: {
           }
           choice = await pixabayChoice({ projectRoot: input.projectRoot, slotId: role.slotId, concept: role.concept,
             siblingConcepts: roleInputs.filter(other => other !== role).map(other => other.concept),
-            representation: attempt, apiKey: input.pixabayApiKey, hooks: input.hooks, trace: trace.pixabay, metrics })
+            representation: attempt, apiKey: input.pixabayApiKey, hooks: input.hooks, trace: trace.pixabay, metrics,
+            budget: photoBudget })
         } else if (attempt === 'icon' || attempt === 'symbolic') {
           choice = localChoiceForRepresentation({ projectRoot: input.projectRoot, base: input.base, role, representation: attempt })
         }
@@ -980,6 +1087,8 @@ export async function resolveMotionGraphicsSceneV2(input: {
     } else if (choice.provider === 'solar') {
       if (hero) metrics.solarHero++; else metrics.solarSupport++
     }
+    if ((choice.provider === 'photo-cutout' || choice.provider === 'pixabay-images') && choice.asset)
+      metrics.finalPhotoAssetShas.push(choice.asset.sha256)
   }
   metrics.editorialOnly = hasHero ? 0 : 1
   if (!hasHero) trace.fallback = 'EDITORIAL_NO_DEFENDIBLE_HERO'
