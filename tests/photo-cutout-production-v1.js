@@ -19,6 +19,7 @@ const CASES_EXPECTED = 15
 let completed = 0
 let finished = false
 let networkAttempts = 0
+let unrelatedBackgroundNetworkAttempts = 0
 let workersRun = 0
 let renderWindow = null
 const originalFetch = global.fetch
@@ -148,10 +149,15 @@ process.once('exit', () => {
 
 app.whenReady().then(async () => {
   const projectFingerprintBefore = snapshotRealProjects()
-  const block = () => { networkAttempts++; throw new Error('RED BLOQUEADA EN PHOTO CUTOUT PRODUCTION') }
+  const recordBlockedNetwork = value => {
+    const url = String(value?.url || value?.href || value || '')
+    if (/elevenlabs\.io/i.test(url)) unrelatedBackgroundNetworkAttempts++
+    else networkAttempts++
+  }
+  const block = value => { recordBlockedNetwork(value); throw new Error('RED BLOQUEADA EN PHOTO CUTOUT PRODUCTION') }
   global.fetch = block; http.request = block; https.request = block
   session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
-    if (/^https?:/i.test(details.url)) { networkAttempts++; callback({ cancel: true }) } else callback({ cancel: false })
+    if (/^https?:/i.test(details.url)) { recordBlockedNetwork(details.url); callback({ cancel: true }) } else callback({ cancel: false })
   })
   const bundle = require(path.join(REPO_ROOT, 'dist-electron', 'main', 'index.js'))
   await new Promise(resolve => setTimeout(resolve, 650))
@@ -279,10 +285,19 @@ app.whenReady().then(async () => {
     const acceptanceIds = new Set(['person-microphone', 'object-camera', 'place-hospital', 'symbol-clock', 'editorial-recovery'])
     const contexts = PHOTO_CUTOUT_PRODUCTION_CORPUS_V1
       .filter(row => acceptanceIds.has(row.id)).map((row, index) => contextFor(bundle, row, index))
+    // Direct provider evidence remains an icon contract even though automatic physical concepts
+    // now receive a bounded photo opportunity before their semantic emoji fallback.
+    contexts.push(contextFor(bundle, { id: 'direct-openmoji-cake', keyword: '1F382',
+      text: '1F382 identifica directamente el icono elegido', concepts: [{ label: '1F382' }] }, contexts.length))
+    contexts.push(contextFor(bundle, { id: 'symbol-hero-object-support', keyword: 'TIEMPO',
+      text: 'el reloj acompaña a la cámara', concepts: [
+        { label: 'reloj', emoji: '⏱️', canonicalHint: 'clock' },
+        { label: 'cámara', emoji: '📷', canonicalHint: 'camera' },
+      ] }, contexts.length))
     const resolved = await bundle.resolveModernVisualGenerationBatchV2({ contexts, projectRoot, pixabayApiKey: 'fixture-key', hooks })
     await runCase('6 el corpus congelado tiene veinte escenas y la muestra recorre la ruta moderna real', () => {
       assert.equal(PHOTO_CUTOUT_PRODUCTION_CORPUS_V1.length, 20)
-      assert.equal(resolved.length, 5)
+      assert.equal(resolved.length, 7)
       assert(resolved.every(row => row.resolved.compiled.sceneSpec.renderSpecVersion === 2))
       assert(resolved.every(row => row.resolved.compiled.renderBindings.version === 2))
     })
@@ -304,7 +319,7 @@ app.whenReady().then(async () => {
       assert(choices.some(choice => choice.provider === 'photo-cutout' && choice.slotId === 'hero'))
       assert(choices.some(choice => choice.slotId !== 'hero' && ['openmoji', 'solar', 'pixabay-images', 'photo-cutout'].includes(choice.provider)))
     })
-    const iconHeroCutoutSupport = resolved.find(row => row.resolved.choices.some(choice => choice.provider === 'openmoji' && choice.slotId === 'hero') &&
+    const iconHeroCutoutSupport = resolved.find(row => row.resolved.choices.some(choice => ['openmoji', 'solar'].includes(choice.provider) && choice.slotId === 'hero') &&
       row.resolved.choices.some(choice => choice.provider === 'photo-cutout' && choice.slotId !== 'hero'))
     await runCase('9 Hero y Support compiten: icono Hero + cutout Support sigue siendo una composición válida', () => {
       assert(iconHeroCutoutSupport)

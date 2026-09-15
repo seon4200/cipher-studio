@@ -31,7 +31,11 @@ asset ni un provider:
 - persona/animal/objeto físico complejo: intenta `photo-cutout` antes de sus
   fallbacks;
 - lugar o evento cuyo contexto es significado: `full-raster`;
-- emoji explícito u objeto simple: icono primero;
+- elección persistida/directa de icono o evidencia directa de provider: conserva
+  la vía de icono;
+- emoji semántico del mismo subclip: conserva el candidato iconográfico, pero
+  no bloquea una oportunidad fotográfica previa cuando el concepto aporta
+  evidencia física concreta;
 - símbolo/técnico: Solar primero;
 - concepto abstracto o contextual: editorial o símbolo, nunca una fotografía
   decorativa.
@@ -63,6 +67,13 @@ El resultado sólo se reutiliza si su ProjectAsset derivado sigue verificando
 SHA, MIME, alpha y bytes locales. La cache diagnóstica vive en
 `materiales/diagnostics/cutout-transforms-v1.json`, fuera de PixelIdentity.
 
+La configuración productiva llega por el loader existente del proceso main:
+`CIPHER_CUTOUT_PYTHON`, `CIPHER_CUTOUT_MODEL_CACHE` y, opcionalmente,
+`CIPHER_CUTOUT_WORKER`. `diagnoseCutoutRuntimeV1` distingue configuración
+ausente, intérprete/worker/modelo inexistente o irregular y runtime listo, sin
+ejecutar Python ni descargar pesos. Los valores locales permanecen fuera de
+Git y nunca entran en SceneSpec o PixelIdentity.
+
 El gate barato clasifica `CUTOUT_USABLE`, `CUTOUT_SUSPICIOUS` o
 `CUTOUT_FAILED` a partir de alpha útil, dimensiones, bounding box y proporción
 transparente. No pretende detectar calidad de cabello. Ante fallo se intenta
@@ -84,15 +95,29 @@ no destructivos ya definidos por la familia/layout V15.
 ## Diagnóstico por vídeo
 
 `summarizeMotionGraphicsVideoMetricsV2` registra: escenas, Hero/Support por
-tipo de recurso, editorial, intentos/calidad/cache de cutout y promedio/p95 de
-procesamiento. La integración de generación adjunta el resumen al diagnóstico
-de decisiones, sin inflar SceneSpec ni la identidad de píxeles.
+tipo de recurso, editorial, oportunidades/planes/peticiones/descargas de foto,
+candidatos y rechazos de relevancia, inferencias reales, fuentes con alpha,
+cache, errores de runtime, assets fotográficos únicos/reutilizados y tiempos.
+La integración de generación adjunta el resumen al diagnóstico de decisiones,
+sin inflar SceneSpec ni la identidad de píxeles.
+
+El presupuesto compartido por escena es 4 peticiones, 4 descargas y 2
+transformaciones como máximos. Los límites previos por plan/candidato siguen
+aplicando. Agotar el presupuesto deja una razón persistida y utiliza la
+alternativa semántica existente; no relaja Relevance Gate ni obliga a llenar
+slots.
 
 La aceptación real limitada queda en
 `tests/aceptacion/photo-cutout-production-v1/`: corpus congelado de 20
 escenas, cinco recorridos end-to-end reales, hoja de contactos, MP4 y
 `evidence.json`. La publicación/retrieval ocurre antes de bloquear red; el
 render, QC y MP4 se verifican sin red y sólo en proyecto temporal.
+
+La aceptación acotada de la conexión productiva y la política de objetos queda
+en `tests/aceptacion/photo-representation-runtime-v1/`. Usa respuestas
+capturadas, dos escenas con un objeto real como Hero/Support, un control de
+icono y el mismo loader de configuración del proceso main; después de
+materializar ProjectAssets, renderiza offline.
 
 ## Deuda obligatoria de licencia y distribución
 

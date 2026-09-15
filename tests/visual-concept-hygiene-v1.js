@@ -294,7 +294,7 @@ app.whenReady().then(async () => {
       assert.equal(message.pixabay, true) // plan only; no request or photo selection occurs here.
       const messageRepresentation = bundle.resolveAssetRepresentationPreferenceV1({ concept: message.concept, role: 'hero' })
       assert.equal(messageRepresentation.preference, 'icon')
-      assert.deepEqual(messageRepresentation.attemptOrder, ['icon', 'photo-cutout', 'symbolic', 'full-raster', 'editorial'])
+      assert.deepEqual(messageRepresentation.attemptOrder, ['icon', 'symbolic', 'editorial'])
       const messageResolution = bundle.resolveVisualRetrievalV1({ intent: message.intent, localSemantic: message.localSemantic })
       assert.equal(messageResolution.selectedHero?.provider, 'solar')
       const hex = bundle.resolveVisualRetrievalV1({ intent: bundle.createAssetIntentV1({ sceneId: 'cake-hex', keyword: '1F382', concepts: ['1F382'] }) })
@@ -302,7 +302,7 @@ app.whenReady().then(async () => {
       assert.equal(hex.metrics.openMojiQueries, 0)
       assert.equal(hex.plans.some(plan => plan.provider === 'pixabay-images'), true)
       const hexRepresentation = bundle.resolveAssetRepresentationPreferenceV1({ concept: hex.concepts.primary, role: 'hero' })
-      assert.deepEqual(hexRepresentation.attemptOrder, ['photo-cutout', 'icon', 'symbolic', 'full-raster', 'editorial'])
+      assert.deepEqual(hexRepresentation.attemptOrder, ['icon', 'symbolic', 'editorial'])
     })
 
     await runCase('9 AssetIntent estructurado conserva su QueryPlan y representación histórica', () => {

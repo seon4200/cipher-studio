@@ -1,0 +1,493 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Small productive object-photo acceptance with captured provider responses and offline V15 render.",
+  "versionPlantillas": 15,
+  "runtime": {
+    "ready": true,
+    "code": "CUTOUT_RUNTIME_READY",
+    "model": "u2netp"
+  },
+  "sceneBudget": {
+    "requests": 4,
+    "downloads": 4,
+    "transforms": 2
+  },
+  "capturedProvider": {
+    "requests": 2,
+    "retries": 0,
+    "downloads": 1
+  },
+  "metrics": {
+    "visualScenes": 4,
+    "photoCutoutHero": 1,
+    "photoCutoutSupport": 1,
+    "fullRasterHero": 0,
+    "fullRasterSupport": 0,
+    "openMojiHero": 2,
+    "openMojiSupport": 0,
+    "solarHero": 1,
+    "solarSupport": 0,
+    "editorialOnly": 0,
+    "cutoutAttempted": 2,
+    "cutoutInferenceExecuted": 1,
+    "cutoutSourceAlphaReused": 0,
+    "cutoutRuntimeErrors": 0,
+    "cutoutUsable": 2,
+    "cutoutSuspicious": 0,
+    "cutoutFailed": 0,
+    "cutoutCacheHit": 1,
+    "photoOpportunities": 2,
+    "photoPlans": 4,
+    "photoRequests": 2,
+    "photoRetriesObserved": 0,
+    "photoDownloads": 1,
+    "photoTransformCalls": 2,
+    "photoBudgetExhausted": 0,
+    "candidatesEvaluated": 2,
+    "relevanceRejected": 0,
+    "averageCutoutMs": 130.534,
+    "p95CutoutMs": 130.534,
+    "uniquePhotoAssets": 1,
+    "reusedPhotoAssets": 1,
+    "averagePhotoNetworkMs": 13.333333333333334
+  },
+  "reconciliation": {
+    "photoOpportunities": 2,
+    "photoPlans": 4,
+    "photoRequests": 2,
+    "candidatesEvaluated": 2,
+    "candidatesRejected": 0,
+    "downloads": 1,
+    "existingAlphaAccepted": 0,
+    "opaquePhotoInferences": 1,
+    "cacheHits": 1,
+    "runtimeErrors": 0,
+    "photoHero": 1,
+    "photoSupport": 1,
+    "uniquePhotoAssets": 1,
+    "reusedPhotoAssets": 1
+  },
+  "timings": {
+    "materializationMs": 2637.9505,
+    "averagePhotoNetworkMs": 13.333333333333334,
+    "averageCutoutMs": 130.534,
+    "p95CutoutMs": 130.534,
+    "renderMs": [
+      938.0430000000001,
+      624.7617,
+      613.5511000000006,
+      546.6446999999998
+    ]
+  },
+  "finalPhotoAssets": [
+    {
+      "slotId": "hero",
+      "provider": "photo-cutout",
+      "sha256": "22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab"
+    },
+    {
+      "slotId": "support-1",
+      "provider": "photo-cutout",
+      "sha256": "22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab"
+    }
+  ],
+  "rendererOffline": true,
+  "unrelatedBackgroundNetworkAttempts": 0,
+  "realProjectsUntouched": true,
+  "scenes": [
+    {
+      "sceneId": "camera-photo-hero",
+      "keyword": "CÁMARA",
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "photo-cutout",
+          "representation": "photo-cutout",
+          "assetId": "cutout-39b6a8d5493d3421e207-u2netp-541a3dcd",
+          "sha256": "22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab",
+          "solarIcon": null
+        }
+      ],
+      "metrics": {
+        "pixabayQueries": 1,
+        "pixabayDownloads": 1,
+        "pixabayPublished": 1,
+        "pixabayReused": 0,
+        "openMojiPublished": 0,
+        "openMojiReused": 0,
+        "supportsMaterialized": 0,
+        "photoCutoutHero": 1,
+        "photoCutoutSupport": 0,
+        "fullRasterHero": 0,
+        "fullRasterSupport": 0,
+        "openMojiHero": 0,
+        "openMojiSupport": 0,
+        "solarHero": 0,
+        "solarSupport": 0,
+        "editorialOnly": 0,
+        "cutoutAttempted": 1,
+        "cutoutInferenceExecuted": 1,
+        "cutoutSourceAlphaReused": 0,
+        "cutoutRuntimeErrors": 0,
+        "cutoutUsable": 1,
+        "cutoutSuspicious": 0,
+        "cutoutFailed": 0,
+        "cutoutCacheHit": 0,
+        "cutoutProcessingMs": [
+          130.534
+        ],
+        "candidatesEvaluated": 1,
+        "relevanceExact": 1,
+        "relevanceStrong": 0,
+        "relevanceRelated": 0,
+        "relevanceWeak": 0,
+        "relevanceUnrelated": 0,
+        "relevanceRejected": 0,
+        "acceptedHero": 1,
+        "acceptedSupport": 0,
+        "photoRejectedBeforeCutout": 0,
+        "photoCutoutAttempted": 1,
+        "heroPromotionBlockedByRelevance": 0,
+        "photoOpportunities": 1,
+        "photoPlans": 2,
+        "photoRequests": 1,
+        "photoRetriesObserved": 0,
+        "photoDownloads": 1,
+        "photoTransformCalls": 1,
+        "photoBudgetExhausted": 0,
+        "photoNetworkMs": [
+          1,
+          38
+        ],
+        "finalPhotoAssetShas": [
+          "22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab"
+        ]
+      },
+      "representationTrace": [
+        {
+          "role": "hero",
+          "concept": "camera",
+          "preference": "photo-cutout",
+          "reason": "REPRESENTATION_PHYSICAL_CONCEPT_WITH_SEMANTIC_EMOJI_HINT",
+          "outcome": "MATERIALIZED:photo-cutout:photo-cutout"
+        }
+      ],
+      "pixabayTrace": [
+        {
+          "concept": "camera",
+          "query": "camara aislado",
+          "candidates": 1,
+          "selected": "192001",
+          "outcome": "CANDIDATE_SELECTED",
+          "rejectedByRelevance": 0,
+          "relevanceClass": "EXACT",
+          "relevanceFocus": 0.682
+        },
+        {
+          "concept": "camera",
+          "query": "camara aislado",
+          "candidates": 1,
+          "selected": "192001",
+          "outcome": "PHOTO_CUTOUT_USABLE"
+        }
+      ],
+      "qcErrors": []
+    },
+    {
+      "sceneId": "clock-icon-camera-support",
+      "keyword": "reloj",
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "solar",
+          "representation": "symbolic",
+          "assetId": null,
+          "sha256": null,
+          "solarIcon": "stopwatch-bold-duotone"
+        },
+        {
+          "role": "support-1",
+          "provider": "photo-cutout",
+          "representation": "photo-cutout",
+          "assetId": "cutout-39b6a8d5493d3421e207-u2netp-541a3dcd",
+          "sha256": "22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab",
+          "solarIcon": null
+        }
+      ],
+      "metrics": {
+        "pixabayQueries": 1,
+        "pixabayDownloads": 0,
+        "pixabayPublished": 0,
+        "pixabayReused": 1,
+        "openMojiPublished": 0,
+        "openMojiReused": 0,
+        "supportsMaterialized": 1,
+        "photoCutoutHero": 0,
+        "photoCutoutSupport": 1,
+        "fullRasterHero": 0,
+        "fullRasterSupport": 0,
+        "openMojiHero": 0,
+        "openMojiSupport": 0,
+        "solarHero": 1,
+        "solarSupport": 0,
+        "editorialOnly": 0,
+        "cutoutAttempted": 1,
+        "cutoutInferenceExecuted": 0,
+        "cutoutSourceAlphaReused": 0,
+        "cutoutRuntimeErrors": 0,
+        "cutoutUsable": 1,
+        "cutoutSuspicious": 0,
+        "cutoutFailed": 0,
+        "cutoutCacheHit": 1,
+        "cutoutProcessingMs": [],
+        "candidatesEvaluated": 1,
+        "relevanceExact": 1,
+        "relevanceStrong": 0,
+        "relevanceRelated": 0,
+        "relevanceWeak": 0,
+        "relevanceUnrelated": 0,
+        "relevanceRejected": 0,
+        "acceptedHero": 1,
+        "acceptedSupport": 1,
+        "photoRejectedBeforeCutout": 0,
+        "photoCutoutAttempted": 1,
+        "heroPromotionBlockedByRelevance": 0,
+        "photoOpportunities": 1,
+        "photoPlans": 2,
+        "photoRequests": 1,
+        "photoRetriesObserved": 0,
+        "photoDownloads": 0,
+        "photoTransformCalls": 1,
+        "photoBudgetExhausted": 0,
+        "photoNetworkMs": [
+          1
+        ],
+        "finalPhotoAssetShas": [
+          "22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab"
+        ]
+      },
+      "representationTrace": [
+        {
+          "role": "hero",
+          "concept": "clock",
+          "preference": "symbolic",
+          "reason": "REPRESENTATION_SYMBOLIC_CONCEPT",
+          "outcome": "MATERIALIZED:solar:symbolic"
+        },
+        {
+          "role": "support-1",
+          "concept": "camera",
+          "preference": "photo-cutout",
+          "reason": "REPRESENTATION_PHYSICAL_CONCEPT_WITH_SEMANTIC_EMOJI_HINT",
+          "outcome": "MATERIALIZED:photo-cutout:photo-cutout"
+        }
+      ],
+      "pixabayTrace": [
+        {
+          "concept": "camera",
+          "query": "camara aislado",
+          "candidates": 1,
+          "selected": "192001",
+          "outcome": "CANDIDATE_SELECTED",
+          "rejectedByRelevance": 0,
+          "relevanceClass": "EXACT",
+          "relevanceFocus": 0.682
+        },
+        {
+          "concept": "camera",
+          "query": "camara aislado",
+          "candidates": 1,
+          "selected": "192001",
+          "outcome": "PHOTO_CUTOUT_CACHE_REUSED"
+        }
+      ],
+      "qcErrors": []
+    },
+    {
+      "sceneId": "cup-photo-hero",
+      "keyword": "TAZA",
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "openmoji",
+          "representation": "icon",
+          "assetId": "openmoji-2615-7de24e2f229c",
+          "sha256": "7de24e2f229c7b43848225ecdbb8b16c829e6a525e8b84fc6c3e584821027e1d",
+          "solarIcon": null
+        }
+      ],
+      "metrics": {
+        "pixabayQueries": 0,
+        "pixabayDownloads": 0,
+        "pixabayPublished": 0,
+        "pixabayReused": 0,
+        "openMojiPublished": 0,
+        "openMojiReused": 1,
+        "supportsMaterialized": 0,
+        "photoCutoutHero": 0,
+        "photoCutoutSupport": 0,
+        "fullRasterHero": 0,
+        "fullRasterSupport": 0,
+        "openMojiHero": 1,
+        "openMojiSupport": 0,
+        "solarHero": 0,
+        "solarSupport": 0,
+        "editorialOnly": 0,
+        "cutoutAttempted": 0,
+        "cutoutInferenceExecuted": 0,
+        "cutoutSourceAlphaReused": 0,
+        "cutoutRuntimeErrors": 0,
+        "cutoutUsable": 0,
+        "cutoutSuspicious": 0,
+        "cutoutFailed": 0,
+        "cutoutCacheHit": 0,
+        "cutoutProcessingMs": [],
+        "candidatesEvaluated": 0,
+        "relevanceExact": 0,
+        "relevanceStrong": 0,
+        "relevanceRelated": 0,
+        "relevanceWeak": 0,
+        "relevanceUnrelated": 0,
+        "relevanceRejected": 0,
+        "acceptedHero": 1,
+        "acceptedSupport": 0,
+        "photoRejectedBeforeCutout": 0,
+        "photoCutoutAttempted": 0,
+        "heroPromotionBlockedByRelevance": 0,
+        "photoOpportunities": 0,
+        "photoPlans": 0,
+        "photoRequests": 0,
+        "photoRetriesObserved": 0,
+        "photoDownloads": 0,
+        "photoTransformCalls": 0,
+        "photoBudgetExhausted": 0,
+        "photoNetworkMs": [],
+        "finalPhotoAssetShas": []
+      },
+      "representationTrace": [
+        {
+          "role": "hero",
+          "concept": "taza",
+          "preference": "icon",
+          "reason": "REPRESENTATION_SEMANTIC_EMOJI_ICON_FIRST",
+          "outcome": "MATERIALIZED:openmoji:icon"
+        },
+        {
+          "role": "support-1",
+          "concept": "coffee",
+          "preference": "photo-cutout",
+          "reason": "REPRESENTATION_PHYSICAL_CONCEPT_WITH_SEMANTIC_EMOJI_HINT",
+          "outcome": "WEAK_LOCAL_TOKEN_OMITTED_WHILE_STRUCTURED_CONCEPTS_EXIST"
+        }
+      ],
+      "pixabayTrace": [],
+      "qcErrors": []
+    },
+    {
+      "sceneId": "direct-openmoji-control",
+      "keyword": "1F382",
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "openmoji",
+          "representation": "icon",
+          "assetId": "openmoji-1f382-7bf070f25b48",
+          "sha256": "7bf070f25b485cbd47dd30ff48711403b6ffc1d7d6011217eb9488270bc60008",
+          "solarIcon": null
+        }
+      ],
+      "metrics": {
+        "pixabayQueries": 0,
+        "pixabayDownloads": 0,
+        "pixabayPublished": 0,
+        "pixabayReused": 0,
+        "openMojiPublished": 0,
+        "openMojiReused": 1,
+        "supportsMaterialized": 0,
+        "photoCutoutHero": 0,
+        "photoCutoutSupport": 0,
+        "fullRasterHero": 0,
+        "fullRasterSupport": 0,
+        "openMojiHero": 1,
+        "openMojiSupport": 0,
+        "solarHero": 0,
+        "solarSupport": 0,
+        "editorialOnly": 0,
+        "cutoutAttempted": 0,
+        "cutoutInferenceExecuted": 0,
+        "cutoutSourceAlphaReused": 0,
+        "cutoutRuntimeErrors": 0,
+        "cutoutUsable": 0,
+        "cutoutSuspicious": 0,
+        "cutoutFailed": 0,
+        "cutoutCacheHit": 0,
+        "cutoutProcessingMs": [],
+        "candidatesEvaluated": 0,
+        "relevanceExact": 0,
+        "relevanceStrong": 0,
+        "relevanceRelated": 0,
+        "relevanceWeak": 0,
+        "relevanceUnrelated": 0,
+        "relevanceRejected": 0,
+        "acceptedHero": 1,
+        "acceptedSupport": 0,
+        "photoRejectedBeforeCutout": 0,
+        "photoCutoutAttempted": 0,
+        "heroPromotionBlockedByRelevance": 0,
+        "photoOpportunities": 0,
+        "photoPlans": 0,
+        "photoRequests": 0,
+        "photoRetriesObserved": 0,
+        "photoDownloads": 0,
+        "photoTransformCalls": 0,
+        "photoBudgetExhausted": 0,
+        "photoNetworkMs": [],
+        "finalPhotoAssetShas": []
+      },
+      "representationTrace": [
+        {
+          "role": "hero",
+          "concept": "1f382",
+          "preference": "auto",
+          "reason": "REPRESENTATION_OBJECT_WITHOUT_PHYSICAL_EVIDENCE",
+          "outcome": "MATERIALIZED:openmoji:icon"
+        },
+        {
+          "role": "support-1",
+          "concept": "birthday cake",
+          "preference": "photo-cutout",
+          "reason": "REPRESENTATION_PHYSICAL_CONCEPT_WITH_SEMANTIC_EMOJI_HINT",
+          "outcome": "WEAK_LOCAL_TOKEN_OMITTED_WHILE_STRUCTURED_CONCEPTS_EXIST"
+        }
+      ],
+      "pixabayTrace": [],
+      "qcErrors": []
+    }
+  ],
+  "artifacts": {
+    "video": {
+      "file": "photo-representation-runtime-v1.mp4",
+      "sha256": "93b4e450883e6c51841e8c465e4e4a6eed60e87ea2eb3ab6b8a0cd9fbcf1fb6b",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 540,
+            "height": 960,
+            "r_frame_rate": "12/1"
+          }
+        ],
+        "format": {
+          "duration": "5.000000",
+          "size": "119166"
+        }
+      }
+    },
+    "contactSheet": {
+      "file": "contact-sheet-photo-representation-runtime-v1.png",
+      "sha256": "144d984396e94a1d0feebf609887beffaa6c285a5d7608ac80e9253f345c03fe"
+    }
+  }
+}
