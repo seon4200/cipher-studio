@@ -185,6 +185,9 @@ export type MotionGraphicsResolutionV2 = {
     solarSupport: number
     editorialOnly: number
     cutoutAttempted: number
+    cutoutInferenceExecuted: number
+    cutoutSourceAlphaReused: number
+    cutoutRuntimeErrors: number
     cutoutUsable: number
     cutoutSuspicious: number
     cutoutFailed: number
@@ -222,6 +225,9 @@ export type MotionGraphicsVideoMetricsV2 = {
   solarSupport: number
   editorialOnly: number
   cutoutAttempted: number
+  cutoutInferenceExecuted: number
+  cutoutSourceAlphaReused: number
+  cutoutRuntimeErrors: number
   cutoutUsable: number
   cutoutSuspicious: number
   cutoutFailed: number
@@ -237,7 +243,8 @@ export function summarizeMotionGraphicsVideoMetricsV2(
     visualScenes: resolutions.length,
     photoCutoutHero: 0, photoCutoutSupport: 0, fullRasterHero: 0, fullRasterSupport: 0,
     openMojiHero: 0, openMojiSupport: 0, solarHero: 0, solarSupport: 0, editorialOnly: 0,
-    cutoutAttempted: 0, cutoutUsable: 0, cutoutSuspicious: 0, cutoutFailed: 0, cutoutCacheHit: 0,
+    cutoutAttempted: 0, cutoutInferenceExecuted: 0, cutoutSourceAlphaReused: 0, cutoutRuntimeErrors: 0,
+    cutoutUsable: 0, cutoutSuspicious: 0, cutoutFailed: 0, cutoutCacheHit: 0,
   }
   const times: number[] = []
   for (const { metrics } of resolutions) {
@@ -246,6 +253,9 @@ export function summarizeMotionGraphicsVideoMetricsV2(
     totals.openMojiHero += metrics.openMojiHero; totals.openMojiSupport += metrics.openMojiSupport
     totals.solarHero += metrics.solarHero; totals.solarSupport += metrics.solarSupport
     totals.editorialOnly += metrics.editorialOnly; totals.cutoutAttempted += metrics.cutoutAttempted
+    totals.cutoutInferenceExecuted += metrics.cutoutInferenceExecuted
+    totals.cutoutSourceAlphaReused += metrics.cutoutSourceAlphaReused
+    totals.cutoutRuntimeErrors += metrics.cutoutRuntimeErrors
     totals.cutoutUsable += metrics.cutoutUsable; totals.cutoutSuspicious += metrics.cutoutSuspicious
     totals.cutoutFailed += metrics.cutoutFailed; totals.cutoutCacheHit += metrics.cutoutCacheHit
     times.push(...metrics.cutoutProcessingMs.filter(value => Number.isFinite(value) && value >= 0))
@@ -488,6 +498,12 @@ async function pixabayChoice(input: {
         ...(input.hooks?.cutoutRuntime !== undefined ? { runtime: input.hooks.cutoutRuntime } : {}),
         ...(input.hooks?.cutout ? { hooks: input.hooks.cutout } : {}) })
       if (cutout.attempted) { input.metrics.cutoutAttempted++; input.metrics.photoCutoutAttempted++ }
+      if (cutout.inferenceExecuted) input.metrics.cutoutInferenceExecuted++
+      if (cutout.reason.startsWith('CUTOUT_SOURCE_ALREADY_HAS_ALPHA:')) input.metrics.cutoutSourceAlphaReused++
+      if (cutout.warnings.some(value => value === 'CUTOUT_RUNTIME_UNAVAILABLE' ||
+          value.startsWith('CUTOUT_INTERPRETER_') || value.startsWith('CUTOUT_WORKER_') ||
+          value.startsWith('CUTOUT_MODEL_') || value === 'CUTOUT_RUNTIME_NOT_CONFIGURED'))
+        input.metrics.cutoutRuntimeErrors++
       if (cutout.quality === 'CUTOUT_USABLE') input.metrics.cutoutUsable++
       else if (cutout.quality === 'CUTOUT_SUSPICIOUS') input.metrics.cutoutSuspicious++
       else input.metrics.cutoutFailed++
@@ -837,7 +853,8 @@ export async function resolveMotionGraphicsSceneV2(input: {
     openMojiPublished: 0, openMojiReused: 0, supportsMaterialized: 0,
     photoCutoutHero: 0, photoCutoutSupport: 0, fullRasterHero: 0, fullRasterSupport: 0,
     openMojiHero: 0, openMojiSupport: 0, solarHero: 0, solarSupport: 0, editorialOnly: 0,
-    cutoutAttempted: 0, cutoutUsable: 0, cutoutSuspicious: 0, cutoutFailed: 0,
+    cutoutAttempted: 0, cutoutInferenceExecuted: 0, cutoutSourceAlphaReused: 0, cutoutRuntimeErrors: 0,
+    cutoutUsable: 0, cutoutSuspicious: 0, cutoutFailed: 0,
     cutoutCacheHit: 0, cutoutProcessingMs: [],
     candidatesEvaluated: 0, relevanceExact: 0, relevanceStrong: 0, relevanceRelated: 0,
     relevanceWeak: 0, relevanceUnrelated: 0, relevanceRejected: 0,

@@ -32,6 +32,31 @@ export type CutoutRuntimeConfigV1 = {
   maxDimension?: number
 }
 
+export type CutoutRuntimeDiagnosticCodeV1 =
+  | 'CUTOUT_RUNTIME_READY'
+  | 'CUTOUT_RUNTIME_NOT_CONFIGURED'
+  | 'CUTOUT_INTERPRETER_NOT_FOUND'
+  | 'CUTOUT_INTERPRETER_NOT_REGULAR'
+  | 'CUTOUT_WORKER_NOT_FOUND'
+  | 'CUTOUT_WORKER_NOT_REGULAR'
+  | 'CUTOUT_MODEL_NOT_INSTALLED'
+  | 'CUTOUT_MODEL_NOT_REGULAR'
+
+/** Local availability only. Paths and model metadata never enter SceneSpec or PixelIdentity. */
+export type CutoutRuntimeDiagnosticV1 = {
+  version: 1
+  ready: boolean
+  configured: boolean
+  interpreterConfigured: boolean
+  interpreterExecutable: boolean
+  workerConfigured: boolean
+  workerAvailable: boolean
+  modelCacheConfigured: boolean
+  modelAvailable: boolean
+  model: CutoutModelV1
+  code: CutoutRuntimeDiagnosticCodeV1
+}
+
 export type CutoutWorkerOutputV1 = {
   status: 'OK'
   action: 'transform'
@@ -72,6 +97,8 @@ export type CutoutTransformResultV1 = {
   bounds?: SubjectBoundsV1
   cacheHit: boolean
   attempted: boolean
+  /** True only when the Python worker actually ran; alpha reuse and cache hits are false. */
+  inferenceExecuted: boolean
   processingMs: number | null
   model: CutoutModelV1
   modelRevision: string | null
@@ -135,6 +162,46 @@ export function configuredCutoutRuntimeV1(): CutoutRuntimeConfigV1 | null {
   if (!pythonExecutable || !modelCache || !workerFile) return null
   return { pythonExecutable: path.resolve(pythonExecutable), workerFile: path.resolve(workerFile),
     modelCache: path.resolve(modelCache), maxDimension: CUTOUT_MAX_DIMENSION_V1 }
+}
+
+function isRegularFile(file: string): boolean {
+  try {
+    const stat = fs.lstatSync(file)
+    return stat.isFile() && !stat.isSymbolicLink()
+  } catch { return false }
+}
+
+/**
+ * Diagnoses the exact production sidecar boundary without spawning Python or downloading weights.
+ * Passing `undefined` follows the same environment/configuration path as normal generation.
+ */
+export function diagnoseCutoutRuntimeV1(
+  runtime: CutoutRuntimeConfigV1 | null | undefined = undefined,
+  model: CutoutModelV1 = CUTOUT_DEFAULT_MODEL_V1,
+): CutoutRuntimeDiagnosticV1 {
+  const effective = runtime === undefined ? configuredCutoutRuntimeV1() : runtime
+  const interpreterConfigured = !!effective?.pythonExecutable
+  const workerConfigured = !!effective?.workerFile
+  const modelCacheConfigured = !!effective?.modelCache
+  const configured = interpreterConfigured && workerConfigured && modelCacheConfigured
+  const interpreterExists = !!effective && fs.existsSync(effective.pythonExecutable)
+  const workerExists = !!effective && fs.existsSync(effective.workerFile)
+  const modelFile = effective ? path.join(effective.modelCache, 'models', model, model + '.onnx') : ''
+  const modelExists = !!modelFile && fs.existsSync(modelFile)
+  const interpreterExecutable = interpreterExists && isRegularFile(effective!.pythonExecutable)
+  const workerAvailable = workerExists && isRegularFile(effective!.workerFile)
+  const modelAvailable = modelExists && isRegularFile(modelFile)
+  const code: CutoutRuntimeDiagnosticCodeV1 = !configured ? 'CUTOUT_RUNTIME_NOT_CONFIGURED'
+    : !interpreterExists ? 'CUTOUT_INTERPRETER_NOT_FOUND'
+      : !interpreterExecutable ? 'CUTOUT_INTERPRETER_NOT_REGULAR'
+        : !workerExists ? 'CUTOUT_WORKER_NOT_FOUND'
+          : !workerAvailable ? 'CUTOUT_WORKER_NOT_REGULAR'
+            : !modelExists ? 'CUTOUT_MODEL_NOT_INSTALLED'
+              : !modelAvailable ? 'CUTOUT_MODEL_NOT_REGULAR'
+                : 'CUTOUT_RUNTIME_READY'
+  return Object.freeze({ version: 1 as const, ready: code === 'CUTOUT_RUNTIME_READY', configured,
+    interpreterConfigured, interpreterExecutable, workerConfigured, workerAvailable,
+    modelCacheConfigured, modelAvailable, model, code })
 }
 
 function configuredModelRevision(runtime: CutoutRuntimeConfigV1, model: CutoutModelV1): string {
@@ -317,19 +384,21 @@ export async function materializePhotoCutoutV1(input: {
     return { status: quality.quality === 'CUTOUT_USABLE' ? 'usable' : 'suspicious', quality: quality.quality,
       reason: 'CUTOUT_SOURCE_ALREADY_HAS_ALPHA:' + quality.reason, sourceAsset: input.sourceAsset,
       ...(quality.quality !== 'CUTOUT_FAILED' ? { asset: input.sourceAsset, bounds: sourceBounds } : {}),
-      cacheHit: false, attempted: false, processingMs: 0, model, modelRevision: null,
+      cacheHit: false, attempted: false, inferenceExecuted: false, processingMs: 0, model, modelRevision: null,
       warnings: Object.freeze(['CUTOUT_SOURCE_ALPHA_REUSED']) }
   }
   const runtime = input.runtime === undefined ? configuredCutoutRuntimeV1() : input.runtime
-  if (!runtime) return { status: 'failed', quality: 'CUTOUT_FAILED', reason: 'CUTOUT_RUNTIME_UNAVAILABLE',
-    sourceAsset: input.sourceAsset, cacheHit: false, attempted: false, processingMs: null, model, modelRevision: null,
-    warnings: Object.freeze(['CUTOUT_RUNTIME_UNAVAILABLE']) }
+  const runtimeDiagnostic = diagnoseCutoutRuntimeV1(runtime, model)
+  if (!runtimeDiagnostic.ready || !runtime) return { status: 'failed', quality: 'CUTOUT_FAILED', reason: 'CUTOUT_RUNTIME_UNAVAILABLE',
+    sourceAsset: input.sourceAsset, cacheHit: false, attempted: false, inferenceExecuted: false,
+    processingMs: null, model, modelRevision: null,
+    warnings: Object.freeze(['CUTOUT_RUNTIME_UNAVAILABLE', runtimeDiagnostic.code]) }
   let revision: string
   try { revision = configuredModelRevision(runtime, model) }
   catch (error) {
     const code = error instanceof CutoutTransformError ? error.code : 'CUTOUT_MODEL_NOT_INSTALLED'
     return { status: 'failed', quality: 'CUTOUT_FAILED', reason: code, sourceAsset: input.sourceAsset,
-      cacheHit: false, attempted: false, processingMs: null, model, modelRevision: null,
+      cacheHit: false, attempted: false, inferenceExecuted: false, processingMs: null, model, modelRevision: null,
       warnings: Object.freeze([code]) }
   }
   const key = cacheKey({ sourceSha256: input.sourceAsset.sha256, model, modelRevision: revision,
@@ -339,7 +408,7 @@ export async function materializePhotoCutoutV1(input: {
   catch (error) {
     const code = error instanceof CutoutTransformError ? error.code : 'CUTOUT_CACHE_INVALID'
     return { status: 'failed', quality: 'CUTOUT_FAILED', reason: code, sourceAsset: input.sourceAsset,
-      cacheHit: false, attempted: false, processingMs: null, model, modelRevision: revision,
+      cacheHit: false, attempted: false, inferenceExecuted: false, processingMs: null, model, modelRevision: revision,
       warnings: Object.freeze([code]) }
   }
   const cached = cache.entries.find(entry => entry.cacheKey === key && entry.quality === 'CUTOUT_USABLE')
@@ -349,7 +418,7 @@ export async function materializePhotoCutoutV1(input: {
       const verified = readVerifiedRasterProjectAssetContentV1(root, asset)
       return { status: 'usable', quality: 'CUTOUT_USABLE', reason: 'CUTOUT_CACHE_REUSED',
         sourceAsset: input.sourceAsset, asset, bounds: subjectBoundsFromPixabayRasterV1(verified.bytes),
-        cacheHit: true, attempted: true, processingMs: 0, model, modelRevision: revision,
+        cacheHit: true, attempted: true, inferenceExecuted: false, processingMs: 0, model, modelRevision: revision,
         warnings: Object.freeze(['CUTOUT_CACHE_HIT']) }
     }
   }
@@ -378,7 +447,7 @@ export async function materializePhotoCutoutV1(input: {
     if (quality.quality !== 'CUTOUT_USABLE') {
       upsertCacheEntry(root, { ...entryBase, quality: quality.quality, reason: quality.reason })
       return { status: quality.quality === 'CUTOUT_SUSPICIOUS' ? 'suspicious' : 'failed', quality: quality.quality,
-        reason: quality.reason, sourceAsset: input.sourceAsset, cacheHit: false, attempted: true,
+        reason: quality.reason, sourceAsset: input.sourceAsset, cacheHit: false, attempted: true, inferenceExecuted: true,
         processingMs: worker.processingMs, model, modelRevision: revision,
         warnings: Object.freeze([quality.reason]) }
     }
@@ -390,13 +459,13 @@ export async function materializePhotoCutoutV1(input: {
     upsertCacheEntry(root, { ...entryBase, quality: 'CUTOUT_USABLE', reason: quality.reason,
       outputAssetId: published.asset.id, outputSha256: published.asset.sha256 })
     return { status: 'usable', quality: 'CUTOUT_USABLE', reason: quality.reason, sourceAsset: input.sourceAsset,
-      asset: published.asset, bounds, cacheHit: published.status === 'reused', attempted: true,
+      asset: published.asset, bounds, cacheHit: published.status === 'reused', attempted: true, inferenceExecuted: true,
       processingMs: worker.processingMs, model, modelRevision: revision,
       warnings: Object.freeze([...published.warnings, quality.reason]) }
   } catch (error) {
     const code = error instanceof CutoutTransformError ? error.code : 'CUTOUT_TRANSFORM_FAILED'
     return { status: 'failed', quality: 'CUTOUT_FAILED', reason: code, sourceAsset: input.sourceAsset,
-      cacheHit: false, attempted: true, processingMs: null, model, modelRevision: revision,
+      cacheHit: false, attempted: true, inferenceExecuted: true, processingMs: null, model, modelRevision: revision,
       warnings: Object.freeze([code]) }
   } finally {
     if (fs.existsSync(temporaryOutput)) try { fs.unlinkSync(temporaryOutput) } catch { /* only this operation temporary */ }
