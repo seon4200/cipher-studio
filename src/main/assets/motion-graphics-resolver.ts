@@ -45,6 +45,7 @@ import {
   type RelevanceVerdictV1,
 } from '../../shared/semantic-relevance-gate-v1'
 import type { VisualConceptV1 } from '../../shared/visual-concepts'
+import { visualConceptCanBeHeroV1, type VisualConceptEligibilityV1 } from '../../shared/visual-concept-hygiene'
 import type { LocalSemanticVisualDecisionResultV1 } from './semantic-decision'
 import {
   deriveEditorialTextV2,
@@ -86,6 +87,8 @@ export type MaterializedVisualChoiceV2 = {
    * locked choice), not that it was judged and passed.
    */
   relevance?: RelevanceVerdictV1
+  /** Concept Hygiene routing state. Resolver-only; never locked or copied to a SceneSpec. */
+  conceptEligibility?: Exclude<VisualConceptEligibilityV1, 'not-visual'>
   slotId: 'hero' | 'support-1' | 'support-2'
   concept: string
   provider: 'openmoji' | 'pixabay-images' | 'photo-cutout' | 'solar'
@@ -621,8 +624,12 @@ function roleConcepts(base: LocalSemanticVisualDecisionResultV1): Array<{
   const set = base.trace.retrieval?.concepts
   const values = [set?.primary, set?.secondary, set?.tertiary].filter((value): value is VisualConceptV1 => !!value)
   const selectedConcept = base.trace.retrieval?.selectedHero?.concept
-  const promoted = selectedConcept ? values.find(concept => concept.normalizedTerm === selectedConcept) : undefined
-  const ordered = promoted ? [promoted, ...values.filter(concept => concept !== promoted)] : values
+  const selected = selectedConcept ? values.find(concept => concept.normalizedTerm === selectedConcept && visualConceptCanBeHeroV1(concept)) : undefined
+  // Hygiene makes hero eligibility explicit. A support-only action/abstraction never occupies the
+  // primary slot just because it happens to be first in narration or has a lexical candidate.
+  const hero = selected ?? values.find(visualConceptCanBeHeroV1)
+  if (!hero) return []
+  const ordered = [hero, ...values.filter(concept => concept !== hero)]
   return ordered.map((concept, index) => ({ slotId: index === 0 ? 'hero' : index === 1 ? 'support-1' : 'support-2', concept }))
 }
 
@@ -659,7 +666,8 @@ function promoteBestSupportToHero(choices: readonly MaterializedVisualChoiceV2[]
   // SEMANTIC ASSET RELEVANCE GATE V1.  Only EXACT|STRONG may be promoted.  A RELATED asset is
   // an honest Support, but promoting it would make the weakest admissible evidence carry the
   // whole scene, which is precisely the filler the product rule rejects.
-  const promotable = choices.filter(choice => relevanceAllowsHeroPromotionV1(choice.relevance?.relevanceClass))
+  const promotable = choices.filter(choice => choice.conceptEligibility !== 'support-only' &&
+    relevanceAllowsHeroPromotionV1(choice.relevance?.relevanceClass))
   const support = [...promotable].sort((a, b) => b.score - a.score ||
     (a.provider === 'openmoji' ? -1 : b.provider === 'openmoji' ? 1 : 0) ||
     a.slotId.localeCompare(b.slotId, 'en'))[0]
@@ -901,6 +909,8 @@ export async function resolveMotionGraphicsSceneV2(input: {
           choice = localChoiceForRepresentation({ projectRoot: input.projectRoot, base: input.base, role, representation: attempt })
         }
         if (choice) {
+          choice = { ...choice, conceptEligibility: role.concept.hygiene?.eligibility === 'support-only'
+            ? 'support-only' : 'hero-eligible' }
           outcome = `MATERIALIZED:${choice.provider}:${choice.representation}`
           break
         }

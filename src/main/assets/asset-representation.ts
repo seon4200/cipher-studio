@@ -45,6 +45,31 @@ export function resolveAssetRepresentationPreferenceV1(input: {
   role: 'hero' | 'support-1' | 'support-2'
 }): AssetRepresentationDecisionV1 {
   const subject = input.concept.subject
+  const hygiene = input.concept.hygiene
+  // Concept Hygiene is the authority before retrieval. A word that did not earn visual-subject
+  // status must never inherit the old default `object → photo` route.
+  if (hygiene?.eligibility === 'not-visual') {
+    return Object.freeze({ version: ASSET_REPRESENTATION_DECISION_VERSION, preference: 'editorial',
+      attemptOrder: Object.freeze(['editorial'] as const), cutoutEligible: false, fullRasterEligible: false,
+      reason: `REPRESENTATION_CONCEPT_${hygiene.visuality.toUpperCase().replace(/-/g, '_')}_NOT_VISUAL` })
+  }
+  // A support-only action/abstraction is allowed to look for an honest local symbol, but it may
+  // not become a stock-photo/cutout Hero through lexical coincidence alone.
+  if (hygiene?.eligibility === 'support-only' && input.role === 'hero') {
+    return Object.freeze({ version: ASSET_REPRESENTATION_DECISION_VERSION, preference: 'editorial',
+      attemptOrder: Object.freeze(['editorial'] as const), cutoutEligible: false, fullRasterEligible: false,
+      reason: 'REPRESENTATION_CONCEPT_SUPPORT_ONLY_NOT_HERO' })
+  }
+  if (hygiene?.visuality === 'visual-action-with-context') {
+    return Object.freeze({ version: ASSET_REPRESENTATION_DECISION_VERSION, preference: 'symbolic',
+      attemptOrder: Object.freeze(['icon', 'symbolic', 'editorial'] as const), cutoutEligible: false, fullRasterEligible: false,
+      reason: 'REPRESENTATION_ACTION_CONTEXT_LOCAL_SYMBOL_ONLY' })
+  }
+  if (hygiene?.visuality === 'abstract-symbolic') {
+    return Object.freeze({ version: ASSET_REPRESENTATION_DECISION_VERSION, preference: 'symbolic',
+      attemptOrder: Object.freeze(['symbolic', 'icon', 'editorial'] as const), cutoutEligible: false, fullRasterEligible: false,
+      reason: 'REPRESENTATION_ABSTRACT_SYMBOLIC_NO_RASTER' })
+  }
   if (subject === 'process' || subject === 'context' || subject === 'unknown' ||
       input.concept.preferredRole === 'editorial') {
     return Object.freeze({ version: ASSET_REPRESENTATION_DECISION_VERSION, preference: 'editorial',

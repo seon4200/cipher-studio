@@ -13,6 +13,11 @@ import {
   type RelevanceVerdictV1,
 } from '../../shared/semantic-relevance-gate-v1'
 import { createVisualConceptSetV1, type VisualConceptSetV1, type VisualConceptV1 } from '../../shared/visual-concepts'
+import {
+  visualConceptCanBeHeroV1,
+  visualConceptCanSearchLocalAssetsV1,
+  visualConceptCanSearchRasterV1,
+} from '../../shared/visual-concept-hygiene'
 import { loadOpenMojiCatalog, searchOpenMoji, type OpenMojiCatalogEntry } from './openmoji/catalog'
 import { buildPixabayImageSearchPlansV1, type PixabayImageSearchPlanV1 } from './pixabay-images'
 import { searchSolarAssetIndexV1, type SolarSearchCandidateV1 } from './solar-index'
@@ -178,9 +183,10 @@ function enrichConcept(concept: VisualConceptV1): EnrichedConcept {
   // individual can opt in through its lexicon provider policy (for example an astronaut),
   // while generic people and contextual scenes do not accidentally become literal one-Hero
   // scenes before the future support/cutout pipeline exists.
-  const role: VisualRetrievalRoleV1 = selected.entry.providerBias === 'editorial'
+  const role: VisualRetrievalRoleV1 = !visualConceptCanSearchLocalAssetsV1(concept) || selected.entry.providerBias === 'editorial'
     ? 'editorial'
     : concept.preferredRole === 'editorial' && concreteProvider &&
+        visualConceptCanBeHeroV1(concept) &&
         (selected.level === 'exact' || selected.level === 'synonym' || !!concept.emoji) ? 'hero' : concept.preferredRole
   return {
     concept: { ...concept, normalizedTerm: selected.entry.canonical, aliases: Object.freeze(aliases),
@@ -221,24 +227,27 @@ export function buildVisualSearchPlansV1(input: {
     primary: enriched[0]?.concept ?? null,
     secondary: enriched[1]?.concept ?? null,
     tertiary: enriched[2]?.concept ?? null,
+    hygiene: concepts.hygiene,
   }
   const plans: VisualSearchPlanV1[] = []
   for (const value of enriched) {
     const queries = queryList(value)
-    if (value.role !== 'editorial') {
+    if (value.role !== 'editorial' && visualConceptCanSearchLocalAssetsV1(value.concept)) {
       plans.push({ version: VISUAL_RETRIEVAL_ENGINE_VERSION, provider: 'openmoji', concept: value.concept.normalizedTerm,
         role: value.role, queries })
       plans.push({ version: VISUAL_RETRIEVAL_ENGINE_VERSION, provider: 'solar', concept: value.concept.normalizedTerm,
         role: value.role, queries })
-      const pixabayPlans = buildPixabayImageSearchPlansV1({
-        concept: value.concept,
-        lexicon: value.lexicon,
-        level: value.level,
-        role: value.role === 'support' ? 'support' : 'hero',
-        siblingConcepts: enriched.filter(other => other !== value).map(other => other.concept),
-      })
-      plans.push({ version: VISUAL_RETRIEVAL_ENGINE_VERSION, provider: 'pixabay-images', concept: value.concept.normalizedTerm,
-        role: value.role, queries: pixabayPlans.map(plan => ({ text: plan.query, level: plan.level, reason: plan.reason })), pixabayPlans })
+      if (visualConceptCanSearchRasterV1(value.concept)) {
+        const pixabayPlans = buildPixabayImageSearchPlansV1({
+          concept: value.concept,
+          lexicon: value.lexicon,
+          level: value.level,
+          role: value.role === 'support' ? 'support' : 'hero',
+          siblingConcepts: enriched.filter(other => other !== value).map(other => other.concept),
+        })
+        plans.push({ version: VISUAL_RETRIEVAL_ENGINE_VERSION, provider: 'pixabay-images', concept: value.concept.normalizedTerm,
+          role: value.role, queries: pixabayPlans.map(plan => ({ text: plan.query, level: plan.level, reason: plan.reason })), pixabayPlans })
+      }
     }
   }
   return { concepts: enrichedConcepts, enriched: Object.freeze(enriched), plans: Object.freeze(plans) }
@@ -384,7 +393,8 @@ export function resolveVisualRetrievalV1(input: {
   }
   const selectedByConcept = prepared.enriched.map(value => value.role === 'editorial' ? null :
     chooseCandidate(candidates.filter(candidate => candidate.concept === value.concept.normalizedTerm), value.lexicon?.providerBias))
-  const heroConceptIndex = selectedByConcept.findIndex(candidate => !!candidate)
+  const heroConceptIndex = selectedByConcept.findIndex((candidate, index) => !!candidate &&
+    visualConceptCanBeHeroV1(prepared.enriched[index].concept))
   const rawHero = heroConceptIndex >= 0 ? selectedByConcept[heroConceptIndex] : null
   const selectedHero = rawHero ? Object.freeze({
     ...rawHero,
@@ -407,8 +417,10 @@ export function resolveVisualRetrievalV1(input: {
     version: VISUAL_RETRIEVAL_ENGINE_VERSION, concepts: prepared.concepts, plans: prepared.plans,
     candidates: Object.freeze(candidates.sort((a, b) => b.score - a.score || a.provider.localeCompare(b.provider, 'en') || a.identity.localeCompare(b.identity, 'en'))),
     selectedHero, selectedSupport: Object.freeze(selectedSupport), deferredCandidates: Object.freeze(deferredCandidates),
-    editorialReason: selectedHero ? null : prepared.enriched.length > 0 && prepared.enriched.every(value => value.role === 'editorial')
-      ? 'CONCEPT_EDITORIAL_ROLE' : 'NO_LOCAL_RENDERABLE_CANDIDATE',
+    editorialReason: selectedHero ? null : !prepared.enriched.some(value => visualConceptCanBeHeroV1(value.concept))
+      ? 'CONCEPT_HYGIENE_NO_HERO_ELIGIBLE'
+      : prepared.enriched.length > 0 && prepared.enriched.every(value => value.role === 'editorial')
+        ? 'CONCEPT_EDITORIAL_ROLE' : 'NO_LOCAL_RENDERABLE_CANDIDATE',
     metrics: { openMojiQueries, openMojiCandidates: candidates.filter(candidate => candidate.provider === 'openmoji').length,
       solarCandidates: candidates.filter(candidate => candidate.provider === 'solar').length, pixabayPlans },
   }

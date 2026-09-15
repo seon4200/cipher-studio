@@ -22,8 +22,23 @@ export const SPANISH_VISUAL_GENERIC_TERMS_V1 = Object.freeze([
   'tiene', 'tienen', 'va', 'van', 'vas', 'ver', 'volver', 'vaya',
 ] as const)
 
+/**
+ * Reusable human-subject vocabulary. These are entities that can be rendered as an icon, photo
+ * cutout or full raster; they must not be demoted to editorial merely because a catalog happens
+ * not to contain a synonym for one profession.
+ */
+export const VISUAL_PERSON_TERMS_V1 = Object.freeze([
+  'persona', 'personas', 'gente', 'multitud', 'policia', 'trabajador', 'trabajadores',
+  'hombre', 'hombres', 'mujer', 'mujeres', 'esposa', 'esposo', 'nino', 'nina', 'ninos',
+  'ninas', 'adolescente', 'adolescentes', 'enfermera', 'enfermero', 'maestra', 'maestro',
+  'cientifica', 'cientifico', 'fotografa', 'fotografo', 'viajera', 'viajero', 'human',
+  'person', 'people', 'woman', 'women', 'man', 'men', 'worker', 'user', 'usuario',
+  'usuarios', 'crowd',
+] as const)
+
 const STOPWORDS = new Set<string>(SPANISH_VISUAL_STOPWORDS_V1)
 const GENERIC = new Set<string>(SPANISH_VISUAL_GENERIC_TERMS_V1)
+const PERSON = new Set<string>(VISUAL_PERSON_TERMS_V1)
 
 function tokens(value: unknown): string[] {
   return canonicalNarrativeTerm(String(value ?? '')).split(' ').filter(Boolean)
@@ -33,6 +48,12 @@ function tokens(value: unknown): string[] {
 export function isSpanishVisualStopwordV1(value: unknown): boolean {
   const values = tokens(value)
   return values.length === 0 || values.every(token => STOPWORDS.has(token))
+}
+
+/** Canonical person/entity test shared by subject inference and lexical Concept Hygiene. */
+export function isVisualPersonTermV1(value: unknown): boolean {
+  const values = tokens(value)
+  return values.length === 1 && PERSON.has(values[0])
 }
 
 /**
