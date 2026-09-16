@@ -68,8 +68,8 @@ import {
   publishPixabayImageAssetV1,
   readVerifiedRasterProjectAssetContentV1,
   pixabayCandidateAdmissibleV1,
+  rankPixabayImageCandidatesV1,
   searchPixabayImagesV1,
-  selectPixabayImageCandidateV1,
   type PixabayImageCandidateV1,
   type PixabayRequestBytesV1,
   type PixabayRequestJsonV1,
@@ -80,12 +80,16 @@ export const MOTION_GRAPHICS_RESOLVER_VERSION = 2 as const
 
 /** Shared per-scene limits. Provider adapters retain their narrower per-call limits. */
 export const PHOTO_SCENE_BUDGET_V1 = Object.freeze({ requests: 4, downloads: 4, transforms: 2 })
+/** A single role may not consume the capacity reserved for another physical concept. */
+export const PHOTO_ROLE_BUDGET_V1 = Object.freeze({ requests: 2, downloads: 2, transforms: 2 })
 
 type PhotoSceneBudgetStateV1 = {
   requests: number
   downloads: number
   transforms: number
 }
+
+type PhotoRoleBudgetStateV1 = PhotoSceneBudgetStateV1
 
 export type MaterializedVisualChoiceV2 = {
   /**
@@ -98,6 +102,8 @@ export type MaterializedVisualChoiceV2 = {
   relevance?: RelevanceVerdictV1
   /** Concept Hygiene routing state. Resolver-only; never locked or copied to a SceneSpec. */
   conceptEligibility?: Exclude<VisualConceptEligibilityV1, 'not-visual'>
+  /** Provider identity for deterministic per-video variety. Diagnostics only; never locked. */
+  providerAssetId?: string
   slotId: 'hero' | 'support-1' | 'support-2'
   concept: string
   provider: 'openmoji' | 'pixabay-images' | 'photo-cutout' | 'solar'
@@ -141,6 +147,8 @@ export type MotionGraphicsResolverSessionV2 = {
   recentAccentPrimaries: string[]
   scenesResolved: number
   preparedByConcept: Map<string, MaterializedVisualChoiceV2>
+  recentPhotoProviderAssetIds: string[]
+  recentPhotoAssetShas: string[]
 }
 
 export type MotionGraphicsTraceV2 = {
@@ -347,7 +355,30 @@ export function createMotionGraphicsResolverSessionV2(
     recentAccentPrimaries: [],
     scenesResolved: 0,
     preparedByConcept: new Map(),
+    recentPhotoProviderAssetIds: [],
+    recentPhotoAssetShas: [],
   }
+}
+
+function samePhotoDefensibility(a: PixabayImageCandidateV1, b: PixabayImageCandidateV1): boolean {
+  return a.ranking.relevance.relevanceClass === b.ranking.relevance.relevanceClass &&
+    a.ranking.semantic === b.ranking.semantic && a.score === b.score &&
+    Math.abs(a.ranking.total - b.ranking.total) <= 3
+}
+
+function selectPhotoCandidateWithVarietyV1(
+  candidates: readonly PixabayImageCandidateV1[],
+  recentProviderAssetIds: ReadonlySet<string>,
+): { candidate: PixabayImageCandidateV1 | null; outcome: 'DEFAULT' | 'ALTERNATIVE_FOR_VARIETY' | 'REUSE_UNAVOIDABLE' } {
+  const ordered = rankPixabayImageCandidatesV1(candidates).filter(pixabayCandidateAdmissibleV1)
+  const first = ordered[0]
+  if (!first) return { candidate: null, outcome: 'DEFAULT' }
+  if (!recentProviderAssetIds.has(first.id)) return { candidate: first, outcome: 'DEFAULT' }
+  const alternative = ordered.find(candidate => !recentProviderAssetIds.has(candidate.id) &&
+    samePhotoDefensibility(first, candidate))
+  return alternative
+    ? { candidate: alternative, outcome: 'ALTERNATIVE_FOR_VARIETY' }
+    : { candidate: first, outcome: 'REUSE_UNAVOIDABLE' }
 }
 
 function manifestAsset(projectRoot: string, assetId: string): ProjectAssetRecord | null {
@@ -439,6 +470,9 @@ async function pixabayChoice(input: {
   trace: MotionGraphicsTraceV2['pixabay']
   metrics: MotionGraphicsResolutionV2['metrics']
   budget: PhotoSceneBudgetStateV1
+  recentPhotoProviderAssetIds: ReadonlySet<string>
+  recentPhotoAssetShas: ReadonlySet<string>
+  reserveForLaterPhotoRole: boolean
 }): Promise<MaterializedVisualChoiceV2 | null> {
   if (!input.apiKey && !input.hooks?.searchRequestJson) return null
   const plans = buildPixabayImageSearchPlansV1({ concept: input.concept, level: 'exact',
@@ -452,15 +486,23 @@ async function pixabayChoice(input: {
   let fallbackRaster: MaterializedVisualChoiceV2 | null = null
   const preparedSources = new Map<string, ProjectAssetRecord>()
   const evaluatedCutoutSources = new Set<string>()
+  const roleBudget: PhotoRoleBudgetStateV1 = { requests: 0, downloads: 0, transforms: 0 }
+  const sharedLimit = {
+    requests: PHOTO_SCENE_BUDGET_V1.requests - (input.reserveForLaterPhotoRole ? 2 : 0),
+    downloads: PHOTO_SCENE_BUDGET_V1.downloads - (input.reserveForLaterPhotoRole ? 2 : 0),
+    transforms: PHOTO_SCENE_BUDGET_V1.transforms - (input.reserveForLaterPhotoRole ? 1 : 0),
+  }
   for (const plan of boundedPlans) {
-    if (input.budget.requests >= PHOTO_SCENE_BUDGET_V1.requests) {
+    if (input.budget.requests >= sharedLimit.requests || roleBudget.requests >= PHOTO_ROLE_BUDGET_V1.requests) {
       input.metrics.photoBudgetExhausted++
       input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query, candidates: 0,
-        selected: null, outcome: 'PHOTO_REQUEST_BUDGET_EXHAUSTED' })
+        selected: null, outcome: input.budget.requests >= sharedLimit.requests
+          ? 'PHOTO_REQUEST_BUDGET_EXHAUSTED' : 'PHOTO_ROLE_REQUEST_BUDGET_EXHAUSTED' })
       break
     }
     let searched
     input.budget.requests++
+    roleBudget.requests++
     input.metrics.photoRequests++
     input.metrics.pixabayQueries++
     const searchStarted = Date.now()
@@ -497,16 +539,19 @@ async function pixabayChoice(input: {
     input.metrics.relevanceRejected += rejectedHere
     if (input.representation === 'photo-cutout') input.metrics.photoRejectedBeforeCutout += rejectedHere
     const ranked = admissible.slice(0, 3)
-    const selected = selectPixabayImageCandidateV1(ranked)
+    const selection = selectPhotoCandidateWithVarietyV1(ranked, input.recentPhotoProviderAssetIds)
+    const selected = selection.candidate
     input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query,
       candidates: searched.candidates.length, selected: selected?.id ?? null,
-      outcome: selected ? 'CANDIDATE_SELECTED' : searched.outcome,
+      outcome: selected ? selection.outcome === 'ALTERNATIVE_FOR_VARIETY'
+        ? 'CANDIDATE_SELECTED_FOR_VARIETY' : selection.outcome === 'REUSE_UNAVOIDABLE'
+          ? 'CANDIDATE_REUSE_UNAVOIDABLE' : 'CANDIDATE_SELECTED' : searched.outcome,
       rejectedByRelevance: rejectedHere,
       ...(selected ? { relevanceClass: selected.ranking.relevance.relevanceClass,
         relevanceFocus: selected.ranking.relevance.relevanceFocus } : {}) })
     if (!selected) continue
     const candidates: PixabayImageCandidateV1[] = [selected, ...ranked.filter(candidate => candidate.id !== selected.id)].slice(0, 2)
-    for (const candidate of candidates) {
+    for (const [candidateIndex, candidate] of candidates.entries()) {
       let sourceAsset: ProjectAssetRecord
       let sourceReused = false
       const sourceKey = `${candidate.pageUrl}\n${candidate.downloadUrl}`
@@ -525,14 +570,16 @@ async function pixabayChoice(input: {
           input.metrics.pixabayReused++
         } else {
           if (reusable.invalid) continue
-          if (input.budget.downloads >= PHOTO_SCENE_BUDGET_V1.downloads) {
+          if (input.budget.downloads >= sharedLimit.downloads || roleBudget.downloads >= PHOTO_ROLE_BUDGET_V1.downloads) {
             input.metrics.photoBudgetExhausted++
             input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query,
               candidates: searched.candidates.length, selected: candidate.id,
-              outcome: 'PHOTO_DOWNLOAD_BUDGET_EXHAUSTED' })
+              outcome: input.budget.downloads >= sharedLimit.downloads
+                ? 'PHOTO_DOWNLOAD_BUDGET_EXHAUSTED' : 'PHOTO_ROLE_DOWNLOAD_BUDGET_EXHAUSTED' })
             continue
           }
           input.budget.downloads++
+          roleBudget.downloads++
           input.metrics.photoDownloads++
           const downloadStarted = Date.now()
           try {
@@ -562,12 +609,27 @@ async function pixabayChoice(input: {
         }
         preparedSources.set(sourceKey, sourceAsset)
       }
+      const contentWasRecentlyUsed = input.recentPhotoAssetShas.has(sourceAsset.sha256)
+      const equallyDefensibleAlternative = candidates.slice(candidateIndex + 1)
+        .some(other => samePhotoDefensibility(candidate, other))
+      if (contentWasRecentlyUsed && equallyDefensibleAlternative) {
+        input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query,
+          candidates: searched.candidates.length, selected: candidate.id,
+          outcome: 'CANDIDATE_CONTENT_REUSE_DEFERRED_FOR_VARIETY' })
+        continue
+      }
+      if (contentWasRecentlyUsed) {
+        input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query,
+          candidates: searched.candidates.length, selected: candidate.id,
+          outcome: 'CANDIDATE_CONTENT_REUSE_UNAVOIDABLE' })
+      }
       const score = candidate.score >= 3 ? 3 as const : 2 as const
       if (input.representation === 'full-raster') {
         return {
           relevance: candidate.ranking.relevance,
           slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'pixabay-images',
-          representation: 'full-raster', reason: sourceReused ? 'PIXABAY_FULL_RASTER_REUSED' : 'PIXABAY_FULL_RASTER_PREPARED',
+          providerAssetId: candidate.id, representation: 'full-raster',
+          reason: `${sourceReused ? 'PIXABAY_FULL_RASTER_REUSED' : 'PIXABAY_FULL_RASTER_PREPARED'}:${selection.outcome}`,
           score, asset: sourceAsset, bounds: fullSubjectBounds(), kind: 'raster-image', alphaMode: 'opaque-rectangle',
         }
       }
@@ -578,20 +640,23 @@ async function pixabayChoice(input: {
         continue
       }
       evaluatedCutoutSources.add(sourceAsset.sha256)
-      if (input.budget.transforms >= PHOTO_SCENE_BUDGET_V1.transforms) {
+      if (input.budget.transforms >= sharedLimit.transforms || roleBudget.transforms >= PHOTO_ROLE_BUDGET_V1.transforms) {
         input.metrics.photoBudgetExhausted++
         input.trace.push({ concept: input.concept.normalizedTerm, query: plan.query,
           candidates: searched.candidates.length, selected: candidate.id,
-          outcome: 'PHOTO_TRANSFORM_BUDGET_EXHAUSTED' })
+          outcome: input.budget.transforms >= sharedLimit.transforms
+            ? 'PHOTO_TRANSFORM_BUDGET_EXHAUSTED' : 'PHOTO_ROLE_TRANSFORM_BUDGET_EXHAUSTED' })
         fallbackRaster ??= {
           relevance: candidate.ranking.relevance,
           slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'pixabay-images',
-          representation: 'full-raster', reason: 'PHOTO_TRANSFORM_BUDGET_EXHAUSTED',
+          providerAssetId: candidate.id, representation: 'full-raster',
+          reason: `PHOTO_TRANSFORM_BUDGET_EXHAUSTED:${selection.outcome}`,
           score, asset: sourceAsset, bounds: fullSubjectBounds(), kind: 'raster-image', alphaMode: 'opaque-rectangle',
         }
         continue
       }
       input.budget.transforms++
+      roleBudget.transforms++
       input.metrics.photoTransformCalls++
       const cutout = await materializePhotoCutoutV1({ projectRoot: input.projectRoot, sourceAsset,
         ...(input.hooks?.cutoutRuntime !== undefined ? { runtime: input.hooks.cutoutRuntime } : {}),
@@ -619,7 +684,8 @@ async function pixabayChoice(input: {
         return {
           relevance: candidate.ranking.relevance,
           slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'photo-cutout',
-          representation: 'photo-cutout', reason: `PHOTO_CUTOUT:${cutout.reason}`,
+          providerAssetId: candidate.id, representation: 'photo-cutout',
+          reason: `PHOTO_CUTOUT:${cutout.reason}:${selection.outcome}`,
           score, asset: cutout.asset, bounds: cutout.bounds, kind: 'photo-cutout', alphaMode: 'useful-alpha',
         }
       }
@@ -632,7 +698,8 @@ async function pixabayChoice(input: {
       fallbackRaster ??= {
         relevance: candidate.ranking.relevance,
         slotId: input.slotId, concept: input.concept.normalizedTerm, provider: 'pixabay-images',
-        representation: 'full-raster', reason: `PHOTO_CUTOUT_FALLBACK_FULL_RASTER:${cutout.reason}`,
+        providerAssetId: candidate.id, representation: 'full-raster',
+        reason: `PHOTO_CUTOUT_FALLBACK_FULL_RASTER:${cutout.reason}:${selection.outcome}`,
         score, asset: sourceAsset, bounds: fullSubjectBounds(), kind: 'raster-image', alphaMode: 'opaque-rectangle',
       }
     }
@@ -1001,7 +1068,7 @@ export async function resolveMotionGraphicsSceneV2(input: {
     }
     trace.fallback = 'EDITORIAL_INTENTIONAL'
   } else {
-    for (const role of roleInputs) {
+    for (const [roleIndex, role] of roleInputs.entries()) {
       let choice: MaterializedVisualChoiceV2 | null = null
       const representation = resolveAssetRepresentationPreferenceV1({ concept: role.concept, role: role.slotId })
       if (weakTokenShadowedByStructuredConcept(role, roleInputs)) {
@@ -1028,7 +1095,11 @@ export async function resolveMotionGraphicsSceneV2(input: {
           choice = await pixabayChoice({ projectRoot: input.projectRoot, slotId: role.slotId, concept: role.concept,
             siblingConcepts: roleInputs.filter(other => other !== role).map(other => other.concept),
             representation: attempt, apiKey: input.pixabayApiKey, hooks: input.hooks, trace: trace.pixabay, metrics,
-            budget: photoBudget })
+            budget: photoBudget, recentPhotoProviderAssetIds: new Set(session.recentPhotoProviderAssetIds),
+            recentPhotoAssetShas: new Set(session.recentPhotoAssetShas),
+            reserveForLaterPhotoRole: roleInputs.slice(roleIndex + 1).some(other =>
+              resolveAssetRepresentationPreferenceV1({ concept: other.concept, role: other.slotId }).attemptOrder
+                .some(value => value === 'photo-cutout' || value === 'full-raster')) })
         } else if (attempt === 'icon' || attempt === 'symbolic') {
           choice = localChoiceForRepresentation({ projectRoot: input.projectRoot, base: input.base, role, representation: attempt })
         }
@@ -1089,7 +1160,15 @@ export async function resolveMotionGraphicsSceneV2(input: {
     }
     if ((choice.provider === 'photo-cutout' || choice.provider === 'pixabay-images') && choice.asset)
       metrics.finalPhotoAssetShas.push(choice.asset.sha256)
+    if ((choice.provider === 'photo-cutout' || choice.provider === 'pixabay-images') && choice.asset) {
+      session.recentPhotoAssetShas.push(choice.asset.sha256)
+      if (choice.providerAssetId) session.recentPhotoProviderAssetIds.push(choice.providerAssetId)
+    }
   }
+  if (session.recentPhotoAssetShas.length > 18)
+    session.recentPhotoAssetShas.splice(0, session.recentPhotoAssetShas.length - 18)
+  if (session.recentPhotoProviderAssetIds.length > 18)
+    session.recentPhotoProviderAssetIds.splice(0, session.recentPhotoProviderAssetIds.length - 18)
   metrics.editorialOnly = hasHero ? 0 : 1
   if (!hasHero) trace.fallback = 'EDITORIAL_NO_DEFENDIBLE_HERO'
   const compiled = compileV2({ base: input.base, choices: effectiveChoices, videoStyleId: input.videoStyleId,
