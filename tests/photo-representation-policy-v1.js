@@ -9,6 +9,7 @@ const https = require('https')
 const path = require('path')
 const zlib = require('zlib')
 const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
+const REAL_CORPUS = require('./fixtures/photo-representation-balance-real-corpus-v1')
 
 const REPO_ROOT = path.resolve(__dirname, '..')
 const FIXTURE_ROOT = createTestFixture('photo-representation-policy-v1')
@@ -18,6 +19,7 @@ const originalHttpRequest = http.request
 const originalHttpsRequest = https.request
 let completed = 0
 let finished = false
+const evidence = {}
 
 function crc32 (bytes) {
   let crc = 0xffffffff
@@ -28,7 +30,7 @@ function crc32 (bytes) {
   return (crc ^ 0xffffffff) >>> 0
 }
 
-function rgbaFixture () {
+function rgbaFixture (variant = 0) {
   const width = 180; const height = 180
   const chunk = (type, data) => {
     const label = Buffer.from(type); const length = Buffer.alloc(4); length.writeUInt32BE(data.length)
@@ -42,7 +44,7 @@ function rgbaFixture () {
     for (let x = 0; x < width; x++) {
       const offset = y * (width * 4 + 1) + 1 + x * 4
       const inside = x > 20 && x < 160 && y > 24 && y < 158
-      raw[offset] = 28; raw[offset + 1] = 42; raw[offset + 2] = 55; raw[offset + 3] = inside ? 255 : 0
+      raw[offset] = 28 + variant % 80; raw[offset + 1] = 42; raw[offset + 2] = 55; raw[offset + 3] = inside ? 255 : 0
     }
   }
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
@@ -79,6 +81,27 @@ function recordedSearch (url) {
     largeImageURL: `https://cdn.pixabay.com/photo/${canonical}-fixture.png`,
     tags: `${canonical}, ${query}, isolated, photography`, imageWidth: 1400, imageHeight: 1200, type: 'photo',
   }] })
+}
+
+function recordedSearchVariants (url) {
+  const query = String(url.searchParams.get('q') || 'camera')
+  return Promise.resolve({ hits: [1, 2].map(index => ({
+    id: `camera-${index}`,
+    pageURL: `https://pixabay.com/photos/camera-${index}/`,
+    largeImageURL: `https://cdn.pixabay.com/photo/camera-${index}.png`,
+    tags: `camera, ${query}, isolated, photography`, imageWidth: 1400, imageHeight: 1200, type: 'photo',
+  })) })
+}
+
+function recordedSearchShaVariants () {
+  recordedSearchShaVariants.calls = (recordedSearchShaVariants.calls || 0) + 1
+  const ids = recordedSearchShaVariants.calls === 1 ? ['camera-sha-1', 'camera-sha-2'] : ['camera-sha-3', 'camera-sha-4']
+  return Promise.resolve({ hits: ids.map(id => ({
+    id,
+    pageURL: `https://pixabay.com/photos/${id}/`,
+    largeImageURL: `https://cdn.pixabay.com/photo/${id}.png`,
+    tags: 'camera, photography, isolated', imageWidth: 1400, imageHeight: 1200, type: 'photo',
+  })) })
 }
 
 async function runCase (name, fn) {
@@ -179,9 +202,107 @@ app.whenReady().then(async () => {
         assert(resolved.metrics.photoTransformCalls <= bundle.PHOTO_SCENE_BUDGET_V1.transforms)
       }
       assert.deepEqual(bundle.PHOTO_SCENE_BUDGET_V1, { requests: 4, downloads: 4, transforms: 2 })
+      assert.deepEqual(bundle.PHOTO_ROLE_BUDGET_V1, { requests: 2, downloads: 2, transforms: 2 })
     })
 
-    assert.equal(completed, 7)
+    await runCase('8 alias y emoji estructurados cuentan como evidencia física sin parche lexical', () => {
+      const screenContext = contextFor(bundle, 'screen-physical-evidence', 'PANTALLA', 'la pantalla muestra el resultado',
+        [{ label: 'pantalla', emoji: '📱', canonicalHint: 'monitor' }], 191003)
+      const plans = bundle.buildVisualSearchPlansV1({
+        intent: bundle.createAssetIntentV1({ sceneId: 'screen-physical-evidence', keyword: 'PANTALLA', concepts: ['pantalla'] }),
+        localSemantic: screenContext.localSemantic,
+      })
+      const decision = bundle.resolveAssetRepresentationPreferenceV1({ concept: plans.concepts.primary, role: 'hero' })
+      assert.equal(decision.cutoutEligible, true)
+      assert.equal(decision.attemptOrder[0], 'photo-cutout')
+    })
+
+    await runCase('9 el corpus real congelado amplía oportunidades sólo desde evidencia estructurada', () => {
+      let baseline = 0
+      let after = 0
+      let newlyEligibleScenes = 0
+      const rows = []
+      for (const row of REAL_CORPUS) {
+        baseline += row.baselinePhotoOpportunities
+        if (!row.concepts.length) continue
+        const context = contextFor(bundle, 'corpus-' + row.id.replace(/[^a-z0-9]/gi, '-'), row.concepts[0].label,
+          row.concepts.map(value => value.label).join(' '), row.concepts, 192000 + after)
+        const plans = bundle.buildVisualSearchPlansV1({
+          intent: bundle.createAssetIntentV1({ sceneId: context.sceneId, keyword: row.concepts[0].label,
+            concepts: row.concepts.map(value => value.label) }),
+          localSemantic: context.localSemantic,
+        })
+        const concepts = [plans.concepts.primary, plans.concepts.secondary, plans.concepts.tertiary].filter(Boolean)
+        const decisions = concepts.map((concept, index) => ({ concept: concept.normalizedTerm,
+          decision: bundle.resolveAssetRepresentationPreferenceV1({
+            concept, role: index === 0 ? 'hero' : index === 1 ? 'support-1' : 'support-2',
+          }) }))
+        const opportunities = decisions.filter(value => value.decision.attemptOrder
+          .some(attempt => attempt === 'photo-cutout' || attempt === 'full-raster')).length
+        after += opportunities
+        if (opportunities > row.baselinePhotoOpportunities) newlyEligibleScenes++
+        rows.push({ id: row.id, baseline: row.baselinePhotoOpportunities, opportunities,
+          concepts: decisions.map(value => ({ concept: value.concept, preference: value.decision.preference,
+            reason: value.decision.reason })) })
+      }
+      assert.equal(baseline, 12)
+      assert(after > baseline, `se esperaban más de ${baseline} oportunidades; se obtuvieron ${after}`)
+      assert(newlyEligibleScenes >= 3, `se esperaban al menos 3 escenas nuevas; se obtuvieron ${newlyEligibleScenes}`)
+      evidence.realCorpusPolicy = { scenes: REAL_CORPUS.length, baseline, after, newlyEligibleScenes, rows }
+      console.log('REAL_CORPUS_POLICY=' + JSON.stringify({ scenes: REAL_CORPUS.length, baseline, after, newlyEligibleScenes }))
+    })
+
+    await runCase('10 la repetición elige una alternativa igualmente defendible y determinista', async () => {
+      const contexts = [
+        contextFor(bundle, 'camera-variety-1', 'CÁMARA', 'la cámara documenta la historia',
+          [{ label: 'cámara', emoji: '📷', canonicalHint: 'camera' }], 191010),
+        contextFor(bundle, 'camera-variety-2', 'CÁMARA', 'otra cámara documenta la escena',
+          [{ label: 'cámara', emoji: '📷', canonicalHint: 'camera' }], 191011),
+      ]
+      const resolved = await bundle.resolveModernVisualGenerationBatchV2({ contexts, projectRoot: PROJECT_ROOT,
+        pixabayApiKey: 'recorded', hooks: {
+          searchRequestJson: recordedSearchVariants,
+          downloadRequestBytes: async url => rgbaFixture(String(url).includes('camera-2') ? 2 : 1),
+        } })
+      const first = resolved[0].resolved.choices.find(choice => choice.provider === 'photo-cutout')
+      const second = resolved[1].resolved.choices.find(choice => choice.provider === 'photo-cutout')
+      assert(first && second)
+      assert.notEqual(first.providerAssetId, second.providerAssetId)
+      assert(resolved[1].resolved.trace.pixabay.some(row => row.outcome === 'CANDIDATE_SELECTED_FOR_VARIETY'))
+      evidence.photoVariety = { first: first.providerAssetId, second: second.providerAssetId,
+        secondTrace: resolved[1].resolved.trace.pixabay.map(row => row.outcome) }
+    })
+
+    await runCase('11 contenido repetido por SHA cede ante una alternativa equivalente', async () => {
+      recordedSearchShaVariants.calls = 0
+      const contexts = [
+        contextFor(bundle, 'camera-sha-variety-1', 'CÁMARA', 'la cámara documenta la historia',
+          [{ label: 'cámara', emoji: '📷', canonicalHint: 'camera' }], 191020),
+        contextFor(bundle, 'camera-sha-variety-2', 'CÁMARA', 'otra cámara documenta la escena',
+          [{ label: 'cámara', emoji: '📷', canonicalHint: 'camera' }], 191021),
+      ]
+      const resolved = await bundle.resolveModernVisualGenerationBatchV2({ contexts, projectRoot: PROJECT_ROOT,
+        pixabayApiKey: 'recorded', hooks: {
+          searchRequestJson: recordedSearchShaVariants,
+          downloadRequestBytes: async url => {
+            const id = String(url)
+            return rgbaFixture(id.includes('camera-sha-4') || id.includes('camera-sha-2') ? 4 : 1)
+          },
+        } })
+      const first = resolved[0].resolved.choices.find(choice => choice.provider === 'photo-cutout')
+      const second = resolved[1].resolved.choices.find(choice => choice.provider === 'photo-cutout')
+      assert(first && second)
+      assert.equal(first.providerAssetId, 'camera-sha-1')
+      assert.equal(second.providerAssetId, 'camera-sha-4')
+      assert(resolved[1].resolved.trace.pixabay
+        .some(row => row.outcome === 'CANDIDATE_CONTENT_REUSE_DEFERRED_FOR_VARIETY'))
+      evidence.photoShaVariety = { first: first.providerAssetId, second: second.providerAssetId,
+        secondTrace: resolved[1].resolved.trace.pixabay.map(row => row.outcome) }
+    })
+
+    assert.equal(completed, 11)
+    if (process.env.CIPHER_TEST_EVIDENCE_PATH)
+      fs.writeFileSync(process.env.CIPHER_TEST_EVIDENCE_PATH, JSON.stringify(evidence, null, 2))
     console.log('PHOTO_POLICY_METRICS=' + JSON.stringify(bundle.summarizeMotionGraphicsVideoMetricsV2([hero, support, abstract])))
     finish(0)
   } catch (error) {

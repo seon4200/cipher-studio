@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "corpus": "photo-representation-balance-real-corpus-v1",
+  "scenes": 43,
+  "photoOpportunitiesBefore": 12,
+  "photoOpportunitiesAfter": 24,
+  "newlyEligibleScenes": 11,
+  "providerIdVariety": {
+    "first": "camera-1",
+    "second": "camera-2",
+    "trace": "CANDIDATE_SELECTED_FOR_VARIETY"
+  },
+  "contentShaVariety": {
+    "first": "camera-sha-1",
+    "second": "camera-sha-4",
+    "trace": "CANDIDATE_CONTENT_REUSE_DEFERRED_FOR_VARIETY"
+  },
+  "sceneBudget": {
+    "requests": 4,
+    "downloads": 4,
+    "transforms": 2
+  },
+  "roleBudget": {
+    "requests": 2,
+    "downloads": 2,
+    "transforms": 2
+  },
+  "versionPlantillas": 15,
+  "rendererChanged": false
+}

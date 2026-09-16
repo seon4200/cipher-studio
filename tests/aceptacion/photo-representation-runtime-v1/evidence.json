@@ -45,11 +45,11 @@
     "photoBudgetExhausted": 0,
     "candidatesEvaluated": 2,
     "relevanceRejected": 0,
-    "averageCutoutMs": 130.534,
-    "p95CutoutMs": 130.534,
+    "averageCutoutMs": 136.144,
+    "p95CutoutMs": 136.144,
     "uniquePhotoAssets": 1,
     "reusedPhotoAssets": 1,
-    "averagePhotoNetworkMs": 13.333333333333334
+    "averagePhotoNetworkMs": 14
   },
   "reconciliation": {
     "photoOpportunities": 2,
@@ -68,15 +68,15 @@
     "reusedPhotoAssets": 1
   },
   "timings": {
-    "materializationMs": 2637.9505,
-    "averagePhotoNetworkMs": 13.333333333333334,
-    "averageCutoutMs": 130.534,
-    "p95CutoutMs": 130.534,
+    "materializationMs": 3068.5926,
+    "averagePhotoNetworkMs": 14,
+    "averageCutoutMs": 136.144,
+    "p95CutoutMs": 136.144,
     "renderMs": [
-      938.0430000000001,
-      624.7617,
-      613.5511000000006,
-      546.6446999999998
+      1096.3873000000003,
+      762.6247000000003,
+      700.1534999999994,
+      673.2275
     ]
   },
   "finalPhotoAssets": [
@@ -134,7 +134,7 @@
         "cutoutFailed": 0,
         "cutoutCacheHit": 0,
         "cutoutProcessingMs": [
-          130.534
+          136.144
         ],
         "candidatesEvaluated": 1,
         "relevanceExact": 1,
@@ -157,7 +157,7 @@
         "photoBudgetExhausted": 0,
         "photoNetworkMs": [
           1,
-          38
+          41
         ],
         "finalPhotoAssetShas": [
           "22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab"
@@ -260,7 +260,7 @@
         "photoTransformCalls": 1,
         "photoBudgetExhausted": 0,
         "photoNetworkMs": [
-          1
+          0
         ],
         "finalPhotoAssetShas": [
           "22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab"
@@ -467,7 +467,7 @@
   "artifacts": {
     "video": {
       "file": "photo-representation-runtime-v1.mp4",
-      "sha256": "93b4e450883e6c51841e8c465e4e4a6eed60e87ea2eb3ab6b8a0cd9fbcf1fb6b",
+      "sha256": "3cbfbb0dad6fa329bca457de1bae4810e8ef59d7511843b7e5c2f5bd244a3b55",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -481,13 +481,13 @@
         ],
         "format": {
           "duration": "5.000000",
-          "size": "119166"
+          "size": "119219"
         }
       }
     },
     "contactSheet": {
       "file": "contact-sheet-photo-representation-runtime-v1.png",
-      "sha256": "144d984396e94a1d0feebf609887beffaa6c285a5d7608ac80e9253f345c03fe"
+      "sha256": "3eed2ad446e4bcd5148eeba3881a81ed032233fa9001cb4f7a31591908a548c4"
     }
   }
 }
