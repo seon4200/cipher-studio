@@ -5,8 +5,10 @@ const http = require('http')
 const https = require('https')
 const path = require('path')
 const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
+const { captureRootState, assertRootStateUnchanged } = require('./helpers/repository-state-guard')
 
 const root = path.resolve(__dirname, '..')
+const rootStateBefore = captureRootState(root)
 const fixture = createTestFixture('editorial-motion-pilot-v1')
 const project = path.join(fixture, 'project')
 let bundle
@@ -98,6 +100,28 @@ app.whenReady().then(async () => {
       bundle.sceneSpecPixelIdentityAny(pilot.resolved.compiled.sceneSpec))
     console.log('OK generación y regeneración deterministas')
 
+    const refinedContext = bundle.createModernVisualGenerationContextV2({
+      ...context(false), presentationProfile: bundle.EDITORIAL_MOTION_PROFILE_V2,
+    })
+    const refined = (await bundle.resolveModernVisualGenerationBatchV2({
+      contexts: [refinedContext], projectRoot: project,
+    }))[0]
+    assert.deepEqual(choices(refined), choices(pilot), 'V2 no cambia proveedor/rol/contenido')
+    assert.deepEqual(refined.resolved.compiled.sceneSpec.presentationProfile, bundle.EDITORIAL_MOTION_PROFILE_V2)
+    assert.equal(refined.resolved.compiled.sceneSpec.editorialMotionCue, 'protagonist')
+    assert.notEqual(bundle.sceneSpecPixelIdentityAny(refined.resolved.compiled.sceneSpec),
+      bundle.sceneSpecPixelIdentityAny(pilot.resolved.compiled.sceneSpec))
+    const refinedRegenerated = (await bundle.resolveModernVisualGenerationBatchV2({
+      contexts: [refined.context], projectRoot: project,
+    }))[0]
+    assert.equal(bundle.sceneSpecPixelIdentityAny(refined.resolved.compiled.sceneSpec),
+      bundle.sceneSpecPixelIdentityAny(refinedRegenerated.resolved.compiled.sceneSpec))
+    const badCue = JSON.parse(JSON.stringify(refined.resolved.compiled.sceneSpec))
+    delete badCue.editorialMotionCue
+    assert.throws(() => bundle.validateVisualSceneSpecV2(badCue))
+    assert.deepEqual(bundle.validateVisualSceneSpecV2(JSON.parse(JSON.stringify(pilot.resolved.compiled.sceneSpec))),
+      pilot.resolved.compiled.sceneSpec, 'La revisión V1 histórica sigue validando sin migración')
+
     for (const family of bundle.EDITORIAL_PILOT_FAMILIES) {
       const mode = family === 'editorial' ? 'editorial-text' : 'asset-led'
       const count = family === 'editorial' ? 0 : family === 'lineaTiempo' ? 2 : 1
@@ -127,8 +151,14 @@ app.whenReady().then(async () => {
       }
     }
     assert(render && fs.existsSync(render) && fs.statSync(render).size > 0)
+    const refinedRender = await bundle.renderGraphicClip(refined.resolved.compiled.graphicData, {
+      ancho: 540, alto: 960, fps: 24, duracion: 1.5, modo: 'pantalla', sistema: 'editorial',
+      projectRoot: project, renderBindings: refined.resolved.compiled.renderBindings,
+    })
+    assert(refinedRender && fs.existsSync(refinedRender) && fs.statSync(refinedRender).size > 0)
     console.log('OK renderer productivo/QC/MP4 offline')
     console.log(`NETWORK_ATTEMPTS_BLOCKED=${networkAttempts}`)
+    assertRootStateUnchanged(root, rootStateBefore)
     finished = true
     await finish(0)
   } catch (error) {

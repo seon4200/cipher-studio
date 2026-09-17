@@ -13,7 +13,10 @@ const { createTestFixture, cleanupTestFixture } = require('../../helpers/safe-fi
 const CORPUS = require('../../fixtures/editorial-motion-pilot-corpus-v1')
 
 const REPO = path.resolve(__dirname, '../../..')
-const OUTPUT = __dirname
+const REFINED = process.env.CIPHER_PILOT_REVISION === 'v2'
+const RECHECK = process.env.CIPHER_PILOT_REVISION === 'v1-recheck'
+const OUTPUT = REFINED ? path.join(__dirname, 'revision-v2')
+  : RECHECK ? path.join(__dirname, 'revision-v1-recheck') : __dirname
 const FIXTURE = createTestFixture('editorial-motion-pilot-acceptance')
 const PROJECT = path.join(FIXTURE, 'project')
 const FRAMES = path.join(FIXTURE, 'frames')
@@ -134,11 +137,15 @@ async function render (row, label, width, height) {
   const ms = performance.now() - started
   const mainRssAfter = process.memoryUsage().rss
   if (!clip || !fs.existsSync(clip)) {
+    const structural = bundle.evaluateVisualStructuralQcV2(row.resolved.compiled.sceneSpec)
     const errors = qc?.findings?.filter(item => item.level === 'error').map(item => item.code) ?? []
     const measurements = qc?.snapshots?.map(item => ({ at: item.normalizedTime,
       textOverflow: item.textOverflow, keywordOverflow: item.keywordOverflow,
       text: item.text, keyword: item.keyword })) ?? []
-    throw new Error(`PILOT_RENDER_FAILED:${label}:${errors.join(',')}:${JSON.stringify(measurements)}`)
+    const logs = [path.join(FIXTURE, 'generation-debug.log'), path.join(FIXTURE, 'cipher-studio', 'generation-debug.log')]
+      .filter(file => fs.existsSync(file)).flatMap(file => fs.readFileSync(file, 'utf8').split(/\r?\n/)
+        .filter(line => /GRAFICO|QC|ERROR/.test(line)).slice(-12))
+    throw new Error(`PILOT_RENDER_FAILED:${label}:${JSON.stringify(structural)}:${errors.join(',')}:${JSON.stringify(measurements)}:${logs.join(' | ')}`)
   }
   const copied = path.join(FRAMES, `${label}.mp4`)
   const frame = path.join(FRAMES, `${label}.png`)
@@ -171,6 +178,8 @@ app.whenReady().then(async () => {
       callback({ cancel: /^https?:/i.test(details.url) })
     })
     bundle = require(path.join(REPO, 'dist-electron', 'main', 'index.js'))
+    fs.mkdirSync(OUTPUT, { recursive: true })
+    const profile = REFINED ? bundle.EDITORIAL_MOTION_PROFILE_V2 : bundle.EDITORIAL_MOTION_PROFILE_V1
     for (const file of Object.values(PHOTOS)) assert(fs.existsSync(file), 'Falta foto local de aceptación: ' + file)
     fs.mkdirSync(FRAMES, { recursive: true })
     bundle.createProjectFiles(PROJECT, { id: 'editorial-motion-pilot-temp', clips: [],
@@ -181,7 +190,7 @@ app.whenReady().then(async () => {
       contexts, projectRoot: PROJECT, pixabayApiKey: 'captured-offline-response', hooks,
     })
     const pilot = await bundle.resolveModernVisualGenerationBatchV2({
-      contexts: baseline.map(row => ({ ...row.context, presentationProfile: bundle.EDITORIAL_MOTION_PROFILE_V1 })),
+      contexts: baseline.map(row => ({ ...row.context, presentationProfile: profile })),
       projectRoot: PROJECT, hooks,
     })
     // Supplemental capability probe, explicitly outside the frozen 12+4 corpus.
@@ -191,25 +200,38 @@ app.whenReady().then(async () => {
       keyword: 'PROTESTA', duration: 1.7, concepts: [{ label: 'protesta', emoji: '✊' },
         { label: 'multitud', emoji: '👥' }] }
     const contextual = (await bundle.resolveModernVisualGenerationBatchV2({
-      contexts: [{ ...contextFor(contextualInput, 16), presentationProfile: bundle.EDITORIAL_MOTION_PROFILE_V1 }],
+      contexts: [{ ...contextFor(contextualInput, 16), presentationProfile: profile }],
       projectRoot: PROJECT, pixabayApiKey: 'captured-offline-response', hooks,
     }))[0]
     assert.equal(baseline.length, 16); assert.equal(pilot.length, 16)
+    for (const [index, row] of pilot.entries()) {
+      const errors = bundle.evaluateVisualStructuralQcV2(row.resolved.compiled.sceneSpec)
+        .filter(item => item.level === 'error')
+      if (errors.length) throw new Error(`QC_STRUCTURAL:${CORPUS[index].id}:${JSON.stringify(errors)}`)
+    }
+    if (process.env.CIPHER_PILOT_PREFLIGHT_ONLY === '1') {
+      console.log('EDITORIAL_PILOT_PREFLIGHT_OK scenes=16')
+      finished = true
+      await finish(0)
+      return
+    }
     const records = []
     for (let i = 0; i < 16; i++) {
       const before = baseline[i]; const after = pilot[i]; const source = CORPUS[i]
       const oldText = before.resolved.compiled.sceneSpec.text
       const newText = after.resolved.compiled.sceneSpec.text
       assert.deepEqual(choices(before), choices(after), `Mismos roles/assets: ${source.id}`)
-      assert.deepEqual([oldText.connector, oldText.keyword, oldText.closing],
-        [newText.connector, newText.keyword, newText.closing], `Mismo texto: ${source.id}`)
+      const sameText = JSON.stringify([oldText.connector, oldText.keyword, oldText.closing]) ===
+        JSON.stringify([newText.connector, newText.keyword, newText.closing])
+      if (i < 8) assert(sameText, `Texto idéntico en comparación controlada: ${source.id}`)
       assert.equal(before.context.duration, after.context.duration)
       records.push({ id: source.id, source: source.source, kind: source.kind, localText: source.text,
         duration: source.duration, baselineFamily: before.resolved.compiled.sceneSpec.layout.family,
         pilotFamily: after.resolved.compiled.sceneSpec.layout.family,
         text: { connector: newText.connector ?? null, keyword: newText.keyword, closing: newText.closing ?? null },
         choices: choices(after), profile: after.resolved.compiled.sceneSpec.presentationProfile,
-        sameAssets: true, substitutions: [],
+        sameAssets: true, substitutions: [], sameText,
+        ...(!sameText ? { textDifferenceReason: 'V2 recupera literalmente una cola truncada de la narración local; fuera del A/B controlado' } : {}),
         beforeIdentity: bundle.sceneSpecPixelIdentityAny(before.resolved.compiled.sceneSpec),
         afterIdentity: bundle.sceneSpecPixelIdentityAny(after.resolved.compiled.sceneSpec) })
     }
@@ -251,6 +273,21 @@ app.whenReady().then(async () => {
     const horizontal = path.join(OUTPUT, 'editorial-pilot-6-horizontal.mp4')
     join(records.slice(0, 12).map(value => value.vertical.clip), vertical)
     join([0, 2, 4, 5, 8, 11].map(i => records[i].horizontal.clip), horizontal)
+    let readingSample = null
+    if (REFINED) {
+      // Same materialized scenes, deliberately longer playback only. No audio/word timing is claimed.
+      const indices = [0, 5, 6, 7, 11]
+      const clips = []
+      for (const index of indices) {
+        const longRow = { ...pilot[index], context: { ...pilot[index].context, duration: 3.8 } }
+        clips.push((await render(longRow, `${CORPUS[index].id}-reading-sample`, 540, 960)).clip)
+      }
+      readingSample = path.join(OUTPUT, 'editorial-pilot-reading-5-vertical.mp4')
+      join(clips, readingSample)
+      motionFrame(readingSample, path.join(OUTPUT, 'reading-entry.png'), .4)
+      motionFrame(readingSample, path.join(OUTPUT, 'reading-stable.png'), 2.1)
+      motionFrame(readingSample, path.join(OUTPUT, 'reading-exit.png'), 3.6)
+    }
     motionFrame(vertical, path.join(OUTPUT, 'motion-entry.png'), CORPUS[0].duration * .12)
     motionFrame(vertical, path.join(OUTPUT, 'motion-stable.png'), CORPUS[0].duration * .55)
     motionFrame(vertical, path.join(OUTPUT, 'motion-exit.png'), CORPUS[0].duration * .93)
@@ -266,7 +303,7 @@ app.whenReady().then(async () => {
     const evidenceRows = records.map(value => ({ ...value,
       before: portableRender(value.before), vertical: portableRender(value.vertical),
       horizontal: portableRender(value.horizontal) }))
-    const evidence = { version: 1, corpus: 'synthetic-curated-12-plus-4', fps: FPS,
+    const evidence = { version: REFINED ? 2 : 1, corpus: 'synthetic-curated-12-plus-4', fps: FPS,
       providerMode: 'three-recorded-photos-plus-local-openmoji-solar; network blocked',
       photoSources: Object.fromEntries(Object.entries(PHOTOS).map(([key, file]) => [key, { sha256: sha(file), bytes: fs.statSync(file).size }])),
       blockedNetwork, rows: evidenceRows, supplementalContextualProbe: contextualResult,
@@ -276,7 +313,8 @@ app.whenReady().then(async () => {
         pilot8MsPerFrame: records.slice(0, 8).reduce((sum, row) => sum + row.vertical.frameMs, 0) / 8,
         baseline8MaxMainRssBytes: Math.max(...records.slice(0, 8).map(row => row.before.mainRssAfter)),
         pilot8MaxMainRssBytes: Math.max(...records.slice(0, 8).map(row => row.vertical.mainRssAfter)) },
-      outputs: { vertical: path.basename(vertical), horizontal: path.basename(horizontal) } }
+      outputs: { vertical: path.basename(vertical), horizontal: path.basename(horizontal),
+        ...(readingSample ? { readingSample: path.basename(readingSample), readingSampleHasAudio: false } : {}) } }
     fs.writeFileSync(path.join(OUTPUT, 'evidence.json'), JSON.stringify(evidence, null, 2))
     console.log('EDITORIAL_PILOT_ACCEPTANCE_OK scenes=12 stress=4 ab=8 fps=' + FPS)
     console.log('BLOCKED_NETWORK=' + blockedNetwork)

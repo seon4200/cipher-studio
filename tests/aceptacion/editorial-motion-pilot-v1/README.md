@@ -1,5 +1,7 @@
 # Fase 2A — piloto editorial híbrido V1
 
+**Actualización de cierre:** la selección nueva en la app ofrece **Editorial híbrido V2 (experimental)** con el mismo ID opt-in y revisión explícita `editorial-hybrid-pilot-2026-09-v2`. Este documento conserva la evidencia inicial V1; los resultados, límites y procedimiento actuales están en [CLOSURE.md](CLOSURE.md) y `revision-v2/`. Para generar la aceptación actual, definir `CIPHER_PILOT_REVISION=v2` en el proceso del arnés antes de ejecutar `generar.cjs`. SceneSpecs V1 existentes conservan su revisión.
+
 Este es un piloto de presentación, no una aprobación estética ni un nuevo resolver. El corpus de 12 escenas principales y 4 casos de resistencia es **sintético y curado**; no son escenas de un proyecto del usuario. La escena contextual se ajustó durante el piloto de «hospital» (icono razonable) a una protesta en una plaza para probar honestamente full-raster; por ello el corpus no es un holdout imparcial.
 
 ## Activación en la app
