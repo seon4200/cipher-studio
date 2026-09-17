@@ -1,0 +1,952 @@
+{
+  "version": 1,
+  "corpus": "synthetic-curated-12-plus-4",
+  "fps": 24,
+  "providerMode": "three-recorded-photos-plus-local-openmoji-solar; network blocked",
+  "photoSources": {
+    "camera": {
+      "sha256": "39b6a8d5493d3421e207b972192e66886bfdccc9f39d42f3c7432f25fde9cb38",
+      "bytes": 113685
+    },
+    "woman": {
+      "sha256": "1ef83d4f43bb4ea4222b13f6cf2af0a7d4edd81765d5dd91bad5dce1ed52e6eb",
+      "bytes": 133455
+    },
+    "protest": {
+      "sha256": "400146d8f4fae72528a5767712df411571695be577b346c21ceaa9547cb764d7",
+      "bytes": 227495
+    }
+  },
+  "blockedNetwork": 1,
+  "rows": [
+    {
+      "id": "01-object-hero",
+      "source": "synthetic-pilot",
+      "kind": "object-hero",
+      "localText": "la cámara registró el momento decisivo",
+      "duration": 1.7,
+      "baselineFamily": "rayosImpacto",
+      "pilotFamily": "marcoPoster",
+      "text": {
+        "connector": "la",
+        "keyword": "CÁMARA",
+        "closing": null
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "photo-cutout",
+          "sha": "22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab",
+          "solar": null
+        },
+        {
+          "role": "support-1",
+          "provider": "openmoji",
+          "sha": "c44b74e9cbeff82066dc000a880212e6d5e4bde95b920967e7ea4903f5c8daf9",
+          "solar": null
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#00E5FF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#84FFFF\",\"accentSecondary\":\"#23F0C7\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"bright-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"rayosImpacto\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260900},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"rayosImpacto\",\"relationStyle\":\"impact\",\"slotLayouts\":[{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":46,\"width\":62,\"x\":19,\"y\":16},\"opacity\":1,\"placement\":\"center-dominant\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":5},{\"backing\":\"neutral-plate\",\"crop\":\"none\",\"envelope\":{\"height\":17,\"width\":22,\"x\":8.5,\"y\":45},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":-7,\"slotId\":\"support-1\",\"zIndex\":6}],\"textAlignment\":\"center\",\"textBounds\":{\"height\":22,\"width\":82,\"x\":9,\"y\":64},\"textRegion\":\"bottom\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"useful-alpha\",\"bounds\":{\"alphaBounds\":{\"height\":0.5870206489675516,\"width\":0.3876953125,\"x\":0.291015625,\"y\":0.22566371681415928},\"aspectRatio\":1.5103244837758112,\"centerOfMass\":{\"x\":0.4866005998612742,\"y\":0.5167568359673805},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0.18731563421828912,\"left\":0.291015625,\"right\":0.3212890625,\"top\":0.22566371681415928},\"visibleHeightRatio\":0.5870206489675516,\"visibleWidthRatio\":0.3876953125},\"fitPolicy\":\"subject-contain\",\"kind\":\"photo-cutout\",\"mime\":\"image/png\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"c44b74e9cbeff82066dc000a880212e6d5e4bde95b920967e7ea4903f5c8daf9\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"center\",\"connector\":\"la\",\"keyword\":\"CÁMARA\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"scale-punch\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"technical-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"paper\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#00E5FF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#84FFFF\",\"accentSecondary\":\"#23F0C7\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"bright-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"marcoPoster\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260900},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"marcoPoster\",\"relationStyle\":\"frame\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":49,\"width\":70,\"x\":15,\"y\":34},\"opacity\":1,\"placement\":\"integrated\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":18,\"width\":22,\"x\":6,\"y\":64},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":6}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":23,\"width\":84,\"x\":8,\"y\":9},\"textRegion\":\"top\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"useful-alpha\",\"bounds\":{\"alphaBounds\":{\"height\":0.5870206489675516,\"width\":0.3876953125,\"x\":0.291015625,\"y\":0.22566371681415928},\"aspectRatio\":1.5103244837758112,\"centerOfMass\":{\"x\":0.4866005998612742,\"y\":0.5167568359673805},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0.18731563421828912,\"left\":0.291015625,\"right\":0.3212890625,\"top\":0.22566371681415928},\"visibleHeightRatio\":0.5870206489675516,\"visibleWidthRatio\":0.3876953125},\"fitPolicy\":\"subject-contain\",\"kind\":\"photo-cutout\",\"mime\":\"image/png\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"c44b74e9cbeff82066dc000a880212e6d5e4bde95b920967e7ea4903f5c8daf9\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"connector\":\"la\",\"keyword\":\"CÁMARA\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"technical-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"paper\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "before": {
+        "clip": "01-object-hero-before-vertical.mp4",
+        "frame": "01-object-hero-before-vertical.png",
+        "renderMs": 2071.9181000000026,
+        "frameMs": 50.534587804878115,
+        "mainRssBefore": 145199104,
+        "mainRssAfter": 151879680,
+        "qcErrors": [],
+        "sha": "37b3652ae732c1c69ab5a92f2ee32fdcc56305844601a85b709c016c97299078"
+      },
+      "vertical": {
+        "clip": "01-object-hero-after-vertical.mp4",
+        "frame": "01-object-hero-after-vertical.png",
+        "renderMs": 1596.2134000000005,
+        "frameMs": 38.93203414634148,
+        "mainRssBefore": 152600576,
+        "mainRssAfter": 154578944,
+        "qcErrors": [],
+        "sha": "3b1d07b5c54338ad9e591be307bfb93da4a0a36f5d4f8ecf2042352a2cb4b845"
+      },
+      "horizontal": {
+        "clip": "01-object-hero-after-horizontal.mp4",
+        "frame": "01-object-hero-after-horizontal.png",
+        "renderMs": 2129.095199999996,
+        "frameMs": 51.9291512195121,
+        "mainRssBefore": 154054656,
+        "mainRssAfter": 154587136,
+        "qcErrors": [],
+        "sha": "0107458944591342b896ed59543d13ff8f64132a61edc00a4d0cb252f0ddbb1d"
+      }
+    },
+    {
+      "id": "02-object-support",
+      "source": "synthetic-pilot",
+      "kind": "object-support",
+      "localText": "la mujer levantó la cámara para mostrar la historia",
+      "duration": 1.7,
+      "baselineFamily": "partidoVertical",
+      "pilotFamily": "partidoVertical",
+      "text": {
+        "connector": "la",
+        "keyword": "HISTORIA",
+        "closing": null
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "photo-cutout",
+          "sha": "53b95d6097cbe2776c566bb52f61337314cf859a756be0e9e57d852ec05e47b3",
+          "solar": null
+        },
+        {
+          "role": "support-1",
+          "provider": "photo-cutout",
+          "sha": "22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab",
+          "solar": null
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"yellow-energy\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#FFE14A\",\"accentDark\":\"#665A00\",\"accentGlow\":\"#F6FF00\",\"accentPrimary\":\"#FFF59D\",\"accentSecondary\":\"#C8FF3D\",\"accentSoft\":\"#D7C85A\"},\"variant\":\"bright-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"partidoVertical\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260901},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"partidoVertical\",\"relationStyle\":\"split-axis\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":50,\"width\":43,\"x\":48,\"y\":19},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":18,\"width\":23,\"x\":15,\"y\":57},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":5}],\"textAlignment\":\"right\",\"textBounds\":{\"height\":54,\"width\":34,\"x\":9,\"y\":20},\"textRegion\":\"left\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"useful-alpha\",\"bounds\":{\"alphaBounds\":{\"height\":0.8209366391184573,\"width\":0.498046875,\"x\":0.1220703125,\"y\":0.1790633608815427},\"aspectRatio\":1.4104683195592287,\"centerOfMass\":{\"x\":0.38750098025538976,\"y\":0.6482426932525832},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0.1220703125,\"right\":0.3798828125,\"top\":0.1790633608815427},\"visibleHeightRatio\":0.8209366391184573,\"visibleWidthRatio\":0.498046875},\"fitPolicy\":\"subject-contain\",\"kind\":\"photo-cutout\",\"mime\":\"image/png\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"53b95d6097cbe2776c566bb52f61337314cf859a756be0e9e57d852ec05e47b3\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"useful-alpha\",\"bounds\":{\"alphaBounds\":{\"height\":0.5870206489675516,\"width\":0.3876953125,\"x\":0.291015625,\"y\":0.22566371681415928},\"aspectRatio\":1.5103244837758112,\"centerOfMass\":{\"x\":0.4866005998612742,\"y\":0.5167568359673805},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0.18731563421828912,\"left\":0.291015625,\"right\":0.3212890625,\"top\":0.22566371681415928},\"visibleHeightRatio\":0.5870206489675516,\"visibleWidthRatio\":0.3876953125},\"fitPolicy\":\"subject-contain\",\"kind\":\"photo-cutout\",\"mime\":\"image/png\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"right\",\"connector\":\"la\",\"keyword\":\"HISTORIA\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"poster-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"soft-sand\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"yellow-energy\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#FFE14A\",\"accentDark\":\"#665A00\",\"accentGlow\":\"#F6FF00\",\"accentPrimary\":\"#FFF59D\",\"accentSecondary\":\"#C8FF3D\",\"accentSoft\":\"#D7C85A\"},\"variant\":\"bright-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"partidoVertical\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260901},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"partidoVertical\",\"relationStyle\":\"split-axis\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":63,\"width\":44,\"x\":49,\"y\":15},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":19,\"width\":22,\"x\":20,\"y\":63},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":5}],\"textAlignment\":\"right\",\"textBounds\":{\"height\":46,\"width\":39,\"x\":6,\"y\":12},\"textRegion\":\"left\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"useful-alpha\",\"bounds\":{\"alphaBounds\":{\"height\":0.8209366391184573,\"width\":0.498046875,\"x\":0.1220703125,\"y\":0.1790633608815427},\"aspectRatio\":1.4104683195592287,\"centerOfMass\":{\"x\":0.38750098025538976,\"y\":0.6482426932525832},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0.1220703125,\"right\":0.3798828125,\"top\":0.1790633608815427},\"visibleHeightRatio\":0.8209366391184573,\"visibleWidthRatio\":0.498046875},\"fitPolicy\":\"subject-contain\",\"kind\":\"photo-cutout\",\"mime\":\"image/png\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"53b95d6097cbe2776c566bb52f61337314cf859a756be0e9e57d852ec05e47b3\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"useful-alpha\",\"bounds\":{\"alphaBounds\":{\"height\":0.5870206489675516,\"width\":0.3876953125,\"x\":0.291015625,\"y\":0.22566371681415928},\"aspectRatio\":1.5103244837758112,\"centerOfMass\":{\"x\":0.4866005998612742,\"y\":0.5167568359673805},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0.18731563421828912,\"left\":0.291015625,\"right\":0.3212890625,\"top\":0.22566371681415928},\"visibleHeightRatio\":0.5870206489675516,\"visibleWidthRatio\":0.3876953125},\"fitPolicy\":\"subject-contain\",\"kind\":\"photo-cutout\",\"mime\":\"image/png\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"right\",\"connector\":\"la\",\"keyword\":\"HISTORIA\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"technical-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"soft-sand\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "before": {
+        "clip": "02-object-support-before-vertical.mp4",
+        "frame": "02-object-support-before-vertical.png",
+        "renderMs": 1747.8687000000027,
+        "frameMs": 42.63094390243909,
+        "mainRssBefore": 151920640,
+        "mainRssAfter": 152973312,
+        "qcErrors": [],
+        "sha": "18933b5cd38783fbc5b6f1a55b8b7e8e904e40e7b246a4aea2104450682ea196"
+      },
+      "vertical": {
+        "clip": "02-object-support-after-vertical.mp4",
+        "frame": "02-object-support-after-vertical.png",
+        "renderMs": 2277.743800000004,
+        "frameMs": 55.55472682926839,
+        "mainRssBefore": 154681344,
+        "mainRssAfter": 154374144,
+        "qcErrors": [],
+        "sha": "9b9b654802923995fcb70164e8b1a94c42f49931da92dd2281688ed8a5010381"
+      }
+    },
+    {
+      "id": "03-person",
+      "source": "synthetic-pilot",
+      "kind": "person-cutout",
+      "localText": "una trabajadora explicó el proyecto a sus colegas",
+      "duration": 1.7,
+      "baselineFamily": "partidoVertical",
+      "pilotFamily": "cuaderno",
+      "text": {
+        "connector": "el",
+        "keyword": "PROYECTO",
+        "closing": null
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "openmoji",
+          "sha": "5af3f09c5e65bc99be4b8b5846225368e0685135ace40bbe3971c9c120fe4960",
+          "solar": null
+        },
+        {
+          "role": "support-1",
+          "provider": "openmoji",
+          "sha": "db6bfb280879f7e5be140559b2db39e0417d8ef9acdabe4fe5d77882eb6892d8",
+          "solar": null
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#84FFFF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#23F0C7\",\"accentSecondary\":\"#00E5FF\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"secondary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"partidoVertical\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260902},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"partidoVertical\",\"relationStyle\":\"split-axis\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":50,\"width\":43,\"x\":9,\"y\":19},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":18,\"width\":23,\"x\":62,\"y\":57},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":5}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":54,\"width\":34,\"x\":57,\"y\":20},\"textRegion\":\"right\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"5af3f09c5e65bc99be4b8b5846225368e0685135ace40bbe3971c9c120fe4960\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"db6bfb280879f7e5be140559b2db39e0417d8ef9acdabe4fe5d77882eb6892d8\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"connector\":\"el\",\"keyword\":\"PROYECTO\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"editorial-strong\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"warm-cream\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#84FFFF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#23F0C7\",\"accentSecondary\":\"#00E5FF\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"secondary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"cuaderno\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260902},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"cuaderno\",\"relationStyle\":\"document\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":56,\"width\":43,\"x\":50,\"y\":16},\"opacity\":1,\"placement\":\"document-field\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":20,\"width\":29,\"x\":8,\"y\":14},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":5}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":43,\"width\":39,\"x\":8,\"y\":37},\"textRegion\":\"left\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"5af3f09c5e65bc99be4b8b5846225368e0685135ace40bbe3971c9c120fe4960\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"db6bfb280879f7e5be140559b2db39e0417d8ef9acdabe4fe5d77882eb6892d8\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"connector\":\"el\",\"keyword\":\"PROYECTO\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"underline-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"technical-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"warm-cream\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "before": {
+        "clip": "03-person-before-vertical.mp4",
+        "frame": "03-person-before-vertical.png",
+        "renderMs": 2016.5085000000036,
+        "frameMs": 49.18313414634155,
+        "mainRssBefore": 153047040,
+        "mainRssAfter": 151937024,
+        "qcErrors": [],
+        "sha": "1741ce8eba4763791ff6f5173efe25bf9ebbe13a687696b24b4b78f8203d9a0d"
+      },
+      "vertical": {
+        "clip": "03-person-after-vertical.mp4",
+        "frame": "03-person-after-vertical.png",
+        "renderMs": 2236.1349000000046,
+        "frameMs": 54.53987560975621,
+        "mainRssBefore": 154411008,
+        "mainRssAfter": 153460736,
+        "qcErrors": [],
+        "sha": "cb2d715dafda87b0d7a582139e699295ea8ed7d5f846790ba6a32fa132b4db2a"
+      },
+      "horizontal": {
+        "clip": "03-person-after-horizontal.mp4",
+        "frame": "03-person-after-horizontal.png",
+        "renderMs": 2263.368000000002,
+        "frameMs": 55.20409756097566,
+        "mainRssBefore": 154673152,
+        "mainRssAfter": 153866240,
+        "qcErrors": [],
+        "sha": "b9d75c9952224624bff86be92aa369b3e51e50fa00a8332580d4113991033681"
+      }
+    },
+    {
+      "id": "04-place",
+      "source": "synthetic-pilot",
+      "kind": "contextual-place",
+      "localText": "la protesta reunió a una multitud en la plaza",
+      "duration": 1.7,
+      "baselineFamily": "cuaderno",
+      "pilotFamily": "cuaderno",
+      "text": {
+        "connector": "la",
+        "keyword": "PROTESTA",
+        "closing": null
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "pixabay-images",
+          "sha": "400146d8f4fae72528a5767712df411571695be577b346c21ceaa9547cb764d7",
+          "solar": null
+        },
+        {
+          "role": "support-1",
+          "provider": "openmoji",
+          "sha": "2148623d40ef1fca2f55277560a7c8539662af7114861343dfee51768f6b77be",
+          "solar": null
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"yellow-energy\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#FFE14A\",\"accentDark\":\"#665A00\",\"accentGlow\":\"#F6FF00\",\"accentPrimary\":\"#FFF59D\",\"accentSecondary\":\"#C8FF3D\",\"accentSoft\":\"#D7C85A\"},\"variant\":\"bright-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"cuaderno\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260903},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"cuaderno\",\"relationStyle\":\"document\",\"slotLayouts\":[{\"backing\":\"frame\",\"crop\":\"none\",\"envelope\":{\"height\":35,\"width\":38,\"x\":50,\"y\":18},\"opacity\":1,\"placement\":\"document-field\",\"rotationDeg\":2,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":21,\"width\":26,\"x\":11,\"y\":20},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":-3,\"slotId\":\"support-1\",\"zIndex\":5}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":26,\"width\":49,\"x\":10,\"y\":58},\"textRegion\":\"document-margin\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"opaque-rectangle\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"cover\",\"kind\":\"raster-image\",\"mime\":\"image/jpeg\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"400146d8f4fae72528a5767712df411571695be577b346c21ceaa9547cb764d7\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"complex-illustration\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"2148623d40ef1fca2f55277560a7c8539662af7114861343dfee51768f6b77be\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"connector\":\"la\",\"keyword\":\"PROTESTA\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"underline-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"impact-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"warm-cream\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"yellow-energy\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#FFE14A\",\"accentDark\":\"#665A00\",\"accentGlow\":\"#F6FF00\",\"accentPrimary\":\"#FFF59D\",\"accentSecondary\":\"#C8FF3D\",\"accentSoft\":\"#D7C85A\"},\"variant\":\"bright-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"cuaderno\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260903},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"cuaderno\",\"relationStyle\":\"document\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":56,\"width\":43,\"x\":50,\"y\":16},\"opacity\":1,\"placement\":\"document-field\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":20,\"width\":29,\"x\":8,\"y\":14},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":5}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":43,\"width\":39,\"x\":8,\"y\":37},\"textRegion\":\"left\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"opaque-rectangle\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"cover\",\"kind\":\"raster-image\",\"mime\":\"image/jpeg\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"400146d8f4fae72528a5767712df411571695be577b346c21ceaa9547cb764d7\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"complex-illustration\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"2148623d40ef1fca2f55277560a7c8539662af7114861343dfee51768f6b77be\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"connector\":\"la\",\"keyword\":\"PROTESTA\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"underline-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"technical-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"warm-cream\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "before": {
+        "clip": "04-place-before-vertical.mp4",
+        "frame": "04-place-before-vertical.png",
+        "renderMs": 1593.3349999999991,
+        "frameMs": 38.86182926829266,
+        "mainRssBefore": 151957504,
+        "mainRssAfter": 152424448,
+        "qcErrors": [],
+        "sha": "92eb4c7f554e50417af13e4cf0c004b386221b7b2e0cbeaa819ef0ce8ba37902"
+      },
+      "vertical": {
+        "clip": "04-place-after-vertical.mp4",
+        "frame": "04-place-after-vertical.png",
+        "renderMs": 2208.5539999999964,
+        "frameMs": 53.86717073170723,
+        "mainRssBefore": 153477120,
+        "mainRssAfter": 153927680,
+        "qcErrors": [],
+        "sha": "0fe27671f9c1e114ae3251786811ed82dd32ae114a1d43930a97361fd251a715"
+      }
+    },
+    {
+      "id": "05-symbol",
+      "source": "synthetic-pilot",
+      "kind": "symbol",
+      "localText": "una idea conecta a todo el equipo",
+      "duration": 1.7,
+      "baselineFamily": "marcoPoster",
+      "pilotFamily": "marcoPoster",
+      "text": {
+        "connector": "una",
+        "keyword": "IDEA",
+        "closing": null
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "solar",
+          "sha": null,
+          "solar": "lightbulb-bold-duotone"
+        },
+        {
+          "role": "support-1",
+          "provider": "openmoji",
+          "sha": "2148623d40ef1fca2f55277560a7c8539662af7114861343dfee51768f6b77be",
+          "solar": null
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"yellow-energy\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#FFF59D\",\"accentDark\":\"#665A00\",\"accentGlow\":\"#F6FF00\",\"accentPrimary\":\"#FFE14A\",\"accentSecondary\":\"#C8FF3D\",\"accentSoft\":\"#D7C85A\"},\"variant\":\"primary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"marcoPoster\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260904},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"marcoPoster\",\"relationStyle\":\"frame\",\"slotLayouts\":[{\"backing\":\"neutral-plate\",\"crop\":\"none\",\"envelope\":{\"height\":48,\"width\":66,\"x\":17,\"y\":15},\"opacity\":1,\"placement\":\"framed\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":17,\"width\":22,\"x\":9,\"y\":48},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":-5,\"slotId\":\"support-1\",\"zIndex\":6}],\"textAlignment\":\"center\",\"textBounds\":{\"height\":17,\"width\":78,\"x\":11,\"y\":69},\"textRegion\":\"bottom\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"slotId\":\"hero\",\"solarIcon\":\"lightbulb-bold-duotone\",\"solarStyle\":\"bold-duotone\",\"state\":\"procedural\",\"tint\":{\"treatment\":\"system-tint\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"2148623d40ef1fca2f55277560a7c8539662af7114861343dfee51768f6b77be\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"center\",\"connector\":\"una\",\"keyword\":\"IDEA\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"technical-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"paper\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"yellow-energy\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#FFF59D\",\"accentDark\":\"#665A00\",\"accentGlow\":\"#F6FF00\",\"accentPrimary\":\"#FFE14A\",\"accentSecondary\":\"#C8FF3D\",\"accentSoft\":\"#D7C85A\"},\"variant\":\"primary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"marcoPoster\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260904},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"marcoPoster\",\"relationStyle\":\"frame\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":49,\"width\":70,\"x\":15,\"y\":34},\"opacity\":1,\"placement\":\"integrated\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":18,\"width\":22,\"x\":6,\"y\":64},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":6}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":23,\"width\":84,\"x\":8,\"y\":9},\"textRegion\":\"top\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"slotId\":\"hero\",\"solarIcon\":\"lightbulb-bold-duotone\",\"solarStyle\":\"bold-duotone\",\"state\":\"procedural\",\"tint\":{\"treatment\":\"system-tint\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"2148623d40ef1fca2f55277560a7c8539662af7114861343dfee51768f6b77be\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"connector\":\"una\",\"keyword\":\"IDEA\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"technical-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"paper\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "before": {
+        "clip": "05-symbol-before-vertical.mp4",
+        "frame": "05-symbol-before-vertical.png",
+        "renderMs": 1374.3344999999972,
+        "frameMs": 33.520353658536514,
+        "mainRssBefore": 152559616,
+        "mainRssAfter": 160768000,
+        "qcErrors": [],
+        "sha": "1ce372a5e12773a836cd6e00a8b961cab4e163781c4b8088191dd72c19071e0b"
+      },
+      "vertical": {
+        "clip": "05-symbol-after-vertical.mp4",
+        "frame": "05-symbol-after-vertical.png",
+        "renderMs": 1974.9303999999975,
+        "frameMs": 48.1690341463414,
+        "mainRssBefore": 154025984,
+        "mainRssAfter": 153759744,
+        "qcErrors": [],
+        "sha": "e5bb9b5eb1647b4b87f53985b8d8ccd3d036a2dca27d29796ec450890aae9119"
+      },
+      "horizontal": {
+        "clip": "05-symbol-after-horizontal.mp4",
+        "frame": "05-symbol-after-horizontal.png",
+        "renderMs": 1989.2618999999977,
+        "frameMs": 48.51858292682921,
+        "mainRssBefore": 153956352,
+        "mainRssAfter": 154320896,
+        "qcErrors": [],
+        "sha": "0430e53f45c3926c49e37fd5343bcc7107737afc362209b36a83f8f90fb756a3"
+      }
+    },
+    {
+      "id": "06-data",
+      "source": "synthetic-pilot",
+      "kind": "confirmed-data",
+      "localText": "el resultado confirmado fue 72%",
+      "duration": 1.7,
+      "baselineFamily": "partidoVertical",
+      "pilotFamily": "cintaDiagonal",
+      "text": {
+        "connector": "el",
+        "keyword": "resultado",
+        "closing": null
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "openmoji",
+          "sha": "ffa35865faf9748297c15cd048b1d5b25de8dde30a541094c5dc99d71043c389",
+          "solar": null
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#84FFFF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#00E5FF\",\"accentSecondary\":\"#23F0C7\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"primary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"partidoVertical\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260905},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"partidoVertical\",\"relationStyle\":\"split-axis\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":50,\"width\":43,\"x\":48,\"y\":19},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4}],\"textAlignment\":\"right\",\"textBounds\":{\"height\":54,\"width\":34,\"x\":9,\"y\":20},\"textRegion\":\"left\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"ffa35865faf9748297c15cd048b1d5b25de8dde30a541094c5dc99d71043c389\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"right\",\"connector\":\"el\",\"keyword\":\"resultado\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"sport-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"ivory\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#84FFFF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#00E5FF\",\"accentSecondary\":\"#23F0C7\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"primary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"cintaDiagonal\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260905},\"editorialData\":{\"percent\":72,\"revision\":\"editorial-data-callout-v1\",\"value\":\"72%\"},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"cintaDiagonal\",\"relationStyle\":\"diagonal-axis\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":52,\"width\":55,\"x\":38,\"y\":12},\"opacity\":1,\"placement\":\"integrated\",\"rotationDeg\":-3,\"slotId\":\"hero\",\"zIndex\":4}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":30,\"width\":84,\"x\":8,\"y\":60},\"textRegion\":\"bottom\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"ffa35865faf9748297c15cd048b1d5b25de8dde30a541094c5dc99d71043c389\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"connector\":\"el\",\"keyword\":\"resultado\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"editorial-strong\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"ivory\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "before": {
+        "clip": "06-data-before-vertical.mp4",
+        "frame": "06-data-before-vertical.png",
+        "renderMs": 1564.1949000000022,
+        "frameMs": 38.15109512195127,
+        "mainRssBefore": 160808960,
+        "mainRssAfter": 158797824,
+        "qcErrors": [],
+        "sha": "98b3e3f0036bb9fcfec40dfa15df10ef729eb7b1a7653478f2b1abb913d85bfa"
+      },
+      "vertical": {
+        "clip": "06-data-after-vertical.mp4",
+        "frame": "06-data-after-vertical.png",
+        "renderMs": 1866.9884999999995,
+        "frameMs": 45.53630487804877,
+        "mainRssBefore": 153780224,
+        "mainRssAfter": 153804800,
+        "qcErrors": [],
+        "sha": "91ffd78c3d48fef0069e1f28ed6a1ef15d38d7255ac6597136b50c8e89986d66"
+      },
+      "horizontal": {
+        "clip": "06-data-after-horizontal.mp4",
+        "frame": "06-data-after-horizontal.png",
+        "renderMs": 1909.2639000000054,
+        "frameMs": 46.56741219512208,
+        "mainRssBefore": 154341376,
+        "mainRssAfter": 154079232,
+        "qcErrors": [],
+        "sha": "50b25b8f8e75bee556914830779c365100727c76218eee678f318a4fc7e6d819"
+      }
+    },
+    {
+      "id": "07-comparison",
+      "source": "synthetic-pilot",
+      "kind": "comparison",
+      "localText": "el teléfono y la computadora cumplen tareas distintas",
+      "duration": 1.7,
+      "baselineFamily": "cuaderno",
+      "pilotFamily": "partidoVertical",
+      "text": {
+        "connector": null,
+        "keyword": "DISTINTAS",
+        "closing": null
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "openmoji",
+          "sha": "a69cdc48cf92ad4d52a58847393a2403c469673d2738fd88de01273817a6f9ab",
+          "solar": null
+        },
+        {
+          "role": "support-1",
+          "provider": "openmoji",
+          "sha": "105092431b78ab7c2bf30017fe7eb5e5c828057ac6f864fe733761ab1dccf7cd",
+          "solar": null
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#84FFFF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#23F0C7\",\"accentSecondary\":\"#00E5FF\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"secondary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"cuaderno\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260906},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"cuaderno\",\"relationStyle\":\"document\",\"slotLayouts\":[{\"backing\":\"frame\",\"crop\":\"none\",\"envelope\":{\"height\":35,\"width\":38,\"x\":50,\"y\":18},\"opacity\":1,\"placement\":\"document-field\",\"rotationDeg\":2,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":21,\"width\":26,\"x\":11,\"y\":20},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":-3,\"slotId\":\"support-1\",\"zIndex\":5}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":26,\"width\":49,\"x\":10,\"y\":58},\"textRegion\":\"document-margin\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"a69cdc48cf92ad4d52a58847393a2403c469673d2738fd88de01273817a6f9ab\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"105092431b78ab7c2bf30017fe7eb5e5c828057ac6f864fe733761ab1dccf7cd\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"keyword\":\"DISTINTAS\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"underline-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"editorial-strong\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"warm-cream\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#84FFFF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#23F0C7\",\"accentSecondary\":\"#00E5FF\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"secondary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"partidoVertical\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260906},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"partidoVertical\",\"relationStyle\":\"split-axis\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":63,\"width\":44,\"x\":7,\"y\":15},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":19,\"width\":22,\"x\":58,\"y\":63},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":5}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":46,\"width\":39,\"x\":55,\"y\":12},\"textRegion\":\"right\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"a69cdc48cf92ad4d52a58847393a2403c469673d2738fd88de01273817a6f9ab\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"105092431b78ab7c2bf30017fe7eb5e5c828057ac6f864fe733761ab1dccf7cd\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"keyword\":\"DISTINTAS\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"technical-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"warm-cream\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "before": {
+        "clip": "07-comparison-before-vertical.mp4",
+        "frame": "07-comparison-before-vertical.png",
+        "renderMs": 1510.839899999999,
+        "frameMs": 36.849753658536564,
+        "mainRssBefore": 158851072,
+        "mainRssAfter": 160903168,
+        "qcErrors": [],
+        "sha": "c0e9d1527966644071414ade209816514e48ceba7ce8b5973b44e9d11c75dafe"
+      },
+      "vertical": {
+        "clip": "07-comparison-after-vertical.mp4",
+        "frame": "07-comparison-after-vertical.png",
+        "renderMs": 2083.551600000006,
+        "frameMs": 50.81833170731722,
+        "mainRssBefore": 153845760,
+        "mainRssAfter": 153882624,
+        "qcErrors": [],
+        "sha": "5945e030692a978c866fb363ae237d04b92d96a78bfc8874261b14bd44bc401d"
+      }
+    },
+    {
+      "id": "08-process",
+      "source": "synthetic-pilot",
+      "kind": "three-step-process",
+      "localText": "primero la idea, luego el diseño y finalmente la publicación",
+      "duration": 1.7,
+      "baselineFamily": "rayosImpacto",
+      "pilotFamily": "lineaTiempo",
+      "text": {
+        "connector": "la",
+        "keyword": "idea",
+        "closing": null
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "solar",
+          "sha": null,
+          "solar": "lightbulb-bold-duotone"
+        },
+        {
+          "role": "support-1",
+          "provider": "openmoji",
+          "sha": "f0f4c6c8767d6a51195d96100fad704fa8166c9b7246b10cacd5a7ed44a32a9f",
+          "solar": null
+        },
+        {
+          "role": "support-2",
+          "provider": "openmoji",
+          "sha": "cdd5b3658ac9288b381734516f7cdd28c933be9a323a370df0a18859ada290ea",
+          "solar": null
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"yellow-energy\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#FFF59D\",\"accentDark\":\"#665A00\",\"accentGlow\":\"#F6FF00\",\"accentPrimary\":\"#C8FF3D\",\"accentSecondary\":\"#FFE14A\",\"accentSoft\":\"#D7C85A\"},\"variant\":\"secondary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"rayosImpacto\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260907},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"rayosImpacto\",\"relationStyle\":\"impact\",\"slotLayouts\":[{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":46,\"width\":62,\"x\":19,\"y\":16},\"opacity\":1,\"placement\":\"center-dominant\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":5},{\"backing\":\"neutral-plate\",\"crop\":\"none\",\"envelope\":{\"height\":17,\"width\":22,\"x\":8.5,\"y\":45},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":-7,\"slotId\":\"support-1\",\"zIndex\":6},{\"backing\":\"neutral-plate\",\"crop\":\"none\",\"envelope\":{\"height\":17,\"width\":22,\"x\":69.5,\"y\":45},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":7,\"slotId\":\"support-2\",\"zIndex\":6}],\"textAlignment\":\"center\",\"textBounds\":{\"height\":22,\"width\":82,\"x\":9,\"y\":64},\"textRegion\":\"bottom\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"slotId\":\"hero\",\"solarIcon\":\"lightbulb-bold-duotone\",\"solarStyle\":\"bold-duotone\",\"state\":\"procedural\",\"tint\":{\"treatment\":\"system-tint\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"f0f4c6c8767d6a51195d96100fad704fa8166c9b7246b10cacd5a7ed44a32a9f\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.16},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":5,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.33999999999999997},\"visibility\":{\"end\":1,\"start\":0.16}},\"role\":\"support-2\",\"sha256\":\"cdd5b3658ac9288b381734516f7cdd28c933be9a323a370df0a18859ada290ea\",\"slotId\":\"support-2\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"center\",\"connector\":\"la\",\"keyword\":\"idea\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"scale-punch\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"editorial-strong\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"soft-sand\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"yellow-energy\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#FFF59D\",\"accentDark\":\"#665A00\",\"accentGlow\":\"#F6FF00\",\"accentPrimary\":\"#C8FF3D\",\"accentSecondary\":\"#FFE14A\",\"accentSoft\":\"#D7C85A\"},\"variant\":\"secondary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"lineaTiempo\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260907},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"lineaTiempo\",\"relationStyle\":\"timeline\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":39,\"width\":30,\"x\":6,\"y\":18},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":5},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":32,\"width\":26,\"x\":37,\"y\":25},\"opacity\":1,\"placement\":\"center-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":5},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":29,\"width\":27,\"x\":66,\"y\":31},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":0,\"slotId\":\"support-2\",\"zIndex\":5}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":24,\"width\":84,\"x\":8,\"y\":65},\"textRegion\":\"timeline-caption\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"slotId\":\"hero\",\"solarIcon\":\"lightbulb-bold-duotone\",\"solarStyle\":\"bold-duotone\",\"state\":\"procedural\",\"tint\":{\"treatment\":\"system-tint\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"f0f4c6c8767d6a51195d96100fad704fa8166c9b7246b10cacd5a7ed44a32a9f\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.16},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":5,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.33999999999999997},\"visibility\":{\"end\":1,\"start\":0.16}},\"role\":\"support-2\",\"sha256\":\"cdd5b3658ac9288b381734516f7cdd28c933be9a323a370df0a18859ada290ea\",\"slotId\":\"support-2\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"connector\":\"la\",\"keyword\":\"idea\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"underline-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"editorial-strong\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"soft-sand\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "before": {
+        "clip": "08-process-before-vertical.mp4",
+        "frame": "08-process-before-vertical.png",
+        "renderMs": 1606.5748999999996,
+        "frameMs": 39.18475365853658,
+        "mainRssBefore": 160903168,
+        "mainRssAfter": 152596480,
+        "qcErrors": [],
+        "sha": "0c307201c963875ed32d27fb0a725e4d3d76749bf84b27a37504c3330964aa6e"
+      },
+      "vertical": {
+        "clip": "08-process-after-vertical.mp4",
+        "frame": "08-process-after-vertical.png",
+        "renderMs": 2082.6103000000003,
+        "frameMs": 50.795373170731715,
+        "mainRssBefore": 153858048,
+        "mainRssAfter": 153620480,
+        "qcErrors": [],
+        "sha": "d7cabb12b525a6665a5304954cc10e7cac1072cea9623d142abcf233788450e4"
+      }
+    },
+    {
+      "id": "09-cause",
+      "source": "synthetic-pilot",
+      "kind": "cause-effect",
+      "localText": "el incendio destruyó árboles y cortó el suministro de agua",
+      "duration": 1.7,
+      "baselineFamily": "cuaderno",
+      "pilotFamily": "cuaderno",
+      "text": {
+        "connector": "el",
+        "keyword": "INCENDIO",
+        "closing": null
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "openmoji",
+          "sha": "c9d2cc9cedfa557ff34c859b8af6556436913ec0c73a65a6533676698c3edcf0",
+          "solar": null
+        },
+        {
+          "role": "support-1",
+          "provider": "openmoji",
+          "sha": "5e9aa542a9e8bce244c326fd2d1427f432ad72e5d8ba92905f3d801d393f6b63",
+          "solar": null
+        },
+        {
+          "role": "support-2",
+          "provider": "openmoji",
+          "sha": "ec3895fbd78797679bad1be852d05e659977a010764a7b049822ef7c687ae18c",
+          "solar": null
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"yellow-energy\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#FFF59D\",\"accentDark\":\"#665A00\",\"accentGlow\":\"#F6FF00\",\"accentPrimary\":\"#FFE14A\",\"accentSecondary\":\"#C8FF3D\",\"accentSoft\":\"#D7C85A\"},\"variant\":\"primary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"cuaderno\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260908},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"cuaderno\",\"relationStyle\":\"document\",\"slotLayouts\":[{\"backing\":\"frame\",\"crop\":\"none\",\"envelope\":{\"height\":35,\"width\":38,\"x\":50,\"y\":18},\"opacity\":1,\"placement\":\"document-field\",\"rotationDeg\":2,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":21,\"width\":26,\"x\":11,\"y\":20},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":-3,\"slotId\":\"support-1\",\"zIndex\":5},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":19,\"width\":23,\"x\":63,\"y\":56},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":4,\"slotId\":\"support-2\",\"zIndex\":5}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":26,\"width\":49,\"x\":10,\"y\":58},\"textRegion\":\"document-margin\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"complex-illustration\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"c9d2cc9cedfa557ff34c859b8af6556436913ec0c73a65a6533676698c3edcf0\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"5e9aa542a9e8bce244c326fd2d1427f432ad72e5d8ba92905f3d801d393f6b63\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.16},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":5,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.33999999999999997},\"visibility\":{\"end\":1,\"start\":0.16}},\"role\":\"support-2\",\"sha256\":\"ec3895fbd78797679bad1be852d05e659977a010764a7b049822ef7c687ae18c\",\"slotId\":\"support-2\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"connector\":\"el\",\"keyword\":\"INCENDIO\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"underline-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"impact-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"warm-cream\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"yellow-energy\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#FFF59D\",\"accentDark\":\"#665A00\",\"accentGlow\":\"#F6FF00\",\"accentPrimary\":\"#FFE14A\",\"accentSecondary\":\"#C8FF3D\",\"accentSoft\":\"#D7C85A\"},\"variant\":\"primary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"cuaderno\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260908},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"cuaderno\",\"relationStyle\":\"document\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":56,\"width\":43,\"x\":50,\"y\":16},\"opacity\":1,\"placement\":\"document-field\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":20,\"width\":29,\"x\":8,\"y\":14},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":5},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":15,\"width\":21,\"x\":68,\"y\":73},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":0,\"slotId\":\"support-2\",\"zIndex\":5}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":43,\"width\":39,\"x\":8,\"y\":37},\"textRegion\":\"left\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"complex-illustration\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"c9d2cc9cedfa557ff34c859b8af6556436913ec0c73a65a6533676698c3edcf0\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"5e9aa542a9e8bce244c326fd2d1427f432ad72e5d8ba92905f3d801d393f6b63\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.16},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":5,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.33999999999999997},\"visibility\":{\"end\":1,\"start\":0.16}},\"role\":\"support-2\",\"sha256\":\"ec3895fbd78797679bad1be852d05e659977a010764a7b049822ef7c687ae18c\",\"slotId\":\"support-2\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"connector\":\"el\",\"keyword\":\"INCENDIO\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"underline-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"technical-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"warm-cream\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "vertical": {
+        "clip": "09-cause-after-vertical.mp4",
+        "frame": "09-cause-after-vertical.png",
+        "renderMs": 2564.964699999997,
+        "frameMs": 62.56011463414627,
+        "mainRssBefore": 153587712,
+        "mainRssAfter": 153223168,
+        "qcErrors": [],
+        "sha": "80965314e1a1a4e55d54a2d5112a3c5f7c513a082588567bed30140ac8fe8382"
+      },
+      "horizontal": {
+        "clip": "09-cause-after-horizontal.mp4",
+        "frame": "09-cause-after-horizontal.png",
+        "renderMs": 2460.2543000000005,
+        "frameMs": 60.006202439024406,
+        "mainRssBefore": 154181632,
+        "mainRssAfter": 154337280,
+        "qcErrors": [],
+        "sha": "2b3f345c2d1b151e4d6a3109b2dfd0af9de182e31cb3953432b79b7438560751"
+      }
+    },
+    {
+      "id": "10-timeline",
+      "source": "synthetic-pilot",
+      "kind": "temporal-sequence",
+      "localText": "la semilla brotó y con los años se hizo árbol",
+      "duration": 1.7,
+      "baselineFamily": "marcoPoster",
+      "pilotFamily": "marcoPoster",
+      "text": {
+        "connector": "la",
+        "keyword": "semilla",
+        "closing": null
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "openmoji",
+          "sha": "5e9aa542a9e8bce244c326fd2d1427f432ad72e5d8ba92905f3d801d393f6b63",
+          "solar": null
+        },
+        {
+          "role": "support-1",
+          "provider": "openmoji",
+          "sha": "c12bbb477a76f25279cc908beb8de5b9c1a72abc707242b2aeb4a2ec73314e45",
+          "solar": null
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#84FFFF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#00E5FF\",\"accentSecondary\":\"#23F0C7\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"primary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"marcoPoster\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260909},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"marcoPoster\",\"relationStyle\":\"frame\",\"slotLayouts\":[{\"backing\":\"neutral-plate\",\"crop\":\"none\",\"envelope\":{\"height\":48,\"width\":66,\"x\":17,\"y\":15},\"opacity\":1,\"placement\":\"framed\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":17,\"width\":22,\"x\":9,\"y\":48},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":-5,\"slotId\":\"support-1\",\"zIndex\":6}],\"textAlignment\":\"center\",\"textBounds\":{\"height\":17,\"width\":78,\"x\":11,\"y\":69},\"textRegion\":\"bottom\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"5e9aa542a9e8bce244c326fd2d1427f432ad72e5d8ba92905f3d801d393f6b63\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"c12bbb477a76f25279cc908beb8de5b9c1a72abc707242b2aeb4a2ec73314e45\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"center\",\"connector\":\"la\",\"keyword\":\"semilla\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"sport-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"paper\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#84FFFF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#00E5FF\",\"accentSecondary\":\"#23F0C7\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"primary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"marcoPoster\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260909},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"marcoPoster\",\"relationStyle\":\"frame\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":49,\"width\":70,\"x\":15,\"y\":34},\"opacity\":1,\"placement\":\"integrated\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":18,\"width\":22,\"x\":6,\"y\":64},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":6}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":23,\"width\":84,\"x\":8,\"y\":9},\"textRegion\":\"top\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"5e9aa542a9e8bce244c326fd2d1427f432ad72e5d8ba92905f3d801d393f6b63\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"c12bbb477a76f25279cc908beb8de5b9c1a72abc707242b2aeb4a2ec73314e45\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"connector\":\"la\",\"keyword\":\"semilla\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"editorial-strong\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"paper\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "vertical": {
+        "clip": "10-timeline-after-vertical.mp4",
+        "frame": "10-timeline-after-vertical.png",
+        "renderMs": 2143.5650000000023,
+        "frameMs": 52.28207317073176,
+        "mainRssBefore": 153239552,
+        "mainRssAfter": 157360128,
+        "qcErrors": [],
+        "sha": "826bcaf209e7ac621f347651c92d83ea65a9820b9f6620a1a5881ce47fd2e0bf"
+      }
+    },
+    {
+      "id": "11-relation",
+      "source": "synthetic-pilot",
+      "kind": "three-way-relation",
+      "localText": "trabajadores construyeron un estadio para el fútbol",
+      "duration": 1.7,
+      "baselineFamily": "rayosImpacto",
+      "pilotFamily": "marcoPoster",
+      "text": {
+        "connector": null,
+        "keyword": "CONSTRUYERON",
+        "closing": "un estadio"
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "openmoji",
+          "sha": "db6bfb280879f7e5be140559b2db39e0417d8ef9acdabe4fe5d77882eb6892d8",
+          "solar": null
+        },
+        {
+          "role": "support-1",
+          "provider": "openmoji",
+          "sha": "fb1eb8be5649d11f8d051fb7c8d6543f3b7d078aa87dd4c87a3d676c58ba37f8",
+          "solar": null
+        },
+        {
+          "role": "support-2",
+          "provider": "openmoji",
+          "sha": "f3d7e883a1d7a0776e5aa16ea857530884a3c12b192475fb116d351241f0bc8a",
+          "solar": null
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"yellow-energy\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#FFE14A\",\"accentDark\":\"#665A00\",\"accentGlow\":\"#F6FF00\",\"accentPrimary\":\"#FFF59D\",\"accentSecondary\":\"#C8FF3D\",\"accentSoft\":\"#D7C85A\"},\"variant\":\"bright-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"rayosImpacto\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260910},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"rayosImpacto\",\"relationStyle\":\"impact\",\"slotLayouts\":[{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":46,\"width\":62,\"x\":19,\"y\":16},\"opacity\":1,\"placement\":\"center-dominant\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":5},{\"backing\":\"neutral-plate\",\"crop\":\"none\",\"envelope\":{\"height\":17,\"width\":22,\"x\":8.5,\"y\":45},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":-7,\"slotId\":\"support-1\",\"zIndex\":6},{\"backing\":\"neutral-plate\",\"crop\":\"none\",\"envelope\":{\"height\":17,\"width\":22,\"x\":69.5,\"y\":45},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":7,\"slotId\":\"support-2\",\"zIndex\":6}],\"textAlignment\":\"center\",\"textBounds\":{\"height\":22,\"width\":82,\"x\":9,\"y\":64},\"textRegion\":\"bottom\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"complex-illustration\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"db6bfb280879f7e5be140559b2db39e0417d8ef9acdabe4fe5d77882eb6892d8\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"complex-illustration\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"fb1eb8be5649d11f8d051fb7c8d6543f3b7d078aa87dd4c87a3d676c58ba37f8\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.16},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":5,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.33999999999999997},\"visibility\":{\"end\":1,\"start\":0.16}},\"role\":\"support-2\",\"sha256\":\"f3d7e883a1d7a0776e5aa16ea857530884a3c12b192475fb116d351241f0bc8a\",\"slotId\":\"support-2\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"center\",\"closing\":\"un estadio\",\"keyword\":\"CONSTRUYERON\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"scale-punch\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"closingStart\":0.32,\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"sport-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"paper\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"yellow-energy\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#FFE14A\",\"accentDark\":\"#665A00\",\"accentGlow\":\"#F6FF00\",\"accentPrimary\":\"#FFF59D\",\"accentSecondary\":\"#C8FF3D\",\"accentSoft\":\"#D7C85A\"},\"variant\":\"bright-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"marcoPoster\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260910},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"marcoPoster\",\"relationStyle\":\"frame\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":49,\"width\":70,\"x\":15,\"y\":34},\"opacity\":1,\"placement\":\"integrated\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":18,\"width\":22,\"x\":6,\"y\":64},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":6},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":18,\"width\":21,\"x\":73,\"y\":64},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":0,\"slotId\":\"support-2\",\"zIndex\":6}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":23,\"width\":84,\"x\":8,\"y\":9},\"textRegion\":\"top\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"complex-illustration\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"db6bfb280879f7e5be140559b2db39e0417d8ef9acdabe4fe5d77882eb6892d8\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"complex-illustration\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"fb1eb8be5649d11f8d051fb7c8d6543f3b7d078aa87dd4c87a3d676c58ba37f8\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.16},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":5,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.33999999999999997},\"visibility\":{\"end\":1,\"start\":0.16}},\"role\":\"support-2\",\"sha256\":\"f3d7e883a1d7a0776e5aa16ea857530884a3c12b192475fb116d351241f0bc8a\",\"slotId\":\"support-2\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"closing\":\"un estadio\",\"keyword\":\"CONSTRUYERON\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"closingStart\":0.32,\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"editorial-strong\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"paper\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "vertical": {
+        "clip": "11-relation-after-vertical.mp4",
+        "frame": "11-relation-after-vertical.png",
+        "renderMs": 2370.968099999991,
+        "frameMs": 57.828490243902216,
+        "mainRssBefore": 157421568,
+        "mainRssAfter": 153432064,
+        "qcErrors": [],
+        "sha": "b0b6ae0bcc6a0bb6d3da297dcd28bca41754222d86ce90b3fbb2fc9e17f0d59f"
+      }
+    },
+    {
+      "id": "12-editorial",
+      "source": "synthetic-pilot",
+      "kind": "legitimate-editorial",
+      "localText": "la incertidumbre no desaparece con una sola respuesta",
+      "duration": 1.7,
+      "baselineFamily": "editorial",
+      "pilotFamily": "editorial",
+      "text": {
+        "connector": "la",
+        "keyword": "INCERTIDUMBRE",
+        "closing": "no desaparece con una"
+      },
+      "choices": [],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#84FFFF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#23F0C7\",\"accentSecondary\":\"#00E5FF\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"secondary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"editorial\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260911},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"editorial\",\"relationStyle\":\"none\",\"slotLayouts\":[],\"textAlignment\":\"left\",\"textBounds\":{\"height\":56,\"width\":80,\"x\":10,\"y\":22},\"textRegion\":\"center-editorial\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[],\"text\":{\"alignment\":\"left\",\"closing\":\"no desaparece con una\",\"connector\":\"la\",\"keyword\":\"INCERTIDUMBRE\",\"maxLines\":3,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"closingStart\":0.32,\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"poster-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"warm-cream\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"editorial-text\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#84FFFF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#23F0C7\",\"accentSecondary\":\"#00E5FF\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"secondary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"editorial\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260911},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"editorial\",\"relationStyle\":\"none\",\"slotLayouts\":[],\"textAlignment\":\"left\",\"textBounds\":{\"height\":63,\"width\":84,\"x\":8,\"y\":19},\"textRegion\":\"center-editorial\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[],\"text\":{\"alignment\":\"left\",\"closing\":\"no desaparece con una\",\"connector\":\"la\",\"keyword\":\"INCERTIDUMBRE\",\"maxLines\":3,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"closingStart\":0.32,\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"editorial-strong\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"warm-cream\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"editorial-text\"}",
+      "vertical": {
+        "clip": "12-editorial-after-vertical.mp4",
+        "frame": "12-editorial-after-vertical.png",
+        "renderMs": 1656.920100000003,
+        "frameMs": 40.41268536585373,
+        "mainRssBefore": 153493504,
+        "mainRssAfter": 153214976,
+        "qcErrors": [],
+        "sha": "05fbd604d30db54fa944219efa9ce316da438b2389e88301c19ce7f2b7121f8d"
+      },
+      "horizontal": {
+        "clip": "12-editorial-after-horizontal.mp4",
+        "frame": "12-editorial-after-horizontal.png",
+        "renderMs": 1565.0334000000003,
+        "frameMs": 38.17154634146342,
+        "mainRssBefore": 154390528,
+        "mainRssAfter": 154157056,
+        "qcErrors": [],
+        "sha": "d7bb79e3367b6f67643da3b9dbdb7ab8efa8e2856c6fecb22d654418c7b9066f"
+      }
+    },
+    {
+      "id": "13-long",
+      "source": "synthetic-pilot",
+      "kind": "stress-long-text",
+      "localText": "el trabajo cotidiano cambia cuando las herramientas acompañan ideas humanas",
+      "duration": 1.7,
+      "baselineFamily": "marcoPoster",
+      "pilotFamily": "cintaDiagonal",
+      "text": {
+        "connector": "las",
+        "keyword": "HERRAMIENTAS",
+        "closing": null
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "openmoji",
+          "sha": "f9515a7d6a3a91f4ebc36bf845ab1991f7f4174f25e050c167c4f3b808fc62fc",
+          "solar": null
+        },
+        {
+          "role": "support-1",
+          "provider": "solar",
+          "sha": null,
+          "solar": "lightbulb-bold-duotone"
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#84FFFF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#00E5FF\",\"accentSecondary\":\"#23F0C7\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"primary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"marcoPoster\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260912},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"marcoPoster\",\"relationStyle\":\"frame\",\"slotLayouts\":[{\"backing\":\"neutral-plate\",\"crop\":\"none\",\"envelope\":{\"height\":48,\"width\":66,\"x\":17,\"y\":15},\"opacity\":1,\"placement\":\"framed\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":17,\"width\":22,\"x\":9,\"y\":48},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":-5,\"slotId\":\"support-1\",\"zIndex\":6}],\"textAlignment\":\"center\",\"textBounds\":{\"height\":17,\"width\":78,\"x\":11,\"y\":69},\"textRegion\":\"bottom\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"f9515a7d6a3a91f4ebc36bf845ab1991f7f4174f25e050c167c4f3b808fc62fc\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"slotId\":\"support-1\",\"solarIcon\":\"lightbulb-bold-duotone\",\"solarStyle\":\"bold-duotone\",\"state\":\"procedural\",\"tint\":{\"treatment\":\"system-tint\"}}],\"text\":{\"alignment\":\"center\",\"connector\":\"las\",\"keyword\":\"HERRAMIENTAS\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"technical-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"ivory\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#84FFFF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#00E5FF\",\"accentSecondary\":\"#23F0C7\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"primary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"cintaDiagonal\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260912},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"cintaDiagonal\",\"relationStyle\":\"diagonal-axis\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":52,\"width\":55,\"x\":38,\"y\":12},\"opacity\":1,\"placement\":\"integrated\",\"rotationDeg\":-3,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":20,\"width\":24,\"x\":8,\"y\":33},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":5}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":30,\"width\":84,\"x\":8,\"y\":60},\"textRegion\":\"bottom\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"f9515a7d6a3a91f4ebc36bf845ab1991f7f4174f25e050c167c4f3b808fc62fc\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"slotId\":\"support-1\",\"solarIcon\":\"lightbulb-bold-duotone\",\"solarStyle\":\"bold-duotone\",\"state\":\"procedural\",\"tint\":{\"treatment\":\"system-tint\"}}],\"text\":{\"alignment\":\"left\",\"connector\":\"las\",\"keyword\":\"HERRAMIENTAS\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"technical-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"ivory\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "vertical": {
+        "clip": "13-long-after-vertical.mp4",
+        "frame": "13-long-after-vertical.png",
+        "renderMs": 1945.971900000004,
+        "frameMs": 47.46272926829278,
+        "mainRssBefore": 153247744,
+        "mainRssAfter": 153333760,
+        "qcErrors": [],
+        "sha": "a3b4f29f46ca380e30230b7ea32570c1fcba9efb41e77acb14d86029bb56c947"
+      },
+      "horizontal": {
+        "clip": "13-long-after-horizontal.mp4",
+        "frame": "13-long-after-horizontal.png",
+        "renderMs": 1885.2311999999947,
+        "frameMs": 45.981248780487675,
+        "mainRssBefore": 154198016,
+        "mainRssAfter": 154128384,
+        "qcErrors": [],
+        "sha": "8827cee43064a24497b7b2aa00bca05fdfa0b5fbf7685095c960d41d16fc963b"
+      }
+    },
+    {
+      "id": "14-short",
+      "source": "synthetic-pilot",
+      "kind": "stress-short-scene",
+      "localText": "el tren partió",
+      "duration": 0.85,
+      "baselineFamily": "cuaderno",
+      "pilotFamily": "cintaDiagonal",
+      "text": {
+        "connector": null,
+        "keyword": "PARTIÓ",
+        "closing": null
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "openmoji",
+          "sha": "b959daf27a4605bfd7fe05e43aad0333fc4c9d82a2c972cf419ab16c6ba16beb",
+          "solar": null
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#00E5FF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#84FFFF\",\"accentSecondary\":\"#23F0C7\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"bright-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"cuaderno\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260913},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"cuaderno\",\"relationStyle\":\"document\",\"slotLayouts\":[{\"backing\":\"frame\",\"crop\":\"none\",\"envelope\":{\"height\":35,\"width\":38,\"x\":50,\"y\":18},\"opacity\":1,\"placement\":\"document-field\",\"rotationDeg\":2,\"slotId\":\"hero\",\"zIndex\":4}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":26,\"width\":49,\"x\":10,\"y\":58},\"textRegion\":\"document-margin\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"b959daf27a4605bfd7fe05e43aad0333fc4c9d82a2c972cf419ab16c6ba16beb\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"keyword\":\"PARTIÓ\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"underline-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"sport-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"ivory\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#00E5FF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#84FFFF\",\"accentSecondary\":\"#23F0C7\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"bright-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"cintaDiagonal\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260913},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"cintaDiagonal\",\"relationStyle\":\"diagonal-axis\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":52,\"width\":55,\"x\":38,\"y\":12},\"opacity\":1,\"placement\":\"integrated\",\"rotationDeg\":-3,\"slotId\":\"hero\",\"zIndex\":4}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":30,\"width\":84,\"x\":8,\"y\":60},\"textRegion\":\"bottom\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"b959daf27a4605bfd7fe05e43aad0333fc4c9d82a2c972cf419ab16c6ba16beb\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"keyword\":\"PARTIÓ\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"editorial-strong\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"ivory\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "vertical": {
+        "clip": "14-short-after-vertical.mp4",
+        "frame": "14-short-after-vertical.png",
+        "renderMs": 1140.926999999996,
+        "frameMs": 57.046349999999805,
+        "mainRssBefore": 153366528,
+        "mainRssAfter": 153370624,
+        "qcErrors": [],
+        "sha": "519df30a1772d9f55f6090c0107e3a0e45bf2ace061c7d1439d6803009956423"
+      },
+      "horizontal": {
+        "clip": "14-short-after-horizontal.mp4",
+        "frame": "14-short-after-horizontal.png",
+        "renderMs": 1224.1918000000005,
+        "frameMs": 61.20959000000003,
+        "mainRssBefore": 154161152,
+        "mainRssAfter": 154415104,
+        "qcErrors": [],
+        "sha": "6cff4b415efb2275f73b85a9c96bfb4520ac95bc4d0ea733cc1bf3790522a2d7"
+      }
+    },
+    {
+      "id": "15-proportions",
+      "source": "synthetic-pilot",
+      "kind": "stress-three-scales",
+      "localText": "una persona sostiene un teléfono frente a un edificio",
+      "duration": 1.7,
+      "baselineFamily": "marcoPoster",
+      "pilotFamily": "partidoVertical",
+      "text": {
+        "connector": "una",
+        "keyword": "persona",
+        "closing": null
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "photo-cutout",
+          "sha": "53b95d6097cbe2776c566bb52f61337314cf859a756be0e9e57d852ec05e47b3",
+          "solar": null
+        },
+        {
+          "role": "support-1",
+          "provider": "openmoji",
+          "sha": "a69cdc48cf92ad4d52a58847393a2403c469673d2738fd88de01273817a6f9ab",
+          "solar": null
+        },
+        {
+          "role": "support-2",
+          "provider": "openmoji",
+          "sha": "0b77ea25b244907302be4ac60128fe02ce8fe23b35a174b27b034b12a4d6a382",
+          "solar": null
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"yellow-energy\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#FFE14A\",\"accentDark\":\"#665A00\",\"accentGlow\":\"#F6FF00\",\"accentPrimary\":\"#FFF59D\",\"accentSecondary\":\"#C8FF3D\",\"accentSoft\":\"#D7C85A\"},\"variant\":\"bright-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"marcoPoster\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260914},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"marcoPoster\",\"relationStyle\":\"frame\",\"slotLayouts\":[{\"backing\":\"neutral-plate\",\"crop\":\"none\",\"envelope\":{\"height\":48,\"width\":66,\"x\":17,\"y\":15},\"opacity\":1,\"placement\":\"framed\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":17,\"width\":22,\"x\":9,\"y\":48},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":-5,\"slotId\":\"support-1\",\"zIndex\":6},{\"backing\":\"halo\",\"crop\":\"none\",\"envelope\":{\"height\":17,\"width\":22,\"x\":69,\"y\":48},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":5,\"slotId\":\"support-2\",\"zIndex\":6}],\"textAlignment\":\"center\",\"textBounds\":{\"height\":17,\"width\":78,\"x\":11,\"y\":69},\"textRegion\":\"bottom\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"useful-alpha\",\"bounds\":{\"alphaBounds\":{\"height\":0.8209366391184573,\"width\":0.498046875,\"x\":0.1220703125,\"y\":0.1790633608815427},\"aspectRatio\":1.4104683195592287,\"centerOfMass\":{\"x\":0.38750098025538976,\"y\":0.6482426932525832},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0.1220703125,\"right\":0.3798828125,\"top\":0.1790633608815427},\"visibleHeightRatio\":0.8209366391184573,\"visibleWidthRatio\":0.498046875},\"fitPolicy\":\"subject-contain\",\"kind\":\"photo-cutout\",\"mime\":\"image/png\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"53b95d6097cbe2776c566bb52f61337314cf859a756be0e9e57d852ec05e47b3\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"a69cdc48cf92ad4d52a58847393a2403c469673d2738fd88de01273817a6f9ab\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"complex-illustration\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.16},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":5,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.33999999999999997},\"visibility\":{\"end\":1,\"start\":0.16}},\"role\":\"support-2\",\"sha256\":\"0b77ea25b244907302be4ac60128fe02ce8fe23b35a174b27b034b12a4d6a382\",\"slotId\":\"support-2\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"center\",\"connector\":\"una\",\"keyword\":\"persona\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"editorial-strong\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"soft-sand\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"yellow-energy\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#FFE14A\",\"accentDark\":\"#665A00\",\"accentGlow\":\"#F6FF00\",\"accentPrimary\":\"#FFF59D\",\"accentSecondary\":\"#C8FF3D\",\"accentSoft\":\"#D7C85A\"},\"variant\":\"bright-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"partidoVertical\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260914},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"partidoVertical\",\"relationStyle\":\"split-axis\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":63,\"width\":44,\"x\":7,\"y\":15},\"opacity\":1,\"placement\":\"left-dominant\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":19,\"width\":22,\"x\":58,\"y\":63},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":0,\"slotId\":\"support-1\",\"zIndex\":5},{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":14,\"width\":16,\"x\":77,\"y\":72},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":0,\"slotId\":\"support-2\",\"zIndex\":6}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":46,\"width\":39,\"x\":55,\"y\":12},\"textRegion\":\"right\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"useful-alpha\",\"bounds\":{\"alphaBounds\":{\"height\":0.8209366391184573,\"width\":0.498046875,\"x\":0.1220703125,\"y\":0.1790633608815427},\"aspectRatio\":1.4104683195592287,\"centerOfMass\":{\"x\":0.38750098025538976,\"y\":0.6482426932525832},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0.1220703125,\"right\":0.3798828125,\"top\":0.1790633608815427},\"visibleHeightRatio\":0.8209366391184573,\"visibleWidthRatio\":0.498046875},\"fitPolicy\":\"subject-contain\",\"kind\":\"photo-cutout\",\"mime\":\"image/png\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"53b95d6097cbe2776c566bb52f61337314cf859a756be0e9e57d852ec05e47b3\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.08},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":4,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.26},\"visibility\":{\"end\":1,\"start\":0.08}},\"role\":\"support-1\",\"sha256\":\"a69cdc48cf92ad4d52a58847393a2403c469673d2738fd88de01273817a6f9ab\",\"slotId\":\"support-1\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}},{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"complex-illustration\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":null,\"entry\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-slide\",\"start\":0.16},\"exit\":{\"duration\":0.18,\"intensity\":\"subtle\",\"preset\":\"fade-out\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":5,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"breathe\",\"start\":0.33999999999999997},\"visibility\":{\"end\":1,\"start\":0.16}},\"role\":\"support-2\",\"sha256\":\"0b77ea25b244907302be4ac60128fe02ce8fe23b35a174b27b034b12a4d6a382\",\"slotId\":\"support-2\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"connector\":\"una\",\"keyword\":\"persona\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"technical-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"soft-sand\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "vertical": {
+        "clip": "15-proportions-after-vertical.mp4",
+        "frame": "15-proportions-after-vertical.png",
+        "renderMs": 2217.7194000000018,
+        "frameMs": 54.09071707317077,
+        "mainRssBefore": 153370624,
+        "mainRssAfter": 154509312,
+        "qcErrors": [],
+        "sha": "ef64f0bbb5f5eb7c5ffa6e961f87eee258717a3bc8dd3eb5d2eb65fb5a04af95"
+      },
+      "horizontal": {
+        "clip": "15-proportions-after-horizontal.mp4",
+        "frame": "15-proportions-after-horizontal.png",
+        "renderMs": 2349.8369999999995,
+        "frameMs": 57.3130975609756,
+        "mainRssBefore": 154415104,
+        "mainRssAfter": 159588352,
+        "qcErrors": [],
+        "sha": "46a0c193a8b620b5d95dfb20b298828e93d94bec046643c2609429ca48fd228f"
+      }
+    },
+    {
+      "id": "16-fallback",
+      "source": "synthetic-pilot",
+      "kind": "stress-no-support",
+      "localText": "la puerta quedó abierta",
+      "duration": 1.7,
+      "baselineFamily": "partidoVertical",
+      "pilotFamily": "marcoPoster",
+      "text": {
+        "connector": null,
+        "keyword": "ABIERTA",
+        "closing": null
+      },
+      "choices": [
+        {
+          "role": "hero",
+          "provider": "openmoji",
+          "sha": "01cf0a7caa1c41aa37d8d33c44e7a6dad0eb07b8a03b781f84debfbe9ae218d3",
+          "solar": null
+        }
+      ],
+      "profile": {
+        "id": "editorial-hybrid-v1",
+        "revision": "editorial-hybrid-pilot-2026-09-v1"
+      },
+      "sameAssets": true,
+      "substitutions": [],
+      "beforeIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#84FFFF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#00E5FF\",\"accentSecondary\":\"#23F0C7\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"primary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"partidoVertical\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260915},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"partidoVertical\",\"relationStyle\":\"split-axis\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":50,\"width\":43,\"x\":48,\"y\":19},\"opacity\":1,\"placement\":\"right-dominant\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4}],\"textAlignment\":\"right\",\"textBounds\":{\"height\":54,\"width\":34,\"x\":9,\"y\":20},\"textRegion\":\"left\",\"version\":2},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"01cf0a7caa1c41aa37d8d33c44e7a6dad0eb07b8a03b781f84debfbe9ae218d3\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"right\",\"keyword\":\"ABIERTA\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"technical-condensed\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"paper\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "afterIdentity": "{\"backgroundProfile\":{\"id\":\"solid-black-v1\",\"revision\":\"background-profile-v1\",\"version\":1},\"colorPalette\":{\"family\":\"cyan-digital\",\"revision\":\"vivid-thematic-accents-v1\",\"tokens\":{\"accentBright\":\"#84FFFF\",\"accentDark\":\"#075966\",\"accentGlow\":\"#00B8D4\",\"accentPrimary\":\"#00E5FF\",\"accentSecondary\":\"#23F0C7\",\"accentSoft\":\"#4FBBC5\"},\"variant\":\"primary-led\",\"version\":1,\"videoCompatibleFamilies\":[\"cyan-digital\",\"yellow-energy\"],\"videoPrimaryFamily\":\"green-nature\"},\"direccion\":{\"camara\":\"quieto\",\"densidad\":\"media\",\"estructura\":\"marcoPoster\",\"fondo\":\"ondas\",\"ritmo\":\"simultaneo\",\"semilla\":260915},\"fallbackVisual\":\"editorial-text\",\"layout\":{\"family\":\"marcoPoster\",\"relationStyle\":\"frame\",\"slotLayouts\":[{\"backing\":\"none\",\"crop\":\"none\",\"envelope\":{\"height\":49,\"width\":70,\"x\":15,\"y\":34},\"opacity\":1,\"placement\":\"integrated\",\"rotationDeg\":0,\"slotId\":\"hero\",\"zIndex\":4}],\"textAlignment\":\"left\",\"textBounds\":{\"height\":23,\"width\":84,\"x\":8,\"y\":9},\"textRegion\":\"top\",\"version\":2},\"presentationProfile\":{\"id\":\"editorial-hybrid-v1\",\"revision\":\"editorial-hybrid-pilot-2026-09-v1\"},\"renderSpecVersion\":2,\"renderTier\":\"standard\",\"revisions\":{\"boundsRevision\":\"subject-bounds-v1\",\"fontRevision\":\"cipher-typography-looks-v2\",\"layoutRevision\":\"visual-multiasset-layout-v1\",\"motionRevision\":\"narrative-role-motion-v1\",\"paletteRevision\":\"video-visual-style-v1\",\"qcRevision\":\"visual-runtime-qc-multiasset-v1\",\"textRevision\":\"editorial-support-text-v1\",\"treatmentRevision\":\"asset-treatment-v3-original-color\"},\"sistema\":\"editorial\",\"slots\":[{\"alphaMode\":\"vector\",\"bounds\":{\"alphaBounds\":{\"height\":1,\"width\":1,\"x\":0,\"y\":0},\"aspectRatio\":1,\"centerOfMass\":{\"x\":0.5,\"y\":0.5},\"revision\":\"subject-bounds-v1\",\"transparentPadding\":{\"bottom\":0,\"left\":0,\"right\":0,\"top\":0},\"visibleHeightRatio\":1,\"visibleWidthRatio\":1},\"fitPolicy\":\"contain\",\"kind\":\"simple-icon\",\"mime\":\"image/svg+xml\",\"motion\":{\"emphasis\":{\"duration\":0.1,\"intensity\":\"medium\",\"preset\":\"punch\",\"reason\":\"keyword\",\"start\":0.52},\"entry\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-in\",\"start\":0},\"exit\":{\"duration\":0.18,\"intensity\":\"medium\",\"preset\":\"scale-down\",\"start\":0.82},\"sustain\":{\"cycleDivisor\":3,\"end\":0.78,\"intensity\":\"subtle\",\"preset\":\"float\",\"start\":0.18},\"visibility\":{\"end\":1,\"start\":0}},\"role\":\"hero\",\"sha256\":\"01cf0a7caa1c41aa37d8d33c44e7a6dad0eb07b8a03b781f84debfbe9ae218d3\",\"slotId\":\"hero\",\"state\":\"present\",\"tint\":{\"treatment\":\"original-color\"}}],\"text\":{\"alignment\":\"left\",\"keyword\":\"ABIERTA\",\"maxLines\":2,\"motion\":{\"emphasisStart\":0.52,\"keywordPreset\":\"slide-reveal\",\"secondaryPreset\":\"fade-slide\"},\"timing\":{\"connectorStart\":0.04,\"keywordStart\":0.16},\"typographyLookId\":\"editorial-strong\"},\"videoStyle\":{\"backgroundMotion\":\"none\",\"backgroundVariant\":\"paper\",\"decoratorIntensity\":\"minimal\",\"id\":\"cream-editorial\",\"revision\":\"video-visual-style-v1\",\"version\":1},\"visualMode\":\"asset-led\"}",
+      "vertical": {
+        "clip": "16-fallback-after-vertical.mp4",
+        "frame": "16-fallback-after-vertical.png",
+        "renderMs": 1997.1431999999913,
+        "frameMs": 48.71080975609735,
+        "mainRssBefore": 154550272,
+        "mainRssAfter": 154038272,
+        "qcErrors": [],
+        "sha": "c2e36fdbc592c2201df19cc9a917b2f3a07398ee528578d370ef874cae78f621"
+      },
+      "horizontal": {
+        "clip": "16-fallback-after-horizontal.mp4",
+        "frame": "16-fallback-after-horizontal.png",
+        "renderMs": 2011.4334999999992,
+        "frameMs": 49.059353658536565,
+        "mainRssBefore": 159645696,
+        "mainRssAfter": 161091584,
+        "qcErrors": [],
+        "sha": "c2de0eb9cba47b46f2a8ff7577fad792cf33df59a47a9127e5c570a616f501c0"
+      }
+    }
+  ],
+  "supplementalContextualProbe": {
+    "providers": [
+      "pixabay-images",
+      "openmoji"
+    ],
+    "fullRasterMaterialized": true,
+    "frame": "supplemental-contextual-full-raster.png"
+  },
+  "performance": {
+    "baseline8Ms": 13485.574500000006,
+    "pilot8Ms": 16326.726900000009,
+    "baseline8MsPerFrame": 41.11455640243904,
+    "pilot8MsPerFrame": 49.77660640243905,
+    "baseline8MaxMainRssBytes": 160903168,
+    "pilot8MaxMainRssBytes": 154578944
+  },
+  "outputs": {
+    "vertical": "editorial-pilot-12-vertical.mp4",
+    "horizontal": "editorial-pilot-6-horizontal.mp4"
+  }
+}
