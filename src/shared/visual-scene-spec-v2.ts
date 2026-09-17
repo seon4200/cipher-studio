@@ -41,6 +41,11 @@ import {
   type SceneColorPaletteV1,
 } from './color-palette-v1'
 import {
+  createEditorialPilotLayoutV1,
+  validateEditorialMotionProfileV1,
+  type EditorialMotionProfileV1,
+} from './editorial-motion-profile-v1'
+import {
   VISUAL_MVP_BOUNDS_REVISION,
   editorialFallbackSpec,
   evaluateAssetMotion,
@@ -126,6 +131,13 @@ export type EditorialTextV2 = {
   }
 }
 
+/** A confirmed numeric token quoted from the same local narration, never an inferred trend. */
+export type EditorialDataCalloutV1 = {
+  revision: 'editorial-data-callout-v1'
+  value: string
+  percent: number
+}
+
 export type VisualDirectionV2 = {
   fondo: IdFondo
   estructura: ModernLayoutStructureV4
@@ -157,6 +169,10 @@ export type VisualSceneSpecV2 = {
   backgroundProfile?: BackgroundProfileV1
   /** Omitted by historical V15 specs; explicit values are authoritative for new-scene pixels. */
   colorPalette?: SceneColorPaletteV1
+  /** Opt-in presentation revision. Absence preserves historical V15 pixels and identity. */
+  presentationProfile?: EditorialMotionProfileV1
+  /** Only materialized for the opt-in profile; part of the pixel contract. */
+  editorialData?: EditorialDataCalloutV1
   layout: VisualLayoutV4
   text: EditorialTextV2
   slots: SceneSlotV2[]
@@ -387,7 +403,8 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
   }
   const active = slots.filter(slot => slot.state === 'present' || slot.state === 'procedural')
   const supportCount = active.filter(slot => slot.role !== 'hero').length
-  const expected = createVisualLayoutV4(
+  const layoutFactory = spec.presentationProfile ? createEditorialPilotLayoutV1 : createVisualLayoutV4
+  const expected = layoutFactory(
     value.family as ModernLayoutStructureV4,
     spec.visualMode as 'asset-led' | 'editorial-text',
     supportCount,
@@ -402,7 +419,7 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
 export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   const code = 'VISUAL_SCENE_SPEC_V2_INVALID'
   record(value, code, 'sceneSpec')
-  exactKeys(value, ['renderSpecVersion', 'visualMode', 'renderTier', 'sistema', 'direccion', 'videoStyle', 'backgroundProfile', 'colorPalette', 'layout', 'text', 'slots', 'revisions', 'fallbackVisual'], code, 'sceneSpec')
+  exactKeys(value, ['renderSpecVersion', 'visualMode', 'renderTier', 'sistema', 'direccion', 'videoStyle', 'backgroundProfile', 'colorPalette', 'presentationProfile', 'editorialData', 'layout', 'text', 'slots', 'revisions', 'fallbackVisual'], code, 'sceneSpec')
   if (value.renderSpecVersion !== VISUAL_RENDER_SPEC_VERSION_V2 ||
       !['asset-led', 'editorial-text'].includes(String(value.visualMode)) || value.renderTier !== 'standard' ||
       !Object.keys(SISTEMAS).includes(String(value.sistema)) || value.fallbackVisual !== 'editorial-text')
@@ -411,6 +428,18 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   validateVideoVisualStyleV1(value.videoStyle)
   if (value.backgroundProfile !== undefined) validateBackgroundProfileV1(value.backgroundProfile)
   if (value.colorPalette !== undefined) validateSceneColorPaletteV1(value.colorPalette)
+  if (value.presentationProfile !== undefined) validateEditorialMotionProfileV1(value.presentationProfile)
+  if (value.editorialData !== undefined) {
+    if (value.presentationProfile === undefined) fail(code, 'editorialData requiere perfil explícito')
+    record(value.editorialData, code, 'editorialData')
+    exactKeys(value.editorialData, ['revision', 'value', 'percent'], code, 'editorialData')
+    if (value.editorialData.revision !== 'editorial-data-callout-v1' ||
+        !/^\d{1,3}(?:[.,]\d+)?%$/.test(String(value.editorialData.value)) ||
+        finite(value.editorialData.percent, code, 'editorialData.percent') < 0 ||
+        Number(value.editorialData.percent) > 100 ||
+        Number(String(value.editorialData.value).slice(0, -1).replace(',', '.')) !== value.editorialData.percent)
+      fail(code, 'editorialData no corresponde a un porcentaje literal válido')
+  }
   validateText(value.text)
   if (!Array.isArray(value.slots) || value.slots.length > 3) fail(code, 'V15 admite máximo tres slots')
   value.slots.forEach(validateSlot)
@@ -482,7 +511,9 @@ export function sceneSpecReactKeyAny(spec: VisualSceneSpecAny): string {
 export function editorialFallbackSpecAny(spec: VisualSceneSpecAny): VisualSceneSpecAny {
   if (spec.renderSpecVersion === 1) return editorialFallbackSpec(spec)
   const slots: SceneSlotV2[] = spec.slots.map(slot => ({ slotId: slot.slotId, role: slot.role, state: 'missing' }))
-  const layout = createVisualLayoutV4('editorial', 'editorial-text', 0, spec.direccion.semilla)
+  const layout = spec.presentationProfile
+    ? createEditorialPilotLayoutV1('editorial', 'editorial-text', 0, spec.direccion.semilla)
+    : createVisualLayoutV4('editorial', 'editorial-text', 0, spec.direccion.semilla)
   return validateVisualSceneSpecV2({
     ...spec,
     visualMode: 'editorial-text',
@@ -519,7 +550,9 @@ export function degradedVisualSceneSpecV2(
     visualMode: 'asset-led',
     supportCount,
   }) ? spec.layout.family : 'marcoPoster'
-  const layout = createVisualLayoutV4(family, 'asset-led', supportCount, spec.direccion.semilla)
+  const layout = spec.presentationProfile
+    ? createEditorialPilotLayoutV1(family, 'asset-led', supportCount, spec.direccion.semilla)
+    : createVisualLayoutV4(family, 'asset-led', supportCount, spec.direccion.semilla)
   return validateVisualSceneSpecV2({
     ...spec,
     direccion: { ...spec.direccion, estructura: family },

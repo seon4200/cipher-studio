@@ -112,6 +112,13 @@ const SceneAssetSlot: React.FC<{
   const palette = scenePalette(spec)
   const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
   const motion = evaluateAssetMotion(slot.motion, u)
+  const pilot = !!spec.presentationProfile
+  const entryStart = slot.role === 'hero' ? .04 : slot.role === 'support-1' ? .19 : .29
+  const entrance = phase(u, entryStart, slot.role === 'hero' ? .19 : .13)
+  const departure = 1 - phase(u, .84, .13)
+  const pilotOpacity = entrance * departure
+  const pilotScale = .94 + entrance * .06 - (1 - departure) * .025
+  const pilotYOffset = (1 - entrance) * (slot.role === 'hero' ? 3.1 : 1.7) - (1 - departure) * 1.1
   if (slot.state === 'present' && !runtime) throw new Error(`VISUAL_RUNTIME_SLOT_REQUIRED:${slot.slotId}`)
   return <div
     data-qc-asset="true" data-qc-hero={slot.role === 'hero' ? 'true' : undefined}
@@ -122,13 +129,17 @@ const SceneAssetSlot: React.FC<{
       position: 'absolute', left: `${layout.envelope.x + layout.envelope.width / 2}%`,
       top: `${layout.envelope.y + layout.envelope.height / 2}%`, width: `${layout.envelope.width}%`,
       height: `${layout.envelope.height}%`, zIndex: layout.zIndex, boxSizing: 'border-box',
-      transform: `translate(-50%,-50%) translate3d(${motion.translateXCqmin.toFixed(4)}cqmin,` +
-        `${motion.translateYCqmin.toFixed(4)}cqmin,0) rotate(${layout.rotationDeg}deg) scale(${motion.scale.toFixed(5)})`,
-      transformOrigin: '50% 50%', opacity: motion.opacity * layout.opacity,
+      transform: pilot
+        ? `translate(-50%,-50%) translate3d(0,${pilotYOffset.toFixed(4)}cqmin,0) rotate(${layout.rotationDeg}deg) scale(${pilotScale.toFixed(5)})`
+        : `translate(-50%,-50%) translate3d(${motion.translateXCqmin.toFixed(4)}cqmin,` +
+          `${motion.translateYCqmin.toFixed(4)}cqmin,0) rotate(${layout.rotationDeg}deg) scale(${motion.scale.toFixed(5)})`,
+      transformOrigin: '50% 50%', opacity: (pilot ? pilotOpacity : motion.opacity) * layout.opacity,
       willChange: 'transform,opacity', overflow: layout.crop === 'cover-safe' ? 'hidden' : 'visible',
-      filter: slot.role === 'hero' ? `drop-shadow(0 1.2cqmin 2.4cqmin ${palette.shadow})`
-        : `drop-shadow(0 .7cqmin 1.5cqmin ${palette.shadow})`,
-      ...backingStyle(layout, palette, spec.colorPalette),
+      filter: pilot ? (slot.state === 'present' && slot.alphaMode === 'opaque-rectangle'
+        ? `drop-shadow(0 .65cqmin 1.7cqmin ${palette.shadow})` : 'none')
+        : slot.role === 'hero' ? `drop-shadow(0 1.2cqmin 2.4cqmin ${palette.shadow})`
+          : `drop-shadow(0 .7cqmin 1.5cqmin ${palette.shadow})`,
+      ...(pilot ? {} : backingStyle(layout, palette, spec.colorPalette)),
     }}>
     {slot.state === 'present' && runtime && <ProjectAssetVisual slot={slot} runtime={runtime}
       accent={palette.accent} support={palette.support} />}
@@ -145,7 +156,37 @@ function center(layout: SlotLayoutV4): [number, number] {
   return [layout.envelope.x + layout.envelope.width / 2, layout.envelope.y + layout.envelope.height / 2]
 }
 
-const StructureGrammar: React.FC<{ spec: VisualSceneSpecV2 }> = ({ spec }) => {
+const PilotStructureGrammar: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ spec, u }) => {
+  const palette = scenePalette(spec)
+  const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
+  const draw = phase(u, .1, .28)
+  const exit = 1 - phase(u, .86, .12)
+  const stroke = { fill: 'none', stroke: roles.primaryLine, strokeWidth: .3,
+    opacity: .74 * exit, vectorEffect: 'non-scaling-stroke' as const,
+    pathLength: 1, strokeDasharray: 1, strokeDashoffset: 1 - draw }
+  const family = spec.layout.family
+  const hero = spec.layout.slotLayouts[0]
+  const marks: React.ReactNode = family === 'marcoPoster' && hero
+    ? <><line x1="8" y1="9" x2="43" y2="9" {...stroke} />
+      <line x1="8" y1="9" x2="8" y2="43" {...stroke} />
+      <line x1="57" y1="64" x2="92" y2="64" {...stroke} /></>
+    : family === 'partidoVertical'
+      ? <line x1="50" y1="10" x2="50" y2="88" {...stroke} />
+      : family === 'cintaDiagonal'
+        ? <line x1="7" y1="59" x2="94" y2="25" {...stroke} />
+        : family === 'cuaderno'
+          ? <><line x1="7" y1="10" x2="7" y2="88" {...stroke} />
+            <line x1="7" y1="59" x2="70" y2="59" {...stroke} /></>
+          : family === 'lineaTiempo'
+            ? <polyline points={spec.layout.slotLayouts.map(item => center(item).join(',')).join(' ')} {...stroke} />
+            : <line x1="8" y1="70" x2="40" y2="70" {...stroke} />
+  return <svg data-qc-structure-mark={family} viewBox="0 0 100 100" preserveAspectRatio="none"
+    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1,
+      pointerEvents: 'none' }}>{marks}</svg>
+}
+
+const StructureGrammar: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ spec, u }) => {
+  if (spec.presentationProfile) return <PilotStructureGrammar spec={spec} u={u} />
   const palette = scenePalette(spec)
   const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
   const slots = spec.layout.slotLayouts
@@ -229,7 +270,90 @@ const QuietBackground: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ spe
     }} />
 }
 
+/** Editorial profile only. The historical card component below is deliberately untouched. */
+const NarrativeTextPilot: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ spec, u }) => {
+  const text = spec.text
+  const look = typographyLookV3(text.typographyLookId)
+  const palette = scenePalette(spec)
+  const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
+  const words = text.keyword.split(/\s+/).filter(Boolean)
+  const longest = Math.max(1, ...words.map(word => Array.from(word).length))
+  const widthScale = spec.layout.textBounds.width / 72
+  const keywordSize = Math.max(look.minKeywordCqmin, Math.min(look.maxKeywordCqmin,
+    look.widthBudget * widthScale / longest *
+      (spec.layout.textBounds.width < 50 && text.typographyLookId !== 'technical-condensed' ? .8 : 1)))
+  const connectorP = phase(u, text.timing.connectorStart, .14)
+  const closingP = text.closing && text.timing.closingStart !== undefined
+    ? phase(u, text.timing.closingStart, .15) : 0
+  const exit = 1 - phase(u, .86, .12)
+  const visibleWords = [text.connector, text.keyword, text.closing, spec.editorialData?.value]
+    .filter(Boolean).join(' ').split(/\s+/).filter(Boolean).length
+  const numeric = /^\s*(\d{1,3}(?:[.,]\d+)?)\s*%\s*$/.exec(text.keyword)
+  const percentage = numeric ? Number(numeric[1].replace(',', '.')) : NaN
+  return <div data-qc-text="true" data-qc-max-lines={text.maxLines} data-qc-visible-words={visibleWords}
+    data-qc-text-region={spec.layout.textRegion} data-qc-typography-look={text.typographyLookId}
+    data-qc-keyword-family={look.keywordFamily} style={{
+      position: 'absolute', left: `${spec.layout.textBounds.x}%`, top: `${spec.layout.textBounds.y}%`,
+      width: `${spec.layout.textBounds.width}%`, height: `${spec.layout.textBounds.height}%`, zIndex: 8,
+      boxSizing: 'border-box', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+      justifyContent: 'center', alignItems: 'stretch', gap: '.6cqmin', padding: '.8cqmin 1.1cqmin',
+      textAlign: text.alignment, color: palette.text, fontSynthesis: 'none',
+      opacity: exit, pointerEvents: 'none',
+    }}>
+    {text.connector && <div data-qc-connector="true" data-qc-text-glyph="true" style={{
+      fontFamily: `${look.connectorFamily},serif`, fontWeight: look.connectorWeight,
+      fontSize: '4.1cqmin', lineHeight: 1.09, color: spec.colorPalette ? roles.connector : palette.text,
+      opacity: connectorP, transform: `translateY(${((1 - connectorP) * 1.1).toFixed(4)}cqmin)`,
+      overflowWrap: 'break-word',
+    }}>{text.connector}</div>}
+    <div data-qc-keyword="true" data-qc-text-glyph="true" style={{
+      display: 'block', maxWidth: '100%', fontFamily: `${look.keywordFamily},sans-serif`,
+      fontWeight: look.keywordWeight, fontSize: `${keywordSize.toFixed(3)}cqmin`,
+      lineHeight: look.lineHeight, letterSpacing: `${look.trackingEm}em`,
+      textTransform: look.keywordCase === 'uppercase' ? 'uppercase' : 'none',
+      whiteSpace: 'normal', wordBreak: 'keep-all', overflowWrap: 'normal',
+    }}>{words.map((word, index) => {
+      const reveal = phase(u, text.timing.keywordStart + Math.min(index, 3) * .045, .16)
+      // A narrow split column has no horizontal reserve for a scale punch; the
+      // underline supplies emphasis there without moving a glyph past QC bounds.
+      const emphasis = spec.layout.textBounds.width >= 55 &&
+        Math.abs(u - text.motion.emphasisStart) < .055 && index === 0 ? .025 : 0
+      return <React.Fragment key={`${word}-${index}`}>
+        {index > 0 && ' '}
+        <span style={{ display: 'inline-block', opacity: reveal,
+          clipPath: `inset(0 ${(100 - reveal * 100).toFixed(2)}% 0 0)`,
+          transform: `translateY(${((1 - reveal) * 1.4).toFixed(4)}cqmin) scale(${(1 + emphasis).toFixed(4)})`,
+          transformOrigin: '0 70%',
+        }}>{word}</span>
+      </React.Fragment>
+    })}</div>
+    {spec.editorialData && <div data-qc-text-glyph="true" style={{
+      fontFamily: `${look.keywordFamily},sans-serif`, fontWeight: look.keywordWeight,
+      fontSize: '7.1cqmin', lineHeight: 1, color: palette.text,
+      opacity: phase(u, text.motion.emphasisStart - .12, .16),
+    }}>{spec.editorialData.value}</div>}
+    {text.closing && <div data-qc-closing="true" data-qc-text-glyph="true" style={{
+      fontFamily: `${look.closingFamily},serif`, fontWeight: look.closingWeight,
+      fontSize: '3.9cqmin', lineHeight: 1.08, color: palette.text,
+      opacity: closingP, transform: `translateY(${((1 - closingP) * .8).toFixed(4)}cqmin)`,
+      overflowWrap: 'break-word',
+    }}>{text.closing}</div>}
+    <div data-qc-text-glyph="true" style={{ width: '24%', minWidth: '7cqmin', height: '.33cqmin',
+      margin: text.alignment === 'right' ? '.5cqmin 0 0 auto' : text.alignment === 'center' ? '.5cqmin auto 0' : '.5cqmin 0 0',
+      background: roles.underline, transform: `scaleX(${phase(u, text.motion.emphasisStart - .08, .22).toFixed(4)})`,
+      transformOrigin: text.alignment === 'right' ? '100% 50%' : '0 50%',
+    }} />
+    {(spec.editorialData || (Number.isFinite(percentage) && percentage >= 0 && percentage <= 100)) &&
+      <div aria-label={`Indicador ${spec.editorialData?.value ?? text.keyword}`}
+      style={{ height: '.42cqmin', width: '100%', background: `${palette.line}66`, overflow: 'hidden' }}>
+      <div style={{ height: '100%', width: `${spec.editorialData?.percent ?? percentage}%`, background: roles.underline,
+        transform: `scaleX(${phase(u, text.motion.emphasisStart - .1, .24).toFixed(4)})`, transformOrigin: '0 50%' }} />
+    </div>}
+  </div>
+}
+
 const NarrativeTextV15: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ spec, u }) => {
+  if (spec.presentationProfile) return <NarrativeTextPilot spec={spec} u={u} />
   const text = spec.text
   const look = typographyLookV3(text.typographyLookId)
   const palette = scenePalette(spec)
@@ -306,7 +430,7 @@ export const MotionGraphicV15: React.FC<{
     data-qc-accent-primary={spec.colorPalette?.tokens.accentPrimary ?? ''}
     style={{ position: 'absolute', inset: 0, containerType: 'size', overflow: 'hidden' }}>
     <QuietBackground spec={spec} u={u} />
-    <StructureGrammar spec={spec} />
+    <StructureGrammar spec={spec} u={u} />
     {active.map(slot => {
       const layout = spec.layout.slotLayouts.find(value => value.slotId === slot.slotId)
       if (!layout) throw new Error(`VISUAL_RUNTIME_LAYOUT_SLOT_REQUIRED:${slot.slotId}`)

@@ -24,6 +24,12 @@ import {
   type ModernLayoutStructureV4,
 } from '../../shared/visual-layout-v4'
 import {
+  EDITORIAL_MOTION_PROFILE_V1,
+  createEditorialPilotLayoutV1,
+  selectEditorialPilotFamilyV1,
+  type EditorialMotionProfileV1,
+} from '../../shared/editorial-motion-profile-v1'
+import {
   VIDEO_VISUAL_STYLES_V1,
   materializeVideoVisualStyleV1,
   type VideoVisualStyleIdV1,
@@ -890,20 +896,43 @@ function compileV2(input: {
   videoStyleId: VideoVisualStyleIdV1
   colorPalette: SceneColorPaletteV1
   session: MotionGraphicsResolverSessionV2
+  presentationProfile?: EditorialMotionProfileV1
 }): MotionGraphicsCompiledV2 {
   const hero = input.choices.find(choice => choice.slotId === 'hero')
   const supports = input.choices.filter(choice => choice.slotId !== 'hero')
   const visualMode = hero ? 'asset-led' : 'editorial-text'
   const directionV1 = input.base.compiled.sceneSpec.direccion
   const styleDefinition = VIDEO_VISUAL_STYLES_V1[input.videoStyleId]
-  const presentation = selectVisualPresentationV4({
+  const standardPresentation = selectVisualPresentationV4({
     sceneId: input.base.decision.sceneId, visualMode, supportCount: supports.length,
     relation: input.base.localSemantic.relation, density: directionV1.densidad, rhythm: directionV1.ritmo,
     seed: directionV1.semilla, allowedTypographyLooks: styleDefinition.allowedTypographyLooks,
     recentFamilies: input.session.recentFamilies, recentTypographyLooks: input.session.recentTypographyLooks,
   })
+  const presentation = input.presentationProfile ? (() => {
+    const family = selectEditorialPilotFamilyV1({
+      sceneId: input.base.decision.sceneId, visualMode, supportCount: supports.length,
+      relation: input.base.localSemantic.relation, seed: directionV1.semilla,
+      recentFamilies: input.session.recentFamilies,
+    })
+    return {
+      family,
+      layout: createEditorialPilotLayoutV1(family, visualMode, supports.length, directionV1.semilla),
+      typographyLookId: family === 'partidoVertical' || family === 'cuaderno' || directionV1.semilla % 4 === 0
+        ? 'technical-condensed' as const : 'editorial-strong' as const,
+    }
+  })() : standardPresentation
   const text = textFor(input.base, presentation, visualMode)
   const visibleWords = [text.connector, text.keyword, text.closing].filter(Boolean).join(' ').split(/\s+/).filter(Boolean).length
+  const literalPercent = input.presentationProfile && !text.closing && visibleWords <= 7
+    ? /\b\d{1,3}(?:[.,]\d+)?\s*%/u.exec(input.base.localSemantic.localText)?.[0]
+    : undefined
+  const percentValue = literalPercent ? literalPercent.replace(/\s+%/, '%') : undefined
+  const percentNumber = percentValue ? Number(percentValue.slice(0, -1).replace(',', '.')) : NaN
+  const editorialData = percentValue && Number.isFinite(percentNumber) && percentNumber <= 100 &&
+    text.keyword !== percentValue
+    ? { revision: 'editorial-data-callout-v1' as const, value: percentValue, percent: percentNumber }
+    : undefined
   const density = resolveSceneDensityV2({ localText: input.base.localSemantic.localText, visualMode,
     heroState: hero ? (hero.provider === 'solar' ? 'procedural' : 'present') : 'none',
     actualElementCount: 1 + input.choices.length + (text.connector ? 1 : 0) + (text.closing ? 1 : 0),
@@ -944,6 +973,8 @@ function compileV2(input: {
       sceneId: input.base.decision.sceneId, seed: directionV1.semilla }),
     backgroundProfile: materializeBackgroundProfileV1('solid-black-v1'),
     colorPalette: input.colorPalette,
+    ...(input.presentationProfile ? { presentationProfile: EDITORIAL_MOTION_PROFILE_V1 } : {}),
+    ...(editorialData ? { editorialData } : {}),
     layout: presentation.layout, text, slots, revisions: visualRevisionsV2(), fallbackVisual: 'editorial-text',
   })
   const renderBindings: RenderBindingsV2 = { version: 2, assets: input.choices.filter(choice => choice.asset).map(choice => ({
@@ -967,6 +998,7 @@ export async function resolveMotionGraphicsSceneV2(input: {
   lockedColorPalette?: SceneColorPaletteV1
   pixabayApiKey?: string
   lockedChoices?: readonly LockedVisualChoiceV2[]
+  presentationProfile?: EditorialMotionProfileV1
   hooks?: MotionGraphicsProviderHooksV2
 }): Promise<MotionGraphicsResolutionV2> {
   const session = input.session ?? createMotionGraphicsResolverSessionV2()
@@ -1172,6 +1204,7 @@ export async function resolveMotionGraphicsSceneV2(input: {
   metrics.editorialOnly = hasHero ? 0 : 1
   if (!hasHero) trace.fallback = 'EDITORIAL_NO_DEFENDIBLE_HERO'
   const compiled = compileV2({ base: input.base, choices: effectiveChoices, videoStyleId: input.videoStyleId,
+    ...(input.presentationProfile ? { presentationProfile: input.presentationProfile } : {}),
     colorPalette, session })
   session.recentAccentPrimaries.push(colorPalette.tokens.accentPrimary)
   if (session.recentAccentPrimaries.length > 12) session.recentAccentPrimaries.shift()
