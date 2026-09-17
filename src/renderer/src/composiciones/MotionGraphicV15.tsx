@@ -16,6 +16,7 @@ import {
   sceneColorRoleTokensV1,
 } from '../../../shared/color-palette-v1'
 import { IconoSolar } from './IconoSolar'
+import { EDITORIAL_MOTION_PROFILE_V2 } from '../../../shared/editorial-motion-profile-v1'
 
 function clamp01(value: number): number { return Math.min(1, Math.max(0, value)) }
 function ease(value: number): number { const p = clamp01(value); return 1 - Math.pow(1 - p, 3) }
@@ -113,8 +114,15 @@ const SceneAssetSlot: React.FC<{
   const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
   const motion = evaluateAssetMotion(slot.motion, u)
   const pilot = !!spec.presentationProfile
-  const entryStart = slot.role === 'hero' ? .04 : slot.role === 'support-1' ? .19 : .29
-  const entrance = phase(u, entryStart, slot.role === 'hero' ? .19 : .13)
+  const refined = spec.presentationProfile?.revision === EDITORIAL_MOTION_PROFILE_V2.revision
+  const entryStart = refined
+    ? spec.editorialMotionCue === 'comparison' ? (slot.role === 'support-2' ? .24 : .10)
+      : spec.editorialMotionCue === 'process' ? (slot.role === 'hero' ? .05 : slot.role === 'support-1' ? .23 : .41)
+        : spec.editorialMotionCue === 'cause' ? (slot.role === 'hero' ? .05 : slot.role === 'support-1' ? .32 : .45)
+          : spec.editorialMotionCue === 'datum' ? (slot.role === 'hero' ? .27 : .36)
+            : (slot.role === 'hero' ? .04 : slot.role === 'support-1' ? .22 : .34)
+    : slot.role === 'hero' ? .04 : slot.role === 'support-1' ? .19 : .29
+  const entrance = phase(u, entryStart, refined ? .15 : slot.role === 'hero' ? .19 : .13)
   const departure = 1 - phase(u, .84, .13)
   const pilotOpacity = entrance * departure
   const pilotScale = .94 + entrance * .06 - (1 - departure) * .025
@@ -276,6 +284,12 @@ const NarrativeTextPilot: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ 
   const look = typographyLookV3(text.typographyLookId)
   const palette = scenePalette(spec)
   const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
+  const refined = spec.presentationProfile?.revision === EDITORIAL_MOTION_PROFILE_V2.revision
+  const datum = refined && spec.editorialMotionCue === 'datum' && !!spec.editorialData
+  const keywordStart = refined
+    ? spec.editorialMotionCue === 'process' ? .31 : spec.editorialMotionCue === 'cause' ? .22
+      : spec.editorialMotionCue === 'datum' ? .08 : spec.editorialMotionCue === 'comparison' ? .17 : .16
+    : text.timing.keywordStart
   const words = text.keyword.split(/\s+/).filter(Boolean)
   const longest = Math.max(1, ...words.map(word => Array.from(word).length))
   const widthScale = spec.layout.textBounds.width / 72
@@ -313,7 +327,7 @@ const NarrativeTextPilot: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ 
       textTransform: look.keywordCase === 'uppercase' ? 'uppercase' : 'none',
       whiteSpace: 'normal', wordBreak: 'keep-all', overflowWrap: 'normal',
     }}>{words.map((word, index) => {
-      const reveal = phase(u, text.timing.keywordStart + Math.min(index, 3) * .045, .16)
+      const reveal = phase(u, keywordStart + Math.min(index, 3) * .045, .16)
       // A narrow split column has no horizontal reserve for a scale punch; the
       // underline supplies emphasis there without moving a glyph past QC bounds.
       const emphasis = spec.layout.textBounds.width >= 55 &&
@@ -329,12 +343,12 @@ const NarrativeTextPilot: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ 
     })}</div>
     {spec.editorialData && <div data-qc-text-glyph="true" style={{
       fontFamily: `${look.keywordFamily},sans-serif`, fontWeight: look.keywordWeight,
-      fontSize: '7.1cqmin', lineHeight: 1, color: palette.text,
+      fontSize: datum ? '13cqmin' : '7.1cqmin', lineHeight: 1, color: palette.text,
       opacity: phase(u, text.motion.emphasisStart - .12, .16),
     }}>{spec.editorialData.value}</div>}
     {text.closing && <div data-qc-closing="true" data-qc-text-glyph="true" style={{
       fontFamily: `${look.closingFamily},serif`, fontWeight: look.closingWeight,
-      fontSize: '3.9cqmin', lineHeight: 1.08, color: palette.text,
+      fontSize: refined ? '4.6cqmin' : '3.9cqmin', lineHeight: 1.08, color: palette.text,
       opacity: closingP, transform: `translateY(${((1 - closingP) * .8).toFixed(4)}cqmin)`,
       overflowWrap: 'break-word',
     }}>{text.closing}</div>}

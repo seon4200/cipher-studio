@@ -13,9 +13,8 @@ import {
 } from './semantic-decision'
 import type { VideoVisualStyleIdV1 } from '../../shared/visual-style-v1'
 import {
-  EDITORIAL_MOTION_PROFILE_V1,
-  validateEditorialMotionProfileV1,
-  type EditorialMotionProfileV1,
+  validateEditorialMotionProfile,
+  type EditorialMotionProfile,
 } from '../../shared/editorial-motion-profile-v1'
 import {
   validateSceneColorPaletteV1,
@@ -70,7 +69,7 @@ export type ModernVisualGenerationContextV2 = Omit<ModernVisualGenerationContext
   /** Exact pixel-affecting choice copied into SceneSpec during deterministic regeneration. */
   lockedColorPalette?: SceneColorPaletteV1
   /** Persisted opt-in; omitted for historical V15 scenes. */
-  presentationProfile?: EditorialMotionProfileV1
+  presentationProfile?: EditorialMotionProfile
 }
 
 export type ResolvedModernVisualGenerationV2 = {
@@ -224,7 +223,7 @@ export function createModernVisualGenerationContextV2(input: {
   if (input.videoStyleId !== 'cream-editorial' && input.videoStyleId !== 'ink-technical')
     fail('MODERN_VISUAL_CONTEXT_INVALID', 'videoStyleId no es válido')
   if (input.presentationProfile !== undefined) {
-    try { validateEditorialMotionProfileV1(input.presentationProfile) }
+    try { validateEditorialMotionProfile(input.presentationProfile) }
     catch { fail('MODERN_VISUAL_CONTEXT_INVALID', 'presentationProfile no es válido') }
   }
   return {
@@ -245,7 +244,7 @@ export function createModernVisualGenerationContextV2(input: {
     ...(input.colorPalettePlan === undefined ? {} : { colorPalettePlan: optionalColorPlan(input.colorPalettePlan) }),
     ...(input.colorSceneIndex === undefined ? {} : { colorSceneIndex: optionalSceneIndex(input.colorSceneIndex) }),
     ...(input.lockedColorPalette === undefined ? {} : { lockedColorPalette: optionalSceneColor(input.lockedColorPalette) }),
-    ...(input.presentationProfile === undefined ? {} : { presentationProfile: EDITORIAL_MOTION_PROFILE_V1 }),
+    ...(input.presentationProfile === undefined ? {} : { presentationProfile: validateEditorialMotionProfile(input.presentationProfile) }),
   }
 }
 

@@ -4075,7 +4075,7 @@ ${res.filePath}`);
                 onChange={event => setVisualPresentationProfile(event.target.value as 'standard' | 'editorial-hybrid-v1')}
                 className="bg-[#1C1C1E] border border-[#3a3a3c] text-[10px] text-slate-200 rounded-lg px-2 py-1">
                 <option value="standard">V15 actual</option>
-                <option value="editorial-hybrid-v1">Editorial híbrido V1 (experimental)</option>
+                <option value="editorial-hybrid-v1">Editorial híbrido V2 (experimental)</option>
               </select>
             </div>
             {isGeneratingAssets ? (

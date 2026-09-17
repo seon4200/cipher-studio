@@ -58,7 +58,7 @@ import {
   resolveModernVisualGenerationBatchV2,
 } from './assets/modern-visual-generation'
 import { summarizeMotionGraphicsVideoMetricsV2 } from './assets/motion-graphics-resolver'
-import { EDITORIAL_MOTION_PROFILE_V1 } from '../shared/editorial-motion-profile-v1'
+import { EDITORIAL_MOTION_PROFILE_V2 } from '../shared/editorial-motion-profile-v1'
 import { writeVisualDecisionDiagnostic } from './services/visual-decision-diagnostics'
 import { prepareOriginalClipSegmentation } from './services/original-clip-segmentation'
 import { prepareGraphicForVisualRender, visualRenderRoot } from './assets/visual-render'
@@ -4950,7 +4950,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             // within this coherent family; regeneration persists the same value.
             videoStyleId: 'cream-editorial',
             ...(visualPresentationProfile === 'editorial-hybrid-v1'
-              ? { presentationProfile: EDITORIAL_MOTION_PROFILE_V1 }
+              ? { presentationProfile: EDITORIAL_MOTION_PROFILE_V2 }
               : {}),
           });
         });

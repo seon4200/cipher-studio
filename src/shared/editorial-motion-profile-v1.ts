@@ -14,6 +14,13 @@ export const EDITORIAL_MOTION_PROFILE_V1 = Object.freeze({
   revision: 'editorial-hybrid-pilot-2026-09-v1' as const,
 })
 export type EditorialMotionProfileV1 = typeof EDITORIAL_MOTION_PROFILE_V1
+export const EDITORIAL_MOTION_PROFILE_V2 = Object.freeze({
+  id: 'editorial-hybrid-v1' as const,
+  revision: 'editorial-hybrid-pilot-2026-09-v2' as const,
+})
+export type EditorialMotionProfile = EditorialMotionProfileV1 | typeof EDITORIAL_MOTION_PROFILE_V2
+export const EDITORIAL_MOTION_CUES = ['protagonist', 'comparison', 'process', 'cause', 'datum', 'typographic'] as const
+export type EditorialMotionCue = typeof EDITORIAL_MOTION_CUES[number]
 
 export const EDITORIAL_PILOT_FAMILIES = [
   'editorial', 'marcoPoster', 'partidoVertical', 'cintaDiagonal', 'cuaderno', 'lineaTiempo',
@@ -26,6 +33,16 @@ export function validateEditorialMotionProfileV1(value: unknown): EditorialMotio
       (value as EditorialMotionProfileV1).revision !== EDITORIAL_MOTION_PROFILE_V1.revision)
     throw new Error('EDITORIAL_MOTION_PROFILE_INVALID')
   return value as EditorialMotionProfileV1
+}
+
+export function validateEditorialMotionProfile(value: unknown): EditorialMotionProfile {
+  if (!value || typeof value !== 'object' || Array.isArray(value) ||
+      Object.keys(value).sort().join('|') !== 'id|revision' ||
+      (value as EditorialMotionProfile).id !== EDITORIAL_MOTION_PROFILE_V1.id ||
+      ![EDITORIAL_MOTION_PROFILE_V1.revision, EDITORIAL_MOTION_PROFILE_V2.revision]
+        .includes((value as EditorialMotionProfile).revision))
+    throw new Error('EDITORIAL_MOTION_PROFILE_INVALID')
+  return value as EditorialMotionProfile
 }
 
 const rect = (x: number, y: number, width: number, height: number): PercentRectV3 => ({ x, y, width, height })
@@ -81,6 +98,54 @@ export function createEditorialPilotLayoutV1(
     slot('support-1', 'center-dominant', rect(37, 25, 26, 32), 5),
     slot('support-2', 'right-dominant', rect(66, 31, 27, 29), 5),
   ])
+}
+
+/** New revision only. V1's exact geometry remains the historical dispatch. */
+export function createEditorialPilotLayoutV2(
+  family: ModernLayoutStructureV4,
+  visualMode: 'asset-led' | 'editorial-text',
+  supportCount: number,
+  seed: number,
+  cue: EditorialMotionCue,
+): VisualLayoutV4 {
+  const old = createEditorialPilotLayoutV1(family, visualMode, supportCount, seed)
+  const replace = (textRegion: VisualLayoutV4['textRegion'], textBounds: PercentRectV3,
+    textAlignment: VisualLayoutV4['textAlignment'], values: SlotLayoutV4[]): VisualLayoutV4 => ({
+    ...old, textRegion, textBounds, textAlignment,
+    slotLayouts: values.filter(item => old.slotLayouts.some(current => current.slotId === item.slotId)),
+  })
+  if (family === 'editorial') return replace('center-editorial', rect(8, 15, 84, 70), 'left', [])
+  if (family === 'partidoVertical' && cue === 'comparison' && supportCount > 0)
+    return replace('bottom', rect(8, 68, 84, 23), 'left', [
+      slot('hero', 'left-dominant', rect(7, 15, 43, 47), 4),
+      slot('support-1', 'right-dominant', rect(57, 16, 34, 45), 5),
+      slot('support-2', 'right-dominant', rect(75, 62, 17, 13), 6),
+    ])
+  if (family === 'partidoVertical') {
+    const left = seed % 2 === 0
+    return replace(left ? 'right' : 'left', left ? rect(55, 34, 39, 29) : rect(6, 34, 39, 29),
+      left ? 'left' : 'right', [
+        slot('hero', left ? 'left-dominant' : 'right-dominant', left ? rect(7, 27, 44, 53) : rect(49, 27, 44, 53), 4),
+        slot('support-1', left ? 'right-dominant' : 'left-dominant', left ? rect(56, 64, 24, 20) : rect(20, 64, 24, 20), 5),
+        slot('support-2', left ? 'right-dominant' : 'left-dominant', left ? rect(78, 68, 16, 16) : rect(6, 68, 16, 16), 6),
+      ])
+  }
+  if (family === 'cuaderno') return replace('top', rect(8, 18, 84, 25), 'left', [
+    slot('hero', 'document-field', rect(39, 42, 54, 45), 4),
+    slot('support-1', 'left-dominant', rect(7, 48, 33, 29), 5),
+    slot('support-2', 'left-dominant', rect(8, 73, 25, 15), 6),
+  ])
+  if (family === 'marcoPoster' && cue === 'datum') return replace('left', rect(8, 17, 52, 61), 'left', [
+    slot('hero', 'right-dominant', rect(62, 33, 30, 38), 4),
+    slot('support-1', 'right-dominant', rect(70, 72, 21, 17), 5),
+    slot('support-2', 'right-dominant', rect(72, 15, 19, 17), 6),
+  ])
+  if (family === 'marcoPoster') return replace('top', rect(8, 8, 84, 21), 'left', [
+    slot('hero', 'integrated', rect(10, 31, 80, 54), 4),
+    slot('support-1', 'left-dominant', rect(7, 64, 26, 22), 5),
+    slot('support-2', 'right-dominant', rect(69, 66, 24, 21), 6),
+  ])
+  return old
 }
 
 /** Semantic eligibility remains V4's; the profile only limits its own presentation menu. */

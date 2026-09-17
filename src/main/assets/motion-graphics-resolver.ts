@@ -24,10 +24,12 @@ import {
   type ModernLayoutStructureV4,
 } from '../../shared/visual-layout-v4'
 import {
-  EDITORIAL_MOTION_PROFILE_V1,
+  EDITORIAL_MOTION_PROFILE_V2,
   createEditorialPilotLayoutV1,
+  createEditorialPilotLayoutV2,
   selectEditorialPilotFamilyV1,
-  type EditorialMotionProfileV1,
+  type EditorialMotionCue,
+  type EditorialMotionProfile,
 } from '../../shared/editorial-motion-profile-v1'
 import {
   VIDEO_VISUAL_STYLES_V1,
@@ -896,11 +898,20 @@ function compileV2(input: {
   videoStyleId: VideoVisualStyleIdV1
   colorPalette: SceneColorPaletteV1
   session: MotionGraphicsResolverSessionV2
-  presentationProfile?: EditorialMotionProfileV1
+  presentationProfile?: EditorialMotionProfile
 }): MotionGraphicsCompiledV2 {
   const hero = input.choices.find(choice => choice.slotId === 'hero')
   const supports = input.choices.filter(choice => choice.slotId !== 'hero')
   const visualMode = hero ? 'asset-led' : 'editorial-text'
+  const refined = input.presentationProfile?.revision === EDITORIAL_MOTION_PROFILE_V2.revision
+  const relation = (input.base.localSemantic.relation ?? '').normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  const editorialMotionCue: EditorialMotionCue = !hero ? 'typographic'
+    : /\b\d{1,3}(?:[.,]\d+)?\s*%/u.test(input.base.localSemantic.localText) ? 'datum'
+      : /(compara|contrasta|diferenc)/.test(relation) && supports.length ? 'comparison'
+        : /(secuencia|antes|despues|evoluciona|pasos)/.test(relation) && supports.length ? 'process'
+          : /(causa|consecuencia|deriva|provoca)/.test(relation) && supports.length ? 'cause'
+            : 'protagonist'
   const directionV1 = input.base.compiled.sceneSpec.direccion
   const styleDefinition = VIDEO_VISUAL_STYLES_V1[input.videoStyleId]
   const standardPresentation = selectVisualPresentationV4({
@@ -910,19 +921,37 @@ function compileV2(input: {
     recentFamilies: input.session.recentFamilies, recentTypographyLooks: input.session.recentTypographyLooks,
   })
   const presentation = input.presentationProfile ? (() => {
-    const family = selectEditorialPilotFamilyV1({
+    const selectedFamily = selectEditorialPilotFamilyV1({
       sceneId: input.base.decision.sceneId, visualMode, supportCount: supports.length,
       relation: input.base.localSemantic.relation, seed: directionV1.semilla,
       recentFamilies: input.session.recentFamilies,
     })
+    const family = refined && (editorialMotionCue === 'datum' ||
+      (hero?.alphaMode === 'opaque-rectangle' && hero.kind === 'raster-image'))
+      ? 'marcoPoster' : selectedFamily
     return {
       family,
-      layout: createEditorialPilotLayoutV1(family, visualMode, supports.length, directionV1.semilla),
+      layout: refined
+        ? createEditorialPilotLayoutV2(family, visualMode, supports.length, directionV1.semilla, editorialMotionCue)
+        : createEditorialPilotLayoutV1(family, visualMode, supports.length, directionV1.semilla),
       typographyLookId: family === 'partidoVertical' || family === 'cuaderno' || directionV1.semilla % 4 === 0
         ? 'technical-condensed' as const : 'editorial-strong' as const,
     }
   })() : standardPresentation
-  const text = textFor(input.base, presentation, visualMode)
+  let text = textFor(input.base, presentation, visualMode)
+  // The historical short-text compiler may truncate a final clause. For the opt-in
+  // text-led revision, retain a literal trailing fragment only when it fits the
+  // existing eight-word contract; never fabricate or paraphrase narration.
+  if (refined && visualMode === 'editorial-text' && text.closing) {
+    const local = input.base.localSemantic.localText.trim()
+    const endingAt = local.toLocaleLowerCase('es').lastIndexOf(text.closing.toLocaleLowerCase('es'))
+    if (endingAt >= 0) {
+      const suffix = local.slice(endingAt + text.closing.length).trim().replace(/[.!?]+$/u, '').trim()
+      const candidate = `${text.closing} ${suffix}`.trim()
+      const count = [text.connector, text.keyword, candidate].filter(Boolean).join(' ').split(/\s+/u).filter(Boolean).length
+      if (suffix && count <= 8) text = { ...text, closing: candidate }
+    }
+  }
   const visibleWords = [text.connector, text.keyword, text.closing].filter(Boolean).join(' ').split(/\s+/).filter(Boolean).length
   const literalPercent = input.presentationProfile && !text.closing && visibleWords <= 7
     ? /\b\d{1,3}(?:[.,]\d+)?\s*%/u.exec(input.base.localSemantic.localText)?.[0]
@@ -952,7 +981,7 @@ function compileV2(input: {
     const slot: PresentSceneSlotV2 = {
       slotId: choice.slotId, role: choice.slotId, state: 'present', sha256: choice.asset.sha256,
       mime: choice.asset.mime as PresentSceneSlotV2['mime'], kind: choice.kind, alphaMode: choice.alphaMode,
-      bounds: choice.bounds, fitPolicy: choice.alphaMode === 'opaque-rectangle' ? 'cover' :
+      bounds: choice.bounds, fitPolicy: choice.alphaMode === 'opaque-rectangle' ? (refined ? 'contain' : 'cover') :
         choice.alphaMode === 'useful-alpha' ? 'subject-contain' : 'contain',
       tint: { treatment: 'original-color' }, motion,
     }
@@ -973,7 +1002,8 @@ function compileV2(input: {
       sceneId: input.base.decision.sceneId, seed: directionV1.semilla }),
     backgroundProfile: materializeBackgroundProfileV1('solid-black-v1'),
     colorPalette: input.colorPalette,
-    ...(input.presentationProfile ? { presentationProfile: EDITORIAL_MOTION_PROFILE_V1 } : {}),
+    ...(input.presentationProfile ? { presentationProfile: input.presentationProfile } : {}),
+    ...(refined ? { editorialMotionCue } : {}),
     ...(editorialData ? { editorialData } : {}),
     layout: presentation.layout, text, slots, revisions: visualRevisionsV2(), fallbackVisual: 'editorial-text',
   })
@@ -998,7 +1028,7 @@ export async function resolveMotionGraphicsSceneV2(input: {
   lockedColorPalette?: SceneColorPaletteV1
   pixabayApiKey?: string
   lockedChoices?: readonly LockedVisualChoiceV2[]
-  presentationProfile?: EditorialMotionProfileV1
+  presentationProfile?: EditorialMotionProfile
   hooks?: MotionGraphicsProviderHooksV2
 }): Promise<MotionGraphicsResolutionV2> {
   const session = input.session ?? createMotionGraphicsResolverSessionV2()
