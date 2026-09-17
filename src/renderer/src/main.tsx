@@ -1566,6 +1566,7 @@ function App() {
   // un proyecto nuevo reparte exactamente como antes hasta que el usuario mueva el slider.
   const [timelineWeights, setTimelineWeights] = useState<number[]>([...PESOS_POR_DEFECTO])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
+  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1'>('standard')
 
   // Hub de IA — estados
   const [promptIa, setPromptIa] = useState<string>('')
@@ -1724,7 +1725,7 @@ function App() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, visualPresentationProfile, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
 
   // UN solo sitio construye lo que se guarda. Estaba copiado en TRES (guardar al cerrar,
   // guardar, y guardar como), y por eso cada funcion nueva nacia sin persistencia en dos de
@@ -1742,7 +1743,7 @@ function App() {
     aiScript, originalTranscriptText,
     libraryWidth, toolsWidth, timelineHeight,
     voiceModel, voiceSpeaker, voiceSpeed, voiceStability,
-    generatedVoices, graphicsPercent, timelineWeights,
+    generatedVoices, graphicsPercent, timelineWeights, visualPresentationProfile,
 
     // ─── Lo que decide COMO sale el video exportado ───
     // aspectRatio es el mas peligroso de los siete: NO aparece en el modal de exportacion,
@@ -1772,7 +1773,7 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, visualPresentationProfile, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
 
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
@@ -1875,6 +1876,7 @@ function App() {
         // TRES posiciones, y uno ya corrompido trae [null,null,null,null]. Los dos entran sanos
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-hybrid-v1' ? 'editorial-hybrid-v1' : 'standard');
 
         // ─── Lo que decide COMO sale el video exportado ───
         // Solo se restaura lo que VENGA: un proyecto guardado antes de esto no trae estos
@@ -2157,6 +2159,7 @@ function App() {
         // TRES posiciones, y uno ya corrompido trae [null,null,null,null]. Los dos entran sanos
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-hybrid-v1' ? 'editorial-hybrid-v1' : 'standard');
 
         // ─── Lo que decide COMO sale el video exportado ───
         // Solo se restaura lo que VENGA: un proyecto guardado antes de esto no trae estos
@@ -2521,6 +2524,7 @@ ${res.filePath}`);
         transcriptSegments,
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
+        visualPresentationProfile,
         // CERO A PROPOSITO, NO ES UN OLVIDO. El commit e145119 partio la construccion en tres
         // fases y saco los graficos de esta llamada: se piden despues, en su propia fase (el
         // bloque `if (graphicsPercent > 0)` de mas abajo). Este cero dice "aqui no, luego".
@@ -4065,6 +4069,15 @@ ${res.filePath}`);
             </div>
 
             {/* Botón Construir Timeline IA */}
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <label htmlFor="visual-presentation-profile" className="text-[10px] font-semibold text-slate-400">Estilo de Visuales (piloto)</label>
+              <select id="visual-presentation-profile" value={visualPresentationProfile}
+                onChange={event => setVisualPresentationProfile(event.target.value as 'standard' | 'editorial-hybrid-v1')}
+                className="bg-[#1C1C1E] border border-[#3a3a3c] text-[10px] text-slate-200 rounded-lg px-2 py-1">
+                <option value="standard">V15 actual</option>
+                <option value="editorial-hybrid-v1">Editorial híbrido V1 (experimental)</option>
+              </select>
+            </div>
             {isGeneratingAssets ? (
               <div className="w-full mt-3 p-3 bg-[#1C1C1E]/60 border border-[#3a3a3c] rounded-xl space-y-2 select-none">
                 <div className="flex items-center space-x-2">

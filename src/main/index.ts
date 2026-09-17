@@ -35,6 +35,7 @@ export * from './services/original-clip-segmentation'
 export * from './services/visual-variety-metrics'
 export * from '../shared/visual-layout-v3'
 export * from '../shared/visual-layout-v4'
+export * from '../shared/editorial-motion-profile-v1'
 export * from '../shared/visual-style-v1'
 export * from '../shared/background-profile-v1'
 export * from '../shared/color-palette-v1'
@@ -57,6 +58,7 @@ import {
   resolveModernVisualGenerationBatchV2,
 } from './assets/modern-visual-generation'
 import { summarizeMotionGraphicsVideoMetricsV2 } from './assets/motion-graphics-resolver'
+import { EDITORIAL_MOTION_PROFILE_V1 } from '../shared/editorial-motion-profile-v1'
 import { writeVisualDecisionDiagnostic } from './services/visual-decision-diagnostics'
 import { prepareOriginalClipSegmentation } from './services/original-clip-segmentation'
 import { prepareGraphicForVisualRender, visualRenderRoot } from './assets/visual-render'
@@ -3940,7 +3942,9 @@ function enviarAviso(event: any, carga: unknown): void {
   } catch (e) { /* ventana cerrada: el log ya lo tiene */ }
 }
 
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
+ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, visualPresentationProfile, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
+  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1'].includes(visualPresentationProfile))
+    throw new Error('VISUAL_PRESENTATION_PROFILE_INVALID');
   const isOriginalAudio = transcriptSegments && newAudioSegments && 
     transcriptSegments.length === newAudioSegments.length &&
     transcriptSegments[0]?.start === newAudioSegments[0]?.start;
@@ -4945,6 +4949,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             // Product authority selected once for this video. Individual scenes vary only
             // within this coherent family; regeneration persists the same value.
             videoStyleId: 'cream-editorial',
+            ...(visualPresentationProfile === 'editorial-hybrid-v1'
+              ? { presentationProfile: EDITORIAL_MOTION_PROFILE_V1 }
+              : {}),
           });
         });
         // All semantic work completes before hashing/rendering. Renderer gets only the
