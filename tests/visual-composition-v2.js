@@ -9,6 +9,8 @@ const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixtur
 const { sceneSpec, graphicFor, bindingsFor } = require('./helpers/visual-mvp-fixture')
 
 const REPO_ROOT = path.resolve(__dirname, '..')
+const rootStateGuard = require('./helpers/repository-state-guard')
+const rootStateBefore = rootStateGuard.captureRootState(REPO_ROOT)
 const FIXTURE_ROOT = createTestFixture('visual-composition-v2')
 const CASOS_ESPERADOS = 24
 let completed = 0
@@ -243,8 +245,7 @@ app.whenReady().then(async () => {
     await runCase('24 cero red y proyectos reales intactos', () => {
       assert.equal(networkAttempts, visualNetworkBaseline)
       assert.equal(snapshotRealProjects(), realProjectsBefore)
-      assert(!fs.existsSync(path.join(REPO_ROOT, 'project-state.json')))
-      assert(!fs.existsSync(path.join(REPO_ROOT, 'project-state.json.bak')))
+      rootStateGuard.assertRootStateUnchanged(REPO_ROOT, rootStateBefore)
     })
 
     assert.equal(completed, CASOS_ESPERADOS)

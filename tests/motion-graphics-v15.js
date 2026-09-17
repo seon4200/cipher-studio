@@ -12,6 +12,8 @@ const { sceneSpecV15, graphicForV15, bindingsForV15 } = require('./helpers/motio
 const { VISUAL_RETRIEVAL_HOLDOUT_V15 } = require('./fixtures/visual-retrieval-holdout-v15')
 
 const REPO_ROOT = path.resolve(__dirname, '..')
+const rootStateGuard = require('./helpers/repository-state-guard')
+const rootStateBefore = rootStateGuard.captureRootState(REPO_ROOT)
 const FIXTURE_ROOT = createTestFixture('motion-graphics-v15')
 const CASOS_ESPERADOS = 38
 let completed = 0
@@ -484,8 +486,7 @@ app.whenReady().then(async () => {
       const legacy = { type: 'visual_escena', value: 'memoria', extra: { conceptos: [] } }
       assert.equal(bundle.prepareGraphicForVisualRender({ graphicData: legacy }).kind, 'legacy')
       assert.equal(snapshotRealProjects(), projectsBefore)
-      assert.equal(fs.existsSync(path.join(REPO_ROOT, 'project-state.json')), false)
-      assert.equal(fs.existsSync(path.join(REPO_ROOT, 'project-state.json.bak')), false)
+      rootStateGuard.assertRootStateUnchanged(REPO_ROOT, rootStateBefore)
       assert.equal(networkAttempts, startupNetworkBaseline)
     })
     assert.equal(completed, CASOS_ESPERADOS)

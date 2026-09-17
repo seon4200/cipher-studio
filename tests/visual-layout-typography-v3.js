@@ -10,6 +10,8 @@ const { auditTypographyLookFonts } = require('./helpers/visual-font-audit')
 const { sceneSpec, graphicFor, bindingsFor } = require('./helpers/visual-mvp-fixture')
 
 const REPO_ROOT = path.resolve(__dirname, '..')
+const rootStateGuard = require('./helpers/repository-state-guard')
+const rootStateBefore = rootStateGuard.captureRootState(REPO_ROOT)
 const FIXTURE_ROOT = createTestFixture('visual-layout-typography-v3')
 const CASOS_ESPERADOS = 24
 let completed = 0
@@ -267,8 +269,7 @@ app.whenReady().then(async () => {
     await runCase('24 cero red y proyectos reales intactos', () => {
       assert.equal(networkAttempts, startupNetworkBaseline)
       assert.equal(snapshotRealProjects(), projectsBefore)
-      assert.equal(fs.existsSync(path.join(REPO_ROOT, 'project-state.json')), false)
-      assert.equal(fs.existsSync(path.join(REPO_ROOT, 'project-state.json.bak')), false)
+      rootStateGuard.assertRootStateUnchanged(REPO_ROOT, rootStateBefore)
     })
 
     assert.equal(completed, CASOS_ESPERADOS)

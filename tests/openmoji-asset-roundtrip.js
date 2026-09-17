@@ -11,6 +11,8 @@ const path = require('path')
 const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
 
 const REPO_ROOT = path.resolve(__dirname, '..')
+const rootStateGuard = require('./helpers/repository-state-guard')
+const rootStateBefore = rootStateGuard.captureRootState(REPO_ROOT)
 const FIXTURE_ROOT = createTestFixture('openmoji-asset-roundtrip')
 const CASOS_ESPERADOS = 50
 let passed = 0
@@ -98,13 +100,8 @@ function countSvgFiles(root) {
   return count
 }
 
-const rootStateFiles = [
-  path.join(REPO_ROOT, 'project-state.json'),
-  path.join(REPO_ROOT, 'project-state.json.bak'),
-]
-
-function assertNoRepositoryState() {
-  for (const file of rootStateFiles) assert(!fs.existsSync(file), 'la suite no puede crear ' + file)
+function assertRepositoryStateUnchanged() {
+  rootStateGuard.assertRootStateUnchanged(REPO_ROOT, rootStateBefore)
 }
 
 function test(name, fn) {
@@ -132,7 +129,7 @@ app.whenReady().then(() => {
   const cakeEntry = () => b.getOpenMojiEntry('openmoji:1f382')
 
   try {
-    assertNoRepositoryState()
+    assertRepositoryStateUnchanged()
     const validProject = createProject('valid-project')
 
     test('1 rejects missing projectRoot', () => expectCode(() => b.publishOpenMojiAsset({ stableId: 'openmoji:1f382' }), 'ASSET_PROJECT_ROOT_REQUIRED'))
@@ -295,7 +292,7 @@ app.whenReady().then(() => {
       assert.equal(b.verifyProjectAssetContent(root, published.asset).sha256, published.asset.sha256)
     })
     test('44 no fetch, http or https request was attempted', () => assert.equal(networkAttempts, 0))
-    test('45 no root project-state files were created', () => assertNoRepositoryState())
+    test('45 root project-state files remain unchanged', () => assertRepositoryStateUnchanged())
     test('46 real project states and manifests stay byte-identical', () => assert.equal(JSON.stringify(snapshotProjectFiles()), projectBaseline))
     test('47 no SVG under proyectos is tracked by Git', () => {
       const listed = childProcess.spawnSync('git', ['ls-files', '--', 'proyectos'], { cwd: REPO_ROOT, encoding: 'utf8' })
@@ -329,7 +326,7 @@ app.whenReady().then(() => {
     https.request = originalHttpsRequest
     app.quit = originalAppQuit
     const exitCode = process.exitCode || 0
-    assertNoRepositoryState()
+    assertRepositoryStateUnchanged()
     cleanupTestFixture(FIXTURE_ROOT)
     app.exit(exitCode)
   }

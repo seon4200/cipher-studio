@@ -13,6 +13,8 @@ const { sceneSpec, graphicFor } = require('./helpers/visual-mvp-fixture')
 const { BENCHMARK_CONCEPTS_V1 } = require('./fixtures/visual-retrieval-benchmark-v1')
 
 const REPO_ROOT = path.resolve(__dirname, '..')
+const rootStateGuard = require('./helpers/repository-state-guard')
+const rootStateBefore = rootStateGuard.captureRootState(REPO_ROOT)
 const FIXTURE_ROOT = createTestFixture('visual-retrieval-engine-v1')
 const CASOS_ESPERADOS = 27
 let completed = 0
@@ -426,8 +428,7 @@ app.whenReady().then(async () => {
     })
     await runCase('27 proyectos reales, estados raíz y fixture permanecen aislados', () => {
       assert.equal(snapshotRealProjects(), projectsBefore)
-      assert.equal(fs.existsSync(path.join(REPO_ROOT, 'project-state.json')), false)
-      assert.equal(fs.existsSync(path.join(REPO_ROOT, 'project-state.json.bak')), false)
+      rootStateGuard.assertRootStateUnchanged(REPO_ROOT, rootStateBefore)
       assert.equal(fs.existsSync(path.join(REPO_ROOT, 'proyectos', '.cipher-test-fixture')), false)
     })
     assert.equal(completed, CASOS_ESPERADOS)

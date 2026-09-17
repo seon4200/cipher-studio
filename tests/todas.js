@@ -138,7 +138,9 @@ const resultados = [];
 for (const s of aCorrer) {
   const t0 = Date.now();
   process.stdout.write('  ' + ('test:' + s).padEnd(22) + ' ... ');
-  const r = spawnSync('npm', ['run', 'test:' + s], {
+  // The captured-frame baselines use DPR 1. Pass the switch only to Electron's
+  // test process; never change the user's TV scale or the production shell.
+  const r = spawnSync('npm', ['run', 'test:' + s, '--', '--force-device-scale-factor=1'], {
     cwd: RAIZ, shell: true, encoding: 'utf8', maxBuffer: 1024 * 1024 * 64
   });
   // El codigo de salida es LA AUTORIDAD. Las suites salen con 1 si hay fallos (`app.exit(...)`).

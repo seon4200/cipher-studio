@@ -13,6 +13,8 @@ const { PRODUCTION_RETRIEVAL_HOLDOUT_V2 } = require('./fixtures/production-retri
 const { VISUAL_RETRIEVAL_HOLDOUT_V15 } = require('./fixtures/visual-retrieval-holdout-v15')
 
 const REPO_ROOT = path.resolve(__dirname, '..')
+const rootStateGuard = require('./helpers/repository-state-guard')
+const rootStateBefore = rootStateGuard.captureRootState(REPO_ROOT)
 const FIXTURE_ROOT = createTestFixture('production-retrieval-final')
 const PROJECT_ROOT = path.join(FIXTURE_ROOT, 'project')
 const EXPECTED_CASES = 18
@@ -423,7 +425,7 @@ app.whenReady().then(async () => {
     await runCase('18 versión, fondos, renderer y proyectos reales quedan intactos', () => {
       assert.equal(bundle.VERSION_PLANTILLAS, 15)
       assert.equal(snapshotRealProjects(), realProjectsBefore)
-      assert.equal(fs.existsSync(path.join(REPO_ROOT, 'project-state.json')), false)
+      rootStateGuard.assertRootStateUnchanged(REPO_ROOT, rootStateBefore)
       assert.equal(fs.existsSync(path.join(REPO_ROOT, '.cipher-test-fixture')), false)
       assert.equal(networkAttempts, startupNetworkBaseline)
     })

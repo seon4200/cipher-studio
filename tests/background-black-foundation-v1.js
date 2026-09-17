@@ -10,6 +10,8 @@ const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixtur
 const { sceneSpecV15, graphicForV15, bindingsForV15 } = require('./helpers/motion-graphics-v15-fixture')
 
 const REPO_ROOT = path.resolve(__dirname, '..')
+const rootStateGuard = require('./helpers/repository-state-guard')
+const rootStateBefore = rootStateGuard.captureRootState(REPO_ROOT)
 const FIXTURE_ROOT = createTestFixture('background-black-foundation-v1')
 const PROJECT_ROOT = path.join(FIXTURE_ROOT, 'project')
 const HISTORICAL_BASELINE = path.join(REPO_ROOT, 'tests', 'aceptacion', 'background-black-foundation-v1', 'historical-v15-baseline.png')
@@ -227,7 +229,7 @@ app.whenReady().then(async () => {
     })
     await runCase('11 proyectos reales permanecen intactos', () => {
       assert.equal(snapshotRealProjects(), projectsBefore)
-      assert.equal(fs.existsSync(path.join(REPO_ROOT, 'project-state.json')), false)
+      rootStateGuard.assertRootStateUnchanged(REPO_ROOT, rootStateBefore)
     })
     assert.equal(completed, EXPECTED_CASES)
     console.log(`HISTORICAL_PIXEL_DIFF=0`)

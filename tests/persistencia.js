@@ -140,6 +140,7 @@ const MUESTRA = {
   voiceModel: 'Modelo X', voiceSpeaker: 'Voz Y', voiceSpeed: 1.4, voiceStability: 71,
   generatedVoices: [{ id: 'g1', timestamp: 2 }],
   graphicsPercent: 33,
+  visualPresentationProfile: 'editorial-hybrid-v1',
   timelineWeights: [11, 22, 67],
   aspectRatio: 'vertical',
   exportResolution: '4K', exportFormat: 'mov', exportQuality: 'high',

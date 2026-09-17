@@ -3,15 +3,11 @@ const {app, ipcMain, dialog} = require('electron')
 const fs = require('fs'), path = require('path'), assert = require('assert/strict')
 const { MARKER, assertSafeFixtureRoot, assertFixtureChild, createTestFixture, cleanupTestFixture, removeFixtureFile } = require('./helpers/safe-fixture')
 const REPO_ROOT = path.resolve(__dirname, '..')
+const rootStateGuard = require('./helpers/repository-state-guard')
+const rootStateBefore = rootStateGuard.captureRootState(REPO_ROOT)
 const root = createTestFixture('assets-persistence')
 process.chdir(root)
-const rootProjectStateFiles = [
-  path.join(REPO_ROOT, 'project-state.json'),
-  path.join(REPO_ROOT, 'project-state.json.bak'),
-]
-const assertNoRepositoryProjectState = () => {
-  for (const file of rootProjectStateFiles) assert(!fs.existsSync(file), 'la suite no puede crear ' + file)
-}
+const assertRepositoryProjectStateUnchanged = () => rootStateGuard.assertRootStateUnchanged(REPO_ROOT, rootStateBefore)
 let passed = 0
 const test = (name, fn) => { fn(); passed++; console.log('OK ' + name) }
 const put = (p,v) => { fs.mkdirSync(path.dirname(p),{recursive:true}); fs.writeFileSync(p,JSON.stringify(v)) }
@@ -32,7 +28,7 @@ app.whenReady().then(async () => {
     validation:{status:'accepted',validationRevision:'fixture-v1',warnings:[]}})
   const m = (assets=[]) => ({assetManifestVersion:1,assets})
   test('fixture isolation rejects repository-like roots and only cleans its own exact temporary directory',()=>{
-    assertNoRepositoryProjectState()
+    assertRepositoryProjectStateUnchanged()
     assert.throws(()=>assertSafeFixtureRoot(REPO_ROOT), error=>error && error.code==='CIPHER_TEST_FIXTURE_UNSAFE')
     const isolation = createTestFixture('isolation')
     const withGit = path.join(isolation, 'with-git')
@@ -62,7 +58,23 @@ app.whenReady().then(async () => {
       if (fs.existsSync(sibling)) cleanupTestFixture(sibling)
       if (fs.existsSync(isolation)) cleanupTestFixture(isolation)
     }
-    assertNoRepositoryProjectState()
+    assertRepositoryProjectStateUnchanged()
+  })
+  test('root-state guard preserves pre-existing bytes and detects mutations',()=>{
+    const guardFixture = createTestFixture('root-state-guard')
+    try {
+      const state = path.join(guardFixture, 'project-state.json')
+      const backup = path.join(guardFixture, 'project-state.json.bak')
+      fs.writeFileSync(state, 'existing state')
+      fs.writeFileSync(backup, 'existing backup')
+      const before = rootStateGuard.captureRootState(guardFixture)
+      rootStateGuard.assertRootStateUnchanged(guardFixture, before)
+      fs.writeFileSync(state, 'changed state')
+      assert.throws(() => rootStateGuard.assertRootStateUnchanged(guardFixture, before))
+      fs.writeFileSync(state, 'existing state')
+      fs.writeFileSync(backup, 'changed backup')
+      assert.throws(() => rootStateGuard.assertRootStateUnchanged(guardFixture, before))
+    } finally { cleanupTestFixture(guardFixture) }
   })
   test('legacy migrates in memory without mutation or unknown-field loss',()=>{
     const copy=JSON.stringify(legacy),r=b.migrateProjectState(legacy)
@@ -233,7 +245,7 @@ app.whenReady().then(async () => {
   assert.deepEqual(b.readAssetStorage(rt).manifest,m())
   passed++;console.log('OK integrated temporary project + substrate + empty manifest round trip')
   await call('close-project')
-  assertNoRepositoryProjectState()
+  assertRepositoryProjectStateUnchanged()
   console.log('ASSETS PERSISTENCE: '+passed+' groups passed on '+process.platform+'; fixtures: '+root)
   process.chdir(path.dirname(root))
   cleanupTestFixture(root)

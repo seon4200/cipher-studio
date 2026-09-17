@@ -8,6 +8,8 @@ const path = require('path')
 const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
 
 const REPO_ROOT = path.resolve(__dirname, '..')
+const rootStateGuard = require('./helpers/repository-state-guard')
+const rootStateBefore = rootStateGuard.captureRootState(REPO_ROOT)
 const FIXTURE_ROOT = createTestFixture('visual-functional-baseline-v1')
 const CASOS_ESPERADOS = 12
 let completed = 0
@@ -259,8 +261,7 @@ app.whenReady().then(async () => {
     await runCase('12 ningún proyecto real cambia ni aparece fixture en el repositorio', () => {
       assert.equal(snapshotRealProjects(), realBefore)
       assert.equal(fs.existsSync(path.join(REPO_ROOT, '.cipher-test-fixture')), false)
-      assert.equal(fs.existsSync(path.join(REPO_ROOT, 'project-state.json')), false)
-      assert.equal(fs.existsSync(path.join(REPO_ROOT, 'project-state.json.bak')), false)
+      rootStateGuard.assertRootStateUnchanged(REPO_ROOT, rootStateBefore)
     })
 
     assert.equal(completed, CASOS_ESPERADOS)

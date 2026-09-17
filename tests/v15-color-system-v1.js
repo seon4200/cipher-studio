@@ -11,6 +11,8 @@ const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixtur
 const { sceneSpecV15, graphicForV15, bindingsForV15 } = require('./helpers/motion-graphics-v15-fixture')
 
 const REPO_ROOT = path.resolve(__dirname, '..')
+const rootStateGuard = require('./helpers/repository-state-guard')
+const rootStateBefore = rootStateGuard.captureRootState(REPO_ROOT)
 const FIXTURE_ROOT = createTestFixture('v15-color-system-v1')
 const PROJECT_ROOT = path.join(FIXTURE_ROOT, 'project')
 const D_FINAL_BASELINE = path.join(REPO_ROOT, 'tests', 'aceptacion', 'v15-color-system-v1', 'd-final-historical-baseline.png')
@@ -352,7 +354,7 @@ app.whenReady().then(async () => {
     await runCase('16 cero red y proyectos reales intactos', () => {
       assert.equal(networkAttempts, startupNetworkBaseline)
       assert.equal(snapshotRealProjects(), projectsBefore)
-      assert.equal(fs.existsSync(path.join(REPO_ROOT, 'project-state.json')), false)
+      rootStateGuard.assertRootStateUnchanged(REPO_ROOT, rootStateBefore)
     })
     assert.equal(completed, EXPECTED_CASES)
     console.log('COLOR_PALETTE_FAMILIES=9')
