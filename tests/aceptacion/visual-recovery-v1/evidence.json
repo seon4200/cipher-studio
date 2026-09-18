@@ -1,0 +1,812 @@
+{
+  "source": "controlled-synthetic-12-plus-8",
+  "fps": 24,
+  "blockedNetwork": 1,
+  "scale": "1",
+  "records": [
+    {
+      "id": "01-object-hero",
+      "kind": "object-hero",
+      "text": "la cámara registró el momento decisivo",
+      "family": "cintaDiagonal",
+      "look": "editorial-strong",
+      "keyword": "CÁMARA",
+      "data": null,
+      "choices": [
+        [
+          "hero",
+          "photo-cutout",
+          "22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab"
+        ],
+        [
+          "support-1",
+          "openmoji",
+          "c44b74e9cbeff82066dc000a880212e6d5e4bde95b920967e7ea4903f5c8daf9"
+        ]
+      ],
+      "beforeIdentitySha256": "27c9515a138c143f712d7fec3a0635d4eabcdfc26786e1fff57e0663af9a1e8d",
+      "afterIdentitySha256": "8c6395ebed364f7bee8eba607cc99028dcab516421d1e170dc6932e4de7c4c57",
+      "beforeV": {
+        "ms": 2262.0648,
+        "frameMs": 55.44276470588236,
+        "errors": [],
+        "fitStages": [],
+        "contrast": 15.978197565194305
+      },
+      "afterV": {
+        "ms": 2484.090200000006,
+        "frameMs": 60.884563725490345,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 12.62201351513344
+      },
+      "afterH": {
+        "ms": 2499.9320000000007,
+        "frameMs": 61.272843137254924,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 12.62201351513344
+      }
+    },
+    {
+      "id": "02-object-support",
+      "kind": "object-support",
+      "text": "la mujer levantó la cámara para mostrar la historia",
+      "family": "partidoVertical",
+      "look": "editorial-strong",
+      "keyword": "HISTORIA",
+      "data": null,
+      "choices": [
+        [
+          "hero",
+          "photo-cutout",
+          "53b95d6097cbe2776c566bb52f61337314cf859a756be0e9e57d852ec05e47b3"
+        ],
+        [
+          "support-1",
+          "photo-cutout",
+          "22211fdc903c06c17ea6e981f4c22f39a56ab384e421889f2e23f82b59c93dab"
+        ]
+      ],
+      "beforeIdentitySha256": "652e223772e8b73b5b58fc97287bd5f6dc4b0002cd84b7af58497084ad2c1ed7",
+      "afterIdentitySha256": "2bb64d31d6d55b4d37a2c8c85d27d653667779797a5dd664c5d7fd09c53b1958",
+      "beforeV": {
+        "ms": 2357.249499999998,
+        "frameMs": 57.77572303921564,
+        "errors": [],
+        "fitStages": [],
+        "contrast": 15.978197565194305
+      },
+      "afterV": {
+        "ms": 2388.184300000001,
+        "frameMs": 58.53392892156865,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 14.905008832290015
+      },
+      "afterH": {
+        "ms": 2437.144800000009,
+        "frameMs": 59.733941176470815,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 14.1672849448441
+      }
+    },
+    {
+      "id": "03-person",
+      "kind": "person-cutout",
+      "text": "una trabajadora explicó el proyecto a sus colegas",
+      "family": "partidoVertical",
+      "look": "editorial-strong",
+      "keyword": "PROYECTO",
+      "data": null,
+      "choices": [
+        [
+          "hero",
+          "openmoji",
+          "5af3f09c5e65bc99be4b8b5846225368e0685135ace40bbe3971c9c120fe4960"
+        ],
+        [
+          "support-1",
+          "openmoji",
+          "db6bfb280879f7e5be140559b2db39e0417d8ef9acdabe4fe5d77882eb6892d8"
+        ]
+      ],
+      "beforeIdentitySha256": "444f1a6b61351ced979dfd3561f5389162e9216545ddafd09cc0a7b5c6d2a413",
+      "afterIdentitySha256": "441d76aa3618a82fc047ca63669d7cb4cf60efecd8b0cc6490625922a2b8420b",
+      "beforeV": {
+        "ms": 2241.169099999999,
+        "frameMs": 54.93061519607841,
+        "errors": [],
+        "fitStages": [],
+        "contrast": 15.978197565194305
+      },
+      "afterV": {
+        "ms": 2290.109700000001,
+        "frameMs": 56.13013970588238,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.391850206086925
+      },
+      "afterH": {
+        "ms": 2523.1330000000016,
+        "frameMs": 61.84149509803926,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 15.362946344828531
+      }
+    },
+    {
+      "id": "04-place",
+      "kind": "contextual-place",
+      "text": "la protesta reunió a una multitud en la plaza",
+      "family": "cuaderno",
+      "look": "editorial-strong",
+      "keyword": "PROTESTA",
+      "data": null,
+      "choices": [
+        [
+          "hero",
+          "pixabay-images",
+          "400146d8f4fae72528a5767712df411571695be577b346c21ceaa9547cb764d7"
+        ],
+        [
+          "support-1",
+          "openmoji",
+          "2148623d40ef1fca2f55277560a7c8539662af7114861343dfee51768f6b77be"
+        ]
+      ],
+      "beforeIdentitySha256": "4e2150c812ba5660aeab46ed65a6e11ccf00e512ef09fac563cf7d3133537274",
+      "afterIdentitySha256": "9436cc52463a21d90511bec1d4f20c39057c47704e7ec8d37c3a65e61a9bc806",
+      "beforeV": {
+        "ms": 2419.231300000003,
+        "frameMs": 59.29488480392165,
+        "errors": [],
+        "fitStages": [],
+        "contrast": 15.654167089809068
+      },
+      "afterV": {
+        "ms": 2307.364099999999,
+        "frameMs": 56.553041666666644,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 14.114219448126448
+      },
+      "afterH": {
+        "ms": 2535.303700000004,
+        "frameMs": 62.13979656862755,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 14.114219448126448
+      }
+    },
+    {
+      "id": "05-symbol",
+      "kind": "symbol",
+      "text": "una idea conecta a todo el equipo",
+      "family": "marcoPoster",
+      "look": "editorial-strong",
+      "keyword": "IDEA",
+      "data": null,
+      "choices": [
+        [
+          "hero",
+          "solar",
+          "lightbulb-bold-duotone"
+        ],
+        [
+          "support-1",
+          "openmoji",
+          "2148623d40ef1fca2f55277560a7c8539662af7114861343dfee51768f6b77be"
+        ]
+      ],
+      "beforeIdentitySha256": "3043ee948d10651dd9e66f92366f4eb4c26cf31ecbede9d40f52d385b4bbc14b",
+      "afterIdentitySha256": "016deb821757ca72fd9b3a03f450a9e0b483bde5d160b7e96b0fe089be7e1116",
+      "beforeV": {
+        "ms": 2010.949700000001,
+        "frameMs": 49.287982843137286,
+        "errors": [],
+        "fitStages": [],
+        "contrast": 15.978197565194305
+      },
+      "afterV": {
+        "ms": 2153.3062999999966,
+        "frameMs": 52.77711519607835,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 15.887484650757767
+      },
+      "afterH": {
+        "ms": 1969.9072000000015,
+        "frameMs": 48.28203921568631,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 15.77551565386051
+      }
+    },
+    {
+      "id": "06-data",
+      "kind": "confirmed-data",
+      "text": "el resultado confirmado fue 72%",
+      "family": "partidoVertical",
+      "look": "editorial-strong",
+      "keyword": "resultado",
+      "data": "72%",
+      "choices": [
+        [
+          "hero",
+          "openmoji",
+          "ffa35865faf9748297c15cd048b1d5b25de8dde30a541094c5dc99d71043c389"
+        ]
+      ],
+      "beforeIdentitySha256": "e8908407acfe39ce652067d0d993ce1be2a615c5bd4411dbdaa7ac832da527b2",
+      "afterIdentitySha256": "ce06cd2cd34913dfe535eff73792f3bd778d95cd4607c89c2070efd2713dcaa6",
+      "beforeV": {
+        "ms": 2093.1840999999986,
+        "frameMs": 51.30353186274507,
+        "errors": [],
+        "fitStages": [],
+        "contrast": 15.978197565194305
+      },
+      "afterV": {
+        "ms": 2184.9101999999984,
+        "frameMs": 53.55172058823526,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.391850206086925
+      },
+      "afterH": {
+        "ms": 2048.3083999999944,
+        "frameMs": 50.20363725490183,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.391850206086925
+      }
+    },
+    {
+      "id": "07-comparison",
+      "kind": "comparison",
+      "text": "el teléfono y la computadora cumplen tareas distintas",
+      "family": "cuaderno",
+      "look": "editorial-strong",
+      "keyword": "DISTINTAS",
+      "data": null,
+      "choices": [
+        [
+          "hero",
+          "openmoji",
+          "a69cdc48cf92ad4d52a58847393a2403c469673d2738fd88de01273817a6f9ab"
+        ],
+        [
+          "support-1",
+          "openmoji",
+          "105092431b78ab7c2bf30017fe7eb5e5c828057ac6f864fe733761ab1dccf7cd"
+        ]
+      ],
+      "beforeIdentitySha256": "aa5ab76112444f93869233b3f7762761659062f791808e9821564c8e6a8fe337",
+      "afterIdentitySha256": "efb39c0442ba6aa8cf10a01f4b68a82f76dff9b922e371101992e42bdf8a3719",
+      "beforeV": {
+        "ms": 2357.4002000000037,
+        "frameMs": 57.77941666666676,
+        "errors": [],
+        "fitStages": [],
+        "contrast": 15.811088395340963
+      },
+      "afterV": {
+        "ms": 2300.556700000001,
+        "frameMs": 56.38619362745101,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 15.52217603979652
+      },
+      "afterH": {
+        "ms": 2469.6542000000045,
+        "frameMs": 60.53074019607855,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 14.338167933362273
+      }
+    },
+    {
+      "id": "08-process",
+      "kind": "three-step-process",
+      "text": "primero la idea, luego el diseño y finalmente la publicación",
+      "family": "lineaTiempo",
+      "look": "editorial-strong",
+      "keyword": "idea",
+      "data": null,
+      "choices": [
+        [
+          "hero",
+          "solar",
+          "lightbulb-bold-duotone"
+        ],
+        [
+          "support-1",
+          "openmoji",
+          "f0f4c6c8767d6a51195d96100fad704fa8166c9b7246b10cacd5a7ed44a32a9f"
+        ],
+        [
+          "support-2",
+          "openmoji",
+          "cdd5b3658ac9288b381734516f7cdd28c933be9a323a370df0a18859ada290ea"
+        ]
+      ],
+      "beforeIdentitySha256": "5623e92d307a33a4ccedfdebd8ebfe74173627c5991913bb4ad15281e996b0bb",
+      "afterIdentitySha256": "68e81854b364269cb4f0a80475fdc92a155390b83144df19467eeae91584f180",
+      "beforeV": {
+        "ms": 2314.217700000001,
+        "frameMs": 56.72102205882356,
+        "errors": [],
+        "fitStages": [],
+        "contrast": 15.978197565194305
+      },
+      "afterV": {
+        "ms": 2274.8404999999984,
+        "frameMs": 55.7558946078431,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.377774718592853
+      },
+      "afterH": {
+        "ms": 2328.2874999999913,
+        "frameMs": 57.06587009803901,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 17.381809455478944
+      }
+    },
+    {
+      "id": "09-cause",
+      "kind": "cause-effect",
+      "text": "el incendio destruyó árboles y cortó el suministro de agua",
+      "family": "cuaderno",
+      "look": "editorial-strong",
+      "keyword": "INCENDIO",
+      "data": null,
+      "choices": [
+        [
+          "hero",
+          "openmoji",
+          "c9d2cc9cedfa557ff34c859b8af6556436913ec0c73a65a6533676698c3edcf0"
+        ],
+        [
+          "support-1",
+          "openmoji",
+          "5e9aa542a9e8bce244c326fd2d1427f432ad72e5d8ba92905f3d801d393f6b63"
+        ],
+        [
+          "support-2",
+          "openmoji",
+          "ec3895fbd78797679bad1be852d05e659977a010764a7b049822ef7c687ae18c"
+        ]
+      ],
+      "beforeIdentitySha256": "23490a0b10bee797f6a7e768c4a72cb5cc1388ff779f7e5816b398bee39ac3cf",
+      "afterIdentitySha256": "c9e21229744645ba31699edc895cc55a9cf01d5fc9da7682f8375c37e3f97918",
+      "afterV": {
+        "ms": 2673.3865000000005,
+        "frameMs": 65.52417892156865,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.459612726204355
+      },
+      "afterH": {
+        "ms": 2615.2548000000097,
+        "frameMs": 64.09938235294142,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.459612726204355
+      }
+    },
+    {
+      "id": "10-timeline",
+      "kind": "temporal-sequence",
+      "text": "la semilla brotó y con los años se hizo árbol",
+      "family": "marcoPoster",
+      "look": "editorial-strong",
+      "keyword": "semilla",
+      "data": null,
+      "choices": [
+        [
+          "hero",
+          "openmoji",
+          "5e9aa542a9e8bce244c326fd2d1427f432ad72e5d8ba92905f3d801d393f6b63"
+        ],
+        [
+          "support-1",
+          "openmoji",
+          "c12bbb477a76f25279cc908beb8de5b9c1a72abc707242b2aeb4a2ec73314e45"
+        ]
+      ],
+      "beforeIdentitySha256": "439c72af709126fe42e524cb77aaeaf780dd88e7198bf99589e5f4e343645406",
+      "afterIdentitySha256": "68c74e51ab4433a88cb5c37bde3b4c8de68ebb3189dc511850ad293759515b04",
+      "afterV": {
+        "ms": 2210.1097999999984,
+        "frameMs": 54.16935784313722,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 15.13428916566699
+      },
+      "afterH": {
+        "ms": 2215.8466000000044,
+        "frameMs": 54.30996568627462,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 15.13428916566699
+      }
+    },
+    {
+      "id": "11-relation",
+      "kind": "three-way-relation",
+      "text": "trabajadores construyeron un estadio para el fútbol",
+      "family": "rayosImpacto",
+      "look": "editorial-strong",
+      "keyword": "CONSTRUYERON",
+      "data": null,
+      "choices": [
+        [
+          "hero",
+          "openmoji",
+          "db6bfb280879f7e5be140559b2db39e0417d8ef9acdabe4fe5d77882eb6892d8"
+        ],
+        [
+          "support-1",
+          "openmoji",
+          "fb1eb8be5649d11f8d051fb7c8d6543f3b7d078aa87dd4c87a3d676c58ba37f8"
+        ],
+        [
+          "support-2",
+          "openmoji",
+          "f3d7e883a1d7a0776e5aa16ea857530884a3c12b192475fb116d351241f0bc8a"
+        ]
+      ],
+      "beforeIdentitySha256": "c115ca7e322d83fbbd470871d03a63aca42d6bfdebb4a1f5bf0f7bddef2b6b40",
+      "afterIdentitySha256": "7aa53455f6f55f374552f5aba57450b85a5152ac16a955f7ea851293718e5b9f",
+      "afterV": {
+        "ms": 2641.685399999995,
+        "frameMs": 64.74719117647047,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 14.132735851551264
+      },
+      "afterH": {
+        "ms": 2497.9109000000026,
+        "frameMs": 61.22330637254909,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 14.905008832290015
+      }
+    },
+    {
+      "id": "12-editorial",
+      "kind": "legitimate-editorial",
+      "text": "la incertidumbre no desaparece con una sola respuesta",
+      "family": "editorial",
+      "look": "editorial-strong",
+      "keyword": "INCERTIDUMBRE",
+      "data": null,
+      "choices": [],
+      "beforeIdentitySha256": "8d6a2392ebade7f866d8fbb575ed8fe4ed0c1115893b7ad72a92ece77c39f4ff",
+      "afterIdentitySha256": "600fd41326033b8b3c03b0156b8d57ab22d5c1d74e95e0ccb30fc910f9a02a31",
+      "afterV": {
+        "ms": 1770.911500000002,
+        "frameMs": 43.40469362745103,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.391850206086925
+      },
+      "afterH": {
+        "ms": 1633.3323999999993,
+        "frameMs": 40.032656862745085,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 15.695539795621666
+      }
+    },
+    {
+      "id": "13-long-word",
+      "kind": "long-word",
+      "text": "INCONSTITUCIONALIDAD",
+      "family": "editorial",
+      "look": "editorial-strong",
+      "keyword": "INCONSTITUCIONALIDAD",
+      "data": null,
+      "choices": [],
+      "beforeIdentitySha256": "7c0f053d1cd9a00909af412204b84f5a9ef0941038c56f3beab25b9b37248002",
+      "afterIdentitySha256": "e0e3532376ebb1400372a6ed54f5d9200748026968f56fa8ca98f9101d8513ac",
+      "afterV": {
+        "ms": 1747.0715999999957,
+        "frameMs": 45.49665624999988,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.391850206086925
+      },
+      "afterH": {
+        "ms": 1738.190699999992,
+        "frameMs": 45.26538281249978,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 15.695539795621666
+      }
+    },
+    {
+      "id": "14-long-adverb",
+      "kind": "long-word",
+      "text": "EXTRAORDINARIAMENTE",
+      "family": "editorial",
+      "look": "editorial-strong",
+      "keyword": "EXTRAORDINARIAMENTE",
+      "data": null,
+      "choices": [],
+      "beforeIdentitySha256": "bacee8a2a9fa874bac7637559a78b8b4bf37fe74d04cabb32d8569712d80b626",
+      "afterIdentitySha256": "513b2ca4612c293fa8757b977bc79ff2552e31bc7e45df067bea9de8fecc8099",
+      "afterV": {
+        "ms": 1795.0100000000093,
+        "frameMs": 46.74505208333357,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.391850206086925
+      },
+      "afterH": {
+        "ms": 1852.2446999999956,
+        "frameMs": 48.23553906249988,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 15.803490355809991
+      }
+    },
+    {
+      "id": "15-ai-phrase",
+      "kind": "multiword-keyword",
+      "text": "La inteligencia artificial procesó los datos del experimento",
+      "family": "editorial",
+      "look": "editorial-strong",
+      "keyword": "inteligencia artificial",
+      "data": null,
+      "choices": [],
+      "beforeIdentitySha256": "22e31e95278776dd6ab3b470f35db5a1c98aca5843686c1e8563cae99db9fa01",
+      "afterIdentitySha256": "38f7423b713b7f0edd2c1bc8909c52061788f1cb801f9c3a5142284c4855301a",
+      "afterV": {
+        "ms": 1830.2243999999919,
+        "frameMs": 47.662093749999784,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.303970228417892
+      },
+      "afterH": {
+        "ms": 1748.8245000000024,
+        "frameMs": 45.54230468750006,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 15.803490355809991
+      }
+    },
+    {
+      "id": "16-confirmed-percent",
+      "kind": "percentage",
+      "text": "El resultado confirmado alcanzó el 72%",
+      "family": "cintaDiagonal",
+      "look": "editorial-strong",
+      "keyword": "resultado",
+      "data": "72%",
+      "choices": [
+        [
+          "hero",
+          "openmoji",
+          "ffa35865faf9748297c15cd048b1d5b25de8dde30a541094c5dc99d71043c389"
+        ]
+      ],
+      "beforeIdentitySha256": "f8a396e4e883ded422449b8554803f84c07f49052d5c4f81762f1ab43eba25c7",
+      "afterIdentitySha256": "b9eff712a51eb9716cece8db5d986b80ddd138ee53e63e68ad6ba02ef2115c8c",
+      "afterV": {
+        "ms": 2088.50529999999,
+        "frameMs": 54.38815885416639,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.391850206086925
+      },
+      "afterH": {
+        "ms": 2230.4467000000004,
+        "frameMs": 58.08454947916667,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.391850206086925
+      }
+    },
+    {
+      "id": "17-date",
+      "kind": "date",
+      "text": "2026",
+      "family": "editorial",
+      "look": "editorial-strong",
+      "keyword": "2026",
+      "data": null,
+      "choices": [],
+      "beforeIdentitySha256": "8118eca554a4fc2fe5ca2fbd6b92a79efc36d94f9b0b1ada8c21a9256efbeba6",
+      "afterIdentitySha256": "22cb79026162a18708afc646cce10ef92409ca79605e4774bbc0b119b63e8386",
+      "afterV": {
+        "ms": 1622.4305000000022,
+        "frameMs": 42.25079427083338,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.391850206086925
+      },
+      "afterH": {
+        "ms": 1662.573000000004,
+        "frameMs": 43.2961718750001,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 15.803490355809991
+      }
+    },
+    {
+      "id": "18-question",
+      "kind": "punctuation",
+      "text": "¿QUÉ PASÓ REALMENTE?",
+      "family": "editorial",
+      "look": "editorial-strong",
+      "keyword": "PASÓ",
+      "data": null,
+      "choices": [],
+      "beforeIdentitySha256": "35e2320849970f5e0014b356b378d19d7b68999a1af00b2e49144c2bdf5055b7",
+      "afterIdentitySha256": "4ad7c429b62cfe7636eb208191cc10e4c8cb3adf7c1788928a604134ec57a555",
+      "afterV": {
+        "ms": 1847.645599999989,
+        "frameMs": 48.11577083333304,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.391850206086925
+      },
+      "afterH": {
+        "ms": 1713.3318,
+        "frameMs": 44.61801562499999,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 15.803490355809991
+      }
+    },
+    {
+      "id": "19-long-secondary",
+      "kind": "long-secondary",
+      "text": "El documento cambió la historia de la ciudad para siempre",
+      "family": "partidoVertical",
+      "look": "editorial-strong",
+      "keyword": "DOCUMENTO",
+      "data": null,
+      "choices": [
+        [
+          "hero",
+          "solar",
+          "document-bold-duotone"
+        ],
+        [
+          "support-1",
+          "openmoji",
+          "6f960c58da749f96f0862bff1f5bc5896dc5e2014227e949625f028af959acbe"
+        ]
+      ],
+      "beforeIdentitySha256": "d05ed06920ae2370eb39a7b2dabadb88555a9b4dd0c760d1ea33eaf89f5c66df",
+      "afterIdentitySha256": "6be9259b25c1da0e56f248d51ad9d007700715839e4b473de6a2985fb1b2151d",
+      "afterV": {
+        "ms": 2162.6649999999936,
+        "frameMs": 56.31940104166649,
+        "errors": [],
+        "fitStages": [
+          "condensed"
+        ],
+        "contrast": 17.381809455478944
+      },
+      "afterH": {
+        "ms": 2032.6018999999942,
+        "frameMs": 52.93234114583318,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.06793229863217
+      }
+    },
+    {
+      "id": "20-editorial-no-asset",
+      "kind": "editorial",
+      "text": "Nadie pudo responder con certeza",
+      "family": "editorial",
+      "look": "editorial-strong",
+      "keyword": "CERTEZA",
+      "data": null,
+      "choices": [],
+      "beforeIdentitySha256": "f6b8a2c5200e39ea4e50e34923fcf69937f1c2597d9771cd3f8363f039a858dd",
+      "afterIdentitySha256": "3f74ce58272936ac90675a94e86e208557270653dec284c4deb0904c0c3c58db",
+      "afterV": {
+        "ms": 1822.9372000000003,
+        "frameMs": 47.47232291666667,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 16.391850206086925
+      },
+      "afterH": {
+        "ms": 1715.2089000000124,
+        "frameMs": 44.666898437500315,
+        "errors": [],
+        "fitStages": [
+          "balanced"
+        ],
+        "contrast": 15.928557468371956
+      }
+    }
+  ]
+}

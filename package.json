@@ -45,6 +45,8 @@
     "test:photo-representation-policy-v1": "electron tests/photo-representation-policy-v1.js",
     "test:editorial-motion-pilot-v1": "electron tests/editorial-motion-pilot-v1.js",
     "test:dpi-safe-offscreen-capture": "electron tests/dpi-safe-offscreen-capture.js",
+    "test:visual-recovery-v1": "electron tests/visual-recovery-v1.js",
+    "test:visual-recovery-text-safe-v1": "electron tests/visual-recovery-text-safe-v1.js",
     "accept:photo-representation-runtime-v1": "electron tests/aceptacion/photo-representation-runtime-v1/generar.cjs",
     "accept:visual-asset-mvp": "electron tests/aceptacion/visual-asset-mvp/generar.cjs",
     "accept:asset-resolver-v1": "electron tests/aceptacion/asset-resolver-v1/generar.cjs",
