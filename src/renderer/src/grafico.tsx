@@ -8,7 +8,9 @@ import { flushSync } from 'react-dom'
 import { AnimatedGraphic } from './AnimatedGraphic'
 import { NombreSistema } from './sistemas'
 import { FUENTES_RENDER, MUESTRA_FUENTES, faltaLaFuentePorAncho } from './fuentes-render'
-import type { PreparedRenderAssetAny, RuntimeRenderAssetAny } from '../../shared/visual-scene-spec-v2'
+import type { PreparedRenderAssetAny, RuntimeRenderAssetAny, RuntimeRenderAssetV2 } from '../../shared/visual-scene-spec-v2'
+import { measurePhotoProbeV1 } from './composiciones/photo-text-contrast-v1'
+import { VISUAL_RECOVERY_PROFILE_V1 } from '../../shared/editorial-motion-profile-v1'
 import './styles/globals.css'
 
 // Franja de la SONDA, encima del lienzo. El proceso principal codifica ahi el indice de
@@ -122,7 +124,7 @@ function liberarRuntimeAssets() {
   runtimeAssets = []
 }
 
-async function prepararRuntimeAssets(assets: readonly PreparedRenderAssetAny[]): Promise<RuntimeRenderAssetAny[]> {
+async function prepararRuntimeAssets(assets: readonly PreparedRenderAssetAny[], probePhoto: boolean): Promise<RuntimeRenderAssetAny[]> {
   const preparados: RuntimeRenderAssetAny[] = []
   try {
     for (const asset of assets) {
@@ -134,12 +136,16 @@ async function prepararRuntimeAssets(assets: readonly PreparedRenderAssetAny[]):
       for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index)
       const objectUrl = URL.createObjectURL(new Blob([bytes], { type: asset.mime }))
       // Register before decode so a decode failure also revokes this exact URL in the catch.
-      preparados.push({ slotId: asset.slotId, assetId: asset.assetId, mime: asset.mime, objectUrl })
+      const prepared: RuntimeRenderAssetV2 = { slotId: asset.slotId, assetId: asset.assetId,
+        mime: asset.mime, objectUrl }
+      preparados.push(prepared)
       // Decoding completes before frame zero can be captured. The URL remains alive until the
       // next __montar, so the verified bytes cannot change midway through a clip.
       const image = new Image()
       image.src = objectUrl
       await image.decode()
+      if (probePhoto && (asset.mime === 'image/jpeg' || asset.mime === 'image/webp' || asset.mime === 'image/png'))
+        prepared.photoProbe = measurePhotoProbeV1(image)
     }
     return preparados
   } catch (error) {
@@ -217,7 +223,8 @@ function montarGraphicData(graphicData: any, op: Partial<Opciones>) {
     montarGraphicData(graphicData, op)
     return undefined
   }
-  return prepararRuntimeAssets(preparedAssets).then(prepared => {
+  const probePhoto = graphicData?.extra?.sceneSpec?.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision
+  return prepararRuntimeAssets(preparedAssets, probePhoto).then(prepared => {
     runtimeAssets = prepared
     montarGraphicData(graphicData, op)
   })
@@ -250,6 +257,9 @@ const rect = (element: Element | null) => {
     keywordOpacity: keyword ? Number(getComputedStyle(keyword).opacity) : 0,
     textColor: keyword ? getComputedStyle(keyword).color : null,
     textOverflow: text ? text.scrollWidth > text.clientWidth + 1 || text.scrollHeight > text.clientHeight + 1 : false,
+    textFitFailed: text?.dataset.qcFitFailed === 'true',
+    textFitStage: text?.dataset.qcFitStage ?? null,
+    textFitDiagnostic: text?.dataset.qcFitDiagnostic ?? null,
     // The keyword owns its line box; a tight Archivo Black line-height can make scrollHeight
     // exceed clientHeight without clipping. Horizontal overflow is the broken-word condition.
     keywordOverflow: keyword ? keyword.scrollWidth > keyword.clientWidth + 1 : false,
