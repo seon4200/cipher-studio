@@ -1,5 +1,6 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, screen } from 'electron'
 import path from 'path'
+import os from 'os'
 import { spawn, exec } from 'child_process'
 import { once } from 'events'
 import { createHash, randomUUID } from 'crypto'
@@ -63,6 +64,8 @@ import { writeVisualDecisionDiagnostic } from './services/visual-decision-diagno
 import { prepareOriginalClipSegmentation } from './services/original-clip-segmentation'
 import { prepareGraphicForVisualRender, visualRenderRoot } from './assets/visual-render'
 import { runVisualRuntimeQc, VisualRuntimeQcError, type VisualRuntimeQcReport } from './assets/visual-qc'
+import { classifyGraphicsCapture, requireExactGraphicsCapture } from './graphics-capture-diagnostics'
+export * from './graphics-capture-diagnostics'
 export * from './assets/visual-qc'
 import { pathToFileURL } from 'url'
 import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, getVideoDimensions } from './services/ffmpeg'
@@ -202,6 +205,14 @@ loadEnv()
 process.env.DIST = path.join(__dirname, '../..')
 process.env.PUBLIC = app.isPackaged ? path.join(process.env.DIST, 'dist') : path.join(process.env.DIST, 'public')
 
+const GRAPHICS_JOB_ARG = '--cipher-graphics-job='
+const graphicsJobPath = process.argv.find(arg => arg.startsWith(GRAPHICS_JOB_ARG))?.slice(GRAPHICS_JOB_ARG.length)
+if (graphicsJobPath) {
+  const workerUserData = path.join(path.dirname(graphicsJobPath), 'userData')
+  fs.mkdirSync(workerUserData, { recursive: true })
+  app.setPath('userData', workerUserData)
+}
+
 let win: BrowserWindow | null = null
 const preload = path.join(__dirname, '../preload/index.js')
 const url = process.env.VITE_DEV_SERVER_URL
@@ -300,9 +311,14 @@ async function initClipFolders() {
 }
 
 app.whenReady().then(async () => {
+  if (graphicsJobPath) {
+    await runGraphicsWorkerJob(graphicsJobPath)
+    app.quit()
+    return
+  }
   await initClipFolders()
   createWindow()
-})
+}).catch(error => { console.error('[GRAFICO] Worker/startup:', error); app.exit(1) })
 
 app.on('window-all-closed', () => {
   win = null
@@ -1270,12 +1286,92 @@ export function hashGrafico(graphicData: any, ancho: number, alto: number,
   );
 }
 
+type GraphicsWorkerJob = {
+  graphicData: any
+  projectRoot: string
+  options: {
+    ancho: number; alto: number; fps: number; duracion: number;
+    modo: 'overlay' | 'pantalla'; sistema?: string;
+    renderBindings?: RenderBindingsAny;
+  }
+}
+
+type GraphicsWorkerResult = {
+  route: string | null
+  qcFailure?: VisualRuntimeQcReport
+  qcReport?: VisualRuntimeQcReport
+}
+
+async function runGraphicsWorkerJob(jobPath: string): Promise<void> {
+  const job = JSON.parse(await fs.promises.readFile(jobPath, 'utf8')) as GraphicsWorkerJob
+  activeProjectPath = job.projectRoot
+  let qcFailure: VisualRuntimeQcReport | undefined
+  let qcReport: VisualRuntimeQcReport | undefined
+  const route = await renderGraphicClip(job.graphicData, {
+    ...job.options, projectRoot: job.projectRoot,
+    onQcFailure: report => { qcFailure = report },
+    onQcReport: report => { qcReport = report },
+  })
+  const result: GraphicsWorkerResult = { route, qcFailure, qcReport }
+  await fs.promises.writeFile(path.join(path.dirname(jobPath), 'result.json'), JSON.stringify(result), 'utf8')
+  cerrarVentanaGraficos()
+}
+
+/** Electron 31 ties OSR to the primary display. The worker fixes only its own DPI. */
+async function renderGraphicClipAtFixedScale(job: GraphicsWorkerJob): Promise<GraphicsWorkerResult> {
+  const tempRoot = path.resolve(os.tmpdir())
+  const workDir = await fs.promises.mkdtemp(path.join(tempRoot, 'cipher-osr-'))
+  const jobPath = path.join(workDir, 'job.json')
+  const resultPath = path.join(workDir, 'result.json')
+  try {
+    await fs.promises.writeFile(jobPath, JSON.stringify(job), 'utf8')
+    const args = [
+      '--force-device-scale-factor=1',
+      ...(app.isPackaged ? [] : [__filename]),
+      GRAPHICS_JOB_ARG + jobPath,
+    ]
+    const child = spawn(process.execPath, args, {
+      cwd: process.cwd(), windowsHide: true,
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined },
+      stdio: ['ignore', 'ignore', 'pipe'],
+    })
+    let stderr = ''
+    child.stderr.on('data', chunk => {
+      stderr += String(chunk)
+      if (stderr.length > 8000) stderr = stderr.slice(-8000)
+    })
+    const timeoutMs = Math.min(1_200_000, Math.max(120_000, job.options.duracion * job.options.fps * 500))
+    const exitCode = await new Promise<number>((resolve, reject) => {
+      const timeout = setTimeout(() => { child.kill(); reject(new Error(`Worker offscreen excedió ${timeoutMs} ms`)) }, timeoutMs)
+      child.once('error', error => { clearTimeout(timeout); reject(error) })
+      child.once('close', code => { clearTimeout(timeout); resolve(code ?? -1) })
+    })
+    if (exitCode !== 0) throw new Error(`Worker offscreen salió con ${exitCode}: ${stderr.slice(-2000)}`)
+    return JSON.parse(await fs.promises.readFile(resultPath, 'utf8')) as GraphicsWorkerResult
+  } finally {
+    // The resolved target is one direct child made by mkdtemp, never a user or project path.
+    if (path.dirname(path.resolve(workDir)) === tempRoot && path.basename(workDir).startsWith('cipher-osr-')) {
+      await fs.promises.rm(workDir, { recursive: true, force: true }).catch(() => {})
+    }
+  }
+}
+
 async function obtenerVentanaGraficos(ancho: number, alto: number): Promise<BrowserWindow> {
   const altoTotal = alto + SONDA_ALTO;
 
+  const fijarContenidoExacto = (window: BrowserWindow) => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      window.setContentSize(ancho, altoTotal)
+      const [w, h] = window.getContentSize()
+      if (w === ancho && h === altoTotal) return
+    }
+    const [w, h] = window.getContentSize()
+    throw new Error(`CAPTURE_ASPECT_MISMATCH: contenido pedido=${ancho}x${altoTotal} actual=${w}x${h}`)
+  }
+
   if (ventanaGraficos && !ventanaGraficos.isDestroyed()) {
     const [w, h] = ventanaGraficos.getContentSize();
-    if (w !== ancho || h !== altoTotal) ventanaGraficos.setContentSize(ancho, altoTotal);
+    if (w !== ancho || h !== altoTotal) fijarContenidoExacto(ventanaGraficos)
     return ventanaGraficos;
   }
 
@@ -1304,7 +1400,7 @@ async function obtenerVentanaGraficos(ancho: number, alto: number): Promise<Brow
   // Medido: pedir 1080x1928 daba 1080x1032 y los MOV salian cortados por la mitad sin que
   // nada lo dijera. setContentSize DESPUES de cargar si lo aplica. enableLargerThanScreen
   // no sirve — es solo macOS, tambien medido.
-  v.setContentSize(ancho, altoTotal);
+  fijarContenidoExacto(v)
 
   // __listo NO solo espera: FUERZA la carga de Outfit, Archivo y Anton con fonts.load() y
   // comprueba que estan de verdad. Espera aqui, UNA vez por ventana, y no en cada __montar:
@@ -1466,6 +1562,28 @@ export async function renderGraphicClip(
     await writeDebugLog(`[GRAFICO] ${hash} estaba a 0 bytes: no cuenta, se re-renderiza.`);
   } catch (e) { /* no existe: se renderiza */ }
 
+  if (!graphicsJobPath && (preparado.kind === 'scene-spec' ||
+      Math.abs(screen.getPrimaryDisplay().scaleFactor - 1) > 0.0001)) {
+    const hostScale = screen.getPrimaryDisplay().scaleFactor
+    await writeDebugLog(`[GRAFICO] ${hostScale === 1 ? 'CAPTURE_EXACT_SIZE' : 'CAPTURE_UNIFORM_DPI_SCALE'} ` +
+      `hostScale=${hostScale} requested=${ancho}x${alto + SONDA_ALTO}; captura aislada a escala 1`)
+    try {
+      const result = await renderGraphicClipAtFixedScale({
+        graphicData, projectRoot: proyectoRender,
+        options: {
+          ancho, alto, fps, duracion, modo, sistema: opciones.sistema,
+          renderBindings: opciones.renderBindings,
+        },
+      })
+      if (result.qcFailure) await opciones.onQcFailure?.(result.qcFailure)
+      if (result.qcReport) await opciones.onQcReport?.(result.qcReport)
+      return result.route
+    } catch (error: any) {
+      await writeDebugLog(`[GRAFICO] Worker offscreen falló: ${error?.message ?? error}`)
+      return null
+    }
+  }
+
   const yaHabiaLote = loteGraficosActivo;
   loteGraficosActivo = true;
 
@@ -1502,10 +1620,15 @@ export async function renderGraphicClip(
     // que se midio. Si no cuadra se aborta antes de escribir un MOV cortado.
     const sonda0 = await v.webContents.capturePage();
     const tam = sonda0.getSize();
-    if (tam.width !== ancho || tam.height !== alto + SONDA_ALTO) {
-      throw new Error(`la ventana mide ${tam.width}x${tam.height} y se pidio ` +
-        `${ancho}x${alto + SONDA_ALTO}: el MOV saldria recortado`);
-    }
+    const captureDiagnostic = classifyGraphicsCapture(
+      ancho, alto + SONDA_ALTO, tam.width, tam.height,
+      screen.getPrimaryDisplay().scaleFactor, sonda0.isEmpty(),
+    )
+    await writeDebugLog(`[GRAFICO] ${captureDiagnostic.code} ` +
+      `requested=${ancho}x${alto + SONDA_ALTO} actual=${tam.width}x${tam.height} ` +
+      `ratioX=${captureDiagnostic.ratioX.toFixed(6)} ratioY=${captureDiagnostic.ratioY.toFixed(6)} ` +
+      `displayScale=${captureDiagnostic.expectedScale} zoom=${v.webContents.getZoomFactor()}`)
+    requireExactGraphicsCapture(captureDiagnostic)
 
     if (preparado.kind === 'scene-spec') {
       const qc = await runVisualRuntimeQc(v, preparado.sceneSpec, duracion);
@@ -1597,7 +1720,15 @@ export async function renderGraphicClip(
       let frame: Buffer | null = null;
       for (let intento = 1; intento <= MAX_INTENTOS_FRAME; intento++) {
         const img = await v.webContents.capturePage();
+        const frameSize = img.getSize()
+        requireExactGraphicsCapture(classifyGraphicsCapture(
+          ancho, alto + SONDA_ALTO, frameSize.width, frameSize.height,
+          screen.getPrimaryDisplay().scaleFactor, img.isEmpty(),
+        ))
         const raw = img.getBitmap();   // NO copia
+        if (raw.length !== ancho * (alto + SONDA_ALTO) * 4) {
+          throw new Error(`CAPTURE_EMPTY: bitmap bytes=${raw.length} expected=${ancho * (alto + SONDA_ALTO) * 4}`)
+        }
         intentosTotales++;
         // Los TRES canales, no solo uno: la sonda es gris, asi que B, G y R tienen que
         // valer lo mismo Y coincidir con lo esperado. Cuesta igual y descarta ruido.
