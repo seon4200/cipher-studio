@@ -12,6 +12,7 @@ import {
   type VisualSceneSpecAny,
   type VisualSceneSpecV2,
 } from '../../shared/visual-scene-spec-v2'
+import { VISUAL_RECOVERY_PROFILE_V1 } from '../../shared/editorial-motion-profile-v1'
 
 export type VisualQcRect = {
   left: number
@@ -32,6 +33,8 @@ export type VisualDomQcSnapshot = {
   keywordOpacity: number
   textColor: string | null
   textOverflow: boolean
+  textFitFailed?: boolean
+  textFitStage?: string | null
   keywordOverflow?: boolean
   maxLines: string | null
   visibleWords: number
@@ -162,6 +165,9 @@ function evaluateVisualDomQcV2(
       findings.push({ code: 'VISUAL_QC_TEXT_BOUNDS', level: 'error', message: 'Texto V15 fuera de safe area', normalizedTime: at })
     if (snapshot.textOverflow || snapshot.keywordOverflow || !['2', '3'].includes(snapshot.maxLines ?? '') || snapshot.visibleWords > 8)
       findings.push({ code: 'VISUAL_QC_TEXT_OVERFLOW', level: 'error', message: 'Texto V15 recortado o fuera de presupuesto', normalizedTime: at })
+    if (spec.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision && snapshot.textFitFailed)
+      findings.push({ code: 'VISUAL_QC_TEXT_FIT_V2_FAILED', level: 'error',
+        message: `Text Fit V2 no encontró tamaño legible (${snapshot.textFitStage ?? 'sin etapa'})`, normalizedTime: at })
     if (snapshot.decoratorCount !== 0)
       findings.push({ code: 'VISUAL_QC_DECORATOR_BUDGET', level: 'error', message: 'V15 no admite decoradores arbitrarios', normalizedTime: at })
     if (!['none', 'subtle'].includes(snapshot.backgroundMotion ?? ''))
