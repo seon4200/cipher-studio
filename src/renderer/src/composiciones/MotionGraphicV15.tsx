@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useLayoutEffect, useRef } from 'react'
 import { evaluateAssetMotion } from '../../../shared/visual-scene-spec'
 import {
   sceneSpecReactKeyAny,
@@ -16,7 +16,10 @@ import {
   sceneColorRoleTokensV1,
 } from '../../../shared/color-palette-v1'
 import { IconoSolar } from './IconoSolar'
-import { EDITORIAL_MOTION_PROFILE_V2 } from '../../../shared/editorial-motion-profile-v1'
+import { EDITORIAL_MOTION_PROFILE_V2, VISUAL_RECOVERY_PROFILE_V1,
+  VISUAL_RECOVERY_REFINED_FAMILIES } from '../../../shared/editorial-motion-profile-v1'
+import { fitVisualTextV2 } from './text-fit-v2'
+import { chooseTextContrastV1 } from './photo-text-contrast-v1'
 
 function clamp01(value: number): number { return Math.min(1, Math.max(0, value)) }
 function ease(value: number): number { const p = clamp01(value); return 1 - Math.pow(1 - p, 3) }
@@ -113,8 +116,11 @@ const SceneAssetSlot: React.FC<{
   const palette = scenePalette(spec)
   const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
   const motion = evaluateAssetMotion(slot.motion, u)
-  const pilot = !!spec.presentationProfile
-  const refined = spec.presentationProfile?.revision === EDITORIAL_MOTION_PROFILE_V2.revision
+  const recovery = spec.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision
+  const recoveryRefined = recovery && VISUAL_RECOVERY_REFINED_FAMILIES.includes(
+    spec.layout.family as typeof VISUAL_RECOVERY_REFINED_FAMILIES[number])
+  const pilot = !!spec.presentationProfile && (!recovery || recoveryRefined)
+  const refined = spec.presentationProfile?.revision === EDITORIAL_MOTION_PROFILE_V2.revision || recoveryRefined
   const entryStart = refined
     ? spec.editorialMotionCue === 'comparison' ? (slot.role === 'support-2' ? .24 : .10)
       : spec.editorialMotionCue === 'process' ? (slot.role === 'hero' ? .05 : slot.role === 'support-1' ? .23 : .41)
@@ -194,7 +200,9 @@ const PilotStructureGrammar: React.FC<{ spec: VisualSceneSpecV2; u: number }> = 
 }
 
 const StructureGrammar: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ spec, u }) => {
-  if (spec.presentationProfile) return <PilotStructureGrammar spec={spec} u={u} />
+  if (spec.presentationProfile && (spec.presentationProfile.revision !== VISUAL_RECOVERY_PROFILE_V1.revision ||
+      VISUAL_RECOVERY_REFINED_FAMILIES.includes(spec.layout.family as typeof VISUAL_RECOVERY_REFINED_FAMILIES[number])))
+    return <PilotStructureGrammar spec={spec} u={u} />
   const palette = scenePalette(spec)
   const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
   const slots = spec.layout.slotLayouts
@@ -366,7 +374,75 @@ const NarrativeTextPilot: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ 
   </div>
 }
 
-const NarrativeTextV15: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ spec, u }) => {
+/** Opt-in revision: actual-font fitting and selective emphasis. V15/V1/V2 above remain byte-stable. */
+const NarrativeTextRecovery: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: readonly RuntimeRenderAssetV2[]; u: number }> =
+  ({ spec, runtimeAssets, u }) => {
+  const root = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => { if (root.current) fitVisualTextV2(root.current) }, [spec])
+  const text = spec.text
+  const look = typographyLookV3(text.typographyLookId)
+  const cleanExplainer = text.typographyLookId === 'editorial-strong'
+  const keywordFamily = cleanExplainer ? 'Outfit' : look.keywordFamily
+  const supportFamily = cleanExplainer ? 'Archivo' : look.connectorFamily
+  const palette = scenePalette(spec)
+  const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
+  const contrast = chooseTextContrastV1(spec, runtimeAssets)
+  const dark = contrast === 'dark-text'
+  const datum = spec.editorialMotionCue === 'datum' && !!spec.editorialData
+  const enter = phase(u, text.timing.keywordStart, .15)
+  const exit = 1 - phase(u, .85, .13)
+  const visibleWords = [text.connector, text.keyword, text.closing, spec.editorialData?.value]
+    .filter(Boolean).join(' ').split(/\s+/).filter(Boolean).length
+  return <div ref={root} data-qc-text="true" data-qc-text-fit="v2" data-qc-max-lines={text.maxLines}
+    data-qc-visible-words={visibleWords} data-qc-text-region={spec.layout.textRegion}
+    data-qc-typography-look={text.typographyLookId} data-qc-keyword-family={keywordFamily}
+    data-qc-contrast-treatment={contrast} style={{
+      position: 'absolute', left: `${spec.layout.textBounds.x}%`, top: `${spec.layout.textBounds.y}%`,
+      width: `${spec.layout.textBounds.width}%`, height: `${spec.layout.textBounds.height}%`,
+      zIndex: 8, boxSizing: 'border-box', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+      justifyContent: 'center', alignItems: 'stretch', gap: '.55cqmin', padding: '.7cqmin .95cqmin',
+      textAlign: text.alignment, color: dark ? '#11131A' : palette.text, fontSynthesis: 'none', pointerEvents: 'none',
+      opacity: exit,
+      background: contrast === 'local-scrim'
+        ? 'linear-gradient(90deg,rgba(7,7,9,.92),rgba(7,7,9,.74))' : 'transparent',
+    }}>
+    {text.connector && <div data-fit-body="true" data-qc-connector="true" data-qc-text-glyph="true" style={{
+      fontFamily: `${supportFamily},serif`, fontWeight: cleanExplainer ? 700 : look.connectorWeight,
+      fontSize: '4.2cqmin', lineHeight: 1.14, flexShrink: 0, color: dark ? '#11131A' : palette.text,
+      opacity: phase(u, text.timing.connectorStart, .13),
+    }}>{text.connector}</div>}
+    <div data-fit-title="true" data-qc-keyword="true" data-qc-text-glyph="true" style={{
+      display: 'block', maxWidth: '100%', flexShrink: 0, fontFamily: `${keywordFamily},sans-serif`,
+      fontWeight: cleanExplainer ? 700 : look.keywordWeight, fontSize: datum ? '5.2cqmin' : '9.2cqmin', lineHeight: 1.05,
+      letterSpacing: `${cleanExplainer ? -.012 : look.trackingEm}em`, textTransform: cleanExplainer ? 'none' : look.keywordCase === 'uppercase' ? 'uppercase' : 'none',
+      color: dark ? spec.colorPalette?.tokens.accentDark ?? '#163048'
+        : spec.colorPalette?.tokens.accentBright ?? roles.underline,
+      opacity: enter, clipPath: `inset(0 ${(100 - enter * 100).toFixed(2)}% 0 0)`,
+      transform: `translateY(${((1 - enter) * 1.1).toFixed(3)}cqmin)`,
+    }}>{text.keyword}</div>
+    {spec.editorialData && <div data-fit-body="true" data-fit-data="true" data-qc-text-glyph="true" style={{
+      fontFamily: "'Space Mono',monospace", fontWeight: 700, fontSize: '12.5cqmin', lineHeight: 1.04,
+      flexShrink: 0, color: dark ? spec.colorPalette?.tokens.accentDark ?? '#163048' : roles.underline,
+      opacity: phase(u, text.motion.emphasisStart - .09, .16),
+    }}>{spec.editorialData.value}</div>}
+    {text.closing && <div data-fit-body="true" data-qc-closing="true" data-qc-text-glyph="true" style={{
+      fontFamily: `${cleanExplainer ? 'Archivo' : look.closingFamily},sans-serif`, fontWeight: cleanExplainer ? 700 : look.closingWeight,
+      fontSize: '3.85cqmin', lineHeight: 1.16, flexShrink: 0, color: dark ? '#11131A' : palette.text,
+      opacity: phase(u, text.timing.closingStart ?? .3, .14),
+    }}>{text.closing}</div>}
+    <div data-qc-text-glyph="true" style={{ width: '18%', minWidth: '5cqmin', flexShrink: 0,
+      height: '.33cqmin', marginTop: '.35cqmin', background: roles.underline,
+      transform: `scaleX(${phase(u, text.motion.emphasisStart - .07, .2).toFixed(4)})`,
+      transformOrigin: '0 50%', alignSelf: text.alignment === 'right' ? 'flex-end' :
+        text.alignment === 'center' ? 'center' : 'flex-start',
+    }} />
+  </div>
+}
+
+const NarrativeTextV15: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: readonly RuntimeRenderAssetV2[]; u: number }> =
+  ({ spec, runtimeAssets, u }) => {
+  if (spec.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision)
+    return <NarrativeTextRecovery spec={spec} runtimeAssets={runtimeAssets} u={u} />
   if (spec.presentationProfile) return <NarrativeTextPilot spec={spec} u={u} />
   const text = spec.text
   const look = typographyLookV3(text.typographyLookId)
@@ -451,6 +527,6 @@ export const MotionGraphicV15: React.FC<{
       return <SceneAssetSlot key={slot.slotId} spec={spec} slot={slot} layout={layout}
         runtime={runtimeBySlot.get(slot.slotId)} u={u} />
     })}
-    <NarrativeTextV15 spec={spec} u={u} />
+    <NarrativeTextV15 spec={spec} runtimeAssets={runtimeAssets} u={u} />
   </div>
 }

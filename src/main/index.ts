@@ -37,6 +37,7 @@ export * from './services/visual-variety-metrics'
 export * from '../shared/visual-layout-v3'
 export * from '../shared/visual-layout-v4'
 export * from '../shared/editorial-motion-profile-v1'
+export * from '../shared/visual-recovery-typography-v1'
 export * from '../shared/visual-style-v1'
 export * from '../shared/background-profile-v1'
 export * from '../shared/color-palette-v1'
@@ -59,7 +60,7 @@ import {
   resolveModernVisualGenerationBatchV2,
 } from './assets/modern-visual-generation'
 import { summarizeMotionGraphicsVideoMetricsV2 } from './assets/motion-graphics-resolver'
-import { EDITORIAL_MOTION_PROFILE_V2 } from '../shared/editorial-motion-profile-v1'
+import { EDITORIAL_MOTION_PROFILE_V2, VISUAL_RECOVERY_PROFILE_V1 } from '../shared/editorial-motion-profile-v1'
 import { writeVisualDecisionDiagnostic } from './services/visual-decision-diagnostics'
 import { prepareOriginalClipSegmentation } from './services/original-clip-segmentation'
 import { prepareGraphicForVisualRender, visualRenderRoot } from './assets/visual-render'
@@ -133,6 +134,9 @@ import {
 export { coleccionDeAvisos, armarResumen, textoResumen, describirMotivo, totalRespaldo, MOTIVOS }
 import { recortarTexto } from '../shared/texto'
 export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
+// Pure contrast policy is exercised from the compiled bundle; the image probe itself
+// still runs only after verified local raster bytes are decoded in the renderer.
+export { chooseTextContrastV1 } from '../renderer/src/composiciones/photo-text-contrast-v1'
 
 // Construir "file:///" concatenando la ruta FALLA con espacios, acentos y '#'. Medido en un
 // Chromium real con webSecurity:false, cargando un video desde
@@ -4074,7 +4078,7 @@ function enviarAviso(event: any, carga: unknown): void {
 }
 
 ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, visualPresentationProfile, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
-  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1'].includes(visualPresentationProfile))
+  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1'].includes(visualPresentationProfile))
     throw new Error('VISUAL_PRESENTATION_PROFILE_INVALID');
   const isOriginalAudio = transcriptSegments && newAudioSegments && 
     transcriptSegments.length === newAudioSegments.length &&
@@ -5082,7 +5086,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             videoStyleId: 'cream-editorial',
             ...(visualPresentationProfile === 'editorial-hybrid-v1'
               ? { presentationProfile: EDITORIAL_MOTION_PROFILE_V2 }
-              : {}),
+              : visualPresentationProfile === 'visual-recovery-v1'
+                ? { presentationProfile: VISUAL_RECOVERY_PROFILE_V1 } : {}),
           });
         });
         // All semantic work completes before hashing/rendering. Renderer gets only the

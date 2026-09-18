@@ -25,8 +25,10 @@ import {
 } from '../../shared/visual-layout-v4'
 import {
   EDITORIAL_MOTION_PROFILE_V2,
+  VISUAL_RECOVERY_PROFILE_V1,
   createEditorialPilotLayoutV1,
   createEditorialPilotLayoutV2,
+  createVisualRecoveryLayoutV1,
   selectEditorialPilotFamilyV1,
   type EditorialMotionCue,
   type EditorialMotionProfile,
@@ -37,6 +39,7 @@ import {
   type VideoVisualStyleIdV1,
 } from '../../shared/visual-style-v1'
 import { materializeBackgroundProfileV1 } from '../../shared/background-profile-v1'
+import { selectVisualRecoveryTypographyV1 } from '../../shared/visual-recovery-typography-v1'
 import {
   materializeSceneColorPaletteV1,
   selectVideoColorPalettePlanV1,
@@ -903,7 +906,8 @@ function compileV2(input: {
   const hero = input.choices.find(choice => choice.slotId === 'hero')
   const supports = input.choices.filter(choice => choice.slotId !== 'hero')
   const visualMode = hero ? 'asset-led' : 'editorial-text'
-  const refined = input.presentationProfile?.revision === EDITORIAL_MOTION_PROFILE_V2.revision
+  const recovery = input.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision
+  const refined = recovery || input.presentationProfile?.revision === EDITORIAL_MOTION_PROFILE_V2.revision
   const relation = (input.base.localSemantic.relation ?? '').normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '').toLowerCase()
   const editorialMotionCue: EditorialMotionCue = !hero ? 'typographic'
@@ -920,7 +924,14 @@ function compileV2(input: {
     seed: directionV1.semilla, allowedTypographyLooks: styleDefinition.allowedTypographyLooks,
     recentFamilies: input.session.recentFamilies, recentTypographyLooks: input.session.recentTypographyLooks,
   })
-  const presentation = input.presentationProfile ? (() => {
+  const presentation = recovery ? (() => {
+    // A video has one primary palette family, hence one primary/secondary font pairing.
+    // The scene's keyword/data content may alter sizing but never randomly swaps typefaces.
+    const family = standardPresentation.family
+    const typographyLookId = selectVisualRecoveryTypographyV1(input.colorPalette.videoPrimaryFamily).look
+    return { family, typographyLookId,
+      layout: createVisualRecoveryLayoutV1(family, visualMode, supports.length, directionV1.semilla, editorialMotionCue) }
+  })() : input.presentationProfile ? (() => {
     const selectedFamily = selectEditorialPilotFamilyV1({
       sceneId: input.base.decision.sceneId, visualMode, supportCount: supports.length,
       relation: input.base.localSemantic.relation, seed: directionV1.semilla,

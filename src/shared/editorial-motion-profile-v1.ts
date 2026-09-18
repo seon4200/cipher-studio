@@ -18,7 +18,13 @@ export const EDITORIAL_MOTION_PROFILE_V2 = Object.freeze({
   id: 'editorial-hybrid-v1' as const,
   revision: 'editorial-hybrid-pilot-2026-09-v2' as const,
 })
-export type EditorialMotionProfile = EditorialMotionProfileV1 | typeof EDITORIAL_MOTION_PROFILE_V2
+/** New scenes only. A persisted V1/V2 profile continues through its original renderer. */
+export const VISUAL_RECOVERY_PROFILE_V1 = Object.freeze({
+  id: 'visual-recovery-v1' as const,
+  revision: 'visual-recovery-2026-09-v1' as const,
+})
+export type EditorialMotionProfile = EditorialMotionProfileV1 | typeof EDITORIAL_MOTION_PROFILE_V2 |
+  typeof VISUAL_RECOVERY_PROFILE_V1
 export const EDITORIAL_MOTION_CUES = ['protagonist', 'comparison', 'process', 'cause', 'datum', 'typographic'] as const
 export type EditorialMotionCue = typeof EDITORIAL_MOTION_CUES[number]
 
@@ -38,11 +44,66 @@ export function validateEditorialMotionProfileV1(value: unknown): EditorialMotio
 export function validateEditorialMotionProfile(value: unknown): EditorialMotionProfile {
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
       Object.keys(value).sort().join('|') !== 'id|revision' ||
-      (value as EditorialMotionProfile).id !== EDITORIAL_MOTION_PROFILE_V1.id ||
-      ![EDITORIAL_MOTION_PROFILE_V1.revision, EDITORIAL_MOTION_PROFILE_V2.revision]
-        .includes((value as EditorialMotionProfile).revision))
+      !((value as EditorialMotionProfile).id === EDITORIAL_MOTION_PROFILE_V1.id &&
+        ((value as EditorialMotionProfile).revision === EDITORIAL_MOTION_PROFILE_V1.revision ||
+         (value as EditorialMotionProfile).revision === EDITORIAL_MOTION_PROFILE_V2.revision) ||
+        (value as EditorialMotionProfile).id === VISUAL_RECOVERY_PROFILE_V1.id &&
+        (value as EditorialMotionProfile).revision === VISUAL_RECOVERY_PROFILE_V1.revision))
     throw new Error('EDITORIAL_MOTION_PROFILE_INVALID')
   return value as EditorialMotionProfile
+}
+
+/** Only five geometries change; all other eligible families retain V4 geometry. */
+export const VISUAL_RECOVERY_REFINED_FAMILIES = [
+  'editorial', 'marcoPoster', 'partidoVertical', 'cintaDiagonal', 'lineaTiempo',
+] as const satisfies readonly ModernLayoutStructureV4[]
+
+export function createVisualRecoveryLayoutV1(
+  family: ModernLayoutStructureV4,
+  visualMode: 'asset-led' | 'editorial-text',
+  supportCount: number,
+  seed: number,
+  cue: EditorialMotionCue,
+): VisualLayoutV4 {
+  const base = createVisualLayoutV4(family, visualMode, supportCount, seed)
+  if (!VISUAL_RECOVERY_REFINED_FAMILIES.includes(family as typeof VISUAL_RECOVERY_REFINED_FAMILIES[number]))
+    return base
+  const change = (textRegion: VisualLayoutV4['textRegion'], textBounds: PercentRectV3,
+    textAlignment: VisualLayoutV4['textAlignment'], slots: SlotLayoutV4[]): VisualLayoutV4 => ({
+    ...base, textRegion, textBounds, textAlignment,
+    slotLayouts: slots.filter(item => base.slotLayouts.some(active => active.slotId === item.slotId)),
+  })
+  if (family === 'editorial') return change('center-editorial', rect(8, 13, 84, 74), 'left', [])
+  if (family === 'marcoPoster') return cue === 'datum'
+    ? change('left', rect(8, 16, 53, 67), 'left', [
+      slot('hero', 'right-dominant', rect(61, 24, 32, 48), 4),
+      slot('support-1', 'right-dominant', rect(72, 72, 19, 15), 5),
+      slot('support-2', 'right-dominant', rect(74, 10, 17, 13), 6),
+    ])
+    : change('top', rect(8, 9, 84, 28), 'left', [
+      slot('hero', 'integrated', rect(12, 38, 76, 47), 4),
+      slot('support-1', 'left-dominant', rect(8, 68, 24, 18), 5),
+      slot('support-2', 'right-dominant', rect(70, 68, 22, 18), 6),
+    ])
+  if (family === 'partidoVertical') {
+    const left = seed % 2 === 0
+    return change(left ? 'right' : 'left', left ? rect(55, 23, 38, 58) : rect(7, 23, 38, 58),
+      left ? 'left' : 'right', [
+        slot('hero', left ? 'left-dominant' : 'right-dominant', left ? rect(7, 17, 43, 61) : rect(50, 17, 43, 61), 4),
+        slot('support-1', left ? 'right-dominant' : 'left-dominant', left ? rect(67, 72, 23, 15) : rect(10, 72, 23, 15), 5),
+        slot('support-2', left ? 'right-dominant' : 'left-dominant', left ? rect(75, 10, 17, 13) : rect(8, 10, 17, 13), 6),
+      ])
+  }
+  if (family === 'cintaDiagonal') return change('bottom', rect(8, 61, 84, 29), 'left', [
+    slot('hero', 'integrated', rect(37, 12, 55, 51), 4, 'none', -3),
+    slot('support-1', 'left-dominant', rect(8, 28, 23, 19), 5),
+    slot('support-2', 'right-dominant', rect(71, 47, 21, 17), 5),
+  ])
+  return change('timeline-caption', rect(8, 66, 84, 24), 'left', [
+    slot('hero', 'left-dominant', rect(6, 17, 30, 40), 5),
+    slot('support-1', 'center-dominant', rect(38, 24, 25, 32), 5),
+    slot('support-2', 'right-dominant', rect(67, 30, 26, 29), 5),
+  ])
 }
 
 const rect = (x: number, y: number, width: number, height: number): PercentRectV3 => ({ x, y, width, height })
