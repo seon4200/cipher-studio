@@ -4084,7 +4084,7 @@ function enviarAviso(event: any, carga: unknown): void {
 }
 
 ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, visualPresentationProfile, visualAssetPack, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
-  if (visualAssetPack !== undefined && !['legacy', MODERN_VISUAL_PACK_V1.id].includes(visualAssetPack))
+  if (visualAssetPack !== undefined && !['legacy', MODERN_VISUAL_PACK_V1.id, 'modern-pack-100-v1+local'].includes(visualAssetPack))
     return { success: false, error: 'Pack visual no reconocido' }
   if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1'].includes(visualPresentationProfile))
     throw new Error('VISUAL_PRESENTATION_PROFILE_INVALID');
@@ -5093,6 +5093,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             // within this coherent family; regeneration persists the same value.
             videoStyleId: 'cream-editorial',
             ...(visualAssetPack === MODERN_VISUAL_PACK_V1.id ? { visualAssetPack: MODERN_VISUAL_PACK_V1 } : {}),
+            ...(visualAssetPack === 'modern-pack-100-v1+local' ? { visualAssetPack: { ...MODERN_VISUAL_PACK_V1, localLibrary: true } } : {}),
             ...(visualPresentationProfile === 'editorial-hybrid-v1'
               ? { presentationProfile: EDITORIAL_MOTION_PROFILE_V2 }
               : visualPresentationProfile === 'visual-recovery-v1'
