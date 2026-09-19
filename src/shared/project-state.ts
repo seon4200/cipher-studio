@@ -84,7 +84,8 @@ export function normalizeProjectRelativePath(value: unknown, assetsOnly = false)
 export type ProjectAssetRecord = {
   id: string; provider: string; relativeFile: string; sha256: string; mime: string; byteLength: number
   source: { sourceUrl?: string; fileUrl?: string; providerVersion?: string; licenseClaim?: string;
-    licenseUrl?: string; attribution?: string; fetchedAt?: string }
+    licenseUrl?: string; attribution?: string; fetchedAt?: string;
+    catalogSnapshot?: { identity: { id: string; revision: string; assetId: string }; originalColor: boolean; heroAllowed: boolean; supportAllowed: boolean } }
   validation: { status: 'accepted' | 'needs-review' | 'rejected'; validatedAt?: string;
     width?: number; height?: number; hasAlpha?: boolean; alphaUseful?: boolean;
     validationRevision: string; warnings: string[] }
@@ -111,8 +112,16 @@ export function validateAssetManifest(raw: unknown): AssetManifestV1 {
     if (paths.has(relativeFile.toLowerCase())) throw new PersistenceError('ASSET_MANIFEST_DUPLICATE_PATH', 'Ruta duplicada', { relativeFile })
     ids.add(a.id); paths.add(relativeFile.toLowerCase())
     record(a.source, code)
-    exactKeys(a.source, ['sourceUrl','fileUrl','providerVersion','licenseClaim','licenseUrl','attribution','fetchedAt'], code)
+    exactKeys(a.source, ['sourceUrl','fileUrl','providerVersion','licenseClaim','licenseUrl','attribution','fetchedAt','catalogSnapshot'], code)
     for (const [key, val] of Object.entries(a.source)) {
+      if (key === 'catalogSnapshot') {
+        record(val, code); exactKeys(val, ['identity','originalColor','heroAllowed','supportAllowed'], code)
+        record(val.identity, code); exactKeys(val.identity, ['id','revision','assetId'], code)
+        required(a.provider === 'modern-pack' && /^local-[a-z0-9-]{1,80}$/.test(val.identity.id) &&
+          /^[a-z0-9][a-z0-9.-]{0,63}$/.test(val.identity.revision) && /^local-[a-z0-9-]{1,120}$/.test(val.identity.assetId), code, 'catalogSnapshot.identity inválida')
+        for (const field of ['originalColor','heroAllowed','supportAllowed']) required(typeof val[field] === 'boolean', code, 'catalogSnapshot.' + field + ' inválido')
+        continue
+      }
       required(nonempty(val), code, 'source.' + key + ' inválido')
       if (key.endsWith('Url')) {
         let valid = false
