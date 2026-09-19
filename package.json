@@ -47,6 +47,7 @@
     "test:dpi-safe-offscreen-capture": "electron tests/dpi-safe-offscreen-capture.js",
     "test:visual-recovery-v1": "electron tests/visual-recovery-v1.js",
     "test:premium-type-color-v1": "electron tests/premium-type-color-v1.js",
+    "test:modern-visual-pack-v1": "electron tests/modern-visual-pack-v1.js",
     "accept:premium-type-color-v1": "electron tests/aceptacion/premium-type-color-v1/generar.cjs",
     "test:visual-recovery-text-safe-v1": "electron tests/visual-recovery-text-safe-v1.js",
     "accept:photo-representation-runtime-v1": "electron tests/aceptacion/photo-representation-runtime-v1/generar.cjs",

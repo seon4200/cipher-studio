@@ -141,6 +141,7 @@ const MUESTRA = {
   generatedVoices: [{ id: 'g1', timestamp: 2 }],
   graphicsPercent: 33,
   visualPresentationProfile: 'editorial-hybrid-v1',
+  visualAssetPack: 'modern-pack-100-v1',
   timelineWeights: [11, 22, 67],
   aspectRatio: 'vertical',
   exportResolution: '4K', exportFormat: 'mov', exportQuality: 'high',
