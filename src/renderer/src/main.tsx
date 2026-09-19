@@ -1566,7 +1566,7 @@ function App() {
   // un proyecto nuevo reparte exactamente como antes hasta que el usuario mueva el slider.
   const [timelineWeights, setTimelineWeights] = useState<number[]>([...PESOS_POR_DEFECTO])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
-  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1'>('standard')
+  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1'>('standard')
 
   // Hub de IA — estados
   const [promptIa, setPromptIa] = useState<string>('')
@@ -1876,7 +1876,8 @@ function App() {
         // TRES posiciones, y uno ya corrompido trae [null,null,null,null]. Los dos entran sanos
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'visual-recovery-v1' ? 'visual-recovery-v1' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'premium-type-color-v1' ? 'premium-type-color-v1' :
+          loadedData.visualPresentationProfile === 'visual-recovery-v1' ? 'visual-recovery-v1' :
           loadedData.visualPresentationProfile === 'editorial-hybrid-v1' ? 'editorial-hybrid-v1' : 'standard');
 
         // ─── Lo que decide COMO sale el video exportado ───
@@ -2160,7 +2161,8 @@ function App() {
         // TRES posiciones, y uno ya corrompido trae [null,null,null,null]. Los dos entran sanos
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'visual-recovery-v1' ? 'visual-recovery-v1' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'premium-type-color-v1' ? 'premium-type-color-v1' :
+          loadedData.visualPresentationProfile === 'visual-recovery-v1' ? 'visual-recovery-v1' :
           loadedData.visualPresentationProfile === 'editorial-hybrid-v1' ? 'editorial-hybrid-v1' : 'standard');
 
         // ─── Lo que decide COMO sale el video exportado ───
@@ -4074,11 +4076,12 @@ ${res.filePath}`);
             <div className="mt-2 flex items-center justify-between gap-2">
               <label htmlFor="visual-presentation-profile" className="text-[10px] font-semibold text-slate-400">Estilo de Visuales (piloto)</label>
               <select id="visual-presentation-profile" value={visualPresentationProfile}
-                onChange={event => setVisualPresentationProfile(event.target.value as 'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1')}
+                onChange={event => setVisualPresentationProfile(event.target.value as 'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1')}
                 className="bg-[#1C1C1E] border border-[#3a3a3c] text-[10px] text-slate-200 rounded-lg px-2 py-1">
                 <option value="standard">V15 actual</option>
                 <option value="editorial-hybrid-v1">Editorial híbrido V2 (experimental)</option>
                 <option value="visual-recovery-v1">Visual Recovery V1 (experimental)</option>
+                <option value="premium-type-color-v1">Porcelain Editorial V1 (experimental)</option>
               </select>
             </div>
             {isGeneratingAssets ? (
