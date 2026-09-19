@@ -22,7 +22,12 @@ export const FUENTES_RENDER = [
   { familia: 'DM Serif Display', peso: 400 },
   { familia: 'IBM Plex Sans Condensed', peso: 700 },
   { familia: 'Playfair Display', peso: 800 },
-  { familia: 'Space Mono', peso: 700 }
+  { familia: 'Space Mono', peso: 700 },
+  { familia: 'DM Sans', peso: 700 },
+  { familia: 'Instrument Serif', peso: 400 },
+  { familia: 'Fraunces', peso: 600 },
+  { familia: 'Bricolage Grotesque', peso: 700 },
+  { familia: 'Dancing Script', peso: 600 },
 ] as const
 
 function anchoConFuente(familia: string, peso: number): number {
