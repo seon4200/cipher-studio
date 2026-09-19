@@ -23,12 +23,14 @@ import {
 } from '../../shared/visual-scene-spec-v2'
 import {
   selectVisualPresentationV4,
+  eligibleLayoutFamiliesV4,
   type ModernLayoutStructureV4,
 } from '../../shared/visual-layout-v4'
 import {
   EDITORIAL_MOTION_PROFILE_V2,
   VISUAL_RECOVERY_PROFILE_V1,
   PREMIUM_TYPE_COLOR_PROFILE_V1,
+  FAMILIES_MOTION_PROFILE_V2,
   createEditorialPilotLayoutV1,
   createEditorialPilotLayoutV2,
   createVisualRecoveryLayoutV1,
@@ -36,6 +38,8 @@ import {
   type EditorialMotionCue,
   type EditorialMotionProfile,
 } from '../../shared/editorial-motion-profile-v1'
+import { createCompositionLayoutV2, selectCompositionV2,
+  type BackgroundVariantV2 } from '../../shared/families-motion-v2'
 import { selectPremiumStyleV1 } from '../../shared/premium-type-color-v1'
 import {
   VIDEO_VISUAL_STYLES_V1,
@@ -162,6 +166,7 @@ export type MotionGraphicsResolverSessionV2 = {
   version: typeof MOTION_GRAPHICS_RESOLVER_VERSION
   recentFamilies: ModernLayoutStructureV4[]
   recentTypographyLooks: import('../../shared/visual-layout-v3').TypographyLookIdV3[]
+  recentBackgroundVariants?: BackgroundVariantV2[]
   colorPalettePlan?: VideoColorPalettePlanV1
   recentAccentPrimaries: string[]
   scenesResolved: number
@@ -375,6 +380,7 @@ export function createMotionGraphicsResolverSessionV2(
     version: MOTION_GRAPHICS_RESOLVER_VERSION,
     recentFamilies: [],
     recentTypographyLooks: [],
+    recentBackgroundVariants: [],
     ...(colorPalettePlan ? { colorPalettePlan: validateVideoColorPalettePlanV1(colorPalettePlan) } : {}),
     recentAccentPrimaries: [],
     scenesResolved: 0,
@@ -966,12 +972,14 @@ function compileV2(input: {
   const hero = input.choices.find(choice => choice.slotId === 'hero')
   const supports = input.choices.filter(choice => choice.slotId !== 'hero')
   const visualMode = hero ? 'asset-led' : 'editorial-text'
-  const premium = input.presentationProfile?.revision === PREMIUM_TYPE_COLOR_PROFILE_V1.revision
+  const familiesV2 = input.presentationProfile?.revision === FAMILIES_MOTION_PROFILE_V2.revision
+  const premium = input.presentationProfile?.revision === PREMIUM_TYPE_COLOR_PROFILE_V1.revision || familiesV2
   const recovery = input.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision || premium
   const refined = recovery || input.presentationProfile?.revision === EDITORIAL_MOTION_PROFILE_V2.revision
   const relation = (input.base.localSemantic.relation ?? '').normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '').toLowerCase()
-  const editorialMotionCue: EditorialMotionCue = !hero ? 'typographic'
+  const editorialMotionCue: EditorialMotionCue = familiesV2 && /\b\d{1,3}(?:[.,]\d+)?\s*%/u.test(input.base.localSemantic.localText)
+    ? 'datum' : !hero ? 'typographic'
     : /\b\d{1,3}(?:[.,]\d+)?\s*%/u.test(input.base.localSemantic.localText) ? 'datum'
       : /(compara|contrasta|diferenc)/.test(relation) && supports.length ? 'comparison'
         : /(secuencia|antes|despues|evoluciona|pasos)/.test(relation) && supports.length ? 'process'
@@ -985,7 +993,21 @@ function compileV2(input: {
     seed: directionV1.semilla, allowedTypographyLooks: styleDefinition.allowedTypographyLooks,
     recentFamilies: input.session.recentFamilies, recentTypographyLooks: input.session.recentTypographyLooks,
   })
-  const presentation = recovery ? (() => {
+  const presentation = familiesV2 ? (() => {
+    // The old eligibility authority remains decisive: relation-specific families
+    // are only selected when the scene actually contains their required slots.
+    const eligible = eligibleLayoutFamiliesV4({ visualMode, supportCount: supports.length,
+      relation: input.base.localSemantic.relation })
+    const family = hero?.kind === 'raster-image' && eligible.includes('marcoPoster') ? 'marcoPoster'
+      : editorialMotionCue === 'comparison' && eligible.includes('partidoVertical') ? 'partidoVertical'
+        : editorialMotionCue === 'process' && eligible.includes('lineaTiempo') &&
+          /(secuencia|antes|despues|evoluciona)/.test(relation) ? 'lineaTiempo'
+          : editorialMotionCue === 'cause' && eligible.includes('cascada') ? 'cascada'
+            : standardPresentation.family
+    return { family, typographyLookId: selectVisualRecoveryTypographyV1(input.colorPalette.videoPrimaryFamily).look,
+      layout: createCompositionLayoutV2(family, visualMode, supports.length, directionV1.semilla,
+        editorialMotionCue, hero?.kind, 'portrait') }
+  })() : recovery ? (() => {
     // A video has one primary palette family, hence one primary/secondary font pairing.
     // The scene's keyword/data content may alter sizing but never randomly swaps typefaces.
     const family = standardPresentation.family
@@ -1068,6 +1090,10 @@ function compileV2(input: {
     ritmo: directionV1.ritmo,
     semilla: directionV1.semilla,
   }
+  const compositionV2 = familiesV2 ? selectCompositionV2({ family: presentation.family, mode: visualMode,
+    supportCount: supports.length, seed: directionV1.semilla, sceneId: input.base.decision.sceneId,
+    cue: editorialMotionCue, heroKind: hero?.kind, videoPaletteFamily: input.colorPalette.videoPrimaryFamily,
+    recentBackgrounds: input.session.recentBackgroundVariants }) : undefined
   const sceneSpec = validateVisualSceneSpecV2({
     renderSpecVersion: 2, visualMode, renderTier: 'standard', sistema: input.base.compiled.sceneSpec.sistema,
     direccion: direction,
@@ -1079,6 +1105,7 @@ function compileV2(input: {
     ...(!premium ? { colorPalette: input.colorPalette } : {}),
     ...(premium ? { premiumStyle: selectPremiumStyleV1(input.colorPalette.videoPrimaryFamily,
       editorialMotionCue, text.keyword) } : {}),
+    ...(compositionV2 ? { compositionV2 } : {}),
     ...(input.presentationProfile ? { presentationProfile: input.presentationProfile } : {}),
     ...(refined ? { editorialMotionCue } : {}),
     ...(editorialData ? { editorialData } : {}),
@@ -1089,6 +1116,11 @@ function compileV2(input: {
   })) }
   input.session.recentFamilies.push(presentation.family)
   input.session.recentTypographyLooks.push(presentation.typographyLookId)
+  if (compositionV2) {
+    input.session.recentBackgroundVariants ??= []
+    input.session.recentBackgroundVariants.push(compositionV2.backgroundVariant)
+    if (input.session.recentBackgroundVariants.length > 18) input.session.recentBackgroundVariants.shift()
+  }
   if (input.session.recentFamilies.length > 18) input.session.recentFamilies.shift()
   if (input.session.recentTypographyLooks.length > 18) input.session.recentTypographyLooks.shift()
   return { sceneSpec, renderBindings,

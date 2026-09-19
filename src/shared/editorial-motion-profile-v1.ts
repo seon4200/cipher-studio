@@ -27,8 +27,11 @@ export const PREMIUM_TYPE_COLOR_PROFILE_V1 = Object.freeze({
   id: 'premium-type-color-v1' as const,
   revision: 'porcelain-editorial-2026-09-v1' as const,
 })
+export const FAMILIES_MOTION_PROFILE_V2 = Object.freeze({
+  id: 'families-motion-v2' as const, revision: 'families-motion-2026-09-v1' as const,
+})
 export type EditorialMotionProfile = EditorialMotionProfileV1 | typeof EDITORIAL_MOTION_PROFILE_V2 |
-  typeof VISUAL_RECOVERY_PROFILE_V1 | typeof PREMIUM_TYPE_COLOR_PROFILE_V1
+  typeof VISUAL_RECOVERY_PROFILE_V1 | typeof PREMIUM_TYPE_COLOR_PROFILE_V1 | typeof FAMILIES_MOTION_PROFILE_V2
 export const EDITORIAL_MOTION_CUES = ['protagonist', 'comparison', 'process', 'cause', 'datum', 'typographic'] as const
 export type EditorialMotionCue = typeof EDITORIAL_MOTION_CUES[number]
 
@@ -54,7 +57,9 @@ export function validateEditorialMotionProfile(value: unknown): EditorialMotionP
         (value as EditorialMotionProfile).id === VISUAL_RECOVERY_PROFILE_V1.id &&
         (value as EditorialMotionProfile).revision === VISUAL_RECOVERY_PROFILE_V1.revision ||
         (value as EditorialMotionProfile).id === PREMIUM_TYPE_COLOR_PROFILE_V1.id &&
-        (value as EditorialMotionProfile).revision === PREMIUM_TYPE_COLOR_PROFILE_V1.revision))
+        (value as EditorialMotionProfile).revision === PREMIUM_TYPE_COLOR_PROFILE_V1.revision ||
+        (value as EditorialMotionProfile).id === FAMILIES_MOTION_PROFILE_V2.id &&
+        (value as EditorialMotionProfile).revision === FAMILIES_MOTION_PROFILE_V2.revision))
     throw new Error('EDITORIAL_MOTION_PROFILE_INVALID')
   return value as EditorialMotionProfile
 }
