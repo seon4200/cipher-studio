@@ -1,4 +1,6 @@
 import { canonicalNarrativeTerm } from '../../shared/asset-intent'
+import { MODERN_VISUAL_PACK_V1, validateModernVisualPackSelectionV1, type ModernVisualPackSelectionV1, type ModernVisualAssetIdentityV1 } from '../../shared/modern-visual-pack-v1'
+import { findModernVisualPackCandidatesV1, publishModernVisualPackAssetV1, modernVisualPackCatalogV1, type ModernPackLookupAuditV1 } from './modern-visual-pack'
 import type { ProjectAssetRecord } from '../../shared/project-state'
 import { readAssetStorage } from '../services/project-persistence'
 import {
@@ -119,7 +121,9 @@ export type MaterializedVisualChoiceV2 = {
   providerAssetId?: string
   slotId: 'hero' | 'support-1' | 'support-2'
   concept: string
-  provider: 'openmoji' | 'pixabay-images' | 'photo-cutout' | 'solar'
+  provider: 'openmoji' | 'pixabay-images' | 'photo-cutout' | 'solar' | 'modern-pack'
+  catalogAsset?: ModernVisualAssetIdentityV1
+  originalColor?: boolean
   representation: AssetRepresentationPreferenceV1
   reason: string
   score: 2 | 3
@@ -133,6 +137,8 @@ export type MaterializedVisualChoiceV2 = {
 }
 
 export type LockedVisualChoiceV2 = {
+  catalogAsset?: ModernVisualAssetIdentityV1
+  originalColor?: boolean
   slotId: MaterializedVisualChoiceV2['slotId']
   concept: string
   provider: MaterializedVisualChoiceV2['provider']
@@ -162,9 +168,11 @@ export type MotionGraphicsResolverSessionV2 = {
   preparedByConcept: Map<string, MaterializedVisualChoiceV2>
   recentPhotoProviderAssetIds: string[]
   recentPhotoAssetShas: string[]
+  recentModernAssetIds?: string[]
 }
 
 export type MotionGraphicsTraceV2 = {
+  modernPack?: ModernPackLookupAuditV1
   version: typeof MOTION_GRAPHICS_RESOLVER_VERSION
   sceneId: string
   concepts: Array<{ role: 'hero' | 'support-1' | 'support-2'; concept: string; subject: string; evidence: string }>
@@ -406,12 +414,19 @@ function lockChoice(choice: MaterializedVisualChoiceV2): LockedVisualChoiceV2 {
     representation: choice.representation, score: choice.score, ...(choice.asset ? { assetId: choice.asset.id, relativeFile: choice.asset.relativeFile,
       sha256: choice.asset.sha256, mime: choice.asset.mime } : {}),
     ...(choice.stableId ? { stableId: choice.stableId } : {}),
+    ...(choice.catalogAsset ? { catalogAsset: choice.catalogAsset, originalColor: choice.originalColor } : {}),
     ...(choice.solarIcon ? { solarIcon: choice.solarIcon, solarStyle: choice.solarStyle } : {}),
     bounds: choice.bounds, kind: choice.kind, alphaMode: choice.alphaMode,
   }
 }
 
 function restoreLockedChoice(projectRoot: string, locked: LockedVisualChoiceV2): MaterializedVisualChoiceV2 | null {
+  if (locked.provider === 'modern-pack') {
+    const entry = modernVisualPackCatalogV1().find(a => a.assetId === locked.catalogAsset?.assetId)
+    if (!entry || locked.catalogAsset?.id !== MODERN_VISUAL_PACK_V1.id || locked.catalogAsset.revision !== MODERN_VISUAL_PACK_V1.revision ||
+        entry.sha256 !== locked.sha256 || entry.originalColor !== locked.originalColor ||
+        locked.slotId === 'hero' && !entry.heroAllowed) return null
+  }
   if (locked.provider === 'solar') {
     if (!locked.solarIcon || !locked.solarStyle) return null
     return { ...locked, provider: 'solar', representation: locked.representation ?? 'symbolic',
@@ -421,7 +436,7 @@ function restoreLockedChoice(projectRoot: string, locked: LockedVisualChoiceV2):
   const asset = manifestAsset(projectRoot, locked.assetId)
   if (!asset || asset.relativeFile !== locked.relativeFile || asset.sha256 !== locked.sha256 || asset.mime !== locked.mime) return null
   try {
-    if (locked.provider === 'openmoji') verifyProjectAssetContent(projectRoot, asset)
+    if (locked.provider === 'openmoji' || locked.provider === 'modern-pack') verifyProjectAssetContent(projectRoot, asset)
     else readVerifiedRasterProjectAssetContentV1(projectRoot, asset)
   } catch { return null }
   return { ...locked, representation: locked.representation ??
@@ -784,12 +799,35 @@ function v1HeroChoice(input: {
 }
 
 function localChoiceForRepresentation(input: {
+  audit?: ModernPackLookupAuditV1
+  visualAssetPack?: ModernVisualPackSelectionV1
+  session: MotionGraphicsResolverSessionV2
+  warnings: string[]
   projectRoot: string
   base: LocalSemanticVisualDecisionResultV1
   role: { slotId: MaterializedVisualChoiceV2['slotId']; concept: VisualConceptV1 }
   representation: 'icon' | 'symbolic'
 }): MaterializedVisualChoiceV2 | null {
   const remembered = v1HeroChoice(input)
+  // Direct evidence is never an automatic style preference. Keep Solar's symbolic route.
+  const preserve = input.role.concept.hygieneAuthority === 'explicit-visual-evidence' ||
+    input.representation === 'symbolic' && (remembered?.provider === 'solar' || !!localCandidate(input.base, input.role.concept, input.role.slotId, 'solar'))
+  if (input.visualAssetPack && !preserve) {
+    for (const candidate of findModernVisualPackCandidatesV1(input.role.concept,
+      input.role.slotId === 'hero' ? 'hero' : 'support', input.session.recentModernAssetIds, input.audit)) {
+      try {
+        const published = publishModernVisualPackAssetV1(input.projectRoot, candidate.asset.assetId)
+        return { slotId: input.role.slotId, concept: input.role.concept.normalizedTerm,
+          provider: 'modern-pack', representation: input.representation, score: 3,
+          reason: `MODERN_PACK_EXACT_LOCAL:${candidate.asset.source}:${published.status}`,
+          relevance: candidate.relevance, asset: published.asset,
+          catalogAsset: { ...MODERN_VISUAL_PACK_V1, assetId: candidate.asset.assetId },
+          originalColor: candidate.asset.originalColor,
+          conceptEligibility: candidate.asset.heroAllowed ? 'hero-eligible' : 'support-only',
+          bounds: fullSubjectBounds(), kind: 'simple-icon', alphaMode: 'vector' }
+      } catch (error) { input.warnings.push(`MODERN_PACK_ASSET_REJECTED:${candidate.asset.assetId}:${error instanceof Error ? error.message : 'invalid'}`) }
+    }
+  }
   if (remembered) return remembered
   const providerOrder: Array<'openmoji' | 'solar'> = input.representation === 'icon'
     ? ['openmoji', 'solar'] : ['solar', 'openmoji']
@@ -997,7 +1035,8 @@ function compileV2(input: {
       mime: choice.asset.mime as PresentSceneSlotV2['mime'], kind: choice.kind, alphaMode: choice.alphaMode,
       bounds: choice.bounds, fitPolicy: choice.alphaMode === 'opaque-rectangle' ? (refined ? 'contain' : 'cover') :
         choice.alphaMode === 'useful-alpha' ? 'subject-contain' : 'contain',
-      tint: { treatment: 'original-color' }, motion,
+      tint: { treatment: choice.catalogAsset && !choice.originalColor ? 'system-tint' : 'original-color' }, motion,
+      ...(choice.catalogAsset ? { catalogAsset: choice.catalogAsset } : {}),
     }
     return slot
   })
@@ -1037,6 +1076,7 @@ function compileV2(input: {
 }
 
 export async function resolveMotionGraphicsSceneV2(input: {
+  visualAssetPack?: ModernVisualPackSelectionV1
   base: LocalSemanticVisualDecisionResultV1
   projectRoot: string
   videoStyleId: VideoVisualStyleIdV1
@@ -1050,6 +1090,7 @@ export async function resolveMotionGraphicsSceneV2(input: {
   hooks?: MotionGraphicsProviderHooksV2
 }): Promise<MotionGraphicsResolutionV2> {
   const session = input.session ?? createMotionGraphicsResolverSessionV2()
+  if (input.visualAssetPack) validateModernVisualPackSelectionV1(input.visualAssetPack)
   if (session.version !== 2) fail('MOTION_GRAPHICS_SESSION_INVALID', 'Sesión V15 inválida')
   const roleInputs = roleConcepts(input.base)
   const colorTerms = [
@@ -1083,6 +1124,7 @@ export async function resolveMotionGraphicsSceneV2(input: {
       JSON.stringify(colorPalette.videoCompatibleFamilies) !== JSON.stringify(colorPalettePlan.compatibleFamilies))
     fail('MOTION_GRAPHICS_COLOR_PLAN_MISMATCH', 'La decisión cromática persistida no pertenece a la gama del vídeo')
   const trace: MotionGraphicsTraceV2 = {
+    ...(input.visualAssetPack ? { modernPack: { evaluated: 0, rejectedByRelevance: 0, missingConcepts: [] } } : {}),
     version: 2, sceneId: input.base.decision.sceneId,
     concepts: roleInputs.map(value => ({ role: value.slotId, concept: value.concept.normalizedTerm,
       subject: value.concept.subject, evidence: value.concept.evidence })),
@@ -1181,10 +1223,11 @@ export async function resolveMotionGraphicsSceneV2(input: {
               resolveAssetRepresentationPreferenceV1({ concept: other.concept, role: other.slotId }).attemptOrder
                 .some(value => value === 'photo-cutout' || value === 'full-raster')) })
         } else if (attempt === 'icon' || attempt === 'symbolic') {
-          choice = localChoiceForRepresentation({ projectRoot: input.projectRoot, base: input.base, role, representation: attempt })
+          choice = localChoiceForRepresentation({ projectRoot: input.projectRoot, base: input.base, role, representation: attempt,
+            visualAssetPack: input.visualAssetPack, session, warnings: trace.warnings, audit: trace.modernPack })
         }
         if (choice) {
-          choice = { ...choice, conceptEligibility: role.concept.hygiene?.eligibility === 'support-only'
+          choice = { ...choice, conceptEligibility: role.concept.hygiene?.eligibility === 'support-only' || choice.conceptEligibility === 'support-only'
             ? 'support-only' : 'hero-eligible' }
           outcome = `MATERIALIZED:${choice.provider}:${choice.representation}`
           break
@@ -1254,6 +1297,7 @@ export async function resolveMotionGraphicsSceneV2(input: {
   const compiled = compileV2({ base: input.base, choices: effectiveChoices, videoStyleId: input.videoStyleId,
     ...(input.presentationProfile ? { presentationProfile: input.presentationProfile } : {}),
     colorPalette, session })
+  session.recentModernAssetIds = [...(session.recentModernAssetIds ?? []), ...effectiveChoices.flatMap(c => c.catalogAsset ? [c.catalogAsset.assetId] : [])].slice(-12)
   session.recentAccentPrimaries.push(colorPalette.tokens.accentPrimary)
   if (session.recentAccentPrimaries.length > 12) session.recentAccentPrimaries.shift()
   session.scenesResolved++

@@ -1,4 +1,5 @@
 import type { NombreSistema } from '../../shared/sistemas'
+import { validateModernVisualPackSelectionV1, type ModernVisualPackSelectionV1 } from '../../shared/modern-visual-pack-v1'
 import type {
   LocalSceneSemanticV1,
   NarrativeKeywordCandidateV2,
@@ -57,6 +58,7 @@ export type ResolvedModernVisualGenerationV1 = {
 export const MODERN_VISUAL_GENERATION_CONTEXT_VERSION_V2 = 2 as const
 
 export type ModernVisualGenerationContextV2 = Omit<ModernVisualGenerationContextV1, 'version'> & {
+  visualAssetPack?: ModernVisualPackSelectionV1
   version: typeof MODERN_VISUAL_GENERATION_CONTEXT_VERSION_V2
   /** Selected once per video and persisted with every scene for deterministic regeneration. */
   videoStyleId: VideoVisualStyleIdV1
@@ -177,7 +179,7 @@ function lockedChoices(value: unknown): LockedVisualChoiceV2[] {
   const slots = new Set<string>()
   return value.map(raw => {
     if (!isRecord(raw) || !['hero', 'support-1', 'support-2'].includes(String(raw.slotId)) ||
-        !['openmoji', 'pixabay-images', 'photo-cutout', 'solar'].includes(String(raw.provider)) ||
+        !['openmoji', 'pixabay-images', 'photo-cutout', 'solar', 'modern-pack'].includes(String(raw.provider)) ||
         typeof raw.concept !== 'string' || !raw.concept.trim() || typeof raw.reason !== 'string' ||
         ![2, 3].includes(Number(raw.score)) || !isRecord(raw.bounds) || typeof raw.kind !== 'string' ||
         !['vector', 'useful-alpha', 'opaque-rectangle'].includes(String(raw.alphaMode)) ||
@@ -218,6 +220,7 @@ export function createModernVisualGenerationContextV2(input: {
   colorSceneIndex?: unknown
   lockedColorPalette?: unknown
   presentationProfile?: unknown
+  visualAssetPack?: unknown
 }): ModernVisualGenerationContextV2 {
   const base = createModernVisualGenerationContextV1(input)
   if (input.videoStyleId !== 'cream-editorial' && input.videoStyleId !== 'ink-technical')
@@ -241,6 +244,7 @@ export function createModernVisualGenerationContextV2(input: {
     },
     videoStyleId: input.videoStyleId,
     lockedChoices: lockedChoices(input.lockedChoices),
+    ...(input.visualAssetPack === undefined ? {} : { visualAssetPack: validateModernVisualPackSelectionV1(input.visualAssetPack) }),
     ...(input.colorPalettePlan === undefined ? {} : { colorPalettePlan: optionalColorPlan(input.colorPalettePlan) }),
     ...(input.colorSceneIndex === undefined ? {} : { colorSceneIndex: optionalSceneIndex(input.colorSceneIndex) }),
     ...(input.lockedColorPalette === undefined ? {} : { lockedColorPalette: optionalSceneColor(input.lockedColorPalette) }),
@@ -328,6 +332,7 @@ export async function resolveModernVisualGenerationBatchV2(input: {
       sceneIndex: colorSceneIndex,
       ...(context.lockedColorPalette ? { lockedColorPalette: context.lockedColorPalette } : {}),
       ...(context.presentationProfile ? { presentationProfile: context.presentationProfile } : {}),
+      ...(context.visualAssetPack ? { visualAssetPack: context.visualAssetPack } : {}),
       ...(input.pixabayApiKey ? { pixabayApiKey: input.pixabayApiKey } : {}),
       ...(context.lockedChoices.length ? { lockedChoices: context.lockedChoices } : {}),
       ...(input.hooks ? { hooks: input.hooks } : {}),

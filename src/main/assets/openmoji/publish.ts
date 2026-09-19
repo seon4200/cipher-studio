@@ -267,8 +267,10 @@ export function readVerifiedProjectAssetContent(
   const actualSha = sha256(bytes)
   if (actualSha !== asset.sha256)
     fail('PROJECT_ASSET_SHA_MISMATCH', 'La SHA-256 del asset no coincide con el manifest', { expected: asset.sha256, actual: actualSha })
-  if (asset.provider !== 'openmoji' || asset.validation.validationRevision !== OPENMOJI_SVG_VALIDATION_REVISION)
+  if (!['openmoji', 'modern-pack'].includes(asset.provider) || asset.validation.validationRevision !== OPENMOJI_SVG_VALIDATION_REVISION)
     fail('PROJECT_ASSET_SVG_INVALID', 'El asset no cumple la política OpenMoji SVG V1')
+  if (asset.provider === 'modern-pack' && /<(?:text|image|animate\w*|set)\b|@font-face/i.test(bytes.toString('utf8')))
+    fail('PROJECT_ASSET_SVG_INVALID', 'El pack moderno sólo admite geometría SVG estática')
   return { ...validateOpenMojiSvgBytes(bytes), absoluteFile: file, bytes }
 }
 
@@ -402,6 +404,17 @@ export function publishOpenMojiAsset(input: PublishOpenMojiAssetInput): PublishO
   const sourceBytes = fs.readFileSync(sourceFile)
   const validated = validateOpenMojiSvgBytes(sourceBytes)
   const asset = recordFor(entry, validated)
+  return publishVerifiedSvgProjectAssetV1(projectRoot, asset, sourceBytes)
+}
+
+/** Same confined, atomic publication and verification for curated local SVG catalogues. */
+export function publishVerifiedSvgProjectAssetV1(root: string, asset: ProjectAssetRecord, sourceBytes: Buffer): PublishOpenMojiAssetResult {
+  const projectRoot = requireAssetProjectRoot(root)
+  const validated = validateOpenMojiSvgBytes(sourceBytes)
+  if (asset.sha256 !== validated.sha256 || asset.byteLength !== validated.byteLength ||
+      !['openmoji', 'modern-pack'].includes(asset.provider) || asset.mime !== OPENMOJI_SVG_MIME ||
+      asset.validation.validationRevision !== OPENMOJI_SVG_VALIDATION_REVISION)
+    fail('PROJECT_ASSET_SVG_INVALID', 'Registro y SVG no coinciden')
   const manifestPath = resolveProjectRelativePath(projectRoot, 'materiales/assets/manifest.json')
   const manifest = readableManifest(projectRoot)
   const sameId = manifest.assets.find(candidate => candidate.id === asset.id)

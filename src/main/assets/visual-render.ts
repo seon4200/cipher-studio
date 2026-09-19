@@ -209,7 +209,7 @@ function prepareV2(
       fail('VISUAL_ASSET_NOT_ACCEPTED', 'El ProjectAsset no está aceptado', { slotId: slot.slotId })
     try {
       if (slot.mime === 'image/svg+xml') {
-        if (record.provider !== 'openmoji')
+        if (record.provider !== 'openmoji' && record.provider !== 'modern-pack')
           fail('VISUAL_ASSET_PROVIDER_UNSUPPORTED', 'SVG V15 certificado debe ser ProjectAsset OpenMoji')
         const verified = readVerifiedProjectAssetContent(projectRoot, record)
         preparedAssets.push({ slotId: slot.slotId, assetId: record.id, mime: slot.mime,

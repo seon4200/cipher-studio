@@ -71,7 +71,7 @@ export const RELEVANCE_NEUTRAL_DESCRIPTORS_V1: readonly string[] = Object.freeze
 const NEUTRAL = new Set<string>(RELEVANCE_NEUTRAL_DESCRIPTORS_V1.map(value => canonicalNarrativeTerm(value)))
 
 export type RelevanceCandidateEvidenceV1 = {
-  provider: 'openmoji' | 'solar' | 'pixabay-images'
+  provider: 'openmoji' | 'solar' | 'pixabay-images' | 'modern-pack'
   /** Descriptive terms IN PROVIDER SALIENCE ORDER. Repetitions are kept: they are a signal. */
   descriptors: readonly string[]
   /**
