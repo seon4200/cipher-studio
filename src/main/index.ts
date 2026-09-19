@@ -1,4 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, screen } from 'electron'
+import { MODERN_VISUAL_PACK_V1 } from '../shared/modern-visual-pack-v1'
+export * from '../shared/modern-visual-pack-v1'
+export * from './assets/modern-visual-pack'
 import path from 'path'
 import os from 'os'
 import { spawn, exec } from 'child_process'
@@ -4080,7 +4083,9 @@ function enviarAviso(event: any, carga: unknown): void {
   } catch (e) { /* ventana cerrada: el log ya lo tiene */ }
 }
 
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, visualPresentationProfile, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
+ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, visualPresentationProfile, visualAssetPack, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
+  if (visualAssetPack !== undefined && !['legacy', MODERN_VISUAL_PACK_V1.id].includes(visualAssetPack))
+    return { success: false, error: 'Pack visual no reconocido' }
   if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1'].includes(visualPresentationProfile))
     throw new Error('VISUAL_PRESENTATION_PROFILE_INVALID');
   const isOriginalAudio = transcriptSegments && newAudioSegments && 
@@ -5087,6 +5092,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             // Product authority selected once for this video. Individual scenes vary only
             // within this coherent family; regeneration persists the same value.
             videoStyleId: 'cream-editorial',
+            ...(visualAssetPack === MODERN_VISUAL_PACK_V1.id ? { visualAssetPack: MODERN_VISUAL_PACK_V1 } : {}),
             ...(visualPresentationProfile === 'editorial-hybrid-v1'
               ? { presentationProfile: EDITORIAL_MOTION_PROFILE_V2 }
               : visualPresentationProfile === 'visual-recovery-v1'
