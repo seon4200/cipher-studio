@@ -17,7 +17,8 @@ import {
 } from '../../../shared/color-palette-v1'
 import { IconoSolar } from './IconoSolar'
 import { EDITORIAL_MOTION_PROFILE_V2, VISUAL_RECOVERY_PROFILE_V1,
-  VISUAL_RECOVERY_REFINED_FAMILIES } from '../../../shared/editorial-motion-profile-v1'
+  PREMIUM_TYPE_COLOR_PROFILE_V1, VISUAL_RECOVERY_REFINED_FAMILIES } from '../../../shared/editorial-motion-profile-v1'
+import { PREMIUM_TYPE_THEMES } from '../../../shared/premium-type-color-v1'
 import { fitVisualTextV2 } from './text-fit-v2'
 import { chooseTextContrastV1 } from './photo-text-contrast-v1'
 
@@ -26,10 +27,18 @@ function ease(value: number): number { const p = clamp01(value); return 1 - Math
 function phase(u: number, start: number, duration: number): number { return ease((u - start) / duration) }
 
 function scenePalette(spec: VisualSceneSpecV2): ReturnType<typeof videoVisualStylePaletteV1> {
-  return applySceneColorPaletteV1(
+  const base = applySceneColorPaletteV1(
     applyBackgroundProfileV1(videoVisualStylePaletteV1(spec.videoStyle), spec.backgroundProfile),
     spec.colorPalette,
   )
+  if (!spec.premiumStyle) return base
+  return { ...base, background: '#0B0B0D', surface: '#17171B', text: '#F4F2ED',
+    accent: spec.premiumStyle.accentPrimary, support: spec.premiumStyle.accentSecondary,
+    line: '#74747C', shadow: 'rgba(0,0,0,.32)' }
+}
+
+function sceneRoles(spec: VisualSceneSpecV2) {
+  return sceneColorRoleTokensV1(scenePalette(spec), spec.premiumStyle ? undefined : spec.colorPalette)
 }
 
 function normalizedViewBox(slot: PresentSceneSlotV2): string {
@@ -114,9 +123,10 @@ const SceneAssetSlot: React.FC<{
   u: number
 }> = ({ spec, slot, layout, runtime, u }) => {
   const palette = scenePalette(spec)
-  const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
+  const roles = sceneRoles(spec)
   const motion = evaluateAssetMotion(slot.motion, u)
-  const recovery = spec.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision
+  const recovery = [VISUAL_RECOVERY_PROFILE_V1.revision, PREMIUM_TYPE_COLOR_PROFILE_V1.revision]
+    .includes(spec.presentationProfile?.revision as typeof VISUAL_RECOVERY_PROFILE_V1.revision)
   const recoveryRefined = recovery && VISUAL_RECOVERY_REFINED_FAMILIES.includes(
     spec.layout.family as typeof VISUAL_RECOVERY_REFINED_FAMILIES[number])
   const pilot = !!spec.presentationProfile && (!recovery || recoveryRefined)
@@ -153,7 +163,7 @@ const SceneAssetSlot: React.FC<{
         ? `drop-shadow(0 .65cqmin 1.7cqmin ${palette.shadow})` : 'none')
         : slot.role === 'hero' ? `drop-shadow(0 1.2cqmin 2.4cqmin ${palette.shadow})`
           : `drop-shadow(0 .7cqmin 1.5cqmin ${palette.shadow})`,
-      ...(pilot ? {} : backingStyle(layout, palette, spec.colorPalette)),
+      ...(pilot ? {} : backingStyle(layout, palette, spec.premiumStyle ? undefined : spec.colorPalette)),
     }}>
     {slot.state === 'present' && runtime && <ProjectAssetVisual slot={slot} runtime={runtime}
       accent={palette.accent} support={palette.support} />}
@@ -171,8 +181,7 @@ function center(layout: SlotLayoutV4): [number, number] {
 }
 
 const PilotStructureGrammar: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ spec, u }) => {
-  const palette = scenePalette(spec)
-  const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
+  const roles = sceneRoles(spec)
   const draw = phase(u, .1, .28)
   const exit = 1 - phase(u, .86, .12)
   const stroke = { fill: 'none', stroke: roles.primaryLine, strokeWidth: .3,
@@ -200,11 +209,12 @@ const PilotStructureGrammar: React.FC<{ spec: VisualSceneSpecV2; u: number }> = 
 }
 
 const StructureGrammar: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ spec, u }) => {
-  if (spec.presentationProfile && (spec.presentationProfile.revision !== VISUAL_RECOVERY_PROFILE_V1.revision ||
+  if (spec.presentationProfile && (![VISUAL_RECOVERY_PROFILE_V1.revision, PREMIUM_TYPE_COLOR_PROFILE_V1.revision].includes(
+      spec.presentationProfile.revision as typeof VISUAL_RECOVERY_PROFILE_V1.revision) ||
       VISUAL_RECOVERY_REFINED_FAMILIES.includes(spec.layout.family as typeof VISUAL_RECOVERY_REFINED_FAMILIES[number])))
     return <PilotStructureGrammar spec={spec} u={u} />
   const palette = scenePalette(spec)
-  const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
+  const roles = sceneRoles(spec)
   const slots = spec.layout.slotLayouts
   const points = slots.map(center)
   const hero = points[0] ?? [50, 40]
@@ -279,7 +289,7 @@ const QuietBackground: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ spe
     data-qc-background-motion={spec.videoStyle.backgroundMotion} style={{
       position: 'absolute', inset: '-2%', zIndex: 0,
       backgroundColor: palette.background,
-      backgroundImage: `radial-gradient(circle at 78% 18%,${palette.accent}13 0,transparent 31%),` +
+      backgroundImage: spec.premiumStyle ? 'none' : `radial-gradient(circle at 78% 18%,${palette.accent}13 0,transparent 31%),` +
         `linear-gradient(112deg,transparent 0 62%,${palette.support}0C 62% 63%,transparent 63%),` +
         `repeating-linear-gradient(0deg,transparent 0 5.8cqmin,${palette.line}0A 5.8cqmin 5.92cqmin)`,
       transform: `translate3d(${shift.toFixed(3)}cqmin,${(-shift * .35).toFixed(3)}cqmin,0)`,
@@ -291,7 +301,7 @@ const NarrativeTextPilot: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ 
   const text = spec.text
   const look = typographyLookV3(text.typographyLookId)
   const palette = scenePalette(spec)
-  const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
+  const roles = sceneRoles(spec)
   const refined = spec.presentationProfile?.revision === EDITORIAL_MOTION_PROFILE_V2.revision
   const datum = refined && spec.editorialMotionCue === 'datum' && !!spec.editorialData
   const keywordStart = refined
@@ -385,7 +395,7 @@ const NarrativeTextRecovery: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: 
   const keywordFamily = cleanExplainer ? 'Outfit' : look.keywordFamily
   const supportFamily = cleanExplainer ? 'Archivo' : look.connectorFamily
   const palette = scenePalette(spec)
-  const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
+  const roles = sceneRoles(spec)
   const contrast = chooseTextContrastV1(spec, runtimeAssets)
   const dark = contrast === 'dark-text'
   const datum = spec.editorialMotionCue === 'datum' && !!spec.editorialData
@@ -439,15 +449,80 @@ const NarrativeTextRecovery: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: 
   </div>
 }
 
+/** Porcelain uses the same measured Text Fit and photo contrast authority as Visual Recovery. */
+const NarrativeTextPremium: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: readonly RuntimeRenderAssetV2[]; u: number }> =
+  ({ spec, runtimeAssets, u }) => {
+  const root = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => { if (root.current) fitVisualTextV2(root.current) }, [spec])
+  const style = spec.premiumStyle!
+  const type = PREMIUM_TYPE_THEMES[style.typographyTheme]
+  const text = spec.text
+  const contrast = chooseTextContrastV1(spec, runtimeAssets)
+  const dark = contrast === 'dark-text'
+  const ivory = dark ? '#17171B' : '#F4F2ED'
+  const accent = dark ? '#283E8B' : style.accentPrimary
+  const single = !/\s/u.test(text.keyword.trim())
+  const treatment = single ? style.keywordTreatment : 'ivory-solid'
+  const outlined = treatment.includes('outline')
+  const highlighted = treatment === 'accent-solid' || treatment === 'accent-outline' || treatment === 'signature-accent'
+  const datum = spec.editorialMotionCue === 'datum' && !!spec.editorialData
+  const enter = phase(u, text.timing.keywordStart, .15)
+  const exit = 1 - phase(u, .85, .13)
+  const visibleWords = [text.connector, text.keyword, text.closing, spec.editorialData?.value]
+    .filter(Boolean).join(' ').split(/\s+/u).filter(Boolean).length
+  return <div ref={root} data-qc-text="true" data-qc-text-fit="v2" data-qc-max-lines={text.maxLines}
+    data-qc-visible-words={visibleWords} data-qc-text-region={spec.layout.textRegion}
+    data-qc-keyword-family={type.title} data-qc-contrast-treatment={contrast}
+    data-qc-premium-theme={style.typographyTheme} data-qc-premium-treatment={style.keywordTreatment}
+    style={{ position: 'absolute', left: `${spec.layout.textBounds.x}%`, top: `${spec.layout.textBounds.y}%`,
+      width: `${spec.layout.textBounds.width}%`, height: `${spec.layout.textBounds.height}%`,
+      zIndex: 8, boxSizing: 'border-box', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+      justifyContent: 'center', gap: '.55cqmin', padding: '.7cqmin .95cqmin',
+      textAlign: text.alignment, color: ivory, fontSynthesis: 'none', pointerEvents: 'none', opacity: exit,
+      background: contrast === 'local-scrim'
+        ? 'linear-gradient(90deg,rgba(7,7,9,.92),rgba(7,7,9,.74))' : 'transparent' }}>
+    {text.connector && <div data-fit-body="true" data-qc-connector="true" data-qc-text-glyph="true" style={{
+      fontFamily: `'${type.body}',sans-serif`, fontWeight: 500, fontSize: '4.2cqmin',
+      lineHeight: 1.14, flexShrink: 0, opacity: phase(u, text.timing.connectorStart, .13),
+    }}>{text.connector}</div>}
+    <div data-fit-title="true" data-qc-keyword="true" data-qc-text-glyph="true" style={{
+      maxWidth: '100%', flexShrink: 0,
+      fontFamily: treatment === 'signature-accent' ? "'Dancing Script',cursive" : `'${type.title}',sans-serif`,
+      fontWeight: type.titleWeight, fontSize: datum ? '5.2cqmin' : '9.2cqmin', lineHeight: 1.06,
+      letterSpacing: '-.012em', color: outlined ? ivory : highlighted ? accent : ivory,
+      WebkitTextStroke: outlined ? `.08cqmin ${treatment === 'accent-outline' ? accent : '#C7C8CC'}` : undefined,
+      opacity: enter, clipPath: outlined ? undefined : `inset(0 ${(100 - enter * 100).toFixed(2)}% 0 0)`,
+      transform: `translateY(${((1 - enter) * 1.1).toFixed(3)}cqmin)`,
+    }}>{text.keyword}</div>
+    {spec.editorialData && <div data-fit-body="true" data-fit-data="true" data-qc-text-glyph="true" style={{
+      fontFamily: `'${type.data}',sans-serif`, fontWeight: 700,
+      fontSize: '12.5cqmin', lineHeight: 1.04, flexShrink: 0, color: accent,
+      opacity: phase(u, text.motion.emphasisStart - .09, .16),
+    }}>{spec.editorialData.value}</div>}
+    {text.closing && <div data-fit-body="true" data-qc-closing="true" data-qc-text-glyph="true" style={{
+      fontFamily: `'${type.body}',sans-serif`, fontWeight: 400, fontSize: '3.85cqmin',
+      lineHeight: 1.16, flexShrink: 0, opacity: phase(u, text.timing.closingStart ?? .3, .14),
+    }}>{text.closing}</div>}
+    <div data-qc-text-glyph="true" style={{ width: treatment === 'editorial-underline' ? '26%' : '15%',
+      minWidth: '4cqmin', flexShrink: 0, height: '.17cqmin', marginTop: '.4cqmin',
+      background: accent, transform: `scaleX(${phase(u, text.motion.emphasisStart - .07, .2).toFixed(4)})`,
+      transformOrigin: '0 50%', alignSelf: text.alignment === 'right' ? 'flex-end' :
+        text.alignment === 'center' ? 'center' : 'flex-start',
+    }} />
+  </div>
+}
+
 const NarrativeTextV15: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: readonly RuntimeRenderAssetV2[]; u: number }> =
   ({ spec, runtimeAssets, u }) => {
+  if (spec.presentationProfile?.revision === PREMIUM_TYPE_COLOR_PROFILE_V1.revision)
+    return <NarrativeTextPremium spec={spec} runtimeAssets={runtimeAssets} u={u} />
   if (spec.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision)
     return <NarrativeTextRecovery spec={spec} runtimeAssets={runtimeAssets} u={u} />
   if (spec.presentationProfile) return <NarrativeTextPilot spec={spec} u={u} />
   const text = spec.text
   const look = typographyLookV3(text.typographyLookId)
   const palette = scenePalette(spec)
-  const roles = sceneColorRoleTokensV1(palette, spec.colorPalette)
+  const roles = sceneRoles(spec)
   const connectorP = phase(u, text.timing.connectorStart, .13)
   const keywordP = phase(u, text.timing.keywordStart, .17)
   const closingP = text.closing && text.timing.closingStart !== undefined ? phase(u, text.timing.closingStart, .14) : 0
@@ -515,9 +590,9 @@ export const MotionGraphicV15: React.FC<{
   return <div key={sceneSpecReactKeyAny(spec)} data-visual-mvp="true" data-visual-composition="v15"
     data-qc-layout-family={spec.layout.family} data-visual-density={spec.direccion.densidad}
     data-qc-decorator-count="0" data-qc-empty-hero-frames="0" data-qc-video-style={spec.videoStyle.id}
-    data-qc-color-palette={spec.colorPalette?.family ?? 'historical-video-style'}
+    data-qc-color-palette={spec.premiumStyle?.porcelainPalette ?? spec.colorPalette?.family ?? 'historical-video-style'}
     data-qc-color-variant={spec.colorPalette?.variant ?? 'historical'}
-    data-qc-accent-primary={spec.colorPalette?.tokens.accentPrimary ?? ''}
+    data-qc-accent-primary={spec.premiumStyle?.accentPrimary ?? spec.colorPalette?.tokens.accentPrimary ?? ''}
     style={{ position: 'absolute', inset: 0, containerType: 'size', overflow: 'hidden' }}>
     <QuietBackground spec={spec} u={u} />
     <StructureGrammar spec={spec} u={u} />

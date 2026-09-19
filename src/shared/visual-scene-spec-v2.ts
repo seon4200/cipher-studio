@@ -44,6 +44,7 @@ import {
   EDITORIAL_MOTION_CUES,
   EDITORIAL_MOTION_PROFILE_V2,
   VISUAL_RECOVERY_PROFILE_V1,
+  PREMIUM_TYPE_COLOR_PROFILE_V1,
   createEditorialPilotLayoutV1,
   createEditorialPilotLayoutV2,
   createVisualRecoveryLayoutV1,
@@ -51,6 +52,7 @@ import {
   type EditorialMotionCue,
   type EditorialMotionProfile,
 } from './editorial-motion-profile-v1'
+import { validatePremiumStyleV1, type PremiumStyleV1 } from './premium-type-color-v1'
 import {
   VISUAL_MVP_BOUNDS_REVISION,
   editorialFallbackSpec,
@@ -177,6 +179,8 @@ export type VisualSceneSpecV2 = {
   colorPalette?: SceneColorPaletteV1
   /** Opt-in presentation revision. Absence preserves historical V15 pixels and identity. */
   presentationProfile?: EditorialMotionProfile
+  /** Materialized only for the opt-in Porcelain revision; canonical PixelIdentity includes it. */
+  premiumStyle?: PremiumStyleV1
   /** Frozen relation choreography; required only for the editorial v2 revision. */
   editorialMotionCue?: EditorialMotionCue
   /** Only materialized for the opt-in profile; part of the pixel contract. */
@@ -416,7 +420,8 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
   const family = value.family as ModernLayoutStructureV4
   const mode = spec.visualMode as 'asset-led' | 'editorial-text'
   const seed = Number((spec.direccion as VisualDirectionV2).semilla)
-  const expected = (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === VISUAL_RECOVERY_PROFILE_V1.revision
+  const expected = [(VISUAL_RECOVERY_PROFILE_V1.revision), (PREMIUM_TYPE_COLOR_PROFILE_V1.revision)]
+    .includes((spec.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof VISUAL_RECOVERY_PROFILE_V1.revision)
     ? createVisualRecoveryLayoutV1(family, mode, supportCount, seed, spec.editorialMotionCue as EditorialMotionCue)
     : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_MOTION_PROFILE_V2.revision
     ? createEditorialPilotLayoutV2(family, mode, supportCount, seed, spec.editorialMotionCue as EditorialMotionCue)
@@ -431,7 +436,7 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
 export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   const code = 'VISUAL_SCENE_SPEC_V2_INVALID'
   record(value, code, 'sceneSpec')
-  exactKeys(value, ['renderSpecVersion', 'visualMode', 'renderTier', 'sistema', 'direccion', 'videoStyle', 'backgroundProfile', 'colorPalette', 'presentationProfile', 'editorialMotionCue', 'editorialData', 'layout', 'text', 'slots', 'revisions', 'fallbackVisual'], code, 'sceneSpec')
+  exactKeys(value, ['renderSpecVersion', 'visualMode', 'renderTier', 'sistema', 'direccion', 'videoStyle', 'backgroundProfile', 'colorPalette', 'presentationProfile', 'premiumStyle', 'editorialMotionCue', 'editorialData', 'layout', 'text', 'slots', 'revisions', 'fallbackVisual'], code, 'sceneSpec')
   if (value.renderSpecVersion !== VISUAL_RENDER_SPEC_VERSION_V2 ||
       !['asset-led', 'editorial-text'].includes(String(value.visualMode)) || value.renderTier !== 'standard' ||
       !Object.keys(SISTEMAS).includes(String(value.sistema)) || value.fallbackVisual !== 'editorial-text')
@@ -441,7 +446,10 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   if (value.backgroundProfile !== undefined) validateBackgroundProfileV1(value.backgroundProfile)
   if (value.colorPalette !== undefined) validateSceneColorPaletteV1(value.colorPalette)
   if (value.presentationProfile !== undefined) validateEditorialMotionProfile(value.presentationProfile)
-  if ([EDITORIAL_MOTION_PROFILE_V2.revision, VISUAL_RECOVERY_PROFILE_V1.revision]
+  if ((value.presentationProfile as EditorialMotionProfile | undefined)?.revision === PREMIUM_TYPE_COLOR_PROFILE_V1.revision)
+    validatePremiumStyleV1(value.premiumStyle)
+  else if (value.premiumStyle !== undefined) fail(code, 'premiumStyle requiere perfil Porcelain')
+  if ([EDITORIAL_MOTION_PROFILE_V2.revision, VISUAL_RECOVERY_PROFILE_V1.revision, PREMIUM_TYPE_COLOR_PROFILE_V1.revision]
     .includes((value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_MOTION_PROFILE_V2.revision)) {
     if (!EDITORIAL_MOTION_CUES.includes(value.editorialMotionCue as EditorialMotionCue))
       fail(code, 'editorialMotionCue requerido para revisión v2')
@@ -529,7 +537,8 @@ export function editorialFallbackSpecAny(spec: VisualSceneSpecAny): VisualSceneS
   if (spec.renderSpecVersion === 1) return editorialFallbackSpec(spec)
   const slots: SceneSlotV2[] = spec.slots.map(slot => ({ slotId: slot.slotId, role: slot.role, state: 'missing' }))
   const layout = spec.presentationProfile
-    ? spec.presentationProfile.revision === VISUAL_RECOVERY_PROFILE_V1.revision
+    ? [VISUAL_RECOVERY_PROFILE_V1.revision, PREMIUM_TYPE_COLOR_PROFILE_V1.revision].includes(
+      spec.presentationProfile.revision as typeof VISUAL_RECOVERY_PROFILE_V1.revision)
       ? createVisualRecoveryLayoutV1('editorial', 'editorial-text', 0, spec.direccion.semilla, 'typographic')
       : spec.presentationProfile.revision === EDITORIAL_MOTION_PROFILE_V2.revision
       ? createEditorialPilotLayoutV2('editorial', 'editorial-text', 0, spec.direccion.semilla, 'typographic')
@@ -573,7 +582,8 @@ export function degradedVisualSceneSpecV2(
     supportCount,
   }) ? spec.layout.family : 'marcoPoster'
   const layout = spec.presentationProfile
-    ? spec.presentationProfile.revision === VISUAL_RECOVERY_PROFILE_V1.revision
+    ? [VISUAL_RECOVERY_PROFILE_V1.revision, PREMIUM_TYPE_COLOR_PROFILE_V1.revision].includes(
+      spec.presentationProfile.revision as typeof VISUAL_RECOVERY_PROFILE_V1.revision)
       ? createVisualRecoveryLayoutV1(family, 'asset-led', supportCount, spec.direccion.semilla, spec.editorialMotionCue!)
       : spec.presentationProfile.revision === EDITORIAL_MOTION_PROFILE_V2.revision
       ? createEditorialPilotLayoutV2(family, 'asset-led', supportCount, spec.direccion.semilla, spec.editorialMotionCue!)

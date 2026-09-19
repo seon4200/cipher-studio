@@ -26,6 +26,7 @@ import {
 import {
   EDITORIAL_MOTION_PROFILE_V2,
   VISUAL_RECOVERY_PROFILE_V1,
+  PREMIUM_TYPE_COLOR_PROFILE_V1,
   createEditorialPilotLayoutV1,
   createEditorialPilotLayoutV2,
   createVisualRecoveryLayoutV1,
@@ -33,6 +34,7 @@ import {
   type EditorialMotionCue,
   type EditorialMotionProfile,
 } from '../../shared/editorial-motion-profile-v1'
+import { selectPremiumStyleV1 } from '../../shared/premium-type-color-v1'
 import {
   VIDEO_VISUAL_STYLES_V1,
   materializeVideoVisualStyleV1,
@@ -906,7 +908,8 @@ function compileV2(input: {
   const hero = input.choices.find(choice => choice.slotId === 'hero')
   const supports = input.choices.filter(choice => choice.slotId !== 'hero')
   const visualMode = hero ? 'asset-led' : 'editorial-text'
-  const recovery = input.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision
+  const premium = input.presentationProfile?.revision === PREMIUM_TYPE_COLOR_PROFILE_V1.revision
+  const recovery = input.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision || premium
   const refined = recovery || input.presentationProfile?.revision === EDITORIAL_MOTION_PROFILE_V2.revision
   const relation = (input.base.localSemantic.relation ?? '').normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -1012,7 +1015,11 @@ function compileV2(input: {
     videoStyle: materializeVideoVisualStyleV1({ videoStyleId: input.videoStyleId,
       sceneId: input.base.decision.sceneId, seed: directionV1.semilla }),
     backgroundProfile: materializeBackgroundProfileV1('solid-black-v1'),
-    colorPalette: input.colorPalette,
+    // V1's vivid per-scene colors select the video theme upstream but do not enter
+    // Porcelain's pixel contract: only the materialized neutral/accent tokens are visible.
+    ...(!premium ? { colorPalette: input.colorPalette } : {}),
+    ...(premium ? { premiumStyle: selectPremiumStyleV1(input.colorPalette.videoPrimaryFamily,
+      editorialMotionCue, text.keyword) } : {}),
     ...(input.presentationProfile ? { presentationProfile: input.presentationProfile } : {}),
     ...(refined ? { editorialMotionCue } : {}),
     ...(editorialData ? { editorialData } : {}),
