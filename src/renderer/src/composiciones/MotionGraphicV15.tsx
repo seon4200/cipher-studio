@@ -21,6 +21,8 @@ import { EDITORIAL_MOTION_PROFILE_V2, VISUAL_RECOVERY_PROFILE_V1,
 import { PREMIUM_TYPE_THEMES } from '../../../shared/premium-type-color-v1'
 import { fitVisualTextV2 } from './text-fit-v2'
 import { chooseTextContrastV1 } from './photo-text-contrast-v1'
+import { assetMotionV2, backgroundImageV2, FamilyV2AccentGraphics } from './families-v2-layers'
+import { FAMILIES_MOTION_PROFILE_V2 } from '../../../shared/editorial-motion-profile-v1'
 
 function clamp01(value: number): number { return Math.min(1, Math.max(0, value)) }
 function ease(value: number): number { const p = clamp01(value); return 1 - Math.pow(1 - p, 3) }
@@ -143,6 +145,7 @@ const SceneAssetSlot: React.FC<{
   const pilotOpacity = entrance * departure
   const pilotScale = .94 + entrance * .06 - (1 - departure) * .025
   const pilotYOffset = (1 - entrance) * (slot.role === 'hero' ? 3.1 : 1.7) - (1 - departure) * 1.1
+  const familyMotion = spec.compositionV2 ? assetMotionV2(spec.compositionV2.motionVariant, slot.role, u) : undefined
   if (slot.state === 'present' && !runtime) throw new Error(`VISUAL_RUNTIME_SLOT_REQUIRED:${slot.slotId}`)
   return <div
     data-qc-asset="true" data-qc-hero={slot.role === 'hero' ? 'true' : undefined}
@@ -153,20 +156,24 @@ const SceneAssetSlot: React.FC<{
       position: 'absolute', left: `${layout.envelope.x + layout.envelope.width / 2}%`,
       top: `${layout.envelope.y + layout.envelope.height / 2}%`, width: `${layout.envelope.width}%`,
       height: `${layout.envelope.height}%`, zIndex: layout.zIndex, boxSizing: 'border-box',
-      transform: pilot
+      transform: familyMotion ? familyMotion.transform : pilot
         ? `translate(-50%,-50%) translate3d(0,${pilotYOffset.toFixed(4)}cqmin,0) rotate(${layout.rotationDeg}deg) scale(${pilotScale.toFixed(5)})`
         : `translate(-50%,-50%) translate3d(${motion.translateXCqmin.toFixed(4)}cqmin,` +
           `${motion.translateYCqmin.toFixed(4)}cqmin,0) rotate(${layout.rotationDeg}deg) scale(${motion.scale.toFixed(5)})`,
-      transformOrigin: '50% 50%', opacity: (pilot ? pilotOpacity : motion.opacity) * layout.opacity,
+      transformOrigin: '50% 50%', opacity: (familyMotion ? familyMotion.opacity : pilot ? pilotOpacity : motion.opacity) * layout.opacity,
+      ...(familyMotion?.clipPath ? { clipPath: familyMotion.clipPath } : {}),
       willChange: 'transform,opacity', overflow: layout.crop === 'cover-safe' ? 'hidden' : 'visible',
-      filter: pilot ? (slot.state === 'present' && slot.alphaMode === 'opaque-rectangle'
+      filter: familyMotion ? 'none' : pilot ? (slot.state === 'present' && slot.alphaMode === 'opaque-rectangle'
         ? `drop-shadow(0 .65cqmin 1.7cqmin ${palette.shadow})` : 'none')
         : slot.role === 'hero' ? `drop-shadow(0 1.2cqmin 2.4cqmin ${palette.shadow})`
           : `drop-shadow(0 .7cqmin 1.5cqmin ${palette.shadow})`,
       ...(pilot ? {} : backingStyle(layout, palette, spec.premiumStyle ? undefined : spec.colorPalette)),
     }}>
-    {slot.state === 'present' && runtime && <ProjectAssetVisual slot={slot} runtime={runtime}
-      accent={palette.accent} support={palette.support} />}
+    {slot.state === 'present' && runtime && (spec.compositionV2?.layoutVariant === 'full-raster-context'
+      && slot.role === 'hero' && slot.alphaMode === 'opaque-rectangle'
+      && slot.tint.treatment === 'original-color'
+      ? <img src={runtime.objectUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+      : <ProjectAssetVisual slot={slot} runtime={runtime} accent={palette.accent} support={palette.support} />)}
     {slot.state === 'procedural' && <div data-qc-solar-tint={roles.solar}
       style={{ width: '100%', height: '100%', color: roles.solar }}>
       <IconoSolar concepto={{ emoji: '', etiqueta: slot.solarIcon, icono: slot.solarIcon }}
@@ -289,9 +296,11 @@ const QuietBackground: React.FC<{ spec: VisualSceneSpecV2; u: number }> = ({ spe
     data-qc-background-motion={spec.videoStyle.backgroundMotion} style={{
       position: 'absolute', inset: '-2%', zIndex: 0,
       backgroundColor: palette.background,
-      backgroundImage: spec.premiumStyle ? 'none' : `radial-gradient(circle at 78% 18%,${palette.accent}13 0,transparent 31%),` +
+      backgroundImage: spec.compositionV2 ? backgroundImageV2(spec.compositionV2.backgroundVariant, palette)
+        : spec.premiumStyle ? 'none' : `radial-gradient(circle at 78% 18%,${palette.accent}13 0,transparent 31%),` +
         `linear-gradient(112deg,transparent 0 62%,${palette.support}0C 62% 63%,transparent 63%),` +
         `repeating-linear-gradient(0deg,transparent 0 5.8cqmin,${palette.line}0A 5.8cqmin 5.92cqmin)`,
+      ...(spec.compositionV2?.backgroundVariant === 'subtle-grid' ? { backgroundSize: '8cqmin 8cqmin' } : {}),
       transform: `translate3d(${shift.toFixed(3)}cqmin,${(-shift * .35).toFixed(3)}cqmin,0)`,
     }} />
 }
@@ -399,7 +408,8 @@ const NarrativeTextRecovery: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: 
   const contrast = chooseTextContrastV1(spec, runtimeAssets)
   const dark = contrast === 'dark-text'
   const datum = spec.editorialMotionCue === 'datum' && !!spec.editorialData
-  const enter = phase(u, text.timing.keywordStart, .15)
+  const enter = phase(u, spec.compositionV2 ? spec.compositionV2.motionCue === 'data' ? .07
+    : spec.compositionV2.motionCue === 'type-led' ? .09 : .18 : text.timing.keywordStart, .15)
   const exit = 1 - phase(u, .85, .13)
   const visibleWords = [text.connector, text.keyword, text.closing, spec.editorialData?.value]
     .filter(Boolean).join(' ').split(/\s+/).filter(Boolean).length
@@ -466,6 +476,8 @@ const NarrativeTextPremium: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: r
   const outlined = treatment.includes('outline')
   const highlighted = treatment === 'accent-solid' || treatment === 'accent-outline' || treatment === 'signature-accent'
   const datum = spec.editorialMotionCue === 'datum' && !!spec.editorialData
+  const closingData = spec.compositionV2?.motionCue === 'data' && !spec.editorialData
+    ? /\b\d{1,3}(?:[.,]\d+)?\s*%/u.exec(text.closing ?? '') : null
   const enter = phase(u, text.timing.keywordStart, .15)
   const exit = 1 - phase(u, .85, .13)
   const visibleWords = [text.connector, text.keyword, text.closing, spec.editorialData?.value]
@@ -483,12 +495,13 @@ const NarrativeTextPremium: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: r
         ? 'linear-gradient(90deg,rgba(7,7,9,.92),rgba(7,7,9,.74))' : 'transparent' }}>
     {text.connector && <div data-fit-body="true" data-qc-connector="true" data-qc-text-glyph="true" style={{
       fontFamily: `'${type.body}',sans-serif`, fontWeight: 500, fontSize: '4.2cqmin',
-      lineHeight: 1.14, flexShrink: 0, opacity: phase(u, text.timing.connectorStart, .13),
+      lineHeight: 1.14, flexShrink: 0, opacity: phase(u, spec.compositionV2 ? .07 : text.timing.connectorStart, .13),
     }}>{text.connector}</div>}
     <div data-fit-title="true" data-qc-keyword="true" data-qc-text-glyph="true" style={{
       maxWidth: '100%', flexShrink: 0,
       fontFamily: treatment === 'signature-accent' ? "'Dancing Script',cursive" : `'${type.title}',sans-serif`,
-      fontWeight: type.titleWeight, fontSize: datum ? '5.2cqmin' : '9.2cqmin', lineHeight: 1.06,
+      fontWeight: type.titleWeight, fontSize: spec.compositionV2?.motionCue === 'data' ? '6.2cqmin'
+        : datum ? '5.2cqmin' : spec.compositionV2 ? '11.8cqmin' : '9.2cqmin', lineHeight: 1.06,
       letterSpacing: '-.012em', color: outlined ? ivory : highlighted ? accent : ivory,
       WebkitTextStroke: outlined ? `.08cqmin ${treatment === 'accent-outline' ? accent : '#C7C8CC'}` : undefined,
       opacity: enter, clipPath: outlined ? undefined : `inset(0 ${(100 - enter * 100).toFixed(2)}% 0 0)`,
@@ -497,15 +510,20 @@ const NarrativeTextPremium: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: r
     {spec.editorialData && <div data-fit-body="true" data-fit-data="true" data-qc-text-glyph="true" style={{
       fontFamily: `'${type.data}',sans-serif`, fontWeight: 700,
       fontSize: '12.5cqmin', lineHeight: 1.04, flexShrink: 0, color: accent,
-      opacity: phase(u, text.motion.emphasisStart - .09, .16),
+      opacity: phase(u, spec.compositionV2 ? .13 : text.motion.emphasisStart - .09, .16),
     }}>{spec.editorialData.value}</div>}
     {text.closing && <div data-fit-body="true" data-qc-closing="true" data-qc-text-glyph="true" style={{
-      fontFamily: `'${type.body}',sans-serif`, fontWeight: 400, fontSize: '3.85cqmin',
-      lineHeight: 1.16, flexShrink: 0, opacity: phase(u, text.timing.closingStart ?? .3, .14),
-    }}>{text.closing}</div>}
+      fontFamily: `'${type.body}',sans-serif`, fontWeight: 400,
+      fontSize: spec.compositionV2 ? '4.2cqmin' : '3.85cqmin',
+      lineHeight: 1.16, flexShrink: 0, opacity: phase(u, closingData ? .07
+        : spec.compositionV2 ? .36 : text.timing.closingStart ?? .3, .14),
+    }}>{closingData ? <>{text.closing.slice(0, closingData.index)}<span style={{ display: 'block',
+      fontFamily: `'${type.data}',sans-serif`, fontWeight: 700, fontSize: '2.05em',
+      lineHeight: 1.04, color: accent }}>{closingData[0]}</span>
+      {text.closing.slice(closingData.index + closingData[0].length)}</> : text.closing}</div>}
     <div data-qc-text-glyph="true" style={{ width: treatment === 'editorial-underline' ? '26%' : '15%',
       minWidth: '4cqmin', flexShrink: 0, height: '.17cqmin', marginTop: '.4cqmin',
-      background: accent, transform: `scaleX(${phase(u, text.motion.emphasisStart - .07, .2).toFixed(4)})`,
+      background: accent, transform: `scaleX(${phase(u, spec.compositionV2 ? .43 : text.motion.emphasisStart - .07, .2).toFixed(4)})`,
       transformOrigin: '0 50%', alignSelf: text.alignment === 'right' ? 'flex-end' :
         text.alignment === 'center' ? 'center' : 'flex-start',
     }} />
@@ -514,7 +532,8 @@ const NarrativeTextPremium: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: r
 
 const NarrativeTextV15: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: readonly RuntimeRenderAssetV2[]; u: number }> =
   ({ spec, runtimeAssets, u }) => {
-  if (spec.presentationProfile?.revision === PREMIUM_TYPE_COLOR_PROFILE_V1.revision)
+  if (spec.presentationProfile?.revision === PREMIUM_TYPE_COLOR_PROFILE_V1.revision ||
+      spec.presentationProfile?.revision === FAMILIES_MOTION_PROFILE_V2.revision)
     return <NarrativeTextPremium spec={spec} runtimeAssets={runtimeAssets} u={u} />
   if (spec.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision)
     return <NarrativeTextRecovery spec={spec} runtimeAssets={runtimeAssets} u={u} />
@@ -584,24 +603,30 @@ export const MotionGraphicV15: React.FC<{
   runtimeAssets: readonly RuntimeRenderAssetV2[]
   u: number
 }> = ({ spec, runtimeAssets, u }) => {
-  const active = spec.slots.filter((slot): slot is Extract<SceneSlotV2, { state: 'present' | 'procedural' }> =>
+  // Both geometries are part of the same frozen SceneSpec. The current canvas
+  // chooses one; no runtime recomputation can drift from the stored identity.
+  const layout = spec.compositionV2 && window.innerWidth > window.innerHeight
+    ? spec.compositionV2.landscapeLayout : spec.layout
+  const displayed = layout === spec.layout ? spec : { ...spec, layout }
+  const active = displayed.slots.filter((slot): slot is Extract<SceneSlotV2, { state: 'present' | 'procedural' }> =>
     slot.state === 'present' || slot.state === 'procedural')
   const runtimeBySlot = new Map(runtimeAssets.map(asset => [asset.slotId, asset]))
   return <div key={sceneSpecReactKeyAny(spec)} data-visual-mvp="true" data-visual-composition="v15"
-    data-qc-layout-family={spec.layout.family} data-visual-density={spec.direccion.densidad}
+    data-qc-layout-family={displayed.layout.family} data-visual-density={spec.direccion.densidad}
     data-qc-decorator-count="0" data-qc-empty-hero-frames="0" data-qc-video-style={spec.videoStyle.id}
     data-qc-color-palette={spec.premiumStyle?.porcelainPalette ?? spec.colorPalette?.family ?? 'historical-video-style'}
     data-qc-color-variant={spec.colorPalette?.variant ?? 'historical'}
     data-qc-accent-primary={spec.premiumStyle?.accentPrimary ?? spec.colorPalette?.tokens.accentPrimary ?? ''}
     style={{ position: 'absolute', inset: 0, containerType: 'size', overflow: 'hidden' }}>
-    <QuietBackground spec={spec} u={u} />
-    <StructureGrammar spec={spec} u={u} />
+    <QuietBackground spec={displayed} u={u} />
+    {spec.compositionV2 ? <FamilyV2AccentGraphics spec={displayed} u={u}
+      accent={scenePalette(spec).accent} /> : <StructureGrammar spec={spec} u={u} />}
     {active.map(slot => {
-      const layout = spec.layout.slotLayouts.find(value => value.slotId === slot.slotId)
-      if (!layout) throw new Error(`VISUAL_RUNTIME_LAYOUT_SLOT_REQUIRED:${slot.slotId}`)
-      return <SceneAssetSlot key={slot.slotId} spec={spec} slot={slot} layout={layout}
+      const slotLayout = displayed.layout.slotLayouts.find(value => value.slotId === slot.slotId)
+      if (!slotLayout) throw new Error(`VISUAL_RUNTIME_LAYOUT_SLOT_REQUIRED:${slot.slotId}`)
+      return <SceneAssetSlot key={slot.slotId} spec={displayed} slot={slot} layout={slotLayout}
         runtime={runtimeBySlot.get(slot.slotId)} u={u} />
     })}
-    <NarrativeTextV15 spec={spec} runtimeAssets={runtimeAssets} u={u} />
+    <NarrativeTextV15 spec={displayed} runtimeAssets={runtimeAssets} u={u} />
   </div>
 }

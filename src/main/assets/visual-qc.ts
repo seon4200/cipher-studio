@@ -12,7 +12,7 @@ import {
   type VisualSceneSpecAny,
   type VisualSceneSpecV2,
 } from '../../shared/visual-scene-spec-v2'
-import { VISUAL_RECOVERY_PROFILE_V1 } from '../../shared/editorial-motion-profile-v1'
+import { FAMILIES_MOTION_PROFILE_V2, VISUAL_RECOVERY_PROFILE_V1 } from '../../shared/editorial-motion-profile-v1'
 
 export type VisualQcRect = {
   left: number
@@ -165,7 +165,8 @@ function evaluateVisualDomQcV2(
       findings.push({ code: 'VISUAL_QC_TEXT_BOUNDS', level: 'error', message: 'Texto V15 fuera de safe area', normalizedTime: at })
     if (snapshot.textOverflow || snapshot.keywordOverflow || !['2', '3'].includes(snapshot.maxLines ?? '') || snapshot.visibleWords > 8)
       findings.push({ code: 'VISUAL_QC_TEXT_OVERFLOW', level: 'error', message: 'Texto V15 recortado o fuera de presupuesto', normalizedTime: at })
-    if (spec.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision && snapshot.textFitFailed)
+    if ((spec.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision ||
+      spec.presentationProfile?.revision === FAMILIES_MOTION_PROFILE_V2.revision) && snapshot.textFitFailed)
       findings.push({ code: 'VISUAL_QC_TEXT_FIT_V2_FAILED', level: 'error',
         message: `Text Fit V2 no encontró tamaño legible (${snapshot.textFitStage ?? 'sin etapa'})`, normalizedTime: at })
     if (snapshot.decoratorCount !== 0)
@@ -205,6 +206,26 @@ function evaluateVisualDomQcV2(
     }
     if (spec.visualMode === 'editorial-text' && domAssets.length)
       findings.push({ code: 'VISUAL_QC_EDITORIAL_HAS_ASSET', level: 'error', message: 'Editorial V15 contiene assets', normalizedTime: at })
+    if (spec.compositionV2 && at >= .43 && at <= .76) {
+      // V2 intentionally uses real semantic slots. A collision among fully visible
+      // slots is not a way to fill empty space; warn without rewriting the scene.
+      const visible = domAssets.filter(asset => asset.rect && asset.opacity > .85)
+      for (let first = 0; first < visible.length; first++) for (let second = first + 1; second < visible.length; second++) {
+        if (overlapRatio(visible[first].rect!, visible[second].rect!) > .38)
+          findings.push({ code: 'VISUAL_QC_V2_ASSET_COLLISION', level: 'needs-review',
+            message: `${visible[first].slotId} y ${visible[second].slotId} se superponen visiblemente`, normalizedTime: at })
+      }
+      const boxes = [...visible.map(asset => asset.rect!), snapshot.text].filter((box): box is VisualQcRect => !!box)
+      if (boxes.length > 0) {
+        const left = Math.min(...boxes.map(box => box.left))
+        const right = Math.max(...boxes.map(box => box.right))
+        const top = Math.min(...boxes.map(box => box.top))
+        const bottom = Math.max(...boxes.map(box => box.bottom))
+        if ((right - left) / frame.width < .38 || (bottom - top) / frame.height < .28)
+          findings.push({ code: 'VISUAL_QC_V2_EXCESSIVE_EMPTY_COMPOSITION', level: 'needs-review',
+            message: 'Texto y assets activos quedan agrupados en una región demasiado pequeña; revisar balance', normalizedTime: at })
+      }
+    }
   }
   return findings
 }
