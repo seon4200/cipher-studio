@@ -1,3 +1,4 @@
+import { validateModernVisualAssetIdentityV1 } from './modern-visual-pack-v1'
 import {
   CAMARAS,
   DENSIDADES,
@@ -90,6 +91,7 @@ export const VISUAL_TREATMENTS_V2 = ['original-color', 'system-tint', 'duotone',
 export type VisualTreatmentV2 = typeof VISUAL_TREATMENTS_V2[number]
 
 export type PresentSceneSlotV2 = {
+  catalogAsset?: import('./modern-visual-pack-v1').ModernVisualAssetIdentityV1
   slotId: SceneSlotIdV2
   role: SceneSlotRoleV2
   state: 'present'
@@ -369,7 +371,8 @@ function validateSlot(value: unknown): asserts value is SceneSlotV2 {
     evaluateAssetMotion(value.motion as AssetMotionRecipeV1, 0.5)
     return
   }
-  exactKeys(value, ['slotId', 'role', 'state', 'sha256', 'mime', 'kind', 'alphaMode', 'bounds', 'fitPolicy', 'tint', 'motion'], code, 'slot present')
+  exactKeys(value, ['slotId', 'role', 'state', 'sha256', 'mime', 'kind', 'alphaMode', 'bounds', 'fitPolicy', 'tint', 'motion', 'catalogAsset'], code, 'slot present')
+  if (value.catalogAsset !== undefined) validateModernVisualAssetIdentityV1(value.catalogAsset)
   if (value.state !== 'present' || typeof value.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(value.sha256) ||
       !VISUAL_ASSET_MIMES_V2.includes(value.mime as VisualAssetMimeV2) ||
       !VISUAL_ASSET_KINDS_V2.includes(value.kind as VisualAssetKindV2) ||
