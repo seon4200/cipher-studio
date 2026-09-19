@@ -28,7 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generateVoice: (params: any) => ipcRenderer.invoke('generate-voice', params),
   generateMinimaxVideo: (params: { prompt: string }) => ipcRenderer.invoke('generate-minimax-video', params),
   loadBankClips: (params: { category: string }) => ipcRenderer.invoke('load-bank-clips', params),
-  generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; visualAssetPack?: 'legacy' | 'modern-pack-100-v1' | 'modern-pack-100-v1+local'; visualPresentationProfile?: 'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1'; graphicsPercent?: number; hasVideoV2?: boolean }) => ipcRenderer.invoke('generate-timeline-assets', params),
+  generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; visualAssetPack?: 'legacy' | 'modern-pack-100-v1' | 'modern-pack-100-v1+local'; visualPresentationProfile?: 'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2'; graphicsPercent?: number; hasVideoV2?: boolean }) => ipcRenderer.invoke('generate-timeline-assets', params),
   generatePerfectSync: (params: any) => ipcRenderer.invoke('generate-perfect-sync', params),
   renderGraphicsBatch: (params: any) => ipcRenderer.invoke('render-graphics-batch', params),
   // CANAL PROPIO, no un campo mas en `generation-progress`. La barra de progreso es lo unico

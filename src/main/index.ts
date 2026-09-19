@@ -63,7 +63,8 @@ import {
   resolveModernVisualGenerationBatchV2,
 } from './assets/modern-visual-generation'
 import { summarizeMotionGraphicsVideoMetricsV2 } from './assets/motion-graphics-resolver'
-import { EDITORIAL_MOTION_PROFILE_V2, VISUAL_RECOVERY_PROFILE_V1, PREMIUM_TYPE_COLOR_PROFILE_V1 } from '../shared/editorial-motion-profile-v1'
+import { EDITORIAL_MOTION_PROFILE_V2, VISUAL_RECOVERY_PROFILE_V1, PREMIUM_TYPE_COLOR_PROFILE_V1,
+  FAMILIES_MOTION_PROFILE_V2 } from '../shared/editorial-motion-profile-v1'
 import { writeVisualDecisionDiagnostic } from './services/visual-decision-diagnostics'
 import { prepareOriginalClipSegmentation } from './services/original-clip-segmentation'
 import { prepareGraphicForVisualRender, visualRenderRoot } from './assets/visual-render'
@@ -141,6 +142,11 @@ export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
 // still runs only after verified local raster bytes are decoded in the renderer.
 export { chooseTextContrastV1 } from '../renderer/src/composiciones/photo-text-contrast-v1'
 export { PREMIUM_TYPE_COLOR_PROFILE_V1 } from '../shared/editorial-motion-profile-v1'
+export { FAMILIES_MOTION_PROFILE_V2 } from '../shared/editorial-motion-profile-v1'
+export { MODERN_LAYOUT_STRUCTURES_V4, LAYOUT_ELIGIBILITY_V4, eligibleLayoutFamiliesV4,
+  isLayoutEligibleV4, selectVisualPresentationV4 } from '../shared/visual-layout-v4'
+export { BACKGROUND_VARIANTS_V2, MOTION_PRIMITIVES_V2, COMPOSITION_VARIANTS_V2,
+  createCompositionLayoutV2, selectCompositionV2 } from '../shared/families-motion-v2'
 export { PORCELAIN_PALETTES, PREMIUM_TYPE_THEMES, WORD_TREATMENTS,
   selectPremiumStyleV1, validatePremiumStyleV1 } from '../shared/premium-type-color-v1'
 
@@ -4086,7 +4092,7 @@ function enviarAviso(event: any, carga: unknown): void {
 ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, visualPresentationProfile, visualAssetPack, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
   if (visualAssetPack !== undefined && !['legacy', MODERN_VISUAL_PACK_V1.id, 'modern-pack-100-v1+local'].includes(visualAssetPack))
     return { success: false, error: 'Pack visual no reconocido' }
-  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1'].includes(visualPresentationProfile))
+  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1', 'families-motion-v2'].includes(visualPresentationProfile))
     throw new Error('VISUAL_PRESENTATION_PROFILE_INVALID');
   const isOriginalAudio = transcriptSegments && newAudioSegments && 
     transcriptSegments.length === newAudioSegments.length &&
@@ -5099,7 +5105,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               : visualPresentationProfile === 'visual-recovery-v1'
                 ? { presentationProfile: VISUAL_RECOVERY_PROFILE_V1 }
                 : visualPresentationProfile === 'premium-type-color-v1'
-                  ? { presentationProfile: PREMIUM_TYPE_COLOR_PROFILE_V1 } : {}),
+                  ? { presentationProfile: PREMIUM_TYPE_COLOR_PROFILE_V1 }
+                  : visualPresentationProfile === 'families-motion-v2'
+                    ? { presentationProfile: FAMILIES_MOTION_PROFILE_V2 } : {}),
           });
         });
         // All semantic work completes before hashing/rendering. Renderer gets only the
