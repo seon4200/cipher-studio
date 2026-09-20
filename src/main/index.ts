@@ -65,6 +65,7 @@ import {
 import { summarizeMotionGraphicsVideoMetricsV2 } from './assets/motion-graphics-resolver'
 import { EDITORIAL_MOTION_PROFILE_V2, VISUAL_RECOVERY_PROFILE_V1, PREMIUM_TYPE_COLOR_PROFILE_V1,
   FAMILIES_MOTION_PROFILE_V2 } from '../shared/editorial-motion-profile-v1'
+import { EDITORIAL_EXPLAINER_LIGHT_V1 } from '../shared/editorial-explainer-light-v1'
 import { writeVisualDecisionDiagnostic } from './services/visual-decision-diagnostics'
 import { prepareOriginalClipSegmentation } from './services/original-clip-segmentation'
 import { prepareGraphicForVisualRender, visualRenderRoot } from './assets/visual-render'
@@ -143,6 +144,8 @@ export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
 export { chooseTextContrastV1 } from '../renderer/src/composiciones/photo-text-contrast-v1'
 export { PREMIUM_TYPE_COLOR_PROFILE_V1 } from '../shared/editorial-motion-profile-v1'
 export { FAMILIES_MOTION_PROFILE_V2 } from '../shared/editorial-motion-profile-v1'
+export { EDITORIAL_EXPLAINER_LIGHT_V1, LIGHT_COLORS_V1, LIGHT_BACKGROUNDS_V1,
+  createLightLayoutV1, makeLightDataRepeaterV1 } from '../shared/editorial-explainer-light-v1'
 export { MODERN_LAYOUT_STRUCTURES_V4, LAYOUT_ELIGIBILITY_V4, eligibleLayoutFamiliesV4,
   isLayoutEligibleV4, selectVisualPresentationV4 } from '../shared/visual-layout-v4'
 export { BACKGROUND_VARIANTS_V2, MOTION_PRIMITIVES_V2, COMPOSITION_VARIANTS_V2,
@@ -4092,7 +4095,7 @@ function enviarAviso(event: any, carga: unknown): void {
 ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, visualPresentationProfile, visualAssetPack, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
   if (visualAssetPack !== undefined && !['legacy', MODERN_VISUAL_PACK_V1.id, 'modern-pack-100-v1+local'].includes(visualAssetPack))
     return { success: false, error: 'Pack visual no reconocido' }
-  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1', 'families-motion-v2'].includes(visualPresentationProfile))
+  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1', 'families-motion-v2', 'editorial-explainer-light-v1'].includes(visualPresentationProfile))
     throw new Error('VISUAL_PRESENTATION_PROFILE_INVALID');
   const isOriginalAudio = transcriptSegments && newAudioSegments && 
     transcriptSegments.length === newAudioSegments.length &&
@@ -5107,7 +5110,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
                 : visualPresentationProfile === 'premium-type-color-v1'
                   ? { presentationProfile: PREMIUM_TYPE_COLOR_PROFILE_V1 }
                   : visualPresentationProfile === 'families-motion-v2'
-                    ? { presentationProfile: FAMILIES_MOTION_PROFILE_V2 } : {}),
+                    ? { presentationProfile: FAMILIES_MOTION_PROFILE_V2 }
+                    : visualPresentationProfile === 'editorial-explainer-light-v1'
+                      ? { presentationProfile: EDITORIAL_EXPLAINER_LIGHT_V1 } : {}),
           });
         });
         // All semantic work completes before hashing/rendering. Renderer gets only the
