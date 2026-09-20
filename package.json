@@ -50,6 +50,8 @@
     "test:modern-visual-pack-v1": "electron tests/modern-visual-pack-v1.js",
     "test:local-visual-library-v1": "electron tests/local-visual-library-v1.js",
     "test:families-motion-v2": "electron tests/families-motion-v2.js",
+    "test:editorial-explainer-light-v1": "electron tests/editorial-explainer-light-v1.js",
+    "accept:editorial-explainer-light-v1": "electron tests/aceptacion/editorial-explainer-light-v1/generar.cjs",
     "accept:families-motion-v2": "electron tests/aceptacion/families-motion-v2/generar.cjs",
     "accept:families-motion-v2-backgrounds": "electron tests/aceptacion/families-motion-v2/backgrounds.cjs",
     "accept:families-motion-v2-photos": "electron tests/aceptacion/families-motion-v2/photos.cjs",
