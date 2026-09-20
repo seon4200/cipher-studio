@@ -41,6 +41,8 @@ import {
 import { createCompositionLayoutV2, selectCompositionV2,
   type BackgroundVariantV2 } from '../../shared/families-motion-v2'
 import { selectPremiumStyleV1 } from '../../shared/premium-type-color-v1'
+import { EDITORIAL_EXPLAINER_LIGHT_V1, createLightLayoutV1, makeLightDataRepeaterV1,
+  type LightStyleV1 } from '../../shared/editorial-explainer-light-v1'
 import {
   VIDEO_VISUAL_STYLES_V1,
   materializeVideoVisualStyleV1,
@@ -973,12 +975,14 @@ function compileV2(input: {
   const supports = input.choices.filter(choice => choice.slotId !== 'hero')
   const visualMode = hero ? 'asset-led' : 'editorial-text'
   const familiesV2 = input.presentationProfile?.revision === FAMILIES_MOTION_PROFILE_V2.revision
+  const light = input.presentationProfile?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision
   const premium = input.presentationProfile?.revision === PREMIUM_TYPE_COLOR_PROFILE_V1.revision || familiesV2
   const recovery = input.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision || premium
-  const refined = recovery || input.presentationProfile?.revision === EDITORIAL_MOTION_PROFILE_V2.revision
+  const refined = recovery || light || input.presentationProfile?.revision === EDITORIAL_MOTION_PROFILE_V2.revision
   const relation = (input.base.localSemantic.relation ?? '').normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '').toLowerCase()
-  const editorialMotionCue: EditorialMotionCue = familiesV2 && /\b\d{1,3}(?:[.,]\d+)?\s*%/u.test(input.base.localSemantic.localText)
+  const lightCountLiteral = light && /\b\d{1,4}\s+(?:personas|participantes)\b/iu.test(input.base.localSemantic.localText)
+  const editorialMotionCue: EditorialMotionCue = lightCountLiteral ? 'datum' : familiesV2 && /\b\d{1,3}(?:[.,]\d+)?\s*%/u.test(input.base.localSemantic.localText)
     ? 'datum' : !hero ? 'typographic'
     : /\b\d{1,3}(?:[.,]\d+)?\s*%/u.test(input.base.localSemantic.localText) ? 'datum'
       : /(compara|contrasta|diferenc)/.test(relation) && supports.length ? 'comparison'
@@ -993,7 +997,15 @@ function compileV2(input: {
     seed: directionV1.semilla, allowedTypographyLooks: styleDefinition.allowedTypographyLooks,
     recentFamilies: input.session.recentFamilies, recentTypographyLooks: input.session.recentTypographyLooks,
   })
-  const presentation = familiesV2 ? (() => {
+  const presentation = light ? (() => {
+    const family = visualMode === 'editorial-text' ? 'editorial' as const : 'marcoPoster' as const
+    const motionCue: LightStyleV1['motionCue'] = editorialMotionCue === 'comparison' ? 'compare'
+      : editorialMotionCue === 'process' ? 'process' : editorialMotionCue === 'datum' ? 'count'
+        : editorialMotionCue === 'cause' && supports.length ? 'transfer'
+          : visualMode === 'editorial-text' ? 'statement' : 'hero'
+    return { family, typographyLookId: 'editorial-strong' as const,
+      layout: createLightLayoutV1(visualMode, supports.length, motionCue, 'portrait') }
+  })() : familiesV2 ? (() => {
     // The old eligibility authority remains decisive: relation-specific families
     // are only selected when the scene actually contains their required slots.
     const eligible = eligibleLayoutFamiliesV4({ visualMode, supportCount: supports.length,
@@ -1082,6 +1094,27 @@ function compileV2(input: {
     }
     return slot
   })
+  const lightMotionCue: LightStyleV1['motionCue'] = editorialMotionCue === 'comparison' ? 'compare'
+    : editorialMotionCue === 'process' ? 'process' : editorialMotionCue === 'datum' ? 'count'
+      : editorialMotionCue === 'cause' && supports.length ? 'transfer'
+        : visualMode === 'editorial-text' ? 'statement' : 'hero'
+  const dataLiteral = /\b(\d{1,4})\s+(personas|participantes)\b/iu.exec(input.base.localSemantic.localText)
+  const dataRepeater = light && visualMode === 'editorial-text' && dataLiteral
+    ? makeLightDataRepeaterV1(Number(dataLiteral[1]), dataLiteral[2].toLocaleLowerCase('es')) : null
+  const heroOriginal = hero?.provider === 'openmoji' || !!hero?.originalColor || hero?.kind === 'photo-cutout' || hero?.kind === 'raster-image'
+  const lightStyle: LightStyleV1 | undefined = light ? {
+    revision: EDITORIAL_EXPLAINER_LIGHT_V1.revision,
+    background: (['ivory-clean', 'ivory-subtle-grid', 'white-soft-paper'] as const)[input.session.scenesResolved % 3],
+    materialPreset: hero && hero.kind === 'simple-icon' ? 'raised-object' : 'flat-editorial',
+    shadowPreset: 'upper-left-contact-ambient-v1',
+    heroTile: !hero || hero.kind !== 'simple-icon' ? 'none'
+      : heroOriginal ? 'neutral-raised' : 'orange-raised',
+    iconTreatment: supports.length ? 'black-circle' : heroOriginal ? 'original-color' : 'orange-tile',
+    connector: supports.length && (lightMotionCue === 'transfer' || lightMotionCue === 'compare' || lightMotionCue === 'process')
+      ? { variant: lightMotionCue === 'transfer' ? 'curved' : 'straight', state: 'draw', arrow: lightMotionCue !== 'compare' } : null,
+    motionCue: lightMotionCue, negativeSpace: 'intentional-editorial', dataRepeater,
+    landscapeLayout: createLightLayoutV1(visualMode, supports.length, lightMotionCue, 'landscape'),
+  } : undefined
   const direction = {
     fondo: directionV1.fondo,
     estructura: presentation.family,
@@ -1102,10 +1135,11 @@ function compileV2(input: {
     backgroundProfile: materializeBackgroundProfileV1('solid-black-v1'),
     // V1's vivid per-scene colors select the video theme upstream but do not enter
     // Porcelain's pixel contract: only the materialized neutral/accent tokens are visible.
-    ...(!premium ? { colorPalette: input.colorPalette } : {}),
+    ...(!premium && !light ? { colorPalette: input.colorPalette } : {}),
     ...(premium ? { premiumStyle: selectPremiumStyleV1(input.colorPalette.videoPrimaryFamily,
       editorialMotionCue, text.keyword) } : {}),
     ...(compositionV2 ? { compositionV2 } : {}),
+    ...(lightStyle ? { lightStyle } : {}),
     ...(input.presentationProfile ? { presentationProfile: input.presentationProfile } : {}),
     ...(refined ? { editorialMotionCue } : {}),
     ...(editorialData ? { editorialData } : {}),

@@ -23,6 +23,9 @@ import { fitVisualTextV2 } from './text-fit-v2'
 import { chooseTextContrastV1 } from './photo-text-contrast-v1'
 import { assetMotionV2, backgroundImageV2, FamilyV2AccentGraphics } from './families-v2-layers'
 import { FAMILIES_MOTION_PROFILE_V2 } from '../../../shared/editorial-motion-profile-v1'
+import { EDITORIAL_EXPLAINER_LIGHT_V1, LIGHT_COLORS_V1 } from '../../../shared/editorial-explainer-light-v1'
+import { EditorialHeroTile, EditorialIconBadge, EditorialConnector, EditorialDataRepeater,
+  EditorialLightBackground, EditorialLightText } from './editorial-explainer-light-components'
 
 function clamp01(value: number): number { return Math.min(1, Math.max(0, value)) }
 function ease(value: number): number { const p = clamp01(value); return 1 - Math.pow(1 - p, 3) }
@@ -33,6 +36,9 @@ function scenePalette(spec: VisualSceneSpecV2): ReturnType<typeof videoVisualSty
     applyBackgroundProfileV1(videoVisualStylePaletteV1(spec.videoStyle), spec.backgroundProfile),
     spec.colorPalette,
   )
+  if (spec.lightStyle) return { ...base, background: LIGHT_COLORS_V1.ivory, surface: LIGHT_COLORS_V1.white,
+    text: LIGHT_COLORS_V1.ink, accent: LIGHT_COLORS_V1.orange, support: LIGHT_COLORS_V1.orangeDepth,
+    line: LIGHT_COLORS_V1.grid, shadow: 'rgba(17,17,15,.16)' }
   if (!spec.premiumStyle) return base
   return { ...base, background: '#0B0B0D', surface: '#17171B', text: '#F4F2ED',
     accent: spec.premiumStyle.accentPrimary, support: spec.premiumStyle.accentSecondary,
@@ -147,6 +153,25 @@ const SceneAssetSlot: React.FC<{
   const pilotYOffset = (1 - entrance) * (slot.role === 'hero' ? 3.1 : 1.7) - (1 - departure) * 1.1
   const familyMotion = spec.compositionV2 ? assetMotionV2(spec.compositionV2.motionVariant, slot.role, u) : undefined
   if (slot.state === 'present' && !runtime) throw new Error(`VISUAL_RUNTIME_SLOT_REQUIRED:${slot.slotId}`)
+  const light = spec.lightStyle
+  const lightEnter = light ? phase(u, slot.role === 'hero' ? .07 : .25, .17) : 1
+  const lightExit = light ? 1 - phase(u, .87, .10) : 1
+  const source = slot.state === 'present' && runtime
+    ? <ProjectAssetVisual slot={slot} runtime={runtime}
+        accent={light && slot.tint.treatment === 'system-tint' ? LIGHT_COLORS_V1.white : palette.accent}
+        support={palette.support} />
+    : slot.state === 'procedural' ? <div data-qc-solar-tint={light ? LIGHT_COLORS_V1.white : roles.solar}
+        style={{ width: '100%', height: '100%', color: light ? LIGHT_COLORS_V1.white : roles.solar }}>
+        <IconoSolar concepto={{ emoji: '', etiqueta: slot.solarIcon, icono: slot.solarIcon }}
+          estilo={slot.solarStyle} canonicalId={slot.solarIcon} className="es-svg"
+          titulo={`${slot.role} Solar ${slot.solarIcon}`} /></div> : null
+  const lightContent = light && slot.kind === 'simple-icon'
+    ? slot.role === 'hero' && light.heroTile !== 'none'
+      ? <EditorialHeroTile variant={light.heroTile} material={light.materialPreset}>{source}</EditorialHeroTile>
+      : slot.role !== 'hero' ? <EditorialIconBadge material={light.materialPreset}
+        variant={slot.state === 'present' && slot.tint.treatment === 'original-color'
+          ? 'original-color' : light.iconTreatment === 'orange-tile' ? 'orange-tile' : 'black-circle'}>{source}</EditorialIconBadge> : source
+    : source
   return <div
     data-qc-asset="true" data-qc-hero={slot.role === 'hero' ? 'true' : undefined}
     data-qc-slot={slot.slotId} data-qc-role={slot.role} data-qc-state={slot.state}
@@ -156,20 +181,21 @@ const SceneAssetSlot: React.FC<{
       position: 'absolute', left: `${layout.envelope.x + layout.envelope.width / 2}%`,
       top: `${layout.envelope.y + layout.envelope.height / 2}%`, width: `${layout.envelope.width}%`,
       height: `${layout.envelope.height}%`, zIndex: layout.zIndex, boxSizing: 'border-box',
-      transform: familyMotion ? familyMotion.transform : pilot
+      transform: light ? `translate(-50%,-50%) translateY(${((1 - lightEnter) * 1.5).toFixed(3)}cqmin) scale(${(.96 + .04 * lightEnter).toFixed(4)})`
+        : familyMotion ? familyMotion.transform : pilot
         ? `translate(-50%,-50%) translate3d(0,${pilotYOffset.toFixed(4)}cqmin,0) rotate(${layout.rotationDeg}deg) scale(${pilotScale.toFixed(5)})`
         : `translate(-50%,-50%) translate3d(${motion.translateXCqmin.toFixed(4)}cqmin,` +
           `${motion.translateYCqmin.toFixed(4)}cqmin,0) rotate(${layout.rotationDeg}deg) scale(${motion.scale.toFixed(5)})`,
-      transformOrigin: '50% 50%', opacity: (familyMotion ? familyMotion.opacity : pilot ? pilotOpacity : motion.opacity) * layout.opacity,
+      transformOrigin: '50% 50%', opacity: (light ? lightEnter * lightExit : familyMotion ? familyMotion.opacity : pilot ? pilotOpacity : motion.opacity) * layout.opacity,
       ...(familyMotion?.clipPath ? { clipPath: familyMotion.clipPath } : {}),
       willChange: 'transform,opacity', overflow: layout.crop === 'cover-safe' ? 'hidden' : 'visible',
-      filter: familyMotion ? 'none' : pilot ? (slot.state === 'present' && slot.alphaMode === 'opaque-rectangle'
+      filter: light || familyMotion ? 'none' : pilot ? (slot.state === 'present' && slot.alphaMode === 'opaque-rectangle'
         ? `drop-shadow(0 .65cqmin 1.7cqmin ${palette.shadow})` : 'none')
         : slot.role === 'hero' ? `drop-shadow(0 1.2cqmin 2.4cqmin ${palette.shadow})`
           : `drop-shadow(0 .7cqmin 1.5cqmin ${palette.shadow})`,
-      ...(pilot ? {} : backingStyle(layout, palette, spec.premiumStyle ? undefined : spec.colorPalette)),
+      ...(light || pilot ? {} : backingStyle(layout, palette, spec.premiumStyle ? undefined : spec.colorPalette)),
     }}>
-    {slot.state === 'present' && runtime && (spec.compositionV2?.layoutVariant === 'full-raster-context'
+    {light ? lightContent : <>{slot.state === 'present' && runtime && (spec.compositionV2?.layoutVariant === 'full-raster-context'
       && slot.role === 'hero' && slot.alphaMode === 'opaque-rectangle'
       && slot.tint.treatment === 'original-color'
       ? <img src={runtime.objectUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -179,7 +205,7 @@ const SceneAssetSlot: React.FC<{
       <IconoSolar concepto={{ emoji: '', etiqueta: slot.solarIcon, icono: slot.solarIcon }}
         estilo={slot.solarStyle} canonicalId={slot.solarIcon} className="es-svg"
         titulo={`${slot.role} Solar ${slot.solarIcon}`} />
-    </div>}
+    </div>}</>}
   </div>
 }
 
@@ -535,6 +561,8 @@ const NarrativeTextV15: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: reado
   if (spec.presentationProfile?.revision === PREMIUM_TYPE_COLOR_PROFILE_V1.revision ||
       spec.presentationProfile?.revision === FAMILIES_MOTION_PROFILE_V2.revision)
     return <NarrativeTextPremium spec={spec} runtimeAssets={runtimeAssets} u={u} />
+  if (spec.presentationProfile?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision)
+    return <EditorialLightText spec={spec} u={u} />
   if (spec.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision)
     return <NarrativeTextRecovery spec={spec} runtimeAssets={runtimeAssets} u={u} />
   if (spec.presentationProfile) return <NarrativeTextPilot spec={spec} u={u} />
@@ -605,8 +633,8 @@ export const MotionGraphicV15: React.FC<{
 }> = ({ spec, runtimeAssets, u }) => {
   // Both geometries are part of the same frozen SceneSpec. The current canvas
   // chooses one; no runtime recomputation can drift from the stored identity.
-  const layout = spec.compositionV2 && window.innerWidth > window.innerHeight
-    ? spec.compositionV2.landscapeLayout : spec.layout
+  const layout = window.innerWidth > window.innerHeight
+    ? spec.lightStyle?.landscapeLayout ?? spec.compositionV2?.landscapeLayout ?? spec.layout : spec.layout
   const displayed = layout === spec.layout ? spec : { ...spec, layout }
   const active = displayed.slots.filter((slot): slot is Extract<SceneSlotV2, { state: 'present' | 'procedural' }> =>
     slot.state === 'present' || slot.state === 'procedural')
@@ -618,8 +646,9 @@ export const MotionGraphicV15: React.FC<{
     data-qc-color-variant={spec.colorPalette?.variant ?? 'historical'}
     data-qc-accent-primary={spec.premiumStyle?.accentPrimary ?? spec.colorPalette?.tokens.accentPrimary ?? ''}
     style={{ position: 'absolute', inset: 0, containerType: 'size', overflow: 'hidden' }}>
-    <QuietBackground spec={displayed} u={u} />
-    {spec.compositionV2 ? <FamilyV2AccentGraphics spec={displayed} u={u}
+    {spec.lightStyle ? <><EditorialLightBackground spec={displayed} /><EditorialConnector spec={displayed} u={u} /></>
+      : <QuietBackground spec={displayed} u={u} />}
+    {spec.lightStyle ? null : spec.compositionV2 ? <FamilyV2AccentGraphics spec={displayed} u={u}
       accent={scenePalette(spec).accent} /> : <StructureGrammar spec={spec} u={u} />}
     {active.map(slot => {
       const slotLayout = displayed.layout.slotLayouts.find(value => value.slotId === slot.slotId)
@@ -627,6 +656,7 @@ export const MotionGraphicV15: React.FC<{
       return <SceneAssetSlot key={slot.slotId} spec={displayed} slot={slot} layout={slotLayout}
         runtime={runtimeBySlot.get(slot.slotId)} u={u} />
     })}
+    {spec.lightStyle && <EditorialDataRepeater spec={displayed} u={u} />}
     <NarrativeTextV15 spec={displayed} runtimeAssets={runtimeAssets} u={u} />
   </div>
 }
