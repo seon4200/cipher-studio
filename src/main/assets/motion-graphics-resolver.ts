@@ -44,6 +44,7 @@ import { selectPremiumStyleV1 } from '../../shared/premium-type-color-v1'
 import { EDITORIAL_EXPLAINER_LIGHT_V1, createLightLayoutV1, makeLightDataRepeaterV1,
   type LightStyleV1 } from '../../shared/editorial-explainer-light-v1'
 import { EDITORIAL_EXPLAINER_LIGHT_V2, createLightLayoutV2, type LightStyleV2 } from '../../shared/editorial-explainer-light-v2'
+import { EDITORIAL_EXPLAINER_V3, createLightLayoutV3, type EditorialV3Placement, type LightStyleV3 } from '../../shared/editorial-explainer-v3'
 import {
   VIDEO_VISUAL_STYLES_V1,
   materializeVideoVisualStyleV1,
@@ -980,7 +981,8 @@ function compileV2(input: {
   const visualMode = hero ? 'asset-led' : 'editorial-text'
   const familiesV2 = input.presentationProfile?.revision === FAMILIES_MOTION_PROFILE_V2.revision
   const lightV2 = input.presentationProfile?.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision
-  const light = input.presentationProfile?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision || lightV2
+  const lightV3 = input.presentationProfile?.revision === EDITORIAL_EXPLAINER_V3.revision
+  const light = input.presentationProfile?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision || lightV2 || lightV3
   const premium = input.presentationProfile?.revision === PREMIUM_TYPE_COLOR_PROFILE_V1.revision || familiesV2
   const recovery = input.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision || premium
   const refined = recovery || light || input.presentationProfile?.revision === EDITORIAL_MOTION_PROFILE_V2.revision
@@ -1008,8 +1010,11 @@ function compileV2(input: {
       : editorialMotionCue === 'process' ? 'process' : editorialMotionCue === 'datum' ? 'count'
         : editorialMotionCue === 'cause' && supports.length ? 'transfer'
           : visualMode === 'editorial-text' ? 'statement' : 'hero'
+    const placements:EditorialV3Placement[]=['top-left','right-of-hero','top-right','bottom-left','left-of-hero','full-type']
+    const placement=placements[Math.abs(directionV1.semilla)%placements.length]
     return { family, typographyLookId: 'editorial-strong' as const,
-      layout: lightV2 ? createLightLayoutV2(visualMode, supports.length, motionCue, 'portrait')
+      layout: lightV3 ? createLightLayoutV3(visualMode,supports.length,motionCue,'portrait',placement)
+        : lightV2 ? createLightLayoutV2(visualMode, supports.length, motionCue, 'portrait')
         : createLightLayoutV1(visualMode, supports.length, motionCue, 'portrait') }
   })() : familiesV2 ? (() => {
     // The old eligibility authority remains decisive: relation-specific families
@@ -1051,7 +1056,7 @@ function compileV2(input: {
     }
   })() : standardPresentation
   let text = textFor(input.base, presentation, visualMode)
-  if (lightV2) {
+  if (lightV2 || lightV3) {
     // The pilot's short narration is the authority. V1 remains frozen, while V2
     // displays the literal pre/post-keyword fragments rather than losing its verb.
     const source = input.base.localSemantic.localText.trim()
@@ -1137,7 +1142,9 @@ function compileV2(input: {
   const dataRepeater = light && visualMode === 'editorial-text' && dataLiteral
     ? makeLightDataRepeaterV1(Number(dataLiteral[1]), dataLiteral[2].toLocaleLowerCase('es')) : null
   const heroOriginal = hero?.provider === 'openmoji' || !!hero?.originalColor || hero?.kind === 'photo-cutout' || hero?.kind === 'raster-image'
-  const lightStyle: LightStyleV1 | LightStyleV2 | undefined = light ? {
+  const v3Placements:EditorialV3Placement[]=['top-left','right-of-hero','top-right','bottom-left','left-of-hero','full-type']
+  const v3Placement=v3Placements[Math.abs(directionV1.semilla)%v3Placements.length]
+  const baseLightStyle:LightStyleV1|LightStyleV2|undefined = light ? {
     revision: lightV2 ? EDITORIAL_EXPLAINER_LIGHT_V2.revision : EDITORIAL_EXPLAINER_LIGHT_V1.revision,
     background: (['ivory-clean', 'ivory-subtle-grid', 'white-soft-paper'] as const)[input.session.scenesResolved % 3],
     materialPreset: hero && hero.kind === 'simple-icon' ? 'raised-object' : 'flat-editorial',
@@ -1146,11 +1153,28 @@ function compileV2(input: {
       : heroOriginal ? 'neutral-raised' : 'orange-raised',
     iconTreatment: supports.length ? 'black-circle' : heroOriginal ? 'original-color' : 'orange-tile',
     connector: supports.length && (lightMotionCue === 'transfer' || lightMotionCue === 'compare' || lightMotionCue === 'process')
-      ? { variant: lightMotionCue === 'transfer' ? 'curved' : 'straight', state: 'draw', arrow: lightMotionCue !== 'compare' } : null,
+      ? { variant: lightMotionCue === 'transfer' ? 'curved' as const : 'straight' as const, state: 'draw' as const, arrow: lightMotionCue !== 'compare' } : null,
     motionCue: lightMotionCue, negativeSpace: 'intentional-editorial', dataRepeater,
     landscapeLayout: lightV2 ? createLightLayoutV2(visualMode, supports.length, lightMotionCue, 'landscape')
       : createLightLayoutV1(visualMode, supports.length, lightMotionCue, 'landscape'),
   } : undefined
+  const lightStyle:LightStyleV1|LightStyleV2|LightStyleV3|undefined=lightV3?{
+    ...baseLightStyle!, revision:EDITORIAL_EXPLAINER_V3.revision,
+    artDirectionRevision:'editorial-explainer-art-direction-v3', accentTheme:'orange',
+    compositionDensity: visualMode==='editorial-text'?'minimal':supports.length>1?'rich':'editorial',
+    textPlacement:v3Placement, typeRole:lightMotionCue==='count'?'data-display':lightMotionCue==='statement'?'display-hero':'narrative',
+    heroTreatment:!hero?'none':hero.kind==='raster-image'||hero.kind==='photo-cutout'?'composite-hero':'clean-hero',
+    supportTreatment:supports.length>1?'paper-icon-card':'black-micro-badge',
+    connector:supports.length&&(lightMotionCue==='transfer'||lightMotionCue==='compare'||lightMotionCue==='process')
+      ?{variant:lightMotionCue==='transfer'?'curved-wide':'curved-short',state:'draw',arrow:lightMotionCue!=='compare',dotAnchors:true}:null,
+    microdetailPreset:visualMode==='editorial-text'?'editorial-2':supports.length>1?'rich-5':'technical-4',
+    microdetailVariant:Math.abs(directionV1.semilla)%8,
+    dataRepeaterVariant:dataRepeater?'compact-prominent-v3':'none',
+    transitionVariant:(['fade-slide','paired-exit','stagger-out'] as const)[Math.abs(directionV1.semilla)%3],
+    narrativeBeats:[{at:.05,target:'text'},{at:.16,target:'hero'},{at:.29,target:'support-1'},
+      {at:.40,target:'support-2'},{at:.48,target:'connector'},{at:.58,target:dataRepeater?'data':'microdetails'}],
+    landscapeLayout:createLightLayoutV3(visualMode,supports.length,lightMotionCue,'landscape',v3Placement),
+  }:baseLightStyle
   const direction = {
     fondo: directionV1.fondo,
     estructura: presentation.family,
@@ -1283,7 +1307,7 @@ export async function resolveMotionGraphicsSceneV2(input: {
   if (input.lockedChoices?.length) {
     for (const locked of input.lockedChoices) {
       if (locked.provider === 'editorial-pilot-raster' && ![
-        EDITORIAL_EXPLAINER_LIGHT_V1.revision, EDITORIAL_EXPLAINER_LIGHT_V2.revision,
+      EDITORIAL_EXPLAINER_LIGHT_V1.revision, EDITORIAL_EXPLAINER_LIGHT_V2.revision, EDITORIAL_EXPLAINER_V3.revision,
       ].includes(input.presentationProfile?.revision as typeof EDITORIAL_EXPLAINER_LIGHT_V1.revision))
         fail('MOTION_GRAPHICS_PILOT_RASTER_PROFILE_REQUIRED', 'Raster piloto requiere perfil Light')
       const expected = roleInputs.find(role => role.slotId === locked.slotId)

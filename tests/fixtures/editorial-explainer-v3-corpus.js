@@ -1,0 +1,9 @@
+// Fixed fictional narration and semantic beats. No claim about a real user video.
+module.exports=Object.freeze([
+ Object.freeze({id:'idea',duration:3.35,keyword:'IDEA',text:'Una idea abre nuevas posibilidades.',concepts:[{label:'idea',canonicalHint:'idea'},{label:'luz',canonicalHint:'light'},{label:'chispa',canonicalHint:'spark'}],hero:'hero-idea-candidate-03',supports:['light','spark'],cue:'hero',density:'rich'}),
+ Object.freeze({id:'signal',duration:3.2,keyword:'SEÑAL',text:'La señal conecta cada punto.',concepts:[{label:'señal',canonicalHint:'signal'},{label:'antena',canonicalHint:'antenna'},{label:'conexión',canonicalHint:'connection'}],hero:'hero-signal-candidate-02',supports:['antenna','connection'],relation:'causa',cue:'transfer',density:'rich'}),
+ Object.freeze({id:'pieces',duration:3.55,keyword:'PIEZAS',text:'Las piezas construyen un sistema.',concepts:[{label:'piezas',canonicalHint:'parts'},{label:'engranaje',canonicalHint:'gear'},{label:'fábrica',canonicalHint:'factory'}],hero:'hero-pieces-candidate-03',supports:['gear','factory'],relation:'secuencia',cue:'process',density:'rich'}),
+ Object.freeze({id:'people',duration:3.2,keyword:'12',text:'12 participantes forman una red.',concepts:[],mode:'editorial-text',cue:'count',confirmedValue:12,unit:'participantes',density:'editorial'}),
+ Object.freeze({id:'network',duration:3.45,keyword:'RED',text:'La red transforma señales en acción.',concepts:[{label:'red',canonicalHint:'network'},{label:'datos',canonicalHint:'database'},{label:'dirección',canonicalHint:'arrow'}],hero:'clean-network-node',supports:['database','arrow'],relation:'secuencia',cue:'process',density:'editorial'}),
+ Object.freeze({id:'close',duration:3.25,keyword:'CONEXIÓN',text:'Cada conexión puede mover una idea.',concepts:[],mode:'editorial-text',cue:'statement',density:'minimal'}),
+])

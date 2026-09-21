@@ -61,6 +61,7 @@ import { selectCompositionV2 } from './families-motion-v2'
 import { validatePremiumStyleV1, type PremiumStyleV1 } from './premium-type-color-v1'
 import { EDITORIAL_EXPLAINER_LIGHT_V1, createLightLayoutV1, validateLightStyleV1, type LightStyleV1 } from './editorial-explainer-light-v1'
 import { EDITORIAL_EXPLAINER_LIGHT_V2, createLightLayoutV2, validateLightStyleV2, type LightStyleV2 } from './editorial-explainer-light-v2'
+import { EDITORIAL_EXPLAINER_V3, createLightLayoutV3, validateLightStyleV3, type LightStyleV3 } from './editorial-explainer-v3'
 import {
   VISUAL_MVP_BOUNDS_REVISION,
   editorialFallbackSpec,
@@ -193,7 +194,7 @@ export type VisualSceneSpecV2 = {
   /** Orientation, background and motion decisions are frozen in the new opt-in pixel identity. */
   compositionV2?: CompositionV2
   /** Only the opt-in light revision may carry this pixel-visible plan. */
-  lightStyle?: LightStyleV1 | LightStyleV2
+  lightStyle?: LightStyleV1 | LightStyleV2 | LightStyleV3
   /** Frozen relation choreography; required only for the editorial v2 revision. */
   editorialMotionCue?: EditorialMotionCue
   /** Only materialized for the opt-in profile; part of the pixel contract. */
@@ -442,6 +443,8 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
     ? createLightLayoutV1(mode, supportCount, (spec.lightStyle as LightStyleV1).motionCue, 'portrait')
     : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision
     ? createLightLayoutV2(mode, supportCount, (spec.lightStyle as LightStyleV2).motionCue, 'portrait')
+    : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_EXPLAINER_V3.revision
+    ? createLightLayoutV3(mode, supportCount, (spec.lightStyle as LightStyleV3).motionCue, 'portrait', (spec.lightStyle as LightStyleV3).textPlacement)
     : [(VISUAL_RECOVERY_PROFILE_V1.revision), (PREMIUM_TYPE_COLOR_PROFILE_V1.revision)]
     .includes((spec.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof VISUAL_RECOVERY_PROFILE_V1.revision)
     ? createVisualRecoveryLayoutV1(family, mode, supportCount, seed, spec.editorialMotionCue as EditorialMotionCue)
@@ -474,13 +477,17 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   } else if ((value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision) {
     const activeSlots = (value.slots as SceneSlotV2[] | undefined)?.filter(slot => slot.state === 'present' || slot.state === 'procedural') ?? []
     validateLightStyleV2(value.lightStyle, value.visualMode as 'asset-led' | 'editorial-text', activeSlots.filter(slot => slot.role !== 'hero').length)
+  } else if ((value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_EXPLAINER_V3.revision) {
+    if (value.lightStyle === undefined) fail(code, 'perfil Editorial Explainer V3 requiere lightStyle')
+    const activeSlots = (value.slots as SceneSlotV2[] | undefined)?.filter(slot => slot.state === 'present' || slot.state === 'procedural') ?? []
+    validateLightStyleV3(value.lightStyle, value.visualMode as 'asset-led'|'editorial-text', activeSlots.filter(slot=>slot.role!=='hero').length)
   } else if (value.lightStyle !== undefined) fail(code, 'lightStyle requiere perfil explícito')
   if ([PREMIUM_TYPE_COLOR_PROFILE_V1.revision, FAMILIES_MOTION_PROFILE_V2.revision].includes(
     (value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof PREMIUM_TYPE_COLOR_PROFILE_V1.revision))
     validatePremiumStyleV1(value.premiumStyle)
   else if (value.premiumStyle !== undefined) fail(code, 'premiumStyle requiere perfil Porcelain')
   if ([EDITORIAL_MOTION_PROFILE_V2.revision, VISUAL_RECOVERY_PROFILE_V1.revision, PREMIUM_TYPE_COLOR_PROFILE_V1.revision,
-    FAMILIES_MOTION_PROFILE_V2.revision, EDITORIAL_EXPLAINER_LIGHT_V1.revision, EDITORIAL_EXPLAINER_LIGHT_V2.revision]
+    FAMILIES_MOTION_PROFILE_V2.revision, EDITORIAL_EXPLAINER_LIGHT_V1.revision, EDITORIAL_EXPLAINER_LIGHT_V2.revision, EDITORIAL_EXPLAINER_V3.revision]
     .includes((value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_MOTION_PROFILE_V2.revision)) {
     if (!EDITORIAL_MOTION_CUES.includes(value.editorialMotionCue as EditorialMotionCue))
       fail(code, 'editorialMotionCue requerido para revisión v2')
