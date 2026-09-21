@@ -7,7 +7,7 @@ export type ModernVisualAssetIdentityV1 = { id: string; revision: string; assetI
 export const MODERN_VISUAL_PACK_V1: ModernVisualPackSelectionV1 = Object.freeze({ id: MODERN_VISUAL_PACK_ID, revision: MODERN_VISUAL_PACK_REVISION })
 export type ModernVisualPackAssetV1 = {
   assetId: string; canonicalConcept: string; aliasesEs: string[]; aliasesEn: string[]
-  source: 'fluent' | 'iconify' | 'tabler'; collection: string; license: string; licenseNotice: string
+  source: 'fluent' | 'iconify' | 'tabler' | 'lucide'; collection: string; license: string; licenseNotice: string
   format: 'svg'; sha256: string; originalColor: boolean; styleFamily: string
   heroAllowed: boolean; supportAllowed: boolean; priority: number; localRelativePath: string
 }

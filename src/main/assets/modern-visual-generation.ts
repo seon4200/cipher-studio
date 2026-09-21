@@ -179,7 +179,7 @@ function lockedChoices(value: unknown): LockedVisualChoiceV2[] {
   const slots = new Set<string>()
   return value.map(raw => {
     if (!isRecord(raw) || !['hero', 'support-1', 'support-2'].includes(String(raw.slotId)) ||
-        !['openmoji', 'pixabay-images', 'photo-cutout', 'solar', 'modern-pack'].includes(String(raw.provider)) ||
+        !['openmoji', 'pixabay-images', 'photo-cutout', 'solar', 'modern-pack', 'editorial-pilot-raster'].includes(String(raw.provider)) ||
         typeof raw.concept !== 'string' || !raw.concept.trim() || typeof raw.reason !== 'string' ||
         ![2, 3].includes(Number(raw.score)) || !isRecord(raw.bounds) || typeof raw.kind !== 'string' ||
         !['vector', 'useful-alpha', 'opaque-rectangle'].includes(String(raw.alphaMode)) ||

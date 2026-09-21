@@ -43,6 +43,7 @@ import { createCompositionLayoutV2, selectCompositionV2,
 import { selectPremiumStyleV1 } from '../../shared/premium-type-color-v1'
 import { EDITORIAL_EXPLAINER_LIGHT_V1, createLightLayoutV1, makeLightDataRepeaterV1,
   type LightStyleV1 } from '../../shared/editorial-explainer-light-v1'
+import { EDITORIAL_EXPLAINER_LIGHT_V2, createLightLayoutV2, type LightStyleV2 } from '../../shared/editorial-explainer-light-v2'
 import {
   VIDEO_VISUAL_STYLES_V1,
   materializeVideoVisualStyleV1,
@@ -127,7 +128,7 @@ export type MaterializedVisualChoiceV2 = {
   providerAssetId?: string
   slotId: 'hero' | 'support-1' | 'support-2'
   concept: string
-  provider: 'openmoji' | 'pixabay-images' | 'photo-cutout' | 'solar' | 'modern-pack'
+  provider: 'openmoji' | 'pixabay-images' | 'photo-cutout' | 'solar' | 'modern-pack' | 'editorial-pilot-raster'
   catalogAsset?: ModernVisualAssetIdentityV1
   originalColor?: boolean
   representation: AssetRepresentationPreferenceV1
@@ -449,6 +450,9 @@ function restoreLockedChoice(projectRoot: string, locked: LockedVisualChoiceV2):
   if (!locked.assetId || !locked.relativeFile || !locked.sha256 || !locked.mime) return null
   const asset = manifestAsset(projectRoot, locked.assetId)
   if (!asset || asset.relativeFile !== locked.relativeFile || asset.sha256 !== locked.sha256 || asset.mime !== locked.mime) return null
+  if (locked.provider === 'editorial-pilot-raster' && (asset.provider !== 'editorial-pilot-raster' ||
+      asset.validation.status !== 'accepted' || asset.validation.alphaUseful !== true || locked.alphaMode !== 'useful-alpha' ||
+      locked.kind !== 'photo-cutout' || locked.representation !== 'photo-cutout')) return null
   if (locked.provider === 'modern-pack' && locked.catalogAsset?.id.startsWith('local-')) {
     // Restore the approved publication, not a mutable/removed external library.
     try { validateModernVisualAssetIdentityV1(locked.catalogAsset) } catch { return null }
@@ -871,7 +875,7 @@ function localChoiceForRepresentation(input: {
 }
 
 function isRasterChoice(choice: MaterializedVisualChoiceV2): boolean {
-  return choice.provider === 'pixabay-images' || choice.provider === 'photo-cutout'
+  return choice.provider === 'pixabay-images' || choice.provider === 'photo-cutout' || choice.provider === 'editorial-pilot-raster'
 }
 
 function hasDuplicateChoice(choices: readonly MaterializedVisualChoiceV2[], candidate: MaterializedVisualChoiceV2): boolean {
@@ -975,7 +979,8 @@ function compileV2(input: {
   const supports = input.choices.filter(choice => choice.slotId !== 'hero')
   const visualMode = hero ? 'asset-led' : 'editorial-text'
   const familiesV2 = input.presentationProfile?.revision === FAMILIES_MOTION_PROFILE_V2.revision
-  const light = input.presentationProfile?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision
+  const lightV2 = input.presentationProfile?.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision
+  const light = input.presentationProfile?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision || lightV2
   const premium = input.presentationProfile?.revision === PREMIUM_TYPE_COLOR_PROFILE_V1.revision || familiesV2
   const recovery = input.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision || premium
   const refined = recovery || light || input.presentationProfile?.revision === EDITORIAL_MOTION_PROFILE_V2.revision
@@ -1004,7 +1009,8 @@ function compileV2(input: {
         : editorialMotionCue === 'cause' && supports.length ? 'transfer'
           : visualMode === 'editorial-text' ? 'statement' : 'hero'
     return { family, typographyLookId: 'editorial-strong' as const,
-      layout: createLightLayoutV1(visualMode, supports.length, motionCue, 'portrait') }
+      layout: lightV2 ? createLightLayoutV2(visualMode, supports.length, motionCue, 'portrait')
+        : createLightLayoutV1(visualMode, supports.length, motionCue, 'portrait') }
   })() : familiesV2 ? (() => {
     // The old eligibility authority remains decisive: relation-specific families
     // are only selected when the scene actually contains their required slots.
@@ -1045,6 +1051,35 @@ function compileV2(input: {
     }
   })() : standardPresentation
   let text = textFor(input.base, presentation, visualMode)
+  if (lightV2) {
+    // The pilot's short narration is the authority. V1 remains frozen, while V2
+    // displays the literal pre/post-keyword fragments rather than losing its verb.
+    const source = input.base.localSemantic.localText.trim()
+    const offset = source.toLocaleLowerCase('es').indexOf(text.keyword.toLocaleLowerCase('es'))
+    if (offset >= 0) {
+      const connector = source.slice(0, offset).trim()
+      const closing = source.slice(offset + text.keyword.length).trim()
+      const words = [connector, text.keyword, closing].filter(Boolean).join(' ').split(/\s+/u).filter(Boolean)
+      if (words.length <= 8) {
+        const { connector: _oldConnector, closing: _oldClosing, ...remaining } = text
+        text = { ...remaining, ...(connector ? { connector } : {}), ...(closing ? { closing } : {}),
+          timing: { connectorStart: text.timing.connectorStart, keywordStart: text.timing.keywordStart,
+            ...(closing ? { closingStart: Math.max(text.timing.keywordStart, .36) } : {}) },
+        }
+      }
+    }
+    const count = /\b(\d{1,4})\s+(personas|participantes)\b/iu.exec(source)
+    if (count) {
+      const before = source.slice(0, count.index).trim()
+      const after = source.slice(count.index + count[1].length).trim()
+      const { connector: _oldConnector, closing: _oldClosing, ...remaining } = text
+      text = { ...remaining, keyword: count[1], ...(before ? { connector: before } : {}),
+        ...(after ? { closing: after } : {}),
+        timing: { connectorStart: text.timing.connectorStart, keywordStart: text.timing.keywordStart,
+          ...(after ? { closingStart: Math.max(text.timing.keywordStart, .36) } : {}) },
+      }
+    }
+  }
   // The historical short-text compiler may truncate a final clause. For the opt-in
   // text-led revision, retain a literal trailing fragment only when it fits the
   // existing eight-word contract; never fabricate or paraphrase narration.
@@ -1102,8 +1137,8 @@ function compileV2(input: {
   const dataRepeater = light && visualMode === 'editorial-text' && dataLiteral
     ? makeLightDataRepeaterV1(Number(dataLiteral[1]), dataLiteral[2].toLocaleLowerCase('es')) : null
   const heroOriginal = hero?.provider === 'openmoji' || !!hero?.originalColor || hero?.kind === 'photo-cutout' || hero?.kind === 'raster-image'
-  const lightStyle: LightStyleV1 | undefined = light ? {
-    revision: EDITORIAL_EXPLAINER_LIGHT_V1.revision,
+  const lightStyle: LightStyleV1 | LightStyleV2 | undefined = light ? {
+    revision: lightV2 ? EDITORIAL_EXPLAINER_LIGHT_V2.revision : EDITORIAL_EXPLAINER_LIGHT_V1.revision,
     background: (['ivory-clean', 'ivory-subtle-grid', 'white-soft-paper'] as const)[input.session.scenesResolved % 3],
     materialPreset: hero && hero.kind === 'simple-icon' ? 'raised-object' : 'flat-editorial',
     shadowPreset: 'upper-left-contact-ambient-v1',
@@ -1113,7 +1148,8 @@ function compileV2(input: {
     connector: supports.length && (lightMotionCue === 'transfer' || lightMotionCue === 'compare' || lightMotionCue === 'process')
       ? { variant: lightMotionCue === 'transfer' ? 'curved' : 'straight', state: 'draw', arrow: lightMotionCue !== 'compare' } : null,
     motionCue: lightMotionCue, negativeSpace: 'intentional-editorial', dataRepeater,
-    landscapeLayout: createLightLayoutV1(visualMode, supports.length, lightMotionCue, 'landscape'),
+    landscapeLayout: lightV2 ? createLightLayoutV2(visualMode, supports.length, lightMotionCue, 'landscape')
+      : createLightLayoutV1(visualMode, supports.length, lightMotionCue, 'landscape'),
   } : undefined
   const direction = {
     fondo: directionV1.fondo,
@@ -1246,6 +1282,10 @@ export async function resolveMotionGraphicsSceneV2(input: {
 
   if (input.lockedChoices?.length) {
     for (const locked of input.lockedChoices) {
+      if (locked.provider === 'editorial-pilot-raster' && ![
+        EDITORIAL_EXPLAINER_LIGHT_V1.revision, EDITORIAL_EXPLAINER_LIGHT_V2.revision,
+      ].includes(input.presentationProfile?.revision as typeof EDITORIAL_EXPLAINER_LIGHT_V1.revision))
+        fail('MOTION_GRAPHICS_PILOT_RASTER_PROFILE_REQUIRED', 'Raster piloto requiere perfil Light')
       const expected = roleInputs.find(role => role.slotId === locked.slotId)
       if ((!expected || expected.concept.normalizedTerm !== locked.concept) &&
           !lockedConceptBelongsToScene(input.base, roleInputs, locked.concept))

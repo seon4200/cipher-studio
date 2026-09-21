@@ -53,7 +53,7 @@ function validateAsset(value: unknown, local: boolean): ModernVisualPackAssetV1 
   if (![a.assetId, a.canonicalConcept, a.collection, a.styleFamily].every(text) ||
       ![a.aliasesEs, a.aliasesEn].every(v => Array.isArray(v) && v.length <= 40 && v.every(text)) ||
       !/^assets\/[a-z0-9-]+\.svg$/.test(a.localRelativePath) || !/^notices\/[a-z0-9-]+\.txt$/.test(a.licenseNotice) || a.format !== 'svg' ||
-      !/^[a-f0-9]{64}$/.test(a.sha256) || !licenses.includes(a.license) || !['fluent', 'iconify', 'tabler'].includes(a.source) ||
+      !/^[a-f0-9]{64}$/.test(a.sha256) || !licenses.includes(a.license) || !['fluent', 'iconify', 'tabler', ...(local ? ['lucide'] : [])].includes(a.source) ||
       ![a.originalColor, a.heroAllowed, a.supportAllowed].every(v => typeof v === 'boolean') ||
       !Number.isInteger(a.priority) || a.priority < 0 || a.priority > 100 ||
       !['modern-color','modern-line','modern-solid'].includes(a.styleFamily) ||
