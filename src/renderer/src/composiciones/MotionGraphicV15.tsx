@@ -25,9 +25,11 @@ import { assetMotionV2, backgroundImageV2, FamilyV2AccentGraphics } from './fami
 import { FAMILIES_MOTION_PROFILE_V2 } from '../../../shared/editorial-motion-profile-v1'
 import { EDITORIAL_EXPLAINER_LIGHT_V1, LIGHT_COLORS_V1 } from '../../../shared/editorial-explainer-light-v1'
 import { EDITORIAL_EXPLAINER_LIGHT_V2 } from '../../../shared/editorial-explainer-light-v2'
+import { EDITORIAL_EXPLAINER_V3, EDITORIAL_V3_ACCENTS } from '../../../shared/editorial-explainer-v3'
 import { EditorialHeroTile, EditorialIconBadge, EditorialConnector, EditorialDataRepeater,
   EditorialLightBackground, EditorialLightText } from './editorial-explainer-light-components'
 import { EditorialLightV2Badge, EditorialLightV2Connector, EditorialLightV2DataRepeater, EditorialLightV2Text } from './editorial-explainer-light-v2-components'
+import {EditorialV3SupportCard,EditorialV3Connector,EditorialV3DataRepeater,EditorialV3Text,EditorialV3Microdetails} from './editorial-explainer-v3-components'
 
 function clamp01(value: number): number { return Math.min(1, Math.max(0, value)) }
 function ease(value: number): number { const p = clamp01(value); return 1 - Math.pow(1 - p, 3) }
@@ -38,9 +40,12 @@ function scenePalette(spec: VisualSceneSpecV2): ReturnType<typeof videoVisualSty
     applyBackgroundProfileV1(videoVisualStylePaletteV1(spec.videoStyle), spec.backgroundProfile),
     spec.colorPalette,
   )
-  if (spec.lightStyle) return { ...base, background: LIGHT_COLORS_V1.ivory, surface: LIGHT_COLORS_V1.white,
-    text: LIGHT_COLORS_V1.ink, accent: LIGHT_COLORS_V1.orange, support: LIGHT_COLORS_V1.orangeDepth,
+  if (spec.lightStyle) { const v3=spec.lightStyle.revision===EDITORIAL_EXPLAINER_V3.revision
+    const a=v3?EDITORIAL_V3_ACCENTS[(spec.lightStyle as import('../../../shared/editorial-explainer-v3').LightStyleV3).accentTheme]:null
+    return { ...base, background: LIGHT_COLORS_V1.ivory, surface: LIGHT_COLORS_V1.white,
+    text: LIGHT_COLORS_V1.ink, accent: a?.main??LIGHT_COLORS_V1.orange, support: a?.dark??LIGHT_COLORS_V1.orangeDepth,
     line: LIGHT_COLORS_V1.grid, shadow: 'rgba(17,17,15,.16)' }
+  }
   if (!spec.premiumStyle) return base
   return { ...base, background: '#0B0B0D', surface: '#17171B', text: '#F4F2ED',
     accent: spec.premiumStyle.accentPrimary, support: spec.premiumStyle.accentSecondary,
@@ -157,25 +162,27 @@ const SceneAssetSlot: React.FC<{
   if (slot.state === 'present' && !runtime) throw new Error(`VISUAL_RUNTIME_SLOT_REQUIRED:${slot.slotId}`)
   const light = spec.lightStyle
   const lightV2 = light?.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision
-  const lightStart = lightV2 ? light.motionCue === 'count' ? .25
+  const lightV3=light?.revision===EDITORIAL_EXPLAINER_V3.revision
+  const lightStart = lightV2||lightV3 ? light.motionCue === 'count' ? .25
     : light.motionCue === 'transfer' ? slot.role === 'hero' ? .07 : slot.role === 'support-1' ? .39 : .49
       : light.motionCue === 'process' ? slot.role === 'hero' ? .06 : slot.role === 'support-1' ? .29 : .46
         : slot.role === 'hero' ? .07 : slot.role === 'support-1' ? .25 : .36
     : slot.role === 'hero' ? .07 : .25
-  const lightEnter = light ? phase(u, lightStart, lightV2 ? .15 : .17) : 1
+  const lightEnter = light ? phase(u, lightStart, lightV2||lightV3 ? .15 : .17) : 1
   const lightExit = light ? 1 - phase(u, .87, .10) : 1
   const source = slot.state === 'present' && runtime
     ? <ProjectAssetVisual slot={slot} runtime={runtime}
-        accent={light && slot.tint.treatment === 'system-tint' ? LIGHT_COLORS_V1.white : palette.accent}
+        accent={light && slot.tint.treatment === 'system-tint' ? (lightV3 ? LIGHT_COLORS_V1.ink : LIGHT_COLORS_V1.white) : palette.accent}
         support={palette.support} />
-    : slot.state === 'procedural' ? <div data-qc-solar-tint={light ? LIGHT_COLORS_V1.white : roles.solar}
-        style={{ width: '100%', height: '100%', color: light ? LIGHT_COLORS_V1.white : roles.solar }}>
+    : slot.state === 'procedural' ? <div data-qc-solar-tint={light ? (lightV3 ? LIGHT_COLORS_V1.ink : LIGHT_COLORS_V1.white) : roles.solar}
+        style={{ width: '100%', height: '100%', color: light ? (lightV3 ? LIGHT_COLORS_V1.ink : LIGHT_COLORS_V1.white) : roles.solar }}>
         <IconoSolar concepto={{ emoji: '', etiqueta: slot.solarIcon, icono: slot.solarIcon }}
           estilo={slot.solarStyle} canonicalId={slot.solarIcon} className="es-svg"
           titulo={`${slot.role} Solar ${slot.solarIcon}`} /></div> : null
   const lightContent = light && slot.kind === 'simple-icon'
     ? slot.role === 'hero' && light.heroTile !== 'none'
       ? <EditorialHeroTile variant={light.heroTile} material={light.materialPreset}>{source}</EditorialHeroTile>
+      : slot.role !== 'hero' && lightV3 ? <EditorialV3SupportCard>{source}</EditorialV3SupportCard>
       : slot.role !== 'hero' && lightV2 ? <EditorialLightV2Badge originalColor={slot.state === 'present' && slot.tint.treatment === 'original-color'}>{source}</EditorialLightV2Badge>
       : slot.role !== 'hero' ? <EditorialIconBadge material={light.materialPreset}
         variant={slot.state === 'present' && slot.tint.treatment === 'original-color'
@@ -198,7 +205,7 @@ const SceneAssetSlot: React.FC<{
       transformOrigin: '50% 50%', opacity: (light ? lightEnter * lightExit : familyMotion ? familyMotion.opacity : pilot ? pilotOpacity : motion.opacity) * layout.opacity,
       ...(familyMotion?.clipPath ? { clipPath: familyMotion.clipPath } : {}),
       willChange: 'transform,opacity', overflow: layout.crop === 'cover-safe' ? 'hidden' : 'visible',
-      filter: lightV2 && slot.role === 'hero' && slot.state === 'present' && slot.alphaMode === 'useful-alpha'
+      filter: (lightV2||lightV3) && slot.role === 'hero' && slot.state === 'present' && slot.alphaMode === 'useful-alpha'
         ? 'drop-shadow(.2cqmin .45cqmin .35cqmin rgba(17,17,15,.22)) drop-shadow(.9cqmin 1.4cqmin 1.8cqmin rgba(17,17,15,.12))'
         : light || familyMotion ? 'none' : pilot ? (slot.state === 'present' && slot.alphaMode === 'opaque-rectangle'
         ? `drop-shadow(0 .65cqmin 1.7cqmin ${palette.shadow})` : 'none')
@@ -576,6 +583,7 @@ const NarrativeTextV15: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: reado
     return <EditorialLightText spec={spec} u={u} />
   if (spec.presentationProfile?.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision)
     return <EditorialLightV2Text spec={spec} u={u} />
+  if(spec.presentationProfile?.revision===EDITORIAL_EXPLAINER_V3.revision)return <EditorialV3Text spec={spec} u={u}/>
   if (spec.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision)
     return <NarrativeTextRecovery spec={spec} runtimeAssets={runtimeAssets} u={u} />
   if (spec.presentationProfile) return <NarrativeTextPilot spec={spec} u={u} />
@@ -660,7 +668,8 @@ export const MotionGraphicV15: React.FC<{
     data-qc-accent-primary={spec.premiumStyle?.accentPrimary ?? spec.colorPalette?.tokens.accentPrimary ?? ''}
     style={{ position: 'absolute', inset: 0, containerType: 'size', overflow: 'hidden' }}>
     {spec.lightStyle ? <><EditorialLightBackground spec={displayed} />
-      {spec.lightStyle.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision
+      {spec.lightStyle.revision === EDITORIAL_EXPLAINER_V3.revision?<EditorialV3Connector spec={displayed} u={u}/>
+        :spec.lightStyle.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision
         ? <EditorialLightV2Connector spec={displayed} u={u} /> : <EditorialConnector spec={displayed} u={u} />}</>
       : <QuietBackground spec={displayed} u={u} />}
     {spec.lightStyle ? null : spec.compositionV2 ? <FamilyV2AccentGraphics spec={displayed} u={u}
@@ -671,7 +680,9 @@ export const MotionGraphicV15: React.FC<{
       return <SceneAssetSlot key={slot.slotId} spec={displayed} slot={slot} layout={slotLayout}
         runtime={runtimeBySlot.get(slot.slotId)} u={u} />
     })}
-    {spec.lightStyle && (spec.lightStyle.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision
+    {spec.lightStyle?.revision===EDITORIAL_EXPLAINER_V3.revision&&<EditorialV3Microdetails spec={displayed} u={u}/>}
+    {spec.lightStyle && (spec.lightStyle.revision===EDITORIAL_EXPLAINER_V3.revision?<EditorialV3DataRepeater spec={displayed} u={u}/>
+      :spec.lightStyle.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision
       ? <EditorialLightV2DataRepeater spec={displayed} u={u} /> : <EditorialDataRepeater spec={displayed} u={u} />)}
     <NarrativeTextV15 spec={displayed} runtimeAssets={runtimeAssets} u={u} />
   </div>
