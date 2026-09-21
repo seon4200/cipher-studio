@@ -63,6 +63,7 @@ export function validateLightStyleV3(v:unknown,mode:'asset-led'|'editorial-text'
   const s=v as LightStyleV3
   if(!s||s.revision!==EDITORIAL_EXPLAINER_V3.revision||s.artDirectionRevision!=='editorial-explainer-art-direction-v3' ||
     !(s.accentTheme in EDITORIAL_V3_ACCENTS)||!['minimal','editorial','rich'].includes(s.compositionDensity)||
+    !['paper-icon-card','black-micro-badge','accent-tile'].includes(s.supportTreatment)||
     s.shadowPreset!=='upper-left-contact-ambient-v1'||!Number.isInteger(s.microdetailVariant)||s.microdetailVariant<0||s.microdetailVariant>7)
     throw new Error('EDITORIAL_V3_STYLE_INVALID')
   if(JSON.stringify(s.landscapeLayout)!==JSON.stringify(createLightLayoutV3(mode,supports,s.motionCue,'landscape',s.textPlacement)))

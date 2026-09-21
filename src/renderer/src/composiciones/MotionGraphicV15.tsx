@@ -170,19 +170,21 @@ const SceneAssetSlot: React.FC<{
     : slot.role === 'hero' ? .07 : .25
   const lightEnter = light ? phase(u, lightStart, lightV2||lightV3 ? .15 : .17) : 1
   const lightExit = light ? 1 - phase(u, .87, .10) : 1
+  const v3SupportTint=lightV3&&light.supportTreatment==='black-micro-badge'?LIGHT_COLORS_V1.white:LIGHT_COLORS_V1.ink
   const source = slot.state === 'present' && runtime
     ? <ProjectAssetVisual slot={slot} runtime={runtime}
-        accent={light && slot.tint.treatment === 'system-tint' ? (lightV3 ? LIGHT_COLORS_V1.ink : LIGHT_COLORS_V1.white) : palette.accent}
+        accent={light && slot.tint.treatment === 'system-tint' ? (lightV3 ? v3SupportTint : LIGHT_COLORS_V1.white) : palette.accent}
         support={palette.support} />
-    : slot.state === 'procedural' ? <div data-qc-solar-tint={light ? (lightV3 ? LIGHT_COLORS_V1.ink : LIGHT_COLORS_V1.white) : roles.solar}
-        style={{ width: '100%', height: '100%', color: light ? (lightV3 ? LIGHT_COLORS_V1.ink : LIGHT_COLORS_V1.white) : roles.solar }}>
+    : slot.state === 'procedural' ? <div data-qc-solar-tint={light ? (lightV3 ? v3SupportTint : LIGHT_COLORS_V1.white) : roles.solar}
+        style={{ width: '100%', height: '100%', color: light ? (lightV3 ? v3SupportTint : LIGHT_COLORS_V1.white) : roles.solar }}>
         <IconoSolar concepto={{ emoji: '', etiqueta: slot.solarIcon, icono: slot.solarIcon }}
           estilo={slot.solarStyle} canonicalId={slot.solarIcon} className="es-svg"
           titulo={`${slot.role} Solar ${slot.solarIcon}`} /></div> : null
   const lightContent = light && slot.kind === 'simple-icon'
     ? slot.role === 'hero' && light.heroTile !== 'none'
       ? <EditorialHeroTile variant={light.heroTile} material={light.materialPreset}>{source}</EditorialHeroTile>
-      : slot.role !== 'hero' && lightV3 ? <EditorialV3SupportCard>{source}</EditorialV3SupportCard>
+      : slot.role !== 'hero' && lightV3 ? <EditorialV3SupportCard variant={light.supportTreatment}
+          accent={EDITORIAL_V3_ACCENTS[light.accentTheme].main}>{source}</EditorialV3SupportCard>
       : slot.role !== 'hero' && lightV2 ? <EditorialLightV2Badge originalColor={slot.state === 'present' && slot.tint.treatment === 'original-color'}>{source}</EditorialLightV2Badge>
       : slot.role !== 'hero' ? <EditorialIconBadge material={light.materialPreset}
         variant={slot.state === 'present' && slot.tint.treatment === 'original-color'

@@ -1164,7 +1164,7 @@ function compileV2(input: {
     compositionDensity: visualMode==='editorial-text'?'minimal':supports.length>1?'rich':'editorial',
     textPlacement:v3Placement, typeRole:lightMotionCue==='count'?'data-display':lightMotionCue==='statement'?'display-hero':'narrative',
     heroTreatment:!hero?'none':hero.kind==='raster-image'||hero.kind==='photo-cutout'?'composite-hero':'clean-hero',
-    supportTreatment:supports.length>1?'paper-icon-card':'black-micro-badge',
+    supportTreatment:supports.length>1?(lightMotionCue==='transfer'?'accent-tile':'paper-icon-card'):'black-micro-badge',
     connector:supports.length&&(lightMotionCue==='transfer'||lightMotionCue==='compare'||lightMotionCue==='process')
       ?{variant:lightMotionCue==='transfer'?'curved-wide':'curved-short',state:'draw',arrow:lightMotionCue!=='compare',dotAnchors:true}:null,
     microdetailPreset:visualMode==='editorial-text'?'editorial-2':supports.length>1?'rich-5':'technical-4',

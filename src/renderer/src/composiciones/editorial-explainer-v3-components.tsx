@@ -7,10 +7,13 @@ const clamp=(v:number)=>Math.max(0,Math.min(1,v)); const ease=(v:number)=>{v=cla
 const phase=(u:number,s:number,d:number)=>ease((u-s)/d)
 const style=(spec:VisualSceneSpecV2)=>spec.lightStyle as LightStyleV3
 
-export const EditorialV3SupportCard:React.FC<{children:React.ReactNode}>=({children})=><div data-v3-support="paper-icon-card"
-  style={{width:'100%',height:'100%',display:'grid',placeItems:'center',padding:'18%',boxSizing:'border-box',borderRadius:'16%',
-    background:'linear-gradient(145deg,#FAF9F6,#ECE9E1)',border:`1px solid ${C.grid}88`,
-    boxShadow:'.18cqmin .35cqmin .35cqmin rgba(17,17,15,.18),1cqmin 1.35cqmin 2.2cqmin rgba(17,17,15,.11)'}}>{children}</div>
+export const EditorialV3SupportCard:React.FC<{children:React.ReactNode;variant:LightStyleV3['supportTreatment'];accent:string}>=({children,variant,accent})=>{
+  const black=variant==='black-micro-badge',tile=variant==='accent-tile'
+  return <div data-v3-support={variant} style={{width:'100%',height:'100%',display:'grid',placeItems:'center',
+    padding:black?'24%':'18%',boxSizing:'border-box',borderRadius:black?'50%':'16%',
+    background:black?C.ink:tile?`linear-gradient(145deg,${accent},#D85125)`:'linear-gradient(145deg,#FAF9F6,#ECE9E1)',
+    border:black?'1px solid rgba(255,255,255,.12)':tile?'1px solid rgba(17,17,15,.16)':`1px solid ${C.grid}88`,
+    boxShadow:'.18cqmin .35cqmin .35cqmin rgba(17,17,15,.18),1cqmin 1.35cqmin 2.2cqmin rgba(17,17,15,.11)'}}>{children}</div>}
 
 export const EditorialV3Microdetails:React.FC<{spec:VisualSceneSpecV2;u:number}>=({spec,u})=>{const s=style(spec),a=EDITORIAL_V3_ACCENTS[s.accentTheme]
   if(s.microdetailPreset==='none')return null;const p=phase(u,.56,.16),n=s.microdetailPreset==='rich-5'?5:s.microdetailPreset==='technical-4'?4:2
