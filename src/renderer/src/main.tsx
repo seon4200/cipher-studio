@@ -1566,7 +1566,7 @@ function App() {
   // un proyecto nuevo reparte exactamente como antes hasta que el usuario mueva el slider.
   const [timelineWeights, setTimelineWeights] = useState<number[]>([...PESOS_POR_DEFECTO])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
-  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1'>('standard')
+  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2'>('standard')
   const [visualAssetPack, setVisualAssetPack] = useState<'legacy' | 'modern-pack-100-v1' | 'modern-pack-100-v1+local'>('legacy')
 
   // Hub de IA — estados
@@ -1878,7 +1878,8 @@ function App() {
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
         setVisualAssetPack(loadedData.visualAssetPack === 'modern-pack-100-v1+local' ? 'modern-pack-100-v1+local' : loadedData.visualAssetPack === 'modern-pack-100-v1' ? 'modern-pack-100-v1' : 'legacy');
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-explainer-light-v1' ? 'editorial-explainer-light-v1' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-explainer-light-v2' ? 'editorial-explainer-light-v2' :
+          loadedData.visualPresentationProfile === 'editorial-explainer-light-v1' ? 'editorial-explainer-light-v1' :
           loadedData.visualPresentationProfile === 'families-motion-v2' ? 'families-motion-v2' :
           loadedData.visualPresentationProfile === 'premium-type-color-v1' ? 'premium-type-color-v1' :
           loadedData.visualPresentationProfile === 'visual-recovery-v1' ? 'visual-recovery-v1' :
@@ -2167,7 +2168,8 @@ function App() {
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
         setVisualAssetPack(loadedData.visualAssetPack === 'modern-pack-100-v1+local' ? 'modern-pack-100-v1+local' : loadedData.visualAssetPack === 'modern-pack-100-v1' ? 'modern-pack-100-v1' : 'legacy');
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-explainer-light-v1' ? 'editorial-explainer-light-v1' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-explainer-light-v2' ? 'editorial-explainer-light-v2' :
+          loadedData.visualPresentationProfile === 'editorial-explainer-light-v1' ? 'editorial-explainer-light-v1' :
           loadedData.visualPresentationProfile === 'families-motion-v2' ? 'families-motion-v2' :
           loadedData.visualPresentationProfile === 'premium-type-color-v1' ? 'premium-type-color-v1' :
           loadedData.visualPresentationProfile === 'visual-recovery-v1' ? 'visual-recovery-v1' :
@@ -4102,6 +4104,7 @@ ${res.filePath}`);
                 <option value="premium-type-color-v1">Porcelain Editorial V1 (experimental)</option>
                 <option value="families-motion-v2">Families + Motion V2 (experimental)</option>
                 <option value="editorial-explainer-light-v1">Editorial Explainer Light V1 (piloto)</option>
+                <option value="editorial-explainer-light-v2">Editorial Explainer Light V2 (piloto)</option>
               </select>
             </div>
             {isGeneratingAssets ? (

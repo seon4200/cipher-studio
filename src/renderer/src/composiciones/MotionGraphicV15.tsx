@@ -24,8 +24,10 @@ import { chooseTextContrastV1 } from './photo-text-contrast-v1'
 import { assetMotionV2, backgroundImageV2, FamilyV2AccentGraphics } from './families-v2-layers'
 import { FAMILIES_MOTION_PROFILE_V2 } from '../../../shared/editorial-motion-profile-v1'
 import { EDITORIAL_EXPLAINER_LIGHT_V1, LIGHT_COLORS_V1 } from '../../../shared/editorial-explainer-light-v1'
+import { EDITORIAL_EXPLAINER_LIGHT_V2 } from '../../../shared/editorial-explainer-light-v2'
 import { EditorialHeroTile, EditorialIconBadge, EditorialConnector, EditorialDataRepeater,
   EditorialLightBackground, EditorialLightText } from './editorial-explainer-light-components'
+import { EditorialLightV2Badge, EditorialLightV2Connector, EditorialLightV2DataRepeater, EditorialLightV2Text } from './editorial-explainer-light-v2-components'
 
 function clamp01(value: number): number { return Math.min(1, Math.max(0, value)) }
 function ease(value: number): number { const p = clamp01(value); return 1 - Math.pow(1 - p, 3) }
@@ -154,7 +156,13 @@ const SceneAssetSlot: React.FC<{
   const familyMotion = spec.compositionV2 ? assetMotionV2(spec.compositionV2.motionVariant, slot.role, u) : undefined
   if (slot.state === 'present' && !runtime) throw new Error(`VISUAL_RUNTIME_SLOT_REQUIRED:${slot.slotId}`)
   const light = spec.lightStyle
-  const lightEnter = light ? phase(u, slot.role === 'hero' ? .07 : .25, .17) : 1
+  const lightV2 = light?.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision
+  const lightStart = lightV2 ? light.motionCue === 'count' ? .25
+    : light.motionCue === 'transfer' ? slot.role === 'hero' ? .07 : slot.role === 'support-1' ? .39 : .49
+      : light.motionCue === 'process' ? slot.role === 'hero' ? .06 : slot.role === 'support-1' ? .29 : .46
+        : slot.role === 'hero' ? .07 : slot.role === 'support-1' ? .25 : .36
+    : slot.role === 'hero' ? .07 : .25
+  const lightEnter = light ? phase(u, lightStart, lightV2 ? .15 : .17) : 1
   const lightExit = light ? 1 - phase(u, .87, .10) : 1
   const source = slot.state === 'present' && runtime
     ? <ProjectAssetVisual slot={slot} runtime={runtime}
@@ -168,6 +176,7 @@ const SceneAssetSlot: React.FC<{
   const lightContent = light && slot.kind === 'simple-icon'
     ? slot.role === 'hero' && light.heroTile !== 'none'
       ? <EditorialHeroTile variant={light.heroTile} material={light.materialPreset}>{source}</EditorialHeroTile>
+      : slot.role !== 'hero' && lightV2 ? <EditorialLightV2Badge originalColor={slot.state === 'present' && slot.tint.treatment === 'original-color'}>{source}</EditorialLightV2Badge>
       : slot.role !== 'hero' ? <EditorialIconBadge material={light.materialPreset}
         variant={slot.state === 'present' && slot.tint.treatment === 'original-color'
           ? 'original-color' : light.iconTreatment === 'orange-tile' ? 'orange-tile' : 'black-circle'}>{source}</EditorialIconBadge> : source
@@ -189,7 +198,9 @@ const SceneAssetSlot: React.FC<{
       transformOrigin: '50% 50%', opacity: (light ? lightEnter * lightExit : familyMotion ? familyMotion.opacity : pilot ? pilotOpacity : motion.opacity) * layout.opacity,
       ...(familyMotion?.clipPath ? { clipPath: familyMotion.clipPath } : {}),
       willChange: 'transform,opacity', overflow: layout.crop === 'cover-safe' ? 'hidden' : 'visible',
-      filter: light || familyMotion ? 'none' : pilot ? (slot.state === 'present' && slot.alphaMode === 'opaque-rectangle'
+      filter: lightV2 && slot.role === 'hero' && slot.state === 'present' && slot.alphaMode === 'useful-alpha'
+        ? 'drop-shadow(.2cqmin .45cqmin .35cqmin rgba(17,17,15,.22)) drop-shadow(.9cqmin 1.4cqmin 1.8cqmin rgba(17,17,15,.12))'
+        : light || familyMotion ? 'none' : pilot ? (slot.state === 'present' && slot.alphaMode === 'opaque-rectangle'
         ? `drop-shadow(0 .65cqmin 1.7cqmin ${palette.shadow})` : 'none')
         : slot.role === 'hero' ? `drop-shadow(0 1.2cqmin 2.4cqmin ${palette.shadow})`
           : `drop-shadow(0 .7cqmin 1.5cqmin ${palette.shadow})`,
@@ -563,6 +574,8 @@ const NarrativeTextV15: React.FC<{ spec: VisualSceneSpecV2; runtimeAssets: reado
     return <NarrativeTextPremium spec={spec} runtimeAssets={runtimeAssets} u={u} />
   if (spec.presentationProfile?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision)
     return <EditorialLightText spec={spec} u={u} />
+  if (spec.presentationProfile?.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision)
+    return <EditorialLightV2Text spec={spec} u={u} />
   if (spec.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision)
     return <NarrativeTextRecovery spec={spec} runtimeAssets={runtimeAssets} u={u} />
   if (spec.presentationProfile) return <NarrativeTextPilot spec={spec} u={u} />
@@ -646,7 +659,9 @@ export const MotionGraphicV15: React.FC<{
     data-qc-color-variant={spec.colorPalette?.variant ?? 'historical'}
     data-qc-accent-primary={spec.premiumStyle?.accentPrimary ?? spec.colorPalette?.tokens.accentPrimary ?? ''}
     style={{ position: 'absolute', inset: 0, containerType: 'size', overflow: 'hidden' }}>
-    {spec.lightStyle ? <><EditorialLightBackground spec={displayed} /><EditorialConnector spec={displayed} u={u} /></>
+    {spec.lightStyle ? <><EditorialLightBackground spec={displayed} />
+      {spec.lightStyle.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision
+        ? <EditorialLightV2Connector spec={displayed} u={u} /> : <EditorialConnector spec={displayed} u={u} />}</>
       : <QuietBackground spec={displayed} u={u} />}
     {spec.lightStyle ? null : spec.compositionV2 ? <FamilyV2AccentGraphics spec={displayed} u={u}
       accent={scenePalette(spec).accent} /> : <StructureGrammar spec={spec} u={u} />}
@@ -656,7 +671,8 @@ export const MotionGraphicV15: React.FC<{
       return <SceneAssetSlot key={slot.slotId} spec={displayed} slot={slot} layout={slotLayout}
         runtime={runtimeBySlot.get(slot.slotId)} u={u} />
     })}
-    {spec.lightStyle && <EditorialDataRepeater spec={displayed} u={u} />}
+    {spec.lightStyle && (spec.lightStyle.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision
+      ? <EditorialLightV2DataRepeater spec={displayed} u={u} /> : <EditorialDataRepeater spec={displayed} u={u} />)}
     <NarrativeTextV15 spec={displayed} runtimeAssets={runtimeAssets} u={u} />
   </div>
 }
