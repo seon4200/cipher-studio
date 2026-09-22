@@ -11,7 +11,7 @@ import { FUENTES_RENDER, MUESTRA_FUENTES, faltaLaFuentePorAncho } from './fuente
 import type { PreparedRenderAssetAny, RuntimeRenderAssetAny, RuntimeRenderAssetV2 } from '../../shared/visual-scene-spec-v2'
 import { measurePhotoProbeV1 } from './composiciones/photo-text-contrast-v1'
 import { VISUAL_RECOVERY_PROFILE_V1 } from '../../shared/editorial-motion-profile-v1'
-import { EDITORIAL_IDEA_ASSEMBLY_V1, IDEA_RESOURCE_IDS, IDEA_SUPPORT_IDS } from '../../shared/editorial-idea-assembly-v1'
+import { IDEA_RESOURCE_IDS, IDEA_SUPPORT_IDS } from '../../shared/editorial-idea-assembly-v1'
 import './styles/globals.css'
 
 // Franja de la SONDA, encima del lienzo. El proceso principal codifica ahi el indice de
@@ -226,7 +226,9 @@ function montarGraphicData(graphicData: any, op: Partial<Opciones>) {
     return undefined
   }
   const probePhoto = graphicData?.extra?.sceneSpec?.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision
-  const ideaAssembly = graphicData?.extra?.sceneSpec?.presentationProfile?.revision === EDITORIAL_IDEA_ASSEMBLY_V1.revision
+  // Both frozen IDEA revisions share the same materialization contract; the exact
+  // revision is validated in the SceneSpec before this renderer receives it.
+  const ideaAssembly = Boolean(graphicData?.extra?.sceneSpec?.ideaAssembly)
   return prepararRuntimeAssets(preparedAssets, probePhoto, ideaAssembly).then(prepared => {
     runtimeAssets = prepared
     montarGraphicData(graphicData, op)

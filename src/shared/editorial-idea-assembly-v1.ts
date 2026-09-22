@@ -7,6 +7,20 @@ export const EDITORIAL_IDEA_ASSEMBLY_V1 = Object.freeze({
   revision: 'editorial-idea-assembly-2026-09-v1' as const,
 })
 
+/** V1 remains frozen. V2 is the contained polish contract for the same IDEA scene. */
+export const EDITORIAL_IDEA_ASSEMBLY_V2 = Object.freeze({
+  id: 'editorial-idea-assembly-v1' as const,
+  revision: 'editorial-idea-assembly-2026-09-v2' as const,
+})
+
+export type IdeaAssemblyRevision =
+  | typeof EDITORIAL_IDEA_ASSEMBLY_V1.revision
+  | typeof EDITORIAL_IDEA_ASSEMBLY_V2.revision
+
+export function isIdeaAssemblyRevision(value: unknown): value is IdeaAssemblyRevision {
+  return value === EDITORIAL_IDEA_ASSEMBLY_V1.revision || value === EDITORIAL_IDEA_ASSEMBLY_V2.revision
+}
+
 export const IDEA_SUPPORT_IDS = ['support-1', 'support-2', 'support-3', 'support-4'] as const
 export const IDEA_RESOURCE_IDS = ['idea-background', 'idea-rear', 'idea-accent', 'idea-bulb', 'idea-front'] as const
 export type IdeaResourceId = typeof IDEA_RESOURCE_IDS[number]
@@ -26,7 +40,8 @@ export type IdeaAssemblyResource = {
 }
 
 export type IdeaAssemblyV1 = {
-  revision: typeof EDITORIAL_IDEA_ASSEMBLY_V1.revision
+  /** Kept under the V1 transport name so no second SceneSpec subsystem is introduced. */
+  revision: IdeaAssemblyRevision
   accentTheme: IdeaAccentTheme
   heroStartScale: number
   heroAnchor: { x: number; y: number }
@@ -63,18 +78,50 @@ export function createIdeaAssemblyLayoutV1(orientation: 'portrait' | 'landscape'
   }
 }
 
+/** New revision only. The V1 geometry above stays the exact historical dispatch. */
+export function createIdeaAssemblyLayoutV2(orientation: 'portrait' | 'landscape'): VisualLayoutV4 {
+  const portrait = orientation === 'portrait'
+  return {
+    version: 2, family: 'marcoPoster', textRegion: portrait ? 'top' : 'left',
+    textBounds: portrait ? rect(7, 7, 86, 26) : rect(6, 9, 35, 43),
+    textAlignment: 'left', relationStyle: 'none',
+    slotLayouts: portrait ? [
+      slot('hero', rect(20, 30, 60, 58), 4),
+      slot('support-1', rect(5, 31, 19, 15), 5),
+      slot('support-2', rect(76, 31, 19, 15), 5),
+      slot('support-3', rect(5, 66, 19, 15), 5),
+      slot('support-4', rect(76, 66, 19, 15), 5),
+    ] : [
+      slot('hero', rect(39, 6, 45, 86), 4),
+      slot('support-1', rect(4, 64, 16, 22), 5),
+      slot('support-2', rect(22, 64, 16, 22), 5),
+      slot('support-3', rect(84, 14, 13, 22), 5),
+      slot('support-4', rect(84, 64, 13, 22), 5),
+    ],
+  }
+}
+
+export function createIdeaAssemblyLayoutForRevision(
+  revision: IdeaAssemblyRevision,
+  orientation: 'portrait' | 'landscape',
+): VisualLayoutV4 {
+  return revision === EDITORIAL_IDEA_ASSEMBLY_V1.revision
+    ? createIdeaAssemblyLayoutV1(orientation)
+    : createIdeaAssemblyLayoutV2(orientation)
+}
+
 export function validateIdeaAssemblyV1(value: unknown): asserts value is IdeaAssemblyV1 {
   const v = value as IdeaAssemblyV1
   const validNumber = (n: unknown) => typeof n === 'number' && Number.isFinite(n)
   const validRect = (r: PercentRectV3) => r && [r.x, r.y, r.width, r.height].every(validNumber) &&
     r.width > 0 && r.height > 0 && r.x >= -20 && r.y >= -20 && r.x + r.width <= 120 && r.y + r.height <= 120
-  if (!v || v.revision !== EDITORIAL_IDEA_ASSEMBLY_V1.revision ||
+  if (!v || !isIdeaAssemblyRevision(v.revision) ||
       !['orange', 'teal', 'crimson'].includes(v.accentTheme) ||
       !validNumber(v.heroStartScale) || v.heroStartScale < .5 || v.heroStartScale > 1 ||
       !v.heroAnchor || !validNumber(v.heroAnchor.x) || !validNumber(v.heroAnchor.y) ||
       !Array.isArray(v.resources) || v.resources.length !== IDEA_RESOURCE_IDS.length ||
       !Array.isArray(v.supports) || v.supports.length !== IDEA_SUPPORT_IDS.length ||
-      JSON.stringify(v.landscapeLayout) !== JSON.stringify(createIdeaAssemblyLayoutV1('landscape')))
+      JSON.stringify(v.landscapeLayout) !== JSON.stringify(createIdeaAssemblyLayoutForRevision(v.revision, 'landscape')))
     throw new Error('IDEA_ASSEMBLY_INVALID')
   const ids = new Set(v.resources.map(r => r.id))
   if (ids.size !== IDEA_RESOURCE_IDS.length || IDEA_RESOURCE_IDS.some(id => !ids.has(id)))

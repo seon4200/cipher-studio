@@ -1,15 +1,25 @@
 import React from 'react'
 import type { VisualSceneSpecV2, RuntimeRenderAssetV2 } from '../../../shared/visual-scene-spec-v2'
-import { type IdeaAccentTheme, type IdeaAssemblyResource } from '../../../shared/editorial-idea-assembly-v1'
+import { EDITORIAL_IDEA_ASSEMBLY_V2, type IdeaAccentTheme, type IdeaAssemblyResource } from '../../../shared/editorial-idea-assembly-v1'
 import { sceneSpecReactKeyAny } from '../../../shared/visual-scene-spec-v2'
 
 const clamp = (v: number) => Math.max(0, Math.min(1, v))
 const ease = (v: number) => 1 - Math.pow(1 - clamp(v), 3)
 const phase = (u: number, start: number, end: number) => ease((u - start) / (end - start))
-const ACCENTS: Record<IdeaAccentTheme, { color: string; filter: string }> = {
+/** Frozen palette used by the original V1 pixels. */
+const ACCENTS_V1: Record<IdeaAccentTheme, { color: string; filter: string }> = {
   orange: { color: '#C5481E', filter: 'none' },
   teal: { color: '#238C87', filter: 'hue-rotate(158deg)' },
   crimson: { color: '#B8444F', filter: 'hue-rotate(-26deg)' },
+}
+
+/** V2 only: retains the material accent while clearing the local contrast floor. */
+const ACCENTS_V2: Record<IdeaAccentTheme, { color: string; filter: string }> = {
+  // These title colors retain the intended material accent while clearing the
+  // local-contrast floor over ivory paper and its subtle grid.
+  orange: { color: '#A83B19', filter: 'none' },
+  teal: { color: '#146E6A', filter: 'hue-rotate(158deg)' },
+  crimson: { color: '#962A36', filter: 'hue-rotate(-26deg)' },
 }
 
 export const EditorialIdeaAssemblyV1: React.FC<{
@@ -18,6 +28,7 @@ export const EditorialIdeaAssemblyV1: React.FC<{
   u: number
 }> = ({ spec, runtimeAssets, u }) => {
   const plan = spec.ideaAssembly!
+  const isV2 = plan.revision === EDITORIAL_IDEA_ASSEMBLY_V2.revision
   const landscape = window.innerWidth > window.innerHeight
   const layout = landscape ? plan.landscapeLayout : spec.layout
   const byId = new Map(runtimeAssets.map(asset => [asset.slotId, asset]))
@@ -27,9 +38,9 @@ export const EditorialIdeaAssemblyV1: React.FC<{
     return url
   }
   const hero = layout.slotLayouts.find(item => item.slotId === 'hero')!
-  const accent = ACCENTS[plan.accentTheme]
-  const out = 1 - phase(u, .89, 1)
-  const heroEnter = phase(u, 0, .2)
+  const accent = (isV2 ? ACCENTS_V2 : ACCENTS_V1)[plan.accentTheme]
+  const out = 1 - phase(u, isV2 ? .90 : .89, 1)
+  const heroEnter = phase(u, 0, isV2 ? .30 : .2)
   const heroScale = plan.heroStartScale + (1 - plan.heroStartScale) * heroEnter
   const layer = (resource: IdeaAssemblyResource) => {
     const enter = resource.id === 'idea-background' ? 1 : phase(u, resource.timing.start, resource.timing.settle)
@@ -52,6 +63,31 @@ export const EditorialIdeaAssemblyV1: React.FC<{
   }))
   const heroCenter = { x: hero.envelope.x + hero.envelope.width / 2,
     y: hero.envelope.y + hero.envelope.height / 2 }
+  const connectors = isV2
+    ? (landscape
+      ? [
+        // PERSONAS travels through the deliberately empty lane *above* DATOS.
+        // The two left-side relationships use separate landing points on the Hero.
+        { id: 'support-1', path: 'M 20 73 C 21 57 34 53 39 55 C 42 57 43 58 45 59', endX: 45, endY: 59 },
+        { id: 'support-2', path: 'M 38 73 C 43 73 45 70 48 67', endX: 48, endY: 67 },
+        { id: 'support-3', path: 'M 84 25 C 80 25 78 30 76 34', endX: 76, endY: 34 },
+        { id: 'support-4', path: 'M 84 73 C 80 72 79 66 77 61', endX: 77, endY: 61 },
+      ]
+      : [
+        { id: 'support-1', path: 'M 22 38 C 27 38 29 45 35 51', endX: 35, endY: 51 },
+        { id: 'support-2', path: 'M 78 38 C 73 38 71 45 65 51', endX: 65, endY: 51 },
+        { id: 'support-3', path: 'M 22 73 C 27 73 29 70 35 68', endX: 35, endY: 68 },
+        { id: 'support-4', path: 'M 78 73 C 73 73 71 70 65 68', endX: 65, endY: 68 },
+      ])
+    : supportCenters.map((point, i) => {
+      const sign = point.x < heroCenter.x ? -1 : 1
+      const endX = heroCenter.x + sign * (landscape ? 13 : 18)
+      const endY = heroCenter.y + (landscape ? (i === 0 || i === 2 ? -15 : 12) : (point.y < heroCenter.y ? -10 : 12))
+      const startX = point.x - sign * (landscape ? 6 : 7)
+      return { id: point.id, path: `M ${startX} ${point.y} Q ${(startX + endX) / 2} ${(point.y + endY) / 2 - 4} ${endX} ${endY}`, endX, endY }
+    })
+  const titleFamily = isV2 ? 'Fraunces,serif' : 'Instrument Serif,serif'
+  const titleWeight = isV2 ? 650 : 400
   return <div key={sceneSpecReactKeyAny(spec)} data-visual-mvp="true" data-visual-composition="v15-idea-assembly"
     data-qc-layout-family="marcoPoster" data-qc-empty-hero-frames="0"
     style={{ position: 'absolute', inset: 0, overflow: 'hidden', containerType: 'size', background: '#F0EEE8', color: '#11110F', fontSynthesis: 'none' }}>
@@ -61,13 +97,15 @@ export const EditorialIdeaAssemblyV1: React.FC<{
     <div data-qc-text="true" data-qc-hide-container="true" data-qc-max-lines="2" data-qc-visible-words="5" style={{ position: 'absolute',
       left: `${layout.textBounds.x}%`, top: `${layout.textBounds.y}%`,
       width: `${layout.textBounds.width}%`, height: `${layout.textBounds.height}%`,
-      zIndex: 12, opacity: out, fontFamily: 'Instrument Serif,serif',
-      lineHeight: .82, letterSpacing: '-.035em', textAlign: landscape ? 'left' : 'center' }}>
-      <div data-qc-text-glyph="true" style={{ fontSize: landscape ? '10cqmin' : '16cqmin', fontWeight: 400, color: '#11110F' }}>{spec.text.connector}</div>
-      <div data-qc-keyword="true" data-qc-text-glyph="true" style={{ fontSize: landscape ? '15cqmin' : '23cqmin', fontWeight: 400,
-        color: accent.color, marginTop: '.5cqmin', whiteSpace: 'nowrap' }}>{spec.text.keyword}</div>
+      zIndex: 12, opacity: out, fontFamily: titleFamily, fontWeight: titleWeight,
+      lineHeight: isV2 ? .78 : .82, letterSpacing: isV2 ? '-.045em' : '-.035em', textAlign: landscape ? 'left' : 'center' }}>
+      <div data-qc-text-glyph="true" style={{ fontSize: isV2 ? (landscape ? '11.8cqmin' : '14.2cqmin') : (landscape ? '10cqmin' : '16cqmin'),
+        fontWeight: titleWeight, color: '#11110F' }}>{spec.text.connector}</div>
+      <div data-qc-keyword="true" data-qc-text-glyph="true" data-qc-keyword-family={isV2 ? 'Fraunces' : 'Instrument Serif'}
+        style={{ fontSize: isV2 ? (landscape ? '18.8cqmin' : '24.3cqmin') : (landscape ? '15cqmin' : '23cqmin'), fontWeight: titleWeight,
+        color: accent.color, marginTop: isV2 ? '.25cqmin' : '.5cqmin', whiteSpace: 'nowrap' }}>{spec.text.keyword}</div>
       <div data-qc-closing="true" data-qc-text-glyph="true" style={{ fontFamily: 'DM Sans,sans-serif', fontWeight: 500,
-        fontSize: landscape ? '2.8cqmin' : '3.4cqmin', letterSpacing: '-.025em', lineHeight: 1.12,
+        fontSize: isV2 ? (landscape ? '3.1cqmin' : '3.45cqmin') : (landscape ? '2.8cqmin' : '3.4cqmin'), letterSpacing: '-.025em', lineHeight: 1.12,
         marginTop: '1.4cqmin', whiteSpace: 'nowrap' }}>{spec.text.closing}</div>
     </div>
     <div data-qc-asset="true" data-qc-hero="true" data-qc-slot="hero" data-qc-role="hero"
@@ -82,24 +120,20 @@ export const EditorialIdeaAssemblyV1: React.FC<{
       {plan.resources.filter(r => r.id === 'idea-bulb' || r.id === 'idea-front').map(layer)}
     </div>
     <svg data-idea-connectors="true" viewBox="0 0 100 100" preserveAspectRatio="none"
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 4, pointerEvents: 'none', opacity: out }}>
-      {supportCenters.map((point, i) => {
-        const sign = point.x < heroCenter.x ? -1 : 1
-        const endX = heroCenter.x + sign * (landscape ? 13 : 18)
-        const endY = heroCenter.y + (landscape ? (i === 0 || i === 2 ? -15 : 12) : (point.y < heroCenter.y ? -10 : 12))
-        const startX = point.x - sign * (landscape ? 6 : 7)
-        const draw = phase(u, .38 + i * .035, .65 + i * .025)
-        return <g key={point.id} opacity={draw}>
-          <path d={`M ${startX} ${point.y} Q ${(startX + endX) / 2} ${(point.y + endY) / 2 - 4} ${endX} ${endY}`}
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: isV2 ? 3 : 4, pointerEvents: 'none', opacity: out }}>
+      {connectors.map((connector, i) => {
+        const draw = isV2 ? phase(u, .32 + i * .025, .44 + i * .015) : phase(u, .38 + i * .035, .65 + i * .025)
+        return <g key={connector.id} data-idea-connector={connector.id} opacity={draw}>
+          <path d={connector.path}
             pathLength={1} stroke="#11110F" strokeWidth=".18" fill="none"
             strokeDasharray={1} strokeDashoffset={1 - draw} />
-          <circle cx={endX} cy={endY} r=".3" fill="#11110F" />
+          <circle cx={connector.endX} cy={connector.endY} r=".3" fill="#11110F" />
         </g>
       })}
     </svg>
     {plan.supports.map((support) => {
       const slot = layout.slotLayouts.find(item => item.slotId === support.slotId)!
-      const enter = phase(u, support.enter, support.enter + .13)
+      const enter = phase(u, support.enter, support.enter + (isV2 ? .12 : .13))
       const resource = spec.slots.find(item => item.slotId === support.slotId)
       if (!resource || resource.state !== 'present') throw new Error(`IDEA_SUPPORT_REQUIRED:${support.slotId}`)
       return <div key={support.slotId} data-qc-asset="true" data-qc-slot={support.slotId} data-qc-role={support.slotId}
