@@ -13,12 +13,25 @@ export const EDITORIAL_IDEA_ASSEMBLY_V2 = Object.freeze({
   revision: 'editorial-idea-assembly-2026-09-v2' as const,
 })
 
+/**
+ * V3 freezes a causal connector hand-off over V2's approved stable composition.
+ * It is deliberately a fresh revision: V1/V2 continue through their original
+ * geometry, routes and timing dispatch.
+ */
+export const EDITORIAL_IDEA_ASSEMBLY_V3 = Object.freeze({
+  id: 'editorial-idea-assembly-v1' as const,
+  revision: 'editorial-idea-assembly-2026-09-v3' as const,
+})
+
 export type IdeaAssemblyRevision =
   | typeof EDITORIAL_IDEA_ASSEMBLY_V1.revision
   | typeof EDITORIAL_IDEA_ASSEMBLY_V2.revision
+  | typeof EDITORIAL_IDEA_ASSEMBLY_V3.revision
 
 export function isIdeaAssemblyRevision(value: unknown): value is IdeaAssemblyRevision {
-  return value === EDITORIAL_IDEA_ASSEMBLY_V1.revision || value === EDITORIAL_IDEA_ASSEMBLY_V2.revision
+  return value === EDITORIAL_IDEA_ASSEMBLY_V1.revision ||
+    value === EDITORIAL_IDEA_ASSEMBLY_V2.revision ||
+    value === EDITORIAL_IDEA_ASSEMBLY_V3.revision
 }
 
 export const IDEA_SUPPORT_IDS = ['support-1', 'support-2', 'support-3', 'support-4'] as const
@@ -39,6 +52,35 @@ export type IdeaAssemblyResource = {
   accentTreatment: 'none' | 'hue-shift'
 }
 
+export type IdeaConnectorRelation =
+  | 'support-to-hero'
+  | 'hero-to-support'
+  | 'support-to-support'
+
+/**
+ * The local paths are deliberately part of the persisted V3 visual contract.
+ * They describe routes in the compositor's 0..100 SVG coordinate system, not
+ * runtime asset locations or provider metadata.
+ */
+export type IdeaAssemblyConnector = {
+  id: IdeaSupportId
+  relation: IdeaConnectorRelation
+  from: 'hero' | IdeaSupportId
+  to: 'hero' | IdeaSupportId
+  start: number
+  end: number
+  portrait: { path: string; tip: { x: number; y: number } }
+  landscape: { path: string; tip: { x: number; y: number } }
+}
+
+export type IdeaAssemblySupport = {
+  slotId: IdeaSupportId
+  label: string
+  enter: number
+  /** V3 only: frozen completion beat for the support's own entrance. */
+  settle?: number
+}
+
 export type IdeaAssemblyV1 = {
   /** Kept under the V1 transport name so no second SceneSpec subsystem is introduced. */
   revision: IdeaAssemblyRevision
@@ -46,7 +88,9 @@ export type IdeaAssemblyV1 = {
   heroStartScale: number
   heroAnchor: { x: number; y: number }
   resources: IdeaAssemblyResource[]
-  supports: { slotId: IdeaSupportId; label: string; enter: number }[]
+  supports: IdeaAssemblySupport[]
+  /** V3 only. V1/V2 intentionally omit the causal routing plan. */
+  connectorSequence?: IdeaAssemblyConnector[]
   landscapeLayout: VisualLayoutV4
 }
 
@@ -101,13 +145,18 @@ export function createIdeaAssemblyLayoutV2(orientation: 'portrait' | 'landscape'
   }
 }
 
+/** V3 retains V2's approved resting geometry exactly; only the connector plan changes. */
+export function createIdeaAssemblyLayoutV3(orientation: 'portrait' | 'landscape'): VisualLayoutV4 {
+  return createIdeaAssemblyLayoutV2(orientation)
+}
+
 export function createIdeaAssemblyLayoutForRevision(
   revision: IdeaAssemblyRevision,
   orientation: 'portrait' | 'landscape',
 ): VisualLayoutV4 {
-  return revision === EDITORIAL_IDEA_ASSEMBLY_V1.revision
-    ? createIdeaAssemblyLayoutV1(orientation)
-    : createIdeaAssemblyLayoutV2(orientation)
+  if (revision === EDITORIAL_IDEA_ASSEMBLY_V1.revision) return createIdeaAssemblyLayoutV1(orientation)
+  if (revision === EDITORIAL_IDEA_ASSEMBLY_V2.revision) return createIdeaAssemblyLayoutV2(orientation)
+  return createIdeaAssemblyLayoutV3(orientation)
 }
 
 export function validateIdeaAssemblyV1(value: unknown): asserts value is IdeaAssemblyV1 {
@@ -141,4 +190,41 @@ export function validateIdeaAssemblyV1(value: unknown): asserts value is IdeaAss
   }
   if (v.supports.some((s, i) => s.slotId !== IDEA_SUPPORT_IDS[i] || !s.label.trim() || !validNumber(s.enter) || s.enter < 0 || s.enter > .7))
     throw new Error('IDEA_ASSEMBLY_SUPPORTS_INVALID')
+  const isV3 = v.revision === EDITORIAL_IDEA_ASSEMBLY_V3.revision
+  if (!isV3) {
+    if (v.supports.some(s => s.settle !== undefined) || v.connectorSequence !== undefined)
+      throw new Error('IDEA_ASSEMBLY_HISTORICAL_ROUTE_INVALID')
+    return
+  }
+  if (v.supports.some(s => !validNumber(s.settle) || s.settle! <= s.enter || s.settle! > .7) ||
+      !Array.isArray(v.connectorSequence) || v.connectorSequence.length !== IDEA_SUPPORT_IDS.length)
+    throw new Error('IDEA_ASSEMBLY_V3_TIMING_INVALID')
+  const expected: readonly [IdeaSupportId, IdeaConnectorRelation, 'hero' | IdeaSupportId, 'hero' | IdeaSupportId][] = [
+    ['support-1', 'support-to-hero', 'support-1', 'hero'],
+    ['support-2', 'support-to-hero', 'support-2', 'hero'],
+    ['support-3', 'hero-to-support', 'hero', 'support-3'],
+    ['support-4', 'support-to-support', 'support-3', 'support-4'],
+  ]
+  const frame = 1 / 80
+  for (const [i, connector] of v.connectorSequence.entries()) {
+    const [id, relation, from, to] = expected[i]
+    const sourceSupport = v.supports.find(s => s.slotId === id)!
+    const gap = connector.start - sourceSupport.settle!
+    const validPath = (part: IdeaAssemblyConnector['portrait'] | undefined) => {
+      if (!part) return false
+      return typeof part.path === 'string' && /^[0-9 .,+\-MCQCSZ]+$/i.test(part.path) &&
+        validNumber(part.tip?.x) && validNumber(part.tip?.y) &&
+        part.tip.x >= 0 && part.tip.x <= 100 && part.tip.y >= 0 && part.tip.y <= 100
+    }
+    if (connector.id !== id || connector.relation !== relation || connector.from !== from || connector.to !== to ||
+        !validNumber(connector.start) || !validNumber(connector.end) || connector.start < 0 || connector.end > .7 ||
+        connector.end <= connector.start || gap < frame * 2 - 1e-9 || gap > frame * 3 + 1e-9 ||
+        !validPath(connector.portrait) || !validPath(connector.landscape))
+      throw new Error('IDEA_ASSEMBLY_V3_CONNECTOR_INVALID:' + id)
+    if (i > 0) {
+      const previous = v.connectorSequence[i - 1]
+      const handoff = connector.start - previous.end
+      if (handoff < 0 || handoff > frame + 1e-9) throw new Error('IDEA_ASSEMBLY_V3_HANDOFF_INVALID:' + id)
+    }
+  }
 }

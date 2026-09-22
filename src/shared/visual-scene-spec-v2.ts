@@ -62,8 +62,8 @@ import { validatePremiumStyleV1, type PremiumStyleV1 } from './premium-type-colo
 import { EDITORIAL_EXPLAINER_LIGHT_V1, createLightLayoutV1, validateLightStyleV1, type LightStyleV1 } from './editorial-explainer-light-v1'
 import { EDITORIAL_EXPLAINER_LIGHT_V2, createLightLayoutV2, validateLightStyleV2, type LightStyleV2 } from './editorial-explainer-light-v2'
 import { EDITORIAL_EXPLAINER_V3, createLightLayoutV3, validateLightStyleV3, type LightStyleV3 } from './editorial-explainer-v3'
-import { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, IDEA_RESOURCE_IDS, IDEA_SUPPORT_IDS,
-  createIdeaAssemblyLayoutV1, createIdeaAssemblyLayoutV2, validateIdeaAssemblyV1,
+import { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, IDEA_RESOURCE_IDS, IDEA_SUPPORT_IDS,
+  createIdeaAssemblyLayoutV1, createIdeaAssemblyLayoutV2, createIdeaAssemblyLayoutV3, validateIdeaAssemblyV1,
   type IdeaAssemblyV1, type IdeaResourceId } from './editorial-idea-assembly-v1'
 import {
   VISUAL_MVP_BOUNDS_REVISION,
@@ -448,6 +448,8 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
     ? createIdeaAssemblyLayoutV1('portrait')
     : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_IDEA_ASSEMBLY_V2.revision
     ? createIdeaAssemblyLayoutV2('portrait')
+    : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_IDEA_ASSEMBLY_V3.revision
+    ? createIdeaAssemblyLayoutV3('portrait')
     : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision
     ? createLightLayoutV1(mode, supportCount, (spec.lightStyle as LightStyleV1).motionCue, 'portrait')
     : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision
@@ -480,7 +482,7 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   if (value.backgroundProfile !== undefined) validateBackgroundProfileV1(value.backgroundProfile)
   if (value.colorPalette !== undefined) validateSceneColorPaletteV1(value.colorPalette)
   if (value.presentationProfile !== undefined) validateEditorialMotionProfile(value.presentationProfile)
-  const ideaRevision = [EDITORIAL_IDEA_ASSEMBLY_V1.revision, EDITORIAL_IDEA_ASSEMBLY_V2.revision]
+  const ideaRevision = [EDITORIAL_IDEA_ASSEMBLY_V1.revision, EDITORIAL_IDEA_ASSEMBLY_V2.revision, EDITORIAL_IDEA_ASSEMBLY_V3.revision]
     .includes((value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_IDEA_ASSEMBLY_V1.revision)
   if (ideaRevision) validateIdeaAssemblyV1(value.ideaAssembly)
   else if (value.ideaAssembly !== undefined) fail(code, 'ideaAssembly exige perfil explícito')
@@ -501,7 +503,7 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   else if (value.premiumStyle !== undefined) fail(code, 'premiumStyle requiere perfil Porcelain')
   if ([EDITORIAL_MOTION_PROFILE_V2.revision, VISUAL_RECOVERY_PROFILE_V1.revision, PREMIUM_TYPE_COLOR_PROFILE_V1.revision,
     FAMILIES_MOTION_PROFILE_V2.revision, EDITORIAL_EXPLAINER_LIGHT_V1.revision, EDITORIAL_EXPLAINER_LIGHT_V2.revision, EDITORIAL_EXPLAINER_V3.revision,
-    EDITORIAL_IDEA_ASSEMBLY_V1.revision, EDITORIAL_IDEA_ASSEMBLY_V2.revision]
+    EDITORIAL_IDEA_ASSEMBLY_V1.revision, EDITORIAL_IDEA_ASSEMBLY_V2.revision, EDITORIAL_IDEA_ASSEMBLY_V3.revision]
     .includes((value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_MOTION_PROFILE_V2.revision)) {
     if (!EDITORIAL_MOTION_CUES.includes(value.editorialMotionCue as EditorialMotionCue))
       fail(code, 'editorialMotionCue requerido para revisión v2')

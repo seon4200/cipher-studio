@@ -1,6 +1,6 @@
 import type { ProjectAssetRecord } from '../../shared/project-state'
 import { createIdeaAssemblyLayoutV1, createIdeaAssemblyLayoutV2, EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2,
-  type IdeaResourceId, type IdeaAssemblyResource } from '../../shared/editorial-idea-assembly-v1'
+  EDITORIAL_IDEA_ASSEMBLY_V3, type IdeaAssemblyConnector, type IdeaResourceId, type IdeaAssemblyResource } from '../../shared/editorial-idea-assembly-v1'
 import { createRoleMotionV2, validateVisualSceneSpecV2, validateRenderBindingsV2,
   type PresentSceneSlotV2, type VisualSceneSpecV2, type RenderBindingsV2 } from '../../shared/visual-scene-spec-v2'
 import { fullSubjectBounds } from '../../shared/visual-scene-spec'
@@ -159,4 +159,64 @@ export function compileEditorialIdeaAssemblyPilotV2(input: {
   validateRenderBindingsV2(renderBindings)
   return { sceneSpec, renderBindings,
     graphicData: { ...input.base.graphicData, extra: { ...input.base.graphicData.extra, sceneSpec } } }
+}
+
+/**
+ * V3 intentionally reuses V2's approved static composition and authored assets.
+ * The only new pixels are the persisted card-settle beats and the causal connector
+ * hand-off: PERSONAS → Hero, DATOS → Hero, Hero → SOLUCIONES,
+ * then SOLUCIONES → IMPACTO.
+ */
+export function compileEditorialIdeaAssemblyPilotV3(input: {
+  base: MotionGraphicsCompiledV2
+  assets: PilotAssets
+  accentTheme?: 'orange' | 'teal' | 'crimson'
+}): MotionGraphicsCompiledV2 {
+  const v2 = compileEditorialIdeaAssemblyPilotV2(input)
+  const assembly = v2.sceneSpec.ideaAssembly!
+  const supports = assembly.supports.map((support, i) => ({
+    ...support,
+    // 80 frames at 24 fps. Each card is fully settled exactly three frames
+    // before its own route begins; later cards can arrive while prior routes draw.
+    enter: [.20, .25, .30, .35][i],
+    settle: [.2875, .3375, .3875, .4375][i],
+  }))
+  const connectorSequence: IdeaAssemblyConnector[] = [
+    {
+      id: 'support-1', relation: 'support-to-hero', from: 'support-1', to: 'hero', start: .325, end: .3625,
+      portrait: { path: 'M 22 38 C 27 38 29 45 35 51', tip: { x: 35, y: 51 } },
+      landscape: { path: 'M 20 73 C 21 57 34 53 39 55 C 42 57 43 58 45 59', tip: { x: 45, y: 59 } },
+    },
+    {
+      id: 'support-2', relation: 'support-to-hero', from: 'support-2', to: 'hero', start: .375, end: .4125,
+      portrait: { path: 'M 78 38 C 73 38 71 45 65 51', tip: { x: 65, y: 51 } },
+      landscape: { path: 'M 38 73 C 43 73 45 70 48 67', tip: { x: 48, y: 67 } },
+    },
+    {
+      id: 'support-3', relation: 'hero-to-support', from: 'hero', to: 'support-3', start: .425, end: .4625,
+      portrait: { path: 'M 35 68 C 31 70 28 73 24.4 73', tip: { x: 24.4, y: 73 } },
+      landscape: { path: 'M 76 34 C 78 30 80 25 83.6 25', tip: { x: 83.6, y: 25 } },
+    },
+    {
+      id: 'support-4', relation: 'support-to-support', from: 'support-3', to: 'support-4', start: .475, end: .5125,
+      portrait: { path: 'M 24.4 78 C 39 88 61 88 75.6 78', tip: { x: 75.6, y: 78 } },
+      landscape: { path: 'M 96.5 31 C 99 41 99 57 96.5 69', tip: { x: 96.5, y: 69 } },
+    },
+  ]
+  const sceneSpec: VisualSceneSpecV2 = {
+    ...v2.sceneSpec,
+    presentationProfile: EDITORIAL_IDEA_ASSEMBLY_V3,
+    ideaAssembly: {
+      ...assembly,
+      revision: EDITORIAL_IDEA_ASSEMBLY_V3.revision,
+      supports,
+      connectorSequence,
+    },
+  }
+  validateVisualSceneSpecV2(sceneSpec)
+  return {
+    ...v2,
+    sceneSpec,
+    graphicData: { ...v2.graphicData, extra: { ...v2.graphicData.extra, sceneSpec } },
+  }
 }

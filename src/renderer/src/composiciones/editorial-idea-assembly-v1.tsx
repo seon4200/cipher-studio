@@ -1,6 +1,7 @@
 import React from 'react'
 import type { VisualSceneSpecV2, RuntimeRenderAssetV2 } from '../../../shared/visual-scene-spec-v2'
-import { EDITORIAL_IDEA_ASSEMBLY_V2, type IdeaAccentTheme, type IdeaAssemblyResource } from '../../../shared/editorial-idea-assembly-v1'
+import { EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3,
+  type IdeaAccentTheme, type IdeaAssemblyResource } from '../../../shared/editorial-idea-assembly-v1'
 import { sceneSpecReactKeyAny } from '../../../shared/visual-scene-spec-v2'
 
 const clamp = (v: number) => Math.max(0, Math.min(1, v))
@@ -29,6 +30,9 @@ export const EditorialIdeaAssemblyV1: React.FC<{
 }> = ({ spec, runtimeAssets, u }) => {
   const plan = spec.ideaAssembly!
   const isV2 = plan.revision === EDITORIAL_IDEA_ASSEMBLY_V2.revision
+  const isV3 = plan.revision === EDITORIAL_IDEA_ASSEMBLY_V3.revision
+  /** V3 intentionally retains V2's approved stable material/title treatment. */
+  const isPolished = isV2 || isV3
   const landscape = window.innerWidth > window.innerHeight
   const layout = landscape ? plan.landscapeLayout : spec.layout
   const byId = new Map(runtimeAssets.map(asset => [asset.slotId, asset]))
@@ -38,9 +42,9 @@ export const EditorialIdeaAssemblyV1: React.FC<{
     return url
   }
   const hero = layout.slotLayouts.find(item => item.slotId === 'hero')!
-  const accent = (isV2 ? ACCENTS_V2 : ACCENTS_V1)[plan.accentTheme]
-  const out = 1 - phase(u, isV2 ? .90 : .89, 1)
-  const heroEnter = phase(u, 0, isV2 ? .30 : .2)
+  const accent = (isPolished ? ACCENTS_V2 : ACCENTS_V1)[plan.accentTheme]
+  const out = 1 - phase(u, isPolished ? .90 : .89, 1)
+  const heroEnter = phase(u, 0, isPolished ? .30 : .2)
   const heroScale = plan.heroStartScale + (1 - plan.heroStartScale) * heroEnter
   const layer = (resource: IdeaAssemblyResource) => {
     const enter = resource.id === 'idea-background' ? 1 : phase(u, resource.timing.start, resource.timing.settle)
@@ -63,8 +67,14 @@ export const EditorialIdeaAssemblyV1: React.FC<{
   }))
   const heroCenter = { x: hero.envelope.x + hero.envelope.width / 2,
     y: hero.envelope.y + hero.envelope.height / 2 }
-  const connectors = isV2
-    ? (landscape
+  const connectors: { id: string; path: string; endX: number; endY: number; start?: number; end?: number }[] = isV3
+    ? plan.connectorSequence!.map(connector => {
+      const route = landscape ? connector.landscape : connector.portrait
+      return { id: connector.id, path: route.path, endX: route.tip.x, endY: route.tip.y,
+        start: connector.start, end: connector.end }
+    })
+    : isV2
+      ? (landscape
       ? [
         // PERSONAS travels through the deliberately empty lane *above* DATOS.
         // The two left-side relationships use separate landing points on the Hero.
@@ -86,8 +96,8 @@ export const EditorialIdeaAssemblyV1: React.FC<{
       const startX = point.x - sign * (landscape ? 6 : 7)
       return { id: point.id, path: `M ${startX} ${point.y} Q ${(startX + endX) / 2} ${(point.y + endY) / 2 - 4} ${endX} ${endY}`, endX, endY }
     })
-  const titleFamily = isV2 ? 'Fraunces,serif' : 'Instrument Serif,serif'
-  const titleWeight = isV2 ? 650 : 400
+  const titleFamily = isPolished ? 'Fraunces,serif' : 'Instrument Serif,serif'
+  const titleWeight = isPolished ? 650 : 400
   return <div key={sceneSpecReactKeyAny(spec)} data-visual-mvp="true" data-visual-composition="v15-idea-assembly"
     data-qc-layout-family="marcoPoster" data-qc-empty-hero-frames="0"
     style={{ position: 'absolute', inset: 0, overflow: 'hidden', containerType: 'size', background: '#F0EEE8', color: '#11110F', fontSynthesis: 'none' }}>
@@ -98,14 +108,14 @@ export const EditorialIdeaAssemblyV1: React.FC<{
       left: `${layout.textBounds.x}%`, top: `${layout.textBounds.y}%`,
       width: `${layout.textBounds.width}%`, height: `${layout.textBounds.height}%`,
       zIndex: 12, opacity: out, fontFamily: titleFamily, fontWeight: titleWeight,
-      lineHeight: isV2 ? .78 : .82, letterSpacing: isV2 ? '-.045em' : '-.035em', textAlign: landscape ? 'left' : 'center' }}>
-      <div data-qc-text-glyph="true" style={{ fontSize: isV2 ? (landscape ? '11.8cqmin' : '14.2cqmin') : (landscape ? '10cqmin' : '16cqmin'),
+      lineHeight: isPolished ? .78 : .82, letterSpacing: isPolished ? '-.045em' : '-.035em', textAlign: landscape ? 'left' : 'center' }}>
+      <div data-qc-text-glyph="true" style={{ fontSize: isPolished ? (landscape ? '11.8cqmin' : '14.2cqmin') : (landscape ? '10cqmin' : '16cqmin'),
         fontWeight: titleWeight, color: '#11110F' }}>{spec.text.connector}</div>
-      <div data-qc-keyword="true" data-qc-text-glyph="true" data-qc-keyword-family={isV2 ? 'Fraunces' : 'Instrument Serif'}
-        style={{ fontSize: isV2 ? (landscape ? '18.8cqmin' : '24.3cqmin') : (landscape ? '15cqmin' : '23cqmin'), fontWeight: titleWeight,
-        color: accent.color, marginTop: isV2 ? '.25cqmin' : '.5cqmin', whiteSpace: 'nowrap' }}>{spec.text.keyword}</div>
+      <div data-qc-keyword="true" data-qc-text-glyph="true" data-qc-keyword-family={isPolished ? 'Fraunces' : 'Instrument Serif'}
+        style={{ fontSize: isPolished ? (landscape ? '18.8cqmin' : '24.3cqmin') : (landscape ? '15cqmin' : '23cqmin'), fontWeight: titleWeight,
+        color: accent.color, marginTop: isPolished ? '.25cqmin' : '.5cqmin', whiteSpace: 'nowrap' }}>{spec.text.keyword}</div>
       <div data-qc-closing="true" data-qc-text-glyph="true" style={{ fontFamily: 'DM Sans,sans-serif', fontWeight: 500,
-        fontSize: isV2 ? (landscape ? '3.1cqmin' : '3.45cqmin') : (landscape ? '2.8cqmin' : '3.4cqmin'), letterSpacing: '-.025em', lineHeight: 1.12,
+        fontSize: isPolished ? (landscape ? '3.1cqmin' : '3.45cqmin') : (landscape ? '2.8cqmin' : '3.4cqmin'), letterSpacing: '-.025em', lineHeight: 1.12,
         marginTop: '1.4cqmin', whiteSpace: 'nowrap' }}>{spec.text.closing}</div>
     </div>
     <div data-qc-asset="true" data-qc-hero="true" data-qc-slot="hero" data-qc-role="hero"
@@ -120,20 +130,25 @@ export const EditorialIdeaAssemblyV1: React.FC<{
       {plan.resources.filter(r => r.id === 'idea-bulb' || r.id === 'idea-front').map(layer)}
     </div>
     <svg data-idea-connectors="true" viewBox="0 0 100 100" preserveAspectRatio="none"
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: isV2 ? 3 : 4, pointerEvents: 'none', opacity: out }}>
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: isPolished ? 3 : 4, pointerEvents: 'none', opacity: out }}>
       {connectors.map((connector, i) => {
-        const draw = isV2 ? phase(u, .32 + i * .025, .44 + i * .015) : phase(u, .38 + i * .035, .65 + i * .025)
+        const draw = isV3 ? phase(u, connector.start!, connector.end!)
+          : isV2 ? phase(u, .32 + i * .025, .44 + i * .015)
+            : phase(u, .38 + i * .035, .65 + i * .025)
         return <g key={connector.id} data-idea-connector={connector.id} opacity={draw}>
           <path d={connector.path}
             pathLength={1} stroke="#11110F" strokeWidth=".18" fill="none"
             strokeDasharray={1} strokeDashoffset={1 - draw} />
-          <circle cx={connector.endX} cy={connector.endY} r=".3" fill="#11110F" />
+          {isV3
+            ? <circle cx={connector.endX} cy={connector.endY} r=".22" fill="#11110F" opacity={draw >= .985 ? 1 : 0} />
+            : <circle cx={connector.endX} cy={connector.endY} r=".3" fill="#11110F" />}
         </g>
       })}
     </svg>
     {plan.supports.map((support) => {
       const slot = layout.slotLayouts.find(item => item.slotId === support.slotId)!
-      const enter = phase(u, support.enter, support.enter + (isV2 ? .12 : .13))
+      const settle = isV3 ? support.settle! : support.enter + (isV2 ? .12 : .13)
+      const enter = phase(u, support.enter, settle)
       const resource = spec.slots.find(item => item.slotId === support.slotId)
       if (!resource || resource.state !== 'present') throw new Error(`IDEA_SUPPORT_REQUIRED:${support.slotId}`)
       return <div key={support.slotId} data-qc-asset="true" data-qc-slot={support.slotId} data-qc-role={support.slotId}
