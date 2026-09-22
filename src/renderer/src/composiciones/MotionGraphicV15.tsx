@@ -30,6 +30,7 @@ import { EditorialHeroTile, EditorialIconBadge, EditorialConnector, EditorialDat
   EditorialLightBackground, EditorialLightText } from './editorial-explainer-light-components'
 import { EditorialLightV2Badge, EditorialLightV2Connector, EditorialLightV2DataRepeater, EditorialLightV2Text } from './editorial-explainer-light-v2-components'
 import {EditorialV3SupportCard,EditorialV3Connector,EditorialV3DataRepeater,EditorialV3Text,EditorialV3Microdetails} from './editorial-explainer-v3-components'
+import { EditorialIdeaAssemblyV1 } from './editorial-idea-assembly-v1'
 
 function clamp01(value: number): number { return Math.min(1, Math.max(0, value)) }
 function ease(value: number): number { const p = clamp01(value); return 1 - Math.pow(1 - p, 3) }
@@ -158,7 +159,7 @@ const SceneAssetSlot: React.FC<{
   const pilotOpacity = entrance * departure
   const pilotScale = .94 + entrance * .06 - (1 - departure) * .025
   const pilotYOffset = (1 - entrance) * (slot.role === 'hero' ? 3.1 : 1.7) - (1 - departure) * 1.1
-  const familyMotion = spec.compositionV2 ? assetMotionV2(spec.compositionV2.motionVariant, slot.role, u) : undefined
+  const familyMotion = spec.compositionV2 ? assetMotionV2(spec.compositionV2.motionVariant, slot.role as 'hero' | 'support-1' | 'support-2', u) : undefined
   if (slot.state === 'present' && !runtime) throw new Error(`VISUAL_RUNTIME_SLOT_REQUIRED:${slot.slotId}`)
   const light = spec.lightStyle
   const lightV2 = light?.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision
@@ -654,6 +655,7 @@ export const MotionGraphicV15: React.FC<{
   runtimeAssets: readonly RuntimeRenderAssetV2[]
   u: number
 }> = ({ spec, runtimeAssets, u }) => {
+  if (spec.ideaAssembly) return <EditorialIdeaAssemblyV1 spec={spec} runtimeAssets={runtimeAssets} u={u} />
   // Both geometries are part of the same frozen SceneSpec. The current canvas
   // chooses one; no runtime recomputation can drift from the stored identity.
   const layout = window.innerWidth > window.innerHeight

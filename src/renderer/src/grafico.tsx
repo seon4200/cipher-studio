@@ -11,6 +11,7 @@ import { FUENTES_RENDER, MUESTRA_FUENTES, faltaLaFuentePorAncho } from './fuente
 import type { PreparedRenderAssetAny, RuntimeRenderAssetAny, RuntimeRenderAssetV2 } from '../../shared/visual-scene-spec-v2'
 import { measurePhotoProbeV1 } from './composiciones/photo-text-contrast-v1'
 import { VISUAL_RECOVERY_PROFILE_V1 } from '../../shared/editorial-motion-profile-v1'
+import { EDITORIAL_IDEA_ASSEMBLY_V1, IDEA_RESOURCE_IDS, IDEA_SUPPORT_IDS } from '../../shared/editorial-idea-assembly-v1'
 import './styles/globals.css'
 
 // Franja de la SONDA, encima del lienzo. El proceso principal codifica ahi el indice de
@@ -124,11 +125,12 @@ function liberarRuntimeAssets() {
   runtimeAssets = []
 }
 
-async function prepararRuntimeAssets(assets: readonly PreparedRenderAssetAny[], probePhoto: boolean): Promise<RuntimeRenderAssetAny[]> {
+async function prepararRuntimeAssets(assets: readonly PreparedRenderAssetAny[], probePhoto: boolean,
+  ideaAssembly: boolean): Promise<RuntimeRenderAssetAny[]> {
   const preparados: RuntimeRenderAssetAny[] = []
   try {
     for (const asset of assets) {
-      if (!['hero', 'support-1', 'support-2'].includes(asset.slotId) ||
+      if (!(ideaAssembly ? ['hero', ...IDEA_SUPPORT_IDS, ...IDEA_RESOURCE_IDS] : ['hero', 'support-1', 'support-2']).includes(asset.slotId) ||
           !['image/svg+xml', 'image/png', 'image/jpeg', 'image/webp'].includes(asset.mime) || !asset.bytesBase64)
         throw new Error('Render asset efímero inválido')
       const binary = atob(asset.bytesBase64)
@@ -224,7 +226,8 @@ function montarGraphicData(graphicData: any, op: Partial<Opciones>) {
     return undefined
   }
   const probePhoto = graphicData?.extra?.sceneSpec?.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision
-  return prepararRuntimeAssets(preparedAssets, probePhoto).then(prepared => {
+  const ideaAssembly = graphicData?.extra?.sceneSpec?.presentationProfile?.revision === EDITORIAL_IDEA_ASSEMBLY_V1.revision
+  return prepararRuntimeAssets(preparedAssets, probePhoto, ideaAssembly).then(prepared => {
     runtimeAssets = prepared
     montarGraphicData(graphicData, op)
   })
@@ -277,6 +280,13 @@ const rect = (element: Element | null) => {
 ;(window as any).__hideVisualTextForQc = async (hidden: boolean) => {
   const text = document.querySelector('[data-qc-text="true"]') as HTMLElement | null
   if (!text) return
+  // IDEA's large inline editorial title fills >10% of its measured line box. Hide the
+  // whole opt-in text layer for the local background probe, including any React child
+  // created between the paint barrier and capture; historical profiles keep their path.
+  if (text.dataset.qcHideContainer === 'true') {
+    if (hidden) text.style.setProperty('visibility', 'hidden', 'important')
+    else text.style.removeProperty('visibility')
+  }
   for (const element of text.querySelectorAll('[data-qc-text-glyph="true"]')) {
     ;(element as HTMLElement).style.visibility = hidden ? 'hidden' : 'visible'
   }

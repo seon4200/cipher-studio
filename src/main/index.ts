@@ -151,6 +151,8 @@ export { EDITORIAL_EXPLAINER_LIGHT_V1, LIGHT_COLORS_V1, LIGHT_BACKGROUNDS_V1,
 export { EDITORIAL_EXPLAINER_LIGHT_V2, createLightLayoutV2 } from '../shared/editorial-explainer-light-v2'
 export { EDITORIAL_EXPLAINER_V3, EDITORIAL_V3_ACCENTS, createLightLayoutV3 } from '../shared/editorial-explainer-v3'
 export { publishRasterProjectAssetV1, subjectBoundsFromPixabayRasterV1 } from './assets/pixabay-images'
+export { compileEditorialIdeaAssemblyPilotV1 } from './assets/editorial-idea-assembly-pilot'
+export { EDITORIAL_IDEA_ASSEMBLY_V1, createIdeaAssemblyLayoutV1 } from '../shared/editorial-idea-assembly-v1'
 export { fullSubjectBounds } from '../shared/visual-scene-spec'
 export { createCompositeVisualCatalogV1, publishModernVisualPackAssetV1 } from './assets/modern-visual-pack'
 export { MODERN_LAYOUT_STRUCTURES_V4, LAYOUT_ELIGIBILITY_V4, eligibleLayoutFamiliesV4,

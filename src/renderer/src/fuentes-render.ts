@@ -21,6 +21,7 @@ export const FUENTES_RENDER = [
   { familia: 'Caveat', peso: 700 },
   { familia: 'DM Serif Display', peso: 400 },
   { familia: 'IBM Plex Sans Condensed', peso: 700 },
+  { familia: 'IBM Plex Sans Condensed', peso: 400 },
   { familia: 'Playfair Display', peso: 800 },
   { familia: 'Space Mono', peso: 700 },
   { familia: 'DM Sans', peso: 700 },

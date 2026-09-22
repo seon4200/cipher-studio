@@ -180,10 +180,11 @@ function prepareV2(
     ? { version: 2, assets: [] }
     : validateRenderBindingsV2(rawBindings)
   const present = spec.slots.filter((slot): slot is Extract<SceneSlotV2, { state: 'present' }> => slot.state === 'present')
-  const expectedIds = new Set(present.map(slot => slot.slotId))
+  const ideaResources = spec.ideaAssembly?.resources ?? []
+  const expectedIds = new Set([...present.map(slot => slot.slotId), ...ideaResources.map(resource => resource.id)])
   if (bindings.assets.some(binding => !expectedIds.has(binding.slotId)))
     fail('VISUAL_RENDER_BINDINGS_UNUSED', 'RenderBindings V15 contiene un locator sin slot present')
-  if (bindings.assets.length !== present.length)
+  if (bindings.assets.length !== present.length + ideaResources.length)
     fail('VISUAL_SLOT_BINDING_REQUIRED', 'Cada ProjectAsset present requiere exactamente un binding')
 
   const preparedAssets: PreparedRenderAssetAny[] = []
@@ -228,8 +229,29 @@ function prepareV2(
     }
   }
 
+  // Internal Hero parts use the same verified ProjectAsset path. Their IDs are not semantic slots.
+  // A missing part must fail explicitly; silently dropping it would produce a valid but broken collage.
+  for (const resource of ideaResources) {
+    const binding = bindings.assets.find(candidate => candidate.slotId === resource.id)
+    if (!binding) fail('IDEA_RESOURCE_BINDING_REQUIRED', `Falta binding para ${resource.id}`)
+    const relativeFile = normalizeProjectRelativePath(binding.relativeFile, true)
+    const record = manifestRecord(projectRoot, binding.assetId)
+    if (!record || record.relativeFile !== relativeFile || record.sha256 !== resource.sha256 ||
+        record.mime !== resource.mime || record.validation.status !== 'accepted')
+      fail('IDEA_RESOURCE_IDENTITY_MISMATCH', `ProjectAsset inválido: ${resource.id}`)
+    const verified = readVerifiedRasterProjectAssetContentV1(projectRoot, record)
+    if (resource.alphaMode === 'useful-alpha' && !verified.inspection.alphaUseful)
+      fail('IDEA_RESOURCE_ALPHA_MISMATCH', `Sin transparencia útil: ${resource.id}`)
+    preparedAssets.push({ slotId: resource.id, assetId: record.id, mime: resource.mime,
+      bytesBase64: verified.bytes.toString('base64') })
+  }
+
+  if (spec.ideaAssembly && failedSlots.length)
+    fail('IDEA_SUPPORT_MISSING', 'La escena IDEA perdió un Support materializado', { failedSlots })
+
   const effective = failedSlots.length ? degradedVisualSceneSpecV2(spec, failedSlots) : spec
-  const retained = new Set(effective.slots.filter(slot => slot.state === 'present').map(slot => slot.slotId))
+  const retained = new Set<string>(effective.slots.filter(slot => slot.state === 'present').map(slot => slot.slotId))
+  for (const resource of ideaResources) retained.add(resource.id)
   const effectiveAssets = preparedAssets.filter(asset => retained.has(asset.slotId))
   return {
     kind: 'scene-spec',

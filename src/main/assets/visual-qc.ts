@@ -260,11 +260,22 @@ function parseCssRgb(value: string | null): [number, number, number] | null {
 async function localKeywordContrast(
   window: BrowserWindow,
   snapshot: VisualDomQcSnapshot,
+  flushOffscreenPaint = false,
 ): Promise<number | null> {
   const textRgb = parseCssRgb(snapshot.textColor)
   if (!snapshot.keyword || !textRgb) return null
   await window.webContents.executeJavaScript('window.__hideVisualTextForQc(true)')
   try {
+    if (flushOffscreenPaint) {
+      const hidden = await window.webContents.executeJavaScript(`
+        getComputedStyle(document.querySelector('[data-qc-text="true"]')).visibility === 'hidden' &&
+        getComputedStyle(document.querySelector('[data-qc-keyword="true"]')).visibility === 'hidden'
+      `)
+      if (!hidden) throw new Error('IDEA_QC_TEXT_HIDE_FAILED')
+      // This explicit renderer round-trip plus discarded capture publishes the hidden
+      // state to Electron's offscreen bitmap before the contrast sample.
+      await window.webContents.capturePage()
+    }
     const image = await window.webContents.capturePage()
     const bitmap = image.getBitmap() // Electron exposes BGRA, as used by renderGraphicClip.
     const size = image.getSize()
@@ -313,7 +324,7 @@ export async function runVisualRuntimeQc(
   const middle = snapshots.reduce((best, current) =>
     Math.abs(current.normalizedTime - .5) < Math.abs(best.normalizedTime - .5) ? current : best,
   snapshots[0])
-  const localTextContrast = middle ? await localKeywordContrast(window, middle) : null
+  const localTextContrast = middle ? await localKeywordContrast(window, middle, !!(spec.renderSpecVersion === 2 && spec.ideaAssembly)) : null
   if (localTextContrast === null) {
     findings.push({ code: 'VISUAL_QC_CONTRAST_UNAVAILABLE', level: 'needs-review', message: 'No se pudo medir contraste local' })
   } else if (localTextContrast < 3) {
