@@ -11,6 +11,19 @@ import { CuratedModularCatalogV1 } from './editorial-modular-catalog-v1'
 import { subjectBoundsFromPixabayRasterV1 } from './pixabay-images'
 import type { LocalSceneSemanticV1 } from '../../shared/local-scene-semantic'
 
+/** The historic keyword compiler may shorten a closing line. This opt-in
+ * profile keeps every token of the source segment, including numbers and
+ * negations, while giving the matched keyword its own editable text field. */
+export function editorialHeadlineFromLocalTextV1(localText:string,keyword:string) {
+  const phrase=localText.trim()
+  const term=keyword.trim()
+  if(!phrase||!term)throw new Error('EDITORIAL_HEADLINE_SOURCE_MISSING')
+  const at=phrase.toLocaleLowerCase('es').indexOf(term.toLocaleLowerCase('es'))
+  if(at<0)return {connector:'',keyword:term,closing:phrase}
+  return {connector:phrase.slice(0,at).trim(),keyword:phrase.slice(at,at+term.length),
+    closing:phrase.slice(at+term.length).trim()}
+}
+
 /** Materialization remains CuratedModularCatalogV1.publish -> ProjectAsset. This
  * adapter freezes only semantic choices and pixel geometry, never local paths. */
 export function bindEditorialModularFamilyV1(input: {

@@ -14,6 +14,7 @@ import './styles/globals.css'
 import TrendsPanel from './TrendsPanel'
 import { AnimatedGraphic } from './AnimatedGraphic'
 import type { IdeaColorIntentV4 } from '../../shared/editorial-idea-assembly-v1'
+import type { EditorialFamilyIdV1 } from '../../shared/editorial-modular-families-v1'
 
 /* ------------------------------------------------------------------
    App component (ya existente)
@@ -1588,10 +1589,52 @@ function App() {
   const [modularRecipe, setModularRecipe] = useState<'vertical'|'wide'|'compact'|'organic'>('vertical')
   const [modularHeadline, setModularHeadline] = useState({connector:'UNA',keyword:'IDEA',closing:'abre nuevas posibilidades'})
   const [modularStatus, setModularStatus] = useState('')
+  const selectedFamilyClip = selectedTimelineClipIds.length===1
+    ? timelineVideoClips.find(clip=>clip.id===selectedTimelineClipIds[0] &&
+      clip.visualRegeneration?.revision==='editorial-modular-families-2026-09-v1') : undefined
+  const selectedFamilyPlan = selectedFamilyClip?.visualRegeneration?.graphicData?.extra?.sceneSpec?.editorialFamily
+  const [familyClipEdit, setFamilyClipEdit] = useState<{
+    family:EditorialFamilyIdV1;heroId:string;supportIds:string[];
+    rearId:string;accentId:string;frontId:string
+  } | null>(null)
+  useEffect(()=>{
+    const plan=selectedFamilyPlan
+    setFamilyClipEdit(plan?{family:plan.family,heroId:plan.hero?.assetId??'',
+      supportIds:Array.from({length:4},(_,index:number)=>
+        plan.supports.find((support:{slotId:string})=>support.slotId===`support-${index+1}`)?.assetId??''),
+      rearId:plan.layers.find((layer:{id:string})=>layer.id==='idea-rear')?.catalogAssetId??'',
+      accentId:plan.layers.find((layer:{id:string})=>layer.id==='idea-accent')?.catalogAssetId??'',
+      frontId:plan.layers.find((layer:{id:string})=>layer.id==='idea-front')?.catalogAssetId??''}:null)
+  },[selectedFamilyClip?.id,selectedFamilyClip?.visualRegeneration?.graphicData])
   const loadModularCatalog = async () => {
     const result = await window.electronAPI.listEditorialModularCatalogV1(modularCatalogRoot.trim())
     setModularAssets(result.success ? result.assets ?? [] : [])
     setModularStatus(result.success ? `${result.assets?.length ?? 0} piezas del registro curado.` : result.error ?? 'Catálogo no disponible.')
+  }
+  const replaceSelectedFamilyAssets = async () => {
+    if(!selectedFamilyClip||!familyClipEdit||!modularCatalogRoot.trim())return
+    setModularStatus('Verificando SHA, materializando y regenerando el clip seleccionado…')
+    const result=await window.electronAPI.rebindEditorialFamilyClipV1({
+      catalogRoot:modularCatalogRoot.trim(),
+      graphicData:selectedFamilyClip.visualRegeneration.graphicData,
+      renderBindings:selectedFamilyClip.visualRegeneration.renderBindings,
+      orientation:aspectRatio==='horizontal'?'landscape':'portrait',
+      durationSeconds:selectedFamilyClip.durationSeconds,
+      edits:{family:familyClipEdit.family,heroId:familyClipEdit.heroId||undefined,
+        supportIds:familyClipEdit.supportIds.filter(Boolean),rearId:familyClipEdit.rearId||undefined,
+        accentId:familyClipEdit.accentId||undefined,frontId:familyClipEdit.frontId||undefined},
+    })
+    if(!result.success||!result.path||!result.graphicData||!result.renderBindings){
+      setModularStatus(result.error??'No se pudo sustituir el recurso.');return
+    }
+    if(!activeProjectPathRef.current)return
+    setTimelineVideoClips(previous=>previous.map(clip=>clip.id===selectedFamilyClip.id?{
+      ...clip,path:result.path,url:result.url,graphicData:result.graphicData,
+      visualRegeneration:{...clip.visualRegeneration,graphicData:result.graphicData,
+        renderBindings:result.renderBindings},
+    }:clip))
+    setIsDirty(true)
+    setModularStatus('Clip sustituido y regenerado; la geometría y el texto permanecen en la revisión editorial.')
   }
   const generateModular = async () => {
     if (!activeProjectPath || !modularCatalogRoot.trim() || !ideaV4AssetRoot.trim()) {
@@ -4307,6 +4350,62 @@ ${res.filePath}`);
                   <option value="none">Sin partículas</option><option value="subtle">Motas suaves cuando procede</option>
                 </select>
               </label>
+              <button type="button" onClick={loadModularCatalog} disabled={!modularCatalogRoot.trim()}
+                className="mt-2 rounded bg-stone-700 px-2 py-1 disabled:opacity-40">
+                Validar y listar 250 candidatos
+              </button>
+              {selectedFamilyClip&&familyClipEdit&&<div className="mt-2 border-t border-[#3a3a3c] pt-2 space-y-1">
+                <p>Clip seleccionado: {selectedFamilyClip.name}. Los cambios se aplican sólo a este clip.</p>
+                <label className="block">Familia elegible
+                  <select value={familyClipEdit.family} onChange={event=>setFamilyClipEdit(previous=>previous?{
+                    ...previous,family:event.target.value as EditorialFamilyIdV1,
+                    ...(event.target.value==='editorial'?{heroId:'',supportIds:['','','',''],rearId:'',accentId:'',frontId:''}:{})}:previous)}
+                    className="w-full bg-[#1C1C1E] p-1">
+                    {['marcoPoster','editorial','partidoVertical','cuaderno','constelacion','cascada'].map(family=>
+                      <option key={family} value={family}>{family}</option>)}
+                  </select>
+                </label>
+                {familyClipEdit.family!=='editorial'&&<>
+                  <label className="block">Hero
+                    <select value={familyClipEdit.heroId} onChange={event=>setFamilyClipEdit(previous=>previous?{
+                      ...previous,heroId:event.target.value}:previous)} className="w-full bg-[#1C1C1E] p-1">
+                      <option value="">Seleccionar Hero</option>
+                      {modularAssets.filter(asset=>asset.role==='hero-core').map(asset=><option
+                        key={asset.assetId} value={asset.assetId}>{asset.code} · {asset.primaryWordEs}</option>)}
+                    </select>
+                  </label>
+                  {[0,1,2,3].map(index=><label key={index} className="block">Support {index+1}
+                    <select value={familyClipEdit.supportIds[index]??''} onChange={event=>setFamilyClipEdit(previous=>{
+                      if(!previous)return previous
+                      const ids=Array.from({length:4},(_,slot)=>previous.supportIds[slot]??'')
+                      ids[index]=event.target.value
+                      return {...previous,supportIds:ids}
+                    })} className="w-full bg-[#1C1C1E] p-1">
+                      <option value="">Sin Support</option>
+                      {modularAssets.filter(asset=>asset.role==='support').map(asset=><option
+                        key={asset.assetId} value={asset.assetId}>{asset.code} · {asset.primaryWordEs}</option>)}
+                    </select>
+                  </label>)}
+                  {([['rear-collage','rearId'],['accent-mask','accentId'],['front-collage','frontId']] as const)
+                    .map(([role,field])=><label key={role} className="block">{role} (opcional)
+                      <select value={familyClipEdit[field]} onChange={event=>setFamilyClipEdit(previous=>previous?{
+                        ...previous,[field]:event.target.value}:previous)} className="w-full bg-[#1C1C1E] p-1">
+                        <option value="">Sin capa</option>
+                        {modularAssets.filter(asset=>asset.role===role).map(asset=><option
+                          key={asset.assetId} value={asset.assetId}>{asset.code} · {asset.primaryWordEs}</option>)}
+                      </select>
+                    </label>)}
+                  <p>Collage: emparejamiento manual bajo revisión; la biblioteca aún no declara compatibilidad focal por Hero.</p>
+                </>}
+                <button type="button" onClick={replaceSelectedFamilyAssets}
+                  disabled={modularAssets.length!==250 ||
+                    (familyClipEdit.family!=='editorial'&&!familyClipEdit.heroId) ||
+                    (['constelacion','cascada'].includes(familyClipEdit.family)&&familyClipEdit.supportIds.filter(Boolean).length<2) ||
+                    new Set(familyClipEdit.supportIds.filter(Boolean)).size!==familyClipEdit.supportIds.filter(Boolean).length}
+                  className="rounded bg-orange-700 px-2 py-1 disabled:opacity-40">
+                  Aplicar al clip y regenerar
+                </button>
+              </div>}
               <p className="mt-1">Solo selecciona coincidencias del catálogo; sin candidato válido, usa escena editorial de texto.</p>
             </div>}
             {visualPresentationProfile === 'editorial-idea-assembly-v4' && <div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] space-y-2 text-[10px] text-slate-200">

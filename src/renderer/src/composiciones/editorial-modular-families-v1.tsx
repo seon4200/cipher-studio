@@ -91,6 +91,8 @@ export const EditorialModularFamiliesV1:React.FC<{
   const root=useRef<HTMLDivElement>(null)
   useLayoutEffect(()=>{if(root.current) fitVisualTextV2(root.current)},[spec,landscape])
   const title=layout.textBounds
+  const visibleWords=[spec.text.connector,spec.text.keyword,spec.text.closing]
+    .filter(Boolean).join(' ').split(/\s+/u).filter(Boolean).length
   const heroLayout=layout.slotLayouts.find(item=>item.slotId==='hero')
   const visibleHero=spec.slots.find(item=>item.role==='hero'&&item.state==='present')
   const opticalHeroScale=visibleHero&&visibleHero.state==='present'
@@ -120,7 +122,7 @@ export const EditorialModularFamiliesV1:React.FC<{
         background:plan.accent,opacity:plan.particles.opacity*phase(u,.5,.72),pointerEvents:'none'}}/>
     })}
     <div ref={root} data-qc-text="true" data-qc-hide-container="true" data-qc-text-fit="v2" data-qc-max-lines="3"
-      data-qc-visible-words="8" data-qc-contrast-treatment="dark-text"
+      data-qc-visible-words={visibleWords} data-qc-contrast-treatment="dark-text"
       style={{position:'absolute',left:`${title.x}%`,top:`${title.y}%`,width:`${title.width}%`,height:`${title.height}%`,
         zIndex:10,display:'flex',flexDirection:'column',justifyContent:'center',gap:'.6cqmin',
         opacity:textEnter*exit,padding:'.5cqmin',boxSizing:'border-box',textAlign:layout.textAlignment,

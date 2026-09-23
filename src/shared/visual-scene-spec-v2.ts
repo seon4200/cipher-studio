@@ -347,7 +347,7 @@ function validateBounds(value: unknown): asserts value is SubjectBoundsV1 {
     u01(value.transparentPadding[side], code, `transparentPadding.${side}`)
 }
 
-function validateText(value: unknown): asserts value is EditorialTextV2 {
+function validateText(value: unknown,maxWords=8): asserts value is EditorialTextV2 {
   const code = 'VISUAL_SCENE_V2_TEXT_INVALID'
   record(value, code, 'text')
   exactKeys(value, ['connector', 'keyword', 'closing', 'alignment', 'maxLines', 'typographyLookId', 'timing', 'motion'], code, 'text')
@@ -357,7 +357,8 @@ function validateText(value: unknown): asserts value is EditorialTextV2 {
   if (!['left', 'center', 'right'].includes(String(value.alignment)) || ![2, 3].includes(Number(value.maxLines)) ||
       !TYPOGRAPHY_LOOK_IDS_V3.includes(value.typographyLookId as TypographyLookIdV3)) fail(code, 'Jerarquía tipográfica inválida')
   const words = [connector, keyword, closing].filter(Boolean).join(' ').split(/\s+/).filter(Boolean)
-  if (words.length > 8) fail(code, 'El texto supera ocho palabras visibles')
+  if (words.length > maxWords) fail(code,maxWords===8?
+    'El texto supera ocho palabras visibles':`El texto supera ${maxWords} palabras visibles`)
   record(value.timing, code, 'text.timing')
   exactKeys(value.timing, ['connectorStart', 'keywordStart', 'closingStart'], code, 'text.timing')
   const connectorStart = u01(value.timing.connectorStart, code, 'connectorStart')
@@ -550,7 +551,10 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
         Number(String(value.editorialData.value).slice(0, -1).replace(',', '.')) !== value.editorialData.percent)
       fail(code, 'editorialData no corresponde a un porcentaje literal válido')
   }
-  validateText(value.text)
+  // Historic V15 profiles retain their byte-stable eight-word contract.
+  // Only this opt-in profile may carry a longer literal source sentence;
+  // Text Fit/QC still decide if the actual frame can display it legibly.
+  validateText(value.text,editorialFamilyRevision?24:8)
   if (!Array.isArray(value.slots) || value.slots.length > (ideaRevision || editorialFamilyRevision ? 5 : 3)) fail(code, 'Número de slots incompatible con perfil')
   const ideaColorRevision = [EDITORIAL_IDEA_ASSEMBLY_V4.revision, EDITORIAL_IDEA_ASSEMBLY_V4_1.revision,
     EDITORIAL_MODULAR_CATALOG_V1.revision]

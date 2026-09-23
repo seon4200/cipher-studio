@@ -71,7 +71,8 @@ import { EDITORIAL_EXPLAINER_LIGHT_V2 } from '../shared/editorial-explainer-ligh
 import { EDITORIAL_EXPLAINER_V3 } from '../shared/editorial-explainer-v3'
 import { generateIdeaColorPilotV4 } from './assets/editorial-idea-color-pilot-v4'
 import { CuratedModularCatalogV1, bindEditorialModularCatalogV1 } from './assets/editorial-modular-catalog-v1'
-import { bindEditorialModularFamilyV1, selectEditorialModularFamilyAssetsV1 } from './assets/editorial-modular-families-v1'
+import { bindEditorialModularFamilyV1, editorialHeadlineFromLocalTextV1,
+  selectEditorialModularFamilyAssetsV1 } from './assets/editorial-modular-families-v1'
 import { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-families-v1'
 import { EDITORIAL_MODULAR_CATALOG_V1, type ModularCatalogPilotInputV1 } from '../shared/editorial-modular-catalog-v1'
 import { EDITORIAL_IDEA_ASSEMBLY_V4, resolveIdeaColorV4, type IdeaColorIntentV4 } from '../shared/editorial-idea-assembly-v1'
@@ -165,6 +166,7 @@ export { bindEditorialIdeaSupportsV41, importEditorialIdeaSupportCatalogV41, res
   IDEA_SUPPORT_MANIFEST_V41 } from './assets/editorial-idea-support-catalog-v4-1'
 export { CuratedModularCatalogV1, bindEditorialModularCatalogV1 } from './assets/editorial-modular-catalog-v1'
 export { bindEditorialModularFamilyV1, selectEditorialModularFamilyAssetsV1 } from './assets/editorial-modular-families-v1'
+export { editorialHeadlineFromLocalTextV1 } from './assets/editorial-modular-families-v1'
 export { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-families-v1'
 export { validateVisualSceneSpecV2, validateRenderBindingsAny, sceneSpecPixelIdentityAny } from '../shared/visual-scene-spec-v2'
 export { createLocalSceneSemanticV1 } from '../shared/local-scene-semantic'
@@ -4195,6 +4197,64 @@ ipcMain.handle('list-editorial-modular-catalog-v1', async (_event, catalogRoot: 
   } catch (error) { return { success:false, error:error instanceof Error ? error.message : String(error) } }
 })
 
+/** Explicit per-clip substitution, never an automatic migration of old clips. */
+ipcMain.handle('rebind-editorial-family-clip-v1', async (_event, input: {
+  catalogRoot:string;graphicData:any;renderBindings:RenderBindingsAny;
+  orientation:'portrait'|'landscape';durationSeconds:number;
+  edits:{family:import('../shared/editorial-modular-families-v1').EditorialFamilyIdV1;
+    heroId?:string;supportIds:string[];rearId?:string;accentId?:string;frontId?:string}
+}) => {
+  try {
+    if (!activeProjectPath) throw new Error('EDITORIAL_FAMILY_PROJECT_REQUIRED')
+    if (!input || !['portrait','landscape'].includes(input.orientation) ||
+        !Number.isFinite(input.durationSeconds) || input.durationSeconds<.5 || input.durationSeconds>30 ||
+        !input.edits || !Array.isArray(input.edits.supportIds) ||
+        input.edits.supportIds.length>4 || new Set(input.edits.supportIds).size!==input.edits.supportIds.length)
+      throw new Error('EDITORIAL_FAMILY_CLIP_EDIT_INVALID')
+    const spec=sceneSpecFromGraphicDataAny(input.graphicData)
+    if (spec?.renderSpecVersion!==2 ||
+        spec.presentationProfile?.revision!==EDITORIAL_MODULAR_FAMILIES_V1.revision || !spec.editorialFamily)
+      throw new Error('EDITORIAL_FAMILY_CLIP_EDIT_REVISION_INVALID')
+    validateRenderBindingsAny(input.renderBindings,spec)
+    const projectRoot=activeProjectPath
+    const catalog=new CuratedModularCatalogV1(input.catalogRoot)
+    const ids=[input.edits.heroId,...input.edits.supportIds,input.edits.rearId,
+      input.edits.accentId,input.edits.frontId].filter((id):id is string=>typeof id==='string'&&!!id)
+    const imported=Object.fromEntries([...new Set(ids)].map(id=>[id,catalog.publish(projectRoot,id)]))
+    const previous=spec.editorialFamily
+    const available=new Set(input.edits.family==='editorial'?[]:
+      ['hero',...input.edits.supportIds.map((_,index)=>`support-${index+1}`)])
+    // A manual replacement can change the meaning of an endpoint. Preserve a
+    // relationship only while both of its semantic assets remain identical.
+    const unchanged=(slotId:string)=>slotId==='hero'
+      ?previous.hero?.assetId===input.edits.heroId
+      :previous.supports.find(item=>item.slotId===slotId)?.assetId===
+        input.edits.supportIds[Number(slotId.slice(-1))-1]
+    const relations=previous.relations.filter(relation=>available.has(relation.from)&&
+      available.has(relation.to)&&unchanged(relation.from)&&unchanged(relation.to))
+      .map(({from,to,meaning})=>({from,to,meaning}))
+    const built=bindEditorialModularFamilyV1({template:{sceneSpec:spec,graphicData:input.graphicData},
+      catalog,imported,family:input.edits.family,layoutVariant:previous.layoutVariant,
+      heroId:input.edits.heroId,supportIds:input.edits.supportIds,
+      rearId:input.edits.rearId,accentId:input.edits.accentId,frontId:input.edits.frontId,
+      background:previous.background,entry:previous.entry,supportTreatment:previous.supportTreatment,
+      camera:previous.camera.mode,particles:previous.particles.mode,color:previous.accent,
+      supportTint:previous.supportTint,
+      headline:{connector:spec.text.connector,keyword:spec.text.keyword,closing:spec.text.closing},relations})
+    const file=await renderGraphicClip(built.graphicData,{
+      ancho:input.orientation==='portrait'?720:1280,alto:input.orientation==='portrait'?1280:720,
+      fps:30,duracion:input.durationSeconds,modo:'pantalla',sistema:'editorial',
+      projectRoot,renderBindings:built.renderBindings})
+    if(activeProjectPath!==projectRoot)throw new Error('EDITORIAL_FAMILY_PROJECT_CHANGED')
+    if(!file||!(await exists(file)))throw new Error('EDITORIAL_FAMILY_VISUAL_SIN_FICHERO')
+    return {success:true,path:file,url:pathToFileURL(file).href,
+      graphicData:built.graphicData,renderBindings:built.renderBindings,
+      pixelIdentity:built.pixelIdentity,durationSeconds:input.durationSeconds}
+  } catch(error) {
+    return {success:false,error:error instanceof Error?error.message:String(error)}
+  }
+})
+
 ipcMain.handle('generate-editorial-modular-catalog-v1', async (_event, input: ModularCatalogPilotInputV1) => {
   try {
     if (!activeProjectPath) throw new Error('MODULAR_PROJECT_REQUIRED')
@@ -5327,9 +5387,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             camera:selected.camera,
             particles:editorialFamilyEffects==='subtle'&&selected.family==='marcoPoster'?'dust':selected.particles,
             color:(editorialFamilyColor??'#A83B19').toUpperCase(),
-            headline:{connector:resolved.compiled.sceneSpec.text.connector,
-              keyword:resolved.compiled.sceneSpec.text.keyword,
-              closing:resolved.compiled.sceneSpec.text.closing},relations:selected.relations,
+            headline:editorialHeadlineFromLocalTextV1(aRenderizar[sceneIndex].frase,
+              resolved.compiled.sceneSpec.text.keyword),relations:selected.relations,
           }) : null
           const compiled = familyBuilt ?? resolved.compiled
           if (compiled.graphicData.type !== COMPOSICION_VISUAL)

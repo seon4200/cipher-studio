@@ -16,6 +16,12 @@ export interface IElectronAPI {
     orientation: 'portrait' | 'landscape' }) => Promise<{ success: boolean; path?: string;
       url?: string; durationSeconds?: number; error?: string }>;
   listEditorialModularCatalogV1: (catalogRoot: string) => Promise<{success:boolean; assets?:Array<{assetId:string;role:string;primaryWordEs:string;code:string}>;error?:string}>;
+  rebindEditorialFamilyClipV1: (params: {catalogRoot:string;graphicData:any;renderBindings:any;
+    orientation:'portrait'|'landscape';durationSeconds:number;
+    edits:{family:import('../shared/editorial-modular-families-v1').EditorialFamilyIdV1;
+      heroId?:string;supportIds:string[];rearId?:string;accentId?:string;frontId?:string}}) =>
+    Promise<{success:boolean;path?:string;url?:string;durationSeconds?:number;graphicData?:any;
+      renderBindings?:any;pixelIdentity?:string;error?:string}>;
   generateEditorialModularCatalogV1: (params: import('../shared/editorial-modular-catalog-v1').ModularCatalogPilotInputV1) => Promise<{success:boolean;path?:string;url?:string;durationSeconds?:number;graphicData?:any;renderBindings?:any;error?:string}>;
   regenerateEditorialModularCatalogV1: (params: {graphicData:any;renderBindings:any;orientation:'portrait'|'landscape'}) => Promise<{success:boolean;path?:string;url?:string;durationSeconds?:number;error?:string}>;
   generatePerfectSync: (params: { videoPath: string; transcriptSegments: any[]; syncWeights: number[]; aspectRatio?: string; audioPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; activeProjectPath?: string }) => Promise<{ success: boolean; v1Clip?: any; v2Clips?: any[]; audioClip?: any; error?: string }>;

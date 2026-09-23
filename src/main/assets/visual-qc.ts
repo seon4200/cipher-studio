@@ -13,6 +13,7 @@ import {
   type VisualSceneSpecV2,
 } from '../../shared/visual-scene-spec-v2'
 import { FAMILIES_MOTION_PROFILE_V2, VISUAL_RECOVERY_PROFILE_V1 } from '../../shared/editorial-motion-profile-v1'
+import { EDITORIAL_MODULAR_FAMILIES_V1 } from '../../shared/editorial-modular-families-v1'
 
 export type VisualQcRect = {
   left: number
@@ -163,10 +164,13 @@ function evaluateVisualDomQcV2(
     }
     if (!inside(snapshot.text, frame) || !inside(snapshot.keyword, safeText))
       findings.push({ code: 'VISUAL_QC_TEXT_BOUNDS', level: 'error', message: 'Texto V15 fuera de safe area', normalizedTime: at })
-    if (snapshot.textOverflow || snapshot.keywordOverflow || !['2', '3'].includes(snapshot.maxLines ?? '') || snapshot.visibleWords > 8)
+    const modularFamilyText=spec.presentationProfile?.revision===EDITORIAL_MODULAR_FAMILIES_V1.revision
+    if (snapshot.textOverflow || snapshot.keywordOverflow || !['2', '3'].includes(snapshot.maxLines ?? '') ||
+        snapshot.visibleWords > (modularFamilyText ? 24 : 8))
       findings.push({ code: 'VISUAL_QC_TEXT_OVERFLOW', level: 'error', message: 'Texto V15 recortado o fuera de presupuesto', normalizedTime: at })
     if ((spec.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision ||
-      spec.presentationProfile?.revision === FAMILIES_MOTION_PROFILE_V2.revision) && snapshot.textFitFailed)
+      spec.presentationProfile?.revision === FAMILIES_MOTION_PROFILE_V2.revision ||
+      modularFamilyText) && snapshot.textFitFailed)
       findings.push({ code: 'VISUAL_QC_TEXT_FIT_V2_FAILED', level: 'error',
         message: `Text Fit V2 no encontró tamaño legible (${snapshot.textFitStage ?? 'sin etapa'})`, normalizedTime: at })
     if (snapshot.decoratorCount !== 0)
