@@ -13,6 +13,7 @@ import { EDITORIAL_EXPLAINER_V3 } from './editorial-explainer-v3'
 import { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, EDITORIAL_IDEA_ASSEMBLY_V4,
   EDITORIAL_IDEA_ASSEMBLY_V4_1 } from './editorial-idea-assembly-v1'
 import { EDITORIAL_MODULAR_CATALOG_V1 } from './editorial-modular-catalog-v1'
+import { EDITORIAL_MODULAR_FAMILIES_V1 } from './editorial-modular-families-v1'
 
 /** An opt-in pixel contract. Historical V15 specs omit this field entirely. */
 export const EDITORIAL_MOTION_PROFILE_V1 = Object.freeze({
@@ -40,7 +41,8 @@ export type EditorialMotionProfile = EditorialMotionProfileV1 | typeof EDITORIAL
   typeof VISUAL_RECOVERY_PROFILE_V1 | typeof PREMIUM_TYPE_COLOR_PROFILE_V1 | typeof FAMILIES_MOTION_PROFILE_V2 |
   typeof EDITORIAL_EXPLAINER_LIGHT_V1 | typeof EDITORIAL_EXPLAINER_LIGHT_V2 | typeof EDITORIAL_EXPLAINER_V3 |
   typeof EDITORIAL_IDEA_ASSEMBLY_V1 | typeof EDITORIAL_IDEA_ASSEMBLY_V2 | typeof EDITORIAL_IDEA_ASSEMBLY_V3 |
-  typeof EDITORIAL_IDEA_ASSEMBLY_V4 | typeof EDITORIAL_IDEA_ASSEMBLY_V4_1 | typeof EDITORIAL_MODULAR_CATALOG_V1
+  typeof EDITORIAL_IDEA_ASSEMBLY_V4 | typeof EDITORIAL_IDEA_ASSEMBLY_V4_1 | typeof EDITORIAL_MODULAR_CATALOG_V1 |
+  typeof EDITORIAL_MODULAR_FAMILIES_V1
 export const EDITORIAL_MOTION_CUES = ['protagonist', 'comparison', 'process', 'cause', 'datum', 'typographic'] as const
 export type EditorialMotionCue = typeof EDITORIAL_MOTION_CUES[number]
 
@@ -82,7 +84,9 @@ export function validateEditorialMotionProfile(value: unknown): EditorialMotionP
          (value as EditorialMotionProfile).revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision ||
          (value as EditorialMotionProfile).revision === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision) ||
         (value as EditorialMotionProfile).id === EDITORIAL_MODULAR_CATALOG_V1.id &&
-        (value as EditorialMotionProfile).revision === EDITORIAL_MODULAR_CATALOG_V1.revision))
+        (value as EditorialMotionProfile).revision === EDITORIAL_MODULAR_CATALOG_V1.revision ||
+        (value as EditorialMotionProfile).id === EDITORIAL_MODULAR_FAMILIES_V1.id &&
+        (value as EditorialMotionProfile).revision === EDITORIAL_MODULAR_FAMILIES_V1.revision))
     throw new Error('EDITORIAL_MOTION_PROFILE_INVALID')
   return value as EditorialMotionProfile
 }

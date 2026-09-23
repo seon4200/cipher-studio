@@ -324,7 +324,8 @@ export async function runVisualRuntimeQc(
   const middle = snapshots.reduce((best, current) =>
     Math.abs(current.normalizedTime - .5) < Math.abs(best.normalizedTime - .5) ? current : best,
   snapshots[0])
-  const localTextContrast = middle ? await localKeywordContrast(window, middle, !!(spec.renderSpecVersion === 2 && spec.ideaAssembly)) : null
+  const localTextContrast = middle ? await localKeywordContrast(window, middle,
+    !!(spec.renderSpecVersion === 2 && (spec.ideaAssembly || spec.editorialFamily))) : null
   if (localTextContrast === null) {
     findings.push({ code: 'VISUAL_QC_CONTRAST_UNAVAILABLE', level: 'needs-review', message: 'No se pudo medir contraste local' })
   } else if (localTextContrast < 3) {

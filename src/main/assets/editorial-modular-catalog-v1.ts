@@ -15,7 +15,8 @@ import { inspectSupportPngV41 } from './editorial-idea-support-catalog-v4-1'
 
 type InventoryEntry = { assetId: string; role: ModularCatalogRoleV1; primaryWordEs: string;
   aliasesEs: string[]; aliasesEn: string[]; runtimeRef: string; runtimeSHA256: string;
-  runtimeDimensions: { width: number; height: number }; status: string }
+  runtimeDimensions: { width: number; height: number }; status: string;
+  aspectClass?: 'vertical' | 'wide' | 'compact' | 'organic' }
 export type ImportedModularAssetV1 = { asset: ProjectAssetRecord; curated: CuratedModularAssetV1 }
 const sha = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
 const normalize = (word: string) => word.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es').trim()
@@ -59,6 +60,10 @@ export class CuratedModularCatalogV1 {
     }
   }
   entries(): readonly CuratedModularAssetV1[] { return curatedModularAssetsV1() }
+  /** Advisory shape metadata; the resolved layout is frozen in the SceneSpec. */
+  aspectClass(assetId: string): InventoryEntry['aspectClass'] {
+    return this.getById(assetId) ? this.entriesById.get(assetId)?.aspectClass : undefined
+  }
   getById(assetId: string): CuratedModularAssetV1 | undefined {
     const approved = getCuratedModularAssetV1(assetId)
     const entry = this.entriesById.get(assetId)

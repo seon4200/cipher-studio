@@ -68,6 +68,8 @@ import { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_
   type IdeaAssemblyV1, type IdeaResourceId, type IdeaColorCapability } from './editorial-idea-assembly-v1'
 import { getApprovedIdeaSupportV41 } from './editorial-idea-support-catalog-v4-1'
 import { EDITORIAL_MODULAR_CATALOG_V1, getCuratedModularAssetV1 } from './editorial-modular-catalog-v1'
+import { EDITORIAL_MODULAR_FAMILIES_V1, createEditorialModularFamilyLayoutV1,
+  validateEditorialModularFamiliesPlanV1, type EditorialModularFamiliesPlanV1 } from './editorial-modular-families-v1'
 import {
   VISUAL_MVP_BOUNDS_REVISION,
   editorialFallbackSpec,
@@ -205,6 +207,8 @@ export type VisualSceneSpecV2 = {
   lightStyle?: LightStyleV1 | LightStyleV2 | LightStyleV3
   /** Only the opt-in IDEA assembly revision carries internal Hero resources. */
   ideaAssembly?: IdeaAssemblyV1
+  /** New opt-in six-family composition; absent from every historical SceneSpec. */
+  editorialFamily?: EditorialModularFamiliesPlanV1
   /** Frozen relation choreography; required only for the editorial v2 revision. */
   editorialMotionCue?: EditorialMotionCue
   /** Only materialized for the opt-in profile; part of the pixel contract. */
@@ -451,7 +455,10 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
   const family = value.family as ModernLayoutStructureV4
   const mode = spec.visualMode as 'asset-led' | 'editorial-text'
   const seed = Number((spec.direccion as VisualDirectionV2).semilla)
-  const expected = (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === FAMILIES_MOTION_PROFILE_V2.revision
+  const expected = (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_MODULAR_FAMILIES_V1.revision
+    ? createEditorialModularFamilyLayoutV1(family as EditorialModularFamiliesPlanV1['family'], 'portrait', supportCount,
+      (spec.editorialFamily as EditorialModularFamiliesPlanV1 | undefined)?.layoutVariant)
+    : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === FAMILIES_MOTION_PROFILE_V2.revision
     ? createCompositionLayoutV2(family, mode, supportCount, seed,
       spec.editorialMotionCue as EditorialMotionCue,
       slots.find((slot): slot is PresentSceneSlotV2 => slot.role === 'hero' && slot.state === 'present')?.kind, 'portrait')
@@ -486,7 +493,7 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
 export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   const code = 'VISUAL_SCENE_SPEC_V2_INVALID'
   record(value, code, 'sceneSpec')
-  exactKeys(value, ['renderSpecVersion', 'visualMode', 'renderTier', 'sistema', 'direccion', 'videoStyle', 'backgroundProfile', 'colorPalette', 'presentationProfile', 'premiumStyle', 'compositionV2', 'lightStyle', 'ideaAssembly', 'editorialMotionCue', 'editorialData', 'layout', 'text', 'slots', 'revisions', 'fallbackVisual'], code, 'sceneSpec')
+  exactKeys(value, ['renderSpecVersion', 'visualMode', 'renderTier', 'sistema', 'direccion', 'videoStyle', 'backgroundProfile', 'colorPalette', 'presentationProfile', 'premiumStyle', 'compositionV2', 'lightStyle', 'ideaAssembly', 'editorialFamily', 'editorialMotionCue', 'editorialData', 'layout', 'text', 'slots', 'revisions', 'fallbackVisual'], code, 'sceneSpec')
   if (value.renderSpecVersion !== VISUAL_RENDER_SPEC_VERSION_V2 ||
       !['asset-led', 'editorial-text'].includes(String(value.visualMode)) || value.renderTier !== 'standard' ||
       !Object.keys(SISTEMAS).includes(String(value.sistema)) || value.fallbackVisual !== 'editorial-text')
@@ -506,6 +513,9 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
       fail(code, 'IDEA profile/revision mismatch')
   }
   else if (value.ideaAssembly !== undefined) fail(code, 'ideaAssembly exige perfil explícito')
+  const editorialFamilyRevision = (value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_MODULAR_FAMILIES_V1.revision
+  if (editorialFamilyRevision) validateEditorialModularFamiliesPlanV1(value.editorialFamily)
+  else if (value.editorialFamily !== undefined) fail(code, 'editorialFamily exige perfil explícito')
   if ((value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision) {
     const activeSlots = (value.slots as SceneSlotV2[] | undefined)?.filter(slot => slot.state === 'present' || slot.state === 'procedural') ?? []
     validateLightStyleV1(value.lightStyle, value.visualMode as 'asset-led' | 'editorial-text', activeSlots.filter(slot => slot.role !== 'hero').length)
@@ -541,10 +551,10 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
       fail(code, 'editorialData no corresponde a un porcentaje literal válido')
   }
   validateText(value.text)
-  if (!Array.isArray(value.slots) || value.slots.length > (ideaRevision ? 5 : 3)) fail(code, 'Número de slots incompatible con perfil')
+  if (!Array.isArray(value.slots) || value.slots.length > (ideaRevision || editorialFamilyRevision ? 5 : 3)) fail(code, 'Número de slots incompatible con perfil')
   const ideaColorRevision = [EDITORIAL_IDEA_ASSEMBLY_V4.revision, EDITORIAL_IDEA_ASSEMBLY_V4_1.revision,
     EDITORIAL_MODULAR_CATALOG_V1.revision]
-    .includes((value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_IDEA_ASSEMBLY_V4.revision)
+    .includes((value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_IDEA_ASSEMBLY_V4.revision) || editorialFamilyRevision
   value.slots.forEach(slot => validateSlot(slot, ideaColorRevision))
   const ids = value.slots.map(slot => (slot as SceneSlotV2).slotId)
   if (new Set(ids).size !== ids.length) fail(code, 'slotId duplicado')
@@ -553,7 +563,7 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   const supports = active.filter(slot => slot.role !== 'hero')
   if (value.visualMode === 'asset-led' && heroes.length !== 1) fail('VISUAL_SCENE_V2_HERO_REQUIRED', 'asset-led exige exactamente un Hero')
   if (value.visualMode === 'editorial-text' && active.length) fail(code, 'editorial-text no acepta assets activos')
-  if (supports.length > (ideaRevision ? 4 : 2) || (supports.length && !heroes.length)) fail(code, 'Supports incompatibles con perfil')
+  if (supports.length > (ideaRevision || editorialFamilyRevision ? 4 : 2) || (supports.length && !heroes.length)) fail(code, 'Supports incompatibles con perfil')
   if (ideaRevision && (supports.length !== 4 || IDEA_SUPPORT_IDS.some(id => !supports.some(slot => slot.slotId === id))))
     fail(code, 'IDEA requiere exactamente cuatro Supports reales')
   if ((value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision) {
@@ -585,6 +595,37 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
           slot.alphaMode !== 'useful-alpha' || slot.colorCapability !== 'alpha-mask' ||
           slot.tint.treatment !== 'accent-mask')
         fail(code, 'MODULAR_SUPPORT_NOT_AUTHORIZED:' + support.slotId)
+    }
+  }
+  if (editorialFamilyRevision) {
+    const plan = value.editorialFamily as EditorialModularFamiliesPlanV1
+    const expectedLandscape = createEditorialModularFamilyLayoutV1(plan.family, 'landscape', supports.length,plan.layoutVariant)
+    if (canonical(plan.landscapeLayout) !== canonical(expectedLandscape) ||
+        plan.family !== (value.direccion as VisualDirectionV2).estructura ||
+        plan.supports.length !== supports.length ||
+        (plan.hero ? heroes.length !== 1 : heroes.length !== 0)) fail(code, 'EDITORIAL_FAMILY_LAYOUT_OR_SLOTS_MISMATCH')
+    if (plan.hero) {
+      const approved = getCuratedModularAssetV1(plan.hero.assetId)
+      const slot = heroes[0] as PresentSceneSlotV2
+      if (!approved || approved.role !== 'hero-core' || approved.sha256 !== plan.hero.sha256 ||
+          slot.state !== 'present' || slot.sha256 !== approved.sha256 || slot.colorCapability !== 'none')
+        fail(code, 'EDITORIAL_FAMILY_HERO_NOT_CURATED')
+    }
+    for (const support of plan.supports) {
+      const approved = getCuratedModularAssetV1(support.assetId)
+      const slot = supports.find(item => item.slotId === support.slotId) as PresentSceneSlotV2 | undefined
+      if (!approved || approved.role !== 'support' || approved.sha256 !== support.sha256 ||
+          !slot || slot.state !== 'present' || slot.sha256 !== approved.sha256 ||
+          slot.colorCapability !== 'alpha-mask' || slot.tint.treatment !== 'accent-mask')
+        fail(code, 'EDITORIAL_FAMILY_SUPPORT_NOT_CURATED')
+    }
+    for (const layer of plan.layers) {
+      const approved = getCuratedModularAssetV1(layer.catalogAssetId)
+      const requiredRole = layer.id === 'idea-rear' ? 'rear-collage' : layer.id === 'idea-front' ? 'front-collage' : 'accent-mask'
+      if (!approved || approved.role !== requiredRole || approved.sha256 !== layer.sha256 ||
+          layer.catalogSha256 !== approved.sha256 || layer.mime !== 'image/png' ||
+          (requiredRole === 'accent-mask' ? layer.colorCapability !== 'accent-primary' : layer.colorCapability !== 'none'))
+        fail(code, 'EDITORIAL_FAMILY_LAYER_NOT_CURATED')
     }
   }
   const identities = active.map(slot => slot.state === 'present' ? `sha:${slot.sha256}` : `solar:${slot.solarIcon}`)
@@ -665,6 +706,15 @@ export function validateRenderBindingsAny(value: unknown, spec: VisualSceneSpecA
       if (!binding || binding.assetId !== resource.catalogAssetId)
         fail('VISUAL_RENDER_BINDINGS_V2_INVALID', 'MODULAR layer binding no coincide con assetId lógico')
     }
+  }
+  if (spec.presentationProfile?.revision === EDITORIAL_MODULAR_FAMILIES_V1.revision) {
+    const plan = spec.editorialFamily!
+    const expected = [...(plan.hero ? [{slotId:'hero',assetId:plan.hero.assetId}] : []),
+      ...plan.supports.map(s => ({slotId:s.slotId,assetId:s.assetId})),
+      ...plan.layers.map(l => ({slotId:l.id,assetId:l.catalogAssetId!}))]
+    if (bindings.assets.length !== expected.length || expected.some(item =>
+      bindings.assets.find(binding => binding.slotId === item.slotId)?.assetId !== item.assetId))
+      fail('VISUAL_RENDER_BINDINGS_V2_INVALID','EDITORIAL_FAMILY_BINDING_MISMATCH')
   }
   return bindings
 }

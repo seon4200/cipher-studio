@@ -20,6 +20,7 @@ import { EDITORIAL_MOTION_PROFILE_V2, VISUAL_RECOVERY_PROFILE_V1,
   PREMIUM_TYPE_COLOR_PROFILE_V1, VISUAL_RECOVERY_REFINED_FAMILIES } from '../../../shared/editorial-motion-profile-v1'
 import { PREMIUM_TYPE_THEMES } from '../../../shared/premium-type-color-v1'
 import { fitVisualTextV2 } from './text-fit-v2'
+import { EditorialModularFamiliesV1 } from './editorial-modular-families-v1'
 import { chooseTextContrastV1 } from './photo-text-contrast-v1'
 import { assetMotionV2, backgroundImageV2, FamilyV2AccentGraphics } from './families-v2-layers'
 import { FAMILIES_MOTION_PROFILE_V2 } from '../../../shared/editorial-motion-profile-v1'
@@ -655,6 +656,7 @@ export const MotionGraphicV15: React.FC<{
   runtimeAssets: readonly RuntimeRenderAssetV2[]
   u: number
 }> = ({ spec, runtimeAssets, u }) => {
+  if (spec.editorialFamily) return <EditorialModularFamiliesV1 spec={spec} runtimeAssets={runtimeAssets} u={u} />
   if (spec.ideaAssembly) return <EditorialIdeaAssemblyV1 spec={spec} runtimeAssets={runtimeAssets} u={u} />
   // Both geometries are part of the same frozen SceneSpec. The current canvas
   // chooses one; no runtime recomputation can drift from the stored identity.

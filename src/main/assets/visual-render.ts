@@ -180,7 +180,7 @@ function prepareV2(
     ? { version: 2, assets: [] }
     : validateRenderBindingsV2(rawBindings)
   const present = spec.slots.filter((slot): slot is Extract<SceneSlotV2, { state: 'present' }> => slot.state === 'present')
-  const ideaResources = spec.ideaAssembly?.resources ?? []
+  const ideaResources = spec.ideaAssembly?.resources ?? spec.editorialFamily?.layers ?? []
   const expectedIds = new Set([...present.map(slot => slot.slotId), ...ideaResources.map(resource => resource.id)])
   if (bindings.assets.some(binding => !expectedIds.has(binding.slotId)))
     fail('VISUAL_RENDER_BINDINGS_UNUSED', 'RenderBindings V15 contiene un locator sin slot present')
@@ -246,7 +246,7 @@ function prepareV2(
       bytesBase64: verified.bytes.toString('base64') })
   }
 
-  if (spec.ideaAssembly && failedSlots.length)
+  if ((spec.ideaAssembly || spec.editorialFamily) && failedSlots.length)
     fail('IDEA_SUPPORT_MISSING', 'La escena IDEA perdió un Support materializado', { failedSlots })
 
   const effective = failedSlots.length ? degradedVisualSceneSpecV2(spec, failedSlots) : spec

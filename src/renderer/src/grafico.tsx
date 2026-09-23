@@ -228,7 +228,8 @@ function montarGraphicData(graphicData: any, op: Partial<Opciones>) {
   const probePhoto = graphicData?.extra?.sceneSpec?.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision
   // Both frozen IDEA revisions share the same materialization contract; the exact
   // revision is validated in the SceneSpec before this renderer receives it.
-  const ideaAssembly = Boolean(graphicData?.extra?.sceneSpec?.ideaAssembly)
+  const ideaAssembly = Boolean(graphicData?.extra?.sceneSpec?.ideaAssembly ||
+    graphicData?.extra?.sceneSpec?.editorialFamily)
   return prepararRuntimeAssets(preparedAssets, probePhoto, ideaAssembly).then(prepared => {
     runtimeAssets = prepared
     montarGraphicData(graphicData, op)
