@@ -69,6 +69,8 @@ import { EDITORIAL_EXPLAINER_LIGHT_V1 } from '../shared/editorial-explainer-ligh
 import { EDITORIAL_EXPLAINER_LIGHT_V2 } from '../shared/editorial-explainer-light-v2'
 import { EDITORIAL_EXPLAINER_V3 } from '../shared/editorial-explainer-v3'
 import { generateIdeaColorPilotV4 } from './assets/editorial-idea-color-pilot-v4'
+import { CuratedModularCatalogV1, bindEditorialModularCatalogV1 } from './assets/editorial-modular-catalog-v1'
+import { EDITORIAL_MODULAR_CATALOG_V1, type ModularCatalogPilotInputV1 } from '../shared/editorial-modular-catalog-v1'
 import { EDITORIAL_IDEA_ASSEMBLY_V4, resolveIdeaColorV4, type IdeaColorIntentV4 } from '../shared/editorial-idea-assembly-v1'
 import { writeVisualDecisionDiagnostic } from './services/visual-decision-diagnostics'
 import { prepareOriginalClipSegmentation } from './services/original-clip-segmentation'
@@ -158,6 +160,8 @@ export { compileEditorialIdeaAssemblyPilotV1, compileEditorialIdeaAssemblyPilotV
 export { generateIdeaColorPilotV4 } from './assets/editorial-idea-color-pilot-v4'
 export { bindEditorialIdeaSupportsV41, importEditorialIdeaSupportCatalogV41, resolveIdeaColorV41,
   IDEA_SUPPORT_MANIFEST_V41 } from './assets/editorial-idea-support-catalog-v4-1'
+export { CuratedModularCatalogV1, bindEditorialModularCatalogV1 } from './assets/editorial-modular-catalog-v1'
+export { EDITORIAL_MODULAR_CATALOG_V1, curatedModularAssetsV1 } from '../shared/editorial-modular-catalog-v1'
 export { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, EDITORIAL_IDEA_ASSEMBLY_V4,
   EDITORIAL_IDEA_ASSEMBLY_V4_1, resolveIdeaColorV4,
   createIdeaAssemblyLayoutV1, createIdeaAssemblyLayoutV2, createIdeaAssemblyLayoutV3 } from '../shared/editorial-idea-assembly-v1'
@@ -4174,11 +4178,80 @@ ipcMain.handle('regenerate-idea-assembly-v4-pilot', async (_event, input: {
   }
 })
 
+/** Explicit, single-scene catalogue path. No change to ordinary historical generation. */
+ipcMain.handle('list-editorial-modular-catalog-v1', async (_event, catalogRoot: string) => {
+  try {
+    const catalog = new CuratedModularCatalogV1(catalogRoot)
+    return { success: true, assets: catalog.entries().map(item => ({ assetId:item.assetId,
+      role:item.role, primaryWordEs:item.primaryWordEs, code:item.code })) }
+  } catch (error) { return { success:false, error:error instanceof Error ? error.message : String(error) } }
+})
+
+ipcMain.handle('generate-editorial-modular-catalog-v1', async (_event, input: ModularCatalogPilotInputV1) => {
+  try {
+    if (!activeProjectPath) throw new Error('MODULAR_PROJECT_REQUIRED')
+    if (!input || !path.isAbsolute(input.catalogRoot) || !path.isAbsolute(input.assetRoot) ||
+        !['portrait','landscape'].includes(input.orientation) ||
+        !['vertical','wide','compact','organic'].includes(input.recipe) ||
+        !Array.isArray(input.supportIds) || input.supportIds.length !== 4 ||
+        new Set(input.supportIds).size !== 4)
+      throw new Error('MODULAR_INPUT_INVALID')
+    if (input.headline && [input.headline.connector,input.headline.keyword,input.headline.closing]
+        .some(value => typeof value !== 'string' || value.length > 40))
+      throw new Error('MODULAR_HEADLINE_INVALID')
+    const projectRoot = activeProjectPath
+    const catalog = new CuratedModularCatalogV1(input.catalogRoot)
+    const requireRole = (assetId:string, role:string) => {
+      if (catalog.getById(assetId)?.role !== role) throw new Error('MODULAR_SELECTION_ROLE_INVALID:'+assetId)
+    }
+    requireRole(input.heroId,'hero-core')
+    input.supportIds.forEach(id=>requireRole(id,'support'))
+    if (input.rearId) requireRole(input.rearId,'rear-collage')
+    if (input.accentId) requireRole(input.accentId,'accent-mask')
+    if (input.frontId) requireRole(input.frontId,'front-collage')
+    const ids = [...new Set([input.heroId,...input.supportIds,input.rearId,input.accentId,input.frontId].filter(
+      (id):id is string => typeof id === 'string' && id.length > 0))]
+    const imported = Object.fromEntries(ids.map(id => [id, catalog.publish(projectRoot,id)]))
+    const template = await generateIdeaColorPilotV4({projectRoot,assetRoot:input.assetRoot,
+      color:{supportSource:'ink',heroMode:'recolorable',heroPrimary:'#C5481E'},
+      orientation:input.orientation,render:renderGraphicClip})
+    const built = bindEditorialModularCatalogV1({template,imported,heroId:input.heroId,
+      supportIds:input.supportIds,rearId:input.rearId,accentId:input.accentId,frontId:input.frontId,
+      recipe:input.recipe,accentTheme:'orange',color:input.color,headline:input.headline})
+    const file = await renderGraphicClip(built.graphicData, {ancho:input.orientation==='portrait'?720:1280,
+      alto:input.orientation==='portrait'?1280:720,fps:24,duracion:80/24,modo:'pantalla',
+      sistema:'editorial',projectRoot,renderBindings:built.renderBindings})
+    if (activeProjectPath!==projectRoot) throw new Error('MODULAR_PROJECT_CHANGED')
+    if (!file || !(await exists(file))) throw new Error('MODULAR_VISUAL_SIN_FICHERO')
+    return {success:true,path:file,url:pathToFileURL(file).href,durationSeconds:80/24,
+      graphicData:built.graphicData,renderBindings:built.renderBindings}
+  } catch (error) { return {success:false,error:error instanceof Error?error.message:String(error)} }
+})
+
+ipcMain.handle('regenerate-editorial-modular-catalog-v1', async (_event, input: {
+  graphicData:any;renderBindings:RenderBindingsAny;orientation:'portrait'|'landscape'
+}) => {
+  try {
+    if (!activeProjectPath) throw new Error('MODULAR_PROJECT_REQUIRED')
+    const spec = sceneSpecFromGraphicDataAny(input?.graphicData)
+    if (spec?.renderSpecVersion!==2 ||
+        spec.presentationProfile?.revision!==EDITORIAL_MODULAR_CATALOG_V1.revision ||
+        !['portrait','landscape'].includes(input.orientation)) throw new Error('MODULAR_REPLAY_INVALID')
+    const projectRoot = activeProjectPath
+    const file = await renderGraphicClip(input.graphicData,{ancho:input.orientation==='portrait'?720:1280,
+      alto:input.orientation==='portrait'?1280:720,fps:24,duracion:80/24,modo:'pantalla',
+      sistema:'editorial',projectRoot,renderBindings:input.renderBindings})
+    if (activeProjectPath!==projectRoot) throw new Error('MODULAR_PROJECT_CHANGED')
+    if (!file || !(await exists(file))) throw new Error('MODULAR_REPLAY_VISUAL_SIN_FICHERO')
+    return {success:true,path:file,url:pathToFileURL(file).href,durationSeconds:80/24}
+  } catch (error) { return {success:false,error:error instanceof Error?error.message:String(error)} }
+})
+
 ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, visualPresentationProfile, visualAssetPack, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
   if (visualAssetPack !== undefined && !['legacy', MODERN_VISUAL_PACK_V1.id, 'modern-pack-100-v1+local'].includes(visualAssetPack))
     return { success: false, error: 'Pack visual no reconocido' }
-  if (visualPresentationProfile === 'editorial-idea-assembly-v4')
-    return { success: false, error: 'IDEA V4 es un piloto de una escena; usa Generar IDEA V4.' }
+  if (visualPresentationProfile === 'editorial-idea-assembly-v4' || visualPresentationProfile === 'editorial-modular-catalog-v1')
+    return { success: false, error: 'Este perfil es un piloto de una escena; usa su botón de generación opt-in.' }
   if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1', 'families-motion-v2', 'editorial-explainer-light-v1', 'editorial-explainer-light-v2', 'editorial-explainer-v3'].includes(visualPresentationProfile))
     throw new Error('VISUAL_PRESENTATION_PROFILE_INVALID');
   const isOriginalAudio = transcriptSegments && newAudioSegments && 

@@ -1567,12 +1567,55 @@ function App() {
   // un proyecto nuevo reparte exactamente como antes hasta que el usuario mueva el slider.
   const [timelineWeights, setTimelineWeights] = useState<number[]>([...PESOS_POR_DEFECTO])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
-  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3' | 'editorial-idea-assembly-v4'>('standard')
+  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3' | 'editorial-idea-assembly-v4' | 'editorial-modular-catalog-v1'>('standard')
   const [ideaV4AssetRoot, setIdeaV4AssetRoot] = useState('')
   const [ideaV4Color, setIdeaV4Color] = useState<IdeaColorIntentV4>({
     supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E',
   })
   const [ideaV4Status, setIdeaV4Status] = useState('')
+  const [modularCatalogRoot, setModularCatalogRoot] = useState('')
+  const [modularAssets, setModularAssets] = useState<Array<{assetId:string;role:string;primaryWordEs:string;code:string}>>([])
+  const [modularHeroId, setModularHeroId] = useState('editorial-hero-h001-v1')
+  const [modularSupportIds, setModularSupportIds] = useState<[string,string,string,string]>([
+    'idea-support-personas-v1','idea-support-datos-v1',
+    'idea-support-soluciones-v1','idea-support-impacto-v1'])
+  const [modularRearId, setModularRearId] = useState('editorial-layer-l001-v1')
+  const [modularAccentId, setModularAccentId] = useState('editorial-layer-l036-v1')
+  const [modularFrontId, setModularFrontId] = useState('')
+  const [modularRecipe, setModularRecipe] = useState<'vertical'|'wide'|'compact'|'organic'>('vertical')
+  const [modularHeadline, setModularHeadline] = useState({connector:'UNA',keyword:'IDEA',closing:'abre nuevas posibilidades'})
+  const [modularStatus, setModularStatus] = useState('')
+  const loadModularCatalog = async () => {
+    const result = await window.electronAPI.listEditorialModularCatalogV1(modularCatalogRoot.trim())
+    setModularAssets(result.success ? result.assets ?? [] : [])
+    setModularStatus(result.success ? `${result.assets?.length ?? 0} piezas del registro curado.` : result.error ?? 'Catálogo no disponible.')
+  }
+  const generateModular = async () => {
+    if (!activeProjectPath || !modularCatalogRoot.trim() || !ideaV4AssetRoot.trim()) {
+      setModularStatus('Abre un proyecto e indica raíz del catálogo y runtime IDEA V4.'); return
+    }
+    setModularStatus('Materializando y renderizando el catálogo modular…')
+    const orientation = aspectRatio === 'horizontal' ? 'landscape' : 'portrait'
+    const result = await window.electronAPI.generateEditorialModularCatalogV1({
+      catalogRoot:modularCatalogRoot.trim(),assetRoot:ideaV4AssetRoot.trim(),
+      heroId:modularHeroId,supportIds:modularSupportIds,rearId:modularRearId||undefined,
+      accentId:modularAccentId||undefined,frontId:modularFrontId||undefined,
+      recipe:modularRecipe,orientation,color:{...ideaV4Color,heroMode:'recolorable',heroSecondary:undefined},headline:modularHeadline,
+    })
+    if (!result.success || !result.path || !result.durationSeconds) {
+      setModularStatus(result.error ?? 'No se pudo generar la escena modular.'); return
+    }
+    const startSeconds = timelineVideoClips.reduce((end,clip)=>Math.max(end,clip.startSeconds+clip.durationSeconds),0)
+    const clip: TimelineClip = {id:`modular-v1-${Date.now()}`,name:`Catálogo modular · ${modularHeadline.keyword}`,
+      type:'video',category:'visual',startSeconds,durationSeconds:result.durationSeconds,
+      path:result.path,url:result.url,graphicData:result.graphicData,
+      visualRegeneration:{revision:'editorial-modular-catalog-2026-09-v1',
+        graphicData:result.graphicData,renderBindings:result.renderBindings,orientation},
+    }
+    setTimelineVideoClips(previous=>[...previous,clip])
+    setIsDirty(true)
+    setModularStatus('Escena modular añadida al timeline; los assets están materializados.')
+  }
   const generateIdeaV4 = async () => {
     if (!activeProjectPath || !ideaV4AssetRoot.trim()) {
       setIdeaV4Status('Abre un proyecto y selecciona la carpeta runtime de IDEA.'); return
@@ -1756,7 +1799,7 @@ function App() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, modularCatalogRoot, modularHeroId, modularSupportIds, modularRearId, modularAccentId, modularFrontId, modularRecipe, modularHeadline, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
 
   // UN solo sitio construye lo que se guarda. Estaba copiado en TRES (guardar al cerrar,
   // guardar, y guardar como), y por eso cada funcion nueva nacia sin persistencia en dos de
@@ -1776,6 +1819,8 @@ function App() {
     voiceModel, voiceSpeaker, voiceSpeed, voiceStability,
     generatedVoices, graphicsPercent, timelineWeights, visualPresentationProfile, visualAssetPack,
     ideaV4AssetRoot, ideaV4Color,
+    modularCatalogRoot, modularHeroId, modularSupportIds, modularRearId, modularAccentId,
+    modularFrontId, modularRecipe, modularHeadline,
 
     // ─── Lo que decide COMO sale el video exportado ───
     // aspectRatio es el mas peligroso de los siete: NO aparece en el modal de exportacion,
@@ -1805,7 +1850,7 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, modularCatalogRoot, modularHeroId, modularSupportIds, modularRearId, modularAccentId, modularFrontId, modularRecipe, modularHeadline, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
 
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
@@ -1909,7 +1954,8 @@ function App() {
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
         setVisualAssetPack(loadedData.visualAssetPack === 'modern-pack-100-v1+local' ? 'modern-pack-100-v1+local' : loadedData.visualAssetPack === 'modern-pack-100-v1' ? 'modern-pack-100-v1' : 'legacy');
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-idea-assembly-v4' ? 'editorial-idea-assembly-v4' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-modular-catalog-v1' ? 'editorial-modular-catalog-v1' :
+          loadedData.visualPresentationProfile === 'editorial-idea-assembly-v4' ? 'editorial-idea-assembly-v4' :
           loadedData.visualPresentationProfile === 'editorial-explainer-v3' ? 'editorial-explainer-v3' :
           loadedData.visualPresentationProfile === 'editorial-explainer-light-v2' ? 'editorial-explainer-light-v2' :
           loadedData.visualPresentationProfile === 'editorial-explainer-light-v1' ? 'editorial-explainer-light-v1' :
@@ -1921,6 +1967,17 @@ function App() {
         setIdeaV4Color(loadedData.ideaV4Color && typeof loadedData.ideaV4Color === 'object'
           ? loadedData.ideaV4Color as IdeaColorIntentV4
           : { supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E' });
+        setModularCatalogRoot(typeof loadedData.modularCatalogRoot==='string'?loadedData.modularCatalogRoot:'')
+        if (typeof loadedData.modularHeroId==='string') setModularHeroId(loadedData.modularHeroId)
+        if (Array.isArray(loadedData.modularSupportIds) && loadedData.modularSupportIds.length===4)
+          setModularSupportIds(loadedData.modularSupportIds as [string,string,string,string])
+        if (typeof loadedData.modularRearId==='string') setModularRearId(loadedData.modularRearId)
+        if (typeof loadedData.modularAccentId==='string') setModularAccentId(loadedData.modularAccentId)
+        if (typeof loadedData.modularFrontId==='string') setModularFrontId(loadedData.modularFrontId)
+        if (['vertical','wide','compact','organic'].includes(loadedData.modularRecipe))
+          setModularRecipe(loadedData.modularRecipe)
+        if (loadedData.modularHeadline && typeof loadedData.modularHeadline==='object')
+          setModularHeadline(loadedData.modularHeadline)
 
         // ─── Lo que decide COMO sale el video exportado ───
         // Solo se restaura lo que VENGA: un proyecto guardado antes de esto no trae estos
@@ -2205,7 +2262,8 @@ function App() {
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
         setVisualAssetPack(loadedData.visualAssetPack === 'modern-pack-100-v1+local' ? 'modern-pack-100-v1+local' : loadedData.visualAssetPack === 'modern-pack-100-v1' ? 'modern-pack-100-v1' : 'legacy');
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-idea-assembly-v4' ? 'editorial-idea-assembly-v4' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-modular-catalog-v1' ? 'editorial-modular-catalog-v1' :
+          loadedData.visualPresentationProfile === 'editorial-idea-assembly-v4' ? 'editorial-idea-assembly-v4' :
           loadedData.visualPresentationProfile === 'editorial-explainer-v3' ? 'editorial-explainer-v3' :
           loadedData.visualPresentationProfile === 'editorial-explainer-light-v2' ? 'editorial-explainer-light-v2' :
           loadedData.visualPresentationProfile === 'editorial-explainer-light-v1' ? 'editorial-explainer-light-v1' :
@@ -2217,6 +2275,17 @@ function App() {
         setIdeaV4Color(loadedData.ideaV4Color && typeof loadedData.ideaV4Color === 'object'
           ? loadedData.ideaV4Color as IdeaColorIntentV4
           : { supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E' });
+        setModularCatalogRoot(typeof loadedData.modularCatalogRoot==='string'?loadedData.modularCatalogRoot:'')
+        if (typeof loadedData.modularHeroId==='string') setModularHeroId(loadedData.modularHeroId)
+        if (Array.isArray(loadedData.modularSupportIds) && loadedData.modularSupportIds.length===4)
+          setModularSupportIds(loadedData.modularSupportIds as [string,string,string,string])
+        if (typeof loadedData.modularRearId==='string') setModularRearId(loadedData.modularRearId)
+        if (typeof loadedData.modularAccentId==='string') setModularAccentId(loadedData.modularAccentId)
+        if (typeof loadedData.modularFrontId==='string') setModularFrontId(loadedData.modularFrontId)
+        if (['vertical','wide','compact','organic'].includes(loadedData.modularRecipe))
+          setModularRecipe(loadedData.modularRecipe)
+        if (loadedData.modularHeadline && typeof loadedData.modularHeadline==='object')
+          setModularHeadline(loadedData.modularHeadline)
 
         // ─── Lo que decide COMO sale el video exportado ───
         // Solo se restaura lo que VENGA: un proyecto guardado antes de esto no trae estos
@@ -2857,11 +2926,14 @@ ${res.filePath}`);
     // It must never be sent through the historical DeepSeek/card generator.
     const ideaV4Clips = videoClips.filter(c => c.category === 'visual' &&
       c.visualRegeneration?.revision === 'editorial-idea-assembly-2026-09-v4');
+    const modularClips = videoClips.filter(c => c.category === 'visual' &&
+      c.visualRegeneration?.revision === 'editorial-modular-catalog-2026-09-v1');
     const modernVisualClips = videoClips.filter(c =>
       c.category === 'visual' && Boolean(c.visualRegeneration) &&
-      c.visualRegeneration?.revision !== 'editorial-idea-assembly-2026-09-v4');
+      c.visualRegeneration?.revision !== 'editorial-idea-assembly-2026-09-v4' &&
+      c.visualRegeneration?.revision !== 'editorial-modular-catalog-2026-09-v1');
     const legacyVideoClips = videoClips.filter(c => c.category !== 'visual');
-    if (legacyVideoClips.length === 0 && modernVisualClips.length === 0 && ideaV4Clips.length === 0) return;
+    if (legacyVideoClips.length === 0 && modernVisualClips.length === 0 && ideaV4Clips.length === 0 && modularClips.length === 0) return;
     setIsGeneratingAssets(true);
     // Se captura al EMPEZAR, no justo antes del lote: asi la ventana de riesgo cubre tambien
     // la llamada a DeepSeek, que son decenas de segundos.
@@ -2959,6 +3031,18 @@ ${res.filePath}`);
         const replayDuration = result.durationSeconds
         setTimelineVideoClips(previous => previous.map(current => current.id === clip.id
           ? { ...current, path: replayPath, url: replayUrl, durationSeconds: replayDuration! }
+          : current))
+        setIsDirty(true)
+      }
+      for (const clip of modularClips) {
+        const result = await window.electronAPI.regenerateEditorialModularCatalogV1(clip.visualRegeneration)
+        if (!result.success || !result.path || !result.durationSeconds) {
+          setModularStatus(result.error ?? 'No se pudo regenerar la escena modular.')
+          continue
+        }
+        if (activeProjectPathRef.current !== proyectoAlEmpezar) break
+        setTimelineVideoClips(previous => previous.map(current => current.id === clip.id
+          ? {...current,path:result.path,url:result.url,durationSeconds:result.durationSeconds!}
           : current))
         setIsDirty(true)
       }
@@ -4168,6 +4252,7 @@ ${res.filePath}`);
                 <option value="editorial-explainer-light-v2">Editorial Explainer Light V2 (reproducible)</option>
                 <option value="editorial-explainer-v3">Editorial Explainer</option>
                 <option value="editorial-idea-assembly-v4">IDEA Assembly V4 — Color Pilot</option>
+                <option value="editorial-modular-catalog-v1">Catálogo editorial modular V1 — Piloto opt-in</option>
               </select>
             </div>
             {visualPresentationProfile === 'editorial-idea-assembly-v4' && <div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] space-y-2 text-[10px] text-slate-200">
@@ -4221,6 +4306,55 @@ ${res.filePath}`);
               <button type="button" onClick={generateIdeaV4} disabled={!activeProjectPath || !ideaV4AssetRoot.trim()}
                 className="w-full rounded bg-orange-700 px-2 py-1 font-semibold disabled:opacity-40">Generar IDEA V4 en timeline</button>
               {ideaV4Status && <p role="status">{ideaV4Status}</p>}
+            </div>}
+            {visualPresentationProfile === 'editorial-modular-catalog-v1' && <div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] space-y-2 text-[10px] text-slate-200">
+              <p>Una escena de prueba; no modifica la generación normal ni los proyectos anteriores.</p>
+              <label className="block">Raíz local curada (contiene inventory.json)
+                <input value={modularCatalogRoot} onChange={event=>{setModularCatalogRoot(event.target.value);setModularAssets([])}}
+                  className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1" /></label>
+              <button type="button" onClick={loadModularCatalog} disabled={!modularCatalogRoot.trim()}
+                className="rounded bg-stone-700 px-2 py-1 disabled:opacity-40">Validar y listar catálogo</button>
+              <label className="block">Runtime de IDEA V4 (fondo de la plantilla)
+                <input value={ideaV4AssetRoot} onChange={event=>setIdeaV4AssetRoot(event.target.value)}
+                  className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1" /></label>
+              <label className="block">Hero
+                <select value={modularHeroId} onChange={event=>setModularHeroId(event.target.value)} className="w-full mt-1 bg-[#1C1C1E] p-1">
+                  {modularAssets.filter(a=>a.role==='hero-core').map(a=><option key={a.assetId} value={a.assetId}>{a.code} · {a.primaryWordEs}</option>)}
+                </select></label>
+              {modularSupportIds.map((id,index)=><label key={index} className="block">Support {index+1}
+                <select value={id} onChange={event=>setModularSupportIds(previous=>previous.map((value,i)=>i===index?event.target.value:value) as [string,string,string,string])}
+                  className="w-full mt-1 bg-[#1C1C1E] p-1">
+                  {modularAssets.filter(a=>a.role==='support').map(a=><option key={a.assetId} value={a.assetId}>{a.code} · {a.primaryWordEs}</option>)}
+                </select></label>)}
+              {([['rear-collage',modularRearId,setModularRearId],['accent-mask',modularAccentId,setModularAccentId],
+                ['front-collage',modularFrontId,setModularFrontId]] as const).map(([role,id,setId])=><label key={role} className="block">{role} (opcional)
+                <select value={id} onChange={event=>setId(event.target.value)} className="w-full mt-1 bg-[#1C1C1E] p-1">
+                  <option value="">Sin capa</option>{modularAssets.filter(a=>a.role===role).map(a=><option key={a.assetId} value={a.assetId}>{a.code} · {a.primaryWordEs}</option>)}
+                </select></label>)}
+              <label className="block">Receta de geometría
+                <select value={modularRecipe} onChange={event=>setModularRecipe(event.target.value as typeof modularRecipe)} className="w-full mt-1 bg-[#1C1C1E] p-1">
+                  {['vertical','wide','compact','organic'].map(recipe=><option key={recipe}>{recipe}</option>)}
+                </select></label>
+              {(['connector','keyword','closing'] as const).map(field=><label key={field} className="block">Texto {field}
+                <input value={modularHeadline[field]} maxLength={40}
+                  onChange={event=>setModularHeadline(previous=>({...previous,[field]:event.target.value}))}
+                  className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1" /></label>)}
+              <label className="block">Tinta de Supports
+                <select value={ideaV4Color.supportSource} onChange={event=>setIdeaV4Color(previous=>({...previous,
+                  supportSource:event.target.value as IdeaColorIntentV4['supportSource'],
+                  customColor:event.target.value==='custom'?previous.customColor??'#238C87':undefined}))}
+                  className="w-full mt-1 bg-[#1C1C1E] p-1">
+                  <option value="ink">Tinta negra</option><option value="hero-primary">Acento</option><option value="custom">HEX personalizado</option>
+                </select></label>
+              {ideaV4Color.supportSource==='custom' && <input value={ideaV4Color.customColor??''} maxLength={7}
+                onChange={event=>setIdeaV4Color(previous=>({...previous,customColor:event.target.value.toUpperCase()}))}
+                className="w-full rounded bg-[#1C1C1E] p-1" aria-label="HEX personalizado" />}
+              <label className="block">Acento de la capa
+                <input type="color" value={ideaV4Color.heroPrimary??'#C5481E'}
+                  onChange={event=>setIdeaV4Color(previous=>({...previous,heroMode:'recolorable',heroPrimary:event.target.value.toUpperCase()}))} /></label>
+              <button type="button" onClick={generateModular} disabled={!activeProjectPath||modularAssets.length!==250||!ideaV4AssetRoot.trim()}
+                className="w-full rounded bg-orange-700 px-2 py-1 font-semibold disabled:opacity-40">Generar escena modular en timeline</button>
+              {modularStatus && <p role="status">{modularStatus}</p>}
             </div>}
             {isGeneratingAssets ? (
               <div className="w-full mt-3 p-3 bg-[#1C1C1E]/60 border border-[#3a3a3c] rounded-xl space-y-2 select-none">
