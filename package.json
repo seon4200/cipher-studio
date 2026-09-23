@@ -59,6 +59,8 @@
     "accept:editorial-idea-assembly-v1": "electron tests/aceptacion/editorial-idea-assembly-v1/generar.cjs",
     "accept:editorial-idea-assembly-v2": "electron tests/aceptacion/editorial-idea-assembly-v2/generar.cjs",
     "accept:editorial-idea-assembly-v3": "electron tests/aceptacion/editorial-idea-assembly-v3/generar.cjs",
+    "accept:editorial-idea-color-v4": "electron tests/aceptacion/editorial-idea-color-v4/generar.cjs",
+    "accept:editorial-idea-color-v4-ui": "electron tests/aceptacion/editorial-idea-color-v4/ui.cjs",
     "accept:families-motion-v2": "electron tests/aceptacion/families-motion-v2/generar.cjs",
     "accept:families-motion-v2-backgrounds": "electron tests/aceptacion/families-motion-v2/backgrounds.cjs",
     "accept:families-motion-v2-photos": "electron tests/aceptacion/families-motion-v2/photos.cjs",
