@@ -65,6 +65,14 @@ app.whenReady().then(async()=>{
       headline:{connector:'UNA',keyword:'IDEA',closing:'abre nuevas posibilidades'},
       relations:[{from:'support-1',to:'hero',meaning:'informs'}],...overrides})
     const first=make(),second=make()
+    const literalLong=make({headline:{connector:'UNA',keyword:'IDEA',
+      closing:'abre caminos para personas ciudades máquinas datos y decisiones'}})
+    assert(literalLong.sceneSpec.text.closing.endsWith('y decisiones'),
+      'EDITORIAL_LITERAL_TEXT_LOST')
+    const historicLong=structuredClone(base.sceneSpec)
+    historicLong.text.closing='abre caminos para personas ciudades máquinas datos y decisiones'
+    assert.throws(()=>b.validateVisualSceneSpecV2(historicLong),
+      /ocho palabras visibles/,'HISTORICAL_EIGHT_WORD_GUARD_CHANGED')
     assert.equal(first.pixelIdentity,second.pixelIdentity,'NON_DETERMINISTIC_PLAN')
     assert.equal(b.sceneSpecPixelIdentityAny(base.sceneSpec),historicalIdentity,'HISTORICAL_BASE_MUTATED')
     assert.equal(first.sceneSpec.presentationProfile.id,'editorial-modular-families-v1')
