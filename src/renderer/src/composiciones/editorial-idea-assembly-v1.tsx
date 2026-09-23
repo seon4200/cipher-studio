@@ -1,7 +1,7 @@
 import React from 'react'
 import type { VisualSceneSpecV2, RuntimeRenderAssetV2 } from '../../../shared/visual-scene-spec-v2'
 import { EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, EDITORIAL_IDEA_ASSEMBLY_V4,
-  type IdeaAccentTheme, type IdeaAssemblyResource } from '../../../shared/editorial-idea-assembly-v1'
+  EDITORIAL_IDEA_ASSEMBLY_V4_1, type IdeaAccentTheme, type IdeaAssemblyResource } from '../../../shared/editorial-idea-assembly-v1'
 import { sceneSpecReactKeyAny } from '../../../shared/visual-scene-spec-v2'
 import { AlphaMaskRasterV4 } from './alpha-mask-raster-v4'
 
@@ -33,9 +33,11 @@ export const EditorialIdeaAssemblyV1: React.FC<{
   const isV2 = plan.revision === EDITORIAL_IDEA_ASSEMBLY_V2.revision
   const isV3 = plan.revision === EDITORIAL_IDEA_ASSEMBLY_V3.revision
   const isV4 = plan.revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision
+  const isV4_1 = plan.revision === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision
+  const isV4Color = isV4 || isV4_1
   /** V3 intentionally retains V2's approved stable material/title treatment. */
-  const isPolished = isV2 || isV3 || isV4
-  const isSequenced = isV3 || isV4
+  const isPolished = isV2 || isV3 || isV4Color
+  const isSequenced = isV3 || isV4Color
   const landscape = window.innerWidth > window.innerHeight
   const layout = landscape ? plan.landscapeLayout : spec.layout
   const byId = new Map(runtimeAssets.map(asset => [asset.slotId, asset]))
@@ -60,11 +62,11 @@ export const EditorialIdeaAssemblyV1: React.FC<{
         zIndex: resource.zIndex, pointerEvents: 'none',
         opacity: enter * (isBackground ? 1 : 1 - phase(u, resource.timing.exit, 1)),
         transform: `translate(${x}%,${y}%) scale(${scale})`, transformOrigin: '50% 50%',
-        filter: !isV4 && resource.accentTreatment === 'hue-shift' ? accent.filter : 'none' }
-    if (isV4 && resource.accentTreatment === 'alpha-mask') {
+        filter: !isV4Color && resource.accentTreatment === 'hue-shift' ? accent.filter : 'none' }
+    if (isV4Color && resource.accentTreatment === 'alpha-mask') {
       const color = resource.colorCapability === 'accent-secondary' ? plan.heroPalette!.secondary! : plan.heroPalette!.primary!
       return <AlphaMaskRasterV4 key={resource.id} url={requireUrl(resource.id)} color={color}
-        maskId={`idea-v4-${resource.id}`} style={style} />
+        maskId={`${isV4_1 ? 'idea-v4-1' : 'idea-v4'}-${resource.id}`} style={style} />
     }
     return <img key={resource.id} src={requireUrl(resource.id)} alt="" data-idea-part={resource.id} style={style} />
   }
@@ -166,9 +168,9 @@ export const EditorialIdeaAssemblyV1: React.FC<{
         <div style={{ height: '69%', width: '75%', margin: '0 auto', borderRadius: '1.6cqmin',
           background: '#FAF9F6', border: '1px solid rgba(17,17,15,.13)', padding: '1.0cqmin',
           boxSizing: 'border-box', boxShadow: '.2cqmin .3cqmin .25cqmin rgba(17,17,15,.16), .7cqmin 1cqmin 2cqmin rgba(17,17,15,.08)' }}>
-          {isV4
+          {isV4Color
             ? <AlphaMaskRasterV4 url={requireUrl(support.slotId)} color={plan.supportTint!.resolvedColor} renderMode="css"
-                maskId={`idea-v4-${support.slotId}`} />
+                maskId={`${isV4_1 ? 'idea-v4-1' : 'idea-v4'}-${support.slotId}`} />
             : <img src={requireUrl(support.slotId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain',
                 filter: accent.filter }} />}
         </div>

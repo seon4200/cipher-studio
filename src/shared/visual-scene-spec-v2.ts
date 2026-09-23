@@ -62,9 +62,11 @@ import { validatePremiumStyleV1, type PremiumStyleV1 } from './premium-type-colo
 import { EDITORIAL_EXPLAINER_LIGHT_V1, createLightLayoutV1, validateLightStyleV1, type LightStyleV1 } from './editorial-explainer-light-v1'
 import { EDITORIAL_EXPLAINER_LIGHT_V2, createLightLayoutV2, validateLightStyleV2, type LightStyleV2 } from './editorial-explainer-light-v2'
 import { EDITORIAL_EXPLAINER_V3, createLightLayoutV3, validateLightStyleV3, type LightStyleV3 } from './editorial-explainer-v3'
-import { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, EDITORIAL_IDEA_ASSEMBLY_V4, IDEA_RESOURCE_IDS, IDEA_V4_SECONDARY_RESOURCE_ID, IDEA_SUPPORT_IDS,
+import { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, EDITORIAL_IDEA_ASSEMBLY_V4,
+  EDITORIAL_IDEA_ASSEMBLY_V4_1, IDEA_RESOURCE_IDS, IDEA_V4_SECONDARY_RESOURCE_ID, IDEA_SUPPORT_IDS,
   createIdeaAssemblyLayoutV1, createIdeaAssemblyLayoutV2, createIdeaAssemblyLayoutV3, validateIdeaAssemblyV1,
   type IdeaAssemblyV1, type IdeaResourceId, type IdeaColorCapability } from './editorial-idea-assembly-v1'
+import { getApprovedIdeaSupportV41 } from './editorial-idea-support-catalog-v4-1'
 import {
   VISUAL_MVP_BOUNDS_REVISION,
   editorialFallbackSpec,
@@ -458,7 +460,8 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
     ? createIdeaAssemblyLayoutV2('portrait')
     : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_IDEA_ASSEMBLY_V3.revision
     ? createIdeaAssemblyLayoutV3('portrait')
-    : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision
+    : [EDITORIAL_IDEA_ASSEMBLY_V4.revision, EDITORIAL_IDEA_ASSEMBLY_V4_1.revision]
+      .includes((spec.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_IDEA_ASSEMBLY_V4.revision)
     ? createIdeaAssemblyLayoutV3('portrait')
     : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision
     ? createLightLayoutV1(mode, supportCount, (spec.lightStyle as LightStyleV1).motionCue, 'portrait')
@@ -492,7 +495,8 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   if (value.backgroundProfile !== undefined) validateBackgroundProfileV1(value.backgroundProfile)
   if (value.colorPalette !== undefined) validateSceneColorPaletteV1(value.colorPalette)
   if (value.presentationProfile !== undefined) validateEditorialMotionProfile(value.presentationProfile)
-  const ideaRevision = [EDITORIAL_IDEA_ASSEMBLY_V1.revision, EDITORIAL_IDEA_ASSEMBLY_V2.revision, EDITORIAL_IDEA_ASSEMBLY_V3.revision, EDITORIAL_IDEA_ASSEMBLY_V4.revision]
+  const ideaRevision = [EDITORIAL_IDEA_ASSEMBLY_V1.revision, EDITORIAL_IDEA_ASSEMBLY_V2.revision,
+    EDITORIAL_IDEA_ASSEMBLY_V3.revision, EDITORIAL_IDEA_ASSEMBLY_V4.revision, EDITORIAL_IDEA_ASSEMBLY_V4_1.revision]
     .includes((value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_IDEA_ASSEMBLY_V1.revision)
   if (ideaRevision) {
     validateIdeaAssemblyV1(value.ideaAssembly)
@@ -517,7 +521,8 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   else if (value.premiumStyle !== undefined) fail(code, 'premiumStyle requiere perfil Porcelain')
   if ([EDITORIAL_MOTION_PROFILE_V2.revision, VISUAL_RECOVERY_PROFILE_V1.revision, PREMIUM_TYPE_COLOR_PROFILE_V1.revision,
     FAMILIES_MOTION_PROFILE_V2.revision, EDITORIAL_EXPLAINER_LIGHT_V1.revision, EDITORIAL_EXPLAINER_LIGHT_V2.revision, EDITORIAL_EXPLAINER_V3.revision,
-    EDITORIAL_IDEA_ASSEMBLY_V1.revision, EDITORIAL_IDEA_ASSEMBLY_V2.revision, EDITORIAL_IDEA_ASSEMBLY_V3.revision, EDITORIAL_IDEA_ASSEMBLY_V4.revision]
+    EDITORIAL_IDEA_ASSEMBLY_V1.revision, EDITORIAL_IDEA_ASSEMBLY_V2.revision, EDITORIAL_IDEA_ASSEMBLY_V3.revision,
+    EDITORIAL_IDEA_ASSEMBLY_V4.revision, EDITORIAL_IDEA_ASSEMBLY_V4_1.revision]
     .includes((value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_MOTION_PROFILE_V2.revision)) {
     if (!EDITORIAL_MOTION_CUES.includes(value.editorialMotionCue as EditorialMotionCue))
       fail(code, 'editorialMotionCue requerido para revisión v2')
@@ -535,7 +540,9 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   }
   validateText(value.text)
   if (!Array.isArray(value.slots) || value.slots.length > (ideaRevision ? 5 : 3)) fail(code, 'Número de slots incompatible con perfil')
-  value.slots.forEach(slot => validateSlot(slot, (value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision))
+  const ideaColorRevision = [EDITORIAL_IDEA_ASSEMBLY_V4.revision, EDITORIAL_IDEA_ASSEMBLY_V4_1.revision]
+    .includes((value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_IDEA_ASSEMBLY_V4.revision)
+  value.slots.forEach(slot => validateSlot(slot, ideaColorRevision))
   const ids = value.slots.map(slot => (slot as SceneSlotV2).slotId)
   if (new Set(ids).size !== ids.length) fail(code, 'slotId duplicado')
   const active = (value.slots as SceneSlotV2[]).filter(slot => slot.state === 'present' || slot.state === 'procedural')
@@ -546,6 +553,18 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   if (supports.length > (ideaRevision ? 4 : 2) || (supports.length && !heroes.length)) fail(code, 'Supports incompatibles con perfil')
   if (ideaRevision && (supports.length !== 4 || IDEA_SUPPORT_IDS.some(id => !supports.some(slot => slot.slotId === id))))
     fail(code, 'IDEA requiere exactamente cuatro Supports reales')
+  if ((value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision) {
+    const assembly = value.ideaAssembly as IdeaAssemblyV1
+    for (const support of assembly.supports) {
+      const approved = getApprovedIdeaSupportV41(support.catalogAssetId)
+      const slot = value.slots.find(item => (item as SceneSlotV2).slotId === support.slotId) as PresentSceneSlotV2 | undefined
+      if (!approved || support.catalogSha256 !== approved.sha256 || !slot || slot.state !== 'present' ||
+          slot.sha256 !== approved.sha256 || slot.mime !== 'image/png' || slot.kind !== 'simple-icon' ||
+          slot.alphaMode !== 'useful-alpha' || slot.colorCapability !== 'alpha-mask' ||
+          slot.tint.treatment !== 'accent-mask')
+        fail(code, 'IDEA_V41_SUPPORT_NOT_AUTHORIZED:' + support.slotId)
+    }
+  }
   const identities = active.map(slot => slot.state === 'present' ? `sha:${slot.sha256}` : `solar:${slot.solarIcon}`)
   if (new Set(identities).size !== identities.length)
     fail(code, 'Un mismo asset semántico no puede llenar varios slots sin una revisión contractual explícita')
@@ -605,7 +624,16 @@ export function validateVisualSceneSpecAny(value: unknown): VisualSceneSpecAny {
 }
 
 export function validateRenderBindingsAny(value: unknown, spec: VisualSceneSpecAny): RenderBindingsAny {
-  return spec.renderSpecVersion === 2 ? validateRenderBindingsV2(value) : validateRenderBindings(value)
+  if (spec.renderSpecVersion !== 2) return validateRenderBindings(value)
+  const bindings = validateRenderBindingsV2(value)
+  if (spec.presentationProfile?.revision === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision) {
+    for (const support of spec.ideaAssembly!.supports) {
+      const binding = bindings.assets.find(asset => asset.slotId === support.slotId)
+      if (!binding || binding.assetId !== support.catalogAssetId)
+        fail('VISUAL_RENDER_BINDINGS_V2_INVALID', 'IDEA_V41 binding no coincide con assetId lógico')
+    }
+  }
+  return bindings
 }
 
 export function sceneSpecFromGraphicDataAny(graphicData: unknown): VisualSceneSpecAny | null {

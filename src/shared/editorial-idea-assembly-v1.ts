@@ -1,5 +1,6 @@
 import type { VisualLayoutV4, SlotLayoutV4 } from './visual-layout-v4'
 import type { PercentRectV3 } from './visual-layout-v3'
+import { getApprovedIdeaSupportV41 } from './editorial-idea-support-catalog-v4-1'
 
 /** A new opt-in pixel contract. Do not change this revision after delivery. */
 export const EDITORIAL_IDEA_ASSEMBLY_V1 = Object.freeze({
@@ -27,6 +28,11 @@ export const EDITORIAL_IDEA_ASSEMBLY_V3 = Object.freeze({
 export const EDITORIAL_IDEA_ASSEMBLY_V4 = Object.freeze({
   id: 'editorial-idea-assembly-v1' as const,
   revision: 'editorial-idea-assembly-2026-09-v4' as const,
+})
+/** V4.1 is a fresh opt-in revision for the locally imported Support catalog. */
+export const EDITORIAL_IDEA_ASSEMBLY_V4_1 = Object.freeze({
+  id: 'editorial-idea-assembly-v1' as const,
+  revision: 'editorial-idea-assembly-2026-09-v4-1' as const,
 })
 export const EDITORIAL_IDEA_COLOR_REVISION_V1 = 'editorial-color-system-2026-09-v1' as const
 export const IDEA_V4_SECONDARY_RESOURCE_ID = 'idea-accent-secondary' as const
@@ -84,12 +90,14 @@ export type IdeaAssemblyRevision =
   | typeof EDITORIAL_IDEA_ASSEMBLY_V2.revision
   | typeof EDITORIAL_IDEA_ASSEMBLY_V3.revision
   | typeof EDITORIAL_IDEA_ASSEMBLY_V4.revision
+  | typeof EDITORIAL_IDEA_ASSEMBLY_V4_1.revision
 
 export function isIdeaAssemblyRevision(value: unknown): value is IdeaAssemblyRevision {
   return value === EDITORIAL_IDEA_ASSEMBLY_V1.revision ||
     value === EDITORIAL_IDEA_ASSEMBLY_V2.revision ||
     value === EDITORIAL_IDEA_ASSEMBLY_V3.revision ||
-    value === EDITORIAL_IDEA_ASSEMBLY_V4.revision
+    value === EDITORIAL_IDEA_ASSEMBLY_V4.revision ||
+    value === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision
 }
 
 export const IDEA_SUPPORT_IDS = ['support-1', 'support-2', 'support-3', 'support-4'] as const
@@ -139,6 +147,10 @@ export type IdeaAssemblySupport = {
   enter: number
   /** V3 only: frozen completion beat for the support's own entrance. */
   settle?: number
+  /** V4.1 only: logical catalog identity; paths and provenance stay outside SceneSpec. */
+  catalogAssetId?: string
+  /** V4.1 only: pinned source bytes, also required to equal the corresponding SceneSpec slot SHA. */
+  catalogSha256?: string
 }
 
 export type IdeaAssemblyV1 = {
@@ -224,7 +236,8 @@ export function createIdeaAssemblyLayoutForRevision(
 
 export function validateIdeaAssemblyV1(value: unknown): asserts value is IdeaAssemblyV1 {
   const v = value as IdeaAssemblyV1
-  const isV4 = v?.revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision
+  const isV4_1 = v?.revision === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision
+  const isV4 = v?.revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision || isV4_1
   const exactKeys = (object: object, keys: string[]) =>
     JSON.stringify(Object.keys(object).sort()) === JSON.stringify(keys.sort())
   const validNumber = (n: unknown) => typeof n === 'number' && Number.isFinite(n)
@@ -273,6 +286,15 @@ export function validateIdeaAssemblyV1(value: unknown): asserts value is IdeaAss
   }
   if (v.supports.some((s, i) => s.slotId !== IDEA_SUPPORT_IDS[i] || !s.label.trim() || !validNumber(s.enter) || s.enter < 0 || s.enter > .7))
     throw new Error('IDEA_ASSEMBLY_SUPPORTS_INVALID')
+  if (isV4_1) {
+    if (v.supports.some((support, i) => {
+      const approved = getApprovedIdeaSupportV41(support.catalogAssetId)
+      return !exactKeys(support, ['slotId', 'label', 'enter', 'settle', 'catalogAssetId', 'catalogSha256']) ||
+        !approved || support.catalogSha256 !== approved.sha256 || support.label !== approved.label ||
+        support.slotId !== IDEA_SUPPORT_IDS[i] || !validNumber(support.settle) || support.settle! <= support.enter
+    })) throw new Error('IDEA_V41_SUPPORT_CATALOG_IDENTITY_INVALID')
+  } else if (v.supports.some(s => s.catalogAssetId !== undefined || s.catalogSha256 !== undefined))
+    throw new Error('IDEA_ASSEMBLY_HISTORICAL_CATALOG_IDENTITY_INVALID')
   const hasSequence = v.revision === EDITORIAL_IDEA_ASSEMBLY_V3.revision || isV4
   if (!hasSequence) {
     if (v.supportTint !== undefined || v.heroPalette !== undefined)
@@ -298,6 +320,8 @@ export function validateIdeaAssemblyV1(value: unknown): asserts value is IdeaAss
     if ((v.heroPalette.mode === 'fixed-spectrum') !== (v.heroPalette.primary === undefined) ||
         (v.heroPalette.mode === 'dual-accent') !== (v.heroPalette.secondary !== undefined))
       throw new Error('IDEA_V4_HERO_PALETTE_INVALID')
+    if (isV4_1 && (v.heroPalette.mode !== 'recolorable' || ids.has(IDEA_V4_SECONDARY_RESOURCE_ID)))
+      throw new Error('IDEA_V41_HERO_COLOR_MODE_UNAVAILABLE')
     if (v.heroPalette.mode === 'dual-accent' && !ids.has(IDEA_V4_SECONDARY_RESOURCE_ID))
       throw new Error('IDEA_V4_SECONDARY_LAYER_REQUIRED')
     if ((v.supportTint.source === 'hero-primary' && v.supportTint.resolvedColor !== v.heroPalette.primary) ||

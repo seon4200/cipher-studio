@@ -156,8 +156,10 @@ export { publishRasterProjectAssetV1, subjectBoundsFromPixabayRasterV1 } from '.
 export { compileEditorialIdeaAssemblyPilotV1, compileEditorialIdeaAssemblyPilotV2,
   compileEditorialIdeaAssemblyPilotV3, compileEditorialIdeaAssemblyPilotV4 } from './assets/editorial-idea-assembly-pilot'
 export { generateIdeaColorPilotV4 } from './assets/editorial-idea-color-pilot-v4'
+export { bindEditorialIdeaSupportsV41, importEditorialIdeaSupportCatalogV41, resolveIdeaColorV41,
+  IDEA_SUPPORT_MANIFEST_V41 } from './assets/editorial-idea-support-catalog-v4-1'
 export { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, EDITORIAL_IDEA_ASSEMBLY_V4,
-  resolveIdeaColorV4,
+  EDITORIAL_IDEA_ASSEMBLY_V4_1, resolveIdeaColorV4,
   createIdeaAssemblyLayoutV1, createIdeaAssemblyLayoutV2, createIdeaAssemblyLayoutV3 } from '../shared/editorial-idea-assembly-v1'
 export { fullSubjectBounds } from '../shared/visual-scene-spec'
 export { createCompositeVisualCatalogV1, publishModernVisualPackAssetV1 } from './assets/modern-visual-pack'
@@ -1327,6 +1329,7 @@ type GraphicsWorkerJob = {
     ancho: number; alto: number; fps: number; duracion: number;
     modo: 'overlay' | 'pantalla'; sistema?: string;
     renderBindings?: RenderBindingsAny;
+    diagnosticCaptureFrames?: number[];
   }
 }
 
@@ -1334,6 +1337,7 @@ type GraphicsWorkerResult = {
   route: string | null
   qcFailure?: VisualRuntimeQcReport
   qcReport?: VisualRuntimeQcReport
+  diagnosticPngs?: Array<{ frame: number; seconds: number; base64: string }>
 }
 
 async function runGraphicsWorkerJob(jobPath: string): Promise<void> {
@@ -1341,12 +1345,16 @@ async function runGraphicsWorkerJob(jobPath: string): Promise<void> {
   activeProjectPath = job.projectRoot
   let qcFailure: VisualRuntimeQcReport | undefined
   let qcReport: VisualRuntimeQcReport | undefined
+  const diagnosticPngs: NonNullable<GraphicsWorkerResult['diagnosticPngs']> = []
   const route = await renderGraphicClip(job.graphicData, {
     ...job.options, projectRoot: job.projectRoot,
     onQcFailure: report => { qcFailure = report },
     onQcReport: report => { qcReport = report },
+    onDiagnosticFrame: (frame, seconds, png) => {
+      diagnosticPngs.push({ frame, seconds, base64: png.toString('base64') })
+    },
   })
-  const result: GraphicsWorkerResult = { route, qcFailure, qcReport }
+  const result: GraphicsWorkerResult = { route, qcFailure, qcReport, diagnosticPngs }
   await fs.promises.writeFile(path.join(path.dirname(jobPath), 'result.json'), JSON.stringify(result), 'utf8')
   cerrarVentanaGraficos()
 }
@@ -1523,6 +1531,10 @@ export async function renderGraphicClip(
     onQcFailure?: (report: VisualRuntimeQcReport) => void | Promise<void>;
     /** Diagnostics only: exposes the measured successful report without changing acceptance. */
     onQcReport?: (report: VisualRuntimeQcReport) => void | Promise<void>;
+    /** Diagnostics only: capture lossless NativeImage PNGs for selected frame indexes; never hashed. */
+    diagnosticCaptureFrames?: readonly number[];
+    /** Receives selected lossless Electron captures before video encoding; never changes pixels. */
+    onDiagnosticFrame?: (frame: number, seconds: number, png: Buffer) => void | Promise<void>;
   } = {}
 ): Promise<string | null> {
   const ancho = opciones.ancho ?? 1080;
@@ -1607,10 +1619,15 @@ export async function renderGraphicClip(
         options: {
           ancho, alto, fps, duracion, modo, sistema: opciones.sistema,
           renderBindings: opciones.renderBindings,
+          diagnosticCaptureFrames: opciones.diagnosticCaptureFrames?.filter(frame =>
+            Number.isInteger(frame) && frame >= 0 && frame < totalFrames),
         },
       })
       if (result.qcFailure) await opciones.onQcFailure?.(result.qcFailure)
       if (result.qcReport) await opciones.onQcReport?.(result.qcReport)
+      for (const captured of result.diagnosticPngs ?? []) {
+        await opciones.onDiagnosticFrame?.(captured.frame, captured.seconds, Buffer.from(captured.base64, 'base64'))
+      }
       return result.route
     } catch (error: any) {
       await writeDebugLog(`[GRAFICO] Worker offscreen falló: ${error?.message ?? error}`)
@@ -1773,6 +1790,11 @@ export async function renderGraphicClip(
           // documentacion y eso es una carrera: 3 ms sobre 33 compran determinismo.
           // El subarray descarta la franja de la sonda, que no viaja a ffmpeg.
           frame = Buffer.from(raw.subarray(bytesSonda));
+          if (opciones.diagnosticCaptureFrames?.includes(i)) {
+            // Lossless diagnostic evidence from Electron's actual NativeImage, before ffmpeg.
+            // It is deliberately outside cache/identity and does not feed the encoder.
+            await opciones.onDiagnosticFrame?.(i, t, img.toPNG());
+          }
           if (intento === MAX_INTENTOS_FRAME) framesEnElTope++;
           break;
         }

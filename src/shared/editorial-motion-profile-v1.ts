@@ -10,7 +10,8 @@ import type { PercentRectV3 } from './visual-layout-v3'
 import { EDITORIAL_EXPLAINER_LIGHT_V1 } from './editorial-explainer-light-v1'
 import { EDITORIAL_EXPLAINER_LIGHT_V2 } from './editorial-explainer-light-v2'
 import { EDITORIAL_EXPLAINER_V3 } from './editorial-explainer-v3'
-import { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, EDITORIAL_IDEA_ASSEMBLY_V4 } from './editorial-idea-assembly-v1'
+import { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, EDITORIAL_IDEA_ASSEMBLY_V4,
+  EDITORIAL_IDEA_ASSEMBLY_V4_1 } from './editorial-idea-assembly-v1'
 
 /** An opt-in pixel contract. Historical V15 specs omit this field entirely. */
 export const EDITORIAL_MOTION_PROFILE_V1 = Object.freeze({
@@ -37,7 +38,8 @@ export const FAMILIES_MOTION_PROFILE_V2 = Object.freeze({
 export type EditorialMotionProfile = EditorialMotionProfileV1 | typeof EDITORIAL_MOTION_PROFILE_V2 |
   typeof VISUAL_RECOVERY_PROFILE_V1 | typeof PREMIUM_TYPE_COLOR_PROFILE_V1 | typeof FAMILIES_MOTION_PROFILE_V2 |
   typeof EDITORIAL_EXPLAINER_LIGHT_V1 | typeof EDITORIAL_EXPLAINER_LIGHT_V2 | typeof EDITORIAL_EXPLAINER_V3 |
-  typeof EDITORIAL_IDEA_ASSEMBLY_V1 | typeof EDITORIAL_IDEA_ASSEMBLY_V2 | typeof EDITORIAL_IDEA_ASSEMBLY_V3 | typeof EDITORIAL_IDEA_ASSEMBLY_V4
+  typeof EDITORIAL_IDEA_ASSEMBLY_V1 | typeof EDITORIAL_IDEA_ASSEMBLY_V2 | typeof EDITORIAL_IDEA_ASSEMBLY_V3 |
+  typeof EDITORIAL_IDEA_ASSEMBLY_V4 | typeof EDITORIAL_IDEA_ASSEMBLY_V4_1
 export const EDITORIAL_MOTION_CUES = ['protagonist', 'comparison', 'process', 'cause', 'datum', 'typographic'] as const
 export type EditorialMotionCue = typeof EDITORIAL_MOTION_CUES[number]
 
@@ -76,7 +78,8 @@ export function validateEditorialMotionProfile(value: unknown): EditorialMotionP
         ((value as EditorialMotionProfile).revision === EDITORIAL_IDEA_ASSEMBLY_V1.revision ||
          (value as EditorialMotionProfile).revision === EDITORIAL_IDEA_ASSEMBLY_V2.revision ||
          (value as EditorialMotionProfile).revision === EDITORIAL_IDEA_ASSEMBLY_V3.revision ||
-         (value as EditorialMotionProfile).revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision)))
+         (value as EditorialMotionProfile).revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision ||
+         (value as EditorialMotionProfile).revision === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision)))
     throw new Error('EDITORIAL_MOTION_PROFILE_INVALID')
   return value as EditorialMotionProfile
 }
