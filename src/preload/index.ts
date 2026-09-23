@@ -28,7 +28,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generateVoice: (params: any) => ipcRenderer.invoke('generate-voice', params),
   generateMinimaxVideo: (params: { prompt: string }) => ipcRenderer.invoke('generate-minimax-video', params),
   loadBankClips: (params: { category: string }) => ipcRenderer.invoke('load-bank-clips', params),
-  generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; visualAssetPack?: 'legacy' | 'modern-pack-100-v1' | 'modern-pack-100-v1+local'; visualPresentationProfile?: 'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3'; graphicsPercent?: number; hasVideoV2?: boolean }) => ipcRenderer.invoke('generate-timeline-assets', params),
+  generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; visualAssetPack?: 'legacy' | 'modern-pack-100-v1' | 'modern-pack-100-v1+local'; visualPresentationProfile?: 'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3' | 'editorial-idea-assembly-v4'; graphicsPercent?: number; hasVideoV2?: boolean }) => ipcRenderer.invoke('generate-timeline-assets', params),
+  generateIdeaAssemblyV4Pilot: (params: { assetRoot: string;
+    color: import('../shared/editorial-idea-assembly-v1').IdeaColorIntentV4;
+    orientation: 'portrait' | 'landscape' }) => ipcRenderer.invoke('generate-idea-assembly-v4-pilot', params),
+  regenerateIdeaAssemblyV4Pilot: (params: any) => ipcRenderer.invoke('regenerate-idea-assembly-v4-pilot', params),
   generatePerfectSync: (params: any) => ipcRenderer.invoke('generate-perfect-sync', params),
   renderGraphicsBatch: (params: any) => ipcRenderer.invoke('render-graphics-batch', params),
   // CANAL PROPIO, no un campo mas en `generation-progress`. La barra de progreso es lo unico

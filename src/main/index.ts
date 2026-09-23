@@ -68,6 +68,8 @@ import { EDITORIAL_MOTION_PROFILE_V2, VISUAL_RECOVERY_PROFILE_V1, PREMIUM_TYPE_C
 import { EDITORIAL_EXPLAINER_LIGHT_V1 } from '../shared/editorial-explainer-light-v1'
 import { EDITORIAL_EXPLAINER_LIGHT_V2 } from '../shared/editorial-explainer-light-v2'
 import { EDITORIAL_EXPLAINER_V3 } from '../shared/editorial-explainer-v3'
+import { generateIdeaColorPilotV4 } from './assets/editorial-idea-color-pilot-v4'
+import { EDITORIAL_IDEA_ASSEMBLY_V4, resolveIdeaColorV4, type IdeaColorIntentV4 } from '../shared/editorial-idea-assembly-v1'
 import { writeVisualDecisionDiagnostic } from './services/visual-decision-diagnostics'
 import { prepareOriginalClipSegmentation } from './services/original-clip-segmentation'
 import { prepareGraphicForVisualRender, visualRenderRoot } from './assets/visual-render'
@@ -152,8 +154,10 @@ export { EDITORIAL_EXPLAINER_LIGHT_V2, createLightLayoutV2 } from '../shared/edi
 export { EDITORIAL_EXPLAINER_V3, EDITORIAL_V3_ACCENTS, createLightLayoutV3 } from '../shared/editorial-explainer-v3'
 export { publishRasterProjectAssetV1, subjectBoundsFromPixabayRasterV1 } from './assets/pixabay-images'
 export { compileEditorialIdeaAssemblyPilotV1, compileEditorialIdeaAssemblyPilotV2,
-  compileEditorialIdeaAssemblyPilotV3 } from './assets/editorial-idea-assembly-pilot'
-export { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3,
+  compileEditorialIdeaAssemblyPilotV3, compileEditorialIdeaAssemblyPilotV4 } from './assets/editorial-idea-assembly-pilot'
+export { generateIdeaColorPilotV4 } from './assets/editorial-idea-color-pilot-v4'
+export { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, EDITORIAL_IDEA_ASSEMBLY_V4,
+  resolveIdeaColorV4,
   createIdeaAssemblyLayoutV1, createIdeaAssemblyLayoutV2, createIdeaAssemblyLayoutV3 } from '../shared/editorial-idea-assembly-v1'
 export { fullSubjectBounds } from '../shared/visual-scene-spec'
 export { createCompositeVisualCatalogV1, publishModernVisualPackAssetV1 } from './assets/modern-visual-pack'
@@ -4103,9 +4107,56 @@ function enviarAviso(event: any, carga: unknown): void {
   } catch (e) { /* ventana cerrada: el log ya lo tiene */ }
 }
 
+ipcMain.handle('generate-idea-assembly-v4-pilot', async (_event, input: {
+  assetRoot: string; color: IdeaColorIntentV4; orientation: 'portrait' | 'landscape'
+}) => {
+  try {
+    if (!activeProjectPath) throw new Error('IDEA_V4_PROJECT_REQUIRED')
+    if (!input || typeof input.assetRoot !== 'string' || !path.isAbsolute(input.assetRoot) ||
+        !['portrait', 'landscape'].includes(input.orientation)) throw new Error('IDEA_V4_INPUT_INVALID')
+    resolveIdeaColorV4(input.color)
+    const projectRoot = activeProjectPath
+    const result = await generateIdeaColorPilotV4({ ...input, projectRoot, render: renderGraphicClip })
+    if (activeProjectPath !== projectRoot) throw new Error('IDEA_V4_PROJECT_CHANGED')
+    return { success: true, path: result.file, url: pathToFileURL(result.file).href,
+      durationSeconds: result.duration, graphicData: result.graphicData,
+      renderBindings: result.renderBindings, findings: result.qc?.findings ?? [] }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) }
+  }
+})
+
+/** Replay the persisted V4 pixels and bindings; never resolve current UI colors again. */
+ipcMain.handle('regenerate-idea-assembly-v4-pilot', async (_event, input: {
+  graphicData: any; renderBindings: RenderBindingsAny; orientation: 'portrait' | 'landscape'
+}) => {
+  try {
+    if (!activeProjectPath) throw new Error('IDEA_V4_PROJECT_REQUIRED')
+    const spec = sceneSpecFromGraphicDataAny(input?.graphicData)
+    if (spec?.renderSpecVersion !== 2 ||
+        spec.presentationProfile?.revision !== EDITORIAL_IDEA_ASSEMBLY_V4.revision ||
+        !['portrait', 'landscape'].includes(input?.orientation))
+      throw new Error('IDEA_V4_REPLAY_INVALID')
+    const projectRoot = activeProjectPath
+    const file = await renderGraphicClip(input.graphicData, {
+      ancho: input.orientation === 'portrait' ? 720 : 1280,
+      alto: input.orientation === 'portrait' ? 1280 : 720,
+      fps: 24, duracion: 80 / 24, modo: 'pantalla', sistema: 'editorial',
+      projectRoot, renderBindings: input.renderBindings,
+    })
+    if (activeProjectPath !== projectRoot) throw new Error('IDEA_V4_PROJECT_CHANGED')
+    if (!file || !(await exists(file))) throw new Error('IDEA_V4_REPLAY_VISUAL_SIN_FICHERO')
+    return { success: true, path: file, url: pathToFileURL(file).href, durationSeconds: 80 / 24 }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) }
+  }
+})
+
 ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, visualPresentationProfile, visualAssetPack, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
   if (visualAssetPack !== undefined && !['legacy', MODERN_VISUAL_PACK_V1.id, 'modern-pack-100-v1+local'].includes(visualAssetPack))
     return { success: false, error: 'Pack visual no reconocido' }
+  if (visualPresentationProfile === 'editorial-idea-assembly-v4')
+    return { success: false, error: 'IDEA V4 es un piloto de una escena; usa Generar IDEA V4.' }
   if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1', 'families-motion-v2', 'editorial-explainer-light-v1', 'editorial-explainer-light-v2', 'editorial-explainer-v3'].includes(visualPresentationProfile))
     throw new Error('VISUAL_PRESENTATION_PROFILE_INVALID');
   const isOriginalAudio = transcriptSegments && newAudioSegments && 

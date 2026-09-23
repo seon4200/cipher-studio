@@ -13,6 +13,7 @@ import {
 import './styles/globals.css'
 import TrendsPanel from './TrendsPanel'
 import { AnimatedGraphic } from './AnimatedGraphic'
+import type { IdeaColorIntentV4 } from '../../shared/editorial-idea-assembly-v1'
 
 /* ------------------------------------------------------------------
    App component (ya existente)
@@ -1566,7 +1567,36 @@ function App() {
   // un proyecto nuevo reparte exactamente como antes hasta que el usuario mueva el slider.
   const [timelineWeights, setTimelineWeights] = useState<number[]>([...PESOS_POR_DEFECTO])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
-  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3'>('standard')
+  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3' | 'editorial-idea-assembly-v4'>('standard')
+  const [ideaV4AssetRoot, setIdeaV4AssetRoot] = useState('')
+  const [ideaV4Color, setIdeaV4Color] = useState<IdeaColorIntentV4>({
+    supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E',
+  })
+  const [ideaV4Status, setIdeaV4Status] = useState('')
+  const generateIdeaV4 = async () => {
+    if (!activeProjectPath || !ideaV4AssetRoot.trim()) {
+      setIdeaV4Status('Abre un proyecto y selecciona la carpeta runtime de IDEA.'); return
+    }
+    setIdeaV4Status('Materializando y renderizando IDEA V4…')
+    const result = await window.electronAPI.generateIdeaAssemblyV4Pilot({
+      assetRoot: ideaV4AssetRoot.trim(), color: ideaV4Color,
+      orientation: aspectRatio === 'horizontal' ? 'landscape' : 'portrait',
+    })
+    if (!result.success || !result.path || !result.durationSeconds) {
+      setIdeaV4Status(result.error || 'No se pudo renderizar IDEA V4.'); return
+    }
+    const startSeconds = timelineVideoClips.reduce((end, clip) => Math.max(end, clip.startSeconds + clip.durationSeconds), 0)
+    const clip: TimelineClip = { id: `idea-v4-${Date.now()}`, name: 'IDEA Assembly V4 — Color Pilot',
+      type: 'video', category: 'visual', startSeconds, durationSeconds: result.durationSeconds,
+      path: result.path, url: result.url, graphicData: result.graphicData,
+      visualRegeneration: { revision: 'editorial-idea-assembly-2026-09-v4',
+        graphicData: result.graphicData, renderBindings: result.renderBindings,
+        orientation: aspectRatio === 'horizontal' ? 'landscape' : 'portrait' },
+    }
+    setTimelineVideoClips(previous => [...previous, clip])
+    setIsDirty(true)
+    setIdeaV4Status('IDEA V4 añadida al timeline.')
+  }
   const [visualAssetPack, setVisualAssetPack] = useState<'legacy' | 'modern-pack-100-v1' | 'modern-pack-100-v1+local'>('legacy')
 
   // Hub de IA — estados
@@ -1726,7 +1756,7 @@ function App() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, visualPresentationProfile, visualAssetPack, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
 
   // UN solo sitio construye lo que se guarda. Estaba copiado en TRES (guardar al cerrar,
   // guardar, y guardar como), y por eso cada funcion nueva nacia sin persistencia en dos de
@@ -1745,6 +1775,7 @@ function App() {
     libraryWidth, toolsWidth, timelineHeight,
     voiceModel, voiceSpeaker, voiceSpeed, voiceStability,
     generatedVoices, graphicsPercent, timelineWeights, visualPresentationProfile, visualAssetPack,
+    ideaV4AssetRoot, ideaV4Color,
 
     // ─── Lo que decide COMO sale el video exportado ───
     // aspectRatio es el mas peligroso de los siete: NO aparece en el modal de exportacion,
@@ -1774,7 +1805,7 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, visualPresentationProfile, visualAssetPack, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
 
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
@@ -1878,13 +1909,18 @@ function App() {
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
         setVisualAssetPack(loadedData.visualAssetPack === 'modern-pack-100-v1+local' ? 'modern-pack-100-v1+local' : loadedData.visualAssetPack === 'modern-pack-100-v1' ? 'modern-pack-100-v1' : 'legacy');
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-explainer-v3' ? 'editorial-explainer-v3' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-idea-assembly-v4' ? 'editorial-idea-assembly-v4' :
+          loadedData.visualPresentationProfile === 'editorial-explainer-v3' ? 'editorial-explainer-v3' :
           loadedData.visualPresentationProfile === 'editorial-explainer-light-v2' ? 'editorial-explainer-light-v2' :
           loadedData.visualPresentationProfile === 'editorial-explainer-light-v1' ? 'editorial-explainer-light-v1' :
           loadedData.visualPresentationProfile === 'families-motion-v2' ? 'families-motion-v2' :
           loadedData.visualPresentationProfile === 'premium-type-color-v1' ? 'premium-type-color-v1' :
           loadedData.visualPresentationProfile === 'visual-recovery-v1' ? 'visual-recovery-v1' :
           loadedData.visualPresentationProfile === 'editorial-hybrid-v1' ? 'editorial-hybrid-v1' : 'standard');
+        setIdeaV4AssetRoot(typeof loadedData.ideaV4AssetRoot === 'string' ? loadedData.ideaV4AssetRoot : '');
+        setIdeaV4Color(loadedData.ideaV4Color && typeof loadedData.ideaV4Color === 'object'
+          ? loadedData.ideaV4Color as IdeaColorIntentV4
+          : { supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E' });
 
         // ─── Lo que decide COMO sale el video exportado ───
         // Solo se restaura lo que VENGA: un proyecto guardado antes de esto no trae estos
@@ -2169,13 +2205,18 @@ function App() {
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
         setVisualAssetPack(loadedData.visualAssetPack === 'modern-pack-100-v1+local' ? 'modern-pack-100-v1+local' : loadedData.visualAssetPack === 'modern-pack-100-v1' ? 'modern-pack-100-v1' : 'legacy');
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-explainer-v3' ? 'editorial-explainer-v3' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-idea-assembly-v4' ? 'editorial-idea-assembly-v4' :
+          loadedData.visualPresentationProfile === 'editorial-explainer-v3' ? 'editorial-explainer-v3' :
           loadedData.visualPresentationProfile === 'editorial-explainer-light-v2' ? 'editorial-explainer-light-v2' :
           loadedData.visualPresentationProfile === 'editorial-explainer-light-v1' ? 'editorial-explainer-light-v1' :
           loadedData.visualPresentationProfile === 'families-motion-v2' ? 'families-motion-v2' :
           loadedData.visualPresentationProfile === 'premium-type-color-v1' ? 'premium-type-color-v1' :
           loadedData.visualPresentationProfile === 'visual-recovery-v1' ? 'visual-recovery-v1' :
           loadedData.visualPresentationProfile === 'editorial-hybrid-v1' ? 'editorial-hybrid-v1' : 'standard');
+        setIdeaV4AssetRoot(typeof loadedData.ideaV4AssetRoot === 'string' ? loadedData.ideaV4AssetRoot : '');
+        setIdeaV4Color(loadedData.ideaV4Color && typeof loadedData.ideaV4Color === 'object'
+          ? loadedData.ideaV4Color as IdeaColorIntentV4
+          : { supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E' });
 
         // ─── Lo que decide COMO sale el video exportado ───
         // Solo se restaura lo que VENGA: un proyecto guardado antes de esto no trae estos
@@ -2814,10 +2855,13 @@ ${res.filePath}`);
       : v1Clips;
     // A modern full-screen Visual has its bounded semantic context persisted.
     // It must never be sent through the historical DeepSeek/card generator.
+    const ideaV4Clips = videoClips.filter(c => c.category === 'visual' &&
+      c.visualRegeneration?.revision === 'editorial-idea-assembly-2026-09-v4');
     const modernVisualClips = videoClips.filter(c =>
-      c.category === 'visual' && Boolean(c.visualRegeneration));
+      c.category === 'visual' && Boolean(c.visualRegeneration) &&
+      c.visualRegeneration?.revision !== 'editorial-idea-assembly-2026-09-v4');
     const legacyVideoClips = videoClips.filter(c => c.category !== 'visual');
-    if (legacyVideoClips.length === 0 && modernVisualClips.length === 0) return;
+    if (legacyVideoClips.length === 0 && modernVisualClips.length === 0 && ideaV4Clips.length === 0) return;
     setIsGeneratingAssets(true);
     // Se captura al EMPEZAR, no justo antes del lote: asi la ventana de riesgo cubre tambien
     // la llamada a DeepSeek, que son decenas de segundos.
@@ -2902,6 +2946,21 @@ ${res.filePath}`);
             setIsDirty(true);
           }
         }
+      }
+      for (const clip of ideaV4Clips) {
+        const result = await window.electronAPI.regenerateIdeaAssemblyV4Pilot(clip.visualRegeneration)
+        if (!result.success || !result.path || !result.durationSeconds) {
+          setIdeaV4Status(result.error || 'No se pudo regenerar IDEA V4.')
+          continue
+        }
+        if (activeProjectPathRef.current !== proyectoAlEmpezar) break
+        const replayPath = result.path
+        const replayUrl = result.url
+        const replayDuration = result.durationSeconds
+        setTimelineVideoClips(previous => previous.map(current => current.id === clip.id
+          ? { ...current, path: replayPath, url: replayUrl, durationSeconds: replayDuration! }
+          : current))
+        setIsDirty(true)
       }
     } catch (err) {
       console.error('Error regenerando gráficos:', err);
@@ -4108,8 +4167,61 @@ ${res.filePath}`);
                 <option value="editorial-explainer-light-v1">Editorial Explainer Light V1 (piloto)</option>
                 <option value="editorial-explainer-light-v2">Editorial Explainer Light V2 (reproducible)</option>
                 <option value="editorial-explainer-v3">Editorial Explainer</option>
+                <option value="editorial-idea-assembly-v4">IDEA Assembly V4 — Color Pilot</option>
               </select>
             </div>
+            {visualPresentationProfile === 'editorial-idea-assembly-v4' && <div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] space-y-2 text-[10px] text-slate-200">
+              <label className="block">Carpeta runtime de IDEA (PNG generados con ChatGPT)
+                <input value={ideaV4AssetRoot} onChange={event => setIdeaV4AssetRoot(event.target.value)}
+                  placeholder="Ruta absoluta de la carpeta runtime" className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1" />
+              </label>
+              <label className="block">Tinta de Supports
+                <select value={ideaV4Color.supportSource} onChange={event => {
+                  const source = event.target.value as IdeaColorIntentV4['supportSource']
+                  setIdeaV4Color(previous => ({ ...previous, supportSource: source,
+                    ...(source === 'custom' ? { customColor: previous.customColor ?? '#238C87' } : { customColor: undefined }) }))
+                }} className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1">
+                  <option value="ink">Tinta negra editorial</option>
+                  <option value="video-primary">Primario del video</option>
+                  <option value="hero-primary" disabled={ideaV4Color.heroMode === 'fixed-spectrum'}>Primario del Hero</option>
+                  <option value="hero-secondary" disabled={ideaV4Color.heroMode !== 'dual-accent'}>Secundario del Hero</option>
+                  <option value="custom">HEX personalizado</option>
+                </select>
+              </label>
+              {ideaV4Color.supportSource === 'custom' && <label className="block">HEX de Supports
+                <span className="flex gap-2 mt-1"><input value={ideaV4Color.customColor ?? ''}
+                    onChange={event => setIdeaV4Color(previous => ({ ...previous, customColor: event.target.value.toUpperCase() }))}
+                    className="flex-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1" />
+                  <input type="color" value={/^#[0-9A-F]{6}$/.test(ideaV4Color.customColor ?? '') ? ideaV4Color.customColor : '#238C87'}
+                    onChange={event => setIdeaV4Color(previous => ({ ...previous, customColor: event.target.value.toUpperCase() }))} />
+                </span>
+              </label>}
+              <label className="block">Modo de color del Hero
+                <select value={ideaV4Color.heroMode} onChange={event => {
+                  const mode = event.target.value as IdeaColorIntentV4['heroMode']
+                  setIdeaV4Color(previous => ({ ...previous, heroMode: mode,
+                    heroPrimary: mode === 'fixed-spectrum' ? undefined : previous.heroPrimary ?? '#C5481E',
+                    heroSecondary: undefined,
+                    supportSource: mode === 'fixed-spectrum' && previous.supportSource === 'hero-primary' ? 'ink' : previous.supportSource }))
+                }} className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1">
+                  <option value="recolorable">Un acento</option>
+                  <option value="dual-accent" disabled>Dos acentos — requiere segunda capa real</option>
+                  <option value="fixed-spectrum" disabled>Multicolor fijo — requiere Hero autorizado</option>
+                </select>
+              </label>
+              {ideaV4Color.heroMode !== 'fixed-spectrum' && <label className="block">Primario del Hero
+                <input type="color" value={ideaV4Color.heroPrimary ?? '#C5481E'}
+                  onChange={event => setIdeaV4Color(previous => ({ ...previous, heroPrimary: event.target.value.toUpperCase() }))}
+                  className="ml-2" />
+              </label>}
+              {ideaV4Color.heroMode === 'dual-accent' && <label className="block">Secundario del Hero
+                <input type="color" value={ideaV4Color.heroSecondary ?? '#238C87'}
+                  onChange={event => setIdeaV4Color(previous => ({ ...previous, heroSecondary: event.target.value.toUpperCase() }))} />
+              </label>}
+              <button type="button" onClick={generateIdeaV4} disabled={!activeProjectPath || !ideaV4AssetRoot.trim()}
+                className="w-full rounded bg-orange-700 px-2 py-1 font-semibold disabled:opacity-40">Generar IDEA V4 en timeline</button>
+              {ideaV4Status && <p role="status">{ideaV4Status}</p>}
+            </div>}
             {isGeneratingAssets ? (
               <div className="w-full mt-3 p-3 bg-[#1C1C1E]/60 border border-[#3a3a3c] rounded-xl space-y-2 select-none">
                 <div className="flex items-center space-x-2">
