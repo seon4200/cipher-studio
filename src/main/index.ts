@@ -54,6 +54,7 @@ export * from './assets/motion-graphics-resolver'
 import {
   sceneSpecFromGraphicDataAny,
   sceneSpecPixelIdentityAny,
+  validateRenderBindingsAny,
   type RenderBindingsAny,
 } from '../shared/visual-scene-spec-v2'
 import { createLocalSceneSemanticV1, selectNarrativeKeywordV2 } from '../shared/local-scene-semantic'
@@ -70,6 +71,8 @@ import { EDITORIAL_EXPLAINER_LIGHT_V2 } from '../shared/editorial-explainer-ligh
 import { EDITORIAL_EXPLAINER_V3 } from '../shared/editorial-explainer-v3'
 import { generateIdeaColorPilotV4 } from './assets/editorial-idea-color-pilot-v4'
 import { CuratedModularCatalogV1, bindEditorialModularCatalogV1 } from './assets/editorial-modular-catalog-v1'
+import { bindEditorialModularFamilyV1, selectEditorialModularFamilyAssetsV1 } from './assets/editorial-modular-families-v1'
+import { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-families-v1'
 import { EDITORIAL_MODULAR_CATALOG_V1, type ModularCatalogPilotInputV1 } from '../shared/editorial-modular-catalog-v1'
 import { EDITORIAL_IDEA_ASSEMBLY_V4, resolveIdeaColorV4, type IdeaColorIntentV4 } from '../shared/editorial-idea-assembly-v1'
 import { writeVisualDecisionDiagnostic } from './services/visual-decision-diagnostics'
@@ -161,6 +164,11 @@ export { generateIdeaColorPilotV4 } from './assets/editorial-idea-color-pilot-v4
 export { bindEditorialIdeaSupportsV41, importEditorialIdeaSupportCatalogV41, resolveIdeaColorV41,
   IDEA_SUPPORT_MANIFEST_V41 } from './assets/editorial-idea-support-catalog-v4-1'
 export { CuratedModularCatalogV1, bindEditorialModularCatalogV1 } from './assets/editorial-modular-catalog-v1'
+export { bindEditorialModularFamilyV1, selectEditorialModularFamilyAssetsV1 } from './assets/editorial-modular-families-v1'
+export { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-families-v1'
+export { validateVisualSceneSpecV2, validateRenderBindingsAny, sceneSpecPixelIdentityAny } from '../shared/visual-scene-spec-v2'
+export { createLocalSceneSemanticV1 } from '../shared/local-scene-semantic'
+export { createModernVisualGenerationContextV2, resolveModernVisualGenerationBatchV2 } from './assets/modern-visual-generation'
 export { EDITORIAL_MODULAR_CATALOG_V1, curatedModularAssetsV1 } from '../shared/editorial-modular-catalog-v1'
 export { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, EDITORIAL_IDEA_ASSEMBLY_V4,
   EDITORIAL_IDEA_ASSEMBLY_V4_1, resolveIdeaColorV4,
@@ -4247,13 +4255,18 @@ ipcMain.handle('regenerate-editorial-modular-catalog-v1', async (_event, input: 
   } catch (error) { return {success:false,error:error instanceof Error?error.message:String(error)} }
 })
 
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, visualPresentationProfile, visualAssetPack, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
+ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, visualPresentationProfile, visualAssetPack, modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
   if (visualAssetPack !== undefined && !['legacy', MODERN_VISUAL_PACK_V1.id, 'modern-pack-100-v1+local'].includes(visualAssetPack))
     return { success: false, error: 'Pack visual no reconocido' }
   if (visualPresentationProfile === 'editorial-idea-assembly-v4' || visualPresentationProfile === 'editorial-modular-catalog-v1')
     return { success: false, error: 'Este perfil es un piloto de una escena; usa su botón de generación opt-in.' }
-  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1', 'families-motion-v2', 'editorial-explainer-light-v1', 'editorial-explainer-light-v2', 'editorial-explainer-v3'].includes(visualPresentationProfile))
+  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1', 'families-motion-v2', 'editorial-explainer-light-v1', 'editorial-explainer-light-v2', 'editorial-explainer-v3', EDITORIAL_MODULAR_FAMILIES_V1.id].includes(visualPresentationProfile))
     throw new Error('VISUAL_PRESENTATION_PROFILE_INVALID');
+  if (visualPresentationProfile === EDITORIAL_MODULAR_FAMILIES_V1.id &&
+      (editorialFamilyChoice !== undefined && !['auto','marcoPoster','editorial','partidoVertical','cuaderno','constelacion','cascada'].includes(editorialFamilyChoice) ||
+       editorialFamilyEffects !== undefined && !['none','subtle'].includes(editorialFamilyEffects) ||
+       editorialFamilyColor !== undefined && !/^#[0-9A-Fa-f]{6}$/.test(editorialFamilyColor)))
+    throw new Error('EDITORIAL_FAMILY_USER_OPTIONS_INVALID');
   const isOriginalAudio = transcriptSegments && newAudioSegments && 
     transcriptSegments.length === newAudioSegments.length &&
     transcriptSegments[0]?.start === newAudioSegments[0]?.start;
@@ -5279,14 +5292,47 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         // All semantic work completes before hashing/rendering. Renderer gets only the
         // materialized SceneSpec and its locator-only bindings; its trace remains diagnostic.
         if (!PROYECTO_VISUAL) throw new Error('La generación V15 requiere projectRoot explícito');
+        const editorialFamiliesSelected = visualPresentationProfile === EDITORIAL_MODULAR_FAMILIES_V1.id
+        const curatedFamilyCatalog = editorialFamiliesSelected
+          ? new CuratedModularCatalogV1(String(modularCatalogRoot ?? '')) : null
         const resueltosModernos = await resolveModernVisualGenerationBatchV2({
-          contexts: contextosModernos,
+          // The existing semantic/keyword authority remains unchanged. For the
+          // catalogue profile, compile an asset-free base, then bind only exact
+          // curated ProjectAssets; do not query providers for discarded images.
+          contexts: editorialFamiliesSelected
+            ? contextosModernos.map(context => ({...context,preferredVisualMode:'editorial-text' as const}))
+            : contextosModernos,
           projectRoot: PROYECTO_VISUAL,
-          pixabayApiKey: process.env.PIXABAY_API_KEY || undefined,
+          pixabayApiKey: editorialFamiliesSelected ? undefined : process.env.PIXABAY_API_KEY || undefined,
         });
-        const solicitudesGraficas = resueltosModernos.map(({ context, resolved }) => {
+        let previousEditorialFamily: import('../shared/editorial-modular-families-v1').EditorialFamilyIdV1 | undefined
+        const solicitudesGraficas = resueltosModernos.map(({ context, resolved }, sceneIndex) => {
           const base = resolved.base;
-          if (resolved.compiled.graphicData.type !== COMPOSICION_VISUAL)
+          const selected = curatedFamilyCatalog ? selectEditorialModularFamilyAssetsV1({
+            catalog:curatedFamilyCatalog,semantic:base.localSemantic,sceneIndex,
+            previousFamily:previousEditorialFamily,
+            preferredFamily:editorialFamilyChoice&&editorialFamilyChoice!=='auto'?editorialFamilyChoice:undefined}) : null
+          if (selected) previousEditorialFamily=selected.family
+          const selectedIds = selected ? [selected.heroId,...selected.supportIds,
+            selected.rearId,selected.accentId,selected.frontId]
+            .filter((id):id is string=>!!id) : []
+          const imported = selected && curatedFamilyCatalog ? Object.fromEntries(
+            [...new Set(selectedIds)].map(id=>[id,curatedFamilyCatalog.publish(PROYECTO_VISUAL!,id)])) : {}
+          const familyBuilt = selected && curatedFamilyCatalog ? bindEditorialModularFamilyV1({
+            template:resolved.compiled,catalog:curatedFamilyCatalog,imported,
+            family:selected.family,layoutVariant:selected.layoutVariant,
+            heroId:selected.heroId,supportIds:selected.supportIds,
+            rearId:selected.rearId,accentId:selected.accentId,frontId:selected.frontId,
+            background:selected.background,entry:selected.entry,supportTreatment:selected.supportTreatment,
+            camera:selected.camera,
+            particles:editorialFamilyEffects==='subtle'&&selected.family==='marcoPoster'?'dust':selected.particles,
+            color:(editorialFamilyColor??'#A83B19').toUpperCase(),
+            headline:{connector:resolved.compiled.sceneSpec.text.connector,
+              keyword:resolved.compiled.sceneSpec.text.keyword,
+              closing:resolved.compiled.sceneSpec.text.closing},relations:selected.relations,
+          }) : null
+          const compiled = familyBuilt ?? resolved.compiled
+          if (compiled.graphicData.type !== COMPOSICION_VISUAL)
             throw new Error('El compilador semántico produjo una composición visual no autorizada');
           for (const alert of base.decision.alerts) {
             avisar({
@@ -5298,8 +5344,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             });
           }
           return {
-            graphicData: resolved.compiled.graphicData,
-            renderBindings: resolved.compiled.renderBindings,
+            graphicData: compiled.graphicData,
+            renderBindings: compiled.renderBindings,
             projectRoot: PROYECTO_VISUAL ?? undefined,
             diagnosticSceneId: base.decision.sceneId,
             resolverTrace: base.trace,
@@ -5307,10 +5353,15 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             motionGraphicsMetrics: resolved.metrics,
             localSemantic: base.localSemantic,
             keywordSelection: base.keywordSelection,
-            resolverDecision: base.decision,
+            resolverDecision: familyBuilt ? {...base.decision,
+              visualMode:familyBuilt.sceneSpec.visualMode,
+              reasons:[...base.decision.reasons,'EDITORIAL_CURATED_CATALOG_EXACT_MATCH',selected!.selectionReason]} : base.decision,
             inputFallback: base.inputFallback,
             // Diagnostic/state-only context. It stays outside sceneSpec, hash and renderer.
-            visualRegeneration: context,
+            visualRegeneration: familyBuilt ? {version:3,
+              revision:EDITORIAL_MODULAR_FAMILIES_V1.revision,
+              sceneId:context.sceneId,duration:context.duration,sistema:context.sistema,
+              graphicData:familyBuilt.graphicData,renderBindings:familyBuilt.renderBindings} : context,
             duracion: context.duration,
           };
         });
@@ -6109,9 +6160,22 @@ async function regenerateModernVisuals(event: any, params: any) {
     }))
     const normalized: Array<{ index: number; context: any; compiled: any; sceneId: string }> = [];
     const v1Indexes = requested.map((entry, index) => ({ entry, index }))
-      .filter(value => (value.entry.context as any)?.version !== 2);
+      .filter(value => ![2,3].includes((value.entry.context as any)?.version));
     const v2Indexes = requested.map((entry, index) => ({ entry, index }))
       .filter(value => (value.entry.context as any)?.version === 2);
+    const v3Indexes = requested.map((entry, index) => ({ entry, index }))
+      .filter(value => (value.entry.context as any)?.version === 3);
+    for (const {entry,index} of v3Indexes) {
+      const saved = entry.context as any
+      const spec = sceneSpecFromGraphicDataAny(saved.graphicData)
+      if (!spec || spec.renderSpecVersion !== 2 ||
+          spec.presentationProfile?.revision !== EDITORIAL_MODULAR_FAMILIES_V1.revision ||
+          saved.revision !== EDITORIAL_MODULAR_FAMILIES_V1.revision)
+        throw new Error('EDITORIAL_FAMILY_REPLAY_INVALID')
+      validateRenderBindingsAny(saved.renderBindings,spec)
+      normalized.push({index,context:saved,
+        compiled:{graphicData:saved.graphicData,renderBindings:saved.renderBindings},sceneId:saved.sceneId})
+    }
     if (v1Indexes.length) {
       const v1 = resolveModernVisualGenerationBatchV1({
         contexts: v1Indexes.map(value => value.entry.context),

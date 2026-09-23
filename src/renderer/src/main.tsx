@@ -1567,13 +1567,16 @@ function App() {
   // un proyecto nuevo reparte exactamente como antes hasta que el usuario mueva el slider.
   const [timelineWeights, setTimelineWeights] = useState<number[]>([...PESOS_POR_DEFECTO])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
-  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3' | 'editorial-idea-assembly-v4' | 'editorial-modular-catalog-v1'>('standard')
+  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3' | 'editorial-idea-assembly-v4' | 'editorial-modular-catalog-v1' | 'editorial-modular-families-v1'>('standard')
   const [ideaV4AssetRoot, setIdeaV4AssetRoot] = useState('')
   const [ideaV4Color, setIdeaV4Color] = useState<IdeaColorIntentV4>({
     supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E',
   })
   const [ideaV4Status, setIdeaV4Status] = useState('')
   const [modularCatalogRoot, setModularCatalogRoot] = useState('')
+  const [editorialFamilyChoice, setEditorialFamilyChoice] = useState('auto')
+  const [editorialFamilyColor, setEditorialFamilyColor] = useState('#A83B19')
+  const [editorialFamilyEffects, setEditorialFamilyEffects] = useState('none')
   const [modularAssets, setModularAssets] = useState<Array<{assetId:string;role:string;primaryWordEs:string;code:string}>>([])
   const [modularHeroId, setModularHeroId] = useState('editorial-hero-h001-v1')
   const [modularSupportIds, setModularSupportIds] = useState<[string,string,string,string]>([
@@ -1799,7 +1802,7 @@ function App() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, modularCatalogRoot, modularHeroId, modularSupportIds, modularRearId, modularAccentId, modularFrontId, modularRecipe, modularHeadline, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, modularHeroId, modularSupportIds, modularRearId, modularAccentId, modularFrontId, modularRecipe, modularHeadline, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
 
   // UN solo sitio construye lo que se guarda. Estaba copiado en TRES (guardar al cerrar,
   // guardar, y guardar como), y por eso cada funcion nueva nacia sin persistencia en dos de
@@ -1819,7 +1822,8 @@ function App() {
     voiceModel, voiceSpeaker, voiceSpeed, voiceStability,
     generatedVoices, graphicsPercent, timelineWeights, visualPresentationProfile, visualAssetPack,
     ideaV4AssetRoot, ideaV4Color,
-    modularCatalogRoot, modularHeroId, modularSupportIds, modularRearId, modularAccentId,
+    modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects,
+    modularHeroId, modularSupportIds, modularRearId, modularAccentId,
     modularFrontId, modularRecipe, modularHeadline,
 
     // ─── Lo que decide COMO sale el video exportado ───
@@ -1850,7 +1854,7 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, modularCatalogRoot, modularHeroId, modularSupportIds, modularRearId, modularAccentId, modularFrontId, modularRecipe, modularHeadline, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, modularHeroId, modularSupportIds, modularRearId, modularAccentId, modularFrontId, modularRecipe, modularHeadline, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
 
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
@@ -1954,7 +1958,8 @@ function App() {
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
         setVisualAssetPack(loadedData.visualAssetPack === 'modern-pack-100-v1+local' ? 'modern-pack-100-v1+local' : loadedData.visualAssetPack === 'modern-pack-100-v1' ? 'modern-pack-100-v1' : 'legacy');
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-modular-catalog-v1' ? 'editorial-modular-catalog-v1' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-modular-families-v1' ? 'editorial-modular-families-v1' :
+          loadedData.visualPresentationProfile === 'editorial-modular-catalog-v1' ? 'editorial-modular-catalog-v1' :
           loadedData.visualPresentationProfile === 'editorial-idea-assembly-v4' ? 'editorial-idea-assembly-v4' :
           loadedData.visualPresentationProfile === 'editorial-explainer-v3' ? 'editorial-explainer-v3' :
           loadedData.visualPresentationProfile === 'editorial-explainer-light-v2' ? 'editorial-explainer-light-v2' :
@@ -1968,6 +1973,11 @@ function App() {
           ? loadedData.ideaV4Color as IdeaColorIntentV4
           : { supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E' });
         setModularCatalogRoot(typeof loadedData.modularCatalogRoot==='string'?loadedData.modularCatalogRoot:'')
+        setEditorialFamilyChoice(['auto','marcoPoster','editorial','partidoVertical','cuaderno','constelacion','cascada'].includes(loadedData.editorialFamilyChoice)
+          ? loadedData.editorialFamilyChoice : 'auto')
+        setEditorialFamilyColor(typeof loadedData.editorialFamilyColor==='string'&&/^#[0-9A-Fa-f]{6}$/.test(loadedData.editorialFamilyColor)
+          ?loadedData.editorialFamilyColor.toUpperCase():'#A83B19')
+        setEditorialFamilyEffects(loadedData.editorialFamilyEffects==='subtle'?'subtle':'none')
         if (typeof loadedData.modularHeroId==='string') setModularHeroId(loadedData.modularHeroId)
         if (Array.isArray(loadedData.modularSupportIds) && loadedData.modularSupportIds.length===4)
           setModularSupportIds(loadedData.modularSupportIds as [string,string,string,string])
@@ -2262,7 +2272,8 @@ function App() {
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
         setVisualAssetPack(loadedData.visualAssetPack === 'modern-pack-100-v1+local' ? 'modern-pack-100-v1+local' : loadedData.visualAssetPack === 'modern-pack-100-v1' ? 'modern-pack-100-v1' : 'legacy');
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-modular-catalog-v1' ? 'editorial-modular-catalog-v1' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-modular-families-v1' ? 'editorial-modular-families-v1' :
+          loadedData.visualPresentationProfile === 'editorial-modular-catalog-v1' ? 'editorial-modular-catalog-v1' :
           loadedData.visualPresentationProfile === 'editorial-idea-assembly-v4' ? 'editorial-idea-assembly-v4' :
           loadedData.visualPresentationProfile === 'editorial-explainer-v3' ? 'editorial-explainer-v3' :
           loadedData.visualPresentationProfile === 'editorial-explainer-light-v2' ? 'editorial-explainer-light-v2' :
@@ -2276,6 +2287,11 @@ function App() {
           ? loadedData.ideaV4Color as IdeaColorIntentV4
           : { supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E' });
         setModularCatalogRoot(typeof loadedData.modularCatalogRoot==='string'?loadedData.modularCatalogRoot:'')
+        setEditorialFamilyChoice(['auto','marcoPoster','editorial','partidoVertical','cuaderno','constelacion','cascada'].includes(loadedData.editorialFamilyChoice)
+          ? loadedData.editorialFamilyChoice : 'auto')
+        setEditorialFamilyColor(typeof loadedData.editorialFamilyColor==='string'&&/^#[0-9A-Fa-f]{6}$/.test(loadedData.editorialFamilyColor)
+          ?loadedData.editorialFamilyColor.toUpperCase():'#A83B19')
+        setEditorialFamilyEffects(loadedData.editorialFamilyEffects==='subtle'?'subtle':'none')
         if (typeof loadedData.modularHeroId==='string') setModularHeroId(loadedData.modularHeroId)
         if (Array.isArray(loadedData.modularSupportIds) && loadedData.modularSupportIds.length===4)
           setModularSupportIds(loadedData.modularSupportIds as [string,string,string,string])
@@ -2651,6 +2667,10 @@ ${res.filePath}`);
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
         visualPresentationProfile, visualAssetPack,
+        modularCatalogRoot:visualPresentationProfile==='editorial-modular-families-v1'?modularCatalogRoot.trim():undefined,
+        editorialFamilyChoice:visualPresentationProfile==='editorial-modular-families-v1'?editorialFamilyChoice:undefined,
+        editorialFamilyColor:visualPresentationProfile==='editorial-modular-families-v1'?editorialFamilyColor:undefined,
+        editorialFamilyEffects:visualPresentationProfile==='editorial-modular-families-v1'?editorialFamilyEffects:undefined,
         // CERO A PROPOSITO, NO ES UN OLVIDO. El commit e145119 partio la construccion en tres
         // fases y saco los graficos de esta llamada: se piden despues, en su propia fase (el
         // bloque `if (graphicsPercent > 0)` de mas abajo). Este cero dice "aqui no, luego".
@@ -4253,8 +4273,42 @@ ${res.filePath}`);
                 <option value="editorial-explainer-v3">Editorial Explainer</option>
                 <option value="editorial-idea-assembly-v4">IDEA Assembly V4 — Color Pilot</option>
                 <option value="editorial-modular-catalog-v1">Catálogo editorial modular V1 — Piloto opt-in</option>
+                <option value="editorial-modular-families-v1">Familias editoriales V1 — Catálogo curado (opt-in)</option>
               </select>
             </div>
+            {visualPresentationProfile === 'editorial-modular-families-v1' && <div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] text-[10px] text-slate-200">
+              <label className="block">Raíz local de los 250 assets curados (inventory.json)
+                <input value={modularCatalogRoot} onChange={event=>setModularCatalogRoot(event.target.value)}
+                  className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1" />
+              </label>
+              <label className="block mt-2">Composición
+                <select value={editorialFamilyChoice} onChange={event=>setEditorialFamilyChoice(event.target.value)}
+                  className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1">
+                  <option value="auto">Automática según contenido</option>
+                  <option value="marcoPoster">Marco póster</option><option value="editorial">Editorial tipográfica</option>
+                  <option value="partidoVertical">Partido vertical</option><option value="cuaderno">Cuaderno</option>
+                  <option value="constelacion">Constelación</option><option value="cascada">Cascada</option>
+                </select>
+              </label>
+              <label className="block mt-2">Acento del video
+                <select value={['#A83B19','#238C87','#B8444F'].includes(editorialFamilyColor)?editorialFamilyColor:'custom'}
+                  onChange={event=>setEditorialFamilyColor(event.target.value==='custom'?'#7B4EA3':event.target.value)}
+                  className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1">
+                  <option value="#A83B19">Naranja</option><option value="#238C87">Teal</option>
+                  <option value="#B8444F">Crimson</option><option value="custom">HEX personalizado</option>
+                </select>
+              </label>
+              {!['#A83B19','#238C87','#B8444F'].includes(editorialFamilyColor)&&<input aria-label="HEX personalizado editorial"
+                value={editorialFamilyColor} onChange={event=>setEditorialFamilyColor(event.target.value.toUpperCase())}
+                className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1" />}
+              <label className="block mt-2">Efectos discretos
+                <select value={editorialFamilyEffects} onChange={event=>setEditorialFamilyEffects(event.target.value)}
+                  className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1">
+                  <option value="none">Sin partículas</option><option value="subtle">Motas suaves cuando procede</option>
+                </select>
+              </label>
+              <p className="mt-1">Solo selecciona coincidencias del catálogo; sin candidato válido, usa escena editorial de texto.</p>
+            </div>}
             {visualPresentationProfile === 'editorial-idea-assembly-v4' && <div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] space-y-2 text-[10px] text-slate-200">
               <label className="block">Carpeta runtime de IDEA (PNG generados con ChatGPT)
                 <input value={ideaV4AssetRoot} onChange={event => setIdeaV4AssetRoot(event.target.value)}
