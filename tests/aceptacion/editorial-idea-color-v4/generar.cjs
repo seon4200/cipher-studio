@@ -41,7 +41,9 @@ app.whenReady().then(async()=>{let code=1;try{
   const maskImplementation=fs.readFileSync(path.join(root,'src/renderer/src/composiciones/alpha-mask-raster-v4.tsx'),'utf8')
   const ideaImplementation=fs.readFileSync(path.join(root,'src/renderer/src/composiciones/editorial-idea-assembly-v1.tsx'),'utf8')
   assert(!/hue-rotate|saturate/i.test(maskImplementation),'IDEA_V4_MASK_CONTAINS_FILTER')
-  assert(ideaImplementation.includes("filter: !isV4 && resource.accentTreatment === 'hue-shift'") &&
+  assert(/const isV4Color = isV4 \|\| isV4_1/.test(ideaImplementation) &&
+    /filter: !isV4Color && resource\.accentTreatment === 'hue-shift'/.test(ideaImplementation) &&
+    /if \(isV4Color && resource\.accentTreatment === 'alpha-mask'\)/.test(ideaImplementation) &&
     ideaImplementation.includes('renderMode="css"'),'IDEA_V4_HISTORICAL_FILTER_LEAK')
   const b=require(path.join(root,'dist-electron/main/index.js'))
   ipcMain.removeHandler('get-elevenlabs-voices');ipcMain.handle('get-elevenlabs-voices',()=>({success:true,voices:[]}))
