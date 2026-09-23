@@ -1,6 +1,9 @@
 import type { VisualLayoutV4, SlotLayoutV4 } from './visual-layout-v4'
 import type { PercentRectV3 } from './visual-layout-v3'
 import { getApprovedIdeaSupportV41 } from './editorial-idea-support-catalog-v4-1'
+import { EDITORIAL_MODULAR_CATALOG_V1, MODULAR_CATALOG_REVISION_V1,
+  getCuratedModularAssetV1, resolveModularTitleAccentV1,
+  type ModularRecipeV1 } from './editorial-modular-catalog-v1'
 
 /** A new opt-in pixel contract. Do not change this revision after delivery. */
 export const EDITORIAL_IDEA_ASSEMBLY_V1 = Object.freeze({
@@ -91,13 +94,15 @@ export type IdeaAssemblyRevision =
   | typeof EDITORIAL_IDEA_ASSEMBLY_V3.revision
   | typeof EDITORIAL_IDEA_ASSEMBLY_V4.revision
   | typeof EDITORIAL_IDEA_ASSEMBLY_V4_1.revision
+  | typeof EDITORIAL_MODULAR_CATALOG_V1.revision
 
 export function isIdeaAssemblyRevision(value: unknown): value is IdeaAssemblyRevision {
   return value === EDITORIAL_IDEA_ASSEMBLY_V1.revision ||
     value === EDITORIAL_IDEA_ASSEMBLY_V2.revision ||
     value === EDITORIAL_IDEA_ASSEMBLY_V3.revision ||
     value === EDITORIAL_IDEA_ASSEMBLY_V4.revision ||
-    value === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision
+    value === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision ||
+    value === EDITORIAL_MODULAR_CATALOG_V1.revision
 }
 
 export const IDEA_SUPPORT_IDS = ['support-1', 'support-2', 'support-3', 'support-4'] as const
@@ -118,6 +123,9 @@ export type IdeaAssemblyResource = {
   accentTreatment: 'none' | 'hue-shift' | 'alpha-mask'
   /** Present only in V4; this metadata authorizes alpha masking by layer. */
   colorCapability?: IdeaColorCapability
+  /** Modular V1 only; catalog identity is logical and path-free. */
+  catalogAssetId?: string
+  catalogSha256?: string
 }
 
 export type IdeaConnectorRelation =
@@ -167,6 +175,12 @@ export type IdeaAssemblyV1 = {
   supportTint?: IdeaSupportTintV4
   heroPalette?: IdeaHeroPaletteV4
   landscapeLayout: VisualLayoutV4
+  /** Modular V1 only. These frozen choices affect visible pixels. */
+  catalogRevision?: typeof MODULAR_CATALOG_REVISION_V1
+  heroCatalogAssetId?: string
+  heroCatalogSha256?: string
+  recipe?: ModularRecipeV1
+  titleAccentResolved?: string
 }
 
 const rect = (x: number, y: number, width: number, height: number): PercentRectV3 => ({ x, y, width, height })
@@ -237,7 +251,8 @@ export function createIdeaAssemblyLayoutForRevision(
 export function validateIdeaAssemblyV1(value: unknown): asserts value is IdeaAssemblyV1 {
   const v = value as IdeaAssemblyV1
   const isV4_1 = v?.revision === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision
-  const isV4 = v?.revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision || isV4_1
+  const isModular = v?.revision === EDITORIAL_MODULAR_CATALOG_V1.revision
+  const isV4 = v?.revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision || isV4_1 || isModular
   const exactKeys = (object: object, keys: string[]) =>
     JSON.stringify(Object.keys(object).sort()) === JSON.stringify(keys.sort())
   const validNumber = (n: unknown) => typeof n === 'number' && Number.isFinite(n)
@@ -247,17 +262,26 @@ export function validateIdeaAssemblyV1(value: unknown): asserts value is IdeaAss
       !['orange', 'teal', 'crimson'].includes(v.accentTheme) ||
       !validNumber(v.heroStartScale) || v.heroStartScale < .5 || v.heroStartScale > 1 ||
       !v.heroAnchor || !validNumber(v.heroAnchor.x) || !validNumber(v.heroAnchor.y) ||
-      !Array.isArray(v.resources) || v.resources.length < IDEA_RESOURCE_IDS.length ||
-      v.resources.length > IDEA_RESOURCE_IDS.length + (isV4 ? 1 : 0) ||
+      !Array.isArray(v.resources) || v.resources.length < (isModular ? 1 : IDEA_RESOURCE_IDS.length) ||
+      v.resources.length > (isModular ? 4 : IDEA_RESOURCE_IDS.length + (isV4 ? 1 : 0)) ||
       !Array.isArray(v.supports) || v.supports.length !== IDEA_SUPPORT_IDS.length ||
       JSON.stringify(v.landscapeLayout) !== JSON.stringify(createIdeaAssemblyLayoutForRevision(v.revision, 'landscape')))
     throw new Error('IDEA_ASSEMBLY_INVALID')
   if (isV4 && !exactKeys(v, ['revision', 'accentTheme', 'heroStartScale', 'heroAnchor',
-    'resources', 'supports', 'connectorSequence', 'supportTint', 'heroPalette', 'landscapeLayout']))
+    'resources', 'supports', 'connectorSequence', 'supportTint', 'heroPalette', 'landscapeLayout',
+    ...(isModular ? ['catalogRevision', 'heroCatalogAssetId', 'heroCatalogSha256', 'recipe', 'titleAccentResolved'] : [])]))
     throw new Error('IDEA_V4_COLOR_CONTRACT_INVALID')
+  if (isModular) {
+    const hero = getCuratedModularAssetV1(v.heroCatalogAssetId)
+    if (v.catalogRevision !== MODULAR_CATALOG_REVISION_V1 || !hero || hero.role !== 'hero-core' ||
+        hero.sha256 !== v.heroCatalogSha256 || !['vertical', 'wide', 'compact', 'organic'].includes(v.recipe as string) ||
+        !v.heroPalette?.primary || v.titleAccentResolved !== resolveModularTitleAccentV1(v.heroPalette.primary))
+      throw new Error('MODULAR_HERO_CATALOG_IDENTITY_INVALID')
+  }
   const ids = new Set(v.resources.map(r => r.id))
-  if (ids.size !== v.resources.length || IDEA_RESOURCE_IDS.some(id => !ids.has(id)) ||
-      v.resources.some(r => ![...IDEA_RESOURCE_IDS, ...(isV4 ? [IDEA_V4_SECONDARY_RESOURCE_ID] : [])].includes(r.id)))
+  if (ids.size !== v.resources.length || (isModular ? !ids.has('idea-background') : IDEA_RESOURCE_IDS.some(id => !ids.has(id))) ||
+      v.resources.some(r => !(isModular ? ['idea-background', 'idea-rear', 'idea-accent', 'idea-front']
+        : [...IDEA_RESOURCE_IDS, ...(isV4 ? [IDEA_V4_SECONDARY_RESOURCE_ID] : [])]).includes(r.id)))
     throw new Error('IDEA_ASSEMBLY_RESOURCES_INVALID')
   for (const r of v.resources) {
     if (!/^[a-f0-9]{64}$/.test(r.sha256) || r.mime !== 'image/png' ||
@@ -273,8 +297,15 @@ export function validateIdeaAssemblyV1(value: unknown): asserts value is IdeaAss
       throw new Error('IDEA_ASSEMBLY_MATERIAL_TINT_INVALID:' + r.id)
     if (isV4) {
       if (!exactKeys(r, ['id', 'sha256', 'mime', 'alphaMode', 'rect', 'zIndex',
-        'timing', 'from', 'accentTreatment', 'colorCapability']))
+        'timing', 'from', 'accentTreatment', 'colorCapability',
+        ...(isModular && r.id !== 'idea-background' ? ['catalogAssetId', 'catalogSha256'] : [])]))
         throw new Error('IDEA_V4_RESOURCE_COLOR_UNAUTHORIZED:' + r.id)
+      if (isModular && r.id !== 'idea-background') {
+        const approved = getCuratedModularAssetV1(r.catalogAssetId)
+        const expectedRole = r.id === 'idea-rear' ? 'rear-collage' : r.id === 'idea-front' ? 'front-collage' : 'accent-mask'
+        if (!approved || approved.role !== expectedRole || approved.sha256 !== r.catalogSha256 || r.sha256 !== approved.sha256)
+          throw new Error('MODULAR_RESOURCE_NOT_CURATED:' + r.id)
+      }
       const accentLayer = r.id === 'idea-accent' || r.id === IDEA_V4_SECONDARY_RESOURCE_ID
       const expectedCapability: IdeaColorCapability = r.id === IDEA_V4_SECONDARY_RESOURCE_ID ? 'accent-secondary'
         : r.id === 'idea-accent' ? (v.heroPalette?.mode === 'fixed-spectrum' ? 'fixed-spectrum' : 'accent-primary') : 'none'
@@ -286,11 +317,14 @@ export function validateIdeaAssemblyV1(value: unknown): asserts value is IdeaAss
   }
   if (v.supports.some((s, i) => s.slotId !== IDEA_SUPPORT_IDS[i] || !s.label.trim() || !validNumber(s.enter) || s.enter < 0 || s.enter > .7))
     throw new Error('IDEA_ASSEMBLY_SUPPORTS_INVALID')
-  if (isV4_1) {
+  if (isV4_1 || isModular) {
     if (v.supports.some((support, i) => {
-      const approved = getApprovedIdeaSupportV41(support.catalogAssetId)
+      const modularApproved = isModular ? getCuratedModularAssetV1(support.catalogAssetId) : undefined
+      const historicalApproved = isV4_1 ? getApprovedIdeaSupportV41(support.catalogAssetId) : undefined
+      const approved = modularApproved ?? historicalApproved
       return !exactKeys(support, ['slotId', 'label', 'enter', 'settle', 'catalogAssetId', 'catalogSha256']) ||
-        !approved || support.catalogSha256 !== approved.sha256 || support.label !== approved.label ||
+        !approved || (isModular && modularApproved?.role !== 'support') || support.catalogSha256 !== approved.sha256 ||
+        (isV4_1 && support.label !== historicalApproved?.label) ||
         support.slotId !== IDEA_SUPPORT_IDS[i] || !validNumber(support.settle) || support.settle! <= support.enter
     })) throw new Error('IDEA_V41_SUPPORT_CATALOG_IDENTITY_INVALID')
   } else if (v.supports.some(s => s.catalogAssetId !== undefined || s.catalogSha256 !== undefined))
@@ -320,7 +354,7 @@ export function validateIdeaAssemblyV1(value: unknown): asserts value is IdeaAss
     if ((v.heroPalette.mode === 'fixed-spectrum') !== (v.heroPalette.primary === undefined) ||
         (v.heroPalette.mode === 'dual-accent') !== (v.heroPalette.secondary !== undefined))
       throw new Error('IDEA_V4_HERO_PALETTE_INVALID')
-    if (isV4_1 && (v.heroPalette.mode !== 'recolorable' || ids.has(IDEA_V4_SECONDARY_RESOURCE_ID)))
+    if ((isV4_1 || isModular) && (v.heroPalette.mode !== 'recolorable' || ids.has(IDEA_V4_SECONDARY_RESOURCE_ID)))
       throw new Error('IDEA_V41_HERO_COLOR_MODE_UNAVAILABLE')
     if (v.heroPalette.mode === 'dual-accent' && !ids.has(IDEA_V4_SECONDARY_RESOURCE_ID))
       throw new Error('IDEA_V4_SECONDARY_LAYER_REQUIRED')

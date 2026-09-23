@@ -67,6 +67,7 @@ import { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_
   createIdeaAssemblyLayoutV1, createIdeaAssemblyLayoutV2, createIdeaAssemblyLayoutV3, validateIdeaAssemblyV1,
   type IdeaAssemblyV1, type IdeaResourceId, type IdeaColorCapability } from './editorial-idea-assembly-v1'
 import { getApprovedIdeaSupportV41 } from './editorial-idea-support-catalog-v4-1'
+import { EDITORIAL_MODULAR_CATALOG_V1, getCuratedModularAssetV1 } from './editorial-modular-catalog-v1'
 import {
   VISUAL_MVP_BOUNDS_REVISION,
   editorialFallbackSpec,
@@ -460,7 +461,7 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
     ? createIdeaAssemblyLayoutV2('portrait')
     : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_IDEA_ASSEMBLY_V3.revision
     ? createIdeaAssemblyLayoutV3('portrait')
-    : [EDITORIAL_IDEA_ASSEMBLY_V4.revision, EDITORIAL_IDEA_ASSEMBLY_V4_1.revision]
+    : [EDITORIAL_IDEA_ASSEMBLY_V4.revision, EDITORIAL_IDEA_ASSEMBLY_V4_1.revision, EDITORIAL_MODULAR_CATALOG_V1.revision]
       .includes((spec.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_IDEA_ASSEMBLY_V4.revision)
     ? createIdeaAssemblyLayoutV3('portrait')
     : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision
@@ -496,7 +497,8 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   if (value.colorPalette !== undefined) validateSceneColorPaletteV1(value.colorPalette)
   if (value.presentationProfile !== undefined) validateEditorialMotionProfile(value.presentationProfile)
   const ideaRevision = [EDITORIAL_IDEA_ASSEMBLY_V1.revision, EDITORIAL_IDEA_ASSEMBLY_V2.revision,
-    EDITORIAL_IDEA_ASSEMBLY_V3.revision, EDITORIAL_IDEA_ASSEMBLY_V4.revision, EDITORIAL_IDEA_ASSEMBLY_V4_1.revision]
+    EDITORIAL_IDEA_ASSEMBLY_V3.revision, EDITORIAL_IDEA_ASSEMBLY_V4.revision, EDITORIAL_IDEA_ASSEMBLY_V4_1.revision,
+    EDITORIAL_MODULAR_CATALOG_V1.revision]
     .includes((value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_IDEA_ASSEMBLY_V1.revision)
   if (ideaRevision) {
     validateIdeaAssemblyV1(value.ideaAssembly)
@@ -522,7 +524,7 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   if ([EDITORIAL_MOTION_PROFILE_V2.revision, VISUAL_RECOVERY_PROFILE_V1.revision, PREMIUM_TYPE_COLOR_PROFILE_V1.revision,
     FAMILIES_MOTION_PROFILE_V2.revision, EDITORIAL_EXPLAINER_LIGHT_V1.revision, EDITORIAL_EXPLAINER_LIGHT_V2.revision, EDITORIAL_EXPLAINER_V3.revision,
     EDITORIAL_IDEA_ASSEMBLY_V1.revision, EDITORIAL_IDEA_ASSEMBLY_V2.revision, EDITORIAL_IDEA_ASSEMBLY_V3.revision,
-    EDITORIAL_IDEA_ASSEMBLY_V4.revision, EDITORIAL_IDEA_ASSEMBLY_V4_1.revision]
+    EDITORIAL_IDEA_ASSEMBLY_V4.revision, EDITORIAL_IDEA_ASSEMBLY_V4_1.revision, EDITORIAL_MODULAR_CATALOG_V1.revision]
     .includes((value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_MOTION_PROFILE_V2.revision)) {
     if (!EDITORIAL_MOTION_CUES.includes(value.editorialMotionCue as EditorialMotionCue))
       fail(code, 'editorialMotionCue requerido para revisión v2')
@@ -540,7 +542,8 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   }
   validateText(value.text)
   if (!Array.isArray(value.slots) || value.slots.length > (ideaRevision ? 5 : 3)) fail(code, 'Número de slots incompatible con perfil')
-  const ideaColorRevision = [EDITORIAL_IDEA_ASSEMBLY_V4.revision, EDITORIAL_IDEA_ASSEMBLY_V4_1.revision]
+  const ideaColorRevision = [EDITORIAL_IDEA_ASSEMBLY_V4.revision, EDITORIAL_IDEA_ASSEMBLY_V4_1.revision,
+    EDITORIAL_MODULAR_CATALOG_V1.revision]
     .includes((value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_IDEA_ASSEMBLY_V4.revision)
   value.slots.forEach(slot => validateSlot(slot, ideaColorRevision))
   const ids = value.slots.map(slot => (slot as SceneSlotV2).slotId)
@@ -563,6 +566,25 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
           slot.alphaMode !== 'useful-alpha' || slot.colorCapability !== 'alpha-mask' ||
           slot.tint.treatment !== 'accent-mask')
         fail(code, 'IDEA_V41_SUPPORT_NOT_AUTHORIZED:' + support.slotId)
+    }
+  }
+  if ((value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_MODULAR_CATALOG_V1.revision) {
+    const assembly = value.ideaAssembly as IdeaAssemblyV1
+    const hero = getCuratedModularAssetV1(assembly.heroCatalogAssetId)
+    const heroSlot = value.slots.find(item => (item as SceneSlotV2).slotId === 'hero') as PresentSceneSlotV2 | undefined
+    if (!hero || hero.role !== 'hero-core' || hero.sha256 !== assembly.heroCatalogSha256 ||
+        !heroSlot || heroSlot.state !== 'present' || heroSlot.sha256 !== hero.sha256 ||
+        heroSlot.mime !== 'image/png' || heroSlot.colorCapability !== 'none')
+      fail(code, 'MODULAR_HERO_NOT_AUTHORIZED')
+    for (const support of assembly.supports) {
+      const approved = getCuratedModularAssetV1(support.catalogAssetId)
+      const slot = value.slots.find(item => (item as SceneSlotV2).slotId === support.slotId) as PresentSceneSlotV2 | undefined
+      if (!approved || approved.role !== 'support' || support.catalogSha256 !== approved.sha256 ||
+          !slot || slot.state !== 'present' || slot.sha256 !== approved.sha256 ||
+          slot.mime !== 'image/png' || slot.kind !== 'simple-icon' ||
+          slot.alphaMode !== 'useful-alpha' || slot.colorCapability !== 'alpha-mask' ||
+          slot.tint.treatment !== 'accent-mask')
+        fail(code, 'MODULAR_SUPPORT_NOT_AUTHORIZED:' + support.slotId)
     }
   }
   const identities = active.map(slot => slot.state === 'present' ? `sha:${slot.sha256}` : `solar:${slot.solarIcon}`)
@@ -626,11 +648,22 @@ export function validateVisualSceneSpecAny(value: unknown): VisualSceneSpecAny {
 export function validateRenderBindingsAny(value: unknown, spec: VisualSceneSpecAny): RenderBindingsAny {
   if (spec.renderSpecVersion !== 2) return validateRenderBindings(value)
   const bindings = validateRenderBindingsV2(value)
-  if (spec.presentationProfile?.revision === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision) {
+  if (spec.presentationProfile?.revision === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision ||
+      spec.presentationProfile?.revision === EDITORIAL_MODULAR_CATALOG_V1.revision) {
     for (const support of spec.ideaAssembly!.supports) {
       const binding = bindings.assets.find(asset => asset.slotId === support.slotId)
       if (!binding || binding.assetId !== support.catalogAssetId)
         fail('VISUAL_RENDER_BINDINGS_V2_INVALID', 'IDEA_V41 binding no coincide con assetId lógico')
+    }
+  }
+  if (spec.presentationProfile?.revision === EDITORIAL_MODULAR_CATALOG_V1.revision) {
+    const hero = bindings.assets.find(asset => asset.slotId === 'hero')
+    if (!hero || hero.assetId !== spec.ideaAssembly!.heroCatalogAssetId)
+      fail('VISUAL_RENDER_BINDINGS_V2_INVALID', 'MODULAR Hero binding no coincide con assetId lógico')
+    for (const resource of spec.ideaAssembly!.resources.filter(item => item.id !== 'idea-background')) {
+      const binding = bindings.assets.find(asset => asset.slotId === resource.id)
+      if (!binding || binding.assetId !== resource.catalogAssetId)
+        fail('VISUAL_RENDER_BINDINGS_V2_INVALID', 'MODULAR layer binding no coincide con assetId lógico')
     }
   }
   return bindings

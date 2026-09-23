@@ -41,7 +41,7 @@ const canonical = (value: unknown): string => {
 }
 const sha256 = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
 
-function inspectSupportPngV41(bytes: Buffer): PngAlphaInspectionV41 {
+export function inspectSupportPngV41(bytes: Buffer): PngAlphaInspectionV41 {
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])
   if (!Buffer.isBuffer(bytes) || bytes.length < 33 || !bytes.subarray(0, 8).equals(signature))
     throw new Error('IDEA_V41_SUPPORT_PNG_INVALID')

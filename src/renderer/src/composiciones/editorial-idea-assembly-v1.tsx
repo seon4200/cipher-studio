@@ -4,6 +4,7 @@ import { EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, EDITORIAL_IDEA_
   EDITORIAL_IDEA_ASSEMBLY_V4_1, type IdeaAccentTheme, type IdeaAssemblyResource } from '../../../shared/editorial-idea-assembly-v1'
 import { sceneSpecReactKeyAny } from '../../../shared/visual-scene-spec-v2'
 import { AlphaMaskRasterV4 } from './alpha-mask-raster-v4'
+import { EDITORIAL_MODULAR_CATALOG_V1 } from '../../../shared/editorial-modular-catalog-v1'
 
 const clamp = (v: number) => Math.max(0, Math.min(1, v))
 const ease = (v: number) => 1 - Math.pow(1 - clamp(v), 3)
@@ -34,7 +35,8 @@ export const EditorialIdeaAssemblyV1: React.FC<{
   const isV3 = plan.revision === EDITORIAL_IDEA_ASSEMBLY_V3.revision
   const isV4 = plan.revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision
   const isV4_1 = plan.revision === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision
-  const isV4Color = isV4 || isV4_1
+  const isModular = plan.revision === EDITORIAL_MODULAR_CATALOG_V1.revision
+  const isV4Color = isV4 || isV4_1 || isModular
   /** V3 intentionally retains V2's approved stable material/title treatment. */
   const isPolished = isV2 || isV3 || isV4Color
   const isSequenced = isV3 || isV4Color
@@ -47,7 +49,9 @@ export const EditorialIdeaAssemblyV1: React.FC<{
     return url
   }
   const hero = layout.slotLayouts.find(item => item.slotId === 'hero')!
-  const accent = (isPolished ? ACCENTS_V2 : ACCENTS_V1)[plan.accentTheme]
+  const accent = isModular
+    ? { color: plan.titleAccentResolved!, filter: 'none' }
+    : (isPolished ? ACCENTS_V2 : ACCENTS_V1)[plan.accentTheme]
   const out = 1 - phase(u, isPolished ? .90 : .89, 1)
   const heroEnter = phase(u, 0, isPolished ? .30 : .2)
   const heroScale = plan.heroStartScale + (1 - plan.heroStartScale) * heroEnter
@@ -66,7 +70,7 @@ export const EditorialIdeaAssemblyV1: React.FC<{
     if (isV4Color && resource.accentTreatment === 'alpha-mask') {
       const color = resource.colorCapability === 'accent-secondary' ? plan.heroPalette!.secondary! : plan.heroPalette!.primary!
       return <AlphaMaskRasterV4 key={resource.id} url={requireUrl(resource.id)} color={color}
-        maskId={`${isV4_1 ? 'idea-v4-1' : 'idea-v4'}-${resource.id}`} style={style} />
+        maskId={`${isModular ? 'modular-v1' : isV4_1 ? 'idea-v4-1' : 'idea-v4'}-${resource.id}`} style={style} />
     }
     return <img key={resource.id} src={requireUrl(resource.id)} alt="" data-idea-part={resource.id} style={style} />
   }
@@ -107,6 +111,34 @@ export const EditorialIdeaAssemblyV1: React.FC<{
     })
   const titleFamily = isPolished ? 'Fraunces,serif' : 'Instrument Serif,serif'
   const titleWeight = isPolished ? 650 : 400
+  // The opt-in catalogue allows user-authored words; unlike frozen IDEA V4,
+  // its title size is measured against the actual loaded font and text region.
+  const fitModularType = (value: string | undefined, base: number, floor: number,
+    family: string, weight: number, tracking: number) => {
+    if (!isModular || !value) return base
+    const minDimension = Math.min(window.innerWidth, window.innerHeight)
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d')
+    if (!context) return base
+    const pixelSize = base * minDimension / 100
+    context.font = `${weight} ${pixelSize}px ${family}`
+    const measured = context.measureText(value).width +
+      Math.abs(tracking) * pixelSize * Math.max(0,value.length-1)
+    const available = window.innerWidth * layout.textBounds.width / 100 * .94
+    return Math.max(floor, Math.min(base, base * available / Math.max(measured,1)))
+  }
+  const keywordSize = fitModularType(spec.text.keyword,landscape?18.8:24.3,landscape?12.5:15,
+    'Fraunces',titleWeight,-.045)
+  const connectorSize = fitModularType(spec.text.connector,landscape?11.8:14.2,landscape?8:10,
+    'Fraunces',titleWeight,-.045)
+  const closingSize = fitModularType(spec.text.closing,landscape?3.1:3.45,landscape?2.4:2.7,
+    'DM Sans',500,-.025)
+  const modularCoreRect = isModular ? {
+    wide: { left: '2%', top: '12%', width: '96%', height: '76%' },
+    organic: { left: '8%', top: '3%', width: '84%', height: '94%' },
+    compact: { left: '8%', top: '10%', width: '84%', height: '86%' },
+    vertical: { left: '3%', top: '6%', width: '94%', height: '90%' },
+  }[plan.recipe!] : undefined
   return <div key={sceneSpecReactKeyAny(spec)} data-visual-mvp="true" data-visual-composition="v15-idea-assembly"
     data-qc-layout-family="marcoPoster" data-qc-empty-hero-frames="0"
     style={{ position: 'absolute', inset: 0, overflow: 'hidden', containerType: 'size', background: '#F0EEE8', color: '#11110F', fontSynthesis: 'none' }}>
@@ -118,13 +150,13 @@ export const EditorialIdeaAssemblyV1: React.FC<{
       width: `${layout.textBounds.width}%`, height: `${layout.textBounds.height}%`,
       zIndex: 12, opacity: out, fontFamily: titleFamily, fontWeight: titleWeight,
       lineHeight: isPolished ? .78 : .82, letterSpacing: isPolished ? '-.045em' : '-.035em', textAlign: landscape ? 'left' : 'center' }}>
-      <div data-qc-text-glyph="true" style={{ fontSize: isPolished ? (landscape ? '11.8cqmin' : '14.2cqmin') : (landscape ? '10cqmin' : '16cqmin'),
+      <div data-qc-text-glyph="true" style={{ fontSize: isModular ? `${connectorSize}cqmin` : isPolished ? (landscape ? '11.8cqmin' : '14.2cqmin') : (landscape ? '10cqmin' : '16cqmin'),
         fontWeight: titleWeight, color: '#11110F' }}>{spec.text.connector}</div>
       <div data-qc-keyword="true" data-qc-text-glyph="true" data-qc-keyword-family={isPolished ? 'Fraunces' : 'Instrument Serif'}
-        style={{ fontSize: isPolished ? (landscape ? '18.8cqmin' : '24.3cqmin') : (landscape ? '15cqmin' : '23cqmin'), fontWeight: titleWeight,
+        style={{ fontSize: isModular ? `${keywordSize}cqmin` : isPolished ? (landscape ? '18.8cqmin' : '24.3cqmin') : (landscape ? '15cqmin' : '23cqmin'), fontWeight: titleWeight,
         color: accent.color, marginTop: isPolished ? '.25cqmin' : '.5cqmin', whiteSpace: 'nowrap' }}>{spec.text.keyword}</div>
       <div data-qc-closing="true" data-qc-text-glyph="true" style={{ fontFamily: 'DM Sans,sans-serif', fontWeight: 500,
-        fontSize: isPolished ? (landscape ? '3.1cqmin' : '3.45cqmin') : (landscape ? '2.8cqmin' : '3.4cqmin'), letterSpacing: '-.025em', lineHeight: 1.12,
+        fontSize: isModular ? `${closingSize}cqmin` : isPolished ? (landscape ? '3.1cqmin' : '3.45cqmin') : (landscape ? '2.8cqmin' : '3.4cqmin'), letterSpacing: '-.025em', lineHeight: 1.12,
         marginTop: '1.4cqmin', whiteSpace: 'nowrap' }}>{spec.text.closing}</div>
     </div>
     <div data-qc-asset="true" data-qc-hero="true" data-qc-slot="hero" data-qc-role="hero"
@@ -133,8 +165,9 @@ export const EditorialIdeaAssemblyV1: React.FC<{
         transform: `scale(${heroScale})`, transformOrigin: `${plan.heroAnchor.x}% ${plan.heroAnchor.y}%`,
         opacity: out }}>
       {plan.resources.filter(r => r.id === 'idea-rear' || r.id === 'idea-accent' || r.id === 'idea-accent-secondary').map(layer)}
-      <img src={requireUrl('hero')} alt="" data-idea-part="bust" style={{ position: 'absolute', zIndex: 3,
-        left: '12%', top: '18%', width: '78%', height: '80%', objectFit: 'contain',
+      <img src={requireUrl('hero')} alt="" data-idea-part={isModular ? 'hero-core' : 'bust'} style={{ position: 'absolute', zIndex: 3,
+        left: modularCoreRect?.left ?? '12%', top: modularCoreRect?.top ?? '18%',
+        width: modularCoreRect?.width ?? '78%', height: modularCoreRect?.height ?? '80%', objectFit: 'contain',
         filter: 'drop-shadow(.5cqmin 1cqmin 1.2cqmin rgba(20,18,16,.22))' }} />
       {plan.resources.filter(r => r.id === 'idea-bulb' || r.id === 'idea-front').map(layer)}
     </div>
@@ -170,7 +203,7 @@ export const EditorialIdeaAssemblyV1: React.FC<{
           boxSizing: 'border-box', boxShadow: '.2cqmin .3cqmin .25cqmin rgba(17,17,15,.16), .7cqmin 1cqmin 2cqmin rgba(17,17,15,.08)' }}>
           {isV4Color
             ? <AlphaMaskRasterV4 url={requireUrl(support.slotId)} color={plan.supportTint!.resolvedColor} renderMode="css"
-                maskId={`${isV4_1 ? 'idea-v4-1' : 'idea-v4'}-${support.slotId}`} />
+                maskId={`${isModular ? 'modular-v1' : isV4_1 ? 'idea-v4-1' : 'idea-v4'}-${support.slotId}`} />
             : <img src={requireUrl(support.slotId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain',
                 filter: accent.filter }} />}
         </div>
