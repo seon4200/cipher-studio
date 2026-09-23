@@ -64,6 +64,7 @@ export default defineConfig(({ mode }) => {
         input: {
           principal: path.join(__dirname, 'src/renderer/index.html'),
           grafico: path.join(__dirname, 'src/renderer/grafico.html'),
+          catalogMatrix: path.join(__dirname, 'src/renderer/catalog-matrix.html'),
         },
       },
     },
