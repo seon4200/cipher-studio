@@ -1634,7 +1634,7 @@ function App() {
         renderBindings:result.renderBindings},
     }:clip))
     setIsDirty(true)
-    setModularStatus('Clip sustituido y regenerado; la geometría y el texto permanecen en la revisión editorial.')
+    setModularStatus('Clip regenerado. Si cambió un extremo, su relación anterior se retiró para evitar una conexión semántica falsa; revisa la composición antes de guardar.')
   }
   const generateModular = async () => {
     if (!activeProjectPath || !modularCatalogRoot.trim() || !ideaV4AssetRoot.trim()) {
@@ -4401,6 +4401,7 @@ ${res.filePath}`);
                   disabled={modularAssets.length!==250 ||
                     (familyClipEdit.family!=='editorial'&&!familyClipEdit.heroId) ||
                     (['constelacion','cascada'].includes(familyClipEdit.family)&&familyClipEdit.supportIds.filter(Boolean).length<2) ||
+                    familyClipEdit.supportIds.some((id,index)=>!!id&&index>0&&!familyClipEdit.supportIds[index-1]) ||
                     new Set(familyClipEdit.supportIds.filter(Boolean)).size!==familyClipEdit.supportIds.filter(Boolean).length}
                   className="rounded bg-orange-700 px-2 py-1 disabled:opacity-40">
                   Aplicar al clip y regenerar

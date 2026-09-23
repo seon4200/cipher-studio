@@ -19,7 +19,13 @@ export function editorialHeadlineFromLocalTextV1(localText:string,keyword:string
   const term=keyword.trim()
   if(!phrase||!term)throw new Error('EDITORIAL_HEADLINE_SOURCE_MISSING')
   const at=phrase.toLocaleLowerCase('es').indexOf(term.toLocaleLowerCase('es'))
-  if(at<0)return {connector:'',keyword:term,closing:phrase}
+  if(at<0){
+    // A semantic keyword may not appear verbatim in the narrated segment.
+    // Never insert that extra word into an otherwise literal display.
+    const first=phrase.match(/^\S+/u)?.[0]
+    if(!first)throw new Error('EDITORIAL_HEADLINE_SOURCE_MISSING')
+    return {connector:'',keyword:first,closing:phrase.slice(first.length).trim()}
+  }
   return {connector:phrase.slice(0,at).trim(),keyword:phrase.slice(at,at+term.length),
     closing:phrase.slice(at+term.length).trim()}
 }

@@ -64,6 +64,9 @@ app.whenReady().then(async()=>{
       supportTreatment:'paper-card',camera:'fixed',particles:'none',color:'#A83B19',
       headline:{connector:'UNA',keyword:'IDEA',closing:'abre nuevas posibilidades'},
       relations:[{from:'support-1',to:'hero',meaning:'informs'}],...overrides})
+    const unmatched=b.editorialHeadlineFromLocalTextV1('¿Qué ocurrió realmente en 2026?','resultado')
+    assert.equal([unmatched.connector,unmatched.keyword,unmatched.closing].filter(Boolean).join(' '),
+      '¿Qué ocurrió realmente en 2026?','ABSENT_SEMANTIC_KEYWORD_INSERTED_IN_TEXT')
     const first=make(),second=make()
     const literalLong=make({headline:{connector:'UNA',keyword:'IDEA',
       closing:'abre caminos para personas ciudades máquinas datos y decisiones'}})
