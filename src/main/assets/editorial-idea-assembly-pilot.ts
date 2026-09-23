@@ -1,16 +1,18 @@
 import type { ProjectAssetRecord } from '../../shared/project-state'
 import { createIdeaAssemblyLayoutV1, createIdeaAssemblyLayoutV2, EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2,
-  EDITORIAL_IDEA_ASSEMBLY_V3, type IdeaAssemblyConnector, type IdeaResourceId, type IdeaAssemblyResource } from '../../shared/editorial-idea-assembly-v1'
+  EDITORIAL_IDEA_ASSEMBLY_V3, EDITORIAL_IDEA_ASSEMBLY_V4, resolveIdeaColorV4,
+  type IdeaColorIntentV4, type IdeaColorCapability, type IdeaAssemblyConnector, type IdeaResourceId, type IdeaAssemblyResource } from '../../shared/editorial-idea-assembly-v1'
 import { createRoleMotionV2, validateVisualSceneSpecV2, validateRenderBindingsV2,
   type PresentSceneSlotV2, type VisualSceneSpecV2, type RenderBindingsV2 } from '../../shared/visual-scene-spec-v2'
 import { fullSubjectBounds } from '../../shared/visual-scene-spec'
 import type { MotionGraphicsCompiledV2 } from './motion-graphics-resolver'
 
-type PilotAsset = { asset: ProjectAssetRecord }
+type PilotAsset = { asset: ProjectAssetRecord; colorCapability?: IdeaColorCapability }
 type PilotAssets = {
   hero: PilotAsset
   supports: readonly [PilotAsset, PilotAsset, PilotAsset, PilotAsset]
-  resources: Record<IdeaResourceId, PilotAsset>
+  resources: Record<Exclude<IdeaResourceId, 'idea-accent-secondary'>, PilotAsset> &
+    Partial<Record<'idea-accent-secondary', PilotAsset>>
 }
 
 /** Scoped authoring adapter: starts from the productive semantic resolver's compiled Hero.
@@ -35,7 +37,7 @@ export function compileEditorialIdeaAssemblyPilotV1(input: {
       bounds: fullSubjectBounds(), fitPolicy: 'contain', tint: { treatment: 'original-color' },
       motion: createRoleMotionV2({ role: slotId, energy: 'medium' }) }
   })]
-  const geometry: Record<IdeaResourceId, Omit<IdeaAssemblyResource, 'id' | 'sha256' | 'mime' | 'alphaMode'>> = {
+  const geometry: Record<Exclude<IdeaResourceId, 'idea-accent-secondary'>, Omit<IdeaAssemblyResource, 'id' | 'sha256' | 'mime' | 'alphaMode'>> = {
     'idea-background': { rect: { x: 0, y: 0, width: 100, height: 100 }, zIndex: 0,
       timing: { start: 0, settle: 0, exit: .99 }, from: { x: 0, y: 0, scale: 1 }, accentTreatment: 'none' },
     'idea-rear': { rect: { x: -10, y: 4, width: 120, height: 90 }, zIndex: 1,
@@ -47,7 +49,7 @@ export function compileEditorialIdeaAssemblyPilotV1(input: {
     'idea-front': { rect: { x: -5, y: 58, width: 110, height: 45 }, zIndex: 5,
       timing: { start: .23, settle: .39, exit: .90 }, from: { x: 5, y: 30, scale: .90 }, accentTreatment: 'none' },
   }
-  const resources = (Object.keys(geometry) as IdeaResourceId[]).map(id => {
+  const resources = (Object.keys(geometry) as Exclude<IdeaResourceId, 'idea-accent-secondary'>[]).map(id => {
     const asset = input.assets.resources[id].asset
     if (asset.mime !== 'image/png' || (id !== 'idea-background' && !asset.validation.alphaUseful) ||
         (id === 'idea-background' && asset.validation.hasAlpha)) throw new Error(`IDEA_RESOURCE_RASTER_INVALID:${id}`)
@@ -77,7 +79,7 @@ export function compileEditorialIdeaAssemblyPilotV1(input: {
   validateVisualSceneSpecV2(sceneSpec)
   const entries = [input.assets.hero, ...input.assets.supports]
   const ids = ['hero', 'support-1', 'support-2', 'support-3', 'support-4', ...resources.map(r => r.id)] as const
-  const records = [...entries.map(v => v.asset), ...resources.map(r => input.assets.resources[r.id].asset)]
+  const records = [...entries.map(v => v.asset), ...resources.map(r => input.assets.resources[r.id]!.asset)]
   const renderBindings: RenderBindingsV2 = { version: 2,
     assets: records.map((asset, i) => ({ slotId: ids[i], assetId: asset.id, relativeFile: asset.relativeFile })) }
   validateRenderBindingsV2(renderBindings)
@@ -109,7 +111,7 @@ export function compileEditorialIdeaAssemblyPilotV2(input: {
       bounds: fullSubjectBounds(), fitPolicy: 'contain', tint: { treatment: 'original-color' },
       motion: createRoleMotionV2({ role: slotId, energy: 'medium' }) }
   })]
-  const geometry: Record<IdeaResourceId, Omit<IdeaAssemblyResource, 'id' | 'sha256' | 'mime' | 'alphaMode'>> = {
+  const geometry: Record<Exclude<IdeaResourceId, 'idea-accent-secondary'>, Omit<IdeaAssemblyResource, 'id' | 'sha256' | 'mime' | 'alphaMode'>> = {
     'idea-background': { rect: { x: 0, y: 0, width: 100, height: 100 }, zIndex: 0,
       timing: { start: 0, settle: 0, exit: .99 }, from: { x: 0, y: 0, scale: 1 }, accentTreatment: 'none' },
     'idea-rear': { rect: { x: -9, y: 6, width: 118, height: 88 }, zIndex: 1,
@@ -123,7 +125,7 @@ export function compileEditorialIdeaAssemblyPilotV2(input: {
     'idea-front': { rect: { x: 4, y: 69, width: 92, height: 31 }, zIndex: 5,
       timing: { start: .25, settle: .42, exit: .90 }, from: { x: 4, y: 22, scale: .93 }, accentTreatment: 'none' },
   }
-  const resources = (Object.keys(geometry) as IdeaResourceId[]).map(id => {
+  const resources = (Object.keys(geometry) as Exclude<IdeaResourceId, 'idea-accent-secondary'>[]).map(id => {
     const asset = input.assets.resources[id].asset
     if (asset.mime !== 'image/png' || (id !== 'idea-background' && !asset.validation.alphaUseful) ||
         (id === 'idea-background' && asset.validation.hasAlpha)) throw new Error(`IDEA_RESOURCE_RASTER_INVALID:${id}`)
@@ -153,7 +155,7 @@ export function compileEditorialIdeaAssemblyPilotV2(input: {
   validateVisualSceneSpecV2(sceneSpec)
   const entries = [input.assets.hero, ...input.assets.supports]
   const ids = ['hero', 'support-1', 'support-2', 'support-3', 'support-4', ...resources.map(r => r.id)] as const
-  const records = [...entries.map(v => v.asset), ...resources.map(r => input.assets.resources[r.id].asset)]
+  const records = [...entries.map(v => v.asset), ...resources.map(r => input.assets.resources[r.id]!.asset)]
   const renderBindings: RenderBindingsV2 = { version: 2,
     assets: records.map((asset, i) => ({ slotId: ids[i], assetId: asset.id, relativeFile: asset.relativeFile })) }
   validateRenderBindingsV2(renderBindings)
@@ -219,4 +221,45 @@ export function compileEditorialIdeaAssemblyPilotV3(input: {
     sceneSpec,
     graphicData: { ...v2.graphicData, extra: { ...v2.graphicData.extra, sceneSpec } },
   }
+}
+
+/** V4 inherits V3's approved geometry and connector beats. Only an authorized
+ * alpha layer or simple Support icon may receive an exact resolved HEX fill. */
+export function compileEditorialIdeaAssemblyPilotV4(input: {
+  base: MotionGraphicsCompiledV2
+  assets: PilotAssets
+  color: IdeaColorIntentV4
+}): MotionGraphicsCompiledV2 {
+  const { supportTint, heroPalette } = resolveIdeaColorV4(input.color)
+  if (input.assets.hero.colorCapability !== 'none' ||
+      input.assets.supports.some(item => item.colorCapability !== 'alpha-mask') ||
+      Object.entries(input.assets.resources).some(([id, item]) =>
+        item && item.colorCapability !== (id === 'idea-accent'
+          ? heroPalette.mode === 'fixed-spectrum' ? 'fixed-spectrum' : 'accent-primary'
+          : id === 'idea-accent-secondary' ? 'accent-secondary' : 'none')))
+    throw new Error('IDEA_V4_ASSET_COLOR_CAPABILITY_INVALID')
+  if (heroPalette.mode === 'dual-accent')
+    throw new Error('IDEA_V4_SECONDARY_LAYER_REQUIRED')
+  const v3 = compileEditorialIdeaAssemblyPilotV3({ base: input.base, assets: input.assets, accentTheme: 'orange' })
+  const sceneSpec: VisualSceneSpecV2 = {
+    ...v3.sceneSpec,
+    presentationProfile: EDITORIAL_IDEA_ASSEMBLY_V4,
+    slots: v3.sceneSpec.slots.map(slot => slot.state !== 'present' ? slot : slot.slotId === 'hero'
+      ? { ...slot, colorCapability: 'none' as const }
+      : { ...slot, colorCapability: 'alpha-mask' as const, tint: { treatment: 'accent-mask' as const } }),
+    ideaAssembly: {
+      ...v3.sceneSpec.ideaAssembly!, revision: EDITORIAL_IDEA_ASSEMBLY_V4.revision,
+      supportTint, heroPalette,
+      resources: v3.sceneSpec.ideaAssembly!.resources.map(resource => ({ ...resource,
+        colorCapability: resource.id === 'idea-accent'
+          ? (heroPalette.mode === 'fixed-spectrum' ? 'fixed-spectrum' as const : 'accent-primary' as const)
+          : 'none' as const,
+        accentTreatment: resource.id === 'idea-accent' && heroPalette.mode !== 'fixed-spectrum'
+          ? 'alpha-mask' as const : 'none' as const,
+      })),
+    },
+  }
+  validateVisualSceneSpecV2(sceneSpec)
+  return { ...v3, sceneSpec,
+    graphicData: { ...v3.graphicData, extra: { ...v3.graphicData.extra, sceneSpec } } }
 }

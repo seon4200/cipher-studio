@@ -62,9 +62,9 @@ import { validatePremiumStyleV1, type PremiumStyleV1 } from './premium-type-colo
 import { EDITORIAL_EXPLAINER_LIGHT_V1, createLightLayoutV1, validateLightStyleV1, type LightStyleV1 } from './editorial-explainer-light-v1'
 import { EDITORIAL_EXPLAINER_LIGHT_V2, createLightLayoutV2, validateLightStyleV2, type LightStyleV2 } from './editorial-explainer-light-v2'
 import { EDITORIAL_EXPLAINER_V3, createLightLayoutV3, validateLightStyleV3, type LightStyleV3 } from './editorial-explainer-v3'
-import { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, IDEA_RESOURCE_IDS, IDEA_SUPPORT_IDS,
+import { EDITORIAL_IDEA_ASSEMBLY_V1, EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, EDITORIAL_IDEA_ASSEMBLY_V4, IDEA_RESOURCE_IDS, IDEA_V4_SECONDARY_RESOURCE_ID, IDEA_SUPPORT_IDS,
   createIdeaAssemblyLayoutV1, createIdeaAssemblyLayoutV2, createIdeaAssemblyLayoutV3, validateIdeaAssemblyV1,
-  type IdeaAssemblyV1, type IdeaResourceId } from './editorial-idea-assembly-v1'
+  type IdeaAssemblyV1, type IdeaResourceId, type IdeaColorCapability } from './editorial-idea-assembly-v1'
 import {
   VISUAL_MVP_BOUNDS_REVISION,
   editorialFallbackSpec,
@@ -103,6 +103,8 @@ export type VisualTreatmentV2 = typeof VISUAL_TREATMENTS_V2[number]
 
 export type PresentSceneSlotV2 = {
   catalogAsset?: import('./modern-visual-pack-v1').ModernVisualAssetIdentityV1
+  /** V4 only: explicit alpha mask authorization, never inferred from MIME alone. */
+  colorCapability?: IdeaColorCapability
   slotId: SceneSlotIdV2
   role: SceneSlotRoleV2
   state: 'present'
@@ -366,7 +368,7 @@ function validateText(value: unknown): asserts value is EditorialTextV2 {
   u01(value.motion.emphasisStart, code, 'emphasisStart')
 }
 
-function validateSlot(value: unknown): asserts value is SceneSlotV2 {
+function validateSlot(value: unknown, ideaV4 = false): asserts value is SceneSlotV2 {
   const code = 'VISUAL_SCENE_V2_SLOT_INVALID'
   record(value, code, 'slot')
   if (![...SCENE_SLOT_IDS_V2, ...IDEA_SUPPORT_IDS].includes(value.slotId as SceneSlotIdV2) || value.role !== value.slotId)
@@ -388,7 +390,7 @@ function validateSlot(value: unknown): asserts value is SceneSlotV2 {
     evaluateAssetMotion(value.motion as AssetMotionRecipeV1, 0.5)
     return
   }
-  exactKeys(value, ['slotId', 'role', 'state', 'sha256', 'mime', 'kind', 'alphaMode', 'bounds', 'fitPolicy', 'tint', 'motion', 'catalogAsset'], code, 'slot present')
+  exactKeys(value, ['slotId', 'role', 'state', 'sha256', 'mime', 'kind', 'alphaMode', 'bounds', 'fitPolicy', 'tint', 'motion', 'catalogAsset', ...(ideaV4 ? ['colorCapability'] : [])], code, 'slot present')
   if (value.catalogAsset !== undefined) validateModernVisualAssetIdentityV1(value.catalogAsset)
   if (value.state !== 'present' || typeof value.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(value.sha256) ||
       !VISUAL_ASSET_MIMES_V2.includes(value.mime as VisualAssetMimeV2) ||
@@ -403,7 +405,13 @@ function validateSlot(value: unknown): asserts value is SceneSlotV2 {
   record(value.tint, code, 'tint')
   exactKeys(value.tint, ['treatment'], code, 'tint')
   if (!VISUAL_TREATMENTS_V2.includes(value.tint.treatment as VisualTreatmentV2)) fail(code, 'Tratamiento V15 inválido')
-  if (value.mime !== 'image/svg+xml' && value.tint.treatment !== 'original-color')
+  const v4SupportMask = ideaV4 && IDEA_SUPPORT_IDS.includes(value.slotId as typeof IDEA_SUPPORT_IDS[number]) &&
+    value.colorCapability === 'alpha-mask' && value.mime === 'image/png' &&
+    value.alphaMode === 'useful-alpha' && value.kind === 'simple-icon' && value.tint.treatment === 'accent-mask'
+  if (ideaV4 && !v4SupportMask &&
+      !(value.slotId === 'hero' && value.colorCapability === 'none' && value.tint.treatment === 'original-color'))
+    fail(code, 'IDEA_V4_ALPHA_MASK_UNAUTHORIZED')
+  if (value.mime !== 'image/svg+xml' && value.tint.treatment !== 'original-color' && !v4SupportMask)
     fail(code, 'Raster V15 conserva color original')
   evaluateAssetMotion(value.motion as AssetMotionRecipeV1, 0.5)
 }
@@ -450,6 +458,8 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
     ? createIdeaAssemblyLayoutV2('portrait')
     : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_IDEA_ASSEMBLY_V3.revision
     ? createIdeaAssemblyLayoutV3('portrait')
+    : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision
+    ? createIdeaAssemblyLayoutV3('portrait')
     : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision
     ? createLightLayoutV1(mode, supportCount, (spec.lightStyle as LightStyleV1).motionCue, 'portrait')
     : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_EXPLAINER_LIGHT_V2.revision
@@ -482,9 +492,13 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   if (value.backgroundProfile !== undefined) validateBackgroundProfileV1(value.backgroundProfile)
   if (value.colorPalette !== undefined) validateSceneColorPaletteV1(value.colorPalette)
   if (value.presentationProfile !== undefined) validateEditorialMotionProfile(value.presentationProfile)
-  const ideaRevision = [EDITORIAL_IDEA_ASSEMBLY_V1.revision, EDITORIAL_IDEA_ASSEMBLY_V2.revision, EDITORIAL_IDEA_ASSEMBLY_V3.revision]
+  const ideaRevision = [EDITORIAL_IDEA_ASSEMBLY_V1.revision, EDITORIAL_IDEA_ASSEMBLY_V2.revision, EDITORIAL_IDEA_ASSEMBLY_V3.revision, EDITORIAL_IDEA_ASSEMBLY_V4.revision]
     .includes((value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_IDEA_ASSEMBLY_V1.revision)
-  if (ideaRevision) validateIdeaAssemblyV1(value.ideaAssembly)
+  if (ideaRevision) {
+    validateIdeaAssemblyV1(value.ideaAssembly)
+    if (value.ideaAssembly?.revision !== (value.presentationProfile as EditorialMotionProfile).revision)
+      fail(code, 'IDEA profile/revision mismatch')
+  }
   else if (value.ideaAssembly !== undefined) fail(code, 'ideaAssembly exige perfil explícito')
   if ((value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision) {
     const activeSlots = (value.slots as SceneSlotV2[] | undefined)?.filter(slot => slot.state === 'present' || slot.state === 'procedural') ?? []
@@ -503,7 +517,7 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   else if (value.premiumStyle !== undefined) fail(code, 'premiumStyle requiere perfil Porcelain')
   if ([EDITORIAL_MOTION_PROFILE_V2.revision, VISUAL_RECOVERY_PROFILE_V1.revision, PREMIUM_TYPE_COLOR_PROFILE_V1.revision,
     FAMILIES_MOTION_PROFILE_V2.revision, EDITORIAL_EXPLAINER_LIGHT_V1.revision, EDITORIAL_EXPLAINER_LIGHT_V2.revision, EDITORIAL_EXPLAINER_V3.revision,
-    EDITORIAL_IDEA_ASSEMBLY_V1.revision, EDITORIAL_IDEA_ASSEMBLY_V2.revision, EDITORIAL_IDEA_ASSEMBLY_V3.revision]
+    EDITORIAL_IDEA_ASSEMBLY_V1.revision, EDITORIAL_IDEA_ASSEMBLY_V2.revision, EDITORIAL_IDEA_ASSEMBLY_V3.revision, EDITORIAL_IDEA_ASSEMBLY_V4.revision]
     .includes((value.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_MOTION_PROFILE_V2.revision)) {
     if (!EDITORIAL_MOTION_CUES.includes(value.editorialMotionCue as EditorialMotionCue))
       fail(code, 'editorialMotionCue requerido para revisión v2')
@@ -521,7 +535,7 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   }
   validateText(value.text)
   if (!Array.isArray(value.slots) || value.slots.length > (ideaRevision ? 5 : 3)) fail(code, 'Número de slots incompatible con perfil')
-  value.slots.forEach(validateSlot)
+  value.slots.forEach(slot => validateSlot(slot, (value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision))
   const ids = value.slots.map(slot => (slot as SceneSlotV2).slotId)
   if (new Set(ids).size !== ids.length) fail(code, 'slotId duplicado')
   const active = (value.slots as SceneSlotV2[]).filter(slot => slot.state === 'present' || slot.state === 'procedural')
@@ -570,12 +584,13 @@ export function validateRenderBindingsV2(value: unknown): RenderBindingsV2 {
   const code = 'VISUAL_RENDER_BINDINGS_V2_INVALID'
   record(value, code, 'RenderBindingsV2')
   exactKeys(value, ['version', 'assets'], code, 'RenderBindingsV2')
-  if (value.version !== VISUAL_BINDINGS_VERSION_V2 || !Array.isArray(value.assets) || value.assets.length > 10)
+  // V4 may bind one independently authorized secondary accent layer (5 slots + 6 parts).
+  if (value.version !== VISUAL_BINDINGS_VERSION_V2 || !Array.isArray(value.assets) || value.assets.length > 11)
     fail(code, 'RenderBindingsV2 inválido')
   const assets = value.assets.map(raw => {
     record(raw, code, 'binding')
     exactKeys(raw, ['slotId', 'assetId', 'relativeFile'], code, 'binding')
-    if (![...SCENE_SLOT_IDS_V2, ...IDEA_SUPPORT_IDS, ...IDEA_RESOURCE_IDS].includes(raw.slotId as SceneSlotIdV2 & IdeaResourceId)) fail(code, 'slotId de binding inválido')
+    if (![...SCENE_SLOT_IDS_V2, ...IDEA_SUPPORT_IDS, ...IDEA_RESOURCE_IDS, IDEA_V4_SECONDARY_RESOURCE_ID].includes(raw.slotId as SceneSlotIdV2 & IdeaResourceId)) fail(code, 'slotId de binding inválido')
     return { slotId: raw.slotId as SceneSlotIdV2 | IdeaResourceId, assetId: nonempty(raw.assetId, code, 'assetId'),
       relativeFile: nonempty(raw.relativeFile, code, 'relativeFile') }
   })

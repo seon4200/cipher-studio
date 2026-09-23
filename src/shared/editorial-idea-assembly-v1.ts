@@ -23,20 +23,78 @@ export const EDITORIAL_IDEA_ASSEMBLY_V3 = Object.freeze({
   revision: 'editorial-idea-assembly-2026-09-v3' as const,
 })
 
+/** Raster alpha color is opt-in; prior IDEA revisions retain their original filters. */
+export const EDITORIAL_IDEA_ASSEMBLY_V4 = Object.freeze({
+  id: 'editorial-idea-assembly-v1' as const,
+  revision: 'editorial-idea-assembly-2026-09-v4' as const,
+})
+export const EDITORIAL_IDEA_COLOR_REVISION_V1 = 'editorial-color-system-2026-09-v1' as const
+export const IDEA_V4_SECONDARY_RESOURCE_ID = 'idea-accent-secondary' as const
+export type IdeaColorCapability = 'none' | 'alpha-mask' | 'accent-primary' | 'accent-secondary' | 'fixed-spectrum'
+export type IdeaSupportTintV4 = {
+  revision: typeof EDITORIAL_IDEA_COLOR_REVISION_V1
+  source: 'ink' | 'video-primary' | 'hero-primary' | 'hero-secondary' | 'custom'
+  resolvedColor: string
+}
+export type IdeaHeroPaletteV4 = {
+  revision: typeof EDITORIAL_IDEA_COLOR_REVISION_V1
+  mode: 'recolorable' | 'dual-accent' | 'fixed-spectrum'
+  primary?: string
+  secondary?: string
+}
+export type IdeaColorIntentV4 = {
+  supportSource: IdeaSupportTintV4['source']
+  customColor?: string
+  heroMode: IdeaHeroPaletteV4['mode']
+  heroPrimary?: string
+  heroSecondary?: string
+}
+export const IDEA_INK_V4 = '#11110F'
+export const IDEA_VIDEO_PRIMARY_V4 = '#A83B19'
+export const IDEA_DEFAULT_HERO_PRIMARY_V4 = '#C5481E'
+export const isIdeaHexV4 = (value: unknown): value is string => typeof value === 'string' && /^#[0-9A-F]{6}$/.test(value)
+export function resolveIdeaColorV4(intent: IdeaColorIntentV4): { supportTint: IdeaSupportTintV4; heroPalette: IdeaHeroPaletteV4 } {
+  if (!intent || !['recolorable', 'dual-accent', 'fixed-spectrum'].includes(intent.heroMode) ||
+      !['ink', 'video-primary', 'hero-primary', 'hero-secondary', 'custom'].includes(intent.supportSource))
+    throw new Error('IDEA_V4_COLOR_INTENT_INVALID')
+  const primary = intent.heroPrimary
+  const secondary = intent.heroSecondary
+  if (intent.heroMode === 'fixed-spectrum' ? primary !== undefined || secondary !== undefined : !isIdeaHexV4(primary))
+    throw new Error('IDEA_V4_HERO_PRIMARY_INVALID')
+  if (intent.heroMode === 'dual-accent' ? !isIdeaHexV4(secondary) : secondary !== undefined)
+    throw new Error('IDEA_V4_HERO_SECONDARY_INVALID')
+  if (intent.supportSource === 'custom' ? !isIdeaHexV4(intent.customColor) : intent.customColor !== undefined)
+    throw new Error('IDEA_V4_CUSTOM_COLOR_INVALID')
+  if ((intent.supportSource === 'hero-primary' && !primary) ||
+      (intent.supportSource === 'hero-secondary' && !secondary))
+    throw new Error('IDEA_V4_SUPPORT_SOURCE_UNAVAILABLE')
+  const resolvedColor = intent.supportSource === 'ink' ? IDEA_INK_V4
+    : intent.supportSource === 'video-primary' ? IDEA_VIDEO_PRIMARY_V4
+    : intent.supportSource === 'hero-primary' ? primary!
+    : intent.supportSource === 'hero-secondary' ? secondary! : intent.customColor!
+  return {
+    supportTint: { revision: EDITORIAL_IDEA_COLOR_REVISION_V1, source: intent.supportSource, resolvedColor },
+    heroPalette: { revision: EDITORIAL_IDEA_COLOR_REVISION_V1, mode: intent.heroMode,
+      ...(primary ? { primary } : {}), ...(secondary ? { secondary } : {}) },
+  }
+}
+
 export type IdeaAssemblyRevision =
   | typeof EDITORIAL_IDEA_ASSEMBLY_V1.revision
   | typeof EDITORIAL_IDEA_ASSEMBLY_V2.revision
   | typeof EDITORIAL_IDEA_ASSEMBLY_V3.revision
+  | typeof EDITORIAL_IDEA_ASSEMBLY_V4.revision
 
 export function isIdeaAssemblyRevision(value: unknown): value is IdeaAssemblyRevision {
   return value === EDITORIAL_IDEA_ASSEMBLY_V1.revision ||
     value === EDITORIAL_IDEA_ASSEMBLY_V2.revision ||
-    value === EDITORIAL_IDEA_ASSEMBLY_V3.revision
+    value === EDITORIAL_IDEA_ASSEMBLY_V3.revision ||
+    value === EDITORIAL_IDEA_ASSEMBLY_V4.revision
 }
 
 export const IDEA_SUPPORT_IDS = ['support-1', 'support-2', 'support-3', 'support-4'] as const
 export const IDEA_RESOURCE_IDS = ['idea-background', 'idea-rear', 'idea-accent', 'idea-bulb', 'idea-front'] as const
-export type IdeaResourceId = typeof IDEA_RESOURCE_IDS[number]
+export type IdeaResourceId = typeof IDEA_RESOURCE_IDS[number] | typeof IDEA_V4_SECONDARY_RESOURCE_ID
 export type IdeaSupportId = typeof IDEA_SUPPORT_IDS[number]
 export type IdeaAccentTheme = 'orange' | 'teal' | 'crimson'
 
@@ -49,7 +107,9 @@ export type IdeaAssemblyResource = {
   zIndex: 0 | 1 | 2 | 4 | 5
   timing: { start: number; settle: number; exit: number }
   from: { x: number; y: number; scale: number }
-  accentTreatment: 'none' | 'hue-shift'
+  accentTreatment: 'none' | 'hue-shift' | 'alpha-mask'
+  /** Present only in V4; this metadata authorizes alpha masking by layer. */
+  colorCapability?: IdeaColorCapability
 }
 
 export type IdeaConnectorRelation =
@@ -91,6 +151,9 @@ export type IdeaAssemblyV1 = {
   supports: IdeaAssemblySupport[]
   /** V3 only. V1/V2 intentionally omit the causal routing plan. */
   connectorSequence?: IdeaAssemblyConnector[]
+  /** V4 only. Resolved colors are persisted and included in PixelIdentity. */
+  supportTint?: IdeaSupportTintV4
+  heroPalette?: IdeaHeroPaletteV4
   landscapeLayout: VisualLayoutV4
 }
 
@@ -161,6 +224,9 @@ export function createIdeaAssemblyLayoutForRevision(
 
 export function validateIdeaAssemblyV1(value: unknown): asserts value is IdeaAssemblyV1 {
   const v = value as IdeaAssemblyV1
+  const isV4 = v?.revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision
+  const exactKeys = (object: object, keys: string[]) =>
+    JSON.stringify(Object.keys(object).sort()) === JSON.stringify(keys.sort())
   const validNumber = (n: unknown) => typeof n === 'number' && Number.isFinite(n)
   const validRect = (r: PercentRectV3) => r && [r.x, r.y, r.width, r.height].every(validNumber) &&
     r.width > 0 && r.height > 0 && r.x >= -20 && r.y >= -20 && r.x + r.width <= 120 && r.y + r.height <= 120
@@ -168,34 +234,78 @@ export function validateIdeaAssemblyV1(value: unknown): asserts value is IdeaAss
       !['orange', 'teal', 'crimson'].includes(v.accentTheme) ||
       !validNumber(v.heroStartScale) || v.heroStartScale < .5 || v.heroStartScale > 1 ||
       !v.heroAnchor || !validNumber(v.heroAnchor.x) || !validNumber(v.heroAnchor.y) ||
-      !Array.isArray(v.resources) || v.resources.length !== IDEA_RESOURCE_IDS.length ||
+      !Array.isArray(v.resources) || v.resources.length < IDEA_RESOURCE_IDS.length ||
+      v.resources.length > IDEA_RESOURCE_IDS.length + (isV4 ? 1 : 0) ||
       !Array.isArray(v.supports) || v.supports.length !== IDEA_SUPPORT_IDS.length ||
       JSON.stringify(v.landscapeLayout) !== JSON.stringify(createIdeaAssemblyLayoutForRevision(v.revision, 'landscape')))
     throw new Error('IDEA_ASSEMBLY_INVALID')
+  if (isV4 && !exactKeys(v, ['revision', 'accentTheme', 'heroStartScale', 'heroAnchor',
+    'resources', 'supports', 'connectorSequence', 'supportTint', 'heroPalette', 'landscapeLayout']))
+    throw new Error('IDEA_V4_COLOR_CONTRACT_INVALID')
   const ids = new Set(v.resources.map(r => r.id))
-  if (ids.size !== IDEA_RESOURCE_IDS.length || IDEA_RESOURCE_IDS.some(id => !ids.has(id)))
+  if (ids.size !== v.resources.length || IDEA_RESOURCE_IDS.some(id => !ids.has(id)) ||
+      v.resources.some(r => ![...IDEA_RESOURCE_IDS, ...(isV4 ? [IDEA_V4_SECONDARY_RESOURCE_ID] : [])].includes(r.id)))
     throw new Error('IDEA_ASSEMBLY_RESOURCES_INVALID')
   for (const r of v.resources) {
     if (!/^[a-f0-9]{64}$/.test(r.sha256) || r.mime !== 'image/png' ||
         !['useful-alpha', 'opaque-rectangle'].includes(r.alphaMode) || !validRect(r.rect) ||
-        ![0, 1, 2, 4, 5].includes(r.zIndex) || !['none', 'hue-shift'].includes(r.accentTreatment) ||
+        ![0, 1, 2, 4, 5].includes(r.zIndex) || !['none', 'hue-shift', 'alpha-mask'].includes(r.accentTreatment) ||
         !r.timing || ![r.timing.start, r.timing.settle, r.timing.exit].every(n => validNumber(n) && n >= 0 && n <= 1) ||
         r.timing.start > r.timing.settle || r.timing.settle >= r.timing.exit ||
         !r.from || ![r.from.x, r.from.y, r.from.scale].every(validNumber) || r.from.scale < .5 || r.from.scale > 1.5)
       throw new Error('IDEA_ASSEMBLY_RESOURCE_INVALID:' + r.id)
     if ((r.id === 'idea-background') !== (r.alphaMode === 'opaque-rectangle'))
       throw new Error('IDEA_ASSEMBLY_ALPHA_INVALID:' + r.id)
-    if (r.accentTreatment !== (r.id === 'idea-accent' ? 'hue-shift' : 'none'))
+    if (!isV4 && (r.colorCapability !== undefined || r.accentTreatment !== (r.id === 'idea-accent' ? 'hue-shift' : 'none')))
       throw new Error('IDEA_ASSEMBLY_MATERIAL_TINT_INVALID:' + r.id)
+    if (isV4) {
+      if (!exactKeys(r, ['id', 'sha256', 'mime', 'alphaMode', 'rect', 'zIndex',
+        'timing', 'from', 'accentTreatment', 'colorCapability']))
+        throw new Error('IDEA_V4_RESOURCE_COLOR_UNAUTHORIZED:' + r.id)
+      const accentLayer = r.id === 'idea-accent' || r.id === IDEA_V4_SECONDARY_RESOURCE_ID
+      const expectedCapability: IdeaColorCapability = r.id === IDEA_V4_SECONDARY_RESOURCE_ID ? 'accent-secondary'
+        : r.id === 'idea-accent' ? (v.heroPalette?.mode === 'fixed-spectrum' ? 'fixed-spectrum' : 'accent-primary') : 'none'
+      if (r.colorCapability !== expectedCapability ||
+          r.accentTreatment !== (accentLayer && v.heroPalette?.mode !== 'fixed-spectrum' ? 'alpha-mask' : 'none') ||
+          (accentLayer && r.alphaMode !== 'useful-alpha'))
+        throw new Error('IDEA_V4_RESOURCE_COLOR_UNAUTHORIZED:' + r.id)
+    }
   }
   if (v.supports.some((s, i) => s.slotId !== IDEA_SUPPORT_IDS[i] || !s.label.trim() || !validNumber(s.enter) || s.enter < 0 || s.enter > .7))
     throw new Error('IDEA_ASSEMBLY_SUPPORTS_INVALID')
-  const isV3 = v.revision === EDITORIAL_IDEA_ASSEMBLY_V3.revision
-  if (!isV3) {
+  const hasSequence = v.revision === EDITORIAL_IDEA_ASSEMBLY_V3.revision || isV4
+  if (!hasSequence) {
+    if (v.supportTint !== undefined || v.heroPalette !== undefined)
+      throw new Error('IDEA_ASSEMBLY_HISTORICAL_COLOR_INVALID')
     if (v.supports.some(s => s.settle !== undefined) || v.connectorSequence !== undefined)
       throw new Error('IDEA_ASSEMBLY_HISTORICAL_ROUTE_INVALID')
     return
   }
+  if (isV4) {
+    if (!v.supportTint || !v.heroPalette ||
+        !exactKeys(v.supportTint, ['revision', 'source', 'resolvedColor']) ||
+        !exactKeys(v.heroPalette, ['revision', 'mode',
+          ...(v.heroPalette.primary === undefined ? [] : ['primary']),
+          ...(v.heroPalette.secondary === undefined ? [] : ['secondary'])]) ||
+        v.supportTint.revision !== EDITORIAL_IDEA_COLOR_REVISION_V1 ||
+        v.heroPalette.revision !== EDITORIAL_IDEA_COLOR_REVISION_V1 ||
+        !['ink', 'video-primary', 'hero-primary', 'hero-secondary', 'custom'].includes(v.supportTint.source) ||
+        !['recolorable', 'dual-accent', 'fixed-spectrum'].includes(v.heroPalette.mode) ||
+        !isIdeaHexV4(v.supportTint.resolvedColor) ||
+        (v.heroPalette.primary !== undefined && !isIdeaHexV4(v.heroPalette.primary)) ||
+        (v.heroPalette.secondary !== undefined && !isIdeaHexV4(v.heroPalette.secondary)))
+      throw new Error('IDEA_V4_COLOR_CONTRACT_INVALID')
+    if ((v.heroPalette.mode === 'fixed-spectrum') !== (v.heroPalette.primary === undefined) ||
+        (v.heroPalette.mode === 'dual-accent') !== (v.heroPalette.secondary !== undefined))
+      throw new Error('IDEA_V4_HERO_PALETTE_INVALID')
+    if (v.heroPalette.mode === 'dual-accent' && !ids.has(IDEA_V4_SECONDARY_RESOURCE_ID))
+      throw new Error('IDEA_V4_SECONDARY_LAYER_REQUIRED')
+    if ((v.supportTint.source === 'hero-primary' && v.supportTint.resolvedColor !== v.heroPalette.primary) ||
+        (v.supportTint.source === 'hero-secondary' && v.supportTint.resolvedColor !== v.heroPalette.secondary) ||
+        (v.heroPalette.mode !== 'dual-accent' && ids.has(IDEA_V4_SECONDARY_RESOURCE_ID)))
+      throw new Error('IDEA_V4_COLOR_RESOLUTION_MISMATCH')
+  } else if (v.supportTint !== undefined || v.heroPalette !== undefined)
+    throw new Error('IDEA_ASSEMBLY_HISTORICAL_COLOR_INVALID')
   if (v.supports.some(s => !validNumber(s.settle) || s.settle! <= s.enter || s.settle! > .7) ||
       !Array.isArray(v.connectorSequence) || v.connectorSequence.length !== IDEA_SUPPORT_IDS.length)
     throw new Error('IDEA_ASSEMBLY_V3_TIMING_INVALID')

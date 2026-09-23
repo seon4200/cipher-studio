@@ -11,7 +11,7 @@ import { FUENTES_RENDER, MUESTRA_FUENTES, faltaLaFuentePorAncho } from './fuente
 import type { PreparedRenderAssetAny, RuntimeRenderAssetAny, RuntimeRenderAssetV2 } from '../../shared/visual-scene-spec-v2'
 import { measurePhotoProbeV1 } from './composiciones/photo-text-contrast-v1'
 import { VISUAL_RECOVERY_PROFILE_V1 } from '../../shared/editorial-motion-profile-v1'
-import { IDEA_RESOURCE_IDS, IDEA_SUPPORT_IDS } from '../../shared/editorial-idea-assembly-v1'
+import { IDEA_RESOURCE_IDS, IDEA_SUPPORT_IDS, IDEA_V4_SECONDARY_RESOURCE_ID } from '../../shared/editorial-idea-assembly-v1'
 import './styles/globals.css'
 
 // Franja de la SONDA, encima del lienzo. El proceso principal codifica ahi el indice de
@@ -130,7 +130,7 @@ async function prepararRuntimeAssets(assets: readonly PreparedRenderAssetAny[], 
   const preparados: RuntimeRenderAssetAny[] = []
   try {
     for (const asset of assets) {
-      if (!(ideaAssembly ? ['hero', ...IDEA_SUPPORT_IDS, ...IDEA_RESOURCE_IDS] : ['hero', 'support-1', 'support-2']).includes(asset.slotId) ||
+      if (!(ideaAssembly ? ['hero', ...IDEA_SUPPORT_IDS, ...IDEA_RESOURCE_IDS, IDEA_V4_SECONDARY_RESOURCE_ID] : ['hero', 'support-1', 'support-2']).includes(asset.slotId) ||
           !['image/svg+xml', 'image/png', 'image/jpeg', 'image/webp'].includes(asset.mime) || !asset.bytesBase64)
         throw new Error('Render asset efímero inválido')
       const binary = atob(asset.bytesBase64)

@@ -1,8 +1,9 @@
 import React from 'react'
 import type { VisualSceneSpecV2, RuntimeRenderAssetV2 } from '../../../shared/visual-scene-spec-v2'
-import { EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3,
+import { EDITORIAL_IDEA_ASSEMBLY_V2, EDITORIAL_IDEA_ASSEMBLY_V3, EDITORIAL_IDEA_ASSEMBLY_V4,
   type IdeaAccentTheme, type IdeaAssemblyResource } from '../../../shared/editorial-idea-assembly-v1'
 import { sceneSpecReactKeyAny } from '../../../shared/visual-scene-spec-v2'
+import { AlphaMaskRasterV4 } from './alpha-mask-raster-v4'
 
 const clamp = (v: number) => Math.max(0, Math.min(1, v))
 const ease = (v: number) => 1 - Math.pow(1 - clamp(v), 3)
@@ -31,8 +32,10 @@ export const EditorialIdeaAssemblyV1: React.FC<{
   const plan = spec.ideaAssembly!
   const isV2 = plan.revision === EDITORIAL_IDEA_ASSEMBLY_V2.revision
   const isV3 = plan.revision === EDITORIAL_IDEA_ASSEMBLY_V3.revision
+  const isV4 = plan.revision === EDITORIAL_IDEA_ASSEMBLY_V4.revision
   /** V3 intentionally retains V2's approved stable material/title treatment. */
-  const isPolished = isV2 || isV3
+  const isPolished = isV2 || isV3 || isV4
+  const isSequenced = isV3 || isV4
   const landscape = window.innerWidth > window.innerHeight
   const layout = landscape ? plan.landscapeLayout : spec.layout
   const byId = new Map(runtimeAssets.map(asset => [asset.slotId, asset]))
@@ -52,14 +55,18 @@ export const EditorialIdeaAssemblyV1: React.FC<{
     const x = from.x * (1 - enter), y = from.y * (1 - enter)
     const scale = from.scale + (1 - from.scale) * enter
     const isBackground = resource.id === 'idea-background'
-    return <img key={resource.id} src={requireUrl(resource.id)} alt="" data-idea-part={resource.id}
-      style={{ position: 'absolute', left: `${rect.x}%`, top: `${rect.y}%`,
+    const style: React.CSSProperties = { position: 'absolute', left: `${rect.x}%`, top: `${rect.y}%`,
         width: `${rect.width}%`, height: `${rect.height}%`, objectFit: isBackground ? 'cover' : 'contain',
         zIndex: resource.zIndex, pointerEvents: 'none',
         opacity: enter * (isBackground ? 1 : 1 - phase(u, resource.timing.exit, 1)),
         transform: `translate(${x}%,${y}%) scale(${scale})`, transformOrigin: '50% 50%',
-        filter: resource.accentTreatment === 'hue-shift' ? accent.filter : 'none',
-      }} />
+        filter: !isV4 && resource.accentTreatment === 'hue-shift' ? accent.filter : 'none' }
+    if (isV4 && resource.accentTreatment === 'alpha-mask') {
+      const color = resource.colorCapability === 'accent-secondary' ? plan.heroPalette!.secondary! : plan.heroPalette!.primary!
+      return <AlphaMaskRasterV4 key={resource.id} url={requireUrl(resource.id)} color={color}
+        maskId={`idea-v4-${resource.id}`} style={style} />
+    }
+    return <img key={resource.id} src={requireUrl(resource.id)} alt="" data-idea-part={resource.id} style={style} />
   }
   const supportCenters = layout.slotLayouts.filter(item => item.slotId !== 'hero').map(item => ({
     id: item.slotId, x: item.envelope.x + item.envelope.width / 2,
@@ -67,7 +74,7 @@ export const EditorialIdeaAssemblyV1: React.FC<{
   }))
   const heroCenter = { x: hero.envelope.x + hero.envelope.width / 2,
     y: hero.envelope.y + hero.envelope.height / 2 }
-  const connectors: { id: string; path: string; endX: number; endY: number; start?: number; end?: number }[] = isV3
+  const connectors: { id: string; path: string; endX: number; endY: number; start?: number; end?: number }[] = isSequenced
     ? plan.connectorSequence!.map(connector => {
       const route = landscape ? connector.landscape : connector.portrait
       return { id: connector.id, path: route.path, endX: route.tip.x, endY: route.tip.y,
@@ -123,7 +130,7 @@ export const EditorialIdeaAssemblyV1: React.FC<{
         width: `${hero.envelope.width}%`, height: `${hero.envelope.height}%`,
         transform: `scale(${heroScale})`, transformOrigin: `${plan.heroAnchor.x}% ${plan.heroAnchor.y}%`,
         opacity: out }}>
-      {plan.resources.filter(r => r.id === 'idea-rear' || r.id === 'idea-accent').map(layer)}
+      {plan.resources.filter(r => r.id === 'idea-rear' || r.id === 'idea-accent' || r.id === 'idea-accent-secondary').map(layer)}
       <img src={requireUrl('hero')} alt="" data-idea-part="bust" style={{ position: 'absolute', zIndex: 3,
         left: '12%', top: '18%', width: '78%', height: '80%', objectFit: 'contain',
         filter: 'drop-shadow(.5cqmin 1cqmin 1.2cqmin rgba(20,18,16,.22))' }} />
@@ -132,14 +139,14 @@ export const EditorialIdeaAssemblyV1: React.FC<{
     <svg data-idea-connectors="true" viewBox="0 0 100 100" preserveAspectRatio="none"
       style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: isPolished ? 3 : 4, pointerEvents: 'none', opacity: out }}>
       {connectors.map((connector, i) => {
-        const draw = isV3 ? phase(u, connector.start!, connector.end!)
+        const draw = isSequenced ? phase(u, connector.start!, connector.end!)
           : isV2 ? phase(u, .32 + i * .025, .44 + i * .015)
             : phase(u, .38 + i * .035, .65 + i * .025)
         return <g key={connector.id} data-idea-connector={connector.id} opacity={draw}>
           <path d={connector.path}
             pathLength={1} stroke="#11110F" strokeWidth=".18" fill="none"
             strokeDasharray={1} strokeDashoffset={1 - draw} />
-          {isV3
+          {isSequenced
             ? <circle cx={connector.endX} cy={connector.endY} r=".22" fill="#11110F" opacity={draw >= .985 ? 1 : 0} />
             : <circle cx={connector.endX} cy={connector.endY} r=".3" fill="#11110F" />}
         </g>
@@ -147,7 +154,7 @@ export const EditorialIdeaAssemblyV1: React.FC<{
     </svg>
     {plan.supports.map((support) => {
       const slot = layout.slotLayouts.find(item => item.slotId === support.slotId)!
-      const settle = isV3 ? support.settle! : support.enter + (isV2 ? .12 : .13)
+      const settle = isSequenced ? support.settle! : support.enter + (isV2 ? .12 : .13)
       const enter = phase(u, support.enter, settle)
       const resource = spec.slots.find(item => item.slotId === support.slotId)
       if (!resource || resource.state !== 'present') throw new Error(`IDEA_SUPPORT_REQUIRED:${support.slotId}`)
@@ -159,8 +166,11 @@ export const EditorialIdeaAssemblyV1: React.FC<{
         <div style={{ height: '69%', width: '75%', margin: '0 auto', borderRadius: '1.6cqmin',
           background: '#FAF9F6', border: '1px solid rgba(17,17,15,.13)', padding: '1.0cqmin',
           boxSizing: 'border-box', boxShadow: '.2cqmin .3cqmin .25cqmin rgba(17,17,15,.16), .7cqmin 1cqmin 2cqmin rgba(17,17,15,.08)' }}>
-          <img src={requireUrl(support.slotId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain',
-            filter: accent.filter }} />
+          {isV4
+            ? <AlphaMaskRasterV4 url={requireUrl(support.slotId)} color={plan.supportTint!.resolvedColor} renderMode="css"
+                maskId={`idea-v4-${support.slotId}`} />
+            : <img src={requireUrl(support.slotId)} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain',
+                filter: accent.filter }} />}
         </div>
         <div data-qc-text-glyph="true" style={{ fontFamily: 'IBM Plex Sans Condensed,sans-serif', fontWeight: 400,
           fontSize: landscape ? '1.75cqmin' : '2.05cqmin', letterSpacing: '.14em',
