@@ -18,6 +18,28 @@ Desde `C:\graphify\cipher-studio-round-d`, ejecutar `npm run build` y el comando
 
 Corpus dirigido: `C:\graphify\_cipher-editorial-local-bank-v2\evidence\index.html`, montajes `editorial-local-bank-v2-portrait.mp4` y `editorial-local-bank-v2-landscape.mp4`, 34 MP4 individuales, SceneSpecs/identidades JSON y contactos `contact-portrait-v2.jpg` y `contact-landscape-v2.jpg`. Los montajes son clips sintéticos de 3 s, no un video producido desde el selector humano de la UI.
 
+Cada fila E tiene `E##-portrait.mp4`, `E##-landscape.mp4` y fotogramas estables homónimos en esa carpeta. `result.json` registra los IDs exactos de Hero, Supports y capas, el texto, orientación, color, identidad, eventos y QC por render.
+
+| Escena | Familia real | Hero | Supports | Rear / accent / front |
+| --- | --- | --- | ---: | --- |
+| E01 | editorial | h001 | 4 | l001 / l036 / l021 |
+| E02 | marcoPoster | h011 | 3 | l003 / l038 / l023 |
+| E03 | partidoVertical | h025 | 3 | l002 / l037 / l022 |
+| E04 | cintaDiagonal | h009 | 3 | l002 / l037 / l022 |
+| E05 | anillosConcentricos | h035 | 3 | l003 / l038 / l023 |
+| E06 | rayosImpacto | h001 | 3 | l001 / l036 / l021 |
+| E07 | cuaderno | h006 | 3 | l003 / l038 / l023 |
+| E08 | constelacion | h025 | 4 | l002 / l037 / l022 |
+| E09 | capasApiladas | h101 | 3 | l002 / l037 / l022 |
+| E10 | redNodos | h025 | 4 | l002 / l037 / l022 |
+| E11 | lineaTiempo | h135 | 3 | l003 / l038 / l023 |
+| E12 | corteTransversal | h101 | 3 | l002 / l037 / l022 |
+| E13 | abanicoTarjetas | h041 | 4 | l002 / l037 / l022 |
+| E14 | engranajes | h102 | 3 | l003 / l038 / l023 |
+| E15 | cascada | h101 | 3 | l002 / l037 / l022 |
+| E16 | mundoIsometrico | h120 | 3 | l001 / l036 / l021 |
+| E17 | pilaVertical | h101 | 5 | l002 / l037 / l022 |
+
 Ruta ordinaria de backend con semántica simulada: `C:\graphify\_cipher-editorial-local-bank-v2\evidence\normal-route\normal-route-vertical.mp4` y `result.json`. Son tres Visuales de 2,5 s, sin audio de narración de prueba.
 
 Pruebas dirigidas: `tests/aceptacion/editorial-local-bank-v2/contracts.cjs`, `normal-route.cjs`, `ui-panel.cjs` y `generar.cjs`. Ejecutarlas con Electron después del build. `contracts.cjs` verifica físicamente los 250 PNG, las 17 familias, la selección alcanzable, seis Supports, las tres capas, cambio de identidad por color y preservación de la identidad base.
