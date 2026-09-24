@@ -16,6 +16,7 @@ export interface IElectronAPI {
     orientation: 'portrait' | 'landscape' }) => Promise<{ success: boolean; path?: string;
       url?: string; durationSeconds?: number; error?: string }>;
   listEditorialModularCatalogV1: (catalogRoot: string, verifyAll?: boolean) => Promise<{success:boolean; assets?:Array<{assetId:string;role:string;primaryWordEs:string;code:string}>;health?:{listed:number;verified:number;failures:Array<{assetId:string;error:string}>};error?:string}>;
+  chooseEditorialModularCatalogRoot: () => Promise<{success:boolean;catalogRoot?:string;canceled?:boolean;error?:string}>;
   rebindEditorialFamilyClipV1: (params: {catalogRoot:string;graphicData:any;renderBindings:any;
     finishControls?:{display:string;local:string;ambient:string;composition:string;representation:string;response:string;
       headline:string;keyword:string;body:string;effects:string};

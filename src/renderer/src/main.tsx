@@ -2703,6 +2703,25 @@ ${res.filePath}`);
       return;
     }
 
+    // Validate the configured PNG catalog before cutting video or asking DeepSeek.
+    // This dependency is limited to the opt-in local profile with a Visual quota.
+    if (visualPresentationProfile === 'editorial-local-bank-v2' && (timelineWeights[3] ?? 0) > 0) {
+      if (!modularCatalogRoot.trim()) {
+        setGenerationError('Para crear Visuales editoriales, selecciona primero la carpeta de la biblioteca que contiene inventory.json. Los clips Stock y Original no necesitan esa carpeta.');
+        return;
+      }
+      let catalogCheck: Awaited<ReturnType<typeof window.electronAPI.listEditorialModularCatalogV1>>;
+      try { catalogCheck = await window.electronAPI.listEditorialModularCatalogV1(modularCatalogRoot.trim()); }
+      catch (error) {
+        setGenerationError(`No se pudo verificar la biblioteca editorial: ${error instanceof Error ? error.message : String(error)}.`);
+        return;
+      }
+      if (!catalogCheck.success) {
+        setGenerationError(`La biblioteca editorial no está disponible: ${catalogCheck.error ?? 'carpeta o manifiesto inválido'}. Selecciona la carpeta con inventory.json y vuelve a verificarla.`);
+        return;
+      }
+    }
+
     setIsGeneratingAssets(true);
     setGenerationError('');
     // SE LIMPIAN AL EMPEZAR. Un aviso viejo colgado de una generacion previa miente igual que
@@ -4356,6 +4375,15 @@ ${res.filePath}`);
                   try{window.localStorage.setItem('cipher.editorialCatalogRoot.v2',value)}catch{}
                 }} className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1" />
               </label>
+              <button type="button" onClick={async()=>{
+                const chosen=await window.electronAPI.chooseEditorialModularCatalogRoot()
+                if(chosen.canceled)return
+                if(!chosen.success||!chosen.catalogRoot){setModularStatus(chosen.error??'No se pudo abrir la biblioteca.');return}
+                setModularCatalogRoot(chosen.catalogRoot)
+                setModularAssets([])
+                try{window.localStorage.setItem('cipher.editorialCatalogRoot.v2',chosen.catalogRoot)}catch{}
+                setModularStatus('Carpeta válida. Usa «Verificar» para comprobar los 250 PNG.')
+              }} className="rounded bg-stone-700 px-2 py-1">Seleccionar carpeta</button>
               <button type="button" onClick={loadModularCatalog} disabled={!modularCatalogRoot.trim()}
                 className="rounded bg-stone-700 px-2 py-1 disabled:opacity-40">Verificar manifiesto, PNG y SHA</button>
               <p>{modularStatus||'Indica la biblioteca una vez. Los PNG y sus SHA se verifican al materializar cada Visual.'}</p>

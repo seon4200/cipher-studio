@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     orientation: 'portrait' | 'landscape' }) => ipcRenderer.invoke('generate-idea-assembly-v4-pilot', params),
   regenerateIdeaAssemblyV4Pilot: (params: any) => ipcRenderer.invoke('regenerate-idea-assembly-v4-pilot', params),
   listEditorialModularCatalogV1: (catalogRoot: string, verifyAll = false) => ipcRenderer.invoke('list-editorial-modular-catalog-v1', catalogRoot, verifyAll),
+  chooseEditorialModularCatalogRoot: () => ipcRenderer.invoke('choose-editorial-modular-catalog-root'),
   rebindEditorialFamilyClipV1: (params: any) => ipcRenderer.invoke('rebind-editorial-family-clip-v1', params),
   generateEditorialModularCatalogV1: (params: import('../shared/editorial-modular-catalog-v1').ModularCatalogPilotInputV1) => ipcRenderer.invoke('generate-editorial-modular-catalog-v1', params),
   regenerateEditorialModularCatalogV1: (params: any) => ipcRenderer.invoke('regenerate-editorial-modular-catalog-v1', params),
