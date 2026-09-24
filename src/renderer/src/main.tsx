@@ -1568,13 +1568,16 @@ function App() {
   // un proyecto nuevo reparte exactamente como antes hasta que el usuario mueva el slider.
   const [timelineWeights, setTimelineWeights] = useState<number[]>([...PESOS_POR_DEFECTO])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
-  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3' | 'editorial-idea-assembly-v4' | 'editorial-modular-catalog-v1' | 'editorial-modular-families-v1' | 'editorial-modular-finish-v1-1'>('standard')
+  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3' | 'editorial-idea-assembly-v4' | 'editorial-modular-catalog-v1' | 'editorial-modular-families-v1' | 'editorial-modular-finish-v1-1' | 'editorial-local-bank-v2'>('editorial-local-bank-v2')
   const [ideaV4AssetRoot, setIdeaV4AssetRoot] = useState('')
   const [ideaV4Color, setIdeaV4Color] = useState<IdeaColorIntentV4>({
     supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E',
   })
   const [ideaV4Status, setIdeaV4Status] = useState('')
-  const [modularCatalogRoot, setModularCatalogRoot] = useState('')
+  const [modularCatalogRoot, setModularCatalogRoot] = useState(()=>{
+    try{return window.localStorage.getItem('cipher.editorialCatalogRoot.v2')??''}catch{return ''}
+  })
+  const [editorialLocalAccent,setEditorialLocalAccent]=useState('auto')
   const [editorialFamilyChoice, setEditorialFamilyChoice] = useState('auto')
   const [editorialFamilyColor, setEditorialFamilyColor] = useState('#A83B19')
   const [editorialFamilyEffects, setEditorialFamilyEffects] = useState('none')
@@ -1611,9 +1614,15 @@ function App() {
       frontId:plan.layers.find((layer:{id:string})=>layer.id==='idea-front')?.catalogAssetId??''}:null)
   },[selectedFamilyClip?.id,selectedFamilyClip?.visualRegeneration?.graphicData])
   const loadModularCatalog = async () => {
-    const result = await window.electronAPI.listEditorialModularCatalogV1(modularCatalogRoot.trim())
+    setModularStatus('Verificando la biblioteca local…')
+    const result = await window.electronAPI.listEditorialModularCatalogV1(modularCatalogRoot.trim(),
+      visualPresentationProfile==='editorial-local-bank-v2')
     setModularAssets(result.success ? result.assets ?? [] : [])
-    setModularStatus(result.success ? `${result.assets?.length ?? 0} piezas del registro curado.` : result.error ?? 'Catálogo no disponible.')
+    setModularStatus(result.success ? result.health
+      ? `${result.health.verified}/${result.health.listed} PNG verificados por SHA y alpha.`+
+        (result.health.failures.length ? ` Fallos: ${result.health.failures.slice(0,3).map(f=>f.assetId).join(', ')}.` : '')
+      : `${result.assets?.length ?? 0} piezas listadas; PNG no verificados.`
+      : result.error ?? 'Catálogo no disponible.')
   }
   const replaceSelectedFamilyAssets = async () => {
     if(!selectedFamilyClip||!familyClipEdit||!modularCatalogRoot.trim())return
@@ -1851,7 +1860,7 @@ function App() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, editorialFinishControls, modularHeroId, modularSupportIds, modularRearId, modularAccentId, modularFrontId, modularRecipe, modularHeadline, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, modularCatalogRoot, editorialLocalAccent, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, editorialFinishControls, modularHeroId, modularSupportIds, modularRearId, modularAccentId, modularFrontId, modularRecipe, modularHeadline, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
 
   // UN solo sitio construye lo que se guarda. Estaba copiado en TRES (guardar al cerrar,
   // guardar, y guardar como), y por eso cada funcion nueva nacia sin persistencia en dos de
@@ -1871,7 +1880,7 @@ function App() {
     voiceModel, voiceSpeaker, voiceSpeed, voiceStability,
     generatedVoices, graphicsPercent, timelineWeights, visualPresentationProfile, visualAssetPack,
     ideaV4AssetRoot, ideaV4Color,
-    modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, editorialFinishControls,
+    modularCatalogRoot, editorialLocalAccent, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, editorialFinishControls,
     modularHeroId, modularSupportIds, modularRearId, modularAccentId,
     modularFrontId, modularRecipe, modularHeadline,
 
@@ -1903,7 +1912,7 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, editorialFinishControls, modularHeroId, modularSupportIds, modularRearId, modularAccentId, modularFrontId, modularRecipe, modularHeadline, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, modularCatalogRoot, editorialLocalAccent, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, editorialFinishControls, modularHeroId, modularSupportIds, modularRearId, modularAccentId, modularFrontId, modularRecipe, modularHeadline, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
 
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
@@ -2007,7 +2016,8 @@ function App() {
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
         setVisualAssetPack(loadedData.visualAssetPack === 'modern-pack-100-v1+local' ? 'modern-pack-100-v1+local' : loadedData.visualAssetPack === 'modern-pack-100-v1' ? 'modern-pack-100-v1' : 'legacy');
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-modular-finish-v1-1' ? 'editorial-modular-finish-v1-1' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-local-bank-v2' ? 'editorial-local-bank-v2' :
+          loadedData.visualPresentationProfile === 'editorial-modular-finish-v1-1' ? 'editorial-modular-finish-v1-1' :
           loadedData.visualPresentationProfile === 'editorial-modular-families-v1' ? 'editorial-modular-families-v1' :
           loadedData.visualPresentationProfile === 'editorial-modular-catalog-v1' ? 'editorial-modular-catalog-v1' :
           loadedData.visualPresentationProfile === 'editorial-idea-assembly-v4' ? 'editorial-idea-assembly-v4' :
@@ -2022,7 +2032,11 @@ function App() {
         setIdeaV4Color(loadedData.ideaV4Color && typeof loadedData.ideaV4Color === 'object'
           ? loadedData.ideaV4Color as IdeaColorIntentV4
           : { supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E' });
-        setModularCatalogRoot(typeof loadedData.modularCatalogRoot==='string'?loadedData.modularCatalogRoot:'')
+        setModularCatalogRoot(typeof loadedData.modularCatalogRoot==='string'&&loadedData.modularCatalogRoot.trim()
+          ?loadedData.modularCatalogRoot:window.localStorage.getItem('cipher.editorialCatalogRoot.v2')??'')
+        setEditorialLocalAccent(typeof loadedData.editorialLocalAccent==='string'&&
+          (loadedData.editorialLocalAccent==='auto'||/^#[0-9A-Fa-f]{6}$/.test(loadedData.editorialLocalAccent))
+          ?loadedData.editorialLocalAccent.toUpperCase()==='AUTO'?'auto':loadedData.editorialLocalAccent.toUpperCase():'auto')
         setEditorialFamilyChoice(['auto','marcoPoster','editorial','partidoVertical','cuaderno','constelacion','cascada'].includes(loadedData.editorialFamilyChoice)
           ? loadedData.editorialFamilyChoice : 'auto')
         setEditorialFamilyColor(typeof loadedData.editorialFamilyColor==='string'&&/^#[0-9A-Fa-f]{6}$/.test(loadedData.editorialFamilyColor)
@@ -2324,7 +2338,8 @@ function App() {
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
         setVisualAssetPack(loadedData.visualAssetPack === 'modern-pack-100-v1+local' ? 'modern-pack-100-v1+local' : loadedData.visualAssetPack === 'modern-pack-100-v1' ? 'modern-pack-100-v1' : 'legacy');
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-modular-finish-v1-1' ? 'editorial-modular-finish-v1-1' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-local-bank-v2' ? 'editorial-local-bank-v2' :
+          loadedData.visualPresentationProfile === 'editorial-modular-finish-v1-1' ? 'editorial-modular-finish-v1-1' :
           loadedData.visualPresentationProfile === 'editorial-modular-families-v1' ? 'editorial-modular-families-v1' :
           loadedData.visualPresentationProfile === 'editorial-modular-catalog-v1' ? 'editorial-modular-catalog-v1' :
           loadedData.visualPresentationProfile === 'editorial-idea-assembly-v4' ? 'editorial-idea-assembly-v4' :
@@ -2339,7 +2354,11 @@ function App() {
         setIdeaV4Color(loadedData.ideaV4Color && typeof loadedData.ideaV4Color === 'object'
           ? loadedData.ideaV4Color as IdeaColorIntentV4
           : { supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E' });
-        setModularCatalogRoot(typeof loadedData.modularCatalogRoot==='string'?loadedData.modularCatalogRoot:'')
+        setModularCatalogRoot(typeof loadedData.modularCatalogRoot==='string'&&loadedData.modularCatalogRoot.trim()
+          ?loadedData.modularCatalogRoot:window.localStorage.getItem('cipher.editorialCatalogRoot.v2')??'')
+        setEditorialLocalAccent(typeof loadedData.editorialLocalAccent==='string'&&
+          (loadedData.editorialLocalAccent==='auto'||/^#[0-9A-Fa-f]{6}$/.test(loadedData.editorialLocalAccent))
+          ?loadedData.editorialLocalAccent.toUpperCase()==='AUTO'?'auto':loadedData.editorialLocalAccent.toUpperCase():'auto')
         setEditorialFamilyChoice(['auto','marcoPoster','editorial','partidoVertical','cuaderno','constelacion','cascada'].includes(loadedData.editorialFamilyChoice)
           ? loadedData.editorialFamilyChoice : 'auto')
         setEditorialFamilyColor(typeof loadedData.editorialFamilyColor==='string'&&/^#[0-9A-Fa-f]{6}$/.test(loadedData.editorialFamilyColor)
@@ -2721,10 +2740,11 @@ ${res.filePath}`);
         transcriptSegments,
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
-        visualPresentationProfile, visualAssetPack,
-        modularCatalogRoot:['editorial-modular-families-v1','editorial-modular-finish-v1-1'].includes(visualPresentationProfile)?modularCatalogRoot.trim():undefined,
+        visualPresentationProfile, visualAssetPack:visualPresentationProfile==='editorial-local-bank-v2'?'legacy':visualAssetPack,
+        modularCatalogRoot:['editorial-modular-families-v1','editorial-modular-finish-v1-1','editorial-local-bank-v2'].includes(visualPresentationProfile)?modularCatalogRoot.trim():undefined,
         editorialFamilyChoice:['editorial-modular-families-v1','editorial-modular-finish-v1-1'].includes(visualPresentationProfile)?editorialFamilyChoice:undefined,
-        editorialFamilyColor:['editorial-modular-families-v1','editorial-modular-finish-v1-1'].includes(visualPresentationProfile)?editorialFamilyColor:undefined,
+        editorialFamilyColor:visualPresentationProfile==='editorial-local-bank-v2'?editorialLocalAccent:
+          ['editorial-modular-families-v1','editorial-modular-finish-v1-1'].includes(visualPresentationProfile)?editorialFamilyColor:undefined,
         editorialFamilyEffects:visualPresentationProfile==='editorial-modular-families-v1'?editorialFamilyEffects:undefined,
         editorialFinishControls:visualPresentationProfile==='editorial-modular-finish-v1-1'?editorialFinishControls:undefined,
         // CERO A PROPOSITO, NO ES UN OLVIDO. El commit e145119 partio la construccion en tres
@@ -4200,7 +4220,10 @@ ${res.filePath}`);
 
           {/* Mix del montaje Section */}
           {!perfectSyncMode && (
-          <div className="p-3 border-b border-[#3a3a3c]/80 bg-[#0D0D0F]/20 space-y-3 flex-shrink-0">
+          <div className="p-3 border-b border-[#3a3a3c]/80 bg-[#0D0D0F]/20 space-y-3 min-h-0 overflow-y-auto"
+            style={visualPresentationProfile==='editorial-local-bank-v2'
+              ? {flex:'2 1 0%'} : {maxHeight:'calc(100vh - 13rem)',flexShrink:0}}
+            tabIndex={0} aria-label="Mezcla y construcción del timeline">
             <div className="flex items-center space-x-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               <Sliders className="h-3.5 w-3.5 text-indigo-400" />
               <span>Mix del montaje</span>
@@ -4304,7 +4327,7 @@ ${res.filePath}`);
             </div>
 
             {/* Botón Construir Timeline IA */}
-            <div className="mt-2 flex items-center justify-between gap-2">
+            {visualPresentationProfile!=='editorial-local-bank-v2'&&<div className="mt-2 flex items-center justify-between gap-2">
               <label htmlFor="visual-asset-pack" className="text-[10px] font-semibold text-slate-400">Biblioteca de Visuales</label>
               <select id="visual-asset-pack" value={visualAssetPack}
                 onChange={event => setVisualAssetPack(event.target.value as typeof visualAssetPack)}
@@ -4313,26 +4336,44 @@ ${res.filePath}`);
                 <option value="modern-pack-100-v1">Modern Pack 100 V1 (experimental)</option>
                 <option value="modern-pack-100-v1+local">Pack 100 + biblioteca local (experimental)</option>
               </select>
-            </div>
+            </div>}
             <div className="mt-2 flex items-center justify-between gap-2">
-              <label htmlFor="visual-presentation-profile" className="text-[10px] font-semibold text-slate-400">Estilo de Visuales (piloto)</label>
+              <label htmlFor="visual-presentation-profile" className="text-[10px] font-semibold text-slate-400">Sistema visual</label>
               <select id="visual-presentation-profile" value={visualPresentationProfile}
                 onChange={event => setVisualPresentationProfile(event.target.value as typeof visualPresentationProfile)}
                 className="bg-[#1C1C1E] border border-[#3a3a3c] text-[10px] text-slate-200 rounded-lg px-2 py-1">
-                <option value="standard">V15 actual</option>
-                <option value="editorial-hybrid-v1">Editorial híbrido V2 (experimental)</option>
-                <option value="visual-recovery-v1">Visual Recovery V1 (experimental)</option>
-                <option value="premium-type-color-v1">Porcelain Editorial V1 (experimental)</option>
-                <option value="families-motion-v2">Families + Motion V2 (experimental)</option>
-                <option value="editorial-explainer-light-v1">Editorial Explainer Light V1 (piloto)</option>
-                <option value="editorial-explainer-light-v2">Editorial Explainer Light V2 (reproducible)</option>
-                <option value="editorial-explainer-v3">Editorial Explainer</option>
-                <option value="editorial-idea-assembly-v4">IDEA Assembly V4 — Color Pilot</option>
-                <option value="editorial-modular-catalog-v1">Catálogo editorial modular V1 — Piloto opt-in</option>
-                <option value="editorial-modular-families-v1">Familias editoriales V1 — Catálogo curado (opt-in)</option>
-                <option value="editorial-modular-finish-v1-1">Familias editoriales V1.1 — acabado y conexiones (opt-in)</option>
+                <option value="editorial-local-bank-v2">Editorial local — dirección automática</option>
+                <option value="standard">V15 clásico</option>
+                {!['editorial-local-bank-v2','standard'].includes(visualPresentationProfile)&&<option value={visualPresentationProfile}>Perfil histórico: {visualPresentationProfile}</option>}
               </select>
             </div>
+            {visualPresentationProfile==='editorial-local-bank-v2'&&<div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] text-[10px] text-slate-200 space-y-2">
+              <p className="font-semibold">Cipher elige familia, composición, capas y movimiento según el contenido.</p>
+              <label className="block">Biblioteca editorial local (carpeta con inventory.json)
+                <input value={modularCatalogRoot} onChange={event=>{
+                  const value=event.target.value
+                  setModularCatalogRoot(value);setModularAssets([])
+                  try{window.localStorage.setItem('cipher.editorialCatalogRoot.v2',value)}catch{}
+                }} className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1" />
+              </label>
+              <button type="button" onClick={loadModularCatalog} disabled={!modularCatalogRoot.trim()}
+                className="rounded bg-stone-700 px-2 py-1 disabled:opacity-40">Verificar manifiesto, PNG y SHA</button>
+              <p>{modularStatus||'Indica la biblioteca una vez. Los PNG y sus SHA se verifican al materializar cada Visual.'}</p>
+              <label className="block">Acento del video (opcional)
+                <select value={['auto','#A83B19','#238C87','#B8444F'].includes(editorialLocalAccent)?editorialLocalAccent:'custom'}
+                  onChange={event=>setEditorialLocalAccent(event.target.value)}
+                  className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1">
+                  <option value="auto">Automático</option><option value="#A83B19">Naranja</option>
+                  <option value="#238C87">Teal</option><option value="#B8444F">Crimson</option>
+                  <option value="custom">HEX personalizado</option>
+                </select>
+              </label>
+              {editorialLocalAccent==='custom'||editorialLocalAccent.startsWith('#')&&
+                !['#A83B19','#238C87','#B8444F'].includes(editorialLocalAccent)
+                ?<input aria-label="HEX personalizado del sistema editorial" value={editorialLocalAccent==='custom'?'':editorialLocalAccent}
+                  onChange={event=>setEditorialLocalAccent(event.target.value.toUpperCase())}
+                  className="w-full rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1"/>:null}
+            </div>}
             {['editorial-modular-families-v1','editorial-modular-finish-v1-1'].includes(visualPresentationProfile) && <div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] text-[10px] text-slate-200">
               <label className="block">Raíz local de los 250 assets curados (inventory.json)
                 <input value={modularCatalogRoot} onChange={event=>setModularCatalogRoot(event.target.value)}

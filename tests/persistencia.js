@@ -146,6 +146,7 @@ const MUESTRA = {
   ideaV4Color: { supportSource: 'custom', customColor: '#7B4EA3',
                  heroMode: 'recolorable', heroPrimary: '#238C87' },
   modularCatalogRoot: path.join(FIXTURE_ROOT, 'catalogo-250'),
+  editorialLocalAccent: '#7B4EA3',
   editorialFamilyChoice: 'cuaderno',
   editorialFamilyColor: '#238C87',
   editorialFamilyEffects: 'none',

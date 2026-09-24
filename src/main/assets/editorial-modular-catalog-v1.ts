@@ -80,6 +80,18 @@ export class CuratedModularCatalogV1 {
     })
   }
   getVariants(concept: string): readonly CuratedModularAssetV1[] { return this.search([concept]) }
+  /** Explicit health check; listing metadata alone does not prove that PNGs are present. */
+  verifyAll(): { listed: number; verified: number; failures: { assetId: string; error: string }[] } {
+    const entries = this.entries()
+    const failures: { assetId: string; error: string }[] = []
+    let verified = 0
+    for (const asset of entries) {
+      try { this.resolveAsset(asset.assetId); verified++ }
+      catch (error) { failures.push({ assetId: asset.assetId,
+        error: error instanceof Error ? error.message : String(error) }) }
+    }
+    return { listed: entries.length, verified, failures }
+  }
   resolveAsset(assetId: string): Buffer {
     const approved = this.getById(assetId)
     const entry = this.entriesById.get(assetId)
