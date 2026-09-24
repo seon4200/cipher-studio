@@ -16,6 +16,7 @@ import { CuratedModularCatalogV1, type ImportedModularAssetV1 } from './editoria
 import type { LocalSceneSemanticV1 } from '../../shared/local-scene-semantic'
 import type { ModernLayoutStructureV4 } from '../../shared/visual-layout-v4'
 import { editorialHeadlineFromLocalTextV1 } from './editorial-modular-families-v1'
+import { canonicalNarrativeTerm } from '../../shared/asset-intent'
 
 const normalized=(text:string)=>text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim()
 const intentRules:readonly {family:ModernLayoutStructureV4;test:RegExp}[]=[
@@ -42,20 +43,40 @@ export type EditorialLocalSelectionV2={
   heroId:string;supportIds:string[];rearId:string;accentId:string;frontId:string
   reason:string;missingTerms:string[]
 }
+export type EditorialLocalSelectionTraceV2 = {
+  terms: string[]
+  heroCandidates: { term: string; assetId: string; match: string }[]
+  supportCandidates: { term: string; assetId: string; match: string }[]
+  missingTerms: string[]
+  outcome: 'SELECTED' | 'NO_HERO' | 'INSUFFICIENT_SUPPORTS'
+}
 /** Content-first selector. A scene without two genuinely matched Supports is not
  * promoted to an illustrated V2 scene. No quotas or fake semantic matches. */
-export function selectEditorialLocalBankV2(input:{catalog:CuratedModularCatalogV1;
-  semantic:LocalSceneSemanticV1;recentFamilies?:readonly ModernLayoutStructureV4[]}):EditorialLocalSelectionV2|null{
+export function selectEditorialLocalBankV2Detailed(input:{catalog:CuratedModularCatalogV1;
+  semantic:LocalSceneSemanticV1;recentFamilies?:readonly ModernLayoutStructureV4[]}):{
+    selection: EditorialLocalSelectionV2 | null; trace: EditorialLocalSelectionTraceV2 }{
   const text=normalized(input.semantic.localText)
+  // `conceptos` is supplied for this very subclip by the existing planner.
+  // An absent scope is not evidence of a different scene; explicit context is.
   const terms=[input.semantic.anchor,...input.semantic.concepts.filter(item=>
-    item.scope==='scene'||item.scope===undefined&&text.includes(normalized(item.label))).map(item=>item.label)]
+    item.scope!=='context' && (item.start===undefined || item.end===undefined ||
+      item.end>=input.semantic.start && item.start<=input.semantic.end)).map(item=>item.label)]
     .filter((term):term is string=>typeof term==='string'&&!!term.trim())
-  const heroes=terms.flatMap(term=>input.catalog.search([term],'hero-core'))
-  const hero=heroes[0]
-  const supports=terms.flatMap(term=>input.catalog.search([term],'support'))
+    .filter((term,index,all)=>all.findIndex(other=>canonicalNarrativeTerm(other)===canonicalNarrativeTerm(term))===index)
+  const heroCandidates=terms.flatMap(term=>input.catalog.searchEditorialLocalV2(term,'hero-core')
+    .map(found=>({term,assetId:found.asset.assetId,match:found.match,asset:found.asset})))
+  const supportCandidates=terms.flatMap(term=>input.catalog.searchEditorialLocalV2(term,'support')
+    .map(found=>({term,assetId:found.asset.assetId,match:found.match,asset:found.asset})))
+  const missingTerms=terms.filter(term=>!heroCandidates.some(item=>item.term===term)&&
+    !supportCandidates.some(item=>item.term===term))
+  const hero=heroCandidates[0]?.asset
+  const supports=supportCandidates.map(item=>item.asset)
     .filter((item,index,all)=>item.primaryWordEs.toLocaleLowerCase('es')!==hero?.primaryWordEs.toLocaleLowerCase('es')&&
       all.findIndex(candidate=>candidate.assetId===item.assetId)===index).slice(0,6)
-  if(!hero||supports.length<2)return null
+  const traceBase={terms,heroCandidates:heroCandidates.map(({term,assetId,match})=>({term,assetId,match})),
+    supportCandidates:supportCandidates.map(({term,assetId,match})=>({term,assetId,match})),missingTerms}
+  if(!hero)return {selection:null,trace:{...traceBase,outcome:'NO_HERO'}}
+  if(supports.length<2)return {selection:null,trace:{...traceBase,outcome:'INSUFFICIENT_SUPPORTS'}}
   const relation=normalized(input.semantic.relation??'')
   const eligible=intentRules.filter(rule=>rule.test.test(`${relation} ${text}`))
   const recent=new Set(input.recentFamilies?.slice(-3)??[])
@@ -73,10 +94,26 @@ export function selectEditorialLocalBankV2(input:{catalog:CuratedModularCatalogV
     if(!selected||!input.catalog.getById(selected.assetId))throw new Error('EDITORIAL_LOCAL_LAYER_RECIPE_MISSING:'+code)
     return selected.assetId
   }
-  return {family,variant:aspect==='wide'?'inverse':'base',heroId:hero.assetId,
+  return {selection:{family,variant:aspect==='wide'?'inverse':'base',heroId:hero.assetId,
     supportIds:supports.map(item=>item.assetId),rearId:byCode(layerCode,'rear-collage'),
     accentId:byCode(accentCode,'accent-mask'),frontId:byCode(frontCode,'front-collage'),
-    reason:eligible.length?'CONTENT_RELATION':'EDITORIAL_DEFAULT',missingTerms:[]}
+    reason:eligible.length?'CONTENT_RELATION':'EDITORIAL_DEFAULT',missingTerms},
+    trace:{...traceBase,outcome:'SELECTED'}}
+}
+
+export function selectEditorialLocalBankV2(input:Parameters<typeof selectEditorialLocalBankV2Detailed>[0]):EditorialLocalSelectionV2|null{
+  return selectEditorialLocalBankV2Detailed(input).selection
+}
+
+/** Catalog is required only when this generation actually requests Visuales. */
+export function preflightEditorialLocalCatalogV2(root: string | undefined, visualQuota: number): CuratedModularCatalogV1 | null {
+  if (visualQuota <= 0) return null
+  if (!root?.trim())
+    throw new Error('Biblioteca editorial sin configurar. Selecciona la carpeta que contiene inventory.json antes de construir con Visuales.')
+  try { return new CuratedModularCatalogV1(root.trim()) }
+  catch (error) {
+    throw new Error(`Biblioteca editorial no disponible: ${error instanceof Error ? error.message : String(error)}. Selecciona una carpeta válida con inventory.json; ningún Visual fue renderizado.`)
+  }
 }
 
 /** ProjectAsset materialization is still the original SHA-pinned raster provider.

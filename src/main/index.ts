@@ -75,7 +75,7 @@ import { bindEditorialModularFamilyV1, editorialHeadlineFromLocalTextV1,
   bindEditorialModularFinishV11, selectEditorialModularFamilyAssetsV1 } from './assets/editorial-modular-families-v1'
 import { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-families-v1'
 import { EDITORIAL_LOCAL_BANK_V2 } from '../shared/editorial-local-bank-v2'
-import { bindEditorialLocalBankV2, selectEditorialLocalBankV2 } from './assets/editorial-local-bank-v2'
+import { bindEditorialLocalBankV2, preflightEditorialLocalCatalogV2, selectEditorialLocalBankV2Detailed } from './assets/editorial-local-bank-v2'
 import { EDITORIAL_FINISH_V1_1, type FinishFont, type FinishIntensity,
   type FinishRepresentation, type FinishResponse } from '../shared/editorial-finish-v1-1'
 import { EDITORIAL_MODULAR_CATALOG_V1, type ModularCatalogPilotInputV1 } from '../shared/editorial-modular-catalog-v1'
@@ -173,6 +173,8 @@ export { bindEditorialModularFamilyV1, bindEditorialModularFinishV11, selectEdit
 export { editorialHeadlineFromLocalTextV1 } from './assets/editorial-modular-families-v1'
 export { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-families-v1'
 export { bindEditorialLocalBankV2, selectEditorialLocalBankV2 } from './assets/editorial-local-bank-v2'
+export { selectEditorialLocalBankV2Detailed } from './assets/editorial-local-bank-v2'
+export { preflightEditorialLocalCatalogV2 } from './assets/editorial-local-bank-v2'
 export { EDITORIAL_LOCAL_BANK_V2 } from '../shared/editorial-local-bank-v2'
 export { EDITORIAL_LOCAL_FAMILIES_V2, createEditorialLocalBankLayoutV2 } from '../shared/editorial-local-bank-v2'
 export * from '../shared/editorial-finish-v1-1'
@@ -4207,6 +4209,22 @@ ipcMain.handle('list-editorial-modular-catalog-v1', async (_event, catalogRoot: 
   } catch (error) { return { success:false, error:error instanceof Error ? error.message : String(error) } }
 })
 
+ipcMain.handle('choose-editorial-modular-catalog-root', async () => {
+  try {
+    if (!win) return { success: false, error: 'Ventana no disponible' }
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      title: 'Seleccionar biblioteca editorial (carpeta con inventory.json)',
+      properties: ['openDirectory'],
+    })
+    if (canceled || !filePaths?.[0]) return { success: false, canceled: true }
+    // The provider verifies the pinned manifest and roster before the UI saves this choice.
+    new CuratedModularCatalogV1(filePaths[0])
+    return { success: true, catalogRoot: filePaths[0] }
+  } catch (error) {
+    return { success: false, error: `La carpeta elegida no es la biblioteca editorial válida: ${error instanceof Error ? error.message : String(error)}` }
+  }
+})
+
 /** Explicit per-clip substitution, never an automatic migration of old clips. */
 ipcMain.handle('rebind-editorial-family-clip-v1', async (_event, input: {
   catalogRoot:string;graphicData:any;renderBindings:RenderBindingsAny;
@@ -4493,6 +4511,12 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     const targetStockClips = obj1.stock;
     const targetVisualClips = obj1.visual;
     const targetOriginalClips = obj1.original;
+
+    // Fail before semantic planning, stock downloads or any partial timeline work.
+    // Zero requested Visuales remains independent of the local PNG catalog.
+    let validatedLocalCatalog: CuratedModularCatalogV1 | null = null
+    if (visualPresentationProfile === EDITORIAL_LOCAL_BANK_V2.id)
+      validatedLocalCatalog = preflightEditorialLocalCatalogV2(modularCatalogRoot,targetVisualClips)
 
     await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ` +
       `ia=${targetIaClips}, visual=${targetVisualClips}/${totalVisualClipsCount}`);
@@ -5398,7 +5422,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         const localBankSelected = visualPresentationProfile === EDITORIAL_LOCAL_BANK_V2.id
         const editorialFamiliesSelected = [EDITORIAL_MODULAR_FAMILIES_V1.id,EDITORIAL_FINISH_V1_1.id,EDITORIAL_LOCAL_BANK_V2.id].includes(visualPresentationProfile)
         const curatedFamilyCatalog = editorialFamiliesSelected && aRenderizar.length>0
-          ? new CuratedModularCatalogV1(String(modularCatalogRoot ?? '')) : null
+          ? validatedLocalCatalog ?? new CuratedModularCatalogV1(String(modularCatalogRoot ?? '')) : null
         const resueltosModernos = await resolveModernVisualGenerationBatchV2({
           // The existing semantic/keyword authority remains unchanged. For the
           // catalogue profile, compile an asset-free base, then bind only exact
@@ -5411,10 +5435,13 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         });
         let previousEditorialFamily: import('../shared/editorial-modular-families-v1').EditorialFamilyIdV1 | undefined
         const recentLocalFamilies: import('../shared/visual-layout-v4').ModernLayoutStructureV4[]=[]
+        const localSelectionTraces: {sceneId:string;trace:import('./assets/editorial-local-bank-v2').EditorialLocalSelectionTraceV2}[]=[]
         const solicitudesGraficas = resueltosModernos.map(({ context, resolved }, sceneIndex) => {
           const base = resolved.base;
-          const localSelected = localBankSelected && curatedFamilyCatalog ? selectEditorialLocalBankV2({
+          const localDecision = localBankSelected && curatedFamilyCatalog ? selectEditorialLocalBankV2Detailed({
             catalog:curatedFamilyCatalog,semantic:base.localSemantic,recentFamilies:recentLocalFamilies}) : null
+          const localSelected=localDecision?.selection??null
+          if(localDecision)localSelectionTraces.push({sceneId:base.decision.sceneId,trace:localDecision.trace})
           if(localSelected)recentLocalFamilies.push(localSelected.family)
           const selected = !localBankSelected && curatedFamilyCatalog ? selectEditorialModularFamilyAssetsV1({
             catalog:curatedFamilyCatalog,semantic:base.localSemantic,sceneIndex,
@@ -5482,10 +5509,13 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             motionGraphicsMetrics: resolved.metrics,
             localSemantic: base.localSemantic,
             keywordSelection: base.keywordSelection,
-            resolverDecision: localBuilt || familyBuilt ? {...base.decision,
+            resolverDecision: localBankSelected ? {...base.decision,
+              visualMode:compiled.sceneSpec.visualMode,
+              reasons:[...base.decision.reasons,localBuilt?'EDITORIAL_LOCAL_BANK_SELECTION':
+                `EDITORIAL_LOCAL_BANK_FALLBACK_${localDecision?.trace.outcome??'UNAVAILABLE'}`]} :
+              familyBuilt ? {...base.decision,
               visualMode:(localBuilt ?? familyBuilt)!.sceneSpec.visualMode,
-              reasons:[...base.decision.reasons,localBuilt?'EDITORIAL_LOCAL_BANK_SELECTION':'EDITORIAL_CURATED_CATALOG_EXACT_MATCH',
-                localBuilt?localBuilt.selectionReason:selected!.selectionReason]} : base.decision,
+              reasons:[...base.decision.reasons,'EDITORIAL_CURATED_CATALOG_EXACT_MATCH',selected!.selectionReason]} : base.decision,
             inputFallback: base.inputFallback,
             // Diagnostic/state-only context. It stays outside sceneSpec, hash and renderer.
             visualRegeneration: localBuilt || familyBuilt ? {version:3,
@@ -5497,6 +5527,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             duracion: context.duration,
           };
         });
+        for(const entry of localSelectionTraces)
+          await logMessage(`[CATALOGO EDITORIAL] scene=${entry.sceneId} ${JSON.stringify(entry.trace)}`)
         const qcReports = new Map<number, { hash: string; report: VisualRuntimeQcReport }>();
         const resVis = await renderGraphicClipsLote(
           solicitudesGraficas,

@@ -12,6 +12,7 @@ import { sceneSpecPixelIdentityAny, validateRenderBindingsAny, validateVisualSce
 import type { ProjectAssetRecord } from '../../shared/project-state'
 import { inspectPixabayRasterImageV1, publishRasterProjectAssetV1 } from './pixabay-images'
 import { inspectSupportPngV41 } from './editorial-idea-support-catalog-v4-1'
+import { canonicalNarrativeTerm } from '../../shared/asset-intent'
 
 type InventoryEntry = { assetId: string; role: ModularCatalogRoleV1; primaryWordEs: string;
   aliasesEs: string[]; aliasesEn: string[]; runtimeRef: string; runtimeSHA256: string;
@@ -78,6 +79,32 @@ export class CuratedModularCatalogV1 {
       return [entry.primaryWordEs, ...(entry.aliasesEs ?? []), ...(entry.aliasesEn ?? [])]
         .some(word => forms.has(normalize(word)))
     })
+  }
+  /** V2-only diagnostic search. The pinned V1 lookup above remains unchanged.
+   * Inflection accepts only an exact singular/plural pair, never a fuzzy stem. */
+  searchEditorialLocalV2(term: string, role: ModularCatalogRoleV1): readonly {
+    asset: CuratedModularAssetV1; match: 'primary' | 'alias' | 'inflection'
+  }[] {
+    const key = canonicalNarrativeTerm(term)
+    if (!key) return []
+    const inflection = (left: string, right: string) => {
+      if (left.includes(' ') || right.includes(' ')) return false
+      const pair = (singular: string, plural: string) => singular.length >= 3 &&
+        (plural === singular + 's' || plural === singular + 'es')
+      return pair(left, right) || pair(right, left)
+    }
+    const matches: { asset: CuratedModularAssetV1; match: 'primary' | 'alias' | 'inflection' }[] = []
+    for (const asset of this.entries()) {
+      if (asset.role !== role || !this.getById(asset.assetId)) continue
+      const entry = this.entriesById.get(asset.assetId)!
+      const primary = canonicalNarrativeTerm(entry.primaryWordEs)
+      const aliases = [...entry.aliasesEs, ...entry.aliasesEn].map(canonicalNarrativeTerm)
+      const match = primary === key ? 'primary' : aliases.includes(key) ? 'alias' :
+        [primary, ...aliases].some(value => inflection(key, value)) ? 'inflection' : null
+      if (match) matches.push({ asset, match })
+    }
+    const order = { primary: 0, alias: 1, inflection: 2 }
+    return matches.sort((a, b) => order[a.match] - order[b.match] || a.asset.assetId.localeCompare(b.asset.assetId))
   }
   getVariants(concept: string): readonly CuratedModularAssetV1[] { return this.search([concept]) }
   /** Explicit health check; listing metadata alone does not prove that PNGs are present. */
