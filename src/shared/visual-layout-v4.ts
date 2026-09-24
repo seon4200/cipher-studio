@@ -13,7 +13,7 @@ export type ModernLayoutStructureV4 = typeof MODERN_LAYOUT_STRUCTURES_V4[number]
 
 export const SCENE_SLOT_IDS_V2 = ['hero', 'support-1', 'support-2'] as const
 // Additional slots are accepted only by the opt-in IDEA assembly revision.
-export type SceneSlotIdV2 = typeof SCENE_SLOT_IDS_V2[number] | 'support-3' | 'support-4'
+export type SceneSlotIdV2 = typeof SCENE_SLOT_IDS_V2[number] | 'support-3' | 'support-4' | 'support-5' | 'support-6'
 export type SceneSlotRoleV2 = SceneSlotIdV2
 
 export const HERO_PLACEMENTS_V4 = [

@@ -12,6 +12,7 @@ import type { PreparedRenderAssetAny, RuntimeRenderAssetAny, RuntimeRenderAssetV
 import { measurePhotoProbeV1 } from './composiciones/photo-text-contrast-v1'
 import { VISUAL_RECOVERY_PROFILE_V1 } from '../../shared/editorial-motion-profile-v1'
 import { IDEA_RESOURCE_IDS, IDEA_SUPPORT_IDS, IDEA_V4_SECONDARY_RESOURCE_ID } from '../../shared/editorial-idea-assembly-v1'
+import { EDITORIAL_LOCAL_SUPPORT_IDS_V2 } from '../../shared/editorial-local-bank-v2'
 import './styles/globals.css'
 
 // Franja de la SONDA, encima del lienzo. El proceso principal codifica ahi el indice de
@@ -126,11 +127,13 @@ function liberarRuntimeAssets() {
 }
 
 async function prepararRuntimeAssets(assets: readonly PreparedRenderAssetAny[], probePhoto: boolean,
-  ideaAssembly: boolean): Promise<RuntimeRenderAssetAny[]> {
+  ideaAssembly: boolean,bankV2=false): Promise<RuntimeRenderAssetAny[]> {
   const preparados: RuntimeRenderAssetAny[] = []
   try {
     for (const asset of assets) {
-      if (!(ideaAssembly ? ['hero', ...IDEA_SUPPORT_IDS, ...IDEA_RESOURCE_IDS, IDEA_V4_SECONDARY_RESOURCE_ID] : ['hero', 'support-1', 'support-2']).includes(asset.slotId) ||
+      if (!(bankV2?['hero',...EDITORIAL_LOCAL_SUPPORT_IDS_V2,'idea-rear','idea-accent','idea-front']:
+        ideaAssembly ? ['hero', ...IDEA_SUPPORT_IDS, ...IDEA_RESOURCE_IDS, IDEA_V4_SECONDARY_RESOURCE_ID] :
+          ['hero', 'support-1', 'support-2']).includes(asset.slotId) ||
           !['image/svg+xml', 'image/png', 'image/jpeg', 'image/webp'].includes(asset.mime) || !asset.bytesBase64)
         throw new Error('Render asset efímero inválido')
       const binary = atob(asset.bytesBase64)
@@ -228,9 +231,10 @@ function montarGraphicData(graphicData: any, op: Partial<Opciones>) {
   const probePhoto = graphicData?.extra?.sceneSpec?.presentationProfile?.revision === VISUAL_RECOVERY_PROFILE_V1.revision
   // Both frozen IDEA revisions share the same materialization contract; the exact
   // revision is validated in the SceneSpec before this renderer receives it.
+  const bankV2=Boolean(graphicData?.extra?.sceneSpec?.editorialBankV2)
   const ideaAssembly = Boolean(graphicData?.extra?.sceneSpec?.ideaAssembly ||
-    graphicData?.extra?.sceneSpec?.editorialFamily)
-  return prepararRuntimeAssets(preparedAssets, probePhoto, ideaAssembly).then(prepared => {
+    graphicData?.extra?.sceneSpec?.editorialFamily || bankV2)
+  return prepararRuntimeAssets(preparedAssets, probePhoto, ideaAssembly,bankV2).then(prepared => {
     runtimeAssets = prepared
     montarGraphicData(graphicData, op)
   })

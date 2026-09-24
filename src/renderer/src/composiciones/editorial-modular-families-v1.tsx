@@ -1,6 +1,8 @@
 import React, { useLayoutEffect, useRef } from 'react'
 import type { RuntimeRenderAssetV2, VisualSceneSpecV2 } from '../../../shared/visual-scene-spec-v2'
 import type { EditorialModularFamiliesPlanV1 } from '../../../shared/editorial-modular-families-v1'
+import type { EditorialLocalBankPlanV2 } from '../../../shared/editorial-local-bank-v2'
+import { editorialLocalHeroScaleV2 } from '../../../shared/editorial-local-bank-v2'
 import type { EditorialFinishPlanV11, FinishRoute } from '../../../shared/editorial-finish-v1-1'
 import { sceneSpecReactKeyAny } from '../../../shared/visual-scene-spec-v2'
 import { AlphaMaskRasterV4 } from './alpha-mask-raster-v4'
@@ -51,7 +53,7 @@ const finishPoint=(route:FinishRoute,t:number):Point=>{
   }
   return route.points[route.points.length-1]
 }
-const eventMarks=(finish:EditorialFinishPlanV11,target:string,u:number)=>finish.events
+const eventMarks=(finish:EditorialFinishPlanV11|EditorialLocalBankPlanV2,target:string,u:number)=>finish.events
   .filter(event=>event.target===target&&event.intensity!=='off').flatMap(event=>{
     const life=cue(u,event.start,event.start+event.duration)
     if(life<=0)return []
@@ -94,7 +96,7 @@ function route(from:Rect,to:Rect,obstacles:readonly Rect[]=[],supportToSupport=f
   return {path:`M ${a.x.toFixed(3)} ${a.y.toFixed(3)} C ${c1.x.toFixed(3)} ${c1.y.toFixed(3)} ${c2.x.toFixed(3)} ${c2.y.toFixed(3)} ${b.x.toFixed(3)} ${b.y.toFixed(3)}`,
     tip:b,points:best.points}
 }
-const paperBackground=(plan:EditorialModularFamiliesPlanV1):React.CSSProperties=>({
+const paperBackground=(plan:EditorialModularFamiliesPlanV1|EditorialLocalBankPlanV2):React.CSSProperties=>({
   backgroundColor:plan.paper,
   backgroundImage:plan.background==='ivory-subtle-grid'
     ?'linear-gradient(rgba(88,83,76,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(88,83,76,.045) 1px,transparent 1px)'
@@ -107,8 +109,8 @@ const paperBackground=(plan:EditorialModularFamiliesPlanV1):React.CSSProperties=
 export const EditorialModularFamiliesV1:React.FC<{
   spec:VisualSceneSpecV2;runtimeAssets:readonly RuntimeRenderAssetV2[];u:number
 }>=({spec,runtimeAssets,u})=>{
-  const plan=spec.editorialFamily!
-  const finish=spec.editorialFinish
+  const plan=spec.editorialBankV2??spec.editorialFamily!
+  const finish=spec.editorialBankV2??spec.editorialFinish
   const landscape=window.innerWidth>window.innerHeight
   const layout=landscape?(finish?.landscapeLayout??plan.landscapeLayout):spec.layout
   const byId=new Map(runtimeAssets.map(asset=>[asset.slotId,asset.objectUrl]))
@@ -120,6 +122,8 @@ export const EditorialModularFamiliesV1:React.FC<{
   const exit=1-phase(u,.89,1)
   const textStart=plan.entry==='text-first'||plan.entry==='word-first'?.02:.12
   const textEnter=phase(u,textStart,textStart+.15)
+  const localBeat=spec.editorialBankV2?.beats.find(beat=>u>=beat.start&&u<beat.end)?.id??
+    (spec.editorialBankV2?'read':undefined)
   const root=useRef<HTMLDivElement>(null)
   useLayoutEffect(()=>{if(root.current) fitVisualTextV2(root.current)},[spec,landscape])
   const title=layout.textBounds
@@ -128,11 +132,12 @@ export const EditorialModularFamiliesV1:React.FC<{
   const heroLayout=layout.slotLayouts.find(item=>item.slotId==='hero')
   const visibleHero=spec.slots.find(item=>item.role==='hero'&&item.state==='present')
   const opticalHeroScale=visibleHero&&visibleHero.state==='present'
-    ?Math.min(1.35,Math.max(1,.82/visibleHero.bounds.visibleWidthRatio)):1
+    ?spec.editorialBankV2?editorialLocalHeroScaleV2(visibleHero.bounds):
+      Math.min(1.35,Math.max(1,.82/visibleHero.bounds.visibleWidthRatio)):1
   const heroEnter=plan.hero?phase(u,plan.hero.enter,plan.hero.settle):0
   const camera=plan.camera.mode==='quiet-drift'?{
-    x:(1-phase(u,.05,.38))*plan.camera.dx,
-    y:(1-phase(u,.05,.38))*plan.camera.dy,
+    x:(1-phase(u,spec.editorialBankV2 ? .02 : .05,spec.editorialBankV2 ? .24 : .38))*plan.camera.dx,
+    y:(1-phase(u,spec.editorialBankV2 ? .02 : .05,spec.editorialBankV2 ? .24 : .38))*plan.camera.dy,
   }:{x:0,y:0}
   const nodeRect=(id:string)=>{
     const envelope=layout.slotLayouts.find(slot=>slot.slotId===id)?.envelope
@@ -141,7 +146,8 @@ export const EditorialModularFamiliesV1:React.FC<{
       ?slot.bounds.alphaBounds:undefined
     return envelope&&id==='hero'?relationTarget(envelope):envelope?supportTarget(envelope,landscape,alpha):undefined
   }
-  return <div key={sceneSpecReactKeyAny(spec)} data-visual-mvp="true" data-visual-composition="v15-editorial-modular-families"
+  return <div key={sceneSpecReactKeyAny(spec)} data-visual-mvp="true" data-visual-composition={spec.editorialBankV2?'v15-editorial-local-bank-v2':'v15-editorial-modular-families'}
+    data-editorial-local-beat={localBeat}
     data-qc-layout-family={plan.family} data-qc-empty-hero-frames="0" data-editorial-family={plan.family}
     data-qc-background-motion="none" data-qc-decorator-count="0"
     style={{position:'absolute',inset:0,overflow:'hidden',containerType:'size',fontSynthesis:'none',color:plan.ink,
@@ -171,15 +177,17 @@ export const EditorialModularFamiliesV1:React.FC<{
         opacity:textEnter*exit,padding:'.5cqmin',boxSizing:'border-box',textAlign:layout.textAlignment,
         overflow:'hidden'}}>
       {spec.text.connector&&<div data-fit-body="true" data-qc-text-glyph="true"
-        style={{fontFamily:finish?`'${finish.typography.display}',serif`:plan.family==='editorial'?'Fraunces,serif':'DM Sans,sans-serif',
+        style={{opacity:spec.editorialBankV2?phase(u,textStart,textStart+.11):1,
+          fontFamily:finish?`'${finish.typography.display}',serif`:plan.family==='editorial'?'Fraunces,serif':'DM Sans,sans-serif',
           fontSize:plan.family==='editorial'?'9cqmin':'3.35cqmin',fontWeight:finish?finish.typography.weight:plan.family==='editorial'?600:500,
-          color:finish?.colors.headline,
-          letterSpacing:'-.02em',lineHeight:1.1}}>{spec.text.connector}</div>}
+          color:finish?.colors.headline,letterSpacing:'-.02em',lineHeight:1.1}}>{spec.text.connector}</div>}
       <div data-fit-title="true" data-qc-keyword="true" data-qc-text-glyph="true" data-qc-keyword-family={finish?.typography.display??'Fraunces'}
-        style={{fontFamily:finish?`'${finish.typography.display}',serif`:'Fraunces,serif',fontSize:plan.family==='editorial'?'21cqmin':'17.5cqmin',
+        style={{opacity:spec.editorialBankV2?phase(u,textStart+.04,textStart+.17):1,
+          fontFamily:finish?`'${finish.typography.display}',serif`:'Fraunces,serif',fontSize:plan.family==='editorial'?'21cqmin':'17.5cqmin',
           fontWeight:finish?.typography.weight??650,lineHeight:.95,letterSpacing:'-.04em',color:finish?.colors.keyword??plan.accent}}>{spec.text.keyword}</div>
       {spec.text.closing&&<div data-fit-body="true" data-qc-closing="true" data-qc-text-glyph="true"
-        style={{fontFamily:'DM Sans,sans-serif',fontSize:'3.35cqmin',fontWeight:500,lineHeight:1.18,
+        style={{opacity:spec.editorialBankV2?phase(u,textStart+.09,textStart+.22):1,
+          fontFamily:'DM Sans,sans-serif',fontSize:'3.35cqmin',fontWeight:500,lineHeight:1.18,
           color:finish?.colors.body}}>{spec.text.closing}</div>}
       <span aria-hidden="true" style={{display:'block',width:'10cqmin',height:'.17cqmin',
         background:plan.accent,transform:`scaleX(${phase(u,textStart+.10,textStart+.26)})`,transformOrigin:'left'}}/>
@@ -292,6 +300,10 @@ export const EditorialModularFamiliesV1:React.FC<{
     {plan.supports.map((support,index)=>{
       const position=layout.slotLayouts.find(slot=>slot.slotId===support.slotId)!.envelope
       const enter=phase(u,support.enter,support.settle)
+      const localReposition=spec.editorialBankV2&&heroLayout?{
+        x:(heroLayout.envelope.x+heroLayout.envelope.width/2-position.x-position.width/2)*.12*(1-enter),
+        y:(heroLayout.envelope.y+heroLayout.envelope.height/2-position.y-position.height/2)*.12*(1-enter),
+      }:undefined
       const material=plan.supportTreatment
       const card=material!=='naked-label'
       const dark=material==='ink-badge',orange=material==='accent-tile'
@@ -303,7 +315,9 @@ export const EditorialModularFamiliesV1:React.FC<{
       return <div key={support.slotId} data-qc-asset="true" data-qc-slot={support.slotId} data-qc-role={support.slotId}
         style={{position:'absolute',left:`${position.x}%`,top:`${position.y}%`,
           width:`${position.width}%`,height:`${position.height}%`,zIndex:5,
-          opacity:enter*exit,transform:`translateY(${((1-enter)*1.3).toFixed(3)}cqmin)`,
+          opacity:enter*exit,transform:localReposition?
+            `translate(${localReposition.x.toFixed(3)}cqw,${localReposition.y.toFixed(3)}cqh)`:
+            `translateY(${((1-enter)*1.3).toFixed(3)}cqmin)`,
           display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'.4cqmin'}}>
         <div style={{height:'70%',aspectRatio:'1',maxWidth:'84%',borderRadius:dark?'50%':'1.2cqmin',
           background:card?(dark?plan.ink:orange?plan.accent:'#FAF9F6'):'transparent',

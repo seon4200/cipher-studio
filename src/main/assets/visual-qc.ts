@@ -165,7 +165,8 @@ function evaluateVisualDomQcV2(
     }
     if (!inside(snapshot.text, frame) || !inside(snapshot.keyword, safeText))
       findings.push({ code: 'VISUAL_QC_TEXT_BOUNDS', level: 'error', message: 'Texto V15 fuera de safe area', normalizedTime: at })
-    const modularFamilyText=[EDITORIAL_MODULAR_FAMILIES_V1.revision,EDITORIAL_FINISH_V1_1.revision]
+    const modularFamilyText=[EDITORIAL_MODULAR_FAMILIES_V1.revision,EDITORIAL_FINISH_V1_1.revision,
+      'editorial-local-bank-2026-09-v2']
       .includes(spec.presentationProfile?.revision as typeof EDITORIAL_MODULAR_FAMILIES_V1.revision)
     if (snapshot.textOverflow || snapshot.keywordOverflow || !['2', '3'].includes(snapshot.maxLines ?? '') ||
         snapshot.visibleWords > (modularFamilyText ? 24 : 8))
@@ -331,7 +332,7 @@ export async function runVisualRuntimeQc(
     Math.abs(current.normalizedTime - .5) < Math.abs(best.normalizedTime - .5) ? current : best,
   snapshots[0])
   const localTextContrast = middle ? await localKeywordContrast(window, middle,
-    !!(spec.renderSpecVersion === 2 && (spec.ideaAssembly || spec.editorialFamily))) : null
+    !!(spec.renderSpecVersion === 2 && (spec.ideaAssembly || spec.editorialFamily || spec.editorialBankV2))) : null
   if (localTextContrast === null) {
     findings.push({ code: 'VISUAL_QC_CONTRAST_UNAVAILABLE', level: 'needs-review', message: 'No se pudo medir contraste local' })
   } else if (localTextContrast < 3) {

@@ -656,7 +656,7 @@ export const MotionGraphicV15: React.FC<{
   runtimeAssets: readonly RuntimeRenderAssetV2[]
   u: number
 }> = ({ spec, runtimeAssets, u }) => {
-  if (spec.editorialFamily) return <EditorialModularFamiliesV1 spec={spec} runtimeAssets={runtimeAssets} u={u} />
+  if (spec.editorialFamily || spec.editorialBankV2) return <EditorialModularFamiliesV1 spec={spec} runtimeAssets={runtimeAssets} u={u} />
   if (spec.ideaAssembly) return <EditorialIdeaAssemblyV1 spec={spec} runtimeAssets={runtimeAssets} u={u} />
   // Both geometries are part of the same frozen SceneSpec. The current canvas
   // chooses one; no runtime recomputation can drift from the stored identity.

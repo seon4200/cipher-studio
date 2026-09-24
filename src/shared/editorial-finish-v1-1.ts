@@ -119,8 +119,9 @@ function anchors(r:Rect,id:string):Point[] {const gap=id==='hero'?.7:.35;const v
 ];return id==='hero'?values:[values[0],values[1],values[3]]}
 /** Bounded routing; an obstructed relation is an error, never an optimistic line. */
 export function routeEditorialFinishV11(layout:VisualLayoutV4,fromId:string,toId:string,
-  landscape=false):FinishRoute {
-  const from=target(layout,fromId,landscape),to=target(layout,toId,landscape)
+  landscape=false,targets?:Readonly<Record<string,Rect>>):FinishRoute {
+  const from=targets?.[fromId]??target(layout,fromId,landscape)
+  const to=targets?.[toId]??target(layout,toId,landscape)
   const obstacles=[inflate(layout.textBounds,1.1),...layout.slotLayouts
     .filter(s=>s.slotId!==fromId&&s.slotId!==toId).map(s=>inflate(s.envelope,1.25)),
     ...layout.slotLayouts.filter(s=>(s.slotId===fromId||s.slotId===toId)&&s.slotId!=='hero')

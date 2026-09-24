@@ -74,6 +74,8 @@ import { CuratedModularCatalogV1, bindEditorialModularCatalogV1 } from './assets
 import { bindEditorialModularFamilyV1, editorialHeadlineFromLocalTextV1,
   bindEditorialModularFinishV11, selectEditorialModularFamilyAssetsV1 } from './assets/editorial-modular-families-v1'
 import { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-families-v1'
+import { EDITORIAL_LOCAL_BANK_V2 } from '../shared/editorial-local-bank-v2'
+import { bindEditorialLocalBankV2, selectEditorialLocalBankV2 } from './assets/editorial-local-bank-v2'
 import { EDITORIAL_FINISH_V1_1, type FinishFont, type FinishIntensity,
   type FinishRepresentation, type FinishResponse } from '../shared/editorial-finish-v1-1'
 import { EDITORIAL_MODULAR_CATALOG_V1, type ModularCatalogPilotInputV1 } from '../shared/editorial-modular-catalog-v1'
@@ -170,8 +172,12 @@ export { CuratedModularCatalogV1, bindEditorialModularCatalogV1 } from './assets
 export { bindEditorialModularFamilyV1, bindEditorialModularFinishV11, selectEditorialModularFamilyAssetsV1 } from './assets/editorial-modular-families-v1'
 export { editorialHeadlineFromLocalTextV1 } from './assets/editorial-modular-families-v1'
 export { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-families-v1'
+export { bindEditorialLocalBankV2, selectEditorialLocalBankV2 } from './assets/editorial-local-bank-v2'
+export { EDITORIAL_LOCAL_BANK_V2 } from '../shared/editorial-local-bank-v2'
+export { EDITORIAL_LOCAL_FAMILIES_V2, createEditorialLocalBankLayoutV2 } from '../shared/editorial-local-bank-v2'
 export * from '../shared/editorial-finish-v1-1'
 export { validateVisualSceneSpecV2, validateRenderBindingsAny, sceneSpecPixelIdentityAny } from '../shared/visual-scene-spec-v2'
+export { prepareGraphicForVisualRender } from './assets/visual-render'
 export { createLocalSceneSemanticV1 } from '../shared/local-scene-semantic'
 export { createModernVisualGenerationContextV2, resolveModernVisualGenerationBatchV2 } from './assets/modern-visual-generation'
 export { EDITORIAL_MODULAR_CATALOG_V1, curatedModularAssetsV1 } from '../shared/editorial-modular-catalog-v1'
@@ -4192,11 +4198,12 @@ ipcMain.handle('regenerate-idea-assembly-v4-pilot', async (_event, input: {
 })
 
 /** Explicit, single-scene catalogue path. No change to ordinary historical generation. */
-ipcMain.handle('list-editorial-modular-catalog-v1', async (_event, catalogRoot: string) => {
+ipcMain.handle('list-editorial-modular-catalog-v1', async (_event, catalogRoot: string, verifyAll = false) => {
   try {
     const catalog = new CuratedModularCatalogV1(catalogRoot)
     return { success: true, assets: catalog.entries().map(item => ({ assetId:item.assetId,
-      role:item.role, primaryWordEs:item.primaryWordEs, code:item.code })) }
+      role:item.role, primaryWordEs:item.primaryWordEs, code:item.code })),
+      ...(verifyAll ? { health: catalog.verifyAll() } : {}) }
   } catch (error) { return { success:false, error:error instanceof Error ? error.message : String(error) } }
 })
 
@@ -4341,13 +4348,17 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     return { success: false, error: 'Pack visual no reconocido' }
   if (visualPresentationProfile === 'editorial-idea-assembly-v4' || visualPresentationProfile === 'editorial-modular-catalog-v1')
     return { success: false, error: 'Este perfil es un piloto de una escena; usa su botón de generación opt-in.' }
-  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1', 'families-motion-v2', 'editorial-explainer-light-v1', 'editorial-explainer-light-v2', 'editorial-explainer-v3', EDITORIAL_MODULAR_FAMILIES_V1.id,EDITORIAL_FINISH_V1_1.id].includes(visualPresentationProfile))
+  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1', 'families-motion-v2', 'editorial-explainer-light-v1', 'editorial-explainer-light-v2', 'editorial-explainer-v3', EDITORIAL_MODULAR_FAMILIES_V1.id,EDITORIAL_FINISH_V1_1.id,EDITORIAL_LOCAL_BANK_V2.id].includes(visualPresentationProfile))
     throw new Error('VISUAL_PRESENTATION_PROFILE_INVALID');
   if ([EDITORIAL_MODULAR_FAMILIES_V1.id,EDITORIAL_FINISH_V1_1.id].includes(visualPresentationProfile) &&
       (editorialFamilyChoice !== undefined && !['auto','marcoPoster','editorial','partidoVertical','cuaderno','constelacion','cascada'].includes(editorialFamilyChoice) ||
        editorialFamilyEffects !== undefined && !['none','subtle'].includes(editorialFamilyEffects) ||
        editorialFamilyColor !== undefined && !/^#[0-9A-Fa-f]{6}$/.test(editorialFamilyColor)))
     throw new Error('EDITORIAL_FAMILY_USER_OPTIONS_INVALID');
+  if (visualPresentationProfile === EDITORIAL_LOCAL_BANK_V2.id &&
+      editorialFamilyColor !== undefined && editorialFamilyColor !== 'auto' &&
+      !/^#[0-9A-Fa-f]{6}$/.test(editorialFamilyColor))
+    throw new Error('EDITORIAL_LOCAL_ACCENT_INVALID');
   if (visualPresentationProfile === EDITORIAL_FINISH_V1_1.id && editorialFinishControls &&
       (!['Fraunces','Instrument Serif','Bricolage Grotesque'].includes(editorialFinishControls.display) ||
        !['off','discreto','enfasis'].includes(editorialFinishControls.local) ||
@@ -5384,8 +5395,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         // All semantic work completes before hashing/rendering. Renderer gets only the
         // materialized SceneSpec and its locator-only bindings; its trace remains diagnostic.
         if (!PROYECTO_VISUAL) throw new Error('La generación V15 requiere projectRoot explícito');
-        const editorialFamiliesSelected = [EDITORIAL_MODULAR_FAMILIES_V1.id,EDITORIAL_FINISH_V1_1.id].includes(visualPresentationProfile)
-        const curatedFamilyCatalog = editorialFamiliesSelected
+        const localBankSelected = visualPresentationProfile === EDITORIAL_LOCAL_BANK_V2.id
+        const editorialFamiliesSelected = [EDITORIAL_MODULAR_FAMILIES_V1.id,EDITORIAL_FINISH_V1_1.id,EDITORIAL_LOCAL_BANK_V2.id].includes(visualPresentationProfile)
+        const curatedFamilyCatalog = editorialFamiliesSelected && aRenderizar.length>0
           ? new CuratedModularCatalogV1(String(modularCatalogRoot ?? '')) : null
         const resueltosModernos = await resolveModernVisualGenerationBatchV2({
           // The existing semantic/keyword authority remains unchanged. For the
@@ -5398,17 +5410,22 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           pixabayApiKey: editorialFamiliesSelected ? undefined : process.env.PIXABAY_API_KEY || undefined,
         });
         let previousEditorialFamily: import('../shared/editorial-modular-families-v1').EditorialFamilyIdV1 | undefined
+        const recentLocalFamilies: import('../shared/visual-layout-v4').ModernLayoutStructureV4[]=[]
         const solicitudesGraficas = resueltosModernos.map(({ context, resolved }, sceneIndex) => {
           const base = resolved.base;
-          const selected = curatedFamilyCatalog ? selectEditorialModularFamilyAssetsV1({
+          const localSelected = localBankSelected && curatedFamilyCatalog ? selectEditorialLocalBankV2({
+            catalog:curatedFamilyCatalog,semantic:base.localSemantic,recentFamilies:recentLocalFamilies}) : null
+          if(localSelected)recentLocalFamilies.push(localSelected.family)
+          const selected = !localBankSelected && curatedFamilyCatalog ? selectEditorialModularFamilyAssetsV1({
             catalog:curatedFamilyCatalog,semantic:base.localSemantic,sceneIndex,
             previousFamily:previousEditorialFamily,
             preferredFamily:editorialFamilyChoice&&editorialFamilyChoice!=='auto'?editorialFamilyChoice:undefined}) : null
           if (selected) previousEditorialFamily=selected.family
-          const selectedIds = selected ? [selected.heroId,...selected.supportIds,
-            selected.rearId,selected.accentId,selected.frontId]
+          const effectiveSelected=localSelected??selected
+          const selectedIds = effectiveSelected ? [effectiveSelected.heroId,...effectiveSelected.supportIds,
+            effectiveSelected.rearId,effectiveSelected.accentId,effectiveSelected.frontId]
             .filter((id):id is string=>!!id) : []
-          const imported = selected && curatedFamilyCatalog ? Object.fromEntries(
+          const imported = effectiveSelected && curatedFamilyCatalog ? Object.fromEntries(
             [...new Set(selectedIds)].map(id=>[id,curatedFamilyCatalog.publish(PROYECTO_VISUAL!,id)])) : {}
           const familyInput = selected && curatedFamilyCatalog ? {
             template:resolved.compiled,catalog:curatedFamilyCatalog,imported,
@@ -5437,7 +5454,13 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           const familyBuilt = familyInput ? visualPresentationProfile===EDITORIAL_FINISH_V1_1.id
             ?bindEditorialModularFinishV11({...familyInput,finish:finishOptions})
             :bindEditorialModularFamilyV1(familyInput) : null
-          const compiled = familyBuilt ?? resolved.compiled
+          const localBuilt=localSelected&&curatedFamilyCatalog?bindEditorialLocalBankV2({
+            template:resolved.compiled,catalog:curatedFamilyCatalog,imported,
+            selection:localSelected,color:editorialFamilyColor==='auto'?'#A83B19':
+              (editorialFamilyColor??'#A83B19').toUpperCase(),
+            headline:editorialHeadlineFromLocalTextV1(aRenderizar[sceneIndex].frase,
+              resolved.compiled.sceneSpec.text.keyword)}):null
+          const compiled = localBuilt ?? familyBuilt ?? resolved.compiled
           if (compiled.graphicData.type !== COMPOSICION_VISUAL)
             throw new Error('El compilador semántico produjo una composición visual no autorizada');
           for (const alert of base.decision.alerts) {
@@ -5459,15 +5482,18 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             motionGraphicsMetrics: resolved.metrics,
             localSemantic: base.localSemantic,
             keywordSelection: base.keywordSelection,
-            resolverDecision: familyBuilt ? {...base.decision,
-              visualMode:familyBuilt.sceneSpec.visualMode,
-              reasons:[...base.decision.reasons,'EDITORIAL_CURATED_CATALOG_EXACT_MATCH',selected!.selectionReason]} : base.decision,
+            resolverDecision: localBuilt || familyBuilt ? {...base.decision,
+              visualMode:(localBuilt ?? familyBuilt)!.sceneSpec.visualMode,
+              reasons:[...base.decision.reasons,localBuilt?'EDITORIAL_LOCAL_BANK_SELECTION':'EDITORIAL_CURATED_CATALOG_EXACT_MATCH',
+                localBuilt?localBuilt.selectionReason:selected!.selectionReason]} : base.decision,
             inputFallback: base.inputFallback,
             // Diagnostic/state-only context. It stays outside sceneSpec, hash and renderer.
-            visualRegeneration: familyBuilt ? {version:3,
-              revision:visualPresentationProfile===EDITORIAL_FINISH_V1_1.id?EDITORIAL_FINISH_V1_1.revision:EDITORIAL_MODULAR_FAMILIES_V1.revision,
+            visualRegeneration: localBuilt || familyBuilt ? {version:3,
+              revision:localBuilt?EDITORIAL_LOCAL_BANK_V2.revision:
+                visualPresentationProfile===EDITORIAL_FINISH_V1_1.id?EDITORIAL_FINISH_V1_1.revision:EDITORIAL_MODULAR_FAMILIES_V1.revision,
               sceneId:context.sceneId,duration:context.duration,sistema:context.sistema,
-              graphicData:familyBuilt.graphicData,renderBindings:familyBuilt.renderBindings} : context,
+              graphicData:(localBuilt ?? familyBuilt)!.graphicData,
+              renderBindings:(localBuilt ?? familyBuilt)!.renderBindings} : context,
             duracion: context.duration,
           };
         });
@@ -6275,7 +6301,8 @@ async function regenerateModernVisuals(event: any, params: any) {
       const saved = entry.context as any
       const spec = sceneSpecFromGraphicDataAny(saved.graphicData)
       if (!spec || spec.renderSpecVersion !== 2 ||
-          ![EDITORIAL_MODULAR_FAMILIES_V1.revision,EDITORIAL_FINISH_V1_1.revision].includes(spec.presentationProfile?.revision as typeof EDITORIAL_MODULAR_FAMILIES_V1.revision) ||
+          ![EDITORIAL_MODULAR_FAMILIES_V1.revision,EDITORIAL_FINISH_V1_1.revision,
+            EDITORIAL_LOCAL_BANK_V2.revision].includes(spec.presentationProfile?.revision as typeof EDITORIAL_MODULAR_FAMILIES_V1.revision) ||
           saved.revision !== spec.presentationProfile?.revision)
         throw new Error('EDITORIAL_FAMILY_REPLAY_INVALID')
       validateRenderBindingsAny(saved.renderBindings,spec)
