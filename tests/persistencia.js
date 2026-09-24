@@ -149,6 +149,11 @@ const MUESTRA = {
   editorialFamilyChoice: 'cuaderno',
   editorialFamilyColor: '#238C87',
   editorialFamilyEffects: 'none',
+  editorialFinishControls: {
+    display: 'Instrument Serif', local: 'enfasis', ambient: 'off',
+    composition: 'focus', representation: 'dotted', response: 'halo',
+    headline: '#11110F', keyword: '#176A66', body: '#11110F', effects: '#238C87'
+  },
   modularHeroId: 'editorial-hero-h011-v1',
   modularSupportIds: ['idea-support-camera-v1', 'idea-support-network-v1',
                       'idea-support-time-v1', 'idea-support-target-v1'],

@@ -1568,7 +1568,7 @@ function App() {
   // un proyecto nuevo reparte exactamente como antes hasta que el usuario mueva el slider.
   const [timelineWeights, setTimelineWeights] = useState<number[]>([...PESOS_POR_DEFECTO])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
-  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3' | 'editorial-idea-assembly-v4' | 'editorial-modular-catalog-v1' | 'editorial-modular-families-v1'>('standard')
+  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3' | 'editorial-idea-assembly-v4' | 'editorial-modular-catalog-v1' | 'editorial-modular-families-v1' | 'editorial-modular-finish-v1-1'>('standard')
   const [ideaV4AssetRoot, setIdeaV4AssetRoot] = useState('')
   const [ideaV4Color, setIdeaV4Color] = useState<IdeaColorIntentV4>({
     supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E',
@@ -1578,6 +1578,9 @@ function App() {
   const [editorialFamilyChoice, setEditorialFamilyChoice] = useState('auto')
   const [editorialFamilyColor, setEditorialFamilyColor] = useState('#A83B19')
   const [editorialFamilyEffects, setEditorialFamilyEffects] = useState('none')
+  const [editorialFinishControls, setEditorialFinishControls] = useState({display:'Fraunces',
+    local:'discreto',ambient:'discreto',composition:'base',representation:'auto',response:'auto',
+    headline:'#11110F',keyword:'auto',body:'#11110F',effects:'auto'})
   const [modularAssets, setModularAssets] = useState<Array<{assetId:string;role:string;primaryWordEs:string;code:string}>>([])
   const [modularHeroId, setModularHeroId] = useState('editorial-hero-h001-v1')
   const [modularSupportIds, setModularSupportIds] = useState<[string,string,string,string]>([
@@ -1591,7 +1594,8 @@ function App() {
   const [modularStatus, setModularStatus] = useState('')
   const selectedFamilyClip = selectedTimelineClipIds.length===1
     ? timelineVideoClips.find(clip=>clip.id===selectedTimelineClipIds[0] &&
-      clip.visualRegeneration?.revision==='editorial-modular-families-2026-09-v1') : undefined
+      ['editorial-modular-families-2026-09-v1','editorial-modular-finish-2026-09-v1-1']
+        .includes(clip.visualRegeneration?.revision)) : undefined
   const selectedFamilyPlan = selectedFamilyClip?.visualRegeneration?.graphicData?.extra?.sceneSpec?.editorialFamily
   const [familyClipEdit, setFamilyClipEdit] = useState<{
     family:EditorialFamilyIdV1;heroId:string;supportIds:string[];
@@ -1623,6 +1627,8 @@ function App() {
       edits:{family:familyClipEdit.family,heroId:familyClipEdit.heroId||undefined,
         supportIds:familyClipEdit.supportIds.filter(Boolean),rearId:familyClipEdit.rearId||undefined,
         accentId:familyClipEdit.accentId||undefined,frontId:familyClipEdit.frontId||undefined},
+      finishControls:selectedFamilyClip.visualRegeneration.revision==='editorial-modular-finish-2026-09-v1-1'
+        ?editorialFinishControls:undefined,
     })
     if(!result.success||!result.path||!result.graphicData||!result.renderBindings){
       setModularStatus(result.error??'No se pudo sustituir el recurso.');return
@@ -1845,7 +1851,7 @@ function App() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, modularHeroId, modularSupportIds, modularRearId, modularAccentId, modularFrontId, modularRecipe, modularHeadline, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, editorialFinishControls, modularHeroId, modularSupportIds, modularRearId, modularAccentId, modularFrontId, modularRecipe, modularHeadline, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
 
   // UN solo sitio construye lo que se guarda. Estaba copiado en TRES (guardar al cerrar,
   // guardar, y guardar como), y por eso cada funcion nueva nacia sin persistencia en dos de
@@ -1865,7 +1871,7 @@ function App() {
     voiceModel, voiceSpeaker, voiceSpeed, voiceStability,
     generatedVoices, graphicsPercent, timelineWeights, visualPresentationProfile, visualAssetPack,
     ideaV4AssetRoot, ideaV4Color,
-    modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects,
+    modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, editorialFinishControls,
     modularHeroId, modularSupportIds, modularRearId, modularAccentId,
     modularFrontId, modularRecipe, modularHeadline,
 
@@ -1897,7 +1903,7 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, modularHeroId, modularSupportIds, modularRearId, modularAccentId, modularFrontId, modularRecipe, modularHeadline, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, visualPresentationProfile, visualAssetPack, ideaV4AssetRoot, ideaV4Color, modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, editorialFinishControls, modularHeroId, modularSupportIds, modularRearId, modularAccentId, modularFrontId, modularRecipe, modularHeadline, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
 
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
@@ -2001,7 +2007,8 @@ function App() {
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
         setVisualAssetPack(loadedData.visualAssetPack === 'modern-pack-100-v1+local' ? 'modern-pack-100-v1+local' : loadedData.visualAssetPack === 'modern-pack-100-v1' ? 'modern-pack-100-v1' : 'legacy');
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-modular-families-v1' ? 'editorial-modular-families-v1' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-modular-finish-v1-1' ? 'editorial-modular-finish-v1-1' :
+          loadedData.visualPresentationProfile === 'editorial-modular-families-v1' ? 'editorial-modular-families-v1' :
           loadedData.visualPresentationProfile === 'editorial-modular-catalog-v1' ? 'editorial-modular-catalog-v1' :
           loadedData.visualPresentationProfile === 'editorial-idea-assembly-v4' ? 'editorial-idea-assembly-v4' :
           loadedData.visualPresentationProfile === 'editorial-explainer-v3' ? 'editorial-explainer-v3' :
@@ -2021,6 +2028,8 @@ function App() {
         setEditorialFamilyColor(typeof loadedData.editorialFamilyColor==='string'&&/^#[0-9A-Fa-f]{6}$/.test(loadedData.editorialFamilyColor)
           ?loadedData.editorialFamilyColor.toUpperCase():'#A83B19')
         setEditorialFamilyEffects(loadedData.editorialFamilyEffects==='subtle'?'subtle':'none')
+        if(loadedData.editorialFinishControls && typeof loadedData.editorialFinishControls==='object')
+          setEditorialFinishControls(previous=>({...previous,...loadedData.editorialFinishControls}))
         if (typeof loadedData.modularHeroId==='string') setModularHeroId(loadedData.modularHeroId)
         if (Array.isArray(loadedData.modularSupportIds) && loadedData.modularSupportIds.length===4)
           setModularSupportIds(loadedData.modularSupportIds as [string,string,string,string])
@@ -2315,7 +2324,8 @@ function App() {
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
         setVisualAssetPack(loadedData.visualAssetPack === 'modern-pack-100-v1+local' ? 'modern-pack-100-v1+local' : loadedData.visualAssetPack === 'modern-pack-100-v1' ? 'modern-pack-100-v1' : 'legacy');
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-modular-families-v1' ? 'editorial-modular-families-v1' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-modular-finish-v1-1' ? 'editorial-modular-finish-v1-1' :
+          loadedData.visualPresentationProfile === 'editorial-modular-families-v1' ? 'editorial-modular-families-v1' :
           loadedData.visualPresentationProfile === 'editorial-modular-catalog-v1' ? 'editorial-modular-catalog-v1' :
           loadedData.visualPresentationProfile === 'editorial-idea-assembly-v4' ? 'editorial-idea-assembly-v4' :
           loadedData.visualPresentationProfile === 'editorial-explainer-v3' ? 'editorial-explainer-v3' :
@@ -2335,6 +2345,8 @@ function App() {
         setEditorialFamilyColor(typeof loadedData.editorialFamilyColor==='string'&&/^#[0-9A-Fa-f]{6}$/.test(loadedData.editorialFamilyColor)
           ?loadedData.editorialFamilyColor.toUpperCase():'#A83B19')
         setEditorialFamilyEffects(loadedData.editorialFamilyEffects==='subtle'?'subtle':'none')
+        if(loadedData.editorialFinishControls && typeof loadedData.editorialFinishControls==='object')
+          setEditorialFinishControls(previous=>({...previous,...loadedData.editorialFinishControls}))
         if (typeof loadedData.modularHeroId==='string') setModularHeroId(loadedData.modularHeroId)
         if (Array.isArray(loadedData.modularSupportIds) && loadedData.modularSupportIds.length===4)
           setModularSupportIds(loadedData.modularSupportIds as [string,string,string,string])
@@ -2710,10 +2722,11 @@ ${res.filePath}`);
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
         visualPresentationProfile, visualAssetPack,
-        modularCatalogRoot:visualPresentationProfile==='editorial-modular-families-v1'?modularCatalogRoot.trim():undefined,
-        editorialFamilyChoice:visualPresentationProfile==='editorial-modular-families-v1'?editorialFamilyChoice:undefined,
-        editorialFamilyColor:visualPresentationProfile==='editorial-modular-families-v1'?editorialFamilyColor:undefined,
+        modularCatalogRoot:['editorial-modular-families-v1','editorial-modular-finish-v1-1'].includes(visualPresentationProfile)?modularCatalogRoot.trim():undefined,
+        editorialFamilyChoice:['editorial-modular-families-v1','editorial-modular-finish-v1-1'].includes(visualPresentationProfile)?editorialFamilyChoice:undefined,
+        editorialFamilyColor:['editorial-modular-families-v1','editorial-modular-finish-v1-1'].includes(visualPresentationProfile)?editorialFamilyColor:undefined,
         editorialFamilyEffects:visualPresentationProfile==='editorial-modular-families-v1'?editorialFamilyEffects:undefined,
+        editorialFinishControls:visualPresentationProfile==='editorial-modular-finish-v1-1'?editorialFinishControls:undefined,
         // CERO A PROPOSITO, NO ES UN OLVIDO. El commit e145119 partio la construccion en tres
         // fases y saco los graficos de esta llamada: se piden despues, en su propia fase (el
         // bloque `if (graphicsPercent > 0)` de mas abajo). Este cero dice "aqui no, luego".
@@ -4317,9 +4330,10 @@ ${res.filePath}`);
                 <option value="editorial-idea-assembly-v4">IDEA Assembly V4 — Color Pilot</option>
                 <option value="editorial-modular-catalog-v1">Catálogo editorial modular V1 — Piloto opt-in</option>
                 <option value="editorial-modular-families-v1">Familias editoriales V1 — Catálogo curado (opt-in)</option>
+                <option value="editorial-modular-finish-v1-1">Familias editoriales V1.1 — acabado y conexiones (opt-in)</option>
               </select>
             </div>
-            {visualPresentationProfile === 'editorial-modular-families-v1' && <div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] text-[10px] text-slate-200">
+            {['editorial-modular-families-v1','editorial-modular-finish-v1-1'].includes(visualPresentationProfile) && <div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] text-[10px] text-slate-200">
               <label className="block">Raíz local de los 250 assets curados (inventory.json)
                 <input value={modularCatalogRoot} onChange={event=>setModularCatalogRoot(event.target.value)}
                   className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1" />
@@ -4344,12 +4358,58 @@ ${res.filePath}`);
               {!['#A83B19','#238C87','#B8444F'].includes(editorialFamilyColor)&&<input aria-label="HEX personalizado editorial"
                 value={editorialFamilyColor} onChange={event=>setEditorialFamilyColor(event.target.value.toUpperCase())}
                 className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1" />}
-              <label className="block mt-2">Efectos discretos
+              {visualPresentationProfile==='editorial-modular-families-v1'&&<label className="block mt-2">Efectos discretos
                 <select value={editorialFamilyEffects} onChange={event=>setEditorialFamilyEffects(event.target.value)}
                   className="w-full mt-1 rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1">
                   <option value="none">Sin partículas</option><option value="subtle">Motas suaves cuando procede</option>
                 </select>
-              </label>
+              </label>}
+              {visualPresentationProfile==='editorial-modular-finish-v1-1'&&<div className="mt-2 space-y-2 border-t border-[#3a3a3c] pt-2">
+                <label className="block">Distribución dentro de la familia
+                  <select value={editorialFinishControls.composition} onChange={event=>setEditorialFinishControls(old=>({...old,composition:event.target.value}))}
+                    className="w-full mt-1 rounded bg-[#1C1C1E] p-1">
+                    <option value="base">Base</option><option value="focus">Foco editorial</option>
+                  </select>
+                </label>
+                <label className="block">Tipografía display
+                  <select value={editorialFinishControls.display} onChange={event=>setEditorialFinishControls(old=>({...old,display:event.target.value}))}
+                    className="w-full mt-1 rounded bg-[#1C1C1E] p-1">
+                    <option>Fraunces</option><option>Instrument Serif</option><option>Bricolage Grotesque</option>
+                  </select>
+                </label>
+                {(['local','ambient'] as const).map(key=><label className="block" key={key}>
+                  {key==='local'?'Partículas locales':'Ambiente'}
+                  <select value={editorialFinishControls[key]} onChange={event=>setEditorialFinishControls(old=>({...old,[key]:event.target.value}))}
+                    className="w-full mt-1 rounded bg-[#1C1C1E] p-1">
+                    <option value="off">Apagado</option><option value="discreto">Discreto</option><option value="enfasis">Énfasis</option>
+                  </select>
+                </label>)}
+                <label className="block">Representación de conexiones
+                  <select value={editorialFinishControls.representation} onChange={event=>setEditorialFinishControls(old=>({...old,representation:event.target.value}))}
+                    className="w-full mt-1 rounded bg-[#1C1C1E] p-1">
+                    <option value="auto">Según relación</option><option value="arrow">Flecha editorial</option>
+                    <option value="dotted">Ruta punteada</option><option value="dot-flow">Puntos viajeros</option>
+                    <option value="light-pulse">Pulso luminoso</option><option value="accent-link">Vínculo por acento</option>
+                  </select>
+                </label>
+                <label className="block">Respuesta del icono
+                  <select value={editorialFinishControls.response} onChange={event=>setEditorialFinishControls(old=>({...old,response:event.target.value}))}
+                    className="w-full mt-1 rounded bg-[#1C1C1E] p-1">
+                    <option value="auto">Según relación</option><option value="none">Sin respuesta</option>
+                    <option value="accent">Cambio de acento</option><option value="halo">Halo breve</option>
+                    <option value="pulse">Pulso</option><option value="scale">Aumento pequeño</option>
+                  </select>
+                </label>
+                <details><summary>Colores avanzados (HEX)</summary>
+                  {(['headline','keyword','body','effects'] as const).map(key=><label key={key} className="block mt-1">
+                    {key==='headline'?'Titular':key==='keyword'?'Palabra destacada':key==='body'?'Cuerpo/labels':'Efectos'}
+                    <input value={editorialFinishControls[key]}
+                      onChange={event=>setEditorialFinishControls(old=>({...old,[key]:event.target.value.toUpperCase()}))}
+                      className="w-full mt-1 rounded bg-[#1C1C1E] p-1" aria-label={`Color ${key}`} />
+                  </label>)}
+                  <p>Use #RRGGBB. «auto» sigue el acento del video para palabra y efectos.</p>
+                </details>
+              </div>}
               <button type="button" onClick={loadModularCatalog} disabled={!modularCatalogRoot.trim()}
                 className="mt-2 rounded bg-stone-700 px-2 py-1 disabled:opacity-40">
                 Validar y listar 250 candidatos

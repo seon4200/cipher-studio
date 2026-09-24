@@ -72,8 +72,10 @@ import { EDITORIAL_EXPLAINER_V3 } from '../shared/editorial-explainer-v3'
 import { generateIdeaColorPilotV4 } from './assets/editorial-idea-color-pilot-v4'
 import { CuratedModularCatalogV1, bindEditorialModularCatalogV1 } from './assets/editorial-modular-catalog-v1'
 import { bindEditorialModularFamilyV1, editorialHeadlineFromLocalTextV1,
-  selectEditorialModularFamilyAssetsV1 } from './assets/editorial-modular-families-v1'
+  bindEditorialModularFinishV11, selectEditorialModularFamilyAssetsV1 } from './assets/editorial-modular-families-v1'
 import { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-families-v1'
+import { EDITORIAL_FINISH_V1_1, type FinishFont, type FinishIntensity,
+  type FinishRepresentation, type FinishResponse } from '../shared/editorial-finish-v1-1'
 import { EDITORIAL_MODULAR_CATALOG_V1, type ModularCatalogPilotInputV1 } from '../shared/editorial-modular-catalog-v1'
 import { EDITORIAL_IDEA_ASSEMBLY_V4, resolveIdeaColorV4, type IdeaColorIntentV4 } from '../shared/editorial-idea-assembly-v1'
 import { writeVisualDecisionDiagnostic } from './services/visual-decision-diagnostics'
@@ -165,9 +167,10 @@ export { generateIdeaColorPilotV4 } from './assets/editorial-idea-color-pilot-v4
 export { bindEditorialIdeaSupportsV41, importEditorialIdeaSupportCatalogV41, resolveIdeaColorV41,
   IDEA_SUPPORT_MANIFEST_V41 } from './assets/editorial-idea-support-catalog-v4-1'
 export { CuratedModularCatalogV1, bindEditorialModularCatalogV1 } from './assets/editorial-modular-catalog-v1'
-export { bindEditorialModularFamilyV1, selectEditorialModularFamilyAssetsV1 } from './assets/editorial-modular-families-v1'
+export { bindEditorialModularFamilyV1, bindEditorialModularFinishV11, selectEditorialModularFamilyAssetsV1 } from './assets/editorial-modular-families-v1'
 export { editorialHeadlineFromLocalTextV1 } from './assets/editorial-modular-families-v1'
 export { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-families-v1'
+export * from '../shared/editorial-finish-v1-1'
 export { validateVisualSceneSpecV2, validateRenderBindingsAny, sceneSpecPixelIdentityAny } from '../shared/visual-scene-spec-v2'
 export { createLocalSceneSemanticV1 } from '../shared/local-scene-semantic'
 export { createModernVisualGenerationContextV2, resolveModernVisualGenerationBatchV2 } from './assets/modern-visual-generation'
@@ -4201,6 +4204,9 @@ ipcMain.handle('list-editorial-modular-catalog-v1', async (_event, catalogRoot: 
 ipcMain.handle('rebind-editorial-family-clip-v1', async (_event, input: {
   catalogRoot:string;graphicData:any;renderBindings:RenderBindingsAny;
   orientation:'portrait'|'landscape';durationSeconds:number;
+  finishControls?:{display:FinishFont;local:FinishIntensity;ambient:FinishIntensity;composition:'base'|'focus';
+    representation:FinishRepresentation|'auto';response:FinishResponse|'auto';
+    headline:string;keyword:string;body:string;effects:string};
   edits:{family:import('../shared/editorial-modular-families-v1').EditorialFamilyIdV1;
     heroId?:string;supportIds:string[];rearId?:string;accentId?:string;frontId?:string}
 }) => {
@@ -4213,7 +4219,8 @@ ipcMain.handle('rebind-editorial-family-clip-v1', async (_event, input: {
       throw new Error('EDITORIAL_FAMILY_CLIP_EDIT_INVALID')
     const spec=sceneSpecFromGraphicDataAny(input.graphicData)
     if (spec?.renderSpecVersion!==2 ||
-        spec.presentationProfile?.revision!==EDITORIAL_MODULAR_FAMILIES_V1.revision || !spec.editorialFamily)
+        ![EDITORIAL_MODULAR_FAMILIES_V1.revision,EDITORIAL_FINISH_V1_1.revision].includes(
+          spec.presentationProfile?.revision as typeof EDITORIAL_MODULAR_FAMILIES_V1.revision) || !spec.editorialFamily)
       throw new Error('EDITORIAL_FAMILY_CLIP_EDIT_REVISION_INVALID')
     validateRenderBindingsAny(input.renderBindings,spec)
     const projectRoot=activeProjectPath
@@ -4233,14 +4240,28 @@ ipcMain.handle('rebind-editorial-family-clip-v1', async (_event, input: {
     const relations=previous.relations.filter(relation=>available.has(relation.from)&&
       available.has(relation.to)&&unchanged(relation.from)&&unchanged(relation.to))
       .map(({from,to,meaning})=>({from,to,meaning}))
-    const built=bindEditorialModularFamilyV1({template:{sceneSpec:spec,graphicData:input.graphicData},
+    const bindingInput={template:{sceneSpec:spec,graphicData:input.graphicData},
       catalog,imported,family:input.edits.family,layoutVariant:previous.layoutVariant,
       heroId:input.edits.heroId,supportIds:input.edits.supportIds,
       rearId:input.edits.rearId,accentId:input.edits.accentId,frontId:input.edits.frontId,
       background:previous.background,entry:previous.entry,supportTreatment:previous.supportTreatment,
       camera:previous.camera.mode,particles:previous.particles.mode,color:previous.accent,
       supportTint:previous.supportTint,
-      headline:{connector:spec.text.connector,keyword:spec.text.keyword,closing:spec.text.closing},relations})
+      headline:{connector:spec.text.connector,keyword:spec.text.keyword,closing:spec.text.closing},relations}
+    const c=input.finishControls
+    const built=spec.presentationProfile?.revision===EDITORIAL_FINISH_V1_1.revision
+      ?bindEditorialModularFinishV11({...bindingInput,finish:c?{
+        display:c.display,local:c.local,ambient:c.ambient,composition:c.composition,
+        representation:c.representation,response:c.response,
+        headline:c.headline==='auto'?undefined:c.headline.toUpperCase(),
+        keyword:c.keyword==='auto'?undefined:c.keyword.toUpperCase(),
+        body:c.body==='auto'?undefined:c.body.toUpperCase(),
+        effects:c.effects==='auto'?undefined:c.effects.toUpperCase(),
+      }:{display:spec.editorialFinish?.typography.display,composition:spec.editorialFinish?.composition,
+        local:spec.editorialFinish?.localIntensity,ambient:spec.editorialFinish?.ambientIntensity,
+        headline:spec.editorialFinish?.colors.headline,keyword:spec.editorialFinish?.colors.keyword,
+        body:spec.editorialFinish?.colors.body,effects:spec.editorialFinish?.colors.effects}})
+      :bindEditorialModularFamilyV1(bindingInput)
     const file=await renderGraphicClip(built.graphicData,{
       ancho:input.orientation==='portrait'?720:1280,alto:input.orientation==='portrait'?1280:720,
       fps:30,duracion:input.durationSeconds,modo:'pantalla',sistema:'editorial',
@@ -4315,18 +4336,29 @@ ipcMain.handle('regenerate-editorial-modular-catalog-v1', async (_event, input: 
   } catch (error) { return {success:false,error:error instanceof Error?error.message:String(error)} }
 })
 
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, visualPresentationProfile, visualAssetPack, modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
+ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, visualPresentationProfile, visualAssetPack, modularCatalogRoot, editorialFamilyChoice, editorialFamilyColor, editorialFamilyEffects, editorialFinishControls, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
   if (visualAssetPack !== undefined && !['legacy', MODERN_VISUAL_PACK_V1.id, 'modern-pack-100-v1+local'].includes(visualAssetPack))
     return { success: false, error: 'Pack visual no reconocido' }
   if (visualPresentationProfile === 'editorial-idea-assembly-v4' || visualPresentationProfile === 'editorial-modular-catalog-v1')
     return { success: false, error: 'Este perfil es un piloto de una escena; usa su botón de generación opt-in.' }
-  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1', 'families-motion-v2', 'editorial-explainer-light-v1', 'editorial-explainer-light-v2', 'editorial-explainer-v3', EDITORIAL_MODULAR_FAMILIES_V1.id].includes(visualPresentationProfile))
+  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1', 'families-motion-v2', 'editorial-explainer-light-v1', 'editorial-explainer-light-v2', 'editorial-explainer-v3', EDITORIAL_MODULAR_FAMILIES_V1.id,EDITORIAL_FINISH_V1_1.id].includes(visualPresentationProfile))
     throw new Error('VISUAL_PRESENTATION_PROFILE_INVALID');
-  if (visualPresentationProfile === EDITORIAL_MODULAR_FAMILIES_V1.id &&
+  if ([EDITORIAL_MODULAR_FAMILIES_V1.id,EDITORIAL_FINISH_V1_1.id].includes(visualPresentationProfile) &&
       (editorialFamilyChoice !== undefined && !['auto','marcoPoster','editorial','partidoVertical','cuaderno','constelacion','cascada'].includes(editorialFamilyChoice) ||
        editorialFamilyEffects !== undefined && !['none','subtle'].includes(editorialFamilyEffects) ||
        editorialFamilyColor !== undefined && !/^#[0-9A-Fa-f]{6}$/.test(editorialFamilyColor)))
     throw new Error('EDITORIAL_FAMILY_USER_OPTIONS_INVALID');
+  if (visualPresentationProfile === EDITORIAL_FINISH_V1_1.id && editorialFinishControls &&
+      (!['Fraunces','Instrument Serif','Bricolage Grotesque'].includes(editorialFinishControls.display) ||
+       !['off','discreto','enfasis'].includes(editorialFinishControls.local) ||
+       !['off','discreto','enfasis'].includes(editorialFinishControls.ambient) ||
+       !['base','focus'].includes(editorialFinishControls.composition) ||
+       !['auto','arrow','dotted','dot-flow','light-pulse','accent-link'].includes(editorialFinishControls.representation) ||
+       !['auto','none','accent','halo','pulse','scale'].includes(editorialFinishControls.response) ||
+       ![editorialFinishControls.headline,editorialFinishControls.keyword,
+         editorialFinishControls.body,editorialFinishControls.effects].every((value:unknown)=>
+           value==='auto'||typeof value==='string'&&/^#[0-9A-Fa-f]{6}$/.test(value))))
+    throw new Error('EDITORIAL_FINISH_USER_OPTIONS_INVALID');
   const isOriginalAudio = transcriptSegments && newAudioSegments && 
     transcriptSegments.length === newAudioSegments.length &&
     transcriptSegments[0]?.start === newAudioSegments[0]?.start;
@@ -5352,7 +5384,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         // All semantic work completes before hashing/rendering. Renderer gets only the
         // materialized SceneSpec and its locator-only bindings; its trace remains diagnostic.
         if (!PROYECTO_VISUAL) throw new Error('La generación V15 requiere projectRoot explícito');
-        const editorialFamiliesSelected = visualPresentationProfile === EDITORIAL_MODULAR_FAMILIES_V1.id
+        const editorialFamiliesSelected = [EDITORIAL_MODULAR_FAMILIES_V1.id,EDITORIAL_FINISH_V1_1.id].includes(visualPresentationProfile)
         const curatedFamilyCatalog = editorialFamiliesSelected
           ? new CuratedModularCatalogV1(String(modularCatalogRoot ?? '')) : null
         const resueltosModernos = await resolveModernVisualGenerationBatchV2({
@@ -5378,7 +5410,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             .filter((id):id is string=>!!id) : []
           const imported = selected && curatedFamilyCatalog ? Object.fromEntries(
             [...new Set(selectedIds)].map(id=>[id,curatedFamilyCatalog.publish(PROYECTO_VISUAL!,id)])) : {}
-          const familyBuilt = selected && curatedFamilyCatalog ? bindEditorialModularFamilyV1({
+          const familyInput = selected && curatedFamilyCatalog ? {
             template:resolved.compiled,catalog:curatedFamilyCatalog,imported,
             family:selected.family,layoutVariant:selected.layoutVariant,
             heroId:selected.heroId,supportIds:selected.supportIds,
@@ -5389,7 +5421,22 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             color:(editorialFamilyColor??'#A83B19').toUpperCase(),
             headline:editorialHeadlineFromLocalTextV1(aRenderizar[sceneIndex].frase,
               resolved.compiled.sceneSpec.text.keyword),relations:selected.relations,
-          }) : null
+          } as const : null
+          const finishOptions = editorialFinishControls ? {
+            display:editorialFinishControls.display as FinishFont,
+            local:editorialFinishControls.local as FinishIntensity,
+            ambient:editorialFinishControls.ambient as FinishIntensity,
+            representation:editorialFinishControls.representation as FinishRepresentation|'auto',
+            response:editorialFinishControls.response as FinishResponse|'auto',
+            composition:editorialFinishControls.composition as 'base'|'focus',
+            headline:editorialFinishControls.headline==='auto'?undefined:String(editorialFinishControls.headline).toUpperCase(),
+            keyword:editorialFinishControls.keyword==='auto'?undefined:String(editorialFinishControls.keyword).toUpperCase(),
+            body:editorialFinishControls.body==='auto'?undefined:String(editorialFinishControls.body).toUpperCase(),
+            effects:editorialFinishControls.effects==='auto'?undefined:String(editorialFinishControls.effects).toUpperCase(),
+          } : undefined
+          const familyBuilt = familyInput ? visualPresentationProfile===EDITORIAL_FINISH_V1_1.id
+            ?bindEditorialModularFinishV11({...familyInput,finish:finishOptions})
+            :bindEditorialModularFamilyV1(familyInput) : null
           const compiled = familyBuilt ?? resolved.compiled
           if (compiled.graphicData.type !== COMPOSICION_VISUAL)
             throw new Error('El compilador semántico produjo una composición visual no autorizada');
@@ -5418,7 +5465,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             inputFallback: base.inputFallback,
             // Diagnostic/state-only context. It stays outside sceneSpec, hash and renderer.
             visualRegeneration: familyBuilt ? {version:3,
-              revision:EDITORIAL_MODULAR_FAMILIES_V1.revision,
+              revision:visualPresentationProfile===EDITORIAL_FINISH_V1_1.id?EDITORIAL_FINISH_V1_1.revision:EDITORIAL_MODULAR_FAMILIES_V1.revision,
               sceneId:context.sceneId,duration:context.duration,sistema:context.sistema,
               graphicData:familyBuilt.graphicData,renderBindings:familyBuilt.renderBindings} : context,
             duracion: context.duration,
@@ -6228,8 +6275,8 @@ async function regenerateModernVisuals(event: any, params: any) {
       const saved = entry.context as any
       const spec = sceneSpecFromGraphicDataAny(saved.graphicData)
       if (!spec || spec.renderSpecVersion !== 2 ||
-          spec.presentationProfile?.revision !== EDITORIAL_MODULAR_FAMILIES_V1.revision ||
-          saved.revision !== EDITORIAL_MODULAR_FAMILIES_V1.revision)
+          ![EDITORIAL_MODULAR_FAMILIES_V1.revision,EDITORIAL_FINISH_V1_1.revision].includes(spec.presentationProfile?.revision as typeof EDITORIAL_MODULAR_FAMILIES_V1.revision) ||
+          saved.revision !== spec.presentationProfile?.revision)
         throw new Error('EDITORIAL_FAMILY_REPLAY_INVALID')
       validateRenderBindingsAny(saved.renderBindings,spec)
       normalized.push({index,context:saved,

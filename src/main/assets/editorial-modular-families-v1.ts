@@ -10,6 +10,8 @@ import type { ImportedModularAssetV1 } from './editorial-modular-catalog-v1'
 import { CuratedModularCatalogV1 } from './editorial-modular-catalog-v1'
 import { subjectBoundsFromPixabayRasterV1 } from './pixabay-images'
 import type { LocalSceneSemanticV1 } from '../../shared/local-scene-semantic'
+import { EDITORIAL_FINISH_V1_1, createEditorialFinishV11, type FinishFont,
+  type FinishIntensity, type FinishRepresentation, type FinishResponse } from '../../shared/editorial-finish-v1-1'
 
 /** The historic keyword compiler may shorten a closing line. This opt-in
  * profile keeps every token of the source segment, including numbers and
@@ -138,7 +140,7 @@ export function bindEditorialModularFamilyV1(input: {
       motion:createRoleMotionV2({role:IDEA_SUPPORT_IDS[index],energy:'low'})})),
   ]
   const {ideaAssembly:_oldAssembly,editorialMotionCue:_oldCue,lightStyle:_oldLight,
-    premiumStyle:_oldPremium,compositionV2:_oldComposition,...base}=source
+    premiumStyle:_oldPremium,compositionV2:_oldComposition,editorialFinish:_oldFinish,...base}=source
   const sceneSpec:VisualSceneSpecV2={...base,presentationProfile:EDITORIAL_MODULAR_FAMILIES_V1,
     visualMode:hero?'asset-led':'editorial-text',
     direccion:{...source.direccion,estructura:input.family},
@@ -159,6 +161,27 @@ export function bindEditorialModularFamilyV1(input: {
     extra:{...input.template.graphicData.extra,sceneSpec}}
   return {sceneSpec,renderBindings,graphicData,pixelIdentity:sceneSpecPixelIdentityAny(sceneSpec),
     titleAccent:resolveModularTitleAccentV1(input.color)}
+}
+
+/** V1.1 augments the frozen V1 composition without altering its published pixels. */
+export function bindEditorialModularFinishV11(input: Parameters<typeof bindEditorialModularFamilyV1>[0] & {
+  finish?: { display?:FinishFont; headline?:string; keyword?:string; body?:string; effects?:string;
+    local?:FinishIntensity; ambient?:FinishIntensity;
+    representation?:FinishRepresentation|'auto'; response?:FinishResponse|'auto';
+    composition?:'base'|'focus' }
+}) {
+  // V1.1 routes are frozen in scene coordinates. A drifting Hero would detach
+  // them during entrance; keep this opt-in revision fixed until paths can
+  // follow the actor's camera transform. The resolved choice is in SceneSpec.
+  const legacy=bindEditorialModularFamilyV1((input.relations?.length??0)>0&&input.camera==='quiet-drift'
+    ?{...input,camera:'fixed'}:input)
+  const editorialFinish=createEditorialFinishV11(legacy.sceneSpec.editorialFamily!,legacy.sceneSpec.layout,input.finish)
+  const sceneSpec:VisualSceneSpecV2={...legacy.sceneSpec,presentationProfile:EDITORIAL_FINISH_V1_1,
+    layout:editorialFinish.portraitLayout,editorialFinish}
+  validateVisualSceneSpecV2(sceneSpec)
+  validateRenderBindingsAny(legacy.renderBindings,sceneSpec)
+  return {...legacy,sceneSpec,pixelIdentity:sceneSpecPixelIdentityAny(sceneSpec),
+    graphicData:{...legacy.graphicData,extra:{...legacy.graphicData.extra,sceneSpec}} as Record<string,any>}
 }
 
 /** Content-first, exact-alias selection. No padding with unrelated icons. */

@@ -70,6 +70,8 @@ import { getApprovedIdeaSupportV41 } from './editorial-idea-support-catalog-v4-1
 import { EDITORIAL_MODULAR_CATALOG_V1, getCuratedModularAssetV1 } from './editorial-modular-catalog-v1'
 import { EDITORIAL_MODULAR_FAMILIES_V1, createEditorialModularFamilyLayoutV1,
   validateEditorialModularFamiliesPlanV1, type EditorialModularFamiliesPlanV1 } from './editorial-modular-families-v1'
+import { EDITORIAL_FINISH_V1_1, validateEditorialFinishV11,
+  type EditorialFinishPlanV11 } from './editorial-finish-v1-1'
 import {
   VISUAL_MVP_BOUNDS_REVISION,
   editorialFallbackSpec,
@@ -209,6 +211,8 @@ export type VisualSceneSpecV2 = {
   ideaAssembly?: IdeaAssemblyV1
   /** New opt-in six-family composition; absent from every historical SceneSpec. */
   editorialFamily?: EditorialModularFamiliesPlanV1
+  /** V1.1-only appearance and event plan. Its absence is historical V1 parity. */
+  editorialFinish?: EditorialFinishPlanV11
   /** Frozen relation choreography; required only for the editorial v2 revision. */
   editorialMotionCue?: EditorialMotionCue
   /** Only materialized for the opt-in profile; part of the pixel contract. */
@@ -456,7 +460,9 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
   const family = value.family as ModernLayoutStructureV4
   const mode = spec.visualMode as 'asset-led' | 'editorial-text'
   const seed = Number((spec.direccion as VisualDirectionV2).semilla)
-  const expected = (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_MODULAR_FAMILIES_V1.revision
+  const expected = (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision===EDITORIAL_FINISH_V1_1.revision
+    ? (spec.editorialFinish as EditorialFinishPlanV11).portraitLayout
+    : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision===EDITORIAL_MODULAR_FAMILIES_V1.revision
     ? createEditorialModularFamilyLayoutV1(family as EditorialModularFamiliesPlanV1['family'], 'portrait', supportCount,
       (spec.editorialFamily as EditorialModularFamiliesPlanV1 | undefined)?.layoutVariant)
     : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision === FAMILIES_MOTION_PROFILE_V2.revision
@@ -494,7 +500,7 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
 export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   const code = 'VISUAL_SCENE_SPEC_V2_INVALID'
   record(value, code, 'sceneSpec')
-  exactKeys(value, ['renderSpecVersion', 'visualMode', 'renderTier', 'sistema', 'direccion', 'videoStyle', 'backgroundProfile', 'colorPalette', 'presentationProfile', 'premiumStyle', 'compositionV2', 'lightStyle', 'ideaAssembly', 'editorialFamily', 'editorialMotionCue', 'editorialData', 'layout', 'text', 'slots', 'revisions', 'fallbackVisual'], code, 'sceneSpec')
+  exactKeys(value, ['renderSpecVersion', 'visualMode', 'renderTier', 'sistema', 'direccion', 'videoStyle', 'backgroundProfile', 'colorPalette', 'presentationProfile', 'premiumStyle', 'compositionV2', 'lightStyle', 'ideaAssembly', 'editorialFamily', 'editorialFinish', 'editorialMotionCue', 'editorialData', 'layout', 'text', 'slots', 'revisions', 'fallbackVisual'], code, 'sceneSpec')
   if (value.renderSpecVersion !== VISUAL_RENDER_SPEC_VERSION_V2 ||
       !['asset-led', 'editorial-text'].includes(String(value.visualMode)) || value.renderTier !== 'standard' ||
       !Object.keys(SISTEMAS).includes(String(value.sistema)) || value.fallbackVisual !== 'editorial-text')
@@ -514,9 +520,13 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
       fail(code, 'IDEA profile/revision mismatch')
   }
   else if (value.ideaAssembly !== undefined) fail(code, 'ideaAssembly exige perfil explícito')
-  const editorialFamilyRevision = (value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_MODULAR_FAMILIES_V1.revision
+  const finishRevision = (value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_FINISH_V1_1.revision
+  const editorialFamilyRevision = finishRevision || (value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_MODULAR_FAMILIES_V1.revision
   if (editorialFamilyRevision) validateEditorialModularFamiliesPlanV1(value.editorialFamily)
   else if (value.editorialFamily !== undefined) fail(code, 'editorialFamily exige perfil explícito')
+  if (finishRevision) validateEditorialFinishV11(value.editorialFinish,value.editorialFamily as EditorialModularFamiliesPlanV1,
+    value.layout as VisualLayoutV4)
+  else if (value.editorialFinish !== undefined) fail(code, 'editorialFinish exige perfil V1.1')
   if ((value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision) {
     const activeSlots = (value.slots as SceneSlotV2[] | undefined)?.filter(slot => slot.state === 'present' || slot.state === 'procedural') ?? []
     validateLightStyleV1(value.lightStyle, value.visualMode as 'asset-led' | 'editorial-text', activeSlots.filter(slot => slot.role !== 'hero').length)

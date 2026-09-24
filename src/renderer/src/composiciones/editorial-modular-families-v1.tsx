@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useRef } from 'react'
 import type { RuntimeRenderAssetV2, VisualSceneSpecV2 } from '../../../shared/visual-scene-spec-v2'
 import type { EditorialModularFamiliesPlanV1 } from '../../../shared/editorial-modular-families-v1'
+import type { EditorialFinishPlanV11, FinishRoute } from '../../../shared/editorial-finish-v1-1'
 import { sceneSpecReactKeyAny } from '../../../shared/visual-scene-spec-v2'
 import { AlphaMaskRasterV4 } from './alpha-mask-raster-v4'
 import { fitVisualTextV2 } from './text-fit-v2'
@@ -36,6 +37,36 @@ const cubicPoint=(points:CubicRoute['points'],t:number):Point=>{
   return {x:v*v*v*a.x+3*v*v*q*b.x+3*v*q*q*c.x+q*q*q*d.x,
     y:v*v*v*a.y+3*v*v*q*b.y+3*v*q*q*c.y+q*q*q*d.y}
 }
+const finishPath=(route:FinishRoute)=>route.points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(3)} ${p.y.toFixed(3)}`).join(' ')
+const finishPoint=(route:FinishRoute,t:number):Point=>{
+  const lengths=route.points.slice(1).map((p,i)=>Math.hypot(p.x-route.points[i].x,p.y-route.points[i].y))
+  const total=lengths.reduce((a,b)=>a+b,0)
+  let remaining=clamp(t)*total
+  for(let i=0;i<lengths.length;i++){
+    if(remaining<=lengths[i]||i===lengths.length-1){
+      const a=route.points[i],b=route.points[i+1],q=lengths[i]?remaining/lengths[i]:0
+      return {x:a.x+(b.x-a.x)*q,y:a.y+(b.y-a.y)*q}
+    }
+    remaining-=lengths[i]
+  }
+  return route.points[route.points.length-1]
+}
+const eventMarks=(finish:EditorialFinishPlanV11,target:string,u:number)=>finish.events
+  .filter(event=>event.target===target&&event.intensity!=='off').flatMap(event=>{
+    const life=cue(u,event.start,event.start+event.duration)
+    if(life<=0)return []
+    return Array.from({length:event.count},(_,index)=>{
+      // The perimeter is local to the moving actor; glyphs and focal center stay untouched.
+      const angle=(index*137.508+event.seed*11)*Math.PI/180
+      const radius=36+((index*7+event.seed)%11)
+      const x=50+Math.cos(angle)*radius,y=43+Math.sin(angle)*radius
+      return <span key={`${event.id}-${index}`} aria-hidden="true" data-editorial-finish-particle={event.kind}
+        style={{position:'absolute',left:`${x}%`,top:`${y}%`,zIndex:7,pointerEvents:'none',
+          width:`${event.size}cqmin`,height:index%3===0?`${event.size*.28}cqmin`:`${event.size}cqmin`,
+          borderRadius:index%3===0?'0':'50%',background:event.color,
+          opacity:event.opacity*life,transform:`translate(${(1-life)*Math.cos(angle)*1.4}cqmin,${(1-life)*Math.sin(angle)*1.4}cqmin)`}}/>
+    })
+  })
 function route(from:Rect,to:Rect,obstacles:readonly Rect[]=[],supportToSupport=false):CubicRoute {
   let a=edge(from,to),b=edge(to,from)
   if(supportToSupport&&Math.abs(center(to).y-center(from).y)>
@@ -77,8 +108,9 @@ export const EditorialModularFamiliesV1:React.FC<{
   spec:VisualSceneSpecV2;runtimeAssets:readonly RuntimeRenderAssetV2[];u:number
 }>=({spec,runtimeAssets,u})=>{
   const plan=spec.editorialFamily!
+  const finish=spec.editorialFinish
   const landscape=window.innerWidth>window.innerHeight
-  const layout=landscape?plan.landscapeLayout:spec.layout
+  const layout=landscape?(finish?.landscapeLayout??plan.landscapeLayout):spec.layout
   const byId=new Map(runtimeAssets.map(asset=>[asset.slotId,asset.objectUrl]))
   const url=(id:string)=>{
     const value=byId.get(id as RuntimeRenderAssetV2['slotId'])
@@ -114,7 +146,18 @@ export const EditorialModularFamiliesV1:React.FC<{
     data-qc-background-motion="none" data-qc-decorator-count="0"
     style={{position:'absolute',inset:0,overflow:'hidden',containerType:'size',fontSynthesis:'none',color:plan.ink,
       ...paperBackground(plan)}}>
-    {plan.particles.mode!=='none'&&Array.from({length:plan.particles.count},(_,index)=>{
+    {finish&&finish.ambientIntensity!=='off'&&Array.from({length:7},(_,index)=>{
+      const x=5+(index*37)%90,y=6+(index*29)%88
+      const occupied=(r:Rect)=>x>=r.x-2&&x<=r.x+r.width+2&&y>=r.y-2&&y<=r.y+r.height+2
+      if(occupied(layout.textBounds)||layout.slotLayouts.some(s=>occupied(s.envelope)))return null
+      const strength=finish.ambientIntensity==='enfasis'?.44:.31
+      const readBudget=finish.relations.some(r=>u>=r.start&&u<=r.end)?0.4:1
+      return <span key={`ambient-${index}`} aria-hidden="true" data-editorial-finish-ambient="true"
+        style={{position:'absolute',left:`${x}%`,top:`${y}%`,width:'.62cqmin',height:'.62cqmin',
+          borderRadius:'50%',background:finish.colors.effects,opacity:strength*readBudget*phase(u,.05,.18)*exit,
+          pointerEvents:'none'}}/>
+    })}
+    {!finish&&plan.particles.mode!=='none'&&Array.from({length:plan.particles.count},(_,index)=>{
       const x=7+(index*37)%86,y=6+(index*29)%88
       return <span key={index} aria-hidden="true" style={{position:'absolute',left:`${x}%`,top:`${y}%`,
         width:plan.particles.mode==='ticks'?'.4cqmin':'.22cqmin',
@@ -128,14 +171,16 @@ export const EditorialModularFamiliesV1:React.FC<{
         opacity:textEnter*exit,padding:'.5cqmin',boxSizing:'border-box',textAlign:layout.textAlignment,
         overflow:'hidden'}}>
       {spec.text.connector&&<div data-fit-body="true" data-qc-text-glyph="true"
-        style={{fontFamily:plan.family==='editorial'?'Fraunces,serif':'DM Sans,sans-serif',
-          fontSize:plan.family==='editorial'?'9cqmin':'3.35cqmin',fontWeight:plan.family==='editorial'?600:500,
+        style={{fontFamily:finish?`'${finish.typography.display}',serif`:plan.family==='editorial'?'Fraunces,serif':'DM Sans,sans-serif',
+          fontSize:plan.family==='editorial'?'9cqmin':'3.35cqmin',fontWeight:finish?finish.typography.weight:plan.family==='editorial'?600:500,
+          color:finish?.colors.headline,
           letterSpacing:'-.02em',lineHeight:1.1}}>{spec.text.connector}</div>}
-      <div data-fit-title="true" data-qc-keyword="true" data-qc-text-glyph="true" data-qc-keyword-family="Fraunces"
-        style={{fontFamily:'Fraunces,serif',fontSize:plan.family==='editorial'?'21cqmin':'17.5cqmin',
-          fontWeight:650,lineHeight:.95,letterSpacing:'-.04em',color:plan.accent}}>{spec.text.keyword}</div>
+      <div data-fit-title="true" data-qc-keyword="true" data-qc-text-glyph="true" data-qc-keyword-family={finish?.typography.display??'Fraunces'}
+        style={{fontFamily:finish?`'${finish.typography.display}',serif`:'Fraunces,serif',fontSize:plan.family==='editorial'?'21cqmin':'17.5cqmin',
+          fontWeight:finish?.typography.weight??650,lineHeight:.95,letterSpacing:'-.04em',color:finish?.colors.keyword??plan.accent}}>{spec.text.keyword}</div>
       {spec.text.closing&&<div data-fit-body="true" data-qc-closing="true" data-qc-text-glyph="true"
-        style={{fontFamily:'DM Sans,sans-serif',fontSize:'3.35cqmin',fontWeight:500,lineHeight:1.18}}>{spec.text.closing}</div>}
+        style={{fontFamily:'DM Sans,sans-serif',fontSize:'3.35cqmin',fontWeight:500,lineHeight:1.18,
+          color:finish?.colors.body}}>{spec.text.closing}</div>}
       <span aria-hidden="true" style={{display:'block',width:'10cqmin',height:'.17cqmin',
         background:plan.accent,transform:`scaleX(${phase(u,textStart+.10,textStart+.26)})`,transformOrigin:'left'}}/>
     </div>
@@ -155,7 +200,8 @@ export const EditorialModularFamiliesV1:React.FC<{
             maskId={`family-${layer.id}`} style={style} />
           :<img key={layer.id} src={url(layer.id)} alt="" style={style}/>
       })}
-      {plan.particles.mode!=='none'&&[[8,24],[88,27],[13,78],[85,75]].map(([x,y],index)=><span
+      {finish&&eventMarks(finish,'hero',u)}
+      {!finish&&plan.particles.mode!=='none'&&[[8,24],[88,27],[13,78],[85,75]].map(([x,y],index)=><span
         key={`hero-dust-${index}`} aria-hidden="true" style={{position:'absolute',left:`${x}%`,top:`${y}%`,
           width:'.45cqmin',height:'.45cqmin',borderRadius:'50%',background:plan.accent,zIndex:2,
           opacity:.18*cue(u,plan.hero!.enter,plan.hero!.settle),pointerEvents:'none'}}/>)}
@@ -171,7 +217,51 @@ export const EditorialModularFamiliesV1:React.FC<{
     </div>}
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" data-editorial-relations="true"
       style={{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:3,pointerEvents:'none',opacity:exit}}>
-      {plan.relations.map((relation,index)=>{
+      {finish&&finish.relations.map((relation,index)=>{
+        const route=landscape?relation.landscape:relation.portrait
+        const path=finishPath(route),draw=phase(u,relation.start,relation.arrival)
+        const directional=['informs','causes','transfers'].includes(relation.meaning)
+        const travel=directional&&['dot-flow','light-pulse'].includes(relation.representation)&&
+          u>=relation.start&&u<relation.arrival
+        const tip=route.points[route.points.length-1]
+        const before=route.points[route.points.length-2]
+        const angle=Math.atan2(tip.y-before.y,tip.x-before.x)*180/Math.PI
+        const moving=finishPoint(route,phase(u,relation.start,relation.arrival))
+        const arrival=cue(u,relation.arrival-.015,relation.end)
+        const dotted=relation.representation==='dotted'
+        const maskId=`editorial-finish-route-${index}`
+        return <g key={`finish-${index}`} data-editorial-finish-relation={relation.representation}
+          data-relation-meaning={relation.meaning}>
+          <defs><mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+            <path d={path} pathLength={100} fill="none" stroke="white" strokeWidth="2"
+              strokeDasharray={`${(100*draw).toFixed(3)} 100`} />
+          </mask></defs>
+          {relation.representation!=='dot-flow'&&<path d={path} fill="none" pathLength={100}
+            stroke={relation.representation==='accent-link'?relation.color:plan.ink}
+            strokeWidth={relation.representation==='light-pulse'?.2:.19}
+            strokeLinecap="round" strokeLinejoin="round"
+            strokeDasharray={dotted?'1.4 2.2':undefined}
+            mask={`url(#${maskId})`} opacity={relation.representation==='accent-link'?.5:1} />}
+          {relation.representation==='dot-flow'&&<path d={path} fill="none" stroke={plan.ink}
+            strokeWidth=".18" strokeDasharray=".55 1.25" strokeLinecap="round"
+            opacity={draw*.68} />}
+          {directional&&draw>.98&&relation.representation!=='accent-link'&&
+            <path d="M -1.1 -.53 L 0 0 L -1.1 .53" fill="none" stroke={relation.color}
+              strokeWidth=".19" strokeLinecap="round" strokeLinejoin="round"
+              transform={`translate(${tip.x} ${tip.y}) rotate(${angle})`} />}
+          {!directional&&draw>.98&&<circle cx={tip.x} cy={tip.y} r=".31" fill={relation.color}/>}
+          {travel&&<>
+            {relation.representation==='light-pulse'&&<circle cx={moving.x} cy={moving.y} r="1.6"
+              fill={relation.color} opacity=".12" data-editorial-finish-light="true" />}
+            <circle cx={moving.x} cy={moving.y} r={relation.representation==='dot-flow'?.78:.56}
+              fill={relation.color} data-editorial-finish-token="true" />
+          </>}
+          {arrival>0&&relation.response!=='none'&&<circle cx={tip.x} cy={tip.y}
+            r={.4+arrival*.85} fill="none" stroke={relation.color} strokeWidth=".16"
+            opacity={arrival*.65} data-editorial-finish-arrival="true" />}
+        </g>
+      })}
+      {!finish&&plan.relations.map((relation,index)=>{
         const from=nodeRect(relation.from),to=nodeRect(relation.to)
         if(!from||!to) throw new Error('EDITORIAL_FAMILY_RELATION_LAYOUT_MISSING')
         const endpointLabels=[relation.from,relation.to].filter(id=>id!=='hero').flatMap(id=>{
@@ -205,6 +295,11 @@ export const EditorialModularFamiliesV1:React.FC<{
       const material=plan.supportTreatment
       const card=material!=='naked-label'
       const dark=material==='ink-badge',orange=material==='accent-tile'
+      const receiving=finish?.relations.filter(r=>r.to===support.slotId).map(r=>({
+        recipe:r,level:cue(u,r.arrival-.025,r.end)})).sort((a,b)=>b.level-a.level)[0]
+      const response=receiving?.level??0
+      const tint=receiving?.recipe.response==='accent'&&response>0&&!dark&&!orange?receiving.recipe.color:
+        dark||orange?'#FAF9F6':plan.supportTint
       return <div key={support.slotId} data-qc-asset="true" data-qc-slot={support.slotId} data-qc-role={support.slotId}
         style={{position:'absolute',left:`${position.x}%`,top:`${position.y}%`,
           width:`${position.width}%`,height:`${position.height}%`,zIndex:5,
@@ -214,15 +309,25 @@ export const EditorialModularFamiliesV1:React.FC<{
           background:card?(dark?plan.ink:orange?plan.accent:'#FAF9F6'):'transparent',
           border:card?'1px solid rgba(17,17,15,.11)':'none',boxSizing:'border-box',
           boxShadow:card?'.18cqmin .27cqmin .24cqmin rgba(17,17,15,.12),.4cqmin .7cqmin 1.25cqmin rgba(17,17,15,.07)':'none',
-          padding:card?'1cqmin':'0',display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <AlphaMaskRasterV4 url={url(support.slotId)} color={dark||orange?'#FAF9F6':plan.supportTint}
-            maskId={`family-${support.slotId}-${index}`} renderMode="css" />
+          padding:card?'1cqmin':'0',display:'flex',alignItems:'center',justifyContent:'center',
+          outline:finish&&response>0&&(receiving?.recipe.response==='halo'||
+            receiving?.recipe.response==='accent'&&(dark||orange))
+            ?`${(.12+response*.14).toFixed(3)}cqmin solid ${receiving.recipe.color}`:undefined,
+          outlineOffset:'.35cqmin'}}>
+          {finish?<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',
+            transform:finish&&receiving?.recipe.response==='scale'?`scale(${(1+response*.06).toFixed(4)})`:undefined}}>
+            <AlphaMaskRasterV4 url={url(support.slotId)} color={tint}
+              maskId={`family-${support.slotId}-${index}`} renderMode="css" />
+          </div>:<AlphaMaskRasterV4 url={url(support.slotId)} color={dark||orange?'#FAF9F6':plan.supportTint}
+            maskId={`family-${support.slotId}-${index}`} renderMode="css" />}
         </div>
-        {plan.particles.mode!=='none'&&<span aria-hidden="true" style={{position:'absolute',left:'14%',top:'8%',
+        {finish&&eventMarks(finish,support.slotId,u)}
+        {!finish&&plan.particles.mode!=='none'&&<span aria-hidden="true" style={{position:'absolute',left:'14%',top:'8%',
           width:'.28cqmin',height:'.28cqmin',borderRadius:'50%',background:plan.accent,
           opacity:.2*cue(u,support.enter,support.settle),pointerEvents:'none'}}/>}
         <div data-qc-text-glyph="true" style={{fontFamily:'IBM Plex Sans Condensed,sans-serif',
-          fontSize:'1.85cqmin',letterSpacing:'.12em',fontWeight:400,whiteSpace:'nowrap'}}>{support.label}</div>
+          fontSize:'1.85cqmin',letterSpacing:'.12em',fontWeight:400,whiteSpace:'nowrap',
+          color:finish?.colors.body}}>{support.label}</div>
       </div>
     })}
   </div>
