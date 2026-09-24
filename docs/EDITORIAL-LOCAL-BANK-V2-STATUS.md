@@ -16,7 +16,7 @@ Base: `0dca4084a36c70204c16e1c30b91d61da2e8e549` (`v15-editorial-finish-v1-1`). 
 
 Desde `C:\graphify\cipher-studio-round-d`, ejecutar `npm run build` y el comando habitual `npm run dev`. En un proyecto **nuevo**, seleccionar «Editorial local — dirección automática», indicar una vez la carpeta `C:\graphify\_cipher-editorial-catalog-v1-250` (contiene `inventory.json`), pulsar «Verificar manifiesto, PNG y SHA», dejar el acento en Automático o escoger uno, y construir con guion, audio y tiempos por palabra. Visuales sigue siendo cuota de clips; Gráficos y Transiciones son fases distintas.
 
-Corpus dirigido: `C:\graphify\_cipher-editorial-local-bank-v2\evidence\index.html`, montajes `editorial-local-bank-v2-portrait.mp4` y `editorial-local-bank-v2-landscape.mp4`, 34 MP4 individuales, SceneSpecs/identidades JSON y contactos `contact-portrait-v2.jpg` y `contact-landscape-v2.jpg`. Los montajes son clips sintéticos de 3 s, no un video producido desde el selector humano de la UI.
+Corpus dirigido: `C:\graphify\_cipher-editorial-local-bank-v2\evidence\editorial-local-bank-v2-gallery.html`, montajes `editorial-local-bank-v2-portrait.mp4` y `editorial-local-bank-v2-landscape.mp4`, 34 MP4 individuales, SceneSpecs/identidades JSON y contactos `contact-portrait-v2.jpg` y `contact-landscape-v2.jpg`. Los montajes son clips sintéticos de 3 s, no un video producido desde el selector humano de la UI.
 
 Cada fila E tiene `E##-portrait.mp4`, `E##-landscape.mp4` y fotogramas estables homónimos en esa carpeta. `result.json` registra los IDs exactos de Hero, Supports y capas, el texto, orientación, color, identidad, eventos y QC por render.
 
