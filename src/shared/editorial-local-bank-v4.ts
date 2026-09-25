@@ -23,6 +23,8 @@ export type EditorialLocalSceneDecisionV4 = {
 export type EditorialLocalBankPlanV4 = Omit<EditorialLocalBankPlanV3,'revision'> & {
   revision: typeof EDITORIAL_LOCAL_BANK_V4.revision
   sceneDecision: EditorialLocalSceneDecisionV4
+  /** Absent in already persisted V4 scenes; preserve their original label pixels. */
+  supportLabelSize?: 'mobile-readable-v1'
 }
 export type EditorialLocalTextPlanV4 = {
   revision: typeof EDITORIAL_LOCAL_BANK_V4.revision
@@ -72,11 +74,13 @@ export function validateEditorialLocalTextPlanV4(value:unknown):EditorialLocalTe
 
 export function validateEditorialLocalBankPlanV4(value:unknown):EditorialLocalBankPlanV4 {
   if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('EDITORIAL_LOCAL_V4_PLAN_INVALID')
-  const {sceneDecision,backgroundAsset,...common}=value as EditorialLocalBankPlanV4
+  const {sceneDecision,backgroundAsset,supportLabelSize,...common}=value as EditorialLocalBankPlanV4
   if(common.revision!==EDITORIAL_LOCAL_BANK_V4.revision||common.catalogRevision!==EDITORIAL_LOCAL_CATALOG_REVISION_V3||
     !sceneDecision)
     throw new Error('EDITORIAL_LOCAL_V4_SCENE_DECISION_INVALID')
   validateEditorialLocalSceneDecisionV4(sceneDecision)
+  if(supportLabelSize!==undefined&&supportLabelSize!=='mobile-readable-v1')
+    throw new Error('EDITORIAL_LOCAL_V4_SUPPORT_LABEL_SIZE_INVALID')
   validateEditorialLocalBankPlanV2({...common,revision:EDITORIAL_LOCAL_BANK_V2.revision,
     catalogRevision:'editorial-modular-catalog-2026-09-v1'},
   {allowMissingFront:true,allowMissingRear:true,minimumSupports:0})

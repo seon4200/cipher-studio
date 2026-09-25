@@ -83,6 +83,12 @@ app.whenReady().then(async()=>{
     assert.equal(built.pixelIdentity,replayed.pixelIdentity)
     assert.notEqual(built.pixelIdentity,recolored.pixelIdentity,'VISIBLE_COLOR_MUST_CHANGE_IDENTITY')
     assert.equal(built.sceneSpec.presentationProfile.revision,b.EDITORIAL_LOCAL_BANK_V4.revision)
+    assert.equal(built.sceneSpec.editorialBankV2.supportLabelSize,'mobile-readable-v1')
+    const priorV4Spec=structuredClone(built.sceneSpec)
+    delete priorV4Spec.editorialBankV2.supportLabelSize
+    b.validateVisualSceneSpecV2(priorV4Spec)
+    assert.notEqual(b.sceneSpecPixelIdentityAny(priorV4Spec),b.sceneSpecPixelIdentityAny(built.sceneSpec),
+      'MOBILE_LABEL_DECISION_MUST_CHANGE_IDENTITY_WITHOUT_REWRITING_OLDER_V4')
     assert(!built.pixelIdentity.includes(catalogRoot)&&!built.pixelIdentity.includes(projectRoot))
     b.validateVisualSceneSpecV2(built.sceneSpec)
     b.validateRenderBindingsAny(built.renderBindings,built.sceneSpec)

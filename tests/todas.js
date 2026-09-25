@@ -73,7 +73,7 @@ const EXCLUIDAS = {
 // conjunto que ya no es el conjunto. Con el, el numero no cuadra y salta.
 //
 // SUBIRLO A MANO ES EL PUNTO. Es la linea que obliga a pararse a pensar "¿la he enganchado?".
-const ESPERADAS = 40;
+const ESPERADAS = 41;
 
 const rojo = s => '\x1b[31m' + s + '\x1b[0m';
 const verde = s => '\x1b[32m' + s + '\x1b[0m';
@@ -102,7 +102,11 @@ for (const s of enDisco) {
 }
 for (const s of enScripts) {
   if (!enDisco.includes(s)) {
-    problemas.push(`el script "test:${s}" apunta a tests/${s}.js, que NO existe.`);
+    // Some acceptance suites run their Electron entry directly under tests/aceptacion.
+    // Validate the declared entry instead of inventing an unused tests/<name>.js wrapper.
+    const directEntry = /^electron\s+(tests\/aceptacion\/[^\s]+\.cjs)(?:\s|$)/.exec(pkg.scripts['test:' + s]);
+    if (!directEntry || !fs.existsSync(path.join(RAIZ, directEntry[1])))
+      problemas.push(`el script "test:${s}" no tiene tests/${s}.js ni una entrada de aceptación existente.`);
   }
 }
 

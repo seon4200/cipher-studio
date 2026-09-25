@@ -462,6 +462,7 @@ export function bindEditorialLocalBankV2(input:{
         count:3,size:.45,opacity:.34,intensity:'discreto' as const}))],
     hero:{assetId:hero.curated.assetId,sha256:hero.asset.sha256,...heroTiming},
     supports:supportsPlan,layers:planLayers,relations,
+    ...(isV4?{supportLabelSize:'mobile-readable-v1' as const}:{}),
     ...(background?{backgroundAsset:{assetId:background.curated.assetId,sha256:background.curated.sha256}}:{}),
     beats:[{id:'establish',start:0,end:.31},{id:'develop',start:.31,end:.62},
       {id:'read',start:.62,end:.91}],

@@ -114,6 +114,8 @@ export const EditorialModularFamiliesV1:React.FC<{
   const plan=spec.editorialBankV2??spec.editorialFamily!
   const finish=spec.editorialBankV2??spec.editorialFinish
   const v3Background=(spec.editorialBankV2 as EditorialLocalBankPlanV3|undefined)?.backgroundAsset
+  const readableSupportLabels=(spec.editorialBankV2 as {supportLabelSize?:string}|undefined)?.supportLabelSize===
+    'mobile-readable-v1'
   const landscape=window.innerWidth>window.innerHeight
   const layout=landscape?(finish?.landscapeLayout??plan.landscapeLayout):spec.layout
   const byId=new Map(runtimeAssets.map(asset=>[asset.slotId,asset.objectUrl]))
@@ -322,7 +324,7 @@ export const EditorialModularFamiliesV1:React.FC<{
             `translate(${localReposition.x.toFixed(3)}cqw,${localReposition.y.toFixed(3)}cqh)`:
             `translateY(${((1-enter)*1.3).toFixed(3)}cqmin)`,
           display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'.4cqmin'}}>
-        <div style={{height:spec.editorialBankV2?.revision===EDITORIAL_LOCAL_BANK_V4.revision?'60%':'70%',
+        <div style={{height:readableSupportLabels?'60%':'70%',
           aspectRatio:'1',maxWidth:'84%',borderRadius:dark?'50%':'1.2cqmin',
           background:card?(dark?plan.ink:orange?plan.accent:'#FAF9F6'):'transparent',
           border:card?'1px solid rgba(17,17,15,.11)':'none',boxSizing:'border-box',
@@ -344,7 +346,7 @@ export const EditorialModularFamiliesV1:React.FC<{
           width:'.28cqmin',height:'.28cqmin',borderRadius:'50%',background:plan.accent,
           opacity:.2*cue(u,support.enter,support.settle),pointerEvents:'none'}}/>}
         <div data-qc-text-glyph="true" style={{fontFamily:'IBM Plex Sans Condensed,sans-serif',
-          fontSize:spec.editorialBankV2?.revision===EDITORIAL_LOCAL_BANK_V4.revision?'3cqmin':'1.85cqmin',
+          fontSize:readableSupportLabels?'3cqmin':'1.85cqmin',
           letterSpacing:'.12em',fontWeight:400,
           ...([EDITORIAL_LOCAL_BANK_V3_2.revision,EDITORIAL_LOCAL_BANK_V4.revision].includes(spec.editorialBankV2?.revision as typeof EDITORIAL_LOCAL_BANK_V3_2.revision)
             ?{whiteSpace:'normal' as const,overflowWrap:'anywhere' as const,textAlign:'center' as const,
