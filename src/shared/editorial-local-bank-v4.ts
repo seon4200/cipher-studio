@@ -24,15 +24,16 @@ export type EditorialLocalBankPlanV4 = Omit<EditorialLocalBankPlanV3,'revision'>
   revision: typeof EDITORIAL_LOCAL_BANK_V4.revision
   sceneDecision: EditorialLocalSceneDecisionV4
 }
+export type EditorialLocalTextPlanV4 = {
+  revision: typeof EDITORIAL_LOCAL_BANK_V4.revision
+  sceneDecision: EditorialLocalSceneDecisionV4
+}
 
 const keys=(value:unknown,required:readonly string[])=>!!value&&typeof value==='object'&&!Array.isArray(value)&&
   Object.keys(value).sort().join('|')===required.slice().sort().join('|')
 
-export function validateEditorialLocalBankPlanV4(value:unknown):EditorialLocalBankPlanV4 {
-  if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('EDITORIAL_LOCAL_V4_PLAN_INVALID')
-  const {sceneDecision,backgroundAsset,...common}=value as EditorialLocalBankPlanV4
-  if(common.revision!==EDITORIAL_LOCAL_BANK_V4.revision||common.catalogRevision!==EDITORIAL_LOCAL_CATALOG_REVISION_V3||
-    !keys(sceneDecision,['sceneId','localText','anchor','evidence','durationSeconds','selectionReason',
+export function validateEditorialLocalSceneDecisionV4(sceneDecision:EditorialLocalSceneDecisionV4):void{
+  if(!keys(sceneDecision,['sceneId','localText','anchor','evidence','durationSeconds','selectionReason',
       'familyReason','missingTerms','colorMode','seed'])||
     typeof sceneDecision.sceneId!=='string'||!sceneDecision.sceneId||
     typeof sceneDecision.localText!=='string'||typeof sceneDecision.anchor!=='string'||
@@ -42,6 +43,23 @@ export function validateEditorialLocalBankPlanV4(value:unknown):EditorialLocalBa
     !['auto','manual'].includes(sceneDecision.colorMode)||!Number.isInteger(sceneDecision.seed)||
     typeof sceneDecision.selectionReason!=='string'||typeof sceneDecision.familyReason!=='string')
     throw new Error('EDITORIAL_LOCAL_V4_SCENE_DECISION_INVALID')
+}
+
+export function validateEditorialLocalTextPlanV4(value:unknown):EditorialLocalTextPlanV4{
+  if(!keys(value,['revision','sceneDecision'])||
+    (value as EditorialLocalTextPlanV4).revision!==EDITORIAL_LOCAL_BANK_V4.revision)
+    throw new Error('EDITORIAL_LOCAL_V4_TEXT_PLAN_INVALID')
+  validateEditorialLocalSceneDecisionV4((value as EditorialLocalTextPlanV4).sceneDecision)
+  return value as EditorialLocalTextPlanV4
+}
+
+export function validateEditorialLocalBankPlanV4(value:unknown):EditorialLocalBankPlanV4 {
+  if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('EDITORIAL_LOCAL_V4_PLAN_INVALID')
+  const {sceneDecision,backgroundAsset,...common}=value as EditorialLocalBankPlanV4
+  if(common.revision!==EDITORIAL_LOCAL_BANK_V4.revision||common.catalogRevision!==EDITORIAL_LOCAL_CATALOG_REVISION_V3||
+    !sceneDecision)
+    throw new Error('EDITORIAL_LOCAL_V4_SCENE_DECISION_INVALID')
+  validateEditorialLocalSceneDecisionV4(sceneDecision)
   validateEditorialLocalBankPlanV2({...common,revision:EDITORIAL_LOCAL_BANK_V2.revision,
     catalogRevision:'editorial-modular-catalog-2026-09-v1'},
   {allowMissingFront:true,allowMissingRear:true,minimumSupports:0})

@@ -54,6 +54,7 @@ export * from './assets/motion-graphics-resolver'
 import {
   sceneSpecFromGraphicDataAny,
   sceneSpecPixelIdentityAny,
+  validateVisualSceneSpecV2,
   validateRenderBindingsAny,
   type RenderBindingsAny,
 } from '../shared/visual-scene-spec-v2'
@@ -5500,6 +5501,16 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               ...(localBankV4Selected?{minimumSupports:0}:{} )}):
             selectEditorialLocalBankV2Detailed({catalog:curatedFamilyCatalog,semantic:base.localSemantic,recentFamilies:recentLocalFamilies})) : null
           const localSelected=localDecision?.selection??null
+          const v4SceneDecision=localBankV4Selected?{
+            sceneId:base.localSemantic.sceneId,localText:base.localSemantic.localText,
+            anchor:base.localSemantic.anchor??'',evidence:[...new Set([
+              ...base.localSemantic.directEvidence.map(item=>item.query),
+              ...(localDecision?.trace.literalTerms??[])])],
+            durationSeconds:context.duration,selectionReason:localSelected?.reason??'INTENTIONAL_EDITORIAL_NO_HERO',
+            familyReason:localSelected?.reason??'ABSTRACT_OR_UNMATCHED_LOCAL_TEXT',
+            missingTerms:localSelected?.missingTerms??localDecision?.trace.missingTerms??[],
+            colorMode:editorialFamilyColor&&editorialFamilyColor!=='auto'?'manual' as const:'auto' as const,
+            seed:resolved.compiled.sceneSpec.direccion.semilla}:undefined
           if(localDecision)localSelectionTraces.push({sceneId:base.decision.sceneId,trace:localDecision.trace})
           if(localSelected)recentLocalFamilies.push(localSelected.family)
           const selected = !localBankSelected && curatedFamilyCatalog ? selectEditorialModularFamilyAssetsV1({
@@ -5546,18 +5557,29 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             selection:localSelected,color:editorialFamilyColor==='auto'?'#A83B19':
               (editorialFamilyColor??'#A83B19').toUpperCase(),
             ...(localBankV4Selected?{contract:EDITORIAL_LOCAL_BANK_V4,
-              sceneDecision:{sceneId:base.localSemantic.sceneId,localText:base.localSemantic.localText,
-                anchor:base.localSemantic.anchor??'',evidence:[...new Set([
-                  ...base.localSemantic.directEvidence.map(item=>item.query),
-                  ...(localDecision?.trace.literalTerms??[])])],
-                durationSeconds:context.duration,selectionReason:localSelected.reason,
-                familyReason:localSelected.reason,missingTerms:localSelected.missingTerms,
-                colorMode:editorialFamilyColor&&editorialFamilyColor!=='auto'?'manual' as const:'auto' as const,
-                seed:resolved.compiled.sceneSpec.direccion.semilla}}:
+              sceneDecision:v4SceneDecision!}:
               localBankV3Selected?{contract:EDITORIAL_LOCAL_BANK_V3_2}:{}),
             headline:editorialHeadlineFromLocalTextV1(aRenderizar[sceneIndex].frase,
               resolved.compiled.sceneSpec.text.keyword)}):null
-          const compiled = localBuilt ?? familyBuilt ?? resolved.compiled
+          const typeLedBuilt=localBankV4Selected&&!localSelected&&curatedFamilyCatalog?(()=>{
+            const legacy=bindEditorialModularFamilyV1({template:resolved.compiled,
+              catalog:curatedFamilyCatalog,imported:{},family:'editorial',supportIds:[],
+              background:'ivory-clean',entry:'word-first',supportTreatment:'paper-card',
+              camera:'fixed',particles:'none',color:editorialFamilyColor==='auto'?'#A83B19':
+                (editorialFamilyColor??'#A83B19').toUpperCase(),
+              headline:editorialHeadlineFromLocalTextV1(aRenderizar[sceneIndex].frase,
+                resolved.compiled.sceneSpec.text.keyword)})
+            const sceneSpec={...legacy.sceneSpec,presentationProfile:EDITORIAL_LOCAL_BANK_V4,
+              editorialTextV4:{revision:EDITORIAL_LOCAL_BANK_V4.revision,sceneDecision:v4SceneDecision!}}
+            validateVisualSceneSpecV2(sceneSpec)
+            validateRenderBindingsAny(legacy.renderBindings,sceneSpec)
+            const graphicData:Record<string,any>={...legacy.graphicData,
+              extra:{...legacy.graphicData.extra,sceneSpec}}
+            return {...legacy,sceneSpec,pixelIdentity:sceneSpecPixelIdentityAny(sceneSpec),
+              graphicData}
+          })():null
+          const editorialBuilt=localBuilt??typeLedBuilt??familyBuilt
+          const compiled = editorialBuilt ?? resolved.compiled
           if (compiled.graphicData.type !== COMPOSICION_VISUAL)
             throw new Error('El compilador semántico produjo una composición visual no autorizada');
           for (const alert of base.decision.alerts) {
@@ -5591,19 +5613,20 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             resolverDecision: localBankSelected ? {...base.decision,
               visualMode:compiled.sceneSpec.visualMode,
               reasons:[...base.decision.reasons,localBuilt?'EDITORIAL_LOCAL_BANK_SELECTION':
+                typeLedBuilt?'EDITORIAL_LOCAL_BANK_TYPE_LED_NO_HERO':
                 `EDITORIAL_LOCAL_BANK_FALLBACK_${localDecision?.trace.outcome??'UNAVAILABLE'}`]} :
               familyBuilt ? {...base.decision,
               visualMode:(localBuilt ?? familyBuilt)!.sceneSpec.visualMode,
               reasons:[...base.decision.reasons,'EDITORIAL_CURATED_CATALOG_EXACT_MATCH',selected!.selectionReason]} : base.decision,
             inputFallback: base.inputFallback,
             // Diagnostic/state-only context. It stays outside sceneSpec, hash and renderer.
-            visualRegeneration: localBuilt || familyBuilt ? {version:3,
-              revision:localBuilt?(localBankV4Selected?EDITORIAL_LOCAL_BANK_V4.revision:
-                localBankV3Selected?EDITORIAL_LOCAL_BANK_V3_2.revision:EDITORIAL_LOCAL_BANK_V2.revision):
+            visualRegeneration: editorialBuilt ? {version:3,
+              revision:localBankV4Selected?EDITORIAL_LOCAL_BANK_V4.revision:
+                localBuilt?(localBankV3Selected?EDITORIAL_LOCAL_BANK_V3_2.revision:EDITORIAL_LOCAL_BANK_V2.revision):
                 visualPresentationProfile===EDITORIAL_FINISH_V1_1.id?EDITORIAL_FINISH_V1_1.revision:EDITORIAL_MODULAR_FAMILIES_V1.revision,
               sceneId:context.sceneId,duration:context.duration,sistema:context.sistema,
-              graphicData:(localBuilt ?? familyBuilt)!.graphicData,
-              renderBindings:(localBuilt ?? familyBuilt)!.renderBindings} : context,
+              graphicData:editorialBuilt.graphicData,
+              renderBindings:editorialBuilt.renderBindings} : context,
             duracion: context.duration,
           };
         });

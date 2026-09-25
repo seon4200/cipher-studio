@@ -228,7 +228,8 @@ export function selectEditorialLocalBankV3Detailed(input:{catalog:ModularCatalog
 export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModularCatalogV2;
   semantic:LocalSceneSemanticV1;recentFamilies?:readonly ModernLayoutStructureV4[]}):{
     selection:EditorialLocalSelectionV2|null;trace:EditorialLocalSelectionTraceV2}{
-  const literalTerms=input.catalog.literalTermsInText(input.semantic.localText,'hero-core')
+  const literalTerms=[...new Set((['hero-core','support','rear-collage'] as const)
+    .flatMap(role=>input.catalog.literalTermsInText(input.semantic.localText,role)))].slice(0,12)
   const semanticTerms=[input.semantic.anchor,...input.semantic.concepts.map(item=>item.label)]
     .filter((term):term is string=>typeof term==='string'&&!!term.trim())
   const missing=literalTerms.filter(term=>!semanticTerms.some(item=>canonicalNarrativeTerm(item)===canonicalNarrativeTerm(term)))
