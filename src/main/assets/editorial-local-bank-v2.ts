@@ -7,6 +7,7 @@ import { MODULAR_CATALOG_REVISION_V1,
   resolveModularTitleAccentV1 } from '../../shared/editorial-modular-catalog-v1'
 import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_HISTORICAL, EDITORIAL_LOCAL_BANK_V3_2, EDITORIAL_LOCAL_CATALOG_REVISION_V3,
   EDITORIAL_LOCAL_FAMILIES_V3, type EditorialLocalBankPlanV3 } from '../../shared/editorial-local-bank-v3'
+import { EDITORIAL_LOCAL_BANK_V4, type EditorialLocalBankPlanV4 } from '../../shared/editorial-local-bank-v4'
 import { EDITORIAL_FINISH_FONT_SHA_V11, EDITORIAL_FINISH_BODY_FONT_SHA_V11,
   EDITORIAL_FINISH_LABEL_FONT_SHA_V11, routeEditorialFinishV11,
   type FinishFont } from '../../shared/editorial-finish-v1-1'
@@ -50,6 +51,7 @@ export type EditorialLocalSelectionV2={
 }
 export type EditorialLocalSelectionTraceV2 = {
   terms: string[]
+  literalTerms?: string[]
   heroCandidates: { term: string; assetId: string; match: string }[]
   supportCandidates: { term: string; assetId: string; match: string }[]
   missingTerms: string[]
@@ -59,7 +61,7 @@ export type EditorialLocalSelectionTraceV2 = {
  * promoted to an illustrated V2 scene. No quotas or fake semantic matches. */
 export function selectEditorialLocalBankV2Detailed(input:{catalog:ModularCatalogProviderV2;
   semantic:LocalSceneSemanticV1;recentFamilies?:readonly ModernLayoutStructureV4[];
-  allowedFamilies?:readonly ModernLayoutStructureV4[];maxSupports?:number}):{
+  allowedFamilies?:readonly ModernLayoutStructureV4[];maxSupports?:number;minimumSupports?:number}):{
     selection: EditorialLocalSelectionV2 | null; trace: EditorialLocalSelectionTraceV2 }{
   const text=normalized(input.semantic.localText)
   // `conceptos` is supplied for this very subclip by the existing planner.
@@ -82,7 +84,7 @@ export function selectEditorialLocalBankV2Detailed(input:{catalog:ModularCatalog
   const traceBase={terms,heroCandidates:heroCandidates.map(({term,assetId,match})=>({term,assetId,match})),
     supportCandidates:supportCandidates.map(({term,assetId,match})=>({term,assetId,match})),missingTerms}
   if(!hero)return {selection:null,trace:{...traceBase,outcome:'NO_HERO'}}
-  if(supports.length<2)return {selection:null,trace:{...traceBase,outcome:'INSUFFICIENT_SUPPORTS'}}
+  if(supports.length<(input.minimumSupports??2))return {selection:null,trace:{...traceBase,outcome:'INSUFFICIENT_SUPPORTS'}}
   const relation=normalized(input.semantic.relation??'')
   const allowed=new Set(input.allowedFamilies??EDITORIAL_LOCAL_FAMILIES_V2)
   const eligible=intentRules.filter(rule=>allowed.has(rule.family)&&rule.test.test(`${relation} ${text}`))
@@ -119,7 +121,8 @@ export function selectEditorialLocalBankV2(input:Parameters<typeof selectEditori
  * anchor/direct evidence. The frozen V2 call path keeps its historical ordering. */
 export function selectEditorialLocalBankV3Detailed(input:{catalog:ModularCatalogProviderV2;
   semantic:LocalSceneSemanticV1;recentFamilies?:readonly ModernLayoutStructureV4[];
-  selectionRevision?:typeof EDITORIAL_LOCAL_BANK_V3_2.revision}):{
+  selectionRevision?:typeof EDITORIAL_LOCAL_BANK_V3_2.revision;
+  allowedFamilies?:readonly ModernLayoutStructureV4[];minimumSupports?:number}):{
     selection:EditorialLocalSelectionV2|null;trace:EditorialLocalSelectionTraceV2}{
   const semantic=input.semantic
   const concepts=semantic.concepts.filter(item=>item.scope!=='context'&&
@@ -144,11 +147,12 @@ export function selectEditorialLocalBankV3Detailed(input:{catalog:ModularCatalog
   // Reuse the V2 family/geometry resolver, but give it a ranked, bounded set of
   // direct scene terms and restrict it to the six connected V3 families.
   const selected=selectEditorialLocalBankV2Detailed({catalog:input.catalog,semantic,
-    recentFamilies:input.recentFamilies,allowedFamilies:EDITORIAL_LOCAL_FAMILIES_V3,maxSupports:4})
+    recentFamilies:input.recentFamilies,allowedFamilies:input.allowedFamilies??EDITORIAL_LOCAL_FAMILIES_V3,
+    maxSupports:4,minimumSupports:input.minimumSupports??2})
   const trace={...selected.trace,terms,heroCandidates:heroes.map(item=>({term:item.term,assetId:item.asset.assetId,match:item.match})),
     supportCandidates:terms.flatMap(term=>rank(term,'support')).map(item=>({term:item.term,assetId:item.asset.assetId,match:item.match}))}
   if(!hero)return {selection:null,trace:{...trace,outcome:'NO_HERO'}}
-  if(supports.length<2)return {selection:null,trace:{...trace,outcome:'INSUFFICIENT_SUPPORTS'}}
+  if(supports.length<(input.minimumSupports??2))return {selection:null,trace:{...trace,outcome:'INSUFFICIENT_SUPPORTS'}}
   if(!selected.selection)return {selection:null,trace:selected.trace}
   const aspect=input.catalog.aspectClass(hero.assetId)
   // A full-frame raster is selected only on direct primary/alias evidence.
@@ -218,6 +222,24 @@ export function selectEditorialLocalBankV3Detailed(input:{catalog:ModularCatalog
     trace:{...trace,missingTerms}}
 }
 
+/** V4 may recover a named object omitted by the semantic service, but only
+ * when that word/phrase occurs literally in this clip's timed text. This
+ * never synthesizes a concept from nearby scenes or a demo asset ID. */
+export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModularCatalogV2;
+  semantic:LocalSceneSemanticV1;recentFamilies?:readonly ModernLayoutStructureV4[]}):{
+    selection:EditorialLocalSelectionV2|null;trace:EditorialLocalSelectionTraceV2}{
+  const literalTerms=input.catalog.literalTermsInText(input.semantic.localText,'hero-core')
+  const semanticTerms=[input.semantic.anchor,...input.semantic.concepts.map(item=>item.label)]
+    .filter((term):term is string=>typeof term==='string'&&!!term.trim())
+  const missing=literalTerms.filter(term=>!semanticTerms.some(item=>canonicalNarrativeTerm(item)===canonicalNarrativeTerm(term)))
+  const semantic={...input.semantic,concepts:[...input.semantic.concepts,
+    ...missing.map(label=>({label,scope:'scene' as const}))]}
+  const result=selectEditorialLocalBankV3Detailed({catalog:input.catalog,semantic,
+    recentFamilies:input.recentFamilies,selectionRevision:EDITORIAL_LOCAL_BANK_V3_2.revision,
+    minimumSupports:0})
+  return {...result,trace:{...result.trace,literalTerms:missing}}
+}
+
 /** Catalog is required only when this generation actually requests Visuales. */
 export function preflightEditorialLocalCatalogV2(root: string | undefined, visualQuota: number): CuratedModularCatalogV1 | null {
   if (visualQuota <= 0) return null
@@ -243,13 +265,16 @@ export function bindEditorialLocalBankV2(input:{
   template:{sceneSpec:VisualSceneSpecV2;graphicData:Record<string,any>}
   catalog:ModularCatalogProviderV2; imported:Record<string,ImportedModularAssetV1>
   selection:EditorialLocalSelectionV2; color:string; headline:{connector?:string;keyword:string;closing?:string}
+  sceneDecision?:EditorialLocalBankPlanV4['sceneDecision']
   contract?:typeof EDITORIAL_LOCAL_BANK_V3|typeof EDITORIAL_LOCAL_BANK_V3_HISTORICAL|
-    typeof EDITORIAL_LOCAL_BANK_V3_2
+    typeof EDITORIAL_LOCAL_BANK_V3_2|typeof EDITORIAL_LOCAL_BANK_V4
 }){
   const chosen=input.selection
-  if(!/^#[0-9A-F]{6}$/.test(input.color)||chosen.supportIds.length<2||chosen.supportIds.length>6||
+  const isV4=input.contract?.revision===EDITORIAL_LOCAL_BANK_V4.revision
+  if(!/^#[0-9A-F]{6}$/.test(input.color)||chosen.supportIds.length<(isV4?0:2)||chosen.supportIds.length>6||
       new Set(chosen.supportIds).size!==chosen.supportIds.length||
-      (input.contract&&!EDITORIAL_LOCAL_FAMILIES_V3.includes(chosen.family as typeof EDITORIAL_LOCAL_FAMILIES_V3[number])))
+      (input.contract&&!isV4&&!EDITORIAL_LOCAL_FAMILIES_V3.includes(chosen.family as typeof EDITORIAL_LOCAL_FAMILIES_V3[number]))||
+      (isV4&&!input.sceneDecision))
     throw new Error('EDITORIAL_LOCAL_INPUT_INVALID')
   const requireAsset=(id:string,role:NonNullable<ReturnType<ModularCatalogProviderV2['getById']>>['role'])=>{
     const asset=input.imported[id],approved=input.catalog.getById(id)
@@ -271,8 +296,8 @@ export function bindEditorialLocalBankV2(input:{
     {slotId:'idea-accent' as const,asset:requireAsset(chosen.accentId,'accent-mask')},
     ...(chosen.frontId?[{slotId:'idea-front' as const,asset:requireAsset(chosen.frontId,'front-collage')}]:[]),
   ]
-  const portrait=createEditorialLocalBankLayoutV2(chosen.family,'portrait',supports.length,chosen.variant)
-  const landscape=createEditorialLocalBankLayoutV2(chosen.family,'landscape',supports.length,chosen.variant)
+  const portrait=createEditorialLocalBankLayoutV2(chosen.family,'portrait',supports.length,chosen.variant,isV4?0:2)
+  const landscape=createEditorialLocalBankLayoutV2(chosen.family,'landscape',supports.length,chosen.variant,isV4?0:2)
   const focus=chosen.family==='lineaTiempo'||chosen.family==='cascada'||chosen.family==='redNodos'
   const entry=focus?'supports-first':chosen.family==='editorial'?'word-first':'text-first'
   const heroTiming={enter:entry==='supports-first'?.13:.04,settle:entry==='supports-first'?.31:.25}
@@ -289,7 +314,7 @@ export function bindEditorialLocalBankV2(input:{
       slotId==='idea-rear'?{x:-12,y:-8,width:124,height:116}:slotId==='idea-accent'?{x:-6,y:-4,width:112,height:108}:
       aspect==='vertical'?{x:4,y:67,width:92,height:30}:
         aspect==='wide'?{x:4,y:47,width:92,height:44}:{x:4,y:52,width:92,height:40}:
-      input.contract.revision===EDITORIAL_LOCAL_BANK_V3_2.revision?
+      (input.contract.revision===EDITORIAL_LOCAL_BANK_V3_2.revision||isV4)?
       slotId==='idea-rear'?{x:-18,y:-13,width:136,height:126}:
       slotId==='idea-accent'?{x:-8,y:-8,width:116,height:116}:
       aspect==='vertical'?{x:4,y:67,width:92,height:30}:
@@ -328,7 +353,7 @@ export function bindEditorialLocalBankV2(input:{
       landscape:routeFor(landscape,'landscape'),color:input.color,
       start,arrival:start+.045,end:start+.105}
   })
-  const plan:EditorialLocalBankPlanV2|EditorialLocalBankPlanV3={revision:input.contract?.revision??EDITORIAL_LOCAL_BANK_V2.revision,
+  const plan:EditorialLocalBankPlanV2|EditorialLocalBankPlanV3|EditorialLocalBankPlanV4={revision:input.contract?.revision??EDITORIAL_LOCAL_BANK_V2.revision,
     catalogRevision:input.contract?EDITORIAL_LOCAL_CATALOG_REVISION_V3:
       input.catalog.catalogRevision??MODULAR_CATALOG_REVISION_V1,family:chosen.family,layoutVariant:chosen.variant,
     portraitLayout:portrait,landscapeLayout:landscape,
@@ -356,6 +381,7 @@ export function bindEditorialLocalBankV2(input:{
     ...(background?{backgroundAsset:{assetId:background.curated.assetId,sha256:background.curated.sha256}}:{}),
     beats:[{id:'establish',start:0,end:.31},{id:'develop',start:.31,end:.62},
       {id:'read',start:.62,end:.91}],
+    ...(isV4?{sceneDecision:input.sceneDecision}:{}),
   }
   const slot=(slotId:SceneSlotV2['slotId'],asset:ImportedModularAssetV1,kind:'simple-icon'|'complex-illustration'):SceneSlotV2=>({
     slotId,role:slotId,state:'present',sha256:asset.asset.sha256,mime:'image/png',

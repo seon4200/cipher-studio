@@ -14,6 +14,7 @@ import { VISUAL_RECOVERY_PROFILE_V1 } from '../../shared/editorial-motion-profil
 import { IDEA_RESOURCE_IDS, IDEA_SUPPORT_IDS, IDEA_V4_SECONDARY_RESOURCE_ID } from '../../shared/editorial-idea-assembly-v1'
 import { EDITORIAL_LOCAL_SUPPORT_IDS_V2 } from '../../shared/editorial-local-bank-v2'
 import { isEditorialLocalBankV3Revision } from '../../shared/editorial-local-bank-v3'
+import { EDITORIAL_LOCAL_BANK_V4 } from '../../shared/editorial-local-bank-v4'
 import './styles/globals.css'
 
 // Franja de la SONDA, encima del lienzo. El proceso principal codifica ahi el indice de
@@ -233,7 +234,8 @@ function montarGraphicData(graphicData: any, op: Partial<Opciones>) {
   // Both frozen IDEA revisions share the same materialization contract; the exact
   // revision is validated in the SceneSpec before this renderer receives it.
   const bankV2=Boolean(graphicData?.extra?.sceneSpec?.editorialBankV2)
-  const bankV3Background=isEditorialLocalBankV3Revision(graphicData?.extra?.sceneSpec?.presentationProfile?.revision)&&
+  const bankV3Background=(isEditorialLocalBankV3Revision(graphicData?.extra?.sceneSpec?.presentationProfile?.revision)||
+    graphicData?.extra?.sceneSpec?.presentationProfile?.revision===EDITORIAL_LOCAL_BANK_V4.revision)&&
     Boolean(graphicData?.extra?.sceneSpec?.editorialBankV2?.backgroundAsset)
   const ideaAssembly = Boolean(graphicData?.extra?.sceneSpec?.ideaAssembly ||
     graphicData?.extra?.sceneSpec?.editorialFamily || bankV2)

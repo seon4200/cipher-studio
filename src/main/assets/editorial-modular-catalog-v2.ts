@@ -257,6 +257,24 @@ export class CuratedModularCatalogV2 {
     const order={primary:0,alias:1,inflection:2}
     return results.sort((a,b)=>order[a.match]-order[b.match]||a.asset.assetId.localeCompare(b.asset.assetId))
   }
+  /** Literal evidence from the active Spanish roster, not semantic expansion.
+   * A model may omit a named object even when the timed transcript says it. */
+  literalTermsInText(text:string,role:ModularCatalogRoleV1):readonly string[]{
+    const words=(value:string)=>norm(value).replace(/[^a-z0-9]+/g,' ').trim()
+    const haystack=` ${words(text)} `
+    const matches:{term:string;length:number}[]=[]
+    for(const asset of this.entries()){
+      if(asset.role!==role||!this.getById(asset.assetId))continue
+      const dynamic=this.extensionEntries.get(asset.assetId),base=this.baseInventory.get(asset.assetId)
+      const terms=[dynamic?.primaryWordEs??base?.primaryWordEs??asset.primaryWordEs,
+        ...(dynamic?.aliasesEs??base?.aliasesEs??[])]
+      for(const term of terms){const token=words(term)
+        if(token.length>=4&&haystack.includes(` ${token} `))matches.push({term,length:token.length})}
+    }
+    return matches.sort((a,b)=>b.length-a.length||a.term.localeCompare(b.term,'es'))
+      .map(item=>item.term).filter((term,index,all)=>all.findIndex(other=>norm(other)===norm(term))===index)
+      .slice(0,8)
+  }
   getVariants(term:string):readonly CuratedModularAssetV1[]{return this.search([term])}
   resolveAsset(assetId:string):Buffer{
     const entry=this.extensionEntries.get(assetId)

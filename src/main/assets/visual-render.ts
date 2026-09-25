@@ -28,6 +28,7 @@ import {
 } from './openmoji/publish'
 import { readVerifiedRasterProjectAssetContentV1 } from './pixabay-images'
 import { isEditorialLocalBankV3Revision, type EditorialLocalBankPlanV3 } from '../../shared/editorial-local-bank-v3'
+import { EDITORIAL_LOCAL_BANK_V4 } from '../../shared/editorial-local-bank-v4'
 
 export class VisualAssetRenderError extends Error {
   constructor(public code: string, message: string, public details: Record<string, unknown> = {}) {
@@ -181,7 +182,8 @@ function prepareV2(
     ? { version: 2, assets: [] }
     : validateRenderBindingsV2(rawBindings)
   const present = spec.slots.filter((slot): slot is Extract<SceneSlotV2, { state: 'present' }> => slot.state === 'present')
-  const v3Background=isEditorialLocalBankV3Revision(spec.presentationProfile?.revision)
+  const v3Background=(isEditorialLocalBankV3Revision(spec.presentationProfile?.revision)||
+    spec.presentationProfile?.revision===EDITORIAL_LOCAL_BANK_V4.revision)
     ?(spec.editorialBankV2 as EditorialLocalBankPlanV3|undefined)?.backgroundAsset:undefined
   const ideaResources = spec.ideaAssembly?.resources ?? spec.editorialFamily?.layers ?? [
     ...(spec.editorialBankV2?.layers ?? []),

@@ -15,6 +15,7 @@ import {
 import { FAMILIES_MOTION_PROFILE_V2, VISUAL_RECOVERY_PROFILE_V1 } from '../../shared/editorial-motion-profile-v1'
 import { EDITORIAL_MODULAR_FAMILIES_V1 } from '../../shared/editorial-modular-families-v1'
 import { EDITORIAL_FINISH_V1_1 } from '../../shared/editorial-finish-v1-1'
+import { EDITORIAL_LOCAL_BANK_V4 } from '../../shared/editorial-local-bank-v4'
 
 export type VisualQcRect = {
   left: number
@@ -166,7 +167,7 @@ function evaluateVisualDomQcV2(
     if (!inside(snapshot.text, frame) || !inside(snapshot.keyword, safeText))
       findings.push({ code: 'VISUAL_QC_TEXT_BOUNDS', level: 'error', message: 'Texto V15 fuera de safe area', normalizedTime: at })
     const modularFamilyText=[EDITORIAL_MODULAR_FAMILIES_V1.revision,EDITORIAL_FINISH_V1_1.revision,
-      'editorial-local-bank-2026-09-v2']
+      'editorial-local-bank-2026-09-v2',EDITORIAL_LOCAL_BANK_V4.revision]
       .includes(spec.presentationProfile?.revision as typeof EDITORIAL_MODULAR_FAMILIES_V1.revision)
     if (snapshot.textOverflow || snapshot.keywordOverflow || !['2', '3'].includes(snapshot.maxLines ?? '') ||
         snapshot.visibleWords > (modularFamilyText ? 24 : 8))

@@ -78,6 +78,8 @@ import { EDITORIAL_LOCAL_BANK_V2, EDITORIAL_LOCAL_SUPPORT_IDS_V2,
 import { EDITORIAL_LOCAL_FAMILIES_V3,
   isEditorialLocalBankV3Revision,
   validateEditorialLocalBankPlanV3, type EditorialLocalBankPlanV3 } from './editorial-local-bank-v3'
+import { EDITORIAL_LOCAL_BANK_V4, validateEditorialLocalBankPlanV4,
+  type EditorialLocalBankPlanV4 } from './editorial-local-bank-v4'
 import {
   VISUAL_MVP_BOUNDS_REVISION,
   editorialFallbackSpec,
@@ -220,7 +222,7 @@ export type VisualSceneSpecV2 = {
   /** V1.1-only appearance and event plan. Its absence is historical V1 parity. */
   editorialFinish?: EditorialFinishPlanV11
   /** Local bank geometry contract for V2 or its additive, extensible V3 revision. */
-  editorialBankV2?: EditorialLocalBankPlanV2 | EditorialLocalBankPlanV3
+  editorialBankV2?: EditorialLocalBankPlanV2 | EditorialLocalBankPlanV3 | EditorialLocalBankPlanV4
   /** Frozen relation choreography; required only for the editorial v2 revision. */
   editorialMotionCue?: EditorialMotionCue
   /** Only materialized for the opt-in profile; part of the pixel contract. */
@@ -471,7 +473,8 @@ function validateLayout(value: unknown, spec: Record<string, unknown>, slots: Sc
   const seed = Number((spec.direccion as VisualDirectionV2).semilla)
   const expected = [EDITORIAL_LOCAL_BANK_V2.revision].includes(
       (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision as typeof EDITORIAL_LOCAL_BANK_V2.revision) ||
-    isEditorialLocalBankV3Revision((spec.presentationProfile as EditorialMotionProfile | undefined)?.revision)
+    isEditorialLocalBankV3Revision((spec.presentationProfile as EditorialMotionProfile | undefined)?.revision) ||
+    (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision===EDITORIAL_LOCAL_BANK_V4.revision
     ? (spec.editorialBankV2 as EditorialLocalBankPlanV2).portraitLayout
     : (spec.presentationProfile as EditorialMotionProfile | undefined)?.revision===EDITORIAL_FINISH_V1_1.revision
     ? (spec.editorialFinish as EditorialFinishPlanV11).portraitLayout
@@ -536,7 +539,8 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   const finishRevision = (value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_FINISH_V1_1.revision
   const editorialFamilyRevision = finishRevision || (value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_MODULAR_FAMILIES_V1.revision
   const bankProfileRevision=(value.presentationProfile as EditorialMotionProfile | undefined)?.revision
-  const bankRevision = bankProfileRevision === EDITORIAL_LOCAL_BANK_V2.revision || isEditorialLocalBankV3Revision(bankProfileRevision)
+  const bankRevision = bankProfileRevision === EDITORIAL_LOCAL_BANK_V2.revision ||
+    isEditorialLocalBankV3Revision(bankProfileRevision) || bankProfileRevision===EDITORIAL_LOCAL_BANK_V4.revision
   if (editorialFamilyRevision) validateEditorialModularFamiliesPlanV1(value.editorialFamily)
   else if (value.editorialFamily !== undefined) fail(code, 'editorialFamily exige perfil explícito')
   if (finishRevision) validateEditorialFinishV11(value.editorialFinish,value.editorialFamily as EditorialModularFamiliesPlanV1,
@@ -544,6 +548,7 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   else if (value.editorialFinish !== undefined) fail(code, 'editorialFinish exige perfil V1.1')
   if (bankProfileRevision===EDITORIAL_LOCAL_BANK_V2.revision) validateEditorialLocalBankPlanV2(value.editorialBankV2)
   else if(isEditorialLocalBankV3Revision(bankProfileRevision)) validateEditorialLocalBankPlanV3(value.editorialBankV2)
+  else if(bankProfileRevision===EDITORIAL_LOCAL_BANK_V4.revision) validateEditorialLocalBankPlanV4(value.editorialBankV2)
   else if (value.editorialBankV2 !== undefined) fail(code, 'editorialBankV2 exige revisión propia')
   if ((value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_EXPLAINER_LIGHT_V1.revision) {
     const activeSlots = (value.slots as SceneSlotV2[] | undefined)?.filter(slot => slot.state === 'present' || slot.state === 'procedural') ?? []
@@ -596,7 +601,7 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
   if (value.visualMode === 'asset-led' && heroes.length !== 1) fail('VISUAL_SCENE_V2_HERO_REQUIRED', 'asset-led exige exactamente un Hero')
   if (value.visualMode === 'editorial-text' && active.length) fail(code, 'editorial-text no acepta assets activos')
   if (supports.length > (bankRevision?6:ideaRevision || editorialFamilyRevision ? 4 : 2) || (supports.length && !heroes.length) ||
-      bankRevision && (supports.length<2 || heroes.length!==1)) fail(code, 'Supports incompatibles con perfil')
+      bankRevision && (supports.length<(bankProfileRevision===EDITORIAL_LOCAL_BANK_V4.revision?0:2) || heroes.length!==1)) fail(code, 'Supports incompatibles con perfil')
   if (ideaRevision && (supports.length !== 4 || IDEA_SUPPORT_IDS.some(id => !supports.some(slot => slot.slotId === id))))
     fail(code, 'IDEA requiere exactamente cuatro Supports reales')
   if ((value.presentationProfile as EditorialMotionProfile | undefined)?.revision === EDITORIAL_IDEA_ASSEMBLY_V4_1.revision) {
@@ -686,11 +691,12 @@ export function validateVisualSceneSpecV2(value: unknown): VisualSceneSpecV2 {
     for(const layer of plan.layers)check(layer.catalogAssetId!,layer.sha256,
       layer.id==='idea-rear'?'rear-collage':layer.id==='idea-front'?'front-collage':'accent-mask')
   }
-  if(isEditorialLocalBankV3Revision(bankProfileRevision)){
-    const plan=value.editorialBankV2 as EditorialLocalBankPlanV3
-    if(value.visualMode!=='asset-led'||!EDITORIAL_LOCAL_FAMILIES_V3.includes(plan.family as typeof EDITORIAL_LOCAL_FAMILIES_V3[number])||
+  if(isEditorialLocalBankV3Revision(bankProfileRevision)||bankProfileRevision===EDITORIAL_LOCAL_BANK_V4.revision){
+    const plan=value.editorialBankV2 as EditorialLocalBankPlanV3|EditorialLocalBankPlanV4
+    const v4=bankProfileRevision===EDITORIAL_LOCAL_BANK_V4.revision
+    if(value.visualMode!=='asset-led'||(!v4&&!EDITORIAL_LOCAL_FAMILIES_V3.includes(plan.family as typeof EDITORIAL_LOCAL_FAMILIES_V3[number]))||
         plan.family!==(value.direccion as VisualDirectionV2).estructura||plan.supports.length!==supports.length||
-        canonical(plan.landscapeLayout)!==canonical(createEditorialLocalBankLayoutV2(plan.family,'landscape',supports.length,plan.layoutVariant)))
+        canonical(plan.landscapeLayout)!==canonical(createEditorialLocalBankLayoutV2(plan.family,'landscape',supports.length,plan.layoutVariant,v4?0:2)))
       fail(code,'EDITORIAL_LOCAL_BANK_V3_LAYOUT_OR_SLOTS_MISMATCH')
     const id=/^[a-z0-9][a-z0-9-]{2,95}$/
     const hero=heroes[0] as PresentSceneSlotV2
@@ -797,12 +803,14 @@ export function validateRenderBindingsAny(value: unknown, spec: VisualSceneSpecA
       fail('VISUAL_RENDER_BINDINGS_V2_INVALID','EDITORIAL_FAMILY_BINDING_MISMATCH')
   }
   if ([EDITORIAL_LOCAL_BANK_V2.revision].includes(spec.presentationProfile?.revision as typeof EDITORIAL_LOCAL_BANK_V2.revision) ||
-      isEditorialLocalBankV3Revision(spec.presentationProfile?.revision)) {
+      isEditorialLocalBankV3Revision(spec.presentationProfile?.revision)||
+      spec.presentationProfile?.revision===EDITORIAL_LOCAL_BANK_V4.revision) {
     const plan=spec.editorialBankV2!
     const expected=[{slotId:'hero',assetId:plan.hero.assetId},
       ...plan.supports.map(s=>({slotId:s.slotId,assetId:s.assetId})),
       ...plan.layers.map(l=>({slotId:l.id,assetId:l.catalogAssetId!})),
-      ...(isEditorialLocalBankV3Revision(spec.presentationProfile?.revision)&&
+      ...((isEditorialLocalBankV3Revision(spec.presentationProfile?.revision)||
+        spec.presentationProfile?.revision===EDITORIAL_LOCAL_BANK_V4.revision)&&
         (plan as EditorialLocalBankPlanV3).backgroundAsset?
         [{slotId:'idea-background',assetId:(plan as EditorialLocalBankPlanV3).backgroundAsset!.assetId}]:[])]
     if(bindings.assets.length!==expected.length||expected.some(item=>
