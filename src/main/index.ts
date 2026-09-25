@@ -75,7 +75,7 @@ import { bindEditorialModularFamilyV1, editorialHeadlineFromLocalTextV1,
   bindEditorialModularFinishV11, selectEditorialModularFamilyAssetsV1 } from './assets/editorial-modular-families-v1'
 import { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-families-v1'
 import { EDITORIAL_LOCAL_BANK_V2 } from '../shared/editorial-local-bank-v2'
-import { EDITORIAL_LOCAL_BANK_V3 } from '../shared/editorial-local-bank-v3'
+import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_2 } from '../shared/editorial-local-bank-v3'
 import { bindEditorialLocalBankV2, preflightEditorialLocalCatalogV2, preflightEditorialLocalCatalogV3,
   selectEditorialLocalBankV2Detailed, selectEditorialLocalBankV3Detailed } from './assets/editorial-local-bank-v2'
 import { CuratedModularCatalogV2, previewEditorialCatalogBatchV2,
@@ -184,7 +184,7 @@ export { preflightEditorialLocalCatalogV2 } from './assets/editorial-local-bank-
 export { CuratedModularCatalogV2, previewEditorialCatalogBatchV2,
   activateEditorialCatalogBatchV2, rollbackEditorialCatalogSnapshotV2 } from './assets/editorial-modular-catalog-v2'
 export { EDITORIAL_LOCAL_BANK_V2 } from '../shared/editorial-local-bank-v2'
-export { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_CATALOG_REVISION_V3,
+export { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_2, EDITORIAL_LOCAL_CATALOG_REVISION_V3,
   EDITORIAL_LOCAL_FAMILIES_V3, validateEditorialLocalBankPlanV3 } from '../shared/editorial-local-bank-v3'
 export { EDITORIAL_LOCAL_FAMILIES_V2, createEditorialLocalBankLayoutV2 } from '../shared/editorial-local-bank-v2'
 export * from '../shared/editorial-finish-v1-1'
@@ -5470,7 +5470,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         const solicitudesGraficas = resueltosModernos.map(({ context, resolved }, sceneIndex) => {
           const base = resolved.base;
           const localDecision = localBankSelected && curatedFamilyCatalog ? (localBankV3Selected?
-            selectEditorialLocalBankV3Detailed({catalog:curatedFamilyCatalog,semantic:base.localSemantic,recentFamilies:recentLocalFamilies}):
+            selectEditorialLocalBankV3Detailed({catalog:curatedFamilyCatalog,semantic:base.localSemantic,
+              recentFamilies:recentLocalFamilies,selectionRevision:EDITORIAL_LOCAL_BANK_V3_2.revision}):
             selectEditorialLocalBankV2Detailed({catalog:curatedFamilyCatalog,semantic:base.localSemantic,recentFamilies:recentLocalFamilies})) : null
           const localSelected=localDecision?.selection??null
           if(localDecision)localSelectionTraces.push({sceneId:base.decision.sceneId,trace:localDecision.trace})
@@ -5518,7 +5519,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             template:resolved.compiled,catalog:curatedFamilyCatalog,imported,
             selection:localSelected,color:editorialFamilyColor==='auto'?'#A83B19':
               (editorialFamilyColor??'#A83B19').toUpperCase(),
-            ...(localBankV3Selected?{contract:EDITORIAL_LOCAL_BANK_V3}:{}),
+            ...(localBankV3Selected?{contract:EDITORIAL_LOCAL_BANK_V3_2}:{}),
             headline:editorialHeadlineFromLocalTextV1(aRenderizar[sceneIndex].frase,
               resolved.compiled.sceneSpec.text.keyword)}):null
           const compiled = localBuilt ?? familyBuilt ?? resolved.compiled
@@ -5553,7 +5554,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             inputFallback: base.inputFallback,
             // Diagnostic/state-only context. It stays outside sceneSpec, hash and renderer.
             visualRegeneration: localBuilt || familyBuilt ? {version:3,
-              revision:localBuilt?(localBankV3Selected?EDITORIAL_LOCAL_BANK_V3.revision:EDITORIAL_LOCAL_BANK_V2.revision):
+              revision:localBuilt?(localBankV3Selected?EDITORIAL_LOCAL_BANK_V3_2.revision:EDITORIAL_LOCAL_BANK_V2.revision):
                 visualPresentationProfile===EDITORIAL_FINISH_V1_1.id?EDITORIAL_FINISH_V1_1.revision:EDITORIAL_MODULAR_FAMILIES_V1.revision,
               sceneId:context.sceneId,duration:context.duration,sistema:context.sistema,
               graphicData:(localBuilt ?? familyBuilt)!.graphicData,

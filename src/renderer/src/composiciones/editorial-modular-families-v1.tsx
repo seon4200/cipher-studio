@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useRef } from 'react'
 import type { RuntimeRenderAssetV2, VisualSceneSpecV2 } from '../../../shared/visual-scene-spec-v2'
 import type { EditorialModularFamiliesPlanV1 } from '../../../shared/editorial-modular-families-v1'
 import type { EditorialLocalBankPlanV2 } from '../../../shared/editorial-local-bank-v2'
-import type { EditorialLocalBankPlanV3 } from '../../../shared/editorial-local-bank-v3'
+import { EDITORIAL_LOCAL_BANK_V3_2, type EditorialLocalBankPlanV3 } from '../../../shared/editorial-local-bank-v3'
 import { editorialLocalHeroScaleV2 } from '../../../shared/editorial-local-bank-v2'
 import type { EditorialFinishPlanV11, FinishRoute } from '../../../shared/editorial-finish-v1-1'
 import { sceneSpecReactKeyAny } from '../../../shared/visual-scene-spec-v2'
@@ -342,7 +342,11 @@ export const EditorialModularFamiliesV1:React.FC<{
           width:'.28cqmin',height:'.28cqmin',borderRadius:'50%',background:plan.accent,
           opacity:.2*cue(u,support.enter,support.settle),pointerEvents:'none'}}/>}
         <div data-qc-text-glyph="true" style={{fontFamily:'IBM Plex Sans Condensed,sans-serif',
-          fontSize:'1.85cqmin',letterSpacing:'.12em',fontWeight:400,whiteSpace:'nowrap',
+          fontSize:'1.85cqmin',letterSpacing:'.12em',fontWeight:400,
+          ...(spec.editorialBankV2?.revision===EDITORIAL_LOCAL_BANK_V3_2.revision
+            ?{whiteSpace:'normal' as const,overflowWrap:'anywhere' as const,textAlign:'center' as const,
+              width:'130%',lineHeight:1.08}
+            :{whiteSpace:'nowrap' as const}),
           color:finish?.colors.body}}>{support.label}</div>
       </div>
     })}

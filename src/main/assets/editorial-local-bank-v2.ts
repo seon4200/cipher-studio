@@ -5,7 +5,7 @@ import { EDITORIAL_LOCAL_BANK_V2, EDITORIAL_LOCAL_FAMILIES_V2,
   type EditorialLocalVariantV2 } from '../../shared/editorial-local-bank-v2'
 import { MODULAR_CATALOG_REVISION_V1,
   resolveModularTitleAccentV1 } from '../../shared/editorial-modular-catalog-v1'
-import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_HISTORICAL, EDITORIAL_LOCAL_CATALOG_REVISION_V3,
+import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_HISTORICAL, EDITORIAL_LOCAL_BANK_V3_2, EDITORIAL_LOCAL_CATALOG_REVISION_V3,
   EDITORIAL_LOCAL_FAMILIES_V3, type EditorialLocalBankPlanV3 } from '../../shared/editorial-local-bank-v3'
 import { EDITORIAL_FINISH_FONT_SHA_V11, EDITORIAL_FINISH_BODY_FONT_SHA_V11,
   EDITORIAL_FINISH_LABEL_FONT_SHA_V11, routeEditorialFinishV11,
@@ -118,7 +118,8 @@ export function selectEditorialLocalBankV2(input:Parameters<typeof selectEditori
 /** V3 explicitly ranks exact/curated-alias matches above morphology and prioritizes
  * anchor/direct evidence. The frozen V2 call path keeps its historical ordering. */
 export function selectEditorialLocalBankV3Detailed(input:{catalog:ModularCatalogProviderV2;
-  semantic:LocalSceneSemanticV1;recentFamilies?:readonly ModernLayoutStructureV4[]}):{
+  semantic:LocalSceneSemanticV1;recentFamilies?:readonly ModernLayoutStructureV4[];
+  selectionRevision?:typeof EDITORIAL_LOCAL_BANK_V3_2.revision}):{
     selection:EditorialLocalSelectionV2|null;trace:EditorialLocalSelectionTraceV2}{
   const semantic=input.semantic
   const concepts=semantic.concepts.filter(item=>item.scope!=='context'&&
@@ -156,7 +157,7 @@ export function selectEditorialLocalBankV3Detailed(input:{catalog:ModularCatalog
   const background=backgroundTerms.flatMap(term=>input.catalog.searchEditorialLocalV2(term,'background')
     .filter(found=>found.match==='primary'||found.match==='alias').map(found=>found.asset))
     .find((asset,index,all)=>all.findIndex(item=>item.assetId===asset.assetId)===index)
-  const continuousSurface=(role:'rear-collage'|'accent-mask',preferred:'vertical'|'wide'|'compact')=>{
+  const continuousSurface=(role:'rear-collage'|'accent-mask',preferred:'vertical'|'wide'|'compact',matchedRear?:string)=>{
     const candidates=input.catalog.entries().filter(entry=>entry.role===role&&
       (entry as typeof entry&{surfaceProfile?:string}).surfaceProfile==='continuous-filled-v1'&&
       (role!=='accent-mask'||(entry as typeof entry&{surfaceUse?:string}).surfaceUse==='hero-backing-accent-v1')&&
@@ -173,9 +174,25 @@ export function selectEditorialLocalBankV3Detailed(input:{catalog:ModularCatalog
           a.entry.assetId.localeCompare(b.entry.assetId))
       selected=semanticMatches[0]?.entry
     }
-    if(role==='accent-mask')
+    if(role==='accent-mask'&&input.selectionRevision===EDITORIAL_LOCAL_BANK_V3_2.revision){
+      const related=[{asset:background,weight:4},{asset:hero,weight:3},
+        {asset:matchedRear?input.catalog.getById(matchedRear):undefined,weight:2},
+        ...supports.map(asset=>({asset,weight:1}))]
+      const relations=(asset:typeof candidates[number]|undefined):Set<string>=>
+        new Set(((asset as typeof asset&{compatibleRelations?:string[]}|undefined)?.compatibleRelations??[]).map(normalized))
+      const directTerms=[...terms,...semantic.concepts.filter(item=>item.scope==='context').map(item=>item.label)]
+      const directIds=new Set(directTerms.flatMap(term=>input.catalog.searchEditorialLocalV2(term,'accent-mask')
+        .map(found=>found.asset.assetId)))
+      const score=(asset:typeof candidates[number])=>{
+        const own=relations(asset)
+        return (directIds.has(asset.assetId)?20:0)+
+          (input.catalog.aspectClass(asset.assetId)===preferred?2:0)+
+          related.reduce((sum,item)=>sum+item.weight*[...relations(item.asset)].filter(value=>own.has(value)).length,0)
+      }
+      selected=candidates.sort((a,b)=>score(b)-score(a)||a.assetId.localeCompare(b.assetId))[0]
+    }
+    else if(role==='accent-mask')
       selected=candidates.find(entry=>input.catalog.aspectClass(entry.assetId)===preferred)??candidates[0]
-    else selected??=undefined
     if(!selected){
       if(role==='rear-collage')return undefined
       throw new Error('EDITORIAL_LOCAL_V3_CONTINUOUS_SURFACE_MISSING:'+role)
@@ -186,13 +203,19 @@ export function selectEditorialLocalBankV3Detailed(input:{catalog:ModularCatalog
   const aspectPreference=aspect==='wide'?'wide':aspect==='compact'?'compact':'vertical'
   const {frontId:_v2FrontId,rearId:_v2RearId,...v3Selection}=selected.selection
   const semanticallyMatchedRear=continuousSurface('rear-collage',aspectPreference)
-  const accentId=continuousSurface('accent-mask',aspectPreference)
+  const accentId=continuousSurface('accent-mask',aspectPreference,semanticallyMatchedRear)
   if(!accentId)throw new Error('EDITORIAL_LOCAL_V3_CONTINUOUS_ACCENT_MISSING')
+  // V2's trace only checks Hero/Support. V3 also resolves paper, accent and
+  // background, so an actual selected paper must not be reported as missing.
+  const searchableRoles=['hero-core','support','rear-collage','accent-mask','background'] as const
+  const missingTerms=terms.filter(term=>!searchableRoles.some(role=>
+    input.catalog.searchEditorialLocalV2(term,role).length>0))
   return {selection:{...v3Selection,heroId:hero.assetId,supportIds:supports.map(asset=>asset.assetId),
     variant:aspect==='wide'?'inverse':'base',
     ...(semanticallyMatchedRear?{rearId:semanticallyMatchedRear}:{}),
     accentId,
-    ...(background?{backgroundId:background.assetId}:{})},trace}
+    ...(background?{backgroundId:background.assetId}:{}),missingTerms},
+    trace:{...trace,missingTerms}}
 }
 
 /** Catalog is required only when this generation actually requests Visuales. */
@@ -220,7 +243,8 @@ export function bindEditorialLocalBankV2(input:{
   template:{sceneSpec:VisualSceneSpecV2;graphicData:Record<string,any>}
   catalog:ModularCatalogProviderV2; imported:Record<string,ImportedModularAssetV1>
   selection:EditorialLocalSelectionV2; color:string; headline:{connector?:string;keyword:string;closing?:string}
-  contract?:typeof EDITORIAL_LOCAL_BANK_V3|typeof EDITORIAL_LOCAL_BANK_V3_HISTORICAL
+  contract?:typeof EDITORIAL_LOCAL_BANK_V3|typeof EDITORIAL_LOCAL_BANK_V3_HISTORICAL|
+    typeof EDITORIAL_LOCAL_BANK_V3_2
 }){
   const chosen=input.selection
   if(!/^#[0-9A-F]{6}$/.test(input.color)||chosen.supportIds.length<2||chosen.supportIds.length>6||
@@ -263,6 +287,11 @@ export function bindEditorialLocalBankV2(input:{
         aspect==='wide'?{x:4,y:47,width:92,height:44}:{x:4,y:52,width:92,height:40}):
       input.contract.revision===EDITORIAL_LOCAL_BANK_V3_HISTORICAL.revision?
       slotId==='idea-rear'?{x:-12,y:-8,width:124,height:116}:slotId==='idea-accent'?{x:-6,y:-4,width:112,height:108}:
+      aspect==='vertical'?{x:4,y:67,width:92,height:30}:
+        aspect==='wide'?{x:4,y:47,width:92,height:44}:{x:4,y:52,width:92,height:40}:
+      input.contract.revision===EDITORIAL_LOCAL_BANK_V3_2.revision?
+      slotId==='idea-rear'?{x:-18,y:-13,width:136,height:126}:
+      slotId==='idea-accent'?{x:-8,y:-8,width:116,height:116}:
       aspect==='vertical'?{x:4,y:67,width:92,height:30}:
         aspect==='wide'?{x:4,y:47,width:92,height:44}:{x:4,y:52,width:92,height:40}:
       slotId==='idea-rear'?{x:-8,y:-4,width:116,height:108}:

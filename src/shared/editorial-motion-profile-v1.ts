@@ -16,7 +16,7 @@ import { EDITORIAL_MODULAR_CATALOG_V1 } from './editorial-modular-catalog-v1'
 import { EDITORIAL_MODULAR_FAMILIES_V1 } from './editorial-modular-families-v1'
 import { EDITORIAL_FINISH_V1_1 } from './editorial-finish-v1-1'
 import { EDITORIAL_LOCAL_BANK_V2 } from './editorial-local-bank-v2'
-import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_HISTORICAL,
+import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_HISTORICAL, EDITORIAL_LOCAL_BANK_V3_2,
   EDITORIAL_LOCAL_BANK_V3_REVISIONS } from './editorial-local-bank-v3'
 
 /** An opt-in pixel contract. Historical V15 specs omit this field entirely. */
@@ -47,7 +47,8 @@ export type EditorialMotionProfile = EditorialMotionProfileV1 | typeof EDITORIAL
   typeof EDITORIAL_IDEA_ASSEMBLY_V1 | typeof EDITORIAL_IDEA_ASSEMBLY_V2 | typeof EDITORIAL_IDEA_ASSEMBLY_V3 |
   typeof EDITORIAL_IDEA_ASSEMBLY_V4 | typeof EDITORIAL_IDEA_ASSEMBLY_V4_1 | typeof EDITORIAL_MODULAR_CATALOG_V1 |
   typeof EDITORIAL_MODULAR_FAMILIES_V1 | typeof EDITORIAL_FINISH_V1_1 |
-  typeof EDITORIAL_LOCAL_BANK_V2 | typeof EDITORIAL_LOCAL_BANK_V3 | typeof EDITORIAL_LOCAL_BANK_V3_HISTORICAL
+  typeof EDITORIAL_LOCAL_BANK_V2 | typeof EDITORIAL_LOCAL_BANK_V3 | typeof EDITORIAL_LOCAL_BANK_V3_HISTORICAL |
+  typeof EDITORIAL_LOCAL_BANK_V3_2
 export const EDITORIAL_MOTION_CUES = ['protagonist', 'comparison', 'process', 'cause', 'datum', 'typographic'] as const
 export type EditorialMotionCue = typeof EDITORIAL_MOTION_CUES[number]
 
