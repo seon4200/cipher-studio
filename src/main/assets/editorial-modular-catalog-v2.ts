@@ -20,7 +20,8 @@ type DynamicEntry = CuratedModularAssetV1 & {
   aliasesEs: string[]; aliasesEn: string[]; literalDescription: string; semanticFamily: string
   runtimeRef: string; runtimeSHA256: string; runtimeDimensions: {width:number;height:number}
   masterSHA256?: string; runtimeTransform?: 'largest-8-connected-alpha-core-morphological-open-v1'|
-    'largest-8-connected-alpha-core-morphological-open-and-fill-enclosed-2px-topology-holes-v1'
+    'largest-8-connected-alpha-core-morphological-open-and-fill-enclosed-2px-topology-holes-v1'|
+    'preserved-alpha-visible-rgb-black-v1'
   surfaceUse?: 'hero-backing-accent-v1'|'thin-ribbon-accent-v1'
   status: 'imported'; aspectClass?: 'vertical'|'wide'|'compact'|'organic'
   colorMode: string; compatibleRelations: string[]; exclusions: string[]
@@ -129,7 +130,8 @@ function validateBytes(entry:DynamicEntry,bytes:Buffer):void {
   if(sha(bytes)!==entry.sha256||entry.runtimeSHA256!==entry.sha256||
       (hasDerivedRuntime&&(!/^[a-f0-9]{64}$/.test(entry.masterSHA256??'')||
         !['largest-8-connected-alpha-core-morphological-open-v1',
-          'largest-8-connected-alpha-core-morphological-open-and-fill-enclosed-2px-topology-holes-v1'].includes(entry.runtimeTransform??''))))
+          'largest-8-connected-alpha-core-morphological-open-and-fill-enclosed-2px-topology-holes-v1',
+          ...(entry.role==='support'?['preserved-alpha-visible-rgb-black-v1']:[])].includes(entry.runtimeTransform??''))))
     throw new Error('EDITORIAL_BATCH_SHA_MISMATCH')
   if(!roles.includes(entry.role)||!safeId.test(entry.assetId)||!safeRuntime.test(entry.runtimeRef)||
       !entry.primaryWordEs?.trim()||entry.primaryWordEs.length>80||!Array.isArray(entry.aliasesEs)||
@@ -212,13 +214,14 @@ export class CuratedModularCatalogV2 {
       if(manifest.id!==pointer.id||!Array.isArray(manifest.entries))throw new Error('EDITORIAL_EXTENSION_BATCH_INVALID')
       for(const entry of manifest.entries){
         if(!entry||!safeId.test(entry.assetId)||!roles.includes(entry.role)||!safeRuntime.test(entry.runtimeRef))throw new Error('EDITORIAL_EXTENSION_ENTRY_INVALID')
+        if(this.base.getById(entry.assetId)||this.extensionEntries.has(entry.assetId))
+          throw new Error('EDITORIAL_EXTENSION_ID_COLLISION:'+entry.assetId)
         this.extensionEntries.set(entry.assetId,entry);this.batchFolders.set(entry.assetId,folder)
       }
     }
-    for(const [id,entry] of this.extensionEntries){
-      const bytes=fs.readFileSync(resolvedChild(this.batchFolders.get(id)!,entry.runtimeRef))
-      validateBytes(entry,bytes)
-    }
+    // The pointer pins every manifest by SHA. Runtime bytes are checked by
+    // resolveAsset() and by the full verifyAll() gate during batch activation.
+    // Listing/searching catalog metadata must not decode every PNG per scene.
   }
   entries():readonly CuratedModularAssetV1[]{return [...this.base.entries(),...this.extensionEntries.values()]}
   getById(assetId:string):CuratedModularAssetV1|undefined{
