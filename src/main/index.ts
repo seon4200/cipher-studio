@@ -5547,7 +5547,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               (editorialFamilyColor??'#A83B19').toUpperCase(),
             ...(localBankV4Selected?{contract:EDITORIAL_LOCAL_BANK_V4,
               sceneDecision:{sceneId:base.localSemantic.sceneId,localText:base.localSemantic.localText,
-                anchor:base.localSemantic.anchor??'',evidence:base.localSemantic.directEvidence.map(item=>item.query),
+                anchor:base.localSemantic.anchor??'',evidence:[...new Set([
+                  ...base.localSemantic.directEvidence.map(item=>item.query),
+                  ...(localDecision?.trace.literalTerms??[])])],
                 durationSeconds:context.duration,selectionReason:localSelected.reason,
                 familyReason:localSelected.reason,missingTerms:localSelected.missingTerms,
                 colorMode:editorialFamilyColor&&editorialFamilyColor!=='auto'?'manual' as const:'auto' as const,
