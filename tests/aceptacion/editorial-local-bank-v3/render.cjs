@@ -4,7 +4,7 @@ const crypto=require('node:crypto'),{execFileSync}=require('node:child_process')
 const {createTestFixture,cleanupTestFixture}=require('../../helpers/safe-fixture.js')
 const root=path.resolve(__dirname,'../../..')
 const catalogRoot=path.resolve(root,'../_cipher-editorial-catalog-v1-250')
-const evidence=path.resolve(root,'../_cipher-editorial-catalog-1265/evidence/contextual-v3-sample')
+const evidence=process.env.CIPHER_V3_EVIDENCE_DIR||path.resolve(root,'../_cipher-editorial-catalog-1265/evidence/contextual-v3-sample')
 const ffmpeg=process.env.CIPHER_FFMPEG_EXE||path.resolve(root,'../_tools/ffmpeg-v4/extracted/ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe')
 const fixture=createTestFixture('editorial-local-bank-v3-render'),projectRoot=path.join(fixture,'project')
 app.setPath('userData',path.join(fixture,'userData'));app.commandLine.appendSwitch('force-device-scale-factor','1');process.chdir(fixture)
@@ -35,7 +35,9 @@ app.whenReady().then(async()=>{
     const base=(await b.resolveModernVisualGenerationBatchV2({contexts:[context],projectRoot}))[0].resolved.compiled
     const result=b.selectEditorialLocalBankV3Detailed({catalog,semantic})
     assert.equal(result.trace.outcome,'SELECTED',JSON.stringify(result.trace))
-    const selection=result.selection
+    const selection=process.env.CIPHER_V3_HISTORICAL_PARITY==='1'
+      ?{...result.selection,rearId:'editorial-paper-laboratorio-temperatura-002'}
+      :result.selection
     assert.equal(selection.heroId,'editorial-hero-turbina-hidroelectrica-001',
       'NEW_HERO_NOT_CONTEXTUALLY_SELECTED:'+JSON.stringify(selection))
     assert(selection.supportIds.includes('editorial-support-s033-v1')||selection.supportIds.includes('editorial-support-agua-001'),
@@ -47,7 +49,9 @@ app.whenReady().then(async()=>{
     const ids=[selection.heroId,...selection.supportIds,selection.rearId,selection.accentId,selection.frontId,selection.backgroundId].filter(Boolean)
     const imported=Object.fromEntries([...new Set(ids)].map(id=>[id,catalog.publish(projectRoot,id)]))
     const built=b.bindEditorialLocalBankV2({template:base,catalog,imported,selection,color:'#A83B19',
-      contract:b.EDITORIAL_LOCAL_BANK_V3,headline:{connector:'La',keyword:'TURBINA',closing:'Agua produce energía.'}})
+      contract:process.env.CIPHER_V3_HISTORICAL_PARITY==='1'
+        ?{id:'editorial-local-bank-v3',revision:'editorial-local-bank-2026-09-v3'}:b.EDITORIAL_LOCAL_BANK_V3,
+      headline:{connector:'La',keyword:'TURBINA',closing:'Agua produce energía.'}})
     b.prepareGraphicForVisualRender({graphicData:built.graphicData,projectRoot,renderBindings:built.renderBindings})
     const outputs=[]
     for(const orientation of ['portrait','landscape']){

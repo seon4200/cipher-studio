@@ -13,6 +13,18 @@ app.whenReady().then(async()=>{
   let code=1
   try{
     const b=require(path.join(root,'dist-electron/main/index.js'))
+    const rejectedRelation={relacion:'separa',ancla:{icono:'water',ic:'💧',etiqueta:'líquido'},
+      terminos:[{icono:'water',ic:'💧',etiqueta:'líquido'},
+        {icono:'document',ic:'📄',etiqueta:'muestra'},
+        {icono:'chart',ic:'📊',etiqueta:'componentes'}]}
+    assert.equal(b.diagnosticarSemanticaVisual(rejectedRelation),'RELACION_FUERA_DE_ENUM')
+    assert.equal(b.sanearSemanticaVisual(rejectedRelation),null,'UNKNOWN_RELATION_STILL_REJECTED')
+    assert.equal(b.diagnosticarSemanticaVisual({...rejectedRelation,relacion:'estratifica'}),null)
+    assert.equal(b.editorialVisibleExcerptV4(
+      'Cromatógrafo líquido analiza vial de muestra y micropipeta automática; hoja de registro conserva datos.',3),
+      'Cromatógrafo líquido analiza vial de muestra')
+    assert.equal(b.editorialVisibleExcerptV4('No desaparece el peligro ni se conocen las causas.',3),
+      'No desaparece el peligro')
     app.removeAllListeners('window-all-closed')
     ipcMain.removeHandler('get-elevenlabs-voices')
     ipcMain.handle('get-elevenlabs-voices',()=>({success:true,voices:[]}))
@@ -32,6 +44,11 @@ app.whenReady().then(async()=>{
     assert.equal(selectionResult.trace.outcome,'SELECTED',JSON.stringify(selectionResult.trace))
     const selection=selectionResult.selection
     assert(selection.heroId&&selection.supportIds.length<2,'HERO_MUST_NOT_REQUIRE_TWO_SUPPORTS')
+    assert(selection.backgroundId,'HERO_METADATA_MUST_SELECT_COMPATIBLE_BACKGROUND_WITHOUT_PAPER_IN_SCRIPT')
+    assert(selection.accentId,'HERO_OR_BACKGROUND_METADATA_MUST_SELECT_COMPATIBLE_ACCENT')
+    assert.equal(selection.rearId,undefined,'INCOMPATIBLE_REAR_MUST_BE_OMITTED')
+    assert(selectionResult.trace.layerDecisions?.some(item=>item.role==='rear-collage'&&
+      item.reason==='NO_COMPATIBLE_REAR'),'REAR_OMISSION_MUST_HAVE_EXPLICIT_REASON')
     assert(!catalogRoot.includes(selection.heroId),'NO_PHYSICAL_PATH_AS_ASSET_ID')
     const active=JSON.parse(fs.readFileSync(path.join(catalogRoot,'extension-v2','active.json'),'utf8'))
     const activeIds=new Set(active.batches.flatMap(batch=>JSON.parse(fs.readFileSync(
@@ -82,7 +99,8 @@ app.whenReady().then(async()=>{
     assert.equal(networkAttempts,0)
     console.log(JSON.stringify({passed:true,profile:built.sceneSpec.presentationProfile,
       catalogAssets:health.verified,heroId:selection.heroId,supportIds:selection.supportIds,
-      family:selection.family,identitySha256:crypto.createHash('sha256').update(built.pixelIdentity).digest('hex'),
+      family:selection.family,layerDecisions:selectionResult.trace.layerDecisions,
+      identitySha256:crypto.createHash('sha256').update(built.pixelIdentity).digest('hex'),
       networkAttempts,outputs}))
     code=0
   }catch(error){console.error(error?.stack||error)}

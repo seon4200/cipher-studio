@@ -322,7 +322,8 @@ export const EditorialModularFamiliesV1:React.FC<{
             `translate(${localReposition.x.toFixed(3)}cqw,${localReposition.y.toFixed(3)}cqh)`:
             `translateY(${((1-enter)*1.3).toFixed(3)}cqmin)`,
           display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'.4cqmin'}}>
-        <div style={{height:'70%',aspectRatio:'1',maxWidth:'84%',borderRadius:dark?'50%':'1.2cqmin',
+        <div style={{height:spec.editorialBankV2?.revision===EDITORIAL_LOCAL_BANK_V4.revision?'60%':'70%',
+          aspectRatio:'1',maxWidth:'84%',borderRadius:dark?'50%':'1.2cqmin',
           background:card?(dark?plan.ink:orange?plan.accent:'#FAF9F6'):'transparent',
           border:card?'1px solid rgba(17,17,15,.11)':'none',boxSizing:'border-box',
           boxShadow:card?'.18cqmin .27cqmin .24cqmin rgba(17,17,15,.12),.4cqmin .7cqmin 1.25cqmin rgba(17,17,15,.07)':'none',
@@ -343,7 +344,8 @@ export const EditorialModularFamiliesV1:React.FC<{
           width:'.28cqmin',height:'.28cqmin',borderRadius:'50%',background:plan.accent,
           opacity:.2*cue(u,support.enter,support.settle),pointerEvents:'none'}}/>}
         <div data-qc-text-glyph="true" style={{fontFamily:'IBM Plex Sans Condensed,sans-serif',
-          fontSize:'1.85cqmin',letterSpacing:'.12em',fontWeight:400,
+          fontSize:spec.editorialBankV2?.revision===EDITORIAL_LOCAL_BANK_V4.revision?'3cqmin':'1.85cqmin',
+          letterSpacing:'.12em',fontWeight:400,
           ...([EDITORIAL_LOCAL_BANK_V3_2.revision,EDITORIAL_LOCAL_BANK_V4.revision].includes(spec.editorialBankV2?.revision as typeof EDITORIAL_LOCAL_BANK_V3_2.revision)
             ?{whiteSpace:'normal' as const,overflowWrap:'anywhere' as const,textAlign:'center' as const,
               width:'130%',lineHeight:1.08}

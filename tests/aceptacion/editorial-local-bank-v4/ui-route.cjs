@@ -1,5 +1,6 @@
 const {app,BrowserWindow,dialog,ipcMain,session}=require('electron')
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict')
+const crypto=require('node:crypto')
 const {execFileSync}=require('node:child_process')
 const {createTestFixture,cleanupTestFixture}=require('../../helpers/safe-fixture.js')
 const root=path.resolve(__dirname,'../../..'),fixture=createTestFixture('editorial-local-v4-ui-route')
@@ -11,12 +12,15 @@ process.env.PATH=path.dirname(ffmpeg)+path.delimiter+process.env.PATH
 const oldKey=process.env.DEEPSEEK_API_KEY,oldFetch=global.fetch,oldDialog=dialog.showOpenDialog,
   oldSaveDialog=dialog.showSaveDialog
 const realSemantic=process.argv.includes('--real-semantic')
+const naturalSemantic=process.argv.includes('--natural-semantic')
 const vertical=process.argv.includes('--vertical')
 const manualColor=process.argv.includes('--manual-color')
 const richScene=process.argv.includes('--rich-scene')
 const abstractScene=process.argv.includes('--abstract-scene')
 const exportFromUi=process.argv.includes('--export-from-ui')
-const duration=3
+const gate2Evidence=process.argv.includes('--gate2-evidence')
+const regenerateFromUi=process.argv.includes('--regenerate-from-ui')
+const duration=naturalSemantic?4:3
 app.setPath('userData',path.join(fixture,'userData'))
 app.commandLine.appendSwitch('force-device-scale-factor','1')
 process.chdir(fixture)
@@ -24,6 +28,8 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms))
 const words=richScene
   ?'Cromatógrafo líquido analiza vial de muestra y micropipeta automática; hoja de registro de análisis químico conserva datos.'
   :abstractScene?'Ninguna certeza basta para responder.'
+  :naturalSemantic
+  ?'Un técnico utiliza el cromatógrafo para estudiar una muestra; después registra los resultados.'
   :realSemantic
   ?'Un cromatógrafo líquido separa los componentes de una muestra para revelar qué contiene.'
   :'El cromatógrafo líquido analiza una muestra.'
@@ -40,13 +46,26 @@ const semanticReply={phrases:[{phraseIndex:1,visualClips:[{keyword:abstractScene
   duration:duration-.1,prompt:words,conceptos:terms,semantica:{relacion:'conecta',ancla:terms[0],terminos:terms}}]}]}
 async function until(check,label,iterations=120){for(let i=0;i<iterations;i++){
   const value=await check();if(value)return value;await pause(250)}throw Error('UI_TIMEOUT:'+label)}
-app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDialogCalls=0,win
+app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDialogCalls=0,win,
+  realSemanticShape=null
   try{
     fs.mkdirSync(evidence,{recursive:true})
     if(!realSemantic)process.env.DEEPSEEK_API_KEY='offline-controlled-semantic-fixture'
     global.fetch=async (url,options)=>{if(String(url).startsWith('https://api.deepseek.com/chat/completions')){
       semanticCalls++
-      if(realSemantic)return oldFetch(url,options)
+      if(realSemantic){const response=await oldFetch(url,options)
+        if(response.ok){const payload=await response.clone().json()
+          const content=String(payload?.choices?.[0]?.message?.content??'')
+          try{const parsed=JSON.parse(content.slice(content.indexOf('{'),content.lastIndexOf('}')+1))
+            const clip=parsed?.phrases?.[0]?.visualClips?.[0]??parsed?.phrases?.[0]?.clips?.[0]
+            const semantics=clip?.semantica
+            realSemanticShape={clipKeys:Object.keys(clip??{}),semanticKeys:semantics&&typeof semantics==='object'?Object.keys(semantics):null,
+              relation:semantics?.relacion??null,anchor:semantics?.ancla??null,terms:semantics?.terminos??null,
+              legacyConcepts:clip?.conceptos??null}
+          }catch(error){realSemanticShape={parseError:String(error)}}
+          fs.writeFileSync(path.join(evidence,naturalSemantic?'real-semantic-natural-shape.json':'real-semantic-shape.json'),
+            JSON.stringify(realSemanticShape,null,2)+'\n')}
+        return response}
       return {ok:true,status:200,json:async()=>({choices:[{finish_reason:'stop',
         message:{content:JSON.stringify(semanticReply)}}]})}}
       otherNetwork++;throw Error('UNEXPECTED_NETWORK:'+String(url))}
@@ -126,11 +145,14 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
       assert.equal(plan.sceneDecision.colorMode,'manual','MANUAL_COLOR_MODE_NOT_PERSISTED')}
     if(richScene){const plan=visuals[0].visualRegeneration.graphicData.extra.sceneSpec.editorialBankV2
       assert(plan.supports.length>=2,'RICH_SCENE_SUPPORTS_MISSING')
-      assert(plan.layers.some(item=>item.id==='idea-rear'),'RICH_SCENE_REAR_MISSING')}
+      assert(plan.backgroundAsset&&plan.layers.some(item=>item.id==='idea-accent'),
+        'RICH_SCENE_COMPATIBLE_BACKGROUND_OR_ACCENT_MISSING')
+      assert(!plan.layers.some(item=>item.id==='idea-rear'),
+        'RICH_SCENE_INCOMPATIBLE_REAR_WAS_NOT_OMITTED')}
     if(abstractScene){const spec=visuals[0].visualRegeneration.graphicData.extra.sceneSpec
       assert(spec.editorialTextV4&&spec.visualMode==='editorial-text'&&!spec.editorialBankV2,
         'ABSTRACT_SCENE_MUST_BE_EXPLICIT_V4_TYPE_LED')}
-    const prefix=`${realSemantic?'ui-real-semantic':'ui-controlled-semantic'}-${vertical?'vertical':'horizontal'}${richScene?'-rich':''}${abstractScene?'-abstract':''}${manualColor?'-manual-teal':''}`
+    const prefix=`${realSemantic?'ui-real-semantic':'ui-controlled-semantic'}-${vertical?'vertical':'horizontal'}${naturalSemantic?'-natural':''}${richScene?'-rich':''}${abstractScene?'-abstract':''}${manualColor?'-manual-teal':''}${gate2Evidence?'-gate2':''}`
     const copied=path.join(evidence,`${prefix}-visual.mp4`)
     fs.copyFileSync(visuals[0].path,copied)
     fs.writeFileSync(path.join(evidence,`${prefix}-scene-spec.json`),
@@ -162,6 +184,32 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
         document.querySelector('#visual-presentation-profile').value==='editorial-local-bank-v4'`),'ui-reopen-profile')
       const reopened=JSON.parse(fs.readFileSync(path.join(projectRoot,'project-state.json'),'utf8'))
       assert(reopened.timelineVideoClips.some(clip=>clip.category==='visual'),'UI_REOPEN_LOST_VISUAL')
+      if(regenerateFromUi){
+        const before=reopened.timelineVideoClips.find(clip=>clip.category==='visual')
+        const beforeSpec=before.visualRegeneration.graphicData.extra.sceneSpec
+        const beforeVideoSha=crypto.createHash('sha256').update(fs.readFileSync(before.path)).digest('hex')
+        assert(await js(`(()=>{const button=[...document.querySelectorAll('button')].find(item=>
+          item.textContent.trim()==='Regenerar Visuales V4 guardados');
+          if(!button||button.disabled)return false;button.click();return true})()`),
+        'UI_VISUAL_REGENERATION_BUTTON_UNAVAILABLE')
+        await until(()=>js(`[...document.querySelectorAll('[role="status"]')].some(item=>
+          item.textContent.includes('1/1 Visuales V4 regenerados.'))`),'ui-visual-regeneration',240)
+        await pause(400)
+        await js(`(()=>{const b=[...document.querySelectorAll('button')].find(item=>
+          item.textContent.includes('Archivo'));if(!b)return false;b.click();return true})()`)
+        await until(()=>js(`!![...document.querySelectorAll('button')].find(item=>
+          item.textContent.trim()==='Guardar'&&!item.disabled)`),'ui-regen-save-menu')
+        await js(`[...document.querySelectorAll('button')].find(item=>
+          item.textContent.trim()==='Guardar'&&!item.disabled).click()`)
+        await pause(400)
+        const after=JSON.parse(fs.readFileSync(path.join(projectRoot,'project-state.json'),'utf8'))
+          .timelineVideoClips.find(clip=>clip.category==='visual')
+        assert.deepEqual(after.visualRegeneration.graphicData.extra.sceneSpec,beforeSpec,
+          'UI_REGENERATION_CHANGED_FROZEN_SCENESPEC')
+        assert(fs.existsSync(after.path),'UI_REGENERATION_VISUAL_SIN_FICHERO')
+        assert.equal(crypto.createHash('sha256').update(fs.readFileSync(after.path)).digest('hex'),
+          beforeVideoSha,'UI_REGENERATION_CHANGED_MP4_BYTES')
+      }
       const exportPath=path.join(evidence,`${prefix}-timeline-export.mp4`)
       dialog.showSaveDialog=async()=>({canceled:false,filePath:exportPath})
       console.log('UI_EXPORT_CHECK','export')
@@ -182,8 +230,9 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
     const png=(await win.webContents.capturePage()).toPNG()
     fs.writeFileSync(path.join(evidence,`${prefix}.png`),png)
     const result={passed:true,semanticMode:realSemantic?'DEEPSEEK_REAL':'OFFLINE_MOCK',semanticCalls,otherNetwork,
+      realSemanticShape,
       projectTemporary:true,profileSelectedInUI:true,buildClickedInUI:true,orientation:vertical?'9:16':'16:9',
-      manualColor:manualColor?'#238C87':null,richScene,abstractScene,
+      manualColor:manualColor?'#238C87':null,richScene,abstractScene,regenerateFromUi,
       uiExport,
       visualsRequested:1,visualsMaterialized:visuals.length,timelineVisuals:visuals.length,
       visualSinFichero:0,visualCopy:copied,screenshot:path.join(evidence,`${prefix}.png`)}

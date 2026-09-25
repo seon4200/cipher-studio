@@ -78,7 +78,7 @@ import { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-famil
 import { EDITORIAL_LOCAL_BANK_V2 } from '../shared/editorial-local-bank-v2'
 import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_2,
   isEditorialLocalBankV3Revision } from '../shared/editorial-local-bank-v3'
-import { EDITORIAL_LOCAL_BANK_V4 } from '../shared/editorial-local-bank-v4'
+import { EDITORIAL_LOCAL_BANK_V4, editorialVisibleExcerptV4 } from '../shared/editorial-local-bank-v4'
 import { bindEditorialLocalBankV2, preflightEditorialLocalCatalogV2, preflightEditorialLocalCatalogV3,
   selectEditorialLocalBankV2Detailed, selectEditorialLocalBankV3Detailed,
   selectEditorialLocalBankV4Detailed } from './assets/editorial-local-bank-v2'
@@ -118,8 +118,8 @@ export { fraccion, esLegal, divisoresDe, comprobarCiclo, ajustar, cicloValido, T
 import { semillaDe, semillaVisual, generador, entre, entero } from '../shared/semilla'
 export { semillaDe, semillaVisual, generador, entre, entero }
 import { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA } from '../shared/conceptos'
-import { sanearSemanticaVisual } from '../shared/semantica'
-export { sanearSemanticaVisual } from '../shared/semantica'
+import { diagnosticarSemanticaVisual, sanearSemanticaVisual } from '../shared/semantica'
+export { diagnosticarSemanticaVisual, sanearSemanticaVisual } from '../shared/semantica'
 import { resolverSolarDetallado, NOMBRES_SOLAR_CURADOS } from '../shared/iconos-solar'
 export { resolverNombreSolar, resolverSolarDetallado, normalizarNombreSolar, NOMBRES_SOLAR_CURADOS } from '../shared/iconos-solar'
 import { SISTEMAS, type NombreSistema } from '../shared/sistemas'
@@ -192,7 +192,8 @@ export { CuratedModularCatalogV2, previewEditorialCatalogBatchV2,
 export { EDITORIAL_LOCAL_BANK_V2 } from '../shared/editorial-local-bank-v2'
 export { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_2, EDITORIAL_LOCAL_CATALOG_REVISION_V3,
   EDITORIAL_LOCAL_FAMILIES_V3, validateEditorialLocalBankPlanV3 } from '../shared/editorial-local-bank-v3'
-export { EDITORIAL_LOCAL_BANK_V4, validateEditorialLocalBankPlanV4 } from '../shared/editorial-local-bank-v4'
+export { EDITORIAL_LOCAL_BANK_V4, editorialVisibleExcerptV4,
+  validateEditorialLocalBankPlanV4 } from '../shared/editorial-local-bank-v4'
 export { EDITORIAL_LOCAL_FAMILIES_V2, createEditorialLocalBankLayoutV2 } from '../shared/editorial-local-bank-v2'
 export * from '../shared/editorial-finish-v1-1'
 export { validateVisualSceneSpecV2, validateRenderBindingsAny, sceneSpecPixelIdentityAny } from '../shared/visual-scene-spec-v2'
@@ -4691,6 +4692,12 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           '- keyword: en ingles, corta y concreta, algo filmable que ilustre ESE trozo. Nunca abstracta: evita palabras como "consequences", "awareness" o "meaning".\n' +
           '- timestamp: el segundo del video original (0-' + Number(maxTsVal).toFixed(1) + ') que mejor acompana ese trozo.\n' +
           lineaConceptos +
+          (visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id
+            ? 'Para este perfil editorial, relacion NO es un verbo libre: copia literalmente un enum de la lista anterior. ' +
+              'Por ejemplo, separar físicamente componentes puede expresarse como estratifica sólo si hay capas/orden; ' +
+              'si esa relación no describe la escena, usa semantica:null. ' +
+              'Ancla el sujeto concreto de la frase, no un material genérico; términos sólo si están sustentados por la frase. ' +
+              'No escribas IDs de assets ni inventes relaciones.\n' : '') +
           lineaTipos +
           'FRASES:\n' + batchFragmentos + '\n' +
           'Responde SOLO JSON:\n' +
@@ -4740,12 +4747,18 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               const invalida = candidatas.find((c: any) => c?.semantica !== null && !sanearSemanticaVisual(c?.semantica));
               if (invalida) {
                 respuestasSemanticasRechazadas++;
-                const causa = !invalida?.semantica ? 'sin-semantica' : 'semantica-invalida';
+                const causa = visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id
+                  ? diagnosticarSemanticaVisual(invalida?.semantica)??'SEMANTICA_INVALIDA'
+                  : !invalida?.semantica ? 'sin-semantica' : 'semantica-invalida';
                 causasSemantica.set(causa, (causasSemantica.get(causa) ?? 0) + 1);
                 for (const frase of parsed.phrases) {
                   for (const clip of frase?.visualClips ?? frase?.clips ?? []) delete clip.semantica;
                 }
-                await logMessage(`[FASE 2] SEMANTICA RECHAZADA lote=${Math.ceil((batchStart + 1) / BATCH_SIZE)} causa=${causa}; se usa sorteo determinista.`);
+                await logMessage(`[FASE 2] SEMANTICA RECHAZADA lote=${Math.ceil((batchStart + 1) / BATCH_SIZE)} causa=${causa}` +
+                  (visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id&&causa==='RELACION_FUERA_DE_ENUM'&&
+                    typeof invalida?.semantica?.relacion==='string'
+                    ? ` relacion=${JSON.stringify(invalida.semantica.relacion.slice(0,40))}`:'')+
+                  '; se usa sorteo determinista.');
               }
               phrasesDecision.push(...parsed.phrases);
             }
@@ -5511,6 +5524,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             missingTerms:localSelected?.missingTerms??localDecision?.trace.missingTerms??[],
             colorMode:editorialFamilyColor&&editorialFamilyColor!=='auto'?'manual' as const:'auto' as const,
             seed:resolved.compiled.sceneSpec.direccion.semilla}:undefined
+          const editorialDisplayText=localBankV4Selected
+            ?editorialVisibleExcerptV4(base.localSemantic.localText,context.duration)
+            :aRenderizar[sceneIndex].frase
           if(localDecision)localSelectionTraces.push({sceneId:base.decision.sceneId,trace:localDecision.trace})
           if(localSelected)recentLocalFamilies.push(localSelected.family)
           const selected = !localBankSelected && curatedFamilyCatalog ? selectEditorialModularFamilyAssetsV1({
@@ -5559,7 +5575,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             ...(localBankV4Selected?{contract:EDITORIAL_LOCAL_BANK_V4,
               sceneDecision:v4SceneDecision!}:
               localBankV3Selected?{contract:EDITORIAL_LOCAL_BANK_V3_2}:{}),
-            headline:editorialHeadlineFromLocalTextV1(aRenderizar[sceneIndex].frase,
+            headline:editorialHeadlineFromLocalTextV1(editorialDisplayText,
               resolved.compiled.sceneSpec.text.keyword)}):null
           const typeLedBuilt=localBankV4Selected&&!localSelected&&curatedFamilyCatalog?(()=>{
             const legacy=bindEditorialModularFamilyV1({template:resolved.compiled,
@@ -5567,7 +5583,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               background:'ivory-clean',entry:'word-first',supportTreatment:'paper-card',
               camera:'fixed',particles:'none',color:editorialFamilyColor==='auto'?'#A83B19':
                 (editorialFamilyColor??'#A83B19').toUpperCase(),
-              headline:editorialHeadlineFromLocalTextV1(aRenderizar[sceneIndex].frase,
+              headline:editorialHeadlineFromLocalTextV1(editorialDisplayText,
                 resolved.compiled.sceneSpec.text.keyword)})
             const sceneSpec={...legacy.sceneSpec,presentationProfile:EDITORIAL_LOCAL_BANK_V4,
               editorialTextV4:{revision:EDITORIAL_LOCAL_BANK_V4.revision,sceneDecision:v4SceneDecision!}}

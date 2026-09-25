@@ -1574,6 +1574,7 @@ function App() {
     supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E',
   })
   const [ideaV4Status, setIdeaV4Status] = useState('')
+  const [visualRegenerationStatus,setVisualRegenerationStatus]=useState('')
   const [modularCatalogRoot, setModularCatalogRoot] = useState(()=>{
     try{return window.localStorage.getItem('cipher.editorialCatalogRoot.v2')??''}catch{return ''}
   })
@@ -3043,6 +3044,41 @@ ${res.filePath}`);
     setAssignedTransitions(newAssigned);
   };
 
+  const handleRegenerateEditorialV4 = async () => {
+    const clips=timelineVideoClips.filter(clip=>clip.category==='visual'&&
+      clip.visualRegeneration?.revision==='editorial-local-bank-2026-09-v4')
+    if(!clips.length||isGeneratingAssets)return
+    setIsGeneratingAssets(true)
+    setVisualRegenerationStatus('Regenerando Visuales V4…')
+    const projectAtStart=activeProjectPathRef.current
+    try{
+      const result=await window.electronAPI.regenerateGraphics({mode:'modern-visual',
+        aspectRatio,resolution:exportResolution,
+        modernVisuals:clips.map(clip=>({clipId:clip.id,context:clip.visualRegeneration}))})
+      if(activeProjectPathRef.current!==projectAtStart){
+        setVisualRegenerationStatus('El proyecto cambió; no se reemplazó el timeline.');return
+      }
+      if(!result?.success||!result.clips){
+        setVisualRegenerationStatus('No se pudieron regenerar los Visuales V4.');return
+      }
+      const replacements=new Map(result.clips.filter((clip:any)=>clip?.success&&typeof clip.id==='string')
+        .map((clip:any)=>[clip.id,clip]))
+      if(replacements.size!==clips.length){
+        setVisualRegenerationStatus(`Regeneración incompleta: ${replacements.size}/${clips.length}.`);return
+      }
+      setTimelineVideoClips(previous=>previous.map(clip=>{
+        const replacement:any=replacements.get(clip.id)
+        return replacement?{...clip,name:replacement.name,path:replacement.path,url:replacement.url,
+          durationSeconds:replacement.durationSeconds,category:'visual',
+          visualRegeneration:replacement.visualRegeneration}:clip
+      }))
+      setIsDirty(true)
+      setVisualRegenerationStatus(`${replacements.size}/${clips.length} Visuales V4 regenerados.`)
+    }catch(error){
+      setVisualRegenerationStatus(`Error al regenerar Visuales V4: ${error instanceof Error?error.message:String(error)}`)
+    }finally{setIsGeneratingAssets(false)}
+  }
+
   const handleRegenerateGraphics = async () => {
     const textToUse = aiScript.trim() || originalTranscriptText.trim();
     const voiceClip = timelineVideoClips.find(
@@ -4390,6 +4426,15 @@ ${res.filePath}`);
             </div>
             {['editorial-local-bank-v2','editorial-local-bank-v3','editorial-local-bank-v4'].includes(visualPresentationProfile)&&<div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] text-[10px] text-slate-200 space-y-2">
               <p className="font-semibold">Cipher elige familia, composición, capas y movimiento según el contenido.</p>
+              {visualPresentationProfile==='editorial-local-bank-v4'&&<button type="button"
+                onClick={handleRegenerateEditorialV4}
+                disabled={isGeneratingAssets||!timelineVideoClips.some(clip=>clip.category==='visual'&&
+                  clip.visualRegeneration?.revision==='editorial-local-bank-2026-09-v4')}
+                className="rounded bg-orange-700 px-2 py-1 disabled:opacity-40">
+                Regenerar Visuales V4 guardados
+              </button>}
+              {visualPresentationProfile==='editorial-local-bank-v4'&&visualRegenerationStatus&&
+                <p role="status">{visualRegenerationStatus}</p>}
               <label className="block">Biblioteca editorial local (carpeta con inventory.json)
                 <input value={modularCatalogRoot} onChange={event=>{
                   const value=event.target.value

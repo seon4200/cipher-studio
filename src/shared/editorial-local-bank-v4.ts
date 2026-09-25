@@ -29,6 +29,23 @@ export type EditorialLocalTextPlanV4 = {
   sceneDecision: EditorialLocalSceneDecisionV4
 }
 
+/** A Visual is not a subtitle track. Keep the timed narration intact in sceneDecision,
+ * but show a contiguous, duration-budgeted excerpt so a three-second composition
+ * does not demand reading an entire paragraph. Never invent or rewrite words. */
+export function editorialVisibleExcerptV4(localText:string,durationSeconds:number):string{
+  const firstClause=localText.trim().split(/[;.!?]/u)[0]?.trim()??''
+  const words=firstClause.split(/\s+/u).filter(Boolean)
+  const budget=durationSeconds<=3.25?7:durationSeconds<=4.5?10:13
+  const chosen=words.slice(0,budget)
+  if(words.length>budget){
+    const conjunction=chosen.findIndex((word,index)=>index>=3&&/^(?:y|ni|pero)$/iu.test(word))
+    if(conjunction>=0)chosen.splice(conjunction)
+  }
+  while(chosen.length>2&&/^(?:y|o|de|del|la|el|un|una|para|con)$/iu.test(chosen[chosen.length-1]))
+    chosen.pop()
+  return chosen.join(' ').replace(/[,:;]+$/u,'').trim()||localText.trim()
+}
+
 const keys=(value:unknown,required:readonly string[])=>!!value&&typeof value==='object'&&!Array.isArray(value)&&
   Object.keys(value).sort().join('|')===required.slice().sort().join('|')
 

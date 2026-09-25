@@ -1,6 +1,6 @@
 import { EDITORIAL_LOCAL_BANK_V2, EDITORIAL_LOCAL_FAMILIES_V2,
   EDITORIAL_LOCAL_SUPPORT_IDS_V2, createEditorialLocalBankLayoutV2,
-  editorialLocalHeroVisibleRectV2,
+  editorialLocalHeroVisibleRectV2, editorialLocalHeroScaleV2,
   type EditorialLocalBankPlanV2, type EditorialLocalRelationV2,
   type EditorialLocalVariantV2 } from '../../shared/editorial-local-bank-v2'
 import { MODULAR_CATALOG_REVISION_V1,
@@ -22,6 +22,51 @@ import type { LocalSceneSemanticV1 } from '../../shared/local-scene-semantic'
 import type { ModernLayoutStructureV4 } from '../../shared/visual-layout-v4'
 import { editorialHeadlineFromLocalTextV1 } from './editorial-modular-families-v1'
 import { canonicalNarrativeTerm } from '../../shared/asset-intent'
+import { nativeImage } from 'electron'
+
+/** V4-only: route to the actual outer alpha silhouette after the renderer's
+ * contain + optical-scale transform. The historical rectangular endpoints stay
+ * untouched. A decoded subject is mandatory; a guessed fallback would leave
+ * a connector floating again. */
+function editorialHeroAlphaTargetV4(bytes:Buffer,layout:ReturnType<typeof createEditorialLocalBankLayoutV2>,
+  orientation:'portrait'|'landscape',supportId:string,bounds:ReturnType<typeof subjectBoundsFromPixabayRasterV1>){
+  const envelope=layout.slotLayouts.find(item=>item.slotId==='hero')?.envelope
+  const support=layout.slotLayouts.find(item=>item.slotId===supportId)?.envelope
+  if(!envelope||!support)throw new Error('V4_HERO_ALPHA_LAYOUT_MISSING')
+  const image=nativeImage.createFromBuffer(bytes),{width,height}=image.getSize()
+  const bitmap=image.toBitmap()
+  if(width<16||height<16||bitmap.length<width*height*4)throw new Error('V4_HERO_ALPHA_INVALID')
+  const canvasAspect=orientation==='portrait'?.5625:16/9
+  const contentWidth=Math.min(envelope.width*canvasAspect*.9,envelope.height*.9*bounds.aspectRatio)
+  const contentHeight=contentWidth/bounds.aspectRatio
+  const scale=editorialLocalHeroScaleV2(bounds)
+  const cx=envelope.x+envelope.width/2,cy=envelope.y+envelope.height/2
+  const supportX=(support.x+support.width/2)*canvasAspect
+  const supportY=support.y+support.height*.43
+  const text=layout.textBounds
+  let best:{x:number;y:number;score:number}|undefined
+  const consider=(px:number,py:number)=>{
+    if(bitmap[(py*width+px)*4+3]<128)return
+    const x=cx+((px+.5)/width-.5)*contentWidth*scale/canvasAspect
+    const y=cy+((py+.5)/height-.5)*contentHeight*scale
+    if(x<3||x>97||y<3||y>97||
+      x>=text.x-1&&x<=text.x+text.width+1&&y>=text.y-1&&y<=text.y+text.height+1)return
+    const score=((x*canvasAspect-supportX)**2+(y-supportY)**2)
+    if(!best||score<best.score)best={x,y,score}
+  }
+  // First/last opaque sample on each row and column are external contours,
+  // not edges of transparent holes inside a machine or face.
+  for(let py=0;py<height;py+=4){
+    for(let px=0;px<width;px+=2)if(bitmap[(py*width+px)*4+3]>=128){consider(px,py);break}
+    for(let px=width-1;px>=0;px-=2)if(bitmap[(py*width+px)*4+3]>=128){consider(px,py);break}
+  }
+  for(let px=0;px<width;px+=4){
+    for(let py=0;py<height;py+=2)if(bitmap[(py*width+px)*4+3]>=128){consider(px,py);break}
+    for(let py=height-1;py>=0;py-=2)if(bitmap[(py*width+px)*4+3]>=128){consider(px,py);break}
+  }
+  if(!best)throw new Error('V4_HERO_ALPHA_TARGET_UNAVAILABLE')
+  return {x:best.x,y:best.y,width:.01,height:.01}
+}
 
 const normalized=(text:string)=>text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim()
 const intentRules:readonly {family:ModernLayoutStructureV4;test:RegExp}[]=[
@@ -55,7 +100,8 @@ export type EditorialLocalSelectionTraceV2 = {
   heroCandidates: { term: string; assetId: string; match: string }[]
   supportCandidates: { term: string; assetId: string; match: string }[]
   missingTerms: string[]
-  outcome: 'SELECTED' | 'NO_HERO' | 'INSUFFICIENT_SUPPORTS'
+  layerDecisions?: { role: 'rear-collage' | 'accent-mask' | 'background'; assetId?: string; reason: string }[]
+  outcome: 'SELECTED' | 'NO_HERO' | 'INSUFFICIENT_SUPPORTS' | 'NO_COMPATIBLE_ACCENT'
 }
 /** Content-first selector. A scene without two genuinely matched Supports is not
  * promoted to an illustrated V2 scene. No quotas or fake semantic matches. */
@@ -238,7 +284,42 @@ export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModular
   const result=selectEditorialLocalBankV3Detailed({catalog:input.catalog,semantic,
     recentFamilies:input.recentFamilies,selectionRevision:EDITORIAL_LOCAL_BANK_V3_2.revision,
     minimumSupports:0})
-  return {...result,trace:{...result.trace,literalTerms:missing}}
+  if(!result.selection)return {...result,trace:{...result.trace,literalTerms:missing}}
+  const hero=input.catalog.getById(result.selection.heroId)
+  if(!hero)throw new Error('EDITORIAL_LOCAL_V4_HERO_MISSING')
+  type Entry=NonNullable<typeof hero>
+  const tags=(entry:Entry)=>new Set([
+    ...((entry as Entry&{compatibleRelations?:string[]}).compatibleRelations??[]),
+    (entry as Entry&{semanticFamily?:string}).semanticFamily,
+  ].filter((tag):tag is string=>typeof tag==='string'&&!!tag).map(normalized))
+  const intersects=(entry:Entry,related:Entry)=>[...tags(entry)].some(tag=>tags(related).has(tag))
+  const excluded=(entry:Entry,related:Entry)=>{
+    const exclusions=new Set(((entry as Entry&{exclusions?:string[]}).exclusions??[]).map(normalized))
+    return [...tags(related)].some(tag=>exclusions.has(tag))
+  }
+  const compatible=(entry:Entry,related:Entry)=>intersects(entry,related)&&
+    !excluded(entry,related)&&!excluded(related,entry)
+  const preferred=input.catalog.aspectClass(hero.assetId)==='wide'?'wide':'vertical'
+  const candidates=(role:'rear-collage'|'accent-mask'|'background')=>input.catalog.entries()
+    .filter(entry=>entry.role===role&&input.catalog.getById(entry.assetId)&&
+      (role==='background'||(entry as Entry&{surfaceProfile?:string}).surfaceProfile==='continuous-filled-v1')&&
+      (role!=='accent-mask'||(entry as Entry&{surfaceUse?:string}).surfaceUse==='hero-backing-accent-v1'))
+    .sort((a,b)=>Number(input.catalog.aspectClass(a.assetId)!==preferred)-
+      Number(input.catalog.aspectClass(b.assetId)!==preferred)||a.assetId.localeCompare(b.assetId))
+  const background=candidates('background').find(entry=>compatible(entry,hero))
+  const rear=candidates('rear-collage').find(entry=>compatible(entry,hero)||
+    Boolean(background&&compatible(entry,background)))
+  const accent=candidates('accent-mask').find(entry=>compatible(entry,hero)||
+    Boolean(background&&compatible(entry,background))||Boolean(rear&&compatible(entry,rear)))
+  const layerDecisions:NonNullable<EditorialLocalSelectionTraceV2['layerDecisions']>=[
+    {role:'background',assetId:background?.assetId,reason:background?'HERO_METADATA_RELATION':'NO_COMPATIBLE_BACKGROUND'},
+    {role:'rear-collage',assetId:rear?.assetId,reason:rear?'HERO_OR_BACKGROUND_METADATA_RELATION':'NO_COMPATIBLE_REAR'},
+    {role:'accent-mask',assetId:accent?.assetId,reason:accent?'HERO_OR_LAYER_METADATA_RELATION':'NO_COMPATIBLE_ACCENT'},
+  ]
+  if(!accent)return {selection:null,trace:{...result.trace,literalTerms:missing,
+    layerDecisions,outcome:'NO_COMPATIBLE_ACCENT'}}
+  return {selection:{...result.selection,rearId:rear?.assetId,accentId:accent.assetId,
+    backgroundId:background?.assetId},trace:{...result.trace,literalTerms:missing,layerDecisions}}
 }
 
 /** Catalog is required only when this generation actually requests Visuales. */
@@ -285,7 +366,8 @@ export function bindEditorialLocalBankV2(input:{
   }
   const hero=requireAsset(chosen.heroId,'hero-core')
   const background=input.contract&&chosen.backgroundId?requireAsset(chosen.backgroundId,'background'):undefined
-  const heroBounds=subjectBoundsFromPixabayRasterV1(input.catalog.resolveAsset(hero.curated.assetId))
+  const heroBytes=input.catalog.resolveAsset(hero.curated.assetId)
+  const heroBounds=subjectBoundsFromPixabayRasterV1(heroBytes)
   const aspect=input.catalog.aspectClass(chosen.heroId)
   const supports=chosen.supportIds.map(id=>requireAsset(id,'support'))
   if(!input.contract&&!chosen.frontId)throw new Error('EDITORIAL_LOCAL_V2_FRONT_LAYER_REQUIRED')
@@ -345,7 +427,8 @@ export function bindEditorialLocalBankV2(input:{
       supportsTiming[index].settle)+.015+index*.005
     const routeFor=(layout:typeof portrait,orientation:'portrait'|'landscape')=>{
       try{return routeEditorialFinishV11(layout,from,to,orientation==='landscape',{
-        hero:editorialLocalHeroVisibleRectV2(layout,heroBounds,orientation)})}
+        hero:isV4?editorialHeroAlphaTargetV4(heroBytes,layout,orientation,
+          from==='hero'?to:from,heroBounds):editorialLocalHeroVisibleRectV2(layout,heroBounds,orientation)})}
       catch(error){throw new Error(`EDITORIAL_LOCAL_ROUTE_${orientation.toUpperCase()}:${chosen.family}:${from}>${to}:${error instanceof Error?error.message:String(error)}`)}
     }
     return {from,to,meaning:relationMeaning,
