@@ -2,6 +2,7 @@ import React, { useLayoutEffect, useRef } from 'react'
 import type { RuntimeRenderAssetV2, VisualSceneSpecV2 } from '../../../shared/visual-scene-spec-v2'
 import type { EditorialModularFamiliesPlanV1 } from '../../../shared/editorial-modular-families-v1'
 import type { EditorialLocalBankPlanV2 } from '../../../shared/editorial-local-bank-v2'
+import type { EditorialLocalBankPlanV3 } from '../../../shared/editorial-local-bank-v3'
 import { editorialLocalHeroScaleV2 } from '../../../shared/editorial-local-bank-v2'
 import type { EditorialFinishPlanV11, FinishRoute } from '../../../shared/editorial-finish-v1-1'
 import { sceneSpecReactKeyAny } from '../../../shared/visual-scene-spec-v2'
@@ -96,7 +97,7 @@ function route(from:Rect,to:Rect,obstacles:readonly Rect[]=[],supportToSupport=f
   return {path:`M ${a.x.toFixed(3)} ${a.y.toFixed(3)} C ${c1.x.toFixed(3)} ${c1.y.toFixed(3)} ${c2.x.toFixed(3)} ${c2.y.toFixed(3)} ${b.x.toFixed(3)} ${b.y.toFixed(3)}`,
     tip:b,points:best.points}
 }
-const paperBackground=(plan:EditorialModularFamiliesPlanV1|EditorialLocalBankPlanV2):React.CSSProperties=>({
+const paperBackground=(plan:EditorialModularFamiliesPlanV1|EditorialLocalBankPlanV2|EditorialLocalBankPlanV3):React.CSSProperties=>({
   backgroundColor:plan.paper,
   backgroundImage:plan.background==='ivory-subtle-grid'
     ?'linear-gradient(rgba(88,83,76,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(88,83,76,.045) 1px,transparent 1px)'
@@ -111,6 +112,7 @@ export const EditorialModularFamiliesV1:React.FC<{
 }>=({spec,runtimeAssets,u})=>{
   const plan=spec.editorialBankV2??spec.editorialFamily!
   const finish=spec.editorialBankV2??spec.editorialFinish
+  const v3Background=(spec.editorialBankV2 as EditorialLocalBankPlanV3|undefined)?.backgroundAsset
   const landscape=window.innerWidth>window.innerHeight
   const layout=landscape?(finish?.landscapeLayout??plan.landscapeLayout):spec.layout
   const byId=new Map(runtimeAssets.map(asset=>[asset.slotId,asset.objectUrl]))
@@ -151,7 +153,7 @@ export const EditorialModularFamiliesV1:React.FC<{
     data-qc-layout-family={plan.family} data-qc-empty-hero-frames="0" data-editorial-family={plan.family}
     data-qc-background-motion="none" data-qc-decorator-count="0"
     style={{position:'absolute',inset:0,overflow:'hidden',containerType:'size',fontSynthesis:'none',color:plan.ink,
-      ...paperBackground(plan)}}>
+      ...paperBackground(plan),...(v3Background?{backgroundImage:`url("${url('idea-background')}")`,backgroundSize:'cover',backgroundPosition:'center'}:{})}}>
     {finish&&finish.ambientIntensity!=='off'&&Array.from({length:7},(_,index)=>{
       const x=5+(index*37)%90,y=6+(index*29)%88
       const occupied=(r:Rect)=>x>=r.x-2&&x<=r.x+r.width+2&&y>=r.y-2&&y<=r.y+r.height+2

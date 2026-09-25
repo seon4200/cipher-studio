@@ -27,6 +27,7 @@ import {
   requireAssetProjectRoot,
 } from './openmoji/publish'
 import { readVerifiedRasterProjectAssetContentV1 } from './pixabay-images'
+import { isEditorialLocalBankV3Revision, type EditorialLocalBankPlanV3 } from '../../shared/editorial-local-bank-v3'
 
 export class VisualAssetRenderError extends Error {
   constructor(public code: string, message: string, public details: Record<string, unknown> = {}) {
@@ -180,7 +181,13 @@ function prepareV2(
     ? { version: 2, assets: [] }
     : validateRenderBindingsV2(rawBindings)
   const present = spec.slots.filter((slot): slot is Extract<SceneSlotV2, { state: 'present' }> => slot.state === 'present')
-  const ideaResources = spec.ideaAssembly?.resources ?? spec.editorialFamily?.layers ?? spec.editorialBankV2?.layers ?? []
+  const v3Background=isEditorialLocalBankV3Revision(spec.presentationProfile?.revision)
+    ?(spec.editorialBankV2 as EditorialLocalBankPlanV3|undefined)?.backgroundAsset:undefined
+  const ideaResources = spec.ideaAssembly?.resources ?? spec.editorialFamily?.layers ?? [
+    ...(spec.editorialBankV2?.layers ?? []),
+    ...(v3Background?[{id:'idea-background' as const,sha256:v3Background.sha256,
+      mime:'image/png' as const,alphaMode:'opaque-rectangle' as const}]:[]),
+  ]
   const expectedIds = new Set([...present.map(slot => slot.slotId), ...ideaResources.map(resource => resource.id)])
   if (bindings.assets.some(binding => !expectedIds.has(binding.slotId)))
     fail('VISUAL_RENDER_BINDINGS_UNUSED', 'RenderBindings V15 contiene un locator sin slot present')

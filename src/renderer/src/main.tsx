@@ -1568,7 +1568,7 @@ function App() {
   // un proyecto nuevo reparte exactamente como antes hasta que el usuario mueva el slider.
   const [timelineWeights, setTimelineWeights] = useState<number[]>([...PESOS_POR_DEFECTO])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
-  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3' | 'editorial-idea-assembly-v4' | 'editorial-modular-catalog-v1' | 'editorial-modular-families-v1' | 'editorial-modular-finish-v1-1' | 'editorial-local-bank-v2'>('editorial-local-bank-v2')
+  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3' | 'editorial-idea-assembly-v4' | 'editorial-modular-catalog-v1' | 'editorial-modular-families-v1' | 'editorial-modular-finish-v1-1' | 'editorial-local-bank-v2' | 'editorial-local-bank-v3'>('editorial-local-bank-v2')
   const [ideaV4AssetRoot, setIdeaV4AssetRoot] = useState('')
   const [ideaV4Color, setIdeaV4Color] = useState<IdeaColorIntentV4>({
     supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E',
@@ -1577,6 +1577,9 @@ function App() {
   const [modularCatalogRoot, setModularCatalogRoot] = useState(()=>{
     try{return window.localStorage.getItem('cipher.editorialCatalogRoot.v2')??''}catch{return ''}
   })
+  const [editorialBatchFolder,setEditorialBatchFolder]=useState('')
+  const [editorialBatchStatus,setEditorialBatchStatus]=useState('')
+  const [editorialBatchPreview,setEditorialBatchPreview]=useState<any>(null)
   const [editorialLocalAccent,setEditorialLocalAccent]=useState('auto')
   const [editorialFamilyChoice, setEditorialFamilyChoice] = useState('auto')
   const [editorialFamilyColor, setEditorialFamilyColor] = useState('#A83B19')
@@ -1616,7 +1619,7 @@ function App() {
   const loadModularCatalog = async () => {
     setModularStatus('Verificando la biblioteca local…')
     const result = await window.electronAPI.listEditorialModularCatalogV1(modularCatalogRoot.trim(),
-      visualPresentationProfile==='editorial-local-bank-v2')
+      ['editorial-local-bank-v2','editorial-local-bank-v3'].includes(visualPresentationProfile))
     setModularAssets(result.success ? result.assets ?? [] : [])
     setModularStatus(result.success ? result.health
       ? `${result.health.verified}/${result.health.listed} PNG verificados por SHA y alpha.`+
@@ -2016,7 +2019,8 @@ function App() {
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
         setVisualAssetPack(loadedData.visualAssetPack === 'modern-pack-100-v1+local' ? 'modern-pack-100-v1+local' : loadedData.visualAssetPack === 'modern-pack-100-v1' ? 'modern-pack-100-v1' : 'legacy');
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-local-bank-v2' ? 'editorial-local-bank-v2' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-local-bank-v3' ? 'editorial-local-bank-v3' :
+          loadedData.visualPresentationProfile === 'editorial-local-bank-v2' ? 'editorial-local-bank-v2' :
           loadedData.visualPresentationProfile === 'editorial-modular-finish-v1-1' ? 'editorial-modular-finish-v1-1' :
           loadedData.visualPresentationProfile === 'editorial-modular-families-v1' ? 'editorial-modular-families-v1' :
           loadedData.visualPresentationProfile === 'editorial-modular-catalog-v1' ? 'editorial-modular-catalog-v1' :
@@ -2338,7 +2342,8 @@ function App() {
         // por aqui, asi que se recuperan solos sin tener que borrarlos.
         if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
         setVisualAssetPack(loadedData.visualAssetPack === 'modern-pack-100-v1+local' ? 'modern-pack-100-v1+local' : loadedData.visualAssetPack === 'modern-pack-100-v1' ? 'modern-pack-100-v1' : 'legacy');
-        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-local-bank-v2' ? 'editorial-local-bank-v2' :
+        setVisualPresentationProfile(loadedData.visualPresentationProfile === 'editorial-local-bank-v3' ? 'editorial-local-bank-v3' :
+          loadedData.visualPresentationProfile === 'editorial-local-bank-v2' ? 'editorial-local-bank-v2' :
           loadedData.visualPresentationProfile === 'editorial-modular-finish-v1-1' ? 'editorial-modular-finish-v1-1' :
           loadedData.visualPresentationProfile === 'editorial-modular-families-v1' ? 'editorial-modular-families-v1' :
           loadedData.visualPresentationProfile === 'editorial-modular-catalog-v1' ? 'editorial-modular-catalog-v1' :
@@ -2705,7 +2710,7 @@ ${res.filePath}`);
 
     // Validate the configured PNG catalog before cutting video or asking DeepSeek.
     // This dependency is limited to the opt-in local profile with a Visual quota.
-    if (visualPresentationProfile === 'editorial-local-bank-v2' && (timelineWeights[3] ?? 0) > 0) {
+    if (['editorial-local-bank-v2','editorial-local-bank-v3'].includes(visualPresentationProfile) && (timelineWeights[3] ?? 0) > 0) {
       if (!modularCatalogRoot.trim()) {
         setGenerationError('Para crear Visuales editoriales, selecciona primero la carpeta de la biblioteca que contiene inventory.json. Los clips Stock y Original no necesitan esa carpeta.');
         return;
@@ -2759,10 +2764,10 @@ ${res.filePath}`);
         transcriptSegments,
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
-        visualPresentationProfile, visualAssetPack:visualPresentationProfile==='editorial-local-bank-v2'?'legacy':visualAssetPack,
-        modularCatalogRoot:['editorial-modular-families-v1','editorial-modular-finish-v1-1','editorial-local-bank-v2'].includes(visualPresentationProfile)?modularCatalogRoot.trim():undefined,
+        visualPresentationProfile, visualAssetPack:['editorial-local-bank-v2','editorial-local-bank-v3'].includes(visualPresentationProfile)?'legacy':visualAssetPack,
+        modularCatalogRoot:['editorial-modular-families-v1','editorial-modular-finish-v1-1','editorial-local-bank-v2','editorial-local-bank-v3'].includes(visualPresentationProfile)?modularCatalogRoot.trim():undefined,
         editorialFamilyChoice:['editorial-modular-families-v1','editorial-modular-finish-v1-1'].includes(visualPresentationProfile)?editorialFamilyChoice:undefined,
-        editorialFamilyColor:visualPresentationProfile==='editorial-local-bank-v2'?editorialLocalAccent:
+        editorialFamilyColor:['editorial-local-bank-v2','editorial-local-bank-v3'].includes(visualPresentationProfile)?editorialLocalAccent:
           ['editorial-modular-families-v1','editorial-modular-finish-v1-1'].includes(visualPresentationProfile)?editorialFamilyColor:undefined,
         editorialFamilyEffects:visualPresentationProfile==='editorial-modular-families-v1'?editorialFamilyEffects:undefined,
         editorialFinishControls:visualPresentationProfile==='editorial-modular-finish-v1-1'?editorialFinishControls:undefined,
@@ -4240,7 +4245,7 @@ ${res.filePath}`);
           {/* Mix del montaje Section */}
           {!perfectSyncMode && (
           <div className="p-3 border-b border-[#3a3a3c]/80 bg-[#0D0D0F]/20 space-y-3 min-h-0 overflow-y-auto"
-            style={visualPresentationProfile==='editorial-local-bank-v2'
+            style={['editorial-local-bank-v2','editorial-local-bank-v3'].includes(visualPresentationProfile)
               ? {flex:'2 1 0%'} : {maxHeight:'calc(100vh - 13rem)',flexShrink:0}}
             tabIndex={0} aria-label="Mezcla y construcción del timeline">
             <div className="flex items-center space-x-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -4362,11 +4367,12 @@ ${res.filePath}`);
                 onChange={event => setVisualPresentationProfile(event.target.value as typeof visualPresentationProfile)}
                 className="bg-[#1C1C1E] border border-[#3a3a3c] text-[10px] text-slate-200 rounded-lg px-2 py-1">
                 <option value="editorial-local-bank-v2">Editorial local — dirección automática</option>
+                <option value="editorial-local-bank-v3">Editorial contextual — catálogo extensible</option>
                 <option value="standard">V15 clásico</option>
-                {!['editorial-local-bank-v2','standard'].includes(visualPresentationProfile)&&<option value={visualPresentationProfile}>Perfil histórico: {visualPresentationProfile}</option>}
+                {!['editorial-local-bank-v2','editorial-local-bank-v3','standard'].includes(visualPresentationProfile)&&<option value={visualPresentationProfile}>Perfil histórico: {visualPresentationProfile}</option>}
               </select>
             </div>
-            {visualPresentationProfile==='editorial-local-bank-v2'&&<div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] text-[10px] text-slate-200 space-y-2">
+            {['editorial-local-bank-v2','editorial-local-bank-v3'].includes(visualPresentationProfile)&&<div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] text-[10px] text-slate-200 space-y-2">
               <p className="font-semibold">Cipher elige familia, composición, capas y movimiento según el contenido.</p>
               <label className="block">Biblioteca editorial local (carpeta con inventory.json)
                 <input value={modularCatalogRoot} onChange={event=>{
@@ -4401,6 +4407,27 @@ ${res.filePath}`);
                 ?<input aria-label="HEX personalizado del sistema editorial" value={editorialLocalAccent==='custom'?'':editorialLocalAccent}
                   onChange={event=>setEditorialLocalAccent(event.target.value.toUpperCase())}
                   className="w-full rounded bg-[#1C1C1E] border border-[#3a3a3c] p-1"/>:null}
+              {visualPresentationProfile==='editorial-local-bank-v3'&&<div className="border-t border-[#3a3a3c] pt-2 space-y-2">
+                <p className="font-semibold">Lotes locales reanudables · V3 conserva embebidos los 250 assets originales.</p>
+                <button type="button" onClick={async()=>{
+                  const folder=await window.electronAPI.chooseEditorialCatalogBatchFolder()
+                  if(!folder)return
+                  setEditorialBatchFolder(folder);setEditorialBatchPreview(null)
+                  const result=await window.electronAPI.previewEditorialCatalogBatchV2(modularCatalogRoot.trim(),folder)
+                  if(!result.success||!result.preview){setEditorialBatchStatus(result.error??'No se pudo validar el lote.');return}
+                  setEditorialBatchPreview(result.preview)
+                  setEditorialBatchStatus(`Previsualización: ${result.preview.accepted} nuevos, ${result.preview.metadataRevisions} revisiones, ${result.preview.duplicates} duplicados, ${result.preview.rejected.length} rechazos.`)
+                }} disabled={!modularCatalogRoot.trim()} className="rounded bg-stone-700 px-2 py-1 disabled:opacity-40">Elegir y validar lote</button>
+                {editorialBatchPreview&&<button type="button" onClick={async()=>{
+                  const result=await window.electronAPI.activateEditorialCatalogBatchV2(modularCatalogRoot.trim(),editorialBatchFolder)
+                  setEditorialBatchStatus(result.success?`Lote ${editorialBatchPreview.batchId} activado atómicamente.`:result.error??'Falló la activación; el snapshot previo se conserva.')
+                }} disabled={!editorialBatchFolder||editorialBatchPreview.rejected.length>0||(!editorialBatchPreview.accepted&&!editorialBatchPreview.metadataRevisions)} className="rounded bg-emerald-800 px-2 py-1 disabled:opacity-40">Activar lote validado</button>}
+                <button type="button" onClick={async()=>{
+                  const result=await window.electronAPI.rollbackEditorialCatalogSnapshotV2(modularCatalogRoot.trim())
+                  setEditorialBatchStatus(result.success?'Snapshot anterior restaurado.':result.error??'No se pudo restaurar el snapshot.')
+                }} disabled={!modularCatalogRoot.trim()} className="rounded bg-stone-800 px-2 py-1">Restaurar snapshot anterior</button>
+                <p>{editorialBatchStatus||'Los lotes se previsualizan antes de activarse; los archivos originales no se sobrescriben.'}</p>
+              </div>}
             </div>}
             {['editorial-modular-families-v1','editorial-modular-finish-v1-1'].includes(visualPresentationProfile) && <div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] text-[10px] text-slate-200">
               <label className="block">Raíz local de los 250 assets curados (inventory.json)

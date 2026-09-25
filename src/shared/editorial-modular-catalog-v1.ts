@@ -8,7 +8,7 @@ export const EDITORIAL_MODULAR_CATALOG_V1 = Object.freeze({
 })
 export const MODULAR_CATALOG_REVISION_V1 = 'editorial-modular-catalog-2026-09-v1' as const
 export const MODULAR_CATALOG_PACK_ID_V1 = 'editorial-modular-catalog-v1-250' as const
-export type ModularCatalogRoleV1 = 'support' | 'hero-core' | 'rear-collage' | 'front-collage' | 'accent-mask'
+export type ModularCatalogRoleV1 = 'support' | 'hero-core' | 'rear-collage' | 'front-collage' | 'accent-mask' | 'background'
 export type ModularRecipeV1 = 'vertical' | 'wide' | 'compact' | 'organic'
 export type ModularCatalogPilotInputV1 = {
   catalogRoot: string
@@ -30,6 +30,8 @@ export type CuratedModularAssetV1 = {
   primaryWordEs: string
   sha256: string
   colorCapability: 'none' | 'alpha-mask'
+  /** Import-time topology proof for newly admitted full paper/accent surfaces. */
+  surfaceProfile?: 'continuous-filled-v1'
 }
 
 const registry = registryJson as { id: string; revision: string; manifestSha256:string; assets: CuratedModularAssetV1[] }

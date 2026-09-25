@@ -16,6 +16,8 @@ import { EDITORIAL_MODULAR_CATALOG_V1 } from './editorial-modular-catalog-v1'
 import { EDITORIAL_MODULAR_FAMILIES_V1 } from './editorial-modular-families-v1'
 import { EDITORIAL_FINISH_V1_1 } from './editorial-finish-v1-1'
 import { EDITORIAL_LOCAL_BANK_V2 } from './editorial-local-bank-v2'
+import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_HISTORICAL,
+  EDITORIAL_LOCAL_BANK_V3_REVISIONS } from './editorial-local-bank-v3'
 
 /** An opt-in pixel contract. Historical V15 specs omit this field entirely. */
 export const EDITORIAL_MOTION_PROFILE_V1 = Object.freeze({
@@ -44,7 +46,8 @@ export type EditorialMotionProfile = EditorialMotionProfileV1 | typeof EDITORIAL
   typeof EDITORIAL_EXPLAINER_LIGHT_V1 | typeof EDITORIAL_EXPLAINER_LIGHT_V2 | typeof EDITORIAL_EXPLAINER_V3 |
   typeof EDITORIAL_IDEA_ASSEMBLY_V1 | typeof EDITORIAL_IDEA_ASSEMBLY_V2 | typeof EDITORIAL_IDEA_ASSEMBLY_V3 |
   typeof EDITORIAL_IDEA_ASSEMBLY_V4 | typeof EDITORIAL_IDEA_ASSEMBLY_V4_1 | typeof EDITORIAL_MODULAR_CATALOG_V1 |
-  typeof EDITORIAL_MODULAR_FAMILIES_V1 | typeof EDITORIAL_FINISH_V1_1 | typeof EDITORIAL_LOCAL_BANK_V2
+  typeof EDITORIAL_MODULAR_FAMILIES_V1 | typeof EDITORIAL_FINISH_V1_1 |
+  typeof EDITORIAL_LOCAL_BANK_V2 | typeof EDITORIAL_LOCAL_BANK_V3 | typeof EDITORIAL_LOCAL_BANK_V3_HISTORICAL
 export const EDITORIAL_MOTION_CUES = ['protagonist', 'comparison', 'process', 'cause', 'datum', 'typographic'] as const
 export type EditorialMotionCue = typeof EDITORIAL_MOTION_CUES[number]
 
@@ -92,7 +95,9 @@ export function validateEditorialMotionProfile(value: unknown): EditorialMotionP
         (value as EditorialMotionProfile).id === EDITORIAL_FINISH_V1_1.id &&
         (value as EditorialMotionProfile).revision === EDITORIAL_FINISH_V1_1.revision ||
         (value as EditorialMotionProfile).id === EDITORIAL_LOCAL_BANK_V2.id &&
-        (value as EditorialMotionProfile).revision === EDITORIAL_LOCAL_BANK_V2.revision))
+        (value as EditorialMotionProfile).revision === EDITORIAL_LOCAL_BANK_V2.revision ||
+        (value as EditorialMotionProfile).id === EDITORIAL_LOCAL_BANK_V3.id &&
+        EDITORIAL_LOCAL_BANK_V3_REVISIONS.includes((value as EditorialMotionProfile).revision as typeof EDITORIAL_LOCAL_BANK_V3_REVISIONS[number])))
     throw new Error('EDITORIAL_MOTION_PROFILE_INVALID')
   return value as EditorialMotionProfile
 }

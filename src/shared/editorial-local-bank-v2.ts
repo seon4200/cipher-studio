@@ -49,7 +49,7 @@ export type EditorialLocalEventV2 = {
   intensity: FinishIntensity
 }
 export type EditorialLocalBankPlanV2 = {
-  revision: typeof EDITORIAL_LOCAL_BANK_V2.revision
+  revision: string
   catalogRevision: string
   family: ModernLayoutStructureV4
   layoutVariant: EditorialLocalVariantV2
@@ -182,7 +182,7 @@ const routeValid=(route:FinishRoute)=>keys(route,['geometry','points'])&&
   route.points.length>=2&&route.points.length<=128&&route.points.every(point=>
     keys(point,['x','y'])&&Number.isFinite(point.x)&&Number.isFinite(point.y)&&
     point.x>=0&&point.x<=100&&point.y>=0&&point.y<=100)
-export function validateEditorialLocalBankPlanV2(value:unknown):EditorialLocalBankPlanV2 {
+export function validateEditorialLocalBankPlanV2(value:unknown,options:{allowMissingFront?:boolean;allowMissingRear?:boolean}={}):EditorialLocalBankPlanV2 {
   if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('EDITORIAL_LOCAL_BANK_PLAN_INVALID')
   const p=value as EditorialLocalBankPlanV2
   if(!keys(p,['revision','catalogRevision','family','layoutVariant','portraitLayout','landscapeLayout',
@@ -192,7 +192,7 @@ export function validateEditorialLocalBankPlanV2(value:unknown):EditorialLocalBa
     p.catalogRevision!==MODULAR_CATALOG_REVISION_V1||!EDITORIAL_LOCAL_FAMILIES_V2.includes(p.family)||
     !['base','inverse'].includes(p.layoutVariant)||!p.hero||!sha(p.hero.sha256)||
     !Array.isArray(p.supports)||p.supports.length<2||p.supports.length>6||
-    !Array.isArray(p.layers)||p.layers.length!==3||!Array.isArray(p.relations)||
+    !Array.isArray(p.layers)||p.layers.length<1||p.layers.length>3||!Array.isArray(p.relations)||
     !Array.isArray(p.events)||!Array.isArray(p.beats)||p.beats.length!==3||
     !color(p.accent)||!color(p.supportTint)||p.ink!=='#11110F'||
     !['#F0EEE8','#FAF9F6'].includes(p.paper)||
@@ -229,17 +229,23 @@ export function validateEditorialLocalBankPlanV2(value:unknown):EditorialLocalBa
   if(!keys(p.hero,['assetId','sha256','enter','settle'])||
     !unit(p.hero.enter)||!unit(p.hero.settle)||p.hero.enter>=p.hero.settle)
     throw new Error('EDITORIAL_LOCAL_BANK_HERO_INVALID')
-  const expected=new Set(['idea-rear','idea-accent','idea-front'])
+  const allowedLayers=new Set(['idea-rear','idea-accent',...(options.allowMissingFront?[]:['idea-front'])])
+  const requiredLayers=new Set([
+    ...(options.allowMissingRear?[]:['idea-rear']),
+    'idea-accent',
+    ...(options.allowMissingFront?[]:['idea-front']),
+  ])
   for(const layer of p.layers){
     if(!keys(layer,['id','sha256','mime','alphaMode','rect','zIndex','timing','from',
       'catalogAssetId','catalogSha256','colorCapability','accentTreatment'])||
-      !expected.delete(layer.id)||!sha(layer.sha256)||layer.sha256!==layer.catalogSha256||
+      !allowedLayers.delete(layer.id)||!sha(layer.sha256)||layer.sha256!==layer.catalogSha256||
       !layer.catalogAssetId||layer.mime!=='image/png'||layer.alphaMode!=='useful-alpha'||
       (layer.id==='idea-accent'?layer.colorCapability!=='accent-primary'||layer.accentTreatment!=='alpha-mask':
         layer.colorCapability!=='none'||layer.accentTreatment!=='none'))
       throw new Error('EDITORIAL_LOCAL_BANK_LAYER_INVALID')
+    requiredLayers.delete(layer.id)
   }
-  if(expected.size)throw new Error('EDITORIAL_LOCAL_BANK_LAYER_MISSING')
+  if(requiredLayers.size)throw new Error('EDITORIAL_LOCAL_BANK_LAYER_MISSING')
   for(const b of p.beats)if(!keys(b,['id','start','end'])||
     !['establish','develop','read'].includes(b.id)||!unit(b.start)||!unit(b.end)||b.start>=b.end)
     throw new Error('EDITORIAL_LOCAL_BANK_BEAT_INVALID')

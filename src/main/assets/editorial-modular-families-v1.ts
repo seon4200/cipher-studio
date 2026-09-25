@@ -2,12 +2,12 @@ import { EDITORIAL_MODULAR_FAMILIES_V1, createEditorialModularFamilyLayoutV1,
   type EditorialBackgroundV1, type EditorialEntryV1, type EditorialFamilyIdV1,
   type EditorialLayoutVariantV1, type EditorialModularFamiliesPlanV1, type EditorialRelationV1,
   type EditorialSupportTreatmentV1 } from '../../shared/editorial-modular-families-v1'
-import { getCuratedModularAssetV1, resolveModularTitleAccentV1 } from '../../shared/editorial-modular-catalog-v1'
+import { resolveModularTitleAccentV1 } from '../../shared/editorial-modular-catalog-v1'
 import { IDEA_SUPPORT_IDS, type IdeaAssemblyResource } from '../../shared/editorial-idea-assembly-v1'
 import { sceneSpecPixelIdentityAny, validateRenderBindingsAny, validateVisualSceneSpecV2,
   createRoleMotionV2, type RenderBindingsV2, type SceneSlotV2, type VisualSceneSpecV2 } from '../../shared/visual-scene-spec-v2'
 import type { ImportedModularAssetV1 } from './editorial-modular-catalog-v1'
-import { CuratedModularCatalogV1 } from './editorial-modular-catalog-v1'
+import type { ModularCatalogProviderV2 } from './editorial-modular-catalog-v2'
 import { subjectBoundsFromPixabayRasterV1 } from './pixabay-images'
 import type { LocalSceneSemanticV1 } from '../../shared/local-scene-semantic'
 import { EDITORIAL_FINISH_V1_1, createEditorialFinishV11, type FinishFont,
@@ -36,7 +36,7 @@ export function editorialHeadlineFromLocalTextV1(localText:string,keyword:string
  * adapter freezes only semantic choices and pixel geometry, never local paths. */
 export function bindEditorialModularFamilyV1(input: {
   template: {sceneSpec:VisualSceneSpecV2;graphicData:Record<string,any>}
-  catalog:CuratedModularCatalogV1
+  catalog:ModularCatalogProviderV2
   imported: Record<string,ImportedModularAssetV1>
   family: EditorialFamilyIdV1
   layoutVariant?:EditorialLayoutVariantV1
@@ -64,7 +64,7 @@ export function bindEditorialModularFamilyV1(input: {
       new Set(input.supportIds).size!==input.supportIds.length)
     throw new Error('EDITORIAL_FAMILY_INPUT_INVALID')
   const requireRole=(assetId:string,role:ImportedModularAssetV1['curated']['role'])=>{
-    const selected=input.imported[assetId],approved=getCuratedModularAssetV1(assetId)
+    const selected=input.imported[assetId],approved=input.catalog.getById(assetId)
     if(!selected || !approved || approved.role!==role || selected.curated.assetId!==assetId ||
       selected.asset.id!==assetId || selected.asset.sha256!==approved.sha256)
       throw new Error('EDITORIAL_FAMILY_ASSET_NOT_CURATED:'+assetId)
@@ -186,7 +186,7 @@ export function bindEditorialModularFinishV11(input: Parameters<typeof bindEdito
 
 /** Content-first, exact-alias selection. No padding with unrelated icons. */
 export function selectEditorialModularFamilyAssetsV1(input:{
-  catalog:CuratedModularCatalogV1;semantic:LocalSceneSemanticV1;sceneIndex:number;
+  catalog:ModularCatalogProviderV2;semantic:LocalSceneSemanticV1;sceneIndex:number;
   previousFamily?:EditorialFamilyIdV1;preferredFamily?:EditorialFamilyIdV1
 }) {
   const localText=input.semantic.localText.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
