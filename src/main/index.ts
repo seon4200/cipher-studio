@@ -75,9 +75,12 @@ import { bindEditorialModularFamilyV1, editorialHeadlineFromLocalTextV1,
   bindEditorialModularFinishV11, selectEditorialModularFamilyAssetsV1 } from './assets/editorial-modular-families-v1'
 import { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-families-v1'
 import { EDITORIAL_LOCAL_BANK_V2 } from '../shared/editorial-local-bank-v2'
-import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_2 } from '../shared/editorial-local-bank-v3'
+import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_2,
+  isEditorialLocalBankV3Revision } from '../shared/editorial-local-bank-v3'
+import { EDITORIAL_LOCAL_BANK_V4 } from '../shared/editorial-local-bank-v4'
 import { bindEditorialLocalBankV2, preflightEditorialLocalCatalogV2, preflightEditorialLocalCatalogV3,
-  selectEditorialLocalBankV2Detailed, selectEditorialLocalBankV3Detailed } from './assets/editorial-local-bank-v2'
+  selectEditorialLocalBankV2Detailed, selectEditorialLocalBankV3Detailed,
+  selectEditorialLocalBankV4Detailed } from './assets/editorial-local-bank-v2'
 import { CuratedModularCatalogV2, previewEditorialCatalogBatchV2,
   activateEditorialCatalogBatchV2, rollbackEditorialCatalogSnapshotV2,
   type ModularCatalogProviderV2 } from './assets/editorial-modular-catalog-v2'
@@ -180,12 +183,15 @@ export { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-famil
 export { bindEditorialLocalBankV2, selectEditorialLocalBankV2 } from './assets/editorial-local-bank-v2'
 export { selectEditorialLocalBankV2Detailed } from './assets/editorial-local-bank-v2'
 export { selectEditorialLocalBankV3Detailed } from './assets/editorial-local-bank-v2'
+export { selectEditorialLocalBankV4Detailed } from './assets/editorial-local-bank-v2'
+export { preflightEditorialLocalCatalogV3 } from './assets/editorial-local-bank-v2'
 export { preflightEditorialLocalCatalogV2 } from './assets/editorial-local-bank-v2'
 export { CuratedModularCatalogV2, previewEditorialCatalogBatchV2,
   activateEditorialCatalogBatchV2, rollbackEditorialCatalogSnapshotV2 } from './assets/editorial-modular-catalog-v2'
 export { EDITORIAL_LOCAL_BANK_V2 } from '../shared/editorial-local-bank-v2'
 export { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_2, EDITORIAL_LOCAL_CATALOG_REVISION_V3,
   EDITORIAL_LOCAL_FAMILIES_V3, validateEditorialLocalBankPlanV3 } from '../shared/editorial-local-bank-v3'
+export { EDITORIAL_LOCAL_BANK_V4, validateEditorialLocalBankPlanV4 } from '../shared/editorial-local-bank-v4'
 export { EDITORIAL_LOCAL_FAMILIES_V2, createEditorialLocalBankLayoutV2 } from '../shared/editorial-local-bank-v2'
 export * from '../shared/editorial-finish-v1-1'
 export { validateVisualSceneSpecV2, validateRenderBindingsAny, sceneSpecPixelIdentityAny } from '../shared/visual-scene-spec-v2'
@@ -4219,6 +4225,16 @@ ipcMain.handle('list-editorial-modular-catalog-v1', async (_event, catalogRoot: 
   } catch (error) { return { success:false, error:error instanceof Error ? error.message : String(error) } }
 })
 
+ipcMain.handle('list-editorial-modular-catalog-v2', async (_event, catalogRoot:string, verifyAll=false) => {
+  try {
+    const catalog=new CuratedModularCatalogV2(catalogRoot)
+    const health=verifyAll?catalog.verifyAll():undefined
+    if(health?.failures.length)throw new Error(`CATALOG_SHA_OR_FILE_INVALID:${health.failures[0].assetId}`)
+    return {success:true,assets:catalog.entries().map(item=>({assetId:item.assetId,
+      role:item.role,primaryWordEs:item.primaryWordEs,code:item.code})),...(health?{health}:{})}
+  } catch(error){return {success:false,error:error instanceof Error?error.message:String(error)}}
+})
+
 ipcMain.handle('choose-editorial-modular-catalog-root', async () => {
   try {
     if (!win) return { success: false, error: 'Ventana no disponible' }
@@ -4393,14 +4409,14 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     return { success: false, error: 'Pack visual no reconocido' }
   if (visualPresentationProfile === 'editorial-idea-assembly-v4' || visualPresentationProfile === 'editorial-modular-catalog-v1')
     return { success: false, error: 'Este perfil es un piloto de una escena; usa su botón de generación opt-in.' }
-  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1', 'families-motion-v2', 'editorial-explainer-light-v1', 'editorial-explainer-light-v2', 'editorial-explainer-v3', EDITORIAL_MODULAR_FAMILIES_V1.id,EDITORIAL_FINISH_V1_1.id,EDITORIAL_LOCAL_BANK_V2.id,EDITORIAL_LOCAL_BANK_V3.id].includes(visualPresentationProfile))
+  if (visualPresentationProfile !== undefined && !['standard', 'editorial-hybrid-v1', 'visual-recovery-v1', 'premium-type-color-v1', 'families-motion-v2', 'editorial-explainer-light-v1', 'editorial-explainer-light-v2', 'editorial-explainer-v3', EDITORIAL_MODULAR_FAMILIES_V1.id,EDITORIAL_FINISH_V1_1.id,EDITORIAL_LOCAL_BANK_V2.id,EDITORIAL_LOCAL_BANK_V3.id,EDITORIAL_LOCAL_BANK_V4.id].includes(visualPresentationProfile))
     throw new Error('VISUAL_PRESENTATION_PROFILE_INVALID');
   if ([EDITORIAL_MODULAR_FAMILIES_V1.id,EDITORIAL_FINISH_V1_1.id].includes(visualPresentationProfile) &&
       (editorialFamilyChoice !== undefined && !['auto','marcoPoster','editorial','partidoVertical','cuaderno','constelacion','cascada'].includes(editorialFamilyChoice) ||
        editorialFamilyEffects !== undefined && !['none','subtle'].includes(editorialFamilyEffects) ||
        editorialFamilyColor !== undefined && !/^#[0-9A-Fa-f]{6}$/.test(editorialFamilyColor)))
     throw new Error('EDITORIAL_FAMILY_USER_OPTIONS_INVALID');
-  if (visualPresentationProfile === EDITORIAL_LOCAL_BANK_V2.id &&
+  if ([EDITORIAL_LOCAL_BANK_V2.id,EDITORIAL_LOCAL_BANK_V4.id].includes(visualPresentationProfile) &&
       editorialFamilyColor !== undefined && editorialFamilyColor !== 'auto' &&
       !/^#[0-9A-Fa-f]{6}$/.test(editorialFamilyColor))
     throw new Error('EDITORIAL_LOCAL_ACCENT_INVALID');
@@ -4546,6 +4562,12 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       validatedLocalCatalog = preflightEditorialLocalCatalogV2(modularCatalogRoot,targetVisualClips)
     if (visualPresentationProfile === EDITORIAL_LOCAL_BANK_V3.id)
       validatedLocalCatalog = preflightEditorialLocalCatalogV3(modularCatalogRoot,targetVisualClips)
+    if (visualPresentationProfile === EDITORIAL_LOCAL_BANK_V4.id) {
+      const catalog=preflightEditorialLocalCatalogV3(modularCatalogRoot,targetVisualClips)
+      validatedLocalCatalog=catalog
+      if(catalog){const health=catalog.verifyAll()
+        if(health.failures.length)throw new Error(`Biblioteca editorial alterada o incompleta: ${health.failures[0].assetId}`)}
+    }
 
     await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ` +
       `ia=${targetIaClips}, visual=${targetVisualClips}/${totalVisualClipsCount}`);
@@ -5448,9 +5470,10 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         // All semantic work completes before hashing/rendering. Renderer gets only the
         // materialized SceneSpec and its locator-only bindings; its trace remains diagnostic.
         if (!PROYECTO_VISUAL) throw new Error('La generación V15 requiere projectRoot explícito');
-        const localBankSelected = [EDITORIAL_LOCAL_BANK_V2.id,EDITORIAL_LOCAL_BANK_V3.id].includes(visualPresentationProfile)
-        const localBankV3Selected = visualPresentationProfile===EDITORIAL_LOCAL_BANK_V3.id
-        const editorialFamiliesSelected = [EDITORIAL_MODULAR_FAMILIES_V1.id,EDITORIAL_FINISH_V1_1.id,EDITORIAL_LOCAL_BANK_V2.id,EDITORIAL_LOCAL_BANK_V3.id].includes(visualPresentationProfile)
+        const localBankSelected = [EDITORIAL_LOCAL_BANK_V2.id,EDITORIAL_LOCAL_BANK_V3.id,EDITORIAL_LOCAL_BANK_V4.id].includes(visualPresentationProfile)
+        const localBankV4Selected = visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id
+        const localBankV3Selected = visualPresentationProfile===EDITORIAL_LOCAL_BANK_V3.id||localBankV4Selected
+        const editorialFamiliesSelected = [EDITORIAL_MODULAR_FAMILIES_V1.id,EDITORIAL_FINISH_V1_1.id,EDITORIAL_LOCAL_BANK_V2.id,EDITORIAL_LOCAL_BANK_V3.id,EDITORIAL_LOCAL_BANK_V4.id].includes(visualPresentationProfile)
         const curatedFamilyCatalog = editorialFamiliesSelected && aRenderizar.length>0
           ? validatedLocalCatalog ?? (localBankV3Selected?new CuratedModularCatalogV2(String(modularCatalogRoot??'')):
               new CuratedModularCatalogV1(String(modularCatalogRoot ?? ''))) : null
@@ -5469,9 +5492,12 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         const localSelectionTraces: {sceneId:string;trace:import('./assets/editorial-local-bank-v2').EditorialLocalSelectionTraceV2}[]=[]
         const solicitudesGraficas = resueltosModernos.map(({ context, resolved }, sceneIndex) => {
           const base = resolved.base;
-          const localDecision = localBankSelected && curatedFamilyCatalog ? (localBankV3Selected?
+          const localDecision = localBankSelected && curatedFamilyCatalog ? (localBankV4Selected?
+            selectEditorialLocalBankV4Detailed({catalog:curatedFamilyCatalog as CuratedModularCatalogV2,
+              semantic:base.localSemantic,recentFamilies:recentLocalFamilies}):localBankV3Selected?
             selectEditorialLocalBankV3Detailed({catalog:curatedFamilyCatalog,semantic:base.localSemantic,
-              recentFamilies:recentLocalFamilies,selectionRevision:EDITORIAL_LOCAL_BANK_V3_2.revision}):
+              recentFamilies:recentLocalFamilies,selectionRevision:EDITORIAL_LOCAL_BANK_V3_2.revision,
+              ...(localBankV4Selected?{minimumSupports:0}:{} )}):
             selectEditorialLocalBankV2Detailed({catalog:curatedFamilyCatalog,semantic:base.localSemantic,recentFamilies:recentLocalFamilies})) : null
           const localSelected=localDecision?.selection??null
           if(localDecision)localSelectionTraces.push({sceneId:base.decision.sceneId,trace:localDecision.trace})
@@ -5519,7 +5545,14 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             template:resolved.compiled,catalog:curatedFamilyCatalog,imported,
             selection:localSelected,color:editorialFamilyColor==='auto'?'#A83B19':
               (editorialFamilyColor??'#A83B19').toUpperCase(),
-            ...(localBankV3Selected?{contract:EDITORIAL_LOCAL_BANK_V3_2}:{}),
+            ...(localBankV4Selected?{contract:EDITORIAL_LOCAL_BANK_V4,
+              sceneDecision:{sceneId:base.localSemantic.sceneId,localText:base.localSemantic.localText,
+                anchor:base.localSemantic.anchor??'',evidence:base.localSemantic.directEvidence.map(item=>item.query),
+                durationSeconds:context.duration,selectionReason:localSelected.reason,
+                familyReason:localSelected.reason,missingTerms:localSelected.missingTerms,
+                colorMode:editorialFamilyColor&&editorialFamilyColor!=='auto'?'manual' as const:'auto' as const,
+                seed:resolved.compiled.sceneSpec.direccion.semilla}}:
+              localBankV3Selected?{contract:EDITORIAL_LOCAL_BANK_V3_2}:{}),
             headline:editorialHeadlineFromLocalTextV1(aRenderizar[sceneIndex].frase,
               resolved.compiled.sceneSpec.text.keyword)}):null
           const compiled = localBuilt ?? familyBuilt ?? resolved.compiled
@@ -5539,6 +5572,15 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             renderBindings: compiled.renderBindings,
             projectRoot: PROYECTO_VISUAL ?? undefined,
             diagnosticSceneId: base.decision.sceneId,
+            catalogDecision:localBankV4Selected?{
+              requestedProfile:EDITORIAL_LOCAL_BANK_V4.id,
+              effectiveRevision:compiled.sceneSpec.presentationProfile?.revision??'historical-default',
+              trace:localDecision?.trace??null,
+              selection:localSelected?{heroId:localSelected.heroId,supportIds:localSelected.supportIds,
+                rearId:localSelected.rearId??null,accentId:localSelected.accentId,
+                frontId:localSelected.frontId??null,backgroundId:localSelected.backgroundId??null,
+                family:localSelected.family,reason:localSelected.reason}:null,
+              fallbackReason:localSelected?null:localDecision?.trace.outcome??'CATALOG_UNAVAILABLE'}:null,
             resolverTrace: base.trace,
             motionGraphicsTrace: resolved.trace,
             motionGraphicsMetrics: resolved.metrics,
@@ -5554,7 +5596,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             inputFallback: base.inputFallback,
             // Diagnostic/state-only context. It stays outside sceneSpec, hash and renderer.
             visualRegeneration: localBuilt || familyBuilt ? {version:3,
-              revision:localBuilt?(localBankV3Selected?EDITORIAL_LOCAL_BANK_V3_2.revision:EDITORIAL_LOCAL_BANK_V2.revision):
+              revision:localBuilt?(localBankV4Selected?EDITORIAL_LOCAL_BANK_V4.revision:
+                localBankV3Selected?EDITORIAL_LOCAL_BANK_V3_2.revision:EDITORIAL_LOCAL_BANK_V2.revision):
                 visualPresentationProfile===EDITORIAL_FINISH_V1_1.id?EDITORIAL_FINISH_V1_1.revision:EDITORIAL_MODULAR_FAMILIES_V1.revision,
               sceneId:context.sceneId,duration:context.duration,sistema:context.sistema,
               graphicData:(localBuilt ?? familyBuilt)!.graphicData,
@@ -5642,6 +5685,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               motionGraphics: request.motionGraphicsTrace,
               motionGraphicsMetrics: request.motionGraphicsMetrics,
               sceneSpecIdentity,
+              ...(request.catalogDecision?{catalogDecision:request.catalogDecision}:{}),
               render: {
                 outcome: qc ? 'qc-rejected' : 'render-failed',
                 hash: qc?.hash ?? resVis.hashes?.[i] ?? null,
@@ -5706,6 +5750,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             motionGraphics: request.motionGraphicsTrace,
             motionGraphicsMetrics: request.motionGraphicsMetrics,
             sceneSpecIdentity,
+            ...(request.catalogDecision?{catalogDecision:request.catalogDecision}:{}),
             visualRegeneration: request.visualRegeneration,
             render: {
               outcome: 'materialized',
@@ -6368,8 +6413,10 @@ async function regenerateModernVisuals(event: any, params: any) {
       const saved = entry.context as any
       const spec = sceneSpecFromGraphicDataAny(saved.graphicData)
       if (!spec || spec.renderSpecVersion !== 2 ||
-          ![EDITORIAL_MODULAR_FAMILIES_V1.revision,EDITORIAL_FINISH_V1_1.revision,
-            EDITORIAL_LOCAL_BANK_V2.revision].includes(spec.presentationProfile?.revision as typeof EDITORIAL_MODULAR_FAMILIES_V1.revision) ||
+          !([EDITORIAL_MODULAR_FAMILIES_V1.revision,EDITORIAL_FINISH_V1_1.revision,
+            EDITORIAL_LOCAL_BANK_V2.revision,EDITORIAL_LOCAL_BANK_V4.revision].includes(
+              spec.presentationProfile?.revision as typeof EDITORIAL_MODULAR_FAMILIES_V1.revision)||
+            isEditorialLocalBankV3Revision(spec.presentationProfile?.revision)) ||
           saved.revision !== spec.presentationProfile?.revision)
         throw new Error('EDITORIAL_FAMILY_REPLAY_INVALID')
       validateRenderBindingsAny(saved.renderBindings,spec)
