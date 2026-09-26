@@ -90,7 +90,7 @@ app.whenReady().then(async()=>{
     const base=(await b.resolveModernVisualGenerationBatchV2({contexts:[context],projectRoot}))[0].resolved.compiled
     const ids=[selection.heroId,...selection.supportIds,selection.rearId,selection.accentId,selection.backgroundId].filter(Boolean)
     const imported=Object.fromEntries([...new Set(ids)].map(id=>[id,catalog.publish(projectRoot,id)]))
-    const bind=(color='#A83B19',colorMode='auto',semanticRelation,localText=semantic.localText)=>b.bindEditorialLocalBankV2({template:base,catalog,imported,selection,color,
+    const bind=(color='#A83B19',colorMode='auto',semanticRelation,localText=semantic.localText,template=base)=>b.bindEditorialLocalBankV2({template,catalog,imported,selection,color,
       contract:b.EDITORIAL_LOCAL_BANK_V4,
       semanticRelation,
       sceneDecision:{sceneId:semantic.sceneId,localText,anchor:semantic.anchor??'',
@@ -99,6 +99,13 @@ app.whenReady().then(async()=>{
         colorMode,seed:51721},
       headline:{connector:'El',keyword:'CROMATÓGRAFO',closing:'analiza una muestra.'}})
     const built=bind(),replayed=bind(),recolored=bind('#238C87','manual')
+    const noClosingTimingTemplate=structuredClone(base)
+    delete noClosingTimingTemplate.sceneSpec.text.closing
+    delete noClosingTimingTemplate.sceneSpec.text.timing.closingStart
+    const restoredClosing=bind('#A83B19','auto',undefined,semantic.localText,noClosingTimingTemplate)
+    assert.equal(restoredClosing.sceneSpec.text.closing,'analiza una muestra.')
+    assert(restoredClosing.sceneSpec.text.timing.closingStart>=
+      restoredClosing.sceneSpec.text.timing.keywordStart,'V4_CLOSING_REQUIRES_PERSISTED_BEAT')
     assert.deepEqual(built.sceneSpec.editorialBankV2.relations,[],
       'REJECTED_OR_MISSING_SEMANTIC_RELATION_MUST_NOT_DRAW_GENERIC_CONNECTS')
     assert.deepEqual(built.sceneSpec.editorialBankV2.relationDecision,

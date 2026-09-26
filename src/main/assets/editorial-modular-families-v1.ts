@@ -41,6 +41,10 @@ export function editorialTextWithoutEmptyClosingV4(source:VisualSceneSpecV2['tex
   if(!headline.closing?.trim()){
     delete text.closing
     text.timing={...source.timing,closingStart:undefined}
+  }else if(source.timing.closingStart===undefined){
+    // Some resolved templates are type-led and have no prior closing beat.
+    // A newly visible V4 closing must carry its own finite, persisted timing.
+    text.timing={...source.timing,closingStart:Math.min(1,source.timing.keywordStart+.08)}
   }
   return text
 }
