@@ -63,6 +63,14 @@ app.whenReady().then(async()=>{
     const recovered=b.selectEditorialLocalBankV4Detailed({catalog,semantic:missingSemantic})
     assert.equal(recovered.selection?.heroId,selection.heroId,'LITERAL_TRANSCRIPT_HERO_RECOVERY')
     assert(recovered.trace.literalTerms?.length,'LITERAL_EVIDENCE_RECORDED')
+    const semanticMotor=b.createLocalSceneSemanticV1({sceneId:'v4-semantic-before-literal',start:0,end:3,
+      transcriptSegments:[{start:0,end:3,text:'Un mecánico escucha un motor y documenta qué pieza vibra.'}],
+      anchor:'mecánico',concepts:[{label:'mecánico',scope:'scene'},
+        {label:'motor',scope:'scene'},{label:'registro',scope:'scene'}]})
+    const motorDecision=b.selectEditorialLocalBankV4Detailed({catalog,semantic:semanticMotor})
+    assert.equal(catalog.getById(motorDecision.selection.heroId).primaryWordEs,'Motor',
+      'LITERAL_RECOVERY_MUST_NOT_BEAT_VALIDATED_SCENE_CONCEPT')
+    assert.equal(motorDecision.trace.heroSelectionMechanism,'semantic-concept')
     const abstractSemantic=b.createLocalSceneSemanticV1({sceneId:'v4-abstract',start:0,end:3,
       transcriptSegments:[{start:0,end:3,text:'Ninguna certeza basta para responder.'}],
       anchor:'certeza',concepts:[{label:'certeza',scope:'scene'}]})
@@ -82,20 +90,114 @@ app.whenReady().then(async()=>{
     const base=(await b.resolveModernVisualGenerationBatchV2({contexts:[context],projectRoot}))[0].resolved.compiled
     const ids=[selection.heroId,...selection.supportIds,selection.rearId,selection.accentId,selection.backgroundId].filter(Boolean)
     const imported=Object.fromEntries([...new Set(ids)].map(id=>[id,catalog.publish(projectRoot,id)]))
-    const bind=(color='#A83B19',colorMode='auto')=>b.bindEditorialLocalBankV2({template:base,catalog,imported,selection,color,
+    const bind=(color='#A83B19',colorMode='auto',semanticRelation,localText=semantic.localText)=>b.bindEditorialLocalBankV2({template:base,catalog,imported,selection,color,
       contract:b.EDITORIAL_LOCAL_BANK_V4,
-      sceneDecision:{sceneId:semantic.sceneId,localText:semantic.localText,anchor:semantic.anchor??'',
+      semanticRelation,
+      sceneDecision:{sceneId:semantic.sceneId,localText,anchor:semantic.anchor??'',
         evidence:semantic.directEvidence.map(item=>item.query),durationSeconds:3,
         selectionReason:selection.reason,familyReason:selection.reason,missingTerms:selection.missingTerms,
         colorMode,seed:51721},
       headline:{connector:'El',keyword:'CROMATÓGRAFO',closing:'analiza una muestra.'}})
     const built=bind(),replayed=bind(),recolored=bind('#238C87','manual')
+    assert.deepEqual(built.sceneSpec.editorialBankV2.relations,[],
+      'REJECTED_OR_MISSING_SEMANTIC_RELATION_MUST_NOT_DRAW_GENERIC_CONNECTS')
+    assert.deepEqual(built.sceneSpec.editorialBankV2.relationDecision,
+      {status:'omitted',reason:selection.supportIds.length?'NO_VALID_RELATION':'NO_SUPPORTS'})
+    const invalid=bind('#A83B19','auto','observa')
+    assert.deepEqual(invalid.sceneSpec.editorialBankV2.relations,[])
+    assert.equal(invalid.sceneSpec.editorialBankV2.relationDecision.reason,
+      selection.supportIds.length?'UNSUPPORTED_RELATION':'NO_SUPPORTS')
+    const unsupportedScript=bind('#A83B19','auto','conecta')
+    assert.equal(unsupportedScript.sceneSpec.editorialBankV2.relationDecision.reason,
+      selection.supportIds.length?'NO_SCRIPT_EVIDENCE':'NO_SUPPORTS')
+    assert(unmatchedLayer.selection?.supportIds.length>0,'VALID_RELATION_NEEDS_REAL_SUPPORT')
+    const relationSemantic=b.createLocalSceneSemanticV1({sceneId:'v4-valid-connection',start:0,end:3,
+      transcriptSegments:[{start:0,end:3,text:'Una científica conecta los datos con el agua del río.'}],
+      anchor:'agua',concepts:[{label:'agua',scope:'scene'},{label:'datos',scope:'scene'}]})
+    const related=b.selectEditorialLocalBankV4Detailed({catalog,semantic:relationSemantic}).selection
+    assert(related?.supportIds.length>0,'VALID_RELATION_CATALOG_SUPPORT_MISSING')
+    const relationContext=b.createModernVisualGenerationContextV2({sceneId:relationSemantic.sceneId,duration:3,
+      localSemantic:relationSemantic,keywordCandidates:[],preferredVisualMode:'editorial-text',
+      sistema:'editorial',direction:{fondo:'ondas',estructura:'editorial',camara:'quieto',
+        densidad:'media',ritmo:'simultaneo',semilla:51722},videoStyleId:'cream-editorial'})
+    const relationBase=(await b.resolveModernVisualGenerationBatchV2({contexts:[relationContext],projectRoot}))[0].resolved.compiled
+    const relationIds=[related.heroId,...related.supportIds,related.rearId,related.accentId,
+      related.frontId,related.backgroundId].filter(Boolean)
+    const relationImported=Object.fromEntries([...new Set(relationIds)].map(id=>[id,catalog.publish(projectRoot,id)]))
+    const relationInput={template:relationBase,catalog,imported:relationImported,
+      selection:related,color:'#A83B19',contract:b.EDITORIAL_LOCAL_BANK_V4,
+      sceneDecision:{sceneId:relationSemantic.sceneId,
+        localText:relationSemantic.localText,anchor:relationSemantic.anchor??'',evidence:[],
+        durationSeconds:3,selectionReason:related.reason,familyReason:related.reason,
+        missingTerms:related.missingTerms,colorMode:'auto',seed:51722},
+      headline:{connector:'Una',keyword:'CIENTÍFICA',closing:'conecta datos y agua.'}}
+    const valid=b.bindEditorialLocalBankV2({...relationInput,semanticRelation:'conecta'})
+    const withoutRelation=b.bindEditorialLocalBankV2(relationInput)
+    const rejected=b.bindEditorialLocalBankV2({...relationInput,semanticRelation:'observa'})
+    assert.deepEqual(rejected.sceneSpec.editorialBankV2.relations,[])
+    assert.equal(rejected.sceneSpec.editorialBankV2.relationDecision.reason,'UNSUPPORTED_RELATION')
+    assert.deepEqual(withoutRelation.sceneSpec.editorialBankV2.relations,[])
+    assert.deepEqual(withoutRelation.sceneSpec.editorialBankV2.relationDecision,
+      {status:'omitted',reason:'NO_VALID_RELATION'})
+    assert.notEqual(valid.pixelIdentity,withoutRelation.pixelIdentity,
+      'VISIBLE_RELATION_MUST_CHANGE_PIXEL_IDENTITY')
+    assert.equal(valid.sceneSpec.editorialBankV2.relationDecision.reason,'SCRIPT_CONNECTS')
+    assert(valid.sceneSpec.editorialBankV2.relations.length>0,'VALID_RELATION_MUST_DRAW')
+    const within=(v,r)=>v>r.x&&v<r.x+r.width
+    for(const relation of valid.sceneSpec.editorialBankV2.relations){
+      assert.equal(relation.meaning,'connects')
+      for(const [orientation,layout] of [['portrait',valid.sceneSpec.editorialBankV2.portraitLayout],
+        ['landscape',valid.sceneSpec.editorialBankV2.landscapeLayout]]){
+        const route=relation[orientation]
+        assert(route.points.length>=2,'RELATION_ROUTE_MISSING:'+orientation)
+        const text=layout.textBounds
+        const sampled=route.points.flatMap((point,index)=>{
+          const next=route.points[index+1]
+          if(!next)return [point]
+          const steps=Math.max(1,Math.ceil(Math.hypot(next.x-point.x,next.y-point.y)*2))
+          return Array.from({length:steps+1},(_,step)=>({x:point.x+(next.x-point.x)*step/steps,
+            y:point.y+(next.y-point.y)*step/steps}))
+        })
+        for(const point of sampled){
+          assert(point.x>=2&&point.x<=98&&point.y>=2&&point.y<=98,'RELATION_OUT_OF_CANVAS')
+          assert(!(within(point.x,text)&&within(point.y,{x:text.y,width:text.height})),
+            'RELATION_CROSSES_TEXT:'+orientation)
+        }
+        const hero=layout.slotLayouts.find(slot=>slot.slotId==='hero').envelope
+        // The catalogue has no per-asset face mask. This central core is a
+        // conservative layout proxy, not a claim of semantic focal detection.
+        const inner={x:hero.x+hero.width*.35,y:hero.y+hero.height*.35,
+          width:hero.width*.3,height:hero.height*.3}
+        for(const point of sampled)assert(!(within(point.x,inner)&&
+          within(point.y,{x:inner.y,width:inner.height})),
+          'RELATION_CROSSES_HERO_INNER_REGION:'+orientation)
+      }
+    }
+    const forged=structuredClone(valid.sceneSpec)
+    forged.editorialBankV2.relationDecision={status:'omitted',reason:'NO_VALID_RELATION'}
+    assert.throws(()=>b.validateVisualSceneSpecV2(forged),/EDITORIAL_LOCAL_V4_RELATION_DECISION_INVALID/)
+    const relationEvidence=path.resolve(root,'../_cipher-editorial-product-route-v1/evidence/relation-integrity')
+    fs.mkdirSync(relationEvidence,{recursive:true})
+    for(const [name,rendered] of [['valid',valid],['omitted',withoutRelation]]){
+      fs.writeFileSync(path.join(relationEvidence,`${name}-scene-spec.json`),
+        JSON.stringify(rendered.sceneSpec,null,2)+'\n')
+      b.prepareGraphicForVisualRender({graphicData:rendered.graphicData,projectRoot,
+        renderBindings:rendered.renderBindings})
+      for(const orientation of ['portrait','landscape']){
+        const clip=await b.renderGraphicClip(rendered.graphicData,{ancho:orientation==='portrait'?720:1280,
+          alto:orientation==='portrait'?1280:720,fps:24,duracion:3,modo:'pantalla',sistema:'editorial',
+          projectRoot,renderBindings:rendered.renderBindings})
+        assert(clip&&fs.existsSync(clip),'RELATION_AB_VISUAL_SIN_FICHERO:'+name+':'+orientation)
+        fs.copyFileSync(clip,path.join(relationEvidence,`${orientation}-${name}.mp4`))
+      }
+    }
     assert.equal(built.pixelIdentity,replayed.pixelIdentity)
     assert.notEqual(built.pixelIdentity,recolored.pixelIdentity,'VISIBLE_COLOR_MUST_CHANGE_IDENTITY')
     assert.equal(built.sceneSpec.presentationProfile.revision,b.EDITORIAL_LOCAL_BANK_V4.revision)
     assert.equal(built.sceneSpec.editorialBankV2.supportLabelSize,'mobile-readable-v1')
     const priorV4Spec=structuredClone(built.sceneSpec)
     delete priorV4Spec.editorialBankV2.supportLabelSize
+    delete priorV4Spec.editorialBankV2.relationDecision
     b.validateVisualSceneSpecV2(priorV4Spec)
     assert.notEqual(b.sceneSpecPixelIdentityAny(priorV4Spec),b.sceneSpecPixelIdentityAny(built.sceneSpec),
       'MOBILE_LABEL_DECISION_MUST_CHANGE_IDENTITY_WITHOUT_REWRITING_OLDER_V4')

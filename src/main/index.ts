@@ -5577,13 +5577,14 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             selection:localSelected,color:editorialFamilyColor==='auto'?'#A83B19':
               (editorialFamilyColor??'#A83B19').toUpperCase(),
             ...(localBankV4Selected?{contract:EDITORIAL_LOCAL_BANK_V4,
-              sceneDecision:v4SceneDecision!}:
+              sceneDecision:v4SceneDecision!,semanticRelation:base.localSemantic.relation}:
               localBankV3Selected?{contract:EDITORIAL_LOCAL_BANK_V3_2}:{}),
             headline:editorialHeadlineFromLocalTextV1(editorialDisplayText,
               resolved.compiled.sceneSpec.text.keyword)}):null
           const typeLedBuilt=localBankV4Selected&&!localSelected&&curatedFamilyCatalog?(()=>{
             const legacy=bindEditorialModularFamilyV1({template:resolved.compiled,
               catalog:curatedFamilyCatalog,imported:{},family:'editorial',supportIds:[],
+              allowEmptyClosingV4:true,
               background:'ivory-clean',entry:'word-first',supportTreatment:'paper-card',
               camera:'fixed',particles:'none',color:editorialFamilyColor==='auto'?'#A83B19':
                 (editorialFamilyColor??'#A83B19').toUpperCase(),

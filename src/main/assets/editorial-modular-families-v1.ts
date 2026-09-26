@@ -32,6 +32,19 @@ export function editorialHeadlineFromLocalTextV1(localText:string,keyword:string
     closing:phrase.slice(at+term.length).trim()}
 }
 
+/** V4-only: an excerpt may legitimately end on its keyword. Undefined closing
+ * and timing are distinct from an invalid empty string; historical callers keep
+ * the old exact payload. */
+export function editorialTextWithoutEmptyClosingV4(source:VisualSceneSpecV2['text'],
+  headline:{connector?:string;keyword:string;closing?:string},alignment:VisualSceneSpecV2['text']['alignment']){
+  const text={...source,...headline,alignment}
+  if(!headline.closing?.trim()){
+    delete text.closing
+    text.timing={...source.timing,closingStart:undefined}
+  }
+  return text
+}
+
 /** Materialization remains CuratedModularCatalogV1.publish -> ProjectAsset. This
  * adapter freezes only semantic choices and pixel geometry, never local paths. */
 export function bindEditorialModularFamilyV1(input: {
@@ -51,6 +64,7 @@ export function bindEditorialModularFamilyV1(input: {
   color:string
   supportTint?:string
   headline:{connector?:string;keyword:string;closing?:string}
+  allowEmptyClosingV4?:boolean
   relations?:readonly Omit<EditorialRelationV1,'start'|'end'>[]
 }) {
   const source=input.template.sceneSpec
@@ -145,7 +159,9 @@ export function bindEditorialModularFamilyV1(input: {
     visualMode:hero?'asset-led':'editorial-text',
     direccion:{...source.direccion,estructura:input.family},
     layout:orientationLayouts.portrait,
-    text:{...source.text,...input.headline,alignment:orientationLayouts.portrait.textAlignment},
+    text:input.allowEmptyClosingV4
+      ?editorialTextWithoutEmptyClosingV4(source.text,input.headline,orientationLayouts.portrait.textAlignment)
+      :{...source.text,...input.headline,alignment:orientationLayouts.portrait.textAlignment},
     slots,editorialFamily:plan}
   // Exactly one binding per visible ProjectAsset; even the optional collage
   // layers are SHA-verified before capture and do not consume semantic slots.

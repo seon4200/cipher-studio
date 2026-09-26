@@ -25,6 +25,14 @@ export type EditorialLocalBankPlanV4 = Omit<EditorialLocalBankPlanV3,'revision'>
   sceneDecision: EditorialLocalSceneDecisionV4
   /** Absent in already persisted V4 scenes; preserve their original label pixels. */
   supportLabelSize?: 'mobile-readable-v1'
+  /** New V4 scenes freeze why a semantic relation was drawn or omitted.
+   * Absent on already persisted scenes; those keep their original pixels. */
+  relationDecision?: {
+    status: 'drawn' | 'omitted'
+    reason: 'SCRIPT_CONNECTS' | 'SCRIPT_CONTRASTS' | 'NO_VALID_RELATION' |
+      'NO_SCRIPT_EVIDENCE' | 'UNSUPPORTED_RELATION' | 'NO_SUPPORTS'
+    sourceRelation?: 'conecta' | 'contrasta'
+  }
 }
 export type EditorialLocalTextPlanV4 = {
   revision: typeof EDITORIAL_LOCAL_BANK_V4.revision
@@ -80,13 +88,27 @@ export function validateEditorialLocalTextPlanV4(value:unknown):EditorialLocalTe
 
 export function validateEditorialLocalBankPlanV4(value:unknown):EditorialLocalBankPlanV4 {
   if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('EDITORIAL_LOCAL_V4_PLAN_INVALID')
-  const {sceneDecision,backgroundAsset,supportLabelSize,...common}=value as EditorialLocalBankPlanV4
+  const {sceneDecision,backgroundAsset,supportLabelSize,relationDecision,...common}=value as EditorialLocalBankPlanV4
   if(common.revision!==EDITORIAL_LOCAL_BANK_V4.revision||common.catalogRevision!==EDITORIAL_LOCAL_CATALOG_REVISION_V3||
     !sceneDecision)
     throw new Error('EDITORIAL_LOCAL_V4_SCENE_DECISION_INVALID')
   validateEditorialLocalSceneDecisionV4(sceneDecision)
   if(supportLabelSize!==undefined&&supportLabelSize!=='mobile-readable-v1')
     throw new Error('EDITORIAL_LOCAL_V4_SUPPORT_LABEL_SIZE_INVALID')
+  if(relationDecision!==undefined){
+    const drawn=relationDecision.status==='drawn'
+    const expectedReason=relationDecision.sourceRelation==='conecta'?'SCRIPT_CONNECTS':
+      relationDecision.sourceRelation==='contrasta'?'SCRIPT_CONTRASTS':null
+    if(!keys(relationDecision,drawn?['status','reason','sourceRelation']:['status','reason'])||
+      (drawn?relationDecision.reason!==expectedReason||!common.relations.length:
+        relationDecision.status!=='omitted'||common.relations.length!==0||
+        !['NO_VALID_RELATION','NO_SCRIPT_EVIDENCE','UNSUPPORTED_RELATION','NO_SUPPORTS']
+          .includes(relationDecision.reason)))
+      throw new Error('EDITORIAL_LOCAL_V4_RELATION_DECISION_INVALID')
+    if(drawn&&common.relations.some(relation=>relation.meaning!==
+      (relationDecision.sourceRelation==='conecta'?'connects':'compares')))
+      throw new Error('EDITORIAL_LOCAL_V4_RELATION_MEANING_INVALID')
+  }
   validateEditorialLocalBankPlanV2({...common,revision:EDITORIAL_LOCAL_BANK_V2.revision,
     catalogRevision:'editorial-modular-catalog-2026-09-v1'},
   {allowMissingFront:true,allowMissingRear:true,allowMissingAccent:true,minimumSupports:0})

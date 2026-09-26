@@ -20,7 +20,7 @@ import type { ModularCatalogProviderV2 } from './editorial-modular-catalog-v2'
 import { CuratedModularCatalogV2 } from './editorial-modular-catalog-v2'
 import type { LocalSceneSemanticV1 } from '../../shared/local-scene-semantic'
 import type { ModernLayoutStructureV4 } from '../../shared/visual-layout-v4'
-import { editorialHeadlineFromLocalTextV1 } from './editorial-modular-families-v1'
+import { editorialHeadlineFromLocalTextV1, editorialTextWithoutEmptyClosingV4 } from './editorial-modular-families-v1'
 import { canonicalNarrativeTerm } from '../../shared/asset-intent'
 import { nativeImage } from 'electron'
 
@@ -97,6 +97,7 @@ export type EditorialLocalSelectionV2={
 export type EditorialLocalSelectionTraceV2 = {
   terms: string[]
   literalTerms?: string[]
+  heroSelectionMechanism?: 'semantic-anchor' | 'semantic-concept' | 'literal-recovery'
   heroCandidates: { term: string; assetId: string; match: string }[]
   supportCandidates: { term: string; assetId: string; match: string }[]
   missingTerms: string[]
@@ -281,11 +282,21 @@ export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModular
   const missing=literalTerms.filter(term=>!semanticTerms.some(item=>canonicalNarrativeTerm(item)===canonicalNarrativeTerm(term)))
   const semantic={...input.semantic,concepts:[...input.semantic.concepts,
     ...missing.map(label=>({label,scope:'scene' as const}))]}
+  // A literal transcript hit is a recovery path, not an equal-ranked rival to
+  // an accepted scene concept. V3's historical ranking is intentionally intact.
+  const semanticOnly=selectEditorialLocalBankV3Detailed({catalog:input.catalog,
+    semantic:input.semantic,recentFamilies:input.recentFamilies,
+    selectionRevision:EDITORIAL_LOCAL_BANK_V3_2.revision,minimumSupports:0})
   const result=selectEditorialLocalBankV3Detailed({catalog:input.catalog,semantic,
     recentFamilies:input.recentFamilies,selectionRevision:EDITORIAL_LOCAL_BANK_V3_2.revision,
     minimumSupports:0})
   if(!result.selection)return {...result,trace:{...result.trace,literalTerms:missing}}
-  const hero=input.catalog.getById(result.selection.heroId)
+  const chosenHeroId=semanticOnly.selection?.heroId??result.selection.heroId
+  const semanticHeroTerm=semanticOnly.trace.heroCandidates.find(candidate=>candidate.assetId===chosenHeroId)?.term
+  const heroSelectionMechanism:NonNullable<EditorialLocalSelectionTraceV2['heroSelectionMechanism']>=
+    !semanticOnly.selection?'literal-recovery':
+    normalized(semanticHeroTerm??'')===normalized(input.semantic.anchor??'')?'semantic-anchor':'semantic-concept'
+  const hero=input.catalog.getById(chosenHeroId)
   if(!hero)throw new Error('EDITORIAL_LOCAL_V4_HERO_MISSING')
   type Entry=NonNullable<typeof hero>
   const tags=(entry:Entry)=>new Set([
@@ -316,8 +327,15 @@ export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModular
     {role:'rear-collage',assetId:rear?.assetId,reason:rear?'HERO_OR_BACKGROUND_METADATA_RELATION':'NO_COMPATIBLE_REAR'},
     {role:'accent-mask',assetId:accent?.assetId,reason:accent?'HERO_OR_LAYER_METADATA_RELATION':'NO_COMPATIBLE_ACCENT'},
   ]
-  return {selection:{...result.selection,rearId:rear?.assetId,accentId:accent?.assetId,
-    backgroundId:background?.assetId},trace:{...result.trace,literalTerms:missing,layerDecisions}}
+  const supportIds=result.selection.supportIds.filter(id=>{
+    const candidate=input.catalog.getById(id)
+    return candidate&&candidate.assetId!==hero.assetId&&
+      normalized(candidate.primaryWordEs)!==normalized(hero.primaryWordEs)
+  })
+  return {selection:{...result.selection,heroId:hero.assetId,supportIds,
+    rearId:rear?.assetId,accentId:accent?.assetId,
+    backgroundId:background?.assetId},trace:{...result.trace,literalTerms:missing,
+      heroSelectionMechanism,layerDecisions}}
 }
 
 /** Catalog is required only when this generation actually requests Visuales. */
@@ -346,6 +364,8 @@ export function bindEditorialLocalBankV2(input:{
   catalog:ModularCatalogProviderV2; imported:Record<string,ImportedModularAssetV1>
   selection:EditorialLocalSelectionV2; color:string; headline:{connector?:string;keyword:string;closing?:string}
   sceneDecision?:EditorialLocalBankPlanV4['sceneDecision']
+  /** Only the sanitized subclip relation may authorize a new V4 connector. */
+  semanticRelation?:string
   contract?:typeof EDITORIAL_LOCAL_BANK_V3|typeof EDITORIAL_LOCAL_BANK_V3_HISTORICAL|
     typeof EDITORIAL_LOCAL_BANK_V3_2|typeof EDITORIAL_LOCAL_BANK_V4
 }){
@@ -416,9 +436,18 @@ export function bindEditorialLocalBankV2(input:{
   const supportsPlan=supports.map((asset,index)=>({slotId:EDITORIAL_LOCAL_SUPPORT_IDS_V2[index],
     assetId:asset.curated.assetId,sha256:asset.asset.sha256,
     label:asset.curated.primaryWordEs.toLocaleUpperCase('es'),...supportsTiming[index]}))
-  const relationMeaning=chosen.family==='partidoVertical'?'compares' as const:
+  const script=input.sceneDecision?.localText??''
+  const v4RelationReason:NonNullable<EditorialLocalBankPlanV4['relationDecision']>['reason']=
+    !supports.length?'NO_SUPPORTS':!input.semanticRelation?'NO_VALID_RELATION':
+    input.semanticRelation==='conecta'?/\b(?:conecta|conectan|une|unen|vincula|vinculan|enlaza|enlazan|relaciona|relacionan)\b/iu.test(script)
+      ?'SCRIPT_CONNECTS':'NO_SCRIPT_EVIDENCE':
+    input.semanticRelation==='contrasta'?/\b(?:contrasta|contrastan|compara|comparan|frente a|versus)\b/iu.test(script)
+      ?'SCRIPT_CONTRASTS':'NO_SCRIPT_EVIDENCE':'UNSUPPORTED_RELATION'
+  const v4Draws=!isV4||v4RelationReason==='SCRIPT_CONNECTS'||v4RelationReason==='SCRIPT_CONTRASTS'
+  const relationMeaning=isV4?v4RelationReason==='SCRIPT_CONTRASTS'?'compares' as const:'connects' as const:
+    chosen.family==='partidoVertical'?'compares' as const:
     chosen.family==='cascada'?'transfers' as const:'connects' as const
-  const relationPairs=supports.map((_,index)=>({from:relationMeaning==='transfers'&&index>0?
+  const relationPairs=(v4Draws?supports:[]).map((_,index)=>({from:relationMeaning==='transfers'&&index>0?
     EDITORIAL_LOCAL_SUPPORT_IDS_V2[index-1]:'hero' as const,
     to:EDITORIAL_LOCAL_SUPPORT_IDS_V2[index]}))
   const relations:EditorialLocalRelationV2[]=relationPairs.map(({from,to},index)=>{
@@ -431,7 +460,9 @@ export function bindEditorialLocalBankV2(input:{
       catch(error){throw new Error(`EDITORIAL_LOCAL_ROUTE_${orientation.toUpperCase()}:${chosen.family}:${from}>${to}:${error instanceof Error?error.message:String(error)}`)}
     }
     return {from,to,meaning:relationMeaning,
-      representation:index%3===0?'arrow':index%3===1?'dotted':'dot-flow',
+      // These V4 relationships are symmetric. An arrow would invent a causal direction.
+      representation:isV4?relationMeaning==='compares'?'dotted':'accent-link':
+        index%3===0?'arrow':index%3===1?'dotted':'dot-flow',
       response:index%2===0?'pulse':'accent',portrait:routeFor(portrait,'portrait'),
       landscape:routeFor(landscape,'landscape'),color:input.color,
       start,arrival:start+.045,end:start+.105}
@@ -461,6 +492,10 @@ export function bindEditorialLocalBankV2(input:{
         count:3,size:.45,opacity:.34,intensity:'discreto' as const}))],
     hero:{assetId:hero.curated.assetId,sha256:hero.asset.sha256,...heroTiming},
     supports:supportsPlan,layers:planLayers,relations,
+    ...(isV4?{relationDecision:v4Draws?{
+      status:'drawn' as const,reason:v4RelationReason,
+      sourceRelation:input.semanticRelation as 'conecta'|'contrasta',
+    }:{status:'omitted' as const,reason:v4RelationReason}}:{}),
     ...(isV4?{supportLabelSize:'mobile-readable-v1' as const}:{}),
     ...(background?{backgroundAsset:{assetId:background.curated.assetId,sha256:background.curated.sha256}}:{}),
     beats:[{id:'establish',start:0,end:.31},{id:'develop',start:.31,end:.62},
@@ -481,7 +516,9 @@ export function bindEditorialLocalBankV2(input:{
     compositionV2:_composition,...base}=input.template.sceneSpec
   const sceneSpec:VisualSceneSpecV2={...base,presentationProfile:input.contract??EDITORIAL_LOCAL_BANK_V2,
     visualMode:'asset-led',direccion:{...base.direccion,estructura:chosen.family},
-    layout:portrait,text:{...base.text,...input.headline,alignment:portrait.textAlignment},
+    layout:portrait,text:isV4
+      ?editorialTextWithoutEmptyClosingV4(base.text,input.headline,portrait.textAlignment)
+      :{...base.text,...input.headline,alignment:portrait.textAlignment},
     slots:[slot('hero',hero,'complex-illustration'),
       ...supports.map((asset,index)=>slot(EDITORIAL_LOCAL_SUPPORT_IDS_V2[index],asset,'simple-icon'))],
     editorialBankV2:plan}

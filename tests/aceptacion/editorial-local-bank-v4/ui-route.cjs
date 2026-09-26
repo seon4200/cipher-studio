@@ -15,6 +15,9 @@ const realSemantic=process.argv.includes('--real-semantic')
 const naturalSemantic=process.argv.includes('--natural-semantic')
 const naturalSemanticHero=process.argv.includes('--natural-semantic-hero')
 const freshNaturalSemantic=process.argv.includes('--fresh-natural-semantic')
+const testNarration=process.env.CIPHER_TEST_NARRATION?.trim()
+const testCaseId=process.env.CIPHER_TEST_CASE_ID?.trim()
+if(testCaseId&&!/^[a-z0-9-]{1,40}$/.test(testCaseId))throw Error('INVALID_TEST_CASE_ID')
 const vertical=process.argv.includes('--vertical')
 const manualColor=process.argv.includes('--manual-color')
 const richScene=process.argv.includes('--rich-scene')
@@ -23,12 +26,12 @@ const exportFromUi=process.argv.includes('--export-from-ui')
 const gate2Evidence=process.argv.includes('--gate2-evidence')
 const regenerateFromUi=process.argv.includes('--regenerate-from-ui')
 const regenerateWithoutCatalog=process.argv.includes('--regenerate-without-catalog')
-const duration=naturalSemantic||naturalSemanticHero||freshNaturalSemantic?4:3
+const duration=testNarration||naturalSemantic||naturalSemanticHero||freshNaturalSemantic?4:3
 app.setPath('userData',path.join(fixture,'userData'))
 app.commandLine.appendSwitch('force-device-scale-factor','1')
 process.chdir(fixture)
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms))
-const words=richScene
+const words=testNarration??(richScene
   ?'Cromatógrafo líquido analiza vial de muestra y micropipeta automática; hoja de registro de análisis químico conserva datos.'
   :abstractScene?'Ninguna certeza basta para responder.'
   :naturalSemantic
@@ -39,7 +42,7 @@ const words=richScene
   ?'Durante la madrugada, una científica observa el agua del río y descubre una alteración que obliga a revisar los datos.'
   :realSemantic
   ?'Un cromatógrafo líquido separa los componentes de una muestra para revelar qué contiene.'
-  :'El cromatógrafo líquido analiza una muestra.'
+  :'El cromatógrafo líquido analiza una muestra.')
 const terms=abstractScene?[{icono:'question-circle',ic:'❓',etiqueta:'certeza'},
   {icono:'question-circle',ic:'❓',etiqueta:'responder'},
   {icono:'question-circle',ic:'❓',etiqueta:'duda'}]:richScene?[{icono:'star',ic:'🧪',etiqueta:'cromatógrafo líquido'},
@@ -70,7 +73,8 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
               relation:semantics?.relacion??null,anchor:semantics?.ancla??null,terms:semantics?.terminos??null,
               legacyConcepts:clip?.conceptos??null}
           }catch(error){realSemanticShape={parseError:String(error)}}
-          fs.writeFileSync(path.join(evidence,freshNaturalSemantic?'real-semantic-fresh-natural-shape.json':
+          fs.writeFileSync(path.join(evidence,testCaseId?`real-semantic-${testCaseId}-shape.json`:
+            freshNaturalSemantic?'real-semantic-fresh-natural-shape.json':
             naturalSemantic?'real-semantic-natural-shape.json':'real-semantic-shape.json'),
             JSON.stringify(realSemanticShape,null,2)+'\n')}
         return response}
@@ -160,11 +164,20 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
     if(abstractScene){const spec=visuals[0].visualRegeneration.graphicData.extra.sceneSpec
       assert(spec.editorialTextV4&&spec.visualMode==='editorial-text'&&!spec.editorialBankV2,
         'ABSTRACT_SCENE_MUST_BE_EXPLICIT_V4_TYPE_LED')}
-    const prefix=`${realSemantic?'ui-real-semantic':'ui-controlled-semantic'}-${vertical?'vertical':'horizontal'}${naturalSemantic?'-natural':''}${naturalSemanticHero?'-natural-hero':''}${freshNaturalSemantic?'-fresh-natural':''}${richScene?'-rich':''}${abstractScene?'-abstract':''}${manualColor?'-manual-teal':''}${gate2Evidence?'-gate2':''}${regenerateWithoutCatalog?'-no-catalog-replay':''}`
+    const prefix=`${realSemantic?'ui-real-semantic':'ui-controlled-semantic'}-${vertical?'vertical':'horizontal'}${testCaseId?'-'+testCaseId:''}${naturalSemantic?'-natural':''}${naturalSemanticHero?'-natural-hero':''}${freshNaturalSemantic?'-fresh-natural':''}${richScene?'-rich':''}${abstractScene?'-abstract':''}${manualColor?'-manual-teal':''}${gate2Evidence?'-gate2':''}${regenerateWithoutCatalog?'-no-catalog-replay':''}`
     const copied=path.join(evidence,`${prefix}-visual.mp4`)
     fs.copyFileSync(visuals[0].path,copied)
     fs.writeFileSync(path.join(evidence,`${prefix}-scene-spec.json`),
       JSON.stringify(visuals[0].visualRegeneration.graphicData.extra.sceneSpec,null,2)+'\n')
+    const diagnosticDir=path.join(projectRoot,'materiales','diagnostics','visual-decisions')
+    const diagnosticFiles=fs.existsSync(diagnosticDir)?fs.readdirSync(diagnosticDir).filter(name=>name.endsWith('.json')):[]
+    const diagnostic=diagnosticFiles.length?JSON.parse(fs.readFileSync(path.join(diagnosticDir,
+      diagnosticFiles.sort().at(-1)),'utf8')):null
+    if(diagnostic)fs.writeFileSync(path.join(evidence,`${prefix}-diagnostic.json`),
+      JSON.stringify(diagnostic,null,2)+'\n')
+    const semanticRejection=realSemanticShape?.semanticKeys?
+      b.diagnosticarSemanticaVisual({relacion:realSemanticShape.relation,
+        ancla:realSemanticShape.anchor,terminos:realSemanticShape.terms}):null
     let uiExport=null,uiReplay=null
     if(exportFromUi){
       console.log('UI_EXPORT_CHECK','save')
@@ -255,7 +268,7 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
     const png=(await win.webContents.capturePage()).toPNG()
     fs.writeFileSync(path.join(evidence,`${prefix}.png`),png)
     const result={passed:true,semanticMode:realSemantic?'DEEPSEEK_REAL':'OFFLINE_MOCK',semanticCalls,otherNetwork,
-      realSemanticShape,
+      realSemanticShape,semanticRejection,catalogDecision:diagnostic?.scenes?.[0]?.catalogDecision??null,
       projectTemporary:true,profileSelectedInUI:true,buildClickedInUI:true,orientation:vertical?'9:16':'16:9',
       manualColor:manualColor?'#238C87':null,richScene,abstractScene,regenerateFromUi,
       uiExport,uiReplay,
