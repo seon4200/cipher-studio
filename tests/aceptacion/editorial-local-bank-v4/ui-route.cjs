@@ -22,6 +22,7 @@ const abstractScene=process.argv.includes('--abstract-scene')
 const exportFromUi=process.argv.includes('--export-from-ui')
 const gate2Evidence=process.argv.includes('--gate2-evidence')
 const regenerateFromUi=process.argv.includes('--regenerate-from-ui')
+const regenerateWithoutCatalog=process.argv.includes('--regenerate-without-catalog')
 const duration=naturalSemantic||naturalSemanticHero||freshNaturalSemantic?4:3
 app.setPath('userData',path.join(fixture,'userData'))
 app.commandLine.appendSwitch('force-device-scale-factor','1')
@@ -159,12 +160,12 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
     if(abstractScene){const spec=visuals[0].visualRegeneration.graphicData.extra.sceneSpec
       assert(spec.editorialTextV4&&spec.visualMode==='editorial-text'&&!spec.editorialBankV2,
         'ABSTRACT_SCENE_MUST_BE_EXPLICIT_V4_TYPE_LED')}
-    const prefix=`${realSemantic?'ui-real-semantic':'ui-controlled-semantic'}-${vertical?'vertical':'horizontal'}${naturalSemantic?'-natural':''}${naturalSemanticHero?'-natural-hero':''}${freshNaturalSemantic?'-fresh-natural':''}${richScene?'-rich':''}${abstractScene?'-abstract':''}${manualColor?'-manual-teal':''}${gate2Evidence?'-gate2':''}`
+    const prefix=`${realSemantic?'ui-real-semantic':'ui-controlled-semantic'}-${vertical?'vertical':'horizontal'}${naturalSemantic?'-natural':''}${naturalSemanticHero?'-natural-hero':''}${freshNaturalSemantic?'-fresh-natural':''}${richScene?'-rich':''}${abstractScene?'-abstract':''}${manualColor?'-manual-teal':''}${gate2Evidence?'-gate2':''}${regenerateWithoutCatalog?'-no-catalog-replay':''}`
     const copied=path.join(evidence,`${prefix}-visual.mp4`)
     fs.copyFileSync(visuals[0].path,copied)
     fs.writeFileSync(path.join(evidence,`${prefix}-scene-spec.json`),
       JSON.stringify(visuals[0].visualRegeneration.graphicData.extra.sceneSpec,null,2)+'\n')
-    let uiExport=null
+    let uiExport=null,uiReplay=null
     if(exportFromUi){
       console.log('UI_EXPORT_CHECK','save')
       await js(`(()=>{window.alert=(message)=>{window.__cipherTestAlert=String(message)};return true})()`)
@@ -194,7 +195,18 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
       if(regenerateFromUi){
         const before=reopened.timelineVideoClips.find(clip=>clip.category==='visual')
         const beforeSpec=before.visualRegeneration.graphicData.extra.sceneSpec
+        const beforeSpecSha=crypto.createHash('sha256').update(JSON.stringify(beforeSpec)).digest('hex')
         const beforeVideoSha=crypto.createHash('sha256').update(fs.readFileSync(before.path)).digest('hex')
+        if(regenerateWithoutCatalog){
+          const absentRoot=path.join(fixture,'catalog-absent-after-materialization')
+          assert(!fs.existsSync(absentRoot),'REPLAY_CATALOG_ROOT_NOT_ABSENT')
+          const changed=await js(`(()=>{const input=[...document.querySelectorAll('input')]
+            .find(item=>item.closest('label')?.textContent.includes('Biblioteca editorial local'));
+            if(!input)return null;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')
+            .set.call(input,${JSON.stringify(absentRoot)});input.dispatchEvent(new Event('input',{bubbles:true}));
+            input.dispatchEvent(new Event('change',{bubbles:true}));return input.value})()`)
+          assert.equal(changed,absentRoot,'UI_CATALOG_ROOT_NOT_SWITCHED_TO_ABSENT')
+        }
         assert(await js(`(()=>{const button=[...document.querySelectorAll('button')].find(item=>
           item.textContent.trim()==='Regenerar Visuales V4 guardados');
           if(!button||button.disabled)return false;button.click();return true})()`),
@@ -216,6 +228,12 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
         assert(fs.existsSync(after.path),'UI_REGENERATION_VISUAL_SIN_FICHERO')
         assert.equal(crypto.createHash('sha256').update(fs.readFileSync(after.path)).digest('hex'),
           beforeVideoSha,'UI_REGENERATION_CHANGED_MP4_BYTES')
+        uiReplay={buttonClicked:true,catalogAbsent:regenerateWithoutCatalog,
+          sceneSpecSha256Before:beforeSpecSha,
+          sceneSpecSha256After:crypto.createHash('sha256').update(JSON.stringify(
+            after.visualRegeneration.graphicData.extra.sceneSpec)).digest('hex'),
+          mp4Sha256Before:beforeVideoSha,
+          mp4Sha256After:crypto.createHash('sha256').update(fs.readFileSync(after.path)).digest('hex')}
       }
       const exportPath=path.join(evidence,`${prefix}-timeline-export.mp4`)
       dialog.showSaveDialog=async()=>({canceled:false,filePath:exportPath})
@@ -240,7 +258,7 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
       realSemanticShape,
       projectTemporary:true,profileSelectedInUI:true,buildClickedInUI:true,orientation:vertical?'9:16':'16:9',
       manualColor:manualColor?'#238C87':null,richScene,abstractScene,regenerateFromUi,
-      uiExport,
+      uiExport,uiReplay,
       visualsRequested:1,visualsMaterialized:visuals.length,timelineVisuals:visuals.length,
       visualSinFichero:0,visualCopy:copied,screenshot:path.join(evidence,`${prefix}.png`)}
     fs.writeFileSync(path.join(evidence,`${prefix}-result.json`),JSON.stringify(result,null,2)+'\n')
