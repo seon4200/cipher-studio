@@ -4758,7 +4758,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
                   (visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id&&causa==='RELACION_FUERA_DE_ENUM'&&
                     typeof invalida?.semantica?.relacion==='string'
                     ? ` relacion=${JSON.stringify(invalida.semantica.relacion.slice(0,40))}`:'')+
-                  '; se usa sorteo determinista.');
+                  (visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id
+                    ? '; se descarta la relación y se conservan sólo conceptos saneados.'
+                    : '; se usa sorteo determinista.'));
               }
               phrasesDecision.push(...parsed.phrases);
             }
@@ -5419,7 +5421,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           end: fin,
           transcriptSegments: transcriptForLocalSemantics,
           concepts: item.conceptos ?? [],
-          anchor: item.ancla ?? undefined,
+          anchor: visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id&&item.ancla&&
+            typeof item.ancla==='object' ? item.ancla.etiqueta : item.ancla ?? undefined,
           relation: item.relacion ?? undefined,
           globalText: seg?.text ?? '',
           globalHints: [item.keyword, item.prompt].filter((value): value is string => typeof value === 'string'),
@@ -5525,7 +5528,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             colorMode:editorialFamilyColor&&editorialFamilyColor!=='auto'?'manual' as const:'auto' as const,
             seed:resolved.compiled.sceneSpec.direccion.semilla}:undefined
           const editorialDisplayText=localBankV4Selected
-            ?editorialVisibleExcerptV4(base.localSemantic.localText,context.duration)
+            ?editorialVisibleExcerptV4(base.localSemantic.localText,context.duration,
+              resolved.compiled.sceneSpec.text.keyword)
             :aRenderizar[sceneIndex].frase
           if(localDecision)localSelectionTraces.push({sceneId:base.decision.sceneId,trace:localDecision.trace})
           if(localSelected)recentLocalFamilies.push(localSelected.family)

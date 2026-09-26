@@ -183,7 +183,7 @@ const routeValid=(route:FinishRoute)=>keys(route,['geometry','points'])&&
   route.points.length>=2&&route.points.length<=128&&route.points.every(point=>
     keys(point,['x','y'])&&Number.isFinite(point.x)&&Number.isFinite(point.y)&&
     point.x>=0&&point.x<=100&&point.y>=0&&point.y<=100)
-export function validateEditorialLocalBankPlanV2(value:unknown,options:{allowMissingFront?:boolean;allowMissingRear?:boolean;minimumSupports?:number}={}):EditorialLocalBankPlanV2 {
+export function validateEditorialLocalBankPlanV2(value:unknown,options:{allowMissingFront?:boolean;allowMissingRear?:boolean;allowMissingAccent?:boolean;minimumSupports?:number}={}):EditorialLocalBankPlanV2 {
   if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('EDITORIAL_LOCAL_BANK_PLAN_INVALID')
   const p=value as EditorialLocalBankPlanV2
   if(!keys(p,['revision','catalogRevision','family','layoutVariant','portraitLayout','landscapeLayout',
@@ -193,7 +193,7 @@ export function validateEditorialLocalBankPlanV2(value:unknown,options:{allowMis
     p.catalogRevision!==MODULAR_CATALOG_REVISION_V1||!EDITORIAL_LOCAL_FAMILIES_V2.includes(p.family)||
     !['base','inverse'].includes(p.layoutVariant)||!p.hero||!sha(p.hero.sha256)||
     !Array.isArray(p.supports)||p.supports.length<(options.minimumSupports??2)||p.supports.length>6||
-    !Array.isArray(p.layers)||p.layers.length<1||p.layers.length>3||!Array.isArray(p.relations)||
+    !Array.isArray(p.layers)||p.layers.length<(options.allowMissingAccent?0:1)||p.layers.length>3||!Array.isArray(p.relations)||
     !Array.isArray(p.events)||!Array.isArray(p.beats)||p.beats.length!==3||
     !color(p.accent)||!color(p.supportTint)||p.ink!=='#11110F'||
     !['#F0EEE8','#FAF9F6'].includes(p.paper)||
@@ -233,7 +233,7 @@ export function validateEditorialLocalBankPlanV2(value:unknown,options:{allowMis
   const allowedLayers=new Set(['idea-rear','idea-accent',...(options.allowMissingFront?[]:['idea-front'])])
   const requiredLayers=new Set([
     ...(options.allowMissingRear?[]:['idea-rear']),
-    'idea-accent',
+    ...(options.allowMissingAccent?[]:['idea-accent']),
     ...(options.allowMissingFront?[]:['idea-front']),
   ])
   for(const layer of p.layers){

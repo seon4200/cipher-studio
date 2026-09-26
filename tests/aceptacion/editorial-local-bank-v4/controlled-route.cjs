@@ -25,6 +25,9 @@ app.whenReady().then(async()=>{
       'Cromatógrafo líquido analiza vial de muestra')
     assert.equal(b.editorialVisibleExcerptV4('No desaparece el peligro ni se conocen las causas.',3),
       'No desaparece el peligro')
+    assert.equal(b.editorialVisibleExcerptV4(
+      'Las pruebas sugieren un resultado preliminar que no confirma la causa.',3,'resultado'),
+      'resultado','LATE_NEGATION_MUST_NOT_BECOME_POSITIVE_CLAIM')
     app.removeAllListeners('window-all-closed')
     ipcMain.removeHandler('get-elevenlabs-voices')
     ipcMain.handle('get-elevenlabs-voices',()=>({success:true,voices:[]}))
@@ -65,6 +68,13 @@ app.whenReady().then(async()=>{
       anchor:'certeza',concepts:[{label:'certeza',scope:'scene'}]})
     const abstract=b.selectEditorialLocalBankV4Detailed({catalog,semantic:abstractSemantic})
     assert.equal(abstract.trace.outcome,'NO_HERO','ABSTRACT_MUST_NOT_INVENT_ASSET')
+    const unmatchedLayerSemantic=b.createLocalSceneSemanticV1({sceneId:'v4-unmatched-accent',start:0,end:4,
+      transcriptSegments:[{start:0,end:4,text:'Una científica observa el agua del río y revisa los datos.'}],
+      anchor:'científica',concepts:[{label:'agua',scope:'scene'},{label:'datos',scope:'scene'}]})
+    const unmatchedLayer=b.selectEditorialLocalBankV4Detailed({catalog,semantic:unmatchedLayerSemantic})
+    assert(unmatchedLayer.selection?.heroId,'MATCHED_HERO_MUST_SURVIVE_MISSING_ACCENT')
+    if(unmatchedLayer.trace.layerDecisions?.some(item=>item.reason==='NO_COMPATIBLE_ACCENT'))
+      assert.equal(unmatchedLayer.selection.accentId,undefined,'INCOMPATIBLE_ACCENT_MUST_BE_OMITTED')
     const context=b.createModernVisualGenerationContextV2({sceneId:semantic.sceneId,duration:3,
       localSemantic:semantic,keywordCandidates:[{keyword:'cromatógrafo',source:'scene-semantic'}],
       preferredVisualMode:'editorial-text',sistema:'editorial',direction:{fondo:'ondas',estructura:'editorial',

@@ -14,6 +14,7 @@ const oldKey=process.env.DEEPSEEK_API_KEY,oldFetch=global.fetch,oldDialog=dialog
 const realSemantic=process.argv.includes('--real-semantic')
 const naturalSemantic=process.argv.includes('--natural-semantic')
 const naturalSemanticHero=process.argv.includes('--natural-semantic-hero')
+const freshNaturalSemantic=process.argv.includes('--fresh-natural-semantic')
 const vertical=process.argv.includes('--vertical')
 const manualColor=process.argv.includes('--manual-color')
 const richScene=process.argv.includes('--rich-scene')
@@ -21,7 +22,7 @@ const abstractScene=process.argv.includes('--abstract-scene')
 const exportFromUi=process.argv.includes('--export-from-ui')
 const gate2Evidence=process.argv.includes('--gate2-evidence')
 const regenerateFromUi=process.argv.includes('--regenerate-from-ui')
-const duration=naturalSemantic||naturalSemanticHero?4:3
+const duration=naturalSemantic||naturalSemanticHero||freshNaturalSemantic?4:3
 app.setPath('userData',path.join(fixture,'userData'))
 app.commandLine.appendSwitch('force-device-scale-factor','1')
 process.chdir(fixture)
@@ -33,6 +34,8 @@ const words=richScene
   ?'Un técnico utiliza el cromatógrafo para estudiar una muestra; después registra los resultados.'
   :naturalSemanticHero
   ?'Un cromatógrafo líquido separa la muestra mientras una técnica revisa el resultado.'
+  :freshNaturalSemantic
+  ?'Durante la madrugada, una científica observa el agua del río y descubre una alteración que obliga a revisar los datos.'
   :realSemantic
   ?'Un cromatógrafo líquido separa los componentes de una muestra para revelar qué contiene.'
   :'El cromatógrafo líquido analiza una muestra.'
@@ -66,7 +69,8 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
               relation:semantics?.relacion??null,anchor:semantics?.ancla??null,terms:semantics?.terminos??null,
               legacyConcepts:clip?.conceptos??null}
           }catch(error){realSemanticShape={parseError:String(error)}}
-          fs.writeFileSync(path.join(evidence,naturalSemantic?'real-semantic-natural-shape.json':'real-semantic-shape.json'),
+          fs.writeFileSync(path.join(evidence,freshNaturalSemantic?'real-semantic-fresh-natural-shape.json':
+            naturalSemantic?'real-semantic-natural-shape.json':'real-semantic-shape.json'),
             JSON.stringify(realSemanticShape,null,2)+'\n')}
         return response}
       return {ok:true,status:200,json:async()=>({choices:[{finish_reason:'stop',
@@ -155,7 +159,7 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
     if(abstractScene){const spec=visuals[0].visualRegeneration.graphicData.extra.sceneSpec
       assert(spec.editorialTextV4&&spec.visualMode==='editorial-text'&&!spec.editorialBankV2,
         'ABSTRACT_SCENE_MUST_BE_EXPLICIT_V4_TYPE_LED')}
-    const prefix=`${realSemantic?'ui-real-semantic':'ui-controlled-semantic'}-${vertical?'vertical':'horizontal'}${naturalSemantic?'-natural':''}${naturalSemanticHero?'-natural-hero':''}${richScene?'-rich':''}${abstractScene?'-abstract':''}${manualColor?'-manual-teal':''}${gate2Evidence?'-gate2':''}`
+    const prefix=`${realSemantic?'ui-real-semantic':'ui-controlled-semantic'}-${vertical?'vertical':'horizontal'}${naturalSemantic?'-natural':''}${naturalSemanticHero?'-natural-hero':''}${freshNaturalSemantic?'-fresh-natural':''}${richScene?'-rich':''}${abstractScene?'-abstract':''}${manualColor?'-manual-teal':''}${gate2Evidence?'-gate2':''}`
     const copied=path.join(evidence,`${prefix}-visual.mp4`)
     fs.copyFileSync(visuals[0].path,copied)
     fs.writeFileSync(path.join(evidence,`${prefix}-scene-spec.json`),

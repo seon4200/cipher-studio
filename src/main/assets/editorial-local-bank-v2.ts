@@ -90,7 +90,7 @@ const intentRules:readonly {family:ModernLayoutStructureV4;test:RegExp}[]=[
 ]
 export type EditorialLocalSelectionV2={
   family:ModernLayoutStructureV4; variant:EditorialLocalVariantV2
-  heroId:string;supportIds:string[];rearId?:string;accentId:string;frontId?:string
+  heroId:string;supportIds:string[];rearId?:string;accentId?:string;frontId?:string
   backgroundId?:string
   reason:string;missingTerms:string[]
 }
@@ -316,9 +316,7 @@ export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModular
     {role:'rear-collage',assetId:rear?.assetId,reason:rear?'HERO_OR_BACKGROUND_METADATA_RELATION':'NO_COMPATIBLE_REAR'},
     {role:'accent-mask',assetId:accent?.assetId,reason:accent?'HERO_OR_LAYER_METADATA_RELATION':'NO_COMPATIBLE_ACCENT'},
   ]
-  if(!accent)return {selection:null,trace:{...result.trace,literalTerms:missing,
-    layerDecisions,outcome:'NO_COMPATIBLE_ACCENT'}}
-  return {selection:{...result.selection,rearId:rear?.assetId,accentId:accent.assetId,
+  return {selection:{...result.selection,rearId:rear?.assetId,accentId:accent?.assetId,
     backgroundId:background?.assetId},trace:{...result.trace,literalTerms:missing,layerDecisions}}
 }
 
@@ -376,7 +374,8 @@ export function bindEditorialLocalBankV2(input:{
     throw new Error('EDITORIAL_LOCAL_V2_REAR_LAYER_REQUIRED')
   const layers=[
     ...(rearId?[{slotId:'idea-rear' as const,asset:requireAsset(rearId,'rear-collage')}]:[]),
-    {slotId:'idea-accent' as const,asset:requireAsset(chosen.accentId,'accent-mask')},
+    ...(isV4&&!chosen.accentId?[]:[{slotId:'idea-accent' as const,
+      asset:requireAsset(chosen.accentId!,'accent-mask')}]),
     ...(chosen.frontId?[{slotId:'idea-front' as const,asset:requireAsset(chosen.frontId,'front-collage')}]:[]),
   ]
   const portrait=createEditorialLocalBankLayoutV2(chosen.family,'portrait',supports.length,chosen.variant,isV4?0:2)

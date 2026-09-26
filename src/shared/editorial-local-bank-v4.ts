@@ -34,11 +34,17 @@ export type EditorialLocalTextPlanV4 = {
 /** A Visual is not a subtitle track. Keep the timed narration intact in sceneDecision,
  * but show a contiguous, duration-budgeted excerpt so a three-second composition
  * does not demand reading an entire paragraph. Never invent or rewrite words. */
-export function editorialVisibleExcerptV4(localText:string,durationSeconds:number):string{
+export function editorialVisibleExcerptV4(localText:string,durationSeconds:number,keyword?:string):string{
   const firstClause=localText.trim().split(/[;.!?]/u)[0]?.trim()??''
   const words=firstClause.split(/\s+/u).filter(Boolean)
   const budget=durationSeconds<=3.25?7:durationSeconds<=4.5?10:13
   const chosen=words.slice(0,budget)
+  const omitted=words.slice(budget).join(' ')
+  if(/\b(?:no|nunca|jamás|sin|pero|aunque|excepto|salvo|menos|\d[\d.,%]*)\b/iu.test(omitted)){
+    const term=keyword?.trim()
+    const at=term?localText.toLocaleLowerCase('es').indexOf(term.toLocaleLowerCase('es')):-1
+    return at>=0?localText.slice(at,at+term!.length):localText.trim()
+  }
   if(words.length>budget){
     const conjunction=chosen.findIndex((word,index)=>index>=3&&/^(?:y|ni|pero)$/iu.test(word))
     if(conjunction>=0)chosen.splice(conjunction)
@@ -83,7 +89,7 @@ export function validateEditorialLocalBankPlanV4(value:unknown):EditorialLocalBa
     throw new Error('EDITORIAL_LOCAL_V4_SUPPORT_LABEL_SIZE_INVALID')
   validateEditorialLocalBankPlanV2({...common,revision:EDITORIAL_LOCAL_BANK_V2.revision,
     catalogRevision:'editorial-modular-catalog-2026-09-v1'},
-  {allowMissingFront:true,allowMissingRear:true,minimumSupports:0})
+  {allowMissingFront:true,allowMissingRear:true,allowMissingAccent:true,minimumSupports:0})
   if(backgroundAsset&&(!/^[a-z0-9][a-z0-9-]{2,95}$/.test(backgroundAsset.assetId)||
     !/^[a-f0-9]{64}$/.test(backgroundAsset.sha256)))throw new Error('EDITORIAL_LOCAL_V4_BACKGROUND_INVALID')
   return value as EditorialLocalBankPlanV4
