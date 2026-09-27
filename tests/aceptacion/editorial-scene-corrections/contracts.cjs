@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {createTestFixture}=require('../../helpers/safe-fixture.js')
 const root=path.resolve(__dirname,'../../..'),fixture=createTestFixture('editorial-scene-corrections')
 app.setPath('userData',path.join(fixture,'userData'));process.chdir(fixture)
-const evidence=path.resolve(root,'../_cipher-scene-corrections-20260927')
+const evidence=process.env.CIPHER_DECISION_EVIDENCE||path.resolve(root,'../_cipher-scene-corrections-20260927')
 app.whenReady().then(async()=>{let code=1;const checks=[];try{
   const b=require(path.join(root,'dist-electron/main/index.js'))
   app.removeAllListeners('window-all-closed')
@@ -53,9 +53,13 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
   check('standalone preposition rejected by model contract',()=>assert.throws(()=>b.validateEditorialCandidateDecision({...valid,visibleText:'del'},candidates,semantic,4),/READING_BUDGET/))
   const calls=[]
   const decision=await b.decideEditorialScene({catalog,semantic,duration:4,apiKey:'fixture-not-secret',request:async(_url,options)=>{
-    calls.push(JSON.parse(options.body));return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify(valid)}}]})}
+    calls.push(JSON.parse(options.body));const reply=calls.length===1?{sourceQuote:semantic.localText,proposition:semantic.localText,
+      headline:semantic.localText,secondary:'',framing:'assertion',intent:'object',concepts:['cámara','volcán'],reason:'Fixture'}:
+      {...valid,direction:{revision:'editorial-scene-decision-2026-09-v2',intent:'statement',family:'editorial',variant:'base',
+        entry:'word-first',background:'ivory-clean',relations:[],reason:'Fixture'}}
+    return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify(reply)}}]})}
   }})
-  check('single explicit omission, no hidden literal Hero fallback',()=>{assert.equal(calls.length,1);assert.equal(decision.decision.heroId,null)})
+  check('explicit omission after comprehension, no hidden literal Hero fallback',()=>{assert.equal(calls.length,2);assert.equal(decision.decision.heroId,null)})
   fs.mkdirSync(evidence,{recursive:true});fs.writeFileSync(path.join(evidence,'contracts.json'),JSON.stringify({checks,health,fixture},null,2))
   console.log(JSON.stringify({passed:checks.length,health,evidence}));code=0
 }catch(error){console.error(error.stack)}finally{app.exit(code)}})

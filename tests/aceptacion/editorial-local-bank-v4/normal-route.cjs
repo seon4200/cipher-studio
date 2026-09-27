@@ -4,7 +4,7 @@ const {execFileSync}=require('node:child_process')
 const {createTestFixture,cleanupTestFixture}=require('../../helpers/safe-fixture.js')
 const root=path.resolve(__dirname,'../../..')
 const catalogRoot=process.env.CIPHER_EDITORIAL_MODULAR_CATALOG_PATH||path.resolve(root,'../_cipher-editorial-catalog-v1-250')
-const evidence=path.resolve(root,'../_cipher-scene-corrections-20260927/normal-route')
+const evidence=process.env.CIPHER_DECISION_EVIDENCE||path.resolve(root,'../_cipher-scene-corrections-20260927/normal-route')
 const ffmpeg=process.env.CIPHER_FFMPEG_EXE||path.resolve(root,'../_tools/ffmpeg-v4/extracted/ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe')
 process.env.PATH=path.dirname(ffmpeg)+path.delimiter+process.env.PATH
 const fixture=createTestFixture('editorial-local-v4-normal-route'),projectRoot=path.join(fixture,'project')
@@ -34,13 +34,21 @@ app.whenReady().then(async()=>{
       if(String(url).startsWith('https://api.deepseek.com/chat/completions')){
         semanticCalls++
         const prompt=JSON.parse(options.body).messages.at(-1).content
+        if(prompt.startsWith('Comprende una escena editorial')){
+          const meaning={sourceQuote:words,proposition:words,headline:words,secondary:'',
+            framing:words.includes('ninguna')?'negation':'assertion',concepts:terms.map(t=>t.etiqueta),
+            intent:'object',reason:'Controlled contract fixture, not real semantics.'}
+          return {ok:true,status:200,json:async()=>({choices:[{finish_reason:'stop',message:{content:JSON.stringify(meaning)}}]})}
+        }
         if(prompt.includes('Candidatos por rol:')){
           const candidates=JSON.parse(prompt.split('Candidatos por rol: ')[1].split('\n')[0])
           const hero=candidates.find(c=>c.role==='hero-core'&&c.primaryWordEs.toLowerCase().includes('cromatógrafo'))
           const selected={mode:hero?'asset':'typographic',heroId:hero?.assetId??null,supportIds:[],
             proposition:words,visibleText:words,emphasis:'',reason:'Controlled fixture based on offered metadata, not real semantics.',
             evidence:hero?[{assetId:hero.assetId,quote:words,reason:'Fixture selects the exact instrument present in the text.'}]:[],
-            omission:hero?null:'no-suitable-material',rejected:[],additionalTerms:[]}
+            omission:hero?null:'no-suitable-material',rejected:[],additionalTerms:[],
+            direction:{revision:'editorial-scene-decision-2026-09-v2',intent:hero?'object':'statement',
+              family:'editorial',variant:'base',entry:'word-first',background:'ivory-clean',relations:[],reason:'Contract fixture'}}
           return {ok:true,status:200,json:async()=>({choices:[{finish_reason:'stop',message:{content:JSON.stringify(selected)}}]})}
         }
         return {ok:true,status:200,json:async()=>({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reply)}}]})}

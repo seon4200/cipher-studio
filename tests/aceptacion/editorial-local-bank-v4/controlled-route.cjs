@@ -198,7 +198,7 @@ app.whenReady().then(async()=>{
     const forged=structuredClone(valid.sceneSpec)
     forged.editorialBankV2.relationDecision={status:'omitted',reason:'NO_VALID_RELATION'}
     assert.throws(()=>b.validateVisualSceneSpecV2(forged),/EDITORIAL_LOCAL_V4_RELATION_DECISION_INVALID/)
-    const relationEvidence=path.resolve(root,'../_cipher-scene-corrections-20260927/relation-integrity')
+    const relationEvidence=process.env.CIPHER_DECISION_EVIDENCE||path.resolve(root,'../_cipher-scene-corrections-20260927/relation-integrity')
     fs.mkdirSync(relationEvidence,{recursive:true})
     for(const [name,rendered] of [['valid',valid],['omitted',withoutRelation]]){
       fs.writeFileSync(path.join(relationEvidence,`${name}-scene-spec.json`),
