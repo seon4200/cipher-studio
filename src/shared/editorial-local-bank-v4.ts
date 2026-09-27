@@ -1,5 +1,6 @@
 import { EDITORIAL_LOCAL_BANK_V2, validateEditorialLocalBankPlanV2 } from './editorial-local-bank-v2'
 import { EDITORIAL_LOCAL_CATALOG_REVISION_V3, type EditorialLocalBankPlanV3 } from './editorial-local-bank-v3'
+import { EDITORIAL_DECISION_V2, EDITORIAL_RELATION_MEANING, validateEditorialDirectionV2, type EditorialDirectionV2 } from './editorial-scene-direction'
 
 /** New opt-in product route. Published V2/V3 plans are never rewritten. */
 export const EDITORIAL_LOCAL_BANK_V4 = Object.freeze({
@@ -20,10 +21,17 @@ export type EditorialLocalSceneDecisionV4 = {
   seed: number
   /** Only new decisions carry this; saved scenes are neither reselected nor rewritten. */
   planning?: {
-    revision:'editorial-scene-selection-2026-09-v1'
+    revision:'editorial-scene-selection-2026-09-v1'|typeof EDITORIAL_DECISION_V2
     start:number;end:number;intervalText:string;neighborContext:string
     proposition:string;visibleText:string;reason:string
     propositionSource?:'interval'|'neighbor-context'
+    sourceQuote?:string
+    headline?:string
+    secondary?:string
+    framing?:string
+    contextRef?:string
+    direction?:EditorialDirectionV2
+    adjustments?:string[]
   }
 }
 
@@ -37,7 +45,7 @@ export type EditorialLocalBankPlanV4 = Omit<EditorialLocalBankPlanV3,'revision'>
   relationDecision?: {
     status: 'drawn' | 'omitted'
     reason: 'SCRIPT_CONNECTS' | 'SCRIPT_CONTRASTS' | 'NO_VALID_RELATION' |
-      'NO_SCRIPT_EVIDENCE' | 'UNSUPPORTED_RELATION' | 'NO_SUPPORTS'
+      'NO_SCRIPT_EVIDENCE' | 'UNSUPPORTED_RELATION' | 'NO_SUPPORTS' | 'GROUNDED_GRAPH' | 'NO_GROUNDED_EDGES'
     sourceRelation?: 'conecta' | 'contrasta'
   }
 }
@@ -74,13 +82,21 @@ const keys=(value:unknown,required:readonly string[])=>!!value&&typeof value==='
 
 export function validateEditorialLocalSceneDecisionV4(sceneDecision:EditorialLocalSceneDecisionV4):void{
   const {planning,...historical}=sceneDecision
-  const planningKeys=planning?Object.fromEntries(Object.entries(planning).filter(([key])=>key!=='propositionSource')):undefined
+  const v2=planning?.revision===EDITORIAL_DECISION_V2
+  const optional=v2?['propositionSource','sourceQuote','headline','secondary','framing','contextRef','direction','adjustments']:['propositionSource']
+  const planningKeys=planning?Object.fromEntries(Object.entries(planning).filter(([key])=>!optional.includes(key))):undefined
   if(planning!==undefined&&(!keys(planningKeys,['revision','start','end','intervalText','neighborContext',
-    'proposition','visibleText','reason'])||planning.revision!=='editorial-scene-selection-2026-09-v1'||
+    'proposition','visibleText','reason'])||!['editorial-scene-selection-2026-09-v1',EDITORIAL_DECISION_V2].includes(planning.revision)||
     !Number.isFinite(planning.start)||!Number.isFinite(planning.end)||planning.end<=planning.start||
     ['intervalText','neighborContext','proposition','visibleText','reason'].some(key=>
       typeof planning[key as keyof typeof planning]!=='string')))
     throw new Error('EDITORIAL_SCENE_PLANNING_INVALID')
+  if(v2&&(typeof planning.sourceQuote!=='string'||!planning.sourceQuote.trim()||
+    typeof planning.headline!=='string'||!planning.headline.trim()||typeof planning.secondary!=='string'||
+    !['assertion','negation','question','attribution','condition','uncertainty','critique'].includes(planning.framing??'')||
+    typeof planning.contextRef!=='string'||!Array.isArray(planning.adjustments)||
+    planning.adjustments.some(item=>typeof item!=='string')))
+    throw new Error('EDITORIAL_SCENE_MEANING_INVALID')
   if(planning?.propositionSource!==undefined&&!['interval','neighbor-context'].includes(planning.propositionSource))
     throw new Error('EDITORIAL_SCENE_PROPOSITION_SOURCE_INVALID')
   if(!keys(historical,['sceneId','localText','anchor','evidence','durationSeconds','selectionReason',
@@ -100,6 +116,8 @@ export function validateEditorialLocalTextPlanV4(value:unknown):EditorialLocalTe
     (value as EditorialLocalTextPlanV4).revision!==EDITORIAL_LOCAL_BANK_V4.revision)
     throw new Error('EDITORIAL_LOCAL_V4_TEXT_PLAN_INVALID')
   validateEditorialLocalSceneDecisionV4((value as EditorialLocalTextPlanV4).sceneDecision)
+  const direction=(value as EditorialLocalTextPlanV4).sceneDecision.planning?.direction
+  if(direction)validateEditorialDirectionV2(direction,null,[])
   return value as EditorialLocalTextPlanV4
 }
 
@@ -112,7 +130,22 @@ export function validateEditorialLocalBankPlanV4(value:unknown):EditorialLocalBa
   validateEditorialLocalSceneDecisionV4(sceneDecision)
   if(supportLabelSize!==undefined&&supportLabelSize!=='mobile-readable-v1')
     throw new Error('EDITORIAL_LOCAL_V4_SUPPORT_LABEL_SIZE_INVALID')
+  if(sceneDecision.planning?.direction&&relationDecision===undefined)
+    throw new Error('EDITORIAL_GRAPH_DECISION_REQUIRED')
   if(relationDecision!==undefined){
+    const direction=sceneDecision.planning?.direction
+    if(direction){
+      validateEditorialDirectionV2(direction,common.hero.assetId,common.supports.map(s=>s.assetId))
+      if(direction.family!==common.family||direction.variant!==common.layoutVariant||direction.entry!==common.entry||
+        direction.background!==common.background)throw Error('EDITORIAL_DIRECTION_RENDER_MISMATCH')
+      if(!keys(relationDecision,['status','reason'])||
+        relationDecision.reason!==(common.relations.length?'GROUNDED_GRAPH':'NO_GROUNDED_EDGES')||
+        relationDecision.status!==(common.relations.length?'drawn':'omitted'))throw Error('EDITORIAL_GRAPH_DECISION_INVALID')
+      const bySlot=(id:string)=>id==='hero'?common.hero.assetId:common.supports.find(s=>s.slotId===id)?.assetId
+      if(common.relations.some(edge=>!direction.relations.some(source=>source.fromId===bySlot(edge.from)&&
+        source.toId===bySlot(edge.to)&&EDITORIAL_RELATION_MEANING[source.relation]===edge.meaning)))
+        throw Error('EDITORIAL_GRAPH_EDGE_NOT_AUTHORIZED')
+    }else{
     const drawn=relationDecision.status==='drawn'
     const expectedReason=relationDecision.sourceRelation==='conecta'?'SCRIPT_CONNECTS':
       relationDecision.sourceRelation==='contrasta'?'SCRIPT_CONTRASTS':null
@@ -125,6 +158,7 @@ export function validateEditorialLocalBankPlanV4(value:unknown):EditorialLocalBa
     if(drawn&&common.relations.some(relation=>relation.meaning!==
       (relationDecision.sourceRelation==='conecta'?'connects':'compares')))
       throw new Error('EDITORIAL_LOCAL_V4_RELATION_MEANING_INVALID')
+    }
   }
   validateEditorialLocalBankPlanV2({...common,revision:EDITORIAL_LOCAL_BANK_V2.revision,
     catalogRevision:'editorial-modular-catalog-2026-09-v1'},

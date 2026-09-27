@@ -8,6 +8,7 @@ import { MODULAR_CATALOG_REVISION_V1,
 import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_HISTORICAL, EDITORIAL_LOCAL_BANK_V3_2, EDITORIAL_LOCAL_CATALOG_REVISION_V3,
   EDITORIAL_LOCAL_FAMILIES_V3, type EditorialLocalBankPlanV3 } from '../../shared/editorial-local-bank-v3'
 import { EDITORIAL_LOCAL_BANK_V4, type EditorialLocalBankPlanV4 } from '../../shared/editorial-local-bank-v4'
+import { EDITORIAL_RELATION_MEANING, validateEditorialDirectionV2, type EditorialDirectionV2 } from '../../shared/editorial-scene-direction'
 import { EDITORIAL_FINISH_FONT_SHA_V11, EDITORIAL_FINISH_BODY_FONT_SHA_V11,
   EDITORIAL_FINISH_LABEL_FONT_SHA_V11, routeEditorialFinishV11,
   type FinishFont } from '../../shared/editorial-finish-v1-1'
@@ -101,7 +102,7 @@ export type EditorialLocalSelectionTraceV2 = {
   heroCandidates: { term: string; assetId: string; match: string }[]
   supportCandidates: { term: string; assetId: string; match: string }[]
   missingTerms: string[]
-  layerDecisions?: { role: 'rear-collage' | 'accent-mask' | 'background'; assetId?: string; reason: string }[]
+  layerDecisions?: { role: 'rear-collage' | 'accent-mask' | 'front-collage' | 'background'; assetId?: string; reason: string }[]
   outcome: 'SELECTED' | 'NO_HERO' | 'INSUFFICIENT_SUPPORTS' | 'NO_COMPATIBLE_ACCENT'
 }
 /** Content-first selector. A scene without two genuinely matched Supports is not
@@ -274,7 +275,7 @@ export function selectEditorialLocalBankV3Detailed(input:{catalog:ModularCatalog
  * never synthesizes a concept from nearby scenes or a demo asset ID. */
 export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModularCatalogV2;
   semantic:LocalSceneSemanticV1;recentFamilies?:readonly ModernLayoutStructureV4[];
-  contextualChoice?:{heroId:string;supportIds:string[]};useInventoryMetadata?:boolean}):{
+  contextualChoice?:{heroId:string;supportIds:string[];direction?:EditorialDirectionV2};useInventoryMetadata?:boolean}):{
     selection:EditorialLocalSelectionV2|null;trace:EditorialLocalSelectionTraceV2}{
   const literalTerms=[...new Set((['hero-core','support','rear-collage'] as const)
     .flatMap(role=>input.catalog.literalTermsInText(input.semantic.localText,role)))].slice(0,12)
@@ -293,13 +294,16 @@ export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModular
     minimumSupports:0})
   if(input.contextualChoice){
     const choice=input.contextualChoice
+    if(choice.direction)validateEditorialDirectionV2(choice.direction,choice.heroId,choice.supportIds)
     if(input.catalog.getById(choice.heroId)?.role!=='hero-core'||choice.supportIds.length>4||
       choice.supportIds.some(id=>input.catalog.getById(id)?.role!=='support'))throw Error('EDITORIAL_CONTEXTUAL_ROLE_INVALID')
     // Geometry remains the existing resolver; do not rotate families to fill quotas.
     const eligible=intentRules.find(rule=>EDITORIAL_LOCAL_FAMILIES_V3.includes(rule.family as typeof EDITORIAL_LOCAL_FAMILIES_V3[number])&&
       rule.test.test(normalized(input.semantic.localText)))
-    result={selection:{family:eligible?.family??'editorial',variant:input.catalog.aspectClass(choice.heroId)==='wide'?'inverse':'base',
-      ...choice,reason:'CONTEXTUAL_CANDIDATE_VALIDATED',missingTerms:result.trace.missingTerms},
+    result={selection:{family:choice.direction?.family??eligible?.family??'editorial',
+      variant:choice.direction?.variant??(input.catalog.aspectClass(choice.heroId)==='wide'?'inverse':'base'),
+      heroId:choice.heroId,supportIds:choice.supportIds,
+      reason:choice.direction?.reason??'CONTEXTUAL_CANDIDATE_VALIDATED',missingTerms:result.trace.missingTerms},
       trace:{...result.trace,outcome:'SELECTED'}}
   }
   if(!result.selection)return {...result,trace:{...result.trace,literalTerms:missing}}
@@ -345,7 +349,11 @@ export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModular
     {role:'rear-collage',assetId:rear?.assetId,reason:rear?'HERO_OR_BACKGROUND_METADATA_RELATION':'NO_COMPATIBLE_REAR'},
     {role:'accent-mask',assetId:accent?.assetId,reason:accent?neutralBacking(accent)?'AUTHORIZED_COMPOSITIONAL_BACKING':'HERO_OR_LAYER_METADATA_RELATION':'NO_COMPATIBLE_ACCENT'},
   ]
-  const supportIds=result.selection.supportIds.filter(id=>{
+  if(input.contextualChoice?.direction)layerDecisions.push({role:'front-collage',
+    reason:'OMITTED_NO_CERTIFIED_FRONT_OCCLUSION_PAIRING'})
+  // A grounded participant with the same concept can be meaningful (e.g. one
+  // device and its network). Never silently remove a validated model decision.
+  const supportIds=input.contextualChoice?.direction?result.selection.supportIds:result.selection.supportIds.filter(id=>{
     const candidate=input.catalog.getById(id)
     return candidate&&candidate.assetId!==hero.assetId&&
       normalized(candidate.primaryWordEs)!==normalized(hero.primaryWordEs)
@@ -389,6 +397,9 @@ export function bindEditorialLocalBankV2(input:{
 }){
   const chosen=input.selection
   const isV4=input.contract?.revision===EDITORIAL_LOCAL_BANK_V4.revision
+  const direction=isV4?input.sceneDecision?.planning?.direction:undefined
+  if(direction)validateEditorialDirectionV2(direction,chosen.heroId,chosen.supportIds)
+  const adjustments=[...(input.sceneDecision?.planning?.adjustments??[])]
   if(!/^#[0-9A-F]{6}$/.test(input.color)||chosen.supportIds.length<(isV4?0:2)||chosen.supportIds.length>6||
       new Set(chosen.supportIds).size!==chosen.supportIds.length||
       (input.contract&&!isV4&&!EDITORIAL_LOCAL_FAMILIES_V3.includes(chosen.family as typeof EDITORIAL_LOCAL_FAMILIES_V3[number]))||
@@ -402,6 +413,7 @@ export function bindEditorialLocalBankV2(input:{
   }
   const hero=requireAsset(chosen.heroId,'hero-core')
   const background=input.contract&&chosen.backgroundId?requireAsset(chosen.backgroundId,'background'):undefined
+  if(direction&&background)adjustments.push('BACKGROUND_PROCEDURAL_REPLACED_BY_COMPATIBLE_CATALOG_PAPER:'+background.curated.assetId)
   const heroBytes=input.catalog.resolveAsset(hero.curated.assetId)
   const heroBounds=subjectBoundsFromPixabayRasterV1(heroBytes)
   const aspect=input.catalog.aspectClass(chosen.heroId)
@@ -419,10 +431,12 @@ export function bindEditorialLocalBankV2(input:{
   const portrait=createEditorialLocalBankLayoutV2(chosen.family,'portrait',supports.length,chosen.variant,isV4?0:2)
   const landscape=createEditorialLocalBankLayoutV2(chosen.family,'landscape',supports.length,chosen.variant,isV4?0:2)
   const focus=chosen.family==='lineaTiempo'||chosen.family==='cascada'||chosen.family==='redNodos'
-  const entry=focus?'supports-first':chosen.family==='editorial'?'word-first':'text-first'
+  const entry=direction?.entry??(focus?'supports-first':chosen.family==='editorial'?'word-first':'text-first')
   const heroTiming={enter:entry==='supports-first'?.13:.04,settle:entry==='supports-first'?.31:.25}
-  const supportsTiming=supports.map((_,index)=>({enter:(entry==='supports-first'?.03:.27)+index*.045,
-    settle:(entry==='supports-first'?.03:.27)+index*.045+.11}))
+  const supportStart=entry==='supports-first'?.03:direction?.18:.27
+  const supportStagger=direction?.035:.045
+  const supportsTiming=supports.map((_,index)=>({enter:supportStart+index*supportStagger,
+    settle:supportStart+index*supportStagger+.11}))
   const layerTiming=[{start:.08,settle:.23,exit:.93},{start:.13,settle:.28,exit:.93},
     {start:.18,settle:.34,exit:.93}]
   const planLayers=layers.map(({slotId,asset})=>({id:slotId,sha256:asset.asset.sha256,
@@ -448,7 +462,7 @@ export function bindEditorialLocalBankV2(input:{
     catalogAssetId:asset.curated.assetId,catalogSha256:asset.curated.sha256,
     colorCapability:slotId==='idea-accent'?'accent-primary' as const:'none' as const,
     accentTreatment:slotId==='idea-accent'?'alpha-mask' as const:'none' as const}))
-  const font:FinishFont=chosen.family==='cuaderno'||chosen.family==='lineaTiempo'?'Instrument Serif':
+  const font:FinishFont=direction?'Fraunces':chosen.family==='cuaderno'||chosen.family==='lineaTiempo'?'Instrument Serif':
     chosen.family==='cintaDiagonal'||chosen.family==='rayosImpacto'?'Bricolage Grotesque':'Fraunces'
   const color=resolveModularTitleAccentV1(input.color)
   const supportsPlan=supports.map((asset,index)=>({slotId:EDITORIAL_LOCAL_SUPPORT_IDS_V2[index],
@@ -468,7 +482,7 @@ export function bindEditorialLocalBankV2(input:{
   const relationPairs=(v4Draws?supports:[]).map((_,index)=>({from:relationMeaning==='transfers'&&index>0?
     EDITORIAL_LOCAL_SUPPORT_IDS_V2[index-1]:'hero' as const,
     to:EDITORIAL_LOCAL_SUPPORT_IDS_V2[index]}))
-  const relations:EditorialLocalRelationV2[]=relationPairs.map(({from,to},index)=>{
+  let relations:EditorialLocalRelationV2[]=direction?[]:relationPairs.map(({from,to},index)=>{
     const start=Math.max(from==='hero'?heroTiming.settle:supportsTiming[index-1].settle,
       supportsTiming[index].settle)+.015+index*.005
     const routeFor=(layout:typeof portrait,orientation:'portrait'|'landscape')=>{
@@ -485,12 +499,36 @@ export function bindEditorialLocalBankV2(input:{
       landscape:routeFor(landscape,'landscape'),color:input.color,
       start,arrival:start+.045,end:start+.105}
   })
+  if(direction){
+    const slotFor=(id:string)=>id===chosen.heroId?'hero' as const:supportsPlan.find(s=>s.assetId===id)!.slotId
+    const settled=(id:string)=>id==='hero'?heroTiming.settle:supportsPlan.find(s=>s.slotId===id)!.settle
+    let previousArrival=0
+    relations=direction.relations.flatMap(edge=>{
+      const from=slotFor(edge.fromId),to=slotFor(edge.toId)
+      const start=Math.max(settled(from),settled(to),previousArrival)+.015
+      if(start+.07>.56){adjustments.push(`RELATION_OMITTED_READING_BUDGET:${edge.fromId}>${edge.toId}`);return []}
+      try{
+        const route=(layout:typeof portrait,orientation:'portrait'|'landscape')=>routeEditorialFinishV11(layout,from,to,orientation==='landscape',{
+          hero:from==='hero'||to==='hero'?editorialHeroAlphaTargetV4(heroBytes,layout,orientation,from==='hero'?to:from,heroBounds):
+            editorialLocalHeroVisibleRectV2(layout,heroBounds,orientation)})
+        const meaning=EDITORIAL_RELATION_MEANING[edge.relation]
+        const portraitRoute=route(portrait,'portrait'),landscapeRoute=route(landscape,'landscape')
+        previousArrival=start+.055
+        return [{from,to,meaning,representation:meaning==='compares'?'dotted' as const:meaning==='connects'?'accent-link' as const:'arrow' as const,
+          response:'accent' as const,portrait:portraitRoute,landscape:landscapeRoute,color:input.color,
+          start,arrival:previousArrival,end:previousArrival+.045}]
+      }catch(error){
+        adjustments.push(`RELATION_OMITTED_GEOMETRY:${edge.fromId}>${edge.toId}:${error instanceof Error?error.message:String(error)}`)
+        return []
+      }
+    })
+  }
   const plan:EditorialLocalBankPlanV2|EditorialLocalBankPlanV3|EditorialLocalBankPlanV4={revision:input.contract?.revision??EDITORIAL_LOCAL_BANK_V2.revision,
     catalogRevision:input.contract?EDITORIAL_LOCAL_CATALOG_REVISION_V3:
       input.catalog.catalogRevision??MODULAR_CATALOG_REVISION_V1,family:chosen.family,layoutVariant:chosen.variant,
     portraitLayout:portrait,landscapeLayout:landscape,
-    background:chosen.family==='cuaderno'?'white-soft-paper':
-      ['redNodos','lineaTiempo','cascada','constelacion'].includes(chosen.family)?'ivory-subtle-grid':'ivory-clean',
+    background:direction?.background??(chosen.family==='cuaderno'?'white-soft-paper':
+      ['redNodos','lineaTiempo','cascada','constelacion'].includes(chosen.family)?'ivory-subtle-grid':'ivory-clean'),
     entry,supportTreatment:chosen.family==='partidoVertical'?'ink-badge':
       chosen.family==='cascada'?'naked-label':'paper-card',
     camera:['editorial','marcoPoster','mundoIsometrico','capasApiladas'].includes(chosen.family)
@@ -503,22 +541,24 @@ export function bindEditorialLocalBankV2(input:{
       bodySha256:EDITORIAL_FINISH_BODY_FONT_SHA_V11,labelSha256:EDITORIAL_FINISH_LABEL_FONT_SHA_V11},
     colors:{headline:'#11110F',keyword:color,body:'#11110F',effects:input.color},
     localIntensity:'discreto',ambientIntensity:'discreto',
-    events:[{id:'hero-entry',target:'hero',kind:'hero-entry',start:.07,duration:.25,
+    events:[{id:'hero-entry',target:'hero',kind:'hero-entry',start:direction?heroTiming.enter:.07,duration:direction?.15:.25,
       seed:13,color:input.color,count:4,size:.55,opacity:.35,intensity:'discreto'},
       ...supportsPlan.map((s,index)=>({id:`support-${index}-entry`,target:s.slotId,
         kind:'support-entry' as const,start:s.enter,duration:.15,seed:index+17,color:input.color,
         count:3,size:.45,opacity:.34,intensity:'discreto' as const}))],
     hero:{assetId:hero.curated.assetId,sha256:hero.asset.sha256,...heroTiming},
     supports:supportsPlan,layers:planLayers,relations,
-    ...(isV4?{relationDecision:v4Draws?{
+    ...(isV4?{relationDecision:direction?{status:relations.length?'drawn' as const:'omitted' as const,
+      reason:relations.length?'GROUNDED_GRAPH' as const:'NO_GROUNDED_EDGES' as const}:v4Draws?{
       status:'drawn' as const,reason:v4RelationReason,
       sourceRelation:input.semanticRelation as 'conecta'|'contrasta',
     }:{status:'omitted' as const,reason:v4RelationReason}}:{}),
     ...(isV4?{supportLabelSize:'mobile-readable-v1' as const}:{}),
     ...(background?{backgroundAsset:{assetId:background.curated.assetId,sha256:background.curated.sha256}}:{}),
-    beats:[{id:'establish',start:0,end:.31},{id:'develop',start:.31,end:.62},
-      {id:'read',start:.62,end:.91}],
-    ...(isV4?{sceneDecision:input.sceneDecision}:{}),
+    beats:direction?[{id:'establish',start:0,end:.25},{id:'develop',start:.25,end:Math.max(.42,...relations.map(r=>r.end))},
+      {id:'read',start:Math.max(.42,...relations.map(r=>r.end)),end:.89}]:
+      [{id:'establish',start:0,end:.31},{id:'develop',start:.31,end:.62},{id:'read',start:.62,end:.91}],
+    ...(isV4?{sceneDecision:direction?{...input.sceneDecision!,planning:{...input.sceneDecision!.planning!,adjustments}}:input.sceneDecision}:{}),
   }
   const slot=(slotId:SceneSlotV2['slotId'],asset:ImportedModularAssetV1,kind:'simple-icon'|'complex-illustration'):SceneSlotV2=>({
     slotId,role:slotId,state:'present',sha256:asset.asset.sha256,mime:'image/png',

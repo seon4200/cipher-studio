@@ -78,11 +78,13 @@ import { EDITORIAL_MODULAR_FAMILIES_V1 } from '../shared/editorial-modular-famil
 import { EDITORIAL_LOCAL_BANK_V2 } from '../shared/editorial-local-bank-v2'
 import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_2,
   isEditorialLocalBankV3Revision } from '../shared/editorial-local-bank-v3'
-import { EDITORIAL_LOCAL_BANK_V4, editorialVisibleExcerptV4 } from '../shared/editorial-local-bank-v4'
+import { EDITORIAL_LOCAL_BANK_V4 } from '../shared/editorial-local-bank-v4'
 import { editorialPhraseWindow, editorialSlotWindow, editorialHeadlineForScene, stockCoverFilter } from '../shared/editorial-scene-input'
 import { decideEditorialScene } from './assets/editorial-scene-selection'
+import { EDITORIAL_DECISION_V2 } from '../shared/editorial-scene-direction'
 export { editorialPhraseWindow, editorialSlotWindow, editorialHeadlineForScene, stockCoverFilter } from '../shared/editorial-scene-input'
 export { retrieveEditorialCandidates, validateEditorialCandidateDecision, editorialCandidatePrompt, decideEditorialScene } from './assets/editorial-scene-selection'
+export { validateEditorialMeaningV2, validateEditorialSceneChoiceV2, editorialMeaningPromptV2, editorialSceneChoicePromptV2 } from './assets/editorial-scene-selection'
 import { bindEditorialLocalBankV2, preflightEditorialLocalCatalogV2, preflightEditorialLocalCatalogV3,
   selectEditorialLocalBankV2Detailed, selectEditorialLocalBankV3Detailed,
   selectEditorialLocalBankV4Detailed } from './assets/editorial-local-bank-v2'
@@ -5453,6 +5455,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           const interval=localSemantic.localTokens.filter(token=>token.temporalAlignment==='direct'&&
             token.end>ini&&token.start<fin).map(token=>token.text).join(' ').trim()
           if(interval)localSemantic.localText=interval
+          // Only this Visual decision sees bounded neighboring narration. Keep its
+          // source explicitly separate from the timed interval (never Stock/IA).
+          const first=Math.max(0,item.phraseIndex-1),last=Math.min(newAudioSegments.length-1,item.phraseIndex+1)
+          localSemantic.globalText=newAudioSegments.slice(first,last+1).map((s:any)=>s.text??'').join(' ')
+          localSemantic.globalContextRef=`phrases:${first}-${last}; interval:${ini}-${fin}`
         }
         const keywordSelection = selectNarrativeKeywordV2(localSemantic, keywordCandidates);
         return {
@@ -5538,13 +5545,18 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           const base = resolved.base;
           const contextual=localBankV4Selected&&curatedFamilyCatalog?await decideEditorialScene({
             catalog:curatedFamilyCatalog as CuratedModularCatalogV2,semantic:base.localSemantic,
-            duration:context.duration,apiKey}):null
+            duration:context.duration,apiKey,orientation:aspectRatio,recentFamilies:recentLocalFamilies}):null
           const chosen=contextual?.decision
+          const meaning=contextual?.meaning
+          // Failed comprehension is not permission to crop away scope. Preserve
+          // the timed source verbatim; Text Fit/QC may reject it, visibly, instead
+          // of turning a subordinate or negated clause into an invented claim.
+          const undecidedText=base.localSemantic.localText.trim()
           const localDecision = localBankSelected && curatedFamilyCatalog ? (localBankV4Selected?
             chosen?.heroId?
             selectEditorialLocalBankV4Detailed({catalog:curatedFamilyCatalog as CuratedModularCatalogV2,
               semantic:base.localSemantic,recentFamilies:recentLocalFamilies,
-              contextualChoice:{heroId:chosen.heroId,supportIds:chosen.supportIds},useInventoryMetadata:true}):
+              contextualChoice:{heroId:chosen.heroId,supportIds:chosen.supportIds,direction:chosen.direction},useInventoryMetadata:true}):
             {selection:null,trace:{terms:base.localSemantic.concepts.map(c=>c.label),heroCandidates:[],supportCandidates:[],
               missingTerms:[],outcome:'NO_HERO' as const}}:localBankV3Selected?
             selectEditorialLocalBankV3Detailed({catalog:curatedFamilyCatalog,semantic:base.localSemantic,
@@ -5562,17 +5574,23 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             missingTerms:localSelected?.missingTerms??localDecision?.trace.missingTerms??[],
             colorMode:editorialFamilyColor&&editorialFamilyColor!=='auto'?'manual' as const:'auto' as const,
             seed:resolved.compiled.sceneSpec.direccion.semilla,
-            planning:{revision:'editorial-scene-selection-2026-09-v1' as const,
+            planning:{revision:meaning?EDITORIAL_DECISION_V2:'editorial-scene-selection-2026-09-v1' as const,
               start:base.localSemantic.start,end:base.localSemantic.end,
               intervalText:base.localSemantic.localText,neighborContext:base.localSemantic.globalText??'',
-              proposition:chosen?.proposition??base.localSemantic.localText,
+              proposition:meaning?.proposition??base.localSemantic.localText,
               propositionSource:chosen?.propositionSource??'interval',
-              visibleText:chosen?.visibleText??editorialVisibleExcerptV4(base.localSemantic.localText,context.duration),
+              visibleText:meaning?[meaning.headline,meaning.secondary].filter(Boolean).join(' '):
+                undecidedText,
+              ...(meaning?{sourceQuote:meaning.sourceQuote,headline:meaning.headline,secondary:meaning.secondary,
+                framing:meaning.framing,contextRef:base.localSemantic.globalContextRef??'',
+                ...(chosen?.direction?{direction:chosen.direction}:{}),
+                adjustments:chosen?[]:['SCENE_CHOICE_UNAVAILABLE_PRESERVED_VALIDATED_MEANING']}:{}),
               reason:chosen?.reason??contextual?.fallbackReason??'CATALOG_UNAVAILABLE'}}:undefined
           const editorialDisplayText=localBankV4Selected
-            ?chosen?.visibleText??editorialVisibleExcerptV4(base.localSemantic.localText,context.duration,
-              resolved.compiled.sceneSpec.text.keyword)
+            ?(meaning?[meaning.headline,meaning.secondary].filter(Boolean).join(' '):undecidedText)
             :aRenderizar[sceneIndex].frase
+          const editorialHeadline=meaning?{keyword:meaning.headline,...(meaning.secondary?{closing:meaning.secondary}:{})}:
+            editorialHeadlineForScene(editorialDisplayText,chosen?.emphasis)
           if(localDecision)localSelectionTraces.push({sceneId:base.decision.sceneId,trace:localDecision.trace})
           if(localSelected)recentLocalFamilies.push(localSelected.family)
           const selected = !localBankSelected && curatedFamilyCatalog ? selectEditorialModularFamilyAssetsV1({
@@ -5621,17 +5639,17 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             ...(localBankV4Selected?{contract:EDITORIAL_LOCAL_BANK_V4,
               sceneDecision:v4SceneDecision!,semanticRelation:base.localSemantic.relation}:
               localBankV3Selected?{contract:EDITORIAL_LOCAL_BANK_V3_2}:{}),
-            headline:localBankV4Selected?editorialHeadlineForScene(editorialDisplayText,chosen?.emphasis):
+            headline:localBankV4Selected?editorialHeadline:
               editorialHeadlineFromLocalTextV1(editorialDisplayText,resolved.compiled.sceneSpec.text.keyword)}):null
           const typeLedBuilt=localBankV4Selected&&!localSelected&&curatedFamilyCatalog?(()=>{
             try {
             const legacy=bindEditorialModularFamilyV1({template:resolved.compiled,
               catalog:curatedFamilyCatalog,imported:{},family:'editorial',supportIds:[],
               allowEmptyClosingV4:true,
-              background:'ivory-clean',entry:'word-first',supportTreatment:'paper-card',
+              background:chosen?.direction?.background??'ivory-clean',entry:chosen?.direction?.entry??'word-first',supportTreatment:'paper-card',
               camera:'fixed',particles:'none',color:editorialFamilyColor==='auto'?'#A83B19':
                 (editorialFamilyColor??'#A83B19').toUpperCase(),
-              headline:editorialHeadlineForScene(editorialDisplayText,chosen?.emphasis)})
+              headline:editorialHeadline})
             const sceneSpec={...legacy.sceneSpec,presentationProfile:EDITORIAL_LOCAL_BANK_V4,
               editorialTextV4:{revision:EDITORIAL_LOCAL_BANK_V4.revision,sceneDecision:v4SceneDecision!}}
             validateVisualSceneSpecV2(sceneSpec)
