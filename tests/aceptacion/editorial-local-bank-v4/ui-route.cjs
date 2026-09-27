@@ -5,6 +5,9 @@ const {execFileSync}=require('node:child_process')
 const {createTestFixture,cleanupTestFixture}=require('../../helpers/safe-fixture.js')
 const root=path.resolve(__dirname,'../../..'),fixture=createTestFixture('editorial-local-v4-ui-route')
 const projectRoot=path.join(fixture,'project')
+// The automated UI fixture is not a GPU performance test. Use Chromium's
+// software compositing so headless Windows workers do not gate route coverage.
+app.disableHardwareAcceleration()
 const evidence=process.env.CIPHER_DECISION_EVIDENCE||path.resolve(root,'../_cipher-editorial-product-route-v1/evidence/ui-route')
 const catalogRoot=process.env.CIPHER_EDITORIAL_MODULAR_CATALOG_PATH||path.resolve(root,'../_cipher-editorial-catalog-v1-250')
 const ffmpeg=process.env.CIPHER_FFMPEG_EXE||path.resolve(root,'../_tools/ffmpeg-v4/extracted/ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe')
