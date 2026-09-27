@@ -55,7 +55,8 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
     transcriptSegments:[{start:0,end:3,text:'El cromatógrafo líquido analiza una muestra.'}],
     concepts:[{label:'cromatógrafo líquido',scope:'scene'},{label:'muestra',scope:'scene'}],
     globalText:'El cromatógrafo líquido analiza una muestra.'})
-  const chemistryLayers=b.retrieveEditorialLayerCandidates(catalog,chemistrySemantic,'16:9')
+  const chemistryCandidates=b.retrieveEditorialCandidates(catalog,chemistrySemantic)
+  const chemistryLayers=b.retrieveEditorialLayerCandidates(catalog,chemistrySemantic,'16:9',chemistryCandidates)
   check('layer shortlist is bounded and role-safe',()=>{
     assert(layerOffered.length<=12)
     assert(layerOffered.every(c=>c.role==='rear-collage'?c.surfaceProfile==='continuous-filled-v1':
@@ -63,10 +64,32 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
       c.role==='background'&&c.compatibleRelations.includes('neutral-background')&&
         c.compatibleRelations.includes('editorial-reading')))
   })
-  check('metadata retrieves a thematically compatible paper layer for natural chemistry wording',()=>{
-    assert(chemistryLayers.some(item=>item.role==='rear-collage'&&item.retrievalEvidence.includes('metadata-overlap')&&
-      /qu[ií]mic|cromat|laborat/i.test([item.primaryWordEs,item.description].join(' '))),
-      'A relevant layer must be recoverable through metadata, not a fixture ID.')
+  check('selected chemistry candidate retrieves its explicitly related rear layer',()=>{
+    assert(chemistryLayers.some(item=>item.role==='rear-collage'&&
+      item.assetId==='editorial-paper-registro-analisis-quimico-001'&&
+      item.retrievalEvidence.includes('selected-candidate-affinity')),
+      'A metadata-compatible layer must be recoverable through the chosen candidate, not a fixture word.')
+    assert(!chemistryLayers.some(item=>item.assetId==='editorial-paper-muestreo-suelo-001'),
+      'A generic "muestra" overlap must not retrieve an unrelated soil fieldwork paper.')
+  })
+  check('generic rear requires the exact neutral family and certified fill',()=>{
+    assert.equal(b.editorialGenericRearV1({role:'rear-collage',semanticFamily:'editorial-collage',
+      compatibleRelations:['editorial-collage'],surfaceProfile:'continuous-filled-v1'}),true)
+    assert.equal(b.editorialGenericRearV1({role:'rear-collage',semanticFamily:'soil-field-paper',
+      compatibleRelations:['editorial-collage'],surfaceProfile:'continuous-filled-v1'}),false)
+    assert.equal(b.editorialGenericRearV1({role:'rear-collage',semanticFamily:'editorial-collage',
+      surfaceProfile:undefined}),false)
+  })
+  check('layer affinity rejects single broad overlap and accepts explicit technical phrase',()=>{
+    assert.equal(b.editorialMetadataAffinityV1({semanticFamily:'soil-field-paper',
+      compatibleRelations:['soil-science']},{semanticFamily:'chemical-separation',
+      compatibleRelations:['sample-purification']}),false)
+    assert.equal(b.editorialMetadataAffinityV1({semanticFamily:'chemical-analysis-paper'},
+      {semanticFamily:'chemical-separation',compatibleRelations:['chemical-analysis']}),true)
+    assert.equal(b.editorialMetadataAffinityV1({role:'rear-collage',semanticFamily:'soil-field-paper',
+      compatibleRelations:['editorial-collage']},{semanticFamily:'music-theory'}),false)
+    assert.equal(b.editorialLayerConceptAffinityV1({compatibleRelations:['soil-science']},['muestra']),false)
+    assert.equal(b.editorialLayerConceptAffinityV1({compatibleRelations:['chromatography']},['chromatography']),true)
   })
   check('expanded retrieval retains core and adds rather than replaces candidates',()=>{
     const initial=b.retrieveEditorialCandidates(catalog,relationSemantic)
@@ -76,6 +99,16 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
     assert([...initial].every(item=>ids.has(item.assetId)))
     assert(union.length<=48)
     assert(expansion.every(item=>['hero-core','support'].includes(item.role)))
+  })
+  check('expanded layer retrieval retains prior role candidates and stays bounded',()=>{
+    const initial=b.retrieveEditorialLayerCandidates(catalog,chemistrySemantic,'16:9',chemistryCandidates)
+    const expandedSemantic={...chemistrySemantic,concepts:[...chemistrySemantic.concepts,
+      {label:'laboratory notes',scope:'scene'}]}
+    const expanded=b.retrieveEditorialLayerCandidates(catalog,expandedSemantic,'16:9',chemistryCandidates)
+    const merged=b.mergeEditorialLayerCandidateSets(initial,expanded)
+    assert([...initial].every(item=>merged.some(candidate=>candidate.assetId===item.assetId)))
+    assert(merged.length<=30)
+    assert(merged.filter(item=>item.role==='rear-collage').length<=10)
   })
   const hero=offered.find(c=>c.role==='hero-core'&&c.primaryWordEs.toLowerCase()==='cromatógrafo líquido')
   const support=offered.find(c=>c.role==='support'&&c.primaryWordEs.toLowerCase()==='datos')
@@ -90,6 +123,19 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
   check('unoffered layer IDs are rejected',()=>assert.throws(()=>b.validateEditorialSceneChoiceV2({...assetChoice,
     layerChoices:{...choice.layerChoices,'rear-collage':{assetId:'invented-paper',reason:'Seems relevant.'}}},
     relationMeaning,offered,relationSemantic,layerOffered),/LAYER_NOT_OFFERED/))
+  const chemistryHero=chemistryCandidates.find(c=>c.role==='hero-core'&&c.assetId==='editorial-hero-cromatografo-liquido-001')
+  const soilPaper=catalog.selectionMetadata('editorial-paper-muestreo-suelo-001')
+  if(chemistryHero&&soilPaper)check('selected rear is revalidated against chosen Hero metadata',()=>{
+    const selected={...choice,mode:'asset',heroId:chemistryHero.assetId,omission:null,
+      evidence:[{assetId:chemistryHero.assetId,quote:chemistryHero.primaryWordEs,
+        reason:'Directed structural fixture for an offered candidate.'}]}
+    const injected=[...chemistryLayers,{...soilPaper,retrievalScore:0,retrievalEvidence:['test-only-injected']}]
+    assert.throws(()=>b.validateEditorialSceneChoiceV2({...selected,layerChoices:{...choice.layerChoices,
+      'rear-collage':{assetId:soilPaper.assetId,reason:'Only shares the word sample.'}}},
+      {...meaning,sourceQuote:'El cromatógrafo líquido analiza una muestra.',concepts:['cromatógrafo líquido','muestra']},
+      chemistryCandidates,{...chemistrySemantic,localText:'El cromatógrafo líquido analiza una muestra.'},injected),
+      /LAYER_AFFINITY_INVALID:rear-collage/)
+  })
   const safeBackground=layerOffered.find(item=>item.role==='background')
   if(safeBackground)check('selected neutral background persists as a role-bound layer decision',()=>{
     const decided=b.validateEditorialSceneChoiceV2({...assetChoice,layerChoices:{...choice.layerChoices,

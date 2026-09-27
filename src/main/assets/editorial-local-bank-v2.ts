@@ -26,6 +26,8 @@ import type { LocalSceneSemanticV1 } from '../../shared/local-scene-semantic'
 import type { ModernLayoutStructureV4 } from '../../shared/visual-layout-v4'
 import { editorialHeadlineFromLocalTextV1, editorialTextWithoutEmptyClosingV4 } from './editorial-modular-families-v1'
 import { canonicalNarrativeTerm } from '../../shared/asset-intent'
+import { editorialGenericRearV1, editorialLayerConceptAffinityV1,
+  editorialMetadataAffinityV1 } from '../../shared/editorial-layer-affinity-v1'
 import { nativeImage } from 'electron'
 
 /** V4-only: route to the actual outer alpha silhouette after the renderer's
@@ -73,7 +75,6 @@ function editorialHeroAlphaTargetV4(bytes:Buffer,layout:ReturnType<typeof create
 }
 
 const normalized=(text:string)=>text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim()
-const editorialTokens=(text:string)=>(normalized(text).match(/[a-z0-9]{5,}/g)??[])
 const intentRules:readonly {family:ModernLayoutStructureV4;test:RegExp}[]=[
   {family:'lineaTiempo',test:/cronolog|linea de tiempo|antes y despues|año|siglo|decada/},
   {family:'partidoVertical',test:/compar|contraste|frente a|versus|diferencia/},
@@ -336,18 +337,11 @@ export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModular
     (entry as Entry&{surfaceUse?:string}).surfaceUse==='hero-backing-accent-v1'&&
     entry.surfaceProfile==='continuous-filled-v1'
   const neutralRear=(entry:Entry)=>input.useInventoryMetadata&&entry.role==='rear-collage'&&
-    entry.surfaceProfile==='continuous-filled-v1'&&
-    (((entry as Entry&{compatibleRelations?:string[]}).compatibleRelations??[]).includes('editorial-collage')||
-      (entry as Entry&{semanticFamily?:string}).semanticFamily==='editorial-collage')
+    editorialGenericRearV1(entry)
   const conceptRelated=(entry:Entry)=>{
-    const metadata=entry as Entry&{semanticFamily?:string;aliasesEs?:string[];description?:string}
-    const conceptTokens=editorialTokens([input.semantic.localText,input.semantic.anchor??'',...input.semantic.concepts.filter(item=>item.scope!=='context')
-      .map(item=>item.label)].join(' '))
-    const relations=(entry as Entry&{compatibleRelations?:string[]}).compatibleRelations??[]
-    const surfaceTokens=editorialTokens([entry.primaryWordEs,metadata.semanticFamily,...(metadata.aliasesEs??[]),
-      metadata.description??'',...relations].join(' '))
-    return surfaceTokens.some((token:string)=>conceptTokens.some((concept:string)=>token===concept||
-      (Math.min(token.length,concept.length)>=5&&token.slice(0,5)===concept.slice(0,5))))
+    const concepts=[input.semantic.anchor,...input.semantic.concepts.filter(item=>item.scope!=='context')
+      .map(item=>item.label)].filter((value):value is string=>typeof value==='string'&&!!value.trim())
+    return editorialLayerConceptAffinityV1(entry,concepts)
   }
   const neutralBackground=(entry:Entry)=>input.useInventoryMetadata&&entry.role==='background'&&
     tags(entry).has('neutral-background')&&tags(entry).has('editorial-reading')
@@ -371,7 +365,7 @@ export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModular
     const structurallySafe=role==='rear-collage'
       ?entry.surfaceProfile==='continuous-filled-v1'
       :role==='accent-mask'?neutralBacking(entry):neutralBackground(entry)
-    const relevant=role==='rear-collage'?selectedParticipants.some(participant=>compatible(entry,participant))||
+    const relevant=role==='rear-collage'?selectedParticipants.some(participant=>editorialMetadataAffinityV1(entry,participant))||
       conceptRelated(entry)||neutralRear(entry):
       role==='accent-mask'?neutralBacking(entry):neutralBackground(entry)
     if(!structurallySafe||!relevant)throw new Error('EDITORIAL_CONTEXTUAL_LAYER_INCOMPATIBLE:'+role)

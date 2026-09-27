@@ -84,7 +84,10 @@ import { decideEditorialScene, editorialFallbackTextV3, editorialSourceScopeV3 }
 import { EDITORIAL_DECISION_V3 } from '../shared/editorial-scene-direction'
 export { editorialPhraseWindow, editorialSlotWindow, editorialHeadlineForScene, stockCoverFilter } from '../shared/editorial-scene-input'
 export { retrieveEditorialCandidates, retrieveEditorialLayerCandidates, mergeEditorialCandidateSets,
+  mergeEditorialLayerCandidateSets,
   validateEditorialCandidateDecision, editorialCandidatePrompt, decideEditorialScene } from './assets/editorial-scene-selection'
+export { editorialMetadataAffinityV1, editorialLayerConceptAffinityV1, editorialGenericRearV1 }
+  from '../shared/editorial-layer-affinity-v1'
 export { validateEditorialMeaningV2, validateEditorialSceneChoiceV2, editorialMeaningPromptV2, editorialSceneChoicePromptV2 } from './assets/editorial-scene-selection'
 export { editorialFallbackTextV3, editorialReadingBudgetV3, editorialSourceScopeV3 } from './assets/editorial-scene-selection'
 import { bindEditorialLocalBankV2, preflightEditorialLocalCatalogV2, preflightEditorialLocalCatalogV3,
