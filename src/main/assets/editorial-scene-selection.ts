@@ -11,14 +11,15 @@ const norm=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
 const quoteNorm=(value:string)=>norm(value).replace(/\s+/gu,' ').trim()
 export const editorialSourceScopeV3=(quote:string,semantic:LocalSceneSemanticV1):'interval'|'interval-with-prior-context'=>
   quoteNorm(semantic.localText).includes(quoteNorm(quote))?'interval':'interval-with-prior-context'
-// Limited inflection folding improves recall (forestales/forestal), not relevance.
+// Limited inflection folding improves recall; prefix matching is deliberately
+// conservative so unrelated roots such as cromatógrafo/cromático do not collide.
 const grammatical=new Set('para como cuando donde mientras aunque desde hasta entre sobre porque este esta estos estas todo todos toda todas algo cada puede pueden tiene tienen hacer mismo misma mas muy tambien'.split(' '))
 const tokens=(value:string)=>(norm(value).match(/[a-z0-9]{4,}/g)??[]).filter(word=>!grammatical.has(word)).map(word=>
   /[lrndz]es$/.test(word)?word.slice(0,-2):/[aeiou]s$/.test(word)?word.slice(0,-1):word)
 const tokenRelated=(left:string,right:string)=>left===right||
-  (Math.min(left.length,right.length)>=5&&left.slice(0,5)===right.slice(0,5))
+  (Math.min(left.length,right.length)>=8&&left.slice(0,8)===right.slice(0,8))
 type Candidate=NonNullable<ReturnType<CuratedModularCatalogV2['selectionMetadata']>>&{
-  retrievalScore:number;retrievalEvidence:string[]
+  retrievalScore:number;retrievalEvidence:string[];compatibleParticipantIds?:string[]
 }
 type EditorialLayerRole='rear-collage'|'accent-mask'|'background'
 export type EditorialLayerChoiceV1={assetId:string|null;reason:string}
@@ -133,10 +134,12 @@ export function retrieveEditorialLayerCandidates(catalog:CuratedModularCatalogV2
     const exact=queryTerms.filter(term=>[entry.primaryWordEs,...entry.aliasesEs,...entry.aliasesEn]
       .some(alias=>norm(alias)===norm(term))).length
     const related=concepts.filter(term=>editorialLayerConceptAffinityV1(entry,[term])).length
-    const paired=coreCandidates.filter(candidate=>editorialMetadataAffinityV1(entry,candidate)).length
+    const compatibleParticipantIds=entry.role==='rear-collage'?coreCandidates
+      .filter(candidate=>editorialMetadataAffinityV1(entry,candidate)).map(candidate=>candidate.assetId):[]
+    const paired=compatibleParticipantIds.length
     const orientationScore=entry.aspectClass===preferred?2:entry.aspectClass==='organic'?1:0
     const score=exact*5+related*4+paired*5+orientationScore
-    return {...entry,retrievalScore:score,retrievalEvidence:[...(exact?['exact-concept']:[]),
+    return {...entry,retrievalScore:score,compatibleParticipantIds,retrievalEvidence:[...(exact?['exact-concept']:[]),
       ...(related?['compatible-relation']:[]),...(paired?['selected-candidate-affinity']:[]),
       ...(orientationScore?['format-compatible']:[])]}
   })
@@ -156,6 +159,8 @@ export function mergeEditorialLayerCandidateSets(primary:readonly Candidate[],ex
     const previous=merged.get(candidate.assetId)
     if(!previous)merged.set(candidate.assetId,candidate)
     else merged.set(candidate.assetId,{...previous,retrievalScore:Math.max(previous.retrievalScore,candidate.retrievalScore),
+      compatibleParticipantIds:[...new Set([...(previous.compatibleParticipantIds??[]),
+        ...(candidate.compatibleParticipantIds??[])])],
       retrievalEvidence:[...new Set([...previous.retrievalEvidence,...candidate.retrievalEvidence])]})
   }
   return (['rear-collage','accent-mask','background'] as const).flatMap(role=>[...merged.values()]
@@ -355,7 +360,7 @@ Superficies de composición opcionales (metadata, nunca prueba de inspección vi
 Cobertura resumida para recuperar si falta un candidato: ${JSON.stringify(coverage)}
 Devuelve JSON {mode:"asset"|"typographic",heroId:string|null,supportIds:string[],reason,evidence:[{assetId,quote,reason}],rejected:[{assetId,reason}],omission:null|"deliberate-typography"|"no-suitable-material"|"contextual-rejection",additionalTerms:string[],layerChoices:{"rear-collage":{assetId:string|null,reason:string},"accent-mask":{assetId:string|null,reason:string},background:{assetId:string|null,reason:string}},direction:{revision:"${EDITORIAL_DIRECTION_V3}",intent,family,variant,entry,background,relations:[{fromId,toId,relation,quote,reason}],reason}}.
 Usa exclusivamente IDs ofrecidos y el rol exacto. Elige conjuntamente Hero, Supports, familia y capas; todos son opcionales según la narración. Hero representa sujeto o metáfora explicativa respaldada por su descripción; no exijas que el guion nombre el objeto. Supports aportan participantes/componentes/condiciones/consecuencias distintas. Omite asociaciones débiles; cero o un Support son válidos. No conviertas Supports en Hero. Sin Hero sólo tipografía, supportIds=[] y todas las capas deben ser null.
-layerChoices debe nombrar los tres roles aunque omitas alguno. El rear sólo puede tener rol rear-collage y superficie continua declarada; el accent sólo puede ser una superficie continua declarada como hero-backing; el background sólo puede ser neutral-background + editorial-reading. No elijas front-collage: no hay pares de foco/oclusión certificados. Usa un rear impreso temático sólo cuando la semanticFamily o compatibleRelations del papel compartan una relación técnica concreta con el Hero/Supports elegidos o con conceptos explícitos de la proposición. El texto libre, una palabra común como "muestra" o "datos" y una relación genérica "editorial-collage" no demuestran afinidad. Si metadata no permite demostrarla, omítelo. Cada reason resume qué campos y necesidad compositiva lo respaldan; si omites, indica la incompatibilidad o por qué no aporta. No inventes focal regions: el texto es metadata, no inspección de la imagen.
+layerChoices debe nombrar los tres roles aunque omitas alguno. El rear sólo puede tener rol rear-collage y superficie continua declarada; el accent sólo puede ser una superficie continua declarada como hero-backing; el background sólo puede ser neutral-background + editorial-reading. No elijas front-collage: no hay pares de foco/oclusión certificados. Un rear temático puede llevar compatibleParticipantIds: IDs ofrecidos cuya metadata coincide con su semanticFamily/compatibleRelations. Sólo es elegible si la escena selecciona realmente al menos uno de esos participantes, o si una compatibleRelation explícita coincide con un concepto validado. La descripción libre, una palabra común como "muestra" o "datos" y una relación genérica "editorial-collage" no demuestran afinidad. Si metadata no permite demostrarla, omítelo. Cada reason identifica el ID elegido y los campos que sostienen la afinidad; si omites, indica la incompatibilidad o por qué no aporta. No inventes focal regions: el texto es metadata, no inspección de la imagen.
 Las superficies opcionales no desplazan la prioridad: significado y legibilidad primero, Hero y apoyos después, textura/acento al final. No rellenes una cuota de capas.
 Capacidades activas: editorial (Hero solo o pocos apoyos, o tipografía), marcoPoster (objeto protagonista), partidoVertical (objeto y apoyos laterales), cuaderno (documento/conocimiento), constelacion (2–4 conceptos relacionados), cascada (proceso real con 2–4 apoyos), redNodos (red explícita con Hero, al menos dos participantes y al menos dos vínculos textualmente respaldados que incluyan a todos; intent=relation). Estas son distribuciones; ninguna prueba causalidad. Elige conjuntamente con los recursos y la duración. variant=base|inverse; entry=text-first|hero-first|supports-first|word-first; background=ivory-clean|ivory-subtle-grid|white-soft-paper. Tipografía y material permanecen editoriales. Las otras diez geometrías V2 aún no tienen elegibilidad contextual validada; no las elijas.
 relations sólo entre IDs seleccionados y con cita literal de sourceQuote. relation=conecta (asociación sin dirección), contrasta (comparación), informa (información hacia destino), causa (causalidad explícita), transfiere (transferencia explícita). No traduzcas observa, secuencia o posición geométrica a causa/transferencia. Puedes y debes dejar [] sin vínculo respaldado. Cada extremo debe estar justificado. El renderer validará rutas y puede omitir una ruta bloqueada con diagnóstico.

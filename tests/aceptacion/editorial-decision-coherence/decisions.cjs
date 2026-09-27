@@ -65,12 +65,16 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
         c.compatibleRelations.includes('editorial-reading')))
   })
   check('selected chemistry candidate retrieves its explicitly related rear layer',()=>{
+    assert(!chemistryCandidates.some(item=>item.assetId==='editorial-hero-acordeon-cromatico-001'),
+      'A shared five-letter prefix is not evidence that chromatic and chromatographic mean the same thing.')
     assert(chemistryLayers.some(item=>item.role==='rear-collage'&&
       item.assetId==='editorial-paper-registro-analisis-quimico-001'&&
-      item.retrievalEvidence.includes('selected-candidate-affinity')),
+      item.retrievalEvidence.includes('selected-candidate-affinity')&&
+      item.compatibleParticipantIds.includes('editorial-hero-cromatografo-liquido-001')),
       'A metadata-compatible layer must be recoverable through the chosen candidate, not a fixture word.')
-    assert(!chemistryLayers.some(item=>item.assetId==='editorial-paper-muestreo-suelo-001'),
-      'A generic "muestra" overlap must not retrieve an unrelated soil fieldwork paper.')
+    const soil=chemistryLayers.find(item=>item.assetId==='editorial-paper-muestreo-suelo-001')
+    assert(soil&&!soil.compatibleParticipantIds.includes('editorial-hero-cromatografo-liquido-001'),
+      'The soil paper may be considered only through a soil participant; the generic word does not pair it with chromatography.')
   })
   check('generic rear requires the exact neutral family and certified fill',()=>{
     assert.equal(b.editorialGenericRearV1({role:'rear-collage',semanticFamily:'editorial-collage',
