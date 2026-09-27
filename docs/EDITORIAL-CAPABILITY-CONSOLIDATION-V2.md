@@ -42,6 +42,8 @@ Las diez geometrías no activadas son `cintaDiagonal` (eje diagonal; proteger ti
 
 `tsc --noEmit`, `npm run build`, contratos históricos V1.1, aceptación V4 controlada, handler y UI de ambos formatos pasaron. El test V3 de contratos modifica el puntero de catálogo activo y por ello no se ejecutó contra esa raíz. No se tocó baseline. El test V1.1 informó `historicalParity:true` para sus propios contratos; no equivale a pixelDiff global de V1–V4. No hubo video largo real ni validación de las siete familias con guiones diversos. La aceptación técnica es parcial y la revisión estética sigue pendiente.
 
+Se intentó además reproducir `editorial-local-bank-v3/render.cjs` y compararlo con `C:\graphify\_cipher-editorial-catalog-1265\evidence\contextual-v3-sample\result.json`. **No es una comparación de paridad válida**: la evidencia previa creó revisión `editorial-local-bank-2026-09-v3`, mientras el fixture actual crea `v3.1`; aunque conserva familia y Hero, ya omite una capa rear y cambia identidad y píxeles. Los SHA distintos no prueban una regresión de un SceneSpec guardado. Hace falta reproducir el SceneSpec original con sus ProjectAssets exactos o una línea base de igual revisión antes de afirmar paridad V3 pixel a pixel.
+
 ## Siguiente trabajo con dependencia concreta
 
 1. Repetir las seis familias actuales y `redNodos` con corpus de narración natural y evaluar elección, no sólo render; corregir ranking de Heroes no pertinentes sin añadir cuotas.
