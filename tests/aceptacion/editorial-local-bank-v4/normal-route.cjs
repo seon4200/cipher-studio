@@ -4,7 +4,7 @@ const {execFileSync}=require('node:child_process')
 const {createTestFixture,cleanupTestFixture}=require('../../helpers/safe-fixture.js')
 const root=path.resolve(__dirname,'../../..')
 const catalogRoot=process.env.CIPHER_EDITORIAL_MODULAR_CATALOG_PATH||path.resolve(root,'../_cipher-editorial-catalog-v1-250')
-const evidence=path.resolve(root,'../_cipher-editorial-product-route-v1/evidence/normal-route')
+const evidence=path.resolve(root,'../_cipher-scene-corrections-20260927/normal-route')
 const ffmpeg=process.env.CIPHER_FFMPEG_EXE||path.resolve(root,'../_tools/ffmpeg-v4/extracted/ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe')
 process.env.PATH=path.dirname(ffmpeg)+path.delimiter+process.env.PATH
 const fixture=createTestFixture('editorial-local-v4-normal-route'),projectRoot=path.join(fixture,'project')
@@ -12,12 +12,12 @@ const previousKey=process.env.DEEPSEEK_API_KEY,previousFetch=global.fetch
 app.setPath('userData',path.join(fixture,'userData'))
 app.commandLine.appendSwitch('force-device-scale-factor','1')
 process.chdir(fixture)
-const words='El cromatógrafo líquido analiza una muestra.'
-const segments=[{start:0,end:3,text:words}]
-const terms=[{icono:'star',ic:'🧪',etiqueta:'cromatógrafo líquido'},
+let words='El cromatógrafo líquido analiza una muestra.'
+let segments=[{start:0,end:3,text:words}]
+let terms=[{icono:'star',ic:'🧪',etiqueta:'cromatógrafo líquido'},
   {icono:'flag',ic:'🧫',etiqueta:'muestra'},
   {icono:'users-group-rounded',ic:'📊',etiqueta:'datos'}]
-const reply={phrases:[{phraseIndex:1,visualClips:[{keyword:'cromatógrafo',timestamp:.05,duration:2.9,
+let reply={phrases:[{phraseIndex:1,visualClips:[{keyword:'cromatógrafo',timestamp:.05,duration:2.9,
   prompt:words,conceptos:terms,
   semantica:{relacion:'conecta',ancla:terms[0],terminos:terms}}]}]}
 const invoke=(channel,payload)=>{
@@ -30,9 +30,19 @@ app.whenReady().then(async()=>{
   try{
     fs.mkdirSync(evidence,{recursive:true})
     process.env.DEEPSEEK_API_KEY='offline-controlled-semantic-fixture'
-    global.fetch=async url=>{
+    global.fetch=async (url,options)=>{
       if(String(url).startsWith('https://api.deepseek.com/chat/completions')){
         semanticCalls++
+        const prompt=JSON.parse(options.body).messages.at(-1).content
+        if(prompt.includes('Candidatos por rol:')){
+          const candidates=JSON.parse(prompt.split('Candidatos por rol: ')[1].split('\n')[0])
+          const hero=candidates.find(c=>c.role==='hero-core'&&c.primaryWordEs.toLowerCase().includes('cromatógrafo'))
+          const selected={mode:hero?'asset':'typographic',heroId:hero?.assetId??null,supportIds:[],
+            proposition:words,visibleText:words,emphasis:'',reason:'Controlled fixture based on offered metadata, not real semantics.',
+            evidence:hero?[{assetId:hero.assetId,quote:words,reason:'Fixture selects the exact instrument present in the text.'}]:[],
+            omission:hero?null:'no-suitable-material',rejected:[],additionalTerms:[]}
+          return {ok:true,status:200,json:async()=>({choices:[{finish_reason:'stop',message:{content:JSON.stringify(selected)}}]})}
+        }
         return {ok:true,status:200,json:async()=>({choices:[{finish_reason:'stop',message:{content:JSON.stringify(reply)}}]})}
       }
       otherNetwork++
@@ -78,11 +88,44 @@ app.whenReady().then(async()=>{
       'extension-v2','batches',batch.id,'manifest.json'),'utf8')).entries.map(entry=>entry.assetId)))
     assert(extensionIds.has(plan.hero.assetId),'SEMANTIC_SELECTION_MUST_REACH_ACTIVE_EXTENSION')
     assert.equal(catalog.getById(plan.hero.assetId)?.sha256,plan.hero.sha256)
+    // Exercise the ordinary generation handler again with a type-led V4 scene.
+    // Its display keyword starts the literal, so an empty connector must be
+    // omitted before the legacy family binder validates the scene.
+    words='Incertidumbre: ninguna respuesta elimina todas las dudas.'
+    segments=[{start:0,end:3,text:words}]
+    terms=[{icono:'question',ic:'❔',etiqueta:'incertidumbre'}]
+    reply={phrases:[{phraseIndex:1,visualClips:[{keyword:'incertidumbre',timestamp:.05,duration:2.9,
+      prompt:words,conceptos:terms}]}]}
+    const fallbackProject=path.join(fixture,'type-led-project')
+    b.createProjectFiles(fallbackProject,{id:'v4-type-led-handler',name:'V4 type-led handler',clips:[],
+      timelineVideoClips:[],aiScript:words})
+    const fallbackLoaded=await invoke('load-project',{projectPath:fallbackProject})
+    assert(fallbackLoaded.success,'TYPE_LED_PROJECT_OPEN:'+fallbackLoaded.error)
+    const fallbackSource=path.join(fixture,'fallback-black.mp4')
+    execFileSync(ffmpeg,['-hide_banner','-loglevel','error','-y','-f','lavfi','-i',
+      'color=c=black:s=360x640:r=12:d=3','-c:v','libx264','-pix_fmt','yuv420p',fallbackSource])
+    const fallbackResult=await invoke('generate-timeline-assets',{scriptText:words,audioDuration:3,
+      transcriptSegments:segments,newAudioSegments:segments,videoPath:fallbackSource,
+      weights:[0,0,0,100],iaStyle:'editorial',aspectRatio:'vertical',graphicsPercent:0,
+      visualPresentationProfile:'editorial-local-bank-v4',modularCatalogRoot:catalogRoot,
+      editorialFamilyColor:'auto'})
+    assert(fallbackResult.success,'TYPE_LED_NORMAL_HANDLER:'+fallbackResult.error)
+    const fallbackVisuals=fallbackResult.clips.filter(clip=>clip.category==='visual')
+    assert(fallbackVisuals.length>0,'TYPE_LED_NORMAL_HANDLER_NO_VISUAL')
+    assert(fallbackVisuals.every(clip=>fs.existsSync(clip.path)&&fs.statSync(clip.path).size>0),
+      'TYPE_LED_NORMAL_HANDLER_VISUAL_SIN_FICHERO')
+    const fallbackSpec=fallbackVisuals[0].visualRegeneration?.graphicData?.extra?.sceneSpec
+    assert(fallbackSpec?.editorialTextV4,'TYPE_LED_PROFILE_NOT_PERSISTED')
+    assert.equal(fallbackSpec.editorialTextV4.revision,b.EDITORIAL_LOCAL_BANK_V4.revision)
+    assert.equal(fallbackSpec.text?.connector,undefined,'EMPTY_CONNECTOR_MUST_NOT_REACH_SCENESPEC')
+    assert(fallbackSpec.text?.keyword,'TYPE_LED_KEYWORD_MISSING')
+    const primaryReloaded=await invoke('load-project',{projectPath:projectRoot})
+    assert(primaryReloaded.success,'PRIMARY_PROJECT_RELOAD:'+primaryReloaded.error)
     window=new BrowserWindow({show:false,width:800,height:600,webPreferences:{
       preload:path.join(root,'dist-electron/preload/index.js'),contextIsolation:true,sandbox:true}})
     await window.loadFile(path.join(root,'dist/catalog-matrix.html'))
     const js=code=>window.webContents.executeJavaScript(code)
-    const state={...loaded.data,visualPresentationProfile:'editorial-local-bank-v4',
+    const state={...primaryReloaded.data,visualPresentationProfile:'editorial-local-bank-v4',
       modularCatalogRoot:catalogRoot,editorialLocalAccent:'auto',timelineVideoClips:generated.clips}
     const saved=await js(`window.electronAPI.saveProjectState(${JSON.stringify(state)})`)
     assert(saved.success,'SAVE:'+saved.error)
@@ -103,6 +146,8 @@ app.whenReady().then(async()=>{
       visualsRequested:1,visualsAttempted:1,visualsMaterialized:visuals.length,
       timelineVisuals:visuals.length,visualSinFichero:0,heroId:plan.hero.assetId,
       heroSha256:plan.hero.sha256,supports:plan.supports.length,
+      typeLedHandler:{passed:true,visualsMaterialized:fallbackVisuals.length,
+        emptyConnectorOmitted:fallbackSpec.text?.connector===undefined},
       saved:true,reopened:true,replayed:true,exported:destination,productUIInteracted:false}
     fs.writeFileSync(path.join(evidence,'result.json'),JSON.stringify(result,null,2)+'\n')
     console.log(JSON.stringify(result));code=0

@@ -139,8 +139,10 @@ app.whenReady().then(async()=>{
     assert.equal(contextual.selection.backgroundId,'editorial-background-papel-marfil-fibras-001')
     assert.equal(contextual.selection.rearId,'editorial-paper-sondeo-glaciar-002',
       'REAR_PAPER_MUST_HAVE_DIRECT_SEMANTIC_MATCH')
-    assert(['editorial-accent-placa-cuadrada-desigual-001','editorial-accent-lamina-diagonal-ancha-001']
-      .includes(contextual.selection.accentId),'V3_1_ACCENT_MUST_BE_AN_APPROVED_CONTINUOUS_MASK')
+    const selectedAccent=layerCatalog.getById(contextual.selection.accentId)
+    assert.equal(selectedAccent?.role,'accent-mask','V3_1_ACCENT_MUST_BE_AN_APPROVED_CONTINUOUS_MASK')
+    assert.equal(selectedAccent?.surfaceProfile,'continuous-filled-v1','V3_1_ACCENT_MUST_BE_AN_APPROVED_CONTINUOUS_MASK')
+    assert.equal(selectedAccent?.surfaceUse,'hero-backing-accent-v1','V3_1_ACCENT_MUST_BE_AN_APPROVED_CONTINUOUS_MASK')
     assert.equal(contextual.selection.frontId,undefined,'V3_BACKING_RECIPE_DOES_NOT_ADD_FRONT_COLLAGE')
     assert.notEqual(contextual.selection.rearId,'editorial-layer-l003-v1')
     b.createProjectFiles(projectRoot,{id:'v3-context-contract',clips:[],timelineVideoClips:[]})

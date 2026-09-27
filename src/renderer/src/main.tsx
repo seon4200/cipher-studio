@@ -72,6 +72,7 @@ interface TimelineClip {
   thumbnailUrl?: string;
   /** Semantic-only context used to regenerate a modern full-screen Visual without an LLM. */
   visualRegeneration?: any;
+  stockDecision?: any;
 }
 
 interface GeneratedVoiceVersion {
@@ -1568,7 +1569,7 @@ function App() {
   // un proyecto nuevo reparte exactamente como antes hasta que el usuario mueva el slider.
   const [timelineWeights, setTimelineWeights] = useState<number[]>([...PESOS_POR_DEFECTO])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
-  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3' | 'editorial-idea-assembly-v4' | 'editorial-modular-catalog-v1' | 'editorial-modular-families-v1' | 'editorial-modular-finish-v1-1' | 'editorial-local-bank-v2' | 'editorial-local-bank-v3' | 'editorial-local-bank-v4'>('editorial-local-bank-v2')
+  const [visualPresentationProfile, setVisualPresentationProfile] = useState<'standard' | 'editorial-hybrid-v1' | 'visual-recovery-v1' | 'premium-type-color-v1' | 'families-motion-v2' | 'editorial-explainer-light-v1' | 'editorial-explainer-light-v2' | 'editorial-explainer-v3' | 'editorial-idea-assembly-v4' | 'editorial-modular-catalog-v1' | 'editorial-modular-families-v1' | 'editorial-modular-finish-v1-1' | 'editorial-local-bank-v2' | 'editorial-local-bank-v3' | 'editorial-local-bank-v4'>('editorial-local-bank-v4')
   const [ideaV4AssetRoot, setIdeaV4AssetRoot] = useState('')
   const [ideaV4Color, setIdeaV4Color] = useState<IdeaColorIntentV4>({
     supportSource: 'ink', heroMode: 'recolorable', heroPrimary: '#C5481E',
@@ -2156,6 +2157,9 @@ function App() {
         setTimelineWeights([...PESOS_POR_DEFECTO]);
         setGraphicsPercent(50);
         setVisualAssetPack('legacy');
+        // New projects start on the current editorial route. Opening a saved
+        // project still restores its exact persisted profile in the load path.
+        setVisualPresentationProfile('editorial-local-bank-v4');
 
         setActiveProjectPath(res.projectPath || null);
         setActiveProjectId(loadedData.id || null);
@@ -2837,6 +2841,7 @@ ${res.filePath}`);
                 path: clipInfo.path,
                 category: clipInfo.category || item.type,
                 visualRegeneration: clipInfo.visualRegeneration,
+                stockDecision: clipInfo.stockDecision,
                 thumbnailUrl: clipInfo.thumbnailUrl || ''
               });
             }
@@ -4402,7 +4407,7 @@ ${res.filePath}`);
             </div>
 
             {/* Botón Construir Timeline IA */}
-            {visualPresentationProfile!=='editorial-local-bank-v2'&&<div className="mt-2 flex items-center justify-between gap-2">
+            {!['editorial-local-bank-v2','editorial-local-bank-v3','editorial-local-bank-v4'].includes(visualPresentationProfile)&&<div className="mt-2 flex items-center justify-between gap-2">
               <label htmlFor="visual-asset-pack" className="text-[10px] font-semibold text-slate-400">Biblioteca de Visuales</label>
               <select id="visual-asset-pack" value={visualAssetPack}
                 onChange={event => setVisualAssetPack(event.target.value as typeof visualAssetPack)}
@@ -4417,15 +4422,16 @@ ${res.filePath}`);
               <select id="visual-presentation-profile" value={visualPresentationProfile}
                 onChange={event => setVisualPresentationProfile(event.target.value as typeof visualPresentationProfile)}
                 className="bg-[#1C1C1E] border border-[#3a3a3c] text-[10px] text-slate-200 rounded-lg px-2 py-1">
-                <option value="editorial-local-bank-v2">Editorial local — dirección automática</option>
-                <option value="editorial-local-bank-v3">Editorial contextual — catálogo extensible</option>
-                <option value="editorial-local-bank-v4">Editorial contextual V4 — ruta ordinaria (piloto)</option>
+                <option value="editorial-local-bank-v4">Editorial contextual</option>
                 <option value="standard">V15 clásico</option>
-                {!['editorial-local-bank-v2','editorial-local-bank-v3','editorial-local-bank-v4','standard'].includes(visualPresentationProfile)&&<option value={visualPresentationProfile}>Perfil histórico: {visualPresentationProfile}</option>}
+                {['editorial-local-bank-v2','editorial-local-bank-v3'].includes(visualPresentationProfile)&&
+                  <option value={visualPresentationProfile}>Perfil histórico guardado: {visualPresentationProfile}</option>}
+                {!['editorial-local-bank-v2','editorial-local-bank-v3','editorial-local-bank-v4','standard'].includes(visualPresentationProfile)&&<option value={visualPresentationProfile}>Perfil histórico guardado: {visualPresentationProfile}</option>}
               </select>
             </div>
             {['editorial-local-bank-v2','editorial-local-bank-v3','editorial-local-bank-v4'].includes(visualPresentationProfile)&&<div className="mt-2 p-2 rounded-lg border border-[#3a3a3c] text-[10px] text-slate-200 space-y-2">
-              <p className="font-semibold">Cipher elige familia, composición, capas y movimiento según el contenido.</p>
+              <p className="font-semibold">Cipher elige familia, composición, capas y movimiento según el contenido. La mezcla decide el origen del clip; esta ruta editorial compone cada Visual.</p>
+              <p>Este perfil busca sus assets en la biblioteca editorial local de abajo; el selector de pack Modern/V15 no cambia esa búsqueda.</p>
               {visualPresentationProfile==='editorial-local-bank-v4'&&<button type="button"
                 onClick={handleRegenerateEditorialV4}
                 disabled={isGeneratingAssets||!timelineVideoClips.some(clip=>clip.category==='visual'&&

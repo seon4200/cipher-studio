@@ -227,6 +227,21 @@ export class CuratedModularCatalogV2 {
   getById(assetId:string):CuratedModularAssetV1|undefined{
     return this.extensionEntries.get(assetId)??this.base.getById(assetId)
   }
+  /** Selection-only metadata. Deliberately whitelist fields: master paths,
+   * prompts, URLs and provenance must never be sent as scene decisions. */
+  selectionMetadata(assetId:string){
+    const approved=this.getById(assetId)
+    if(!approved)return undefined
+    const raw=this.extensionEntries.get(assetId)??this.baseInventory.get(assetId)??{}
+    return {assetId:approved.assetId,code:approved.code,role:approved.role,
+      primaryWordEs:approved.primaryWordEs,sha256:approved.sha256,colorCapability:approved.colorCapability,
+      aliasesEs:raw.aliasesEs??[],aliasesEn:raw.aliasesEn??[],
+      description:raw.literalDescription??'',semanticFamily:raw.semanticFamily??'',
+      compatibleRelations:raw.compatibleRelations??[],exclusions:raw.exclusions??[],
+      layerCompatibility:raw.layerCompatibility??[],material:raw.material??'',
+      surfaceUse:raw.surfaceUse,surfaceProfile:raw.surfaceProfile,
+      aspectClass:raw.aspectClass,focalRegions:raw.focalRegions??[]}
+  }
   aspectClass(assetId:string):DynamicEntry['aspectClass']{
     return this.extensionEntries.get(assetId)?.aspectClass??this.base.aspectClass(assetId)
   }

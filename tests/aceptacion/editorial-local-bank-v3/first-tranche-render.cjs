@@ -30,7 +30,9 @@ app.whenReady().then(async()=>{
     global.fetch=async url=>{networkAttempts++;throw Error('NETWORK_FORBIDDEN_AFTER_MATERIALIZATION:'+String(url))}
     b.createProjectFiles(projectRoot,{id:'editorial-catalog-1265-first-tranche',clips:[],timelineVideoClips:[],aiScript:'Fixtures locales de revisión editorial.'})
     const catalog=new b.CuratedModularCatalogV2(catalogRoot)
-    assert.deepEqual([catalog.verifyAll().listed,catalog.verifyAll().verified],[270,270])
+    const catalogHealth=catalog.verifyAll()
+    assert(catalogHealth.listed>=270&&catalogHealth.verified===catalogHealth.listed,
+      `EDITORIAL_CATALOG_ACTIVE_SNAPSHOT_INVALID:${JSON.stringify(catalogHealth.failures)}`)
     const outputs=[]
     for(const orientation of ['portrait','landscape'])for(const item of cases){
       const semantic=b.createLocalSceneSemanticV1({sceneId:'first20-'+item.id,start:0,end:3,
@@ -68,7 +70,7 @@ app.whenReady().then(async()=>{
         frameSha256:sha(fs.readFileSync(frame)),qc:qc?.findings??[]})
     }
     assert.equal(networkAttempts,0,'NETWORK_AFTER_MATERIALIZATION')
-    const reports={passed:true,profile:'editorial-local-bank-v3',revision:'editorial-local-bank-2026-09-v3.1',catalog:{listed:270,verified:270,base250ShaPreserved:true},
+    const reports={passed:true,profile:'editorial-local-bank-v3',revision:'editorial-local-bank-2026-09-v3.1',catalog:{listed:catalogHealth.listed,verified:catalogHealth.verified,base250ShaPreserved:true},
       sceneCount:cases.length,orientations:['portrait','landscape'],fps:24,sceneDurationSeconds:3,
       noNetworkAfterMaterialization:true,visualSinFichero:0,outputs}
     fs.writeFileSync(path.join(evidence,'results.json'),JSON.stringify(reports,null,2)+'\n')

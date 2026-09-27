@@ -79,6 +79,10 @@ import { EDITORIAL_LOCAL_BANK_V2 } from '../shared/editorial-local-bank-v2'
 import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_2,
   isEditorialLocalBankV3Revision } from '../shared/editorial-local-bank-v3'
 import { EDITORIAL_LOCAL_BANK_V4, editorialVisibleExcerptV4 } from '../shared/editorial-local-bank-v4'
+import { editorialPhraseWindow, editorialSlotWindow, editorialHeadlineForScene, stockCoverFilter } from '../shared/editorial-scene-input'
+import { decideEditorialScene } from './assets/editorial-scene-selection'
+export { editorialPhraseWindow, editorialSlotWindow, editorialHeadlineForScene, stockCoverFilter } from '../shared/editorial-scene-input'
+export { retrieveEditorialCandidates, validateEditorialCandidateDecision, editorialCandidatePrompt, decideEditorialScene } from './assets/editorial-scene-selection'
 import { bindEditorialLocalBankV2, preflightEditorialLocalCatalogV2, preflightEditorialLocalCatalogV3,
   selectEditorialLocalBankV2Detailed, selectEditorialLocalBankV3Detailed,
   selectEditorialLocalBankV4Detailed } from './assets/editorial-local-bank-v2'
@@ -4468,6 +4472,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
   // Ver el comentario de `decisiones = clipsDecision`: existe para que el resumen del `finally`
   // pueda contar aunque la generacion no llegue al final.
   let decisiones: any[] = [];
+  // Keep the real media outputs visible to the finally-summary. Decisions alone
+  // are only a plan: they are not proof that an MP4 was materialized.
+  let resultadosMaterializados: any[] = [];
   let completa = false;
 
   /**
@@ -4536,8 +4543,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     // Calcular cuántos sub-clips totales se requieren
     let totalVisualClipsCount = 0;
     if (newAudioSegments && Array.isArray(newAudioSegments)) {
-      newAudioSegments.forEach((seg: any) => {
-        const duration = seg.end - seg.start;
+      newAudioSegments.forEach((seg: any,index:number) => {
+        const duration = visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id
+          ?editorialPhraseWindow(newAudioSegments,index,audioDuration).duration:seg.end-seg.start;
         totalVisualClipsCount += duration > 4.0 ? Math.ceil(duration / 3.0) : 1;
       });
     }
@@ -4602,17 +4610,19 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         
         const batchFragmentos = batchSegs.map((seg: any, idx: number) => {
           const phraseNum = batchStart + idx + 1;
-          const duration = seg.end - seg.start;
+          const duration = visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id
+            ?editorialPhraseWindow(newAudioSegments,batchStart+idx,audioDuration).duration:seg.end-seg.start;
           const count = duration > 4.0 ? Math.ceil(duration / 3.0) : 1;
           return '[Frase ' + phraseNum + '] \"' + seg.text + '\" (' + 
-            Number(seg.start).toFixed(1) + 's - ' + Number(seg.end).toFixed(1) + 
+            Number(seg.start).toFixed(1) + 's - ' + Number(seg.start+duration).toFixed(1) +
             's, duración: ' + duration.toFixed(2) + 's). Requiere exactamente ' + 
             count + ' sub-clip(s) visual(es) de aprox ' + 
             (duration / count).toFixed(2) + 's cada uno.';
         }).join('\n');
 
-        const batchVisualCount = batchSegs.reduce((acc: number, seg: any) => {
-          const duration = seg.end - seg.start;
+        const batchVisualCount = batchSegs.reduce((acc: number, seg: any,idx:number) => {
+          const duration = visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id
+            ?editorialPhraseWindow(newAudioSegments,batchStart+idx,audioDuration).duration:seg.end-seg.start;
           return acc + (duration > 4.0 ? Math.ceil(duration / 3.0) : 1);
         }, 0);
         
@@ -4687,7 +4697,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           '  Si el trozo no tiene sujeto ilustrable ni relacion visual, devuelve semantica:null.\n';
 
         const batchPrompt = 'Eres un editor de video experto.\n' +
-          'Para cada frase decide como ilustrarla visualmente. Si dura mas de 4.0s divide en 2-3 sub-clips (maximo 3.0s cada uno).\n' +
+          'Para cada frase describe exactamente la cantidad de sub-clips indicada en su ficha. Respeta el orden temporal y no asignes la misma proposición a todos.\n' +
           'Para CADA sub-clip da SIEMPRE estos tres campos:\n' +
           '- keyword: en ingles, corta y concreta, algo filmable que ilustre ESE trozo. Nunca abstracta: evita palabras como "consequences", "awareness" o "meaning".\n' +
           '- timestamp: el segundo del video original (0-' + Number(maxTsVal).toFixed(1) + ') que mejor acompana ese trozo.\n' +
@@ -4825,7 +4835,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       for (let idx = 0; idx < newAudioSegments.length; idx++) {
         const seg = newAudioSegments[idx];
         const nextSegStart = newAudioSegments[idx + 1]?.start;
-        const phraseDuration = (typeof nextSegStart === 'number' && nextSegStart > seg.start)
+        const phraseDuration = visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id
+          ?editorialPhraseWindow(newAudioSegments,idx,audioDuration).duration:(typeof nextSegStart === 'number' && nextSegStart > seg.start)
           ? (nextSegStart - seg.start)
           : (seg.end - seg.start);
         const numClipsExpected = phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
@@ -4931,7 +4942,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             timestamp: effectiveTimestamp,
             keyword: c.keyword || 'broll',
             prompt: c.prompt || 'cinematic video clip',
-            duration: parseFloat((c.duration || (phraseDuration / numClipsExpected)).toFixed(2)),
+            duration: parseFloat((visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id
+              ?phraseDuration/numClipsExpected:(c.duration || (phraseDuration / numClipsExpected))).toFixed(2)),
+            semanticProvenance:{status:semantica?'validated':sinIlustracion?'explicit-null':'rejected-or-missing',
+              conceptsSource:semantica?'DeepSeek.semantica':'DeepSeek.conceptos-backup',
+              raw:c.semantica??null,validated:semantica??null},
             // AÑADIDO A MANO, y tiene que estarlo: este `map` PROYECTA, no copia. Lo que no se
             // nombre aqui, DeepSeek lo devuelve y el codigo lo tira sin error y sin log — el
             // mismo "lo que no se añade a mano queda fuera por construccion" del hash, que alli
@@ -5020,7 +5035,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     if (sanitizedPhrases.length === 0) {
       for (let idx = 0; idx < newAudioSegments.length; idx++) {
         const seg = newAudioSegments[idx];
-        const phraseDuration = seg.end - seg.start;
+        const phraseDuration = visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id
+          ?editorialPhraseWindow(newAudioSegments,idx,audioDuration).duration:seg.end-seg.start;
         const numClipsExpected = phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
         const visualClips: any[] = [];
         let runningSum = 0;
@@ -5304,6 +5320,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           relacion: subClip.relacion,
           ancla: subClip.ancla,
           sinVisual: subClip.sinVisual,
+          semanticProvenance:subClip.semanticProvenance,
+          ...(visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id?{voiceWindow:editorialSlotWindow(
+            newAudioSegments[phraseIdx].start,phrase.visualClips.map((c:any)=>c.duration),clipIdx)}:{}),
           // EL ORIGEN PEDIDO Y EL MOTIVO CRUZAN EL APLANADO, y hay que nombrarlos igual que
           // `conceptos`. Es LA MISMA TRAMPA que documenta el comentario de aqui arriba: este
           // push construye objetos NUEVOS con claves a mano, asi que lo anotado sobre el
@@ -5342,6 +5361,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     if (!(await exists(thumbDir))) await fs.promises.mkdir(thumbDir, { recursive: true });
 
     const results = new Array(totalClips);
+    resultadosMaterializados = results;
     // Evidencia de aceptacion separada del timeline: `finalClips` borra `graphic` a proposito
     // porque el MP4 ya sustituye la especificacion. Esta traza conserva la entrada exacta que
     // produjo cada hash sin reintroducir graphicData en el estado persistido del proyecto.
@@ -5404,8 +5424,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         const seg = newAudioSegments[item.phraseIndex];
         const dur = seg ? (seg.end - seg.start) : 0;
         const n = dur > 4.0 ? Math.ceil(dur / 3.0) : 1;
-        const ini = seg ? seg.start + dur * item.clipIndexInPhrase / n : 0;
-        const fin = seg ? seg.start + dur * (item.clipIndexInPhrase + 1) / n : 0;
+        const ini = item.voiceWindow?.start??(seg ? seg.start + dur * item.clipIndexInPhrase / n : 0);
+        const fin = item.voiceWindow?.end??(seg ? seg.start + dur * (item.clipIndexInPhrase + 1) / n : 0);
         const pos = `${item.phraseIndex}:${item.clipIndexInPhrase}`;
         const legacyKeywordCandidate = seg ? palabraIlustrableDelTramo(seg.words, ini, fin) : null;
         // `item.keyword` belongs to this semantic subclip. It can resolve a tie only when the
@@ -5428,6 +5448,12 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           globalHints: [item.keyword, item.prompt].filter((value): value is string => typeof value === 'string'),
           globalContextRef: `phrase:${item.phraseIndex}`,
         });
+        if(visualPresentationProfile===EDITORIAL_LOCAL_BANK_V4.id){
+          // The neighbor clause remains context, not the displayed voice interval.
+          const interval=localSemantic.localTokens.filter(token=>token.temporalAlignment==='direct'&&
+            token.end>ini&&token.start<fin).map(token=>token.text).join(' ').trim()
+          if(interval)localSemantic.localText=interval
+        }
         const keywordSelection = selectNarrativeKeywordV2(localSemantic, keywordCandidates);
         return {
           item,
@@ -5507,11 +5533,20 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         let previousEditorialFamily: import('../shared/editorial-modular-families-v1').EditorialFamilyIdV1 | undefined
         const recentLocalFamilies: import('../shared/visual-layout-v4').ModernLayoutStructureV4[]=[]
         const localSelectionTraces: {sceneId:string;trace:import('./assets/editorial-local-bank-v2').EditorialLocalSelectionTraceV2}[]=[]
-        const solicitudesGraficas = resueltosModernos.map(({ context, resolved }, sceneIndex) => {
+        const solicitudesGraficas:any[] = [];
+        for(const [sceneIndex,{context,resolved}] of resueltosModernos.entries()) {
           const base = resolved.base;
+          const contextual=localBankV4Selected&&curatedFamilyCatalog?await decideEditorialScene({
+            catalog:curatedFamilyCatalog as CuratedModularCatalogV2,semantic:base.localSemantic,
+            duration:context.duration,apiKey}):null
+          const chosen=contextual?.decision
           const localDecision = localBankSelected && curatedFamilyCatalog ? (localBankV4Selected?
+            chosen?.heroId?
             selectEditorialLocalBankV4Detailed({catalog:curatedFamilyCatalog as CuratedModularCatalogV2,
-              semantic:base.localSemantic,recentFamilies:recentLocalFamilies}):localBankV3Selected?
+              semantic:base.localSemantic,recentFamilies:recentLocalFamilies,
+              contextualChoice:{heroId:chosen.heroId,supportIds:chosen.supportIds},useInventoryMetadata:true}):
+            {selection:null,trace:{terms:base.localSemantic.concepts.map(c=>c.label),heroCandidates:[],supportCandidates:[],
+              missingTerms:[],outcome:'NO_HERO' as const}}:localBankV3Selected?
             selectEditorialLocalBankV3Detailed({catalog:curatedFamilyCatalog,semantic:base.localSemantic,
               recentFamilies:recentLocalFamilies,selectionRevision:EDITORIAL_LOCAL_BANK_V3_2.revision,
               ...(localBankV4Selected?{minimumSupports:0}:{} )}):
@@ -5522,13 +5557,20 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             anchor:base.localSemantic.anchor??'',evidence:[...new Set([
               ...base.localSemantic.directEvidence.map(item=>item.query),
               ...(localDecision?.trace.literalTerms??[])])],
-            durationSeconds:context.duration,selectionReason:localSelected?.reason??'INTENTIONAL_EDITORIAL_NO_HERO',
-            familyReason:localSelected?.reason??'ABSTRACT_OR_UNMATCHED_LOCAL_TEXT',
+            durationSeconds:context.duration,selectionReason:localSelected?.reason??contextual?.fallbackReason??'CATALOG_UNAVAILABLE',
+            familyReason:localSelected?.reason??(chosen?.omission==='deliberate-typography'?'DELIBERATE_TYPOGRAPHY':'HONEST_TYPE_LED_FALLBACK'),
             missingTerms:localSelected?.missingTerms??localDecision?.trace.missingTerms??[],
             colorMode:editorialFamilyColor&&editorialFamilyColor!=='auto'?'manual' as const:'auto' as const,
-            seed:resolved.compiled.sceneSpec.direccion.semilla}:undefined
+            seed:resolved.compiled.sceneSpec.direccion.semilla,
+            planning:{revision:'editorial-scene-selection-2026-09-v1' as const,
+              start:base.localSemantic.start,end:base.localSemantic.end,
+              intervalText:base.localSemantic.localText,neighborContext:base.localSemantic.globalText??'',
+              proposition:chosen?.proposition??base.localSemantic.localText,
+              propositionSource:chosen?.propositionSource??'interval',
+              visibleText:chosen?.visibleText??editorialVisibleExcerptV4(base.localSemantic.localText,context.duration),
+              reason:chosen?.reason??contextual?.fallbackReason??'CATALOG_UNAVAILABLE'}}:undefined
           const editorialDisplayText=localBankV4Selected
-            ?editorialVisibleExcerptV4(base.localSemantic.localText,context.duration,
+            ?chosen?.visibleText??editorialVisibleExcerptV4(base.localSemantic.localText,context.duration,
               resolved.compiled.sceneSpec.text.keyword)
             :aRenderizar[sceneIndex].frase
           if(localDecision)localSelectionTraces.push({sceneId:base.decision.sceneId,trace:localDecision.trace})
@@ -5579,17 +5621,17 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             ...(localBankV4Selected?{contract:EDITORIAL_LOCAL_BANK_V4,
               sceneDecision:v4SceneDecision!,semanticRelation:base.localSemantic.relation}:
               localBankV3Selected?{contract:EDITORIAL_LOCAL_BANK_V3_2}:{}),
-            headline:editorialHeadlineFromLocalTextV1(editorialDisplayText,
-              resolved.compiled.sceneSpec.text.keyword)}):null
+            headline:localBankV4Selected?editorialHeadlineForScene(editorialDisplayText,chosen?.emphasis):
+              editorialHeadlineFromLocalTextV1(editorialDisplayText,resolved.compiled.sceneSpec.text.keyword)}):null
           const typeLedBuilt=localBankV4Selected&&!localSelected&&curatedFamilyCatalog?(()=>{
+            try {
             const legacy=bindEditorialModularFamilyV1({template:resolved.compiled,
               catalog:curatedFamilyCatalog,imported:{},family:'editorial',supportIds:[],
               allowEmptyClosingV4:true,
               background:'ivory-clean',entry:'word-first',supportTreatment:'paper-card',
               camera:'fixed',particles:'none',color:editorialFamilyColor==='auto'?'#A83B19':
                 (editorialFamilyColor??'#A83B19').toUpperCase(),
-              headline:editorialHeadlineFromLocalTextV1(editorialDisplayText,
-                resolved.compiled.sceneSpec.text.keyword)})
+              headline:editorialHeadlineForScene(editorialDisplayText,chosen?.emphasis)})
             const sceneSpec={...legacy.sceneSpec,presentationProfile:EDITORIAL_LOCAL_BANK_V4,
               editorialTextV4:{revision:EDITORIAL_LOCAL_BANK_V4.revision,sceneDecision:v4SceneDecision!}}
             validateVisualSceneSpecV2(sceneSpec)
@@ -5598,12 +5640,18 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               extra:{...legacy.graphicData.extra,sceneSpec}}
             return {...legacy,sceneSpec,pixelIdentity:sceneSpecPixelIdentityAny(sceneSpec),
               graphicData}
+            } catch(error) {
+              const reason=error instanceof Error?error.message:String(error)
+              throw new Error(`EDITORIAL_LOCAL_BANK_V4_TYPE_LED_BIND_FAILED scene=${base.decision.sceneId}: ${reason}`)
+            }
           })():null
           const editorialBuilt=localBuilt??typeLedBuilt??familyBuilt
           const compiled = editorialBuilt ?? resolved.compiled
           if (compiled.graphicData.type !== COMPOSICION_VISUAL)
             throw new Error('El compilador semántico produjo una composición visual no autorizada');
           for (const alert of base.decision.alerts) {
+            // The preliminary legacy resolver is not the final catalog authority.
+            if (localBankV4Selected && alert.code === 'NO_VISUAL_METAPHOR') continue
             avisar({
               severidad: alert.severity === 'warning' ? 'aviso' : 'info',
               codigo: alert.code,
@@ -5612,7 +5660,16 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               detalle: `scene=${base.decision.sceneId}`,
             });
           }
-          return {
+          if (localBankV4Selected && !localSelected) {
+            avisar({severidad:'info',codigo:'EDITORIAL_CONTEXTUAL_OMISSION',origen:'editorial-catalog',
+              mensaje: contextual?.decision?.omission === 'deliberate-typography'
+                ? 'Composición tipográfica elegida por el selector editorial.'
+                : contextual?.decision
+                  ? 'No se seleccionó material pertinente entre los candidatos recuperados; se conserva texto editorial.'
+                  : 'La decisión contextual no superó la validación; se conserva texto editorial como respaldo.',
+              detalle:`scene=${base.decision.sceneId}; reason=${contextual?.fallbackReason??'CATALOG_UNAVAILABLE'}`})
+          }
+          solicitudesGraficas.push({
             graphicData: compiled.graphicData,
             renderBindings: compiled.renderBindings,
             projectRoot: PROYECTO_VISUAL ?? undefined,
@@ -5621,11 +5678,13 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               requestedProfile:EDITORIAL_LOCAL_BANK_V4.id,
               effectiveRevision:compiled.sceneSpec.presentationProfile?.revision??'historical-default',
               trace:localDecision?.trace??null,
+              semanticSource:aRenderizar[sceneIndex].item.semanticProvenance??null,
+              contextualDecision:contextual,
               selection:localSelected?{heroId:localSelected.heroId,supportIds:localSelected.supportIds,
                 rearId:localSelected.rearId??null,accentId:localSelected.accentId,
                 frontId:localSelected.frontId??null,backgroundId:localSelected.backgroundId??null,
                 family:localSelected.family,reason:localSelected.reason}:null,
-              fallbackReason:localSelected?null:localDecision?.trace.outcome??'CATALOG_UNAVAILABLE'}:null,
+              fallbackReason:localSelected?null:contextual?.fallbackReason??'CATALOG_UNAVAILABLE'}:null,
             resolverTrace: base.trace,
             motionGraphicsTrace: resolved.trace,
             motionGraphicsMetrics: resolved.metrics,
@@ -5649,8 +5708,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               graphicData:editorialBuilt.graphicData,
               renderBindings:editorialBuilt.renderBindings} : context,
             duracion: context.duration,
-          };
-        });
+          });
+        }
         for(const entry of localSelectionTraces)
           await logMessage(`[CATALOGO EDITORIAL] scene=${entry.sceneId} ${JSON.stringify(entry.trace)}`)
         const qcReports = new Map<number, { hash: string; report: VisualRuntimeQcReport }>();
@@ -5758,6 +5817,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             // tocar una sola linea del export. Y category lo hace contable en la auditoria.
             type: 'video',
             category: 'visual',
+            requestedSource: 'visual',
+            materialized: true,
             // Minimum persisted context for deterministic explicit regeneration.
             // It is administrative/semantic input only and never reaches extra.sceneSpec.
             visualRegeneration: request.visualRegeneration,
@@ -6100,6 +6161,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               let repetido = false;
               if (!best) { best = ranked[0]; repetido = true; } // pool agotado: mejor repetir que no tener clip
               const claveFuente = `${best.provider}_${best.id}`;
+              item.stockDecision={query:keyword,ranking:'orientation-resolution-duration-reuse-v1',
+                contextualInspection:'not-performed',candidates:ranked.map((candidate:any)=>({
+                  provider:candidate.provider,id:candidate.id,width:candidate.width,height:candidate.height,
+                  duration:candidate.duration??null})),selected:{provider:best.provider,id:best.id},
+                offset:0,filter:'',reason:repetido?'CANDIDATE_POOL_EXHAUSTED':'HIGHEST_TECHNICAL_SCORE_UNUSED'};
               const usosPrevios = usosPorFuente.get(claveFuente) ?? 0;
               // Se marca ANTES de cualquier await: con 3 workers en paralelo, marcarlo
               // despues de la descarga dejaria que dos frases eligieran la misma fuente.
@@ -6115,6 +6181,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               if (margen > 0.2) {
                 stockOffset = Math.round(margen * vdc(usosPrevios) * 100) / 100;
               }
+              item.stockDecision.offset=stockOffset;
 
               const rawStockFilename = `${claveFuente}_raw.mp4`;
               const rawStockPath = path.join(stockDir, rawStockFilename);
@@ -6152,20 +6219,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               let filter = '';
               try {
                 const dimensions = await getVideoDimensions(stockClipPath);
-                const isVerticalOutput = aspectRatio === '9:16' || aspectRatio === 'vertical';
-                if (isVerticalOutput) {
-                  if (dimensions.width > dimensions.height) {
-                    filter = 'crop=ih*9/16:ih,scale=1080:1920,setpts=0.8*PTS';
-                  } else {
-                    filter = 'crop=iw:iw*16/9,scale=1080:1920,setpts=0.8*PTS';
-                  }
-                } else {
-                  if (dimensions.width > dimensions.height) {
-                    filter = 'crop=iw:iw*9/16,scale=1920:1080,setpts=0.8*PTS';
-                  } else {
-                    filter = 'crop=iw:iw*9/16,scale=1920:1080,setpts=0.8*PTS';
-                  }
-                }
+                if(dimensions.width<=0||dimensions.height<=0)throw Error('STOCK_DIMENSIONS_INVALID');
+                filter=stockCoverFilter(aspectRatio);
+                if(item.stockDecision)item.stockDecision.sourceDimensions=dimensions;
               } catch (dimErr) {
                 const isVertical = aspectRatio === '9:16' || aspectRatio === 'vertical';
                 filter = isVertical
@@ -6174,6 +6230,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               }
 
               const escapedRawStock = stockClipPath.replace(/"/g, '\\"');
+              if(item.stockDecision)item.stockDecision.filter=filter;
               await new Promise<void>((resolve, reject) => {
                 const cmd = `ffmpeg -y -ss ${stockOffset} -i "${escapedRawStock}" -vf "${filter}" -t ${item.duration} -an "${escapedClip}"`;
                 exec(cmd, (err) => { if (err) reject(err); else resolve(); });
@@ -6233,6 +6290,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             durationSeconds,
             type: 'video',
             category: item.type === 'ia' ? 'ia' : (item.type === 'stock' ? 'stock' : 'original'),
+            requestedSource: item.origenPedido ?? item.type,
+            ...(item.stockDecision?{stockDecision:{...item.stockDecision,fallbackReason:item.motivoRespaldo??null}}:{}),
+            materialized: true,
             size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
             thumbnailUrl
           };
@@ -6265,7 +6325,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             }
           }
           if (donor) {
-            results[i] = { ...donor, id: `${donor.id}-fill-${i}` };
+            results[i] = { ...donor, id: `${donor.id}-fill-${i}`, materialized: false };
             filled++;
           }
         }
@@ -6403,7 +6463,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // EL `real` DE CADA ORIGEN. Un clip que cayo NO cuenta para el origen al que cayo: un
       // Visual que acabo en "original" es un Visual perdido, no un original legitimo.
       const legitimos = (t: string) =>
-        decisiones.filter((c: any) => c.type === t && !c.origenPedido).length;
+        resultadosMaterializados.filter((c: any) => c?.materialized === true &&
+          c.category === t && (c.requestedSource ?? c.category) === t).length;
       const filas: FilaResumen[] = [
         { origen: 'original', objetivo: objetivo.original, real: legitimos('original') },
         { origen: 'stock',    objetivo: objetivo.stock,    real: legitimos('stock') },

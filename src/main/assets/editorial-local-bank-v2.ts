@@ -97,7 +97,7 @@ export type EditorialLocalSelectionV2={
 export type EditorialLocalSelectionTraceV2 = {
   terms: string[]
   literalTerms?: string[]
-  heroSelectionMechanism?: 'semantic-anchor' | 'semantic-concept' | 'literal-recovery'
+  heroSelectionMechanism?: 'semantic-anchor' | 'semantic-concept' | 'literal-recovery' | 'contextual-candidates'
   heroCandidates: { term: string; assetId: string; match: string }[]
   supportCandidates: { term: string; assetId: string; match: string }[]
   missingTerms: string[]
@@ -273,7 +273,8 @@ export function selectEditorialLocalBankV3Detailed(input:{catalog:ModularCatalog
  * when that word/phrase occurs literally in this clip's timed text. This
  * never synthesizes a concept from nearby scenes or a demo asset ID. */
 export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModularCatalogV2;
-  semantic:LocalSceneSemanticV1;recentFamilies?:readonly ModernLayoutStructureV4[]}):{
+  semantic:LocalSceneSemanticV1;recentFamilies?:readonly ModernLayoutStructureV4[];
+  contextualChoice?:{heroId:string;supportIds:string[]};useInventoryMetadata?:boolean}):{
     selection:EditorialLocalSelectionV2|null;trace:EditorialLocalSelectionTraceV2}{
   const literalTerms=[...new Set((['hero-core','support','rear-collage'] as const)
     .flatMap(role=>input.catalog.literalTermsInText(input.semantic.localText,role)))].slice(0,12)
@@ -287,16 +288,28 @@ export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModular
   const semanticOnly=selectEditorialLocalBankV3Detailed({catalog:input.catalog,
     semantic:input.semantic,recentFamilies:input.recentFamilies,
     selectionRevision:EDITORIAL_LOCAL_BANK_V3_2.revision,minimumSupports:0})
-  const result=selectEditorialLocalBankV3Detailed({catalog:input.catalog,semantic,
+  let result=selectEditorialLocalBankV3Detailed({catalog:input.catalog,semantic,
     recentFamilies:input.recentFamilies,selectionRevision:EDITORIAL_LOCAL_BANK_V3_2.revision,
     minimumSupports:0})
+  if(input.contextualChoice){
+    const choice=input.contextualChoice
+    if(input.catalog.getById(choice.heroId)?.role!=='hero-core'||choice.supportIds.length>4||
+      choice.supportIds.some(id=>input.catalog.getById(id)?.role!=='support'))throw Error('EDITORIAL_CONTEXTUAL_ROLE_INVALID')
+    // Geometry remains the existing resolver; do not rotate families to fill quotas.
+    const eligible=intentRules.find(rule=>EDITORIAL_LOCAL_FAMILIES_V3.includes(rule.family as typeof EDITORIAL_LOCAL_FAMILIES_V3[number])&&
+      rule.test.test(normalized(input.semantic.localText)))
+    result={selection:{family:eligible?.family??'editorial',variant:input.catalog.aspectClass(choice.heroId)==='wide'?'inverse':'base',
+      ...choice,reason:'CONTEXTUAL_CANDIDATE_VALIDATED',missingTerms:result.trace.missingTerms},
+      trace:{...result.trace,outcome:'SELECTED'}}
+  }
   if(!result.selection)return {...result,trace:{...result.trace,literalTerms:missing}}
-  const chosenHeroId=semanticOnly.selection?.heroId??result.selection.heroId
+  const chosenHeroId=input.contextualChoice?.heroId??semanticOnly.selection?.heroId??result.selection.heroId
   const semanticHeroTerm=semanticOnly.trace.heroCandidates.find(candidate=>candidate.assetId===chosenHeroId)?.term
   const heroSelectionMechanism:NonNullable<EditorialLocalSelectionTraceV2['heroSelectionMechanism']>=
-    !semanticOnly.selection?'literal-recovery':
+    input.contextualChoice?'contextual-candidates':!semanticOnly.selection?'literal-recovery':
     normalized(semanticHeroTerm??'')===normalized(input.semantic.anchor??'')?'semantic-anchor':'semantic-concept'
-  const hero=input.catalog.getById(chosenHeroId)
+  const lookup=(id:string)=>input.useInventoryMetadata?input.catalog.selectionMetadata(id):input.catalog.getById(id)
+  const hero=lookup(chosenHeroId)
   if(!hero)throw new Error('EDITORIAL_LOCAL_V4_HERO_MISSING')
   type Entry=NonNullable<typeof hero>
   const tags=(entry:Entry)=>new Set([
@@ -308,10 +321,15 @@ export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModular
     const exclusions=new Set(((entry as Entry&{exclusions?:string[]}).exclusions??[]).map(normalized))
     return [...tags(related)].some(tag=>exclusions.has(tag))
   }
-  const compatible=(entry:Entry,related:Entry)=>intersects(entry,related)&&
+  const neutralBacking=(entry:Entry)=>input.useInventoryMetadata&&entry.role==='accent-mask'&&
+    (entry as Entry&{surfaceUse?:string}).surfaceUse==='hero-backing-accent-v1'&&
+    entry.surfaceProfile==='continuous-filled-v1'
+  const neutralBackground=(entry:Entry)=>input.useInventoryMetadata&&entry.role==='background'&&
+    tags(entry).has('neutral-background')&&tags(entry).has('editorial-reading')
+  const compatible=(entry:Entry,related:Entry)=>(intersects(entry,related)||neutralBacking(entry)||neutralBackground(entry))&&
     !excluded(entry,related)&&!excluded(related,entry)
   const preferred=input.catalog.aspectClass(hero.assetId)==='wide'?'wide':'vertical'
-  const candidates=(role:'rear-collage'|'accent-mask'|'background')=>input.catalog.entries()
+  const candidates=(role:'rear-collage'|'accent-mask'|'background')=>input.catalog.entries().map(entry=>lookup(entry.assetId)!)
     .filter(entry=>entry.role===role&&input.catalog.getById(entry.assetId)&&
       (role==='background'||(entry as Entry&{surfaceProfile?:string}).surfaceProfile==='continuous-filled-v1')&&
       (role!=='accent-mask'||(entry as Entry&{surfaceUse?:string}).surfaceUse==='hero-backing-accent-v1'))
@@ -323,9 +341,9 @@ export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModular
   const accent=candidates('accent-mask').find(entry=>compatible(entry,hero)||
     Boolean(background&&compatible(entry,background))||Boolean(rear&&compatible(entry,rear)))
   const layerDecisions:NonNullable<EditorialLocalSelectionTraceV2['layerDecisions']>=[
-    {role:'background',assetId:background?.assetId,reason:background?'HERO_METADATA_RELATION':'NO_COMPATIBLE_BACKGROUND'},
+    {role:'background',assetId:background?.assetId,reason:background?neutralBackground(background)?'AUTHORIZED_NEUTRAL_READING_BACKGROUND':'HERO_METADATA_RELATION':'NO_COMPATIBLE_BACKGROUND'},
     {role:'rear-collage',assetId:rear?.assetId,reason:rear?'HERO_OR_BACKGROUND_METADATA_RELATION':'NO_COMPATIBLE_REAR'},
-    {role:'accent-mask',assetId:accent?.assetId,reason:accent?'HERO_OR_LAYER_METADATA_RELATION':'NO_COMPATIBLE_ACCENT'},
+    {role:'accent-mask',assetId:accent?.assetId,reason:accent?neutralBacking(accent)?'AUTHORIZED_COMPOSITIONAL_BACKING':'HERO_OR_LAYER_METADATA_RELATION':'NO_COMPATIBLE_ACCENT'},
   ]
   const supportIds=result.selection.supportIds.filter(id=>{
     const candidate=input.catalog.getById(id)

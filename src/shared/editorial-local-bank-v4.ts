@@ -18,6 +18,13 @@ export type EditorialLocalSceneDecisionV4 = {
   missingTerms: string[]
   colorMode: 'auto' | 'manual'
   seed: number
+  /** Only new decisions carry this; saved scenes are neither reselected nor rewritten. */
+  planning?: {
+    revision:'editorial-scene-selection-2026-09-v1'
+    start:number;end:number;intervalText:string;neighborContext:string
+    proposition:string;visibleText:string;reason:string
+    propositionSource?:'interval'|'neighbor-context'
+  }
 }
 
 export type EditorialLocalBankPlanV4 = Omit<EditorialLocalBankPlanV3,'revision'> & {
@@ -42,16 +49,16 @@ export type EditorialLocalTextPlanV4 = {
 /** A Visual is not a subtitle track. Keep the timed narration intact in sceneDecision,
  * but show a contiguous, duration-budgeted excerpt so a three-second composition
  * does not demand reading an entire paragraph. Never invent or rewrite words. */
-export function editorialVisibleExcerptV4(localText:string,durationSeconds:number,keyword?:string):string{
+export function editorialVisibleExcerptV4(localText:string,durationSeconds:number,_keyword?:string):string{
   const firstClause=localText.trim().split(/[;.!?]/u)[0]?.trim()??''
   const words=firstClause.split(/\s+/u).filter(Boolean)
   const budget=durationSeconds<=3.25?7:durationSeconds<=4.5?10:13
   const chosen=words.slice(0,budget)
   const omitted=words.slice(budget).join(' ')
   if(/\b(?:no|nunca|jamás|sin|pero|aunque|excepto|salvo|menos|\d[\d.,%]*)\b/iu.test(omitted)){
-    const term=keyword?.trim()
-    const at=term?localText.toLocaleLowerCase('es').indexOf(term.toLocaleLowerCase('es')):-1
-    return at>=0?localText.slice(at,at+term!.length):localText.trim()
+    // A lone keyword destroys the assertion, its polarity or its quantity. A
+    // model-validated reduction may replace this upstream; the fallback is faithful.
+    return firstClause||localText.trim()
   }
   if(words.length>budget){
     const conjunction=chosen.findIndex((word,index)=>index>=3&&/^(?:y|ni|pero)$/iu.test(word))
@@ -66,7 +73,17 @@ const keys=(value:unknown,required:readonly string[])=>!!value&&typeof value==='
   Object.keys(value).sort().join('|')===required.slice().sort().join('|')
 
 export function validateEditorialLocalSceneDecisionV4(sceneDecision:EditorialLocalSceneDecisionV4):void{
-  if(!keys(sceneDecision,['sceneId','localText','anchor','evidence','durationSeconds','selectionReason',
+  const {planning,...historical}=sceneDecision
+  const planningKeys=planning?Object.fromEntries(Object.entries(planning).filter(([key])=>key!=='propositionSource')):undefined
+  if(planning!==undefined&&(!keys(planningKeys,['revision','start','end','intervalText','neighborContext',
+    'proposition','visibleText','reason'])||planning.revision!=='editorial-scene-selection-2026-09-v1'||
+    !Number.isFinite(planning.start)||!Number.isFinite(planning.end)||planning.end<=planning.start||
+    ['intervalText','neighborContext','proposition','visibleText','reason'].some(key=>
+      typeof planning[key as keyof typeof planning]!=='string')))
+    throw new Error('EDITORIAL_SCENE_PLANNING_INVALID')
+  if(planning?.propositionSource!==undefined&&!['interval','neighbor-context'].includes(planning.propositionSource))
+    throw new Error('EDITORIAL_SCENE_PROPOSITION_SOURCE_INVALID')
+  if(!keys(historical,['sceneId','localText','anchor','evidence','durationSeconds','selectionReason',
       'familyReason','missingTerms','colorMode','seed'])||
     typeof sceneDecision.sceneId!=='string'||!sceneDecision.sceneId||
     typeof sceneDecision.localText!=='string'||typeof sceneDecision.anchor!=='string'||

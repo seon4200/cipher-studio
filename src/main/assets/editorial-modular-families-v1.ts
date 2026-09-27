@@ -38,6 +38,11 @@ export function editorialHeadlineFromLocalTextV1(localText:string,keyword:string
 export function editorialTextWithoutEmptyClosingV4(source:VisualSceneSpecV2['text'],
   headline:{connector?:string;keyword:string;closing?:string},alignment:VisualSceneSpecV2['text']['alignment']){
   const text={...source,...headline,alignment}
+  // The V4 type-led fallback runs through this legacy binder before the caller
+  // stamps the V4 profile onto its SceneSpec. An empty connector is valid V4
+  // editorial text, but the V1 validator correctly rejects an explicit empty
+  // string. Omitting it preserves the visible copy and leaves V1–V3 untouched.
+  if(!headline.connector?.trim()) delete text.connector
   if(!headline.closing?.trim()){
     delete text.closing
     text.timing={...source.timing,closingStart:undefined}

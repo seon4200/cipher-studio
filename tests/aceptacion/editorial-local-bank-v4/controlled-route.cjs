@@ -27,7 +27,7 @@ app.whenReady().then(async()=>{
       'No desaparece el peligro')
     assert.equal(b.editorialVisibleExcerptV4(
       'Las pruebas sugieren un resultado preliminar que no confirma la causa.',3,'resultado'),
-      'resultado','LATE_NEGATION_MUST_NOT_BECOME_POSITIVE_CLAIM')
+      'Las pruebas sugieren un resultado preliminar que no confirma la causa','LATE_NEGATION_MUST_NOT_BECOME_POSITIVE_CLAIM')
     app.removeAllListeners('window-all-closed')
     ipcMain.removeHandler('get-elevenlabs-voices')
     ipcMain.handle('get-elevenlabs-voices',()=>({success:true,voices:[]}))
@@ -88,6 +88,21 @@ app.whenReady().then(async()=>{
       preferredVisualMode:'editorial-text',sistema:'editorial',direction:{fondo:'ondas',estructura:'editorial',
         camara:'quieto',densidad:'media',ritmo:'simultaneo',semilla:51721},videoStyleId:'cream-editorial'})
     const base=(await b.resolveModernVisualGenerationBatchV2({contexts:[context],projectRoot}))[0].resolved.compiled
+    // Reproduce the V4 editorial-text fallback when the resolver's display
+    // keyword is semantic but not literally present in the sentence. The V4
+    // adapter must omit an empty connector before the legacy binder validates.
+    const typeLedSource='Las nuevas posibilidades aparecen cuando cambia la perspectiva.'
+    const typeLedHeadline=b.editorialHeadlineFromLocalTextV1(typeLedSource,
+      base.sceneSpec.text.keyword)
+    assert.equal(typeLedHeadline.connector,'')
+    const typeLed=b.bindEditorialModularFamilyV1({template:base,catalog,imported:{},
+      family:'editorial',supportIds:[],allowEmptyClosingV4:true,
+      background:'ivory-clean',entry:'word-first',supportTreatment:'paper-card',
+      camera:'fixed',particles:'none',color:'#A83B19',headline:typeLedHeadline})
+    assert.equal(typeLed.sceneSpec.text.connector,undefined,
+      'V4_TYPE_LED_MUST_OMIT_EMPTY_CONNECTOR_FIELD')
+    assert.equal(typeLed.sceneSpec.text.keyword,typeLedHeadline.keyword)
+    assert.equal(typeLed.sceneSpec.text.closing,typeLedHeadline.closing)
     const ids=[selection.heroId,...selection.supportIds,selection.rearId,selection.accentId,selection.backgroundId].filter(Boolean)
     const imported=Object.fromEntries([...new Set(ids)].map(id=>[id,catalog.publish(projectRoot,id)]))
     const bind=(color='#A83B19',colorMode='auto',semanticRelation,localText=semantic.localText,template=base)=>b.bindEditorialLocalBankV2({template,catalog,imported,selection,color,
@@ -183,7 +198,7 @@ app.whenReady().then(async()=>{
     const forged=structuredClone(valid.sceneSpec)
     forged.editorialBankV2.relationDecision={status:'omitted',reason:'NO_VALID_RELATION'}
     assert.throws(()=>b.validateVisualSceneSpecV2(forged),/EDITORIAL_LOCAL_V4_RELATION_DECISION_INVALID/)
-    const relationEvidence=path.resolve(root,'../_cipher-editorial-product-route-v1/evidence/relation-integrity')
+    const relationEvidence=path.resolve(root,'../_cipher-scene-corrections-20260927/relation-integrity')
     fs.mkdirSync(relationEvidence,{recursive:true})
     for(const [name,rendered] of [['valid',valid],['omitted',withoutRelation]]){
       fs.writeFileSync(path.join(relationEvidence,`${name}-scene-spec.json`),
