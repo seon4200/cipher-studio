@@ -89,6 +89,8 @@ app.whenReady().then(async()=>{
     assert(visuals.every(clip=>fs.existsSync(clip.path)&&fs.statSync(clip.path).size>0),'VISUAL_SIN_FICHERO')
     const plan=visuals[0].visualRegeneration?.graphicData?.extra?.sceneSpec?.editorialBankV2
     assert(plan?.revision===b.EDITORIAL_LOCAL_BANK_V4.revision,'V4_PLAN_NOT_PERSISTED')
+    assert.equal(plan.finishIntegration,'editorial-finish-integration-2026-09-v2',
+      'ORDINARY_HANDLER_DID_NOT_PERSIST_INTEGRATED_FINISH')
     assert(plan.hero.assetId,'SEMANTIC_HERO_MUST_SURVIVE')
     const catalog=new b.CuratedModularCatalogV2(catalogRoot)
     const active=JSON.parse(fs.readFileSync(path.join(catalogRoot,'extension-v2','active.json'),'utf8'))

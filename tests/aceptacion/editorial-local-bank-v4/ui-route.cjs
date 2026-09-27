@@ -5,7 +5,7 @@ const {execFileSync}=require('node:child_process')
 const {createTestFixture,cleanupTestFixture}=require('../../helpers/safe-fixture.js')
 const root=path.resolve(__dirname,'../../..'),fixture=createTestFixture('editorial-local-v4-ui-route')
 const projectRoot=path.join(fixture,'project')
-const evidence=path.resolve(root,'../_cipher-editorial-product-route-v1/evidence/ui-route')
+const evidence=process.env.CIPHER_DECISION_EVIDENCE||path.resolve(root,'../_cipher-editorial-product-route-v1/evidence/ui-route')
 const catalogRoot=process.env.CIPHER_EDITORIAL_MODULAR_CATALOG_PATH||path.resolve(root,'../_cipher-editorial-catalog-v1-250')
 const ffmpeg=process.env.CIPHER_FFMPEG_EXE||path.resolve(root,'../_tools/ffmpeg-v4/extracted/ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe')
 process.env.PATH=path.dirname(ffmpeg)+path.delimiter+process.env.PATH
@@ -21,6 +21,7 @@ if(testCaseId&&!/^[a-z0-9-]{1,40}$/.test(testCaseId))throw Error('INVALID_TEST_C
 const vertical=process.argv.includes('--vertical')
 const manualColor=process.argv.includes('--manual-color')
 const richScene=process.argv.includes('--rich-scene')
+const networkScene=process.argv.includes('--network-scene')
 const abstractScene=process.argv.includes('--abstract-scene')
 const exportFromUi=process.argv.includes('--export-from-ui')
 const gate2Evidence=process.argv.includes('--gate2-evidence')
@@ -31,7 +32,7 @@ app.setPath('userData',path.join(fixture,'userData'))
 app.commandLine.appendSwitch('force-device-scale-factor','1')
 process.chdir(fixture)
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms))
-const words=testNarration??(richScene
+const words=testNarration??(networkScene?'Un sensor conecta la cámara y los datos en una red.':richScene
   ?'Cromatógrafo líquido analiza vial de muestra y micropipeta automática; hoja de registro de análisis químico conserva datos.'
   :abstractScene?'Ninguna certeza basta para responder.'
   :naturalSemantic
@@ -43,7 +44,9 @@ const words=testNarration??(richScene
   :realSemantic
   ?'Un cromatógrafo líquido separa los componentes de una muestra para revelar qué contiene.'
   :'El cromatógrafo líquido analiza una muestra.')
-const terms=abstractScene?[{icono:'question-circle',ic:'❓',etiqueta:'certeza'},
+const terms=networkScene?[{icono:'star',ic:'⚙️',etiqueta:'sensor'},
+  {icono:'camera',ic:'📷',etiqueta:'cámara'},{icono:'chart',ic:'📊',etiqueta:'datos'}]:
+  abstractScene?[{icono:'question-circle',ic:'❓',etiqueta:'certeza'},
   {icono:'question-circle',ic:'❓',etiqueta:'responder'},
   {icono:'question-circle',ic:'❓',etiqueta:'duda'}]:richScene?[{icono:'star',ic:'🧪',etiqueta:'cromatógrafo líquido'},
   {icono:'document',ic:'🧫',etiqueta:'vial de muestra'},
@@ -52,7 +55,7 @@ const terms=abstractScene?[{icono:'question-circle',ic:'❓',etiqueta:'certeza'}
   {icono:'star',ic:'🧪',etiqueta:'cromatógrafo líquido'},
   {icono:'flag',ic:'🧫',etiqueta:'muestra'},
   {icono:'users-group-rounded',ic:'📊',etiqueta:'datos'}]
-const semanticReply={phrases:[{phraseIndex:1,visualClips:[{keyword:abstractScene?'certeza':'cromatógrafo',timestamp:.05,
+const semanticReply={phrases:[{phraseIndex:1,visualClips:[{keyword:networkScene?'sensor':abstractScene?'certeza':'cromatógrafo',timestamp:.05,
   duration:duration-.1,prompt:words,conceptos:terms,semantica:{relacion:'conecta',ancla:terms[0],terminos:terms}}]}]}
 async function until(check,label,iterations=120){for(let i=0;i<iterations;i++){
   const value=await check();if(value)return value;await pause(250)}throw Error('UI_TIMEOUT:'+label)}
@@ -78,6 +81,39 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
             naturalSemantic?'real-semantic-natural-shape.json':'real-semantic-shape.json'),
             JSON.stringify(realSemanticShape,null,2)+'\n')}
         return response}
+      const prompt=JSON.parse(options.body).messages.at(-1).content
+      if(prompt.startsWith('Comprende una escena editorial')){
+        const meaning={sourceQuote:words,proposition:words,
+          headline:networkScene?'Sensor conecta cámara y datos':words,secondary:'',
+          framing:abstractScene?'negation':'assertion',concepts:terms.map(item=>item.etiqueta),
+          intent:networkScene?'relation':abstractScene?'statement':'object',
+          reason:'Controlled fixture; not real model semantics.'}
+        return {ok:true,status:200,json:async()=>({choices:[{finish_reason:'stop',
+          message:{content:JSON.stringify(meaning)}}]})}
+      }
+      if(prompt.includes('Candidatos por rol:')){
+        const candidates=JSON.parse(prompt.split('Candidatos por rol: ')[1].split('\n')[0])
+        const hero=abstractScene?null:candidates.find(item=>item.role==='hero-core'&&
+          item.primaryWordEs?.toLowerCase().includes(networkScene?'sensor':'cromatógrafo'))
+        const supports=networkScene?['cámara','datos'].map(term=>candidates.find(item=>
+          item.role==='support'&&item.primaryWordEs?.toLowerCase().includes(term))).filter(Boolean):[]
+        const supportIds=supports.map(item=>item.assetId)
+        const choice={mode:hero?'asset':'typographic',heroId:hero?.assetId??null,
+          supportIds,reason:'Controlled choice from offered metadata; not real model semantics.',
+          evidence:hero?[{assetId:hero.assetId,quote:words,reason:'Subject named in the interval.'},
+            ...supports.map(item=>({assetId:item.assetId,quote:words,reason:'Participant named in the interval.'}))]:[],
+          rejected:[],omission:hero?null:'deliberate-typography',additionalTerms:[],
+          direction:{revision:networkScene?'editorial-scene-direction-2026-09-v3':'editorial-scene-decision-2026-09-v2',
+            intent:networkScene?'relation':hero?'object':'statement',
+            family:networkScene?'redNodos':hero?'marcoPoster':'editorial',variant:'base',
+            entry:hero?'hero-first':'word-first',background:'ivory-clean',relations:[],
+            reason:'Contract fixture with no unsupported relation.'}}
+        if(networkScene&&hero&&supports.length===2)choice.direction.relations=supports.map(item=>({
+          fromId:hero.assetId,toId:item.assetId,relation:'conecta',quote:words,
+          reason:'The spoken sentence explicitly connects the sensor with both named participants.'}))
+        return {ok:true,status:200,json:async()=>({choices:[{finish_reason:'stop',
+          message:{content:JSON.stringify(choice)}}]})}
+      }
       return {ok:true,status:200,json:async()=>({choices:[{finish_reason:'stop',
         message:{content:JSON.stringify(semanticReply)}}]})}}
       otherNetwork++;throw Error('UNEXPECTED_NETWORK:'+String(url))}
@@ -152,6 +188,18 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
     assert(visuals.every(clip=>fs.existsSync(clip.path)),'UI_VISUAL_SIN_FICHERO')
     assert(visuals.every(clip=>clip.visualRegeneration?.revision===b.EDITORIAL_LOCAL_BANK_V4.revision),
       'UI_WRONG_REVISION')
+    for(const clip of visuals){const spec=clip.visualRegeneration.graphicData.extra.sceneSpec
+      if(spec.editorialBankV2)assert.equal(spec.editorialBankV2.finishIntegration,
+        'editorial-finish-integration-2026-09-v2','UI_NEW_SCENE_FINISH_NOT_PERSISTED')}
+    if(networkScene){const plan=visuals[0].visualRegeneration.graphicData.extra.sceneSpec.editorialBankV2
+      assert.equal(plan?.family,'redNodos','NETWORK_FAMILY_NOT_SELECTED_IN_ORDINARY_ROUTE')
+      assert.equal(plan.supports.length,2)
+      assert.equal(plan.relations.length,2)
+      assert.equal(plan.events.filter(item=>item.kind==='arrival').length,2)
+      const ungrounded=structuredClone(visuals[0].visualRegeneration.graphicData.extra.sceneSpec)
+      ungrounded.editorialBankV2.sceneDecision.planning.direction.relations.pop()
+      assert.throws(()=>b.validateVisualSceneSpecV2(ungrounded),/EDITORIAL_NETWORK_NOT_GROUNDED/,
+        'NETWORK_WITH_MISSING_PARTICIPANT_MUST_BE_REJECTED')}
     if(manualColor){const plan=visuals[0].visualRegeneration.graphicData.extra.sceneSpec.editorialBankV2
       assert.equal(plan.accent,'#238C87','MANUAL_COLOR_NOT_PERSISTED')
       assert.equal(plan.sceneDecision.colorMode,'manual','MANUAL_COLOR_MODE_NOT_PERSISTED')}
@@ -164,7 +212,7 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
     if(abstractScene){const spec=visuals[0].visualRegeneration.graphicData.extra.sceneSpec
       assert(spec.editorialTextV4&&spec.visualMode==='editorial-text'&&!spec.editorialBankV2,
         'ABSTRACT_SCENE_MUST_BE_EXPLICIT_V4_TYPE_LED')}
-    const prefix=`${realSemantic?'ui-real-semantic':'ui-controlled-semantic'}-${vertical?'vertical':'horizontal'}${testCaseId?'-'+testCaseId:''}${naturalSemantic?'-natural':''}${naturalSemanticHero?'-natural-hero':''}${freshNaturalSemantic?'-fresh-natural':''}${richScene?'-rich':''}${abstractScene?'-abstract':''}${manualColor?'-manual-teal':''}${gate2Evidence?'-gate2':''}${regenerateWithoutCatalog?'-no-catalog-replay':''}`
+    const prefix=`${realSemantic?'ui-real-semantic':'ui-controlled-semantic'}-${vertical?'vertical':'horizontal'}${testCaseId?'-'+testCaseId:''}${naturalSemantic?'-natural':''}${naturalSemanticHero?'-natural-hero':''}${freshNaturalSemantic?'-fresh-natural':''}${richScene?'-rich':''}${networkScene?'-network':''}${abstractScene?'-abstract':''}${manualColor?'-manual-teal':''}${gate2Evidence?'-gate2':''}${regenerateWithoutCatalog?'-no-catalog-replay':''}`
     const copied=path.join(evidence,`${prefix}-visual.mp4`)
     fs.copyFileSync(visuals[0].path,copied)
     fs.writeFileSync(path.join(evidence,`${prefix}-scene-spec.json`),

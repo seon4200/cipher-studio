@@ -4,6 +4,7 @@ import type { EditorialModularFamiliesPlanV1 } from '../../../shared/editorial-m
 import type { EditorialLocalBankPlanV2 } from '../../../shared/editorial-local-bank-v2'
 import { EDITORIAL_LOCAL_BANK_V3_2, type EditorialLocalBankPlanV3 } from '../../../shared/editorial-local-bank-v3'
 import { EDITORIAL_LOCAL_BANK_V4 } from '../../../shared/editorial-local-bank-v4'
+import { EDITORIAL_FINISH_INTEGRATION_V2 } from '../../../shared/editorial-finish-integration-v2'
 import { editorialLocalHeroScaleV2 } from '../../../shared/editorial-local-bank-v2'
 import type { EditorialFinishPlanV11, FinishRoute } from '../../../shared/editorial-finish-v1-1'
 import { sceneSpecReactKeyAny } from '../../../shared/visual-scene-spec-v2'
@@ -113,6 +114,8 @@ export const EditorialModularFamiliesV1:React.FC<{
 }>=({spec,runtimeAssets,u})=>{
   const plan=spec.editorialBankV2??spec.editorialFamily!
   const finish=spec.editorialBankV2??spec.editorialFinish
+  const integratedFinish=(spec.editorialBankV2 as {finishIntegration?:string}|undefined)?.finishIntegration===
+    EDITORIAL_FINISH_INTEGRATION_V2
   const v3Background=(spec.editorialBankV2 as EditorialLocalBankPlanV3|undefined)?.backgroundAsset
   const readableSupportLabels=(spec.editorialBankV2 as {supportLabelSize?:string}|undefined)?.supportLabelSize===
     'mobile-readable-v1'
@@ -162,7 +165,8 @@ export const EditorialModularFamiliesV1:React.FC<{
       const occupied=(r:Rect)=>x>=r.x-2&&x<=r.x+r.width+2&&y>=r.y-2&&y<=r.y+r.height+2
       if(occupied(layout.textBounds)||layout.slotLayouts.some(s=>occupied(s.envelope)))return null
       const strength=finish.ambientIntensity==='enfasis'?.44:.31
-      const readBudget=finish.relations.some(r=>u>=r.start&&u<=r.end)?0.4:1
+      const readBudget=integratedFinish&&localBeat==='read'?.28:
+        finish.relations.some(r=>u>=r.start&&u<=r.end)?0.4:1
       return <span key={`ambient-${index}`} aria-hidden="true" data-editorial-finish-ambient="true"
         style={{position:'absolute',left:`${x}%`,top:`${y}%`,width:'.62cqmin',height:'.62cqmin',
           borderRadius:'50%',background:finish.colors.effects,opacity:strength*readBudget*phase(u,.05,.18)*exit,
@@ -257,7 +261,7 @@ export const EditorialModularFamiliesV1:React.FC<{
             mask={`url(#${maskId})`} opacity={relation.representation==='accent-link'?.5:1} />}
           {relation.representation==='dot-flow'&&<path d={path} fill="none" stroke={plan.ink}
             strokeWidth=".18" strokeDasharray=".55 1.25" strokeLinecap="round"
-            opacity={draw*.68} />}
+            mask={integratedFinish?`url(#${maskId})`:undefined} opacity={draw*.68} />}
           {directional&&draw>.98&&relation.representation!=='accent-link'&&
             <path d="M -1.1 -.53 L 0 0 L -1.1 .53" fill="none" stroke={relation.color}
               strokeWidth=".19" strokeLinecap="round" strokeLinejoin="round"

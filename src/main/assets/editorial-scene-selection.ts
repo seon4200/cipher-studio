@@ -1,6 +1,8 @@
 import type { CuratedModularCatalogV2 } from './editorial-modular-catalog-v2'
 import type { LocalSceneSemanticV1 } from '../../shared/local-scene-semantic'
-import { EDITORIAL_DECISION_V2, EDITORIAL_DECISION_V3, validateEditorialDirectionV2, type EditorialDirectionV2 } from '../../shared/editorial-scene-direction'
+import { EDITORIAL_DECISION_V3, EDITORIAL_DIRECTION_V3,
+  validateEditorialDirectionCurrent, type EditorialDirectionV2,
+  type EditorialDirectionCurrent } from '../../shared/editorial-scene-direction'
 
 const norm=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
 /** Model quotes cross transcript segment boundaries that contain repeated spaces. */
@@ -22,7 +24,7 @@ export type EditorialCandidateDecision={
   rejected?:{assetId:string;reason:string}[]
   omission:'deliberate-typography'|'no-suitable-material'|'contextual-rejection'|null
   meaning?:EditorialMeaningV2
-  direction?:EditorialDirectionV2
+  direction?:EditorialDirectionCurrent
 }
 export type EditorialMeaningV2={
   sourceQuote:string;proposition:string;headline:string;secondary:string
@@ -258,10 +260,11 @@ export function editorialSceneChoicePromptV2(meaning:EditorialMeaningV2,candidat
 Idea ya validada: ${JSON.stringify(meaning)}. Duración ${duration}s, formato ${orientation}.
 Candidatos por rol: ${JSON.stringify(candidates)}
 Cobertura resumida para recuperar si falta un candidato: ${JSON.stringify(coverage)}
-Devuelve JSON {mode:"asset"|"typographic",heroId:string|null,supportIds:string[],reason,evidence:[{assetId,quote,reason}],rejected:[{assetId,reason}],omission:null|"deliberate-typography"|"no-suitable-material"|"contextual-rejection",additionalTerms:string[],direction:{revision:"${EDITORIAL_DECISION_V2}",intent,family,variant,entry,background,relations:[{fromId,toId,relation,quote,reason}],reason}}.
+Devuelve JSON {mode:"asset"|"typographic",heroId:string|null,supportIds:string[],reason,evidence:[{assetId,quote,reason}],rejected:[{assetId,reason}],omission:null|"deliberate-typography"|"no-suitable-material"|"contextual-rejection",additionalTerms:string[],direction:{revision:"${EDITORIAL_DIRECTION_V3}",intent,family,variant,entry,background,relations:[{fromId,toId,relation,quote,reason}],reason}}.
 Usa exclusivamente IDs ofrecidos. Hero representa sujeto o metáfora explicativa respaldada por su descripción; no exijas que el guion nombre el objeto. Supports aportan participantes/componentes/condiciones/consecuencias distintas. Omite asociaciones débiles; cero o un Support son válidos. No conviertas Supports en Hero. Sin Hero sólo tipografía, supportIds=[] y family=editorial.
-Capacidades activas: editorial (Hero solo o pocos apoyos, o tipografía), marcoPoster (objeto protagonista), partidoVertical (objeto y apoyos laterales), cuaderno (documento/conocimiento), constelacion (2–4 conceptos relacionados), cascada (proceso real con 2–4 apoyos). Estas son distribuciones; ninguna prueba causalidad. Elige conjuntamente con los recursos y la duración. variant=base|inverse; entry=text-first|hero-first|supports-first|word-first; background=ivory-clean|ivory-subtle-grid|white-soft-paper. Tipografía y material permanecen editoriales. No se ofrecen familias o efectos no conectados.
+Capacidades activas: editorial (Hero solo o pocos apoyos, o tipografía), marcoPoster (objeto protagonista), partidoVertical (objeto y apoyos laterales), cuaderno (documento/conocimiento), constelacion (2–4 conceptos relacionados), cascada (proceso real con 2–4 apoyos), redNodos (red explícita con Hero, al menos dos participantes y al menos dos vínculos textualmente respaldados que incluyan a todos; intent=relation). Estas son distribuciones; ninguna prueba causalidad. Elige conjuntamente con los recursos y la duración. variant=base|inverse; entry=text-first|hero-first|supports-first|word-first; background=ivory-clean|ivory-subtle-grid|white-soft-paper. Tipografía y material permanecen editoriales. Las otras diez geometrías V2 aún no tienen elegibilidad contextual validada; no las elijas.
 relations sólo entre IDs seleccionados y con cita literal de sourceQuote. relation=conecta (asociación sin dirección), contrasta (comparación), informa (información hacia destino), causa (causalidad explícita), transfiere (transferencia explícita). No traduzcas observa, secuencia o posición geométrica a causa/transferencia. Puedes y debes dejar [] sin vínculo respaldado. Cada extremo debe estar justificado. El renderer validará rutas y puede omitir una ruta bloqueada con diagnóstico.
+Acabado ejecutable en escenas nuevas: cada relación validada dibuja una ruta finita y una respuesta breve en su destino; transferencia lleva punto viajero, causa un pulso tenue, comparación una ruta punteada, asociación un enlace de acento e información una flecha pequeña. Sin relación validada no hay llegada ni punto viajero. Los microdetalles de entrada y el ambiente son discretos; la lectura permanece estable. No añadas relaciones sólo para obtener un efecto.
 evidence.quote y relations.quote son literales de sourceQuote; reason vincula la proposición con la descripción, sin atribuir hechos físicos no narrados. rejected sólo IDs ofrecidos y nunca seleccionados.
 Sin material apropiado, additionalTerms pide hasta 3 conceptos/objetos para UNA recuperación adicional. Una shortlist vacía no demuestra hueco de catálogo. No llenar cuotas. Familias recientes: ${JSON.stringify(recentFamilies.slice(-3))}; variar sólo entre opciones igualmente pertinentes.
 ${error?'Rechazo previo: '+error:''}`
@@ -283,7 +286,7 @@ export function validateEditorialSceneChoiceV2(raw:any,meaning:EditorialMeaningV
     [b.primaryWordEs,b.semanticFamily,...b.aliasesEs].some(t=>norm(t)===norm(ex))))))throw Error('EDITORIAL_ASSETS_INCOMPATIBLE')
   const rejected=(raw.rejected??[]).map((e:any)=>({assetId:text(e.assetId,96),reason:brief(e.reason)}))
   if(rejected.some((e:any)=>ids.includes(e.assetId)||!candidates.some(c=>c.assetId===e.assetId)))throw Error('EDITORIAL_MODEL_REJECTED_ID_NOT_OFFERED')
-  validateEditorialDirectionV2(raw.direction,raw.heroId,raw.supportIds)
+  validateEditorialDirectionCurrent(raw.direction,raw.heroId,raw.supportIds)
   if(raw.direction.relations.some((e:any)=>!source.includes(norm(e.quote))))throw Error('EDITORIAL_RELATION_QUOTE_NOT_GROUNDED')
   // A directional graphic makes a stronger claim than co-occurrence. Require
   // explicit verbal evidence as well as the model's endpoint justification.

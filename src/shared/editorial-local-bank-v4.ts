@@ -1,6 +1,8 @@
 import { EDITORIAL_LOCAL_BANK_V2, validateEditorialLocalBankPlanV2 } from './editorial-local-bank-v2'
 import { EDITORIAL_LOCAL_CATALOG_REVISION_V3, type EditorialLocalBankPlanV3 } from './editorial-local-bank-v3'
-import { EDITORIAL_DECISION_V2, EDITORIAL_DECISION_V3, EDITORIAL_RELATION_MEANING, validateEditorialDirectionV2, type EditorialDirectionV2 } from './editorial-scene-direction'
+import { EDITORIAL_DECISION_V2, EDITORIAL_DECISION_V3, EDITORIAL_RELATION_MEANING,
+  validateEditorialDirectionCurrent, type EditorialDirectionCurrent } from './editorial-scene-direction'
+import { EDITORIAL_FINISH_INTEGRATION_V2, validateEditorialFinishIntegrationV2 } from './editorial-finish-integration-v2'
 
 /** New opt-in product route. Published V2/V3 plans are never rewritten. */
 export const EDITORIAL_LOCAL_BANK_V4 = Object.freeze({
@@ -30,7 +32,7 @@ export type EditorialLocalSceneDecisionV4 = {
     secondary?:string
     framing?:string
     contextRef?:string
-    direction?:EditorialDirectionV2
+    direction?:EditorialDirectionCurrent
     adjustments?:string[]
     sourceScope?:'interval'|'interval-with-prior-context'
     neighborBefore?:string
@@ -40,6 +42,8 @@ export type EditorialLocalSceneDecisionV4 = {
 
 export type EditorialLocalBankPlanV4 = Omit<EditorialLocalBankPlanV3,'revision'> & {
   revision: typeof EDITORIAL_LOCAL_BANK_V4.revision
+  /** New scenes only. Missing marker preserves every saved V4 effect and pixel. */
+  finishIntegration?: typeof EDITORIAL_FINISH_INTEGRATION_V2
   sceneDecision: EditorialLocalSceneDecisionV4
   /** Absent in already persisted V4 scenes; preserve their original label pixels. */
   supportLabelSize?: 'mobile-readable-v1'
@@ -125,13 +129,13 @@ export function validateEditorialLocalTextPlanV4(value:unknown):EditorialLocalTe
     throw new Error('EDITORIAL_LOCAL_V4_TEXT_PLAN_INVALID')
   validateEditorialLocalSceneDecisionV4((value as EditorialLocalTextPlanV4).sceneDecision)
   const direction=(value as EditorialLocalTextPlanV4).sceneDecision.planning?.direction
-  if(direction)validateEditorialDirectionV2(direction,null,[])
+  if(direction)validateEditorialDirectionCurrent(direction,null,[])
   return value as EditorialLocalTextPlanV4
 }
 
 export function validateEditorialLocalBankPlanV4(value:unknown):EditorialLocalBankPlanV4 {
   if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('EDITORIAL_LOCAL_V4_PLAN_INVALID')
-  const {sceneDecision,backgroundAsset,supportLabelSize,relationDecision,...common}=value as EditorialLocalBankPlanV4
+  const {sceneDecision,backgroundAsset,supportLabelSize,relationDecision,finishIntegration,...common}=value as EditorialLocalBankPlanV4
   if(common.revision!==EDITORIAL_LOCAL_BANK_V4.revision||common.catalogRevision!==EDITORIAL_LOCAL_CATALOG_REVISION_V3||
     !sceneDecision)
     throw new Error('EDITORIAL_LOCAL_V4_SCENE_DECISION_INVALID')
@@ -143,7 +147,7 @@ export function validateEditorialLocalBankPlanV4(value:unknown):EditorialLocalBa
   if(relationDecision!==undefined){
     const direction=sceneDecision.planning?.direction
     if(direction){
-      validateEditorialDirectionV2(direction,common.hero.assetId,common.supports.map(s=>s.assetId))
+      validateEditorialDirectionCurrent(direction,common.hero.assetId,common.supports.map(s=>s.assetId))
       if(direction.family!==common.family||direction.variant!==common.layoutVariant||direction.entry!==common.entry||
         direction.background!==common.background)throw Error('EDITORIAL_DIRECTION_RENDER_MISMATCH')
       if(!keys(relationDecision,['status','reason'])||
@@ -171,6 +175,7 @@ export function validateEditorialLocalBankPlanV4(value:unknown):EditorialLocalBa
   validateEditorialLocalBankPlanV2({...common,revision:EDITORIAL_LOCAL_BANK_V2.revision,
     catalogRevision:'editorial-modular-catalog-2026-09-v1'},
   {allowMissingFront:true,allowMissingRear:true,allowMissingAccent:true,minimumSupports:0})
+  validateEditorialFinishIntegrationV2({...common,finishIntegration})
   if(backgroundAsset&&(!/^[a-z0-9][a-z0-9-]{2,95}$/.test(backgroundAsset.assetId)||
     !/^[a-f0-9]{64}$/.test(backgroundAsset.sha256)))throw new Error('EDITORIAL_LOCAL_V4_BACKGROUND_INVALID')
   return value as EditorialLocalBankPlanV4

@@ -154,6 +154,8 @@ app.whenReady().then(async()=>{
         missingTerms:related.missingTerms,colorMode:'auto',seed:51722},
       headline:{connector:'Una',keyword:'CIENTÍFICA',closing:'conecta datos y agua.'}}
     const valid=b.bindEditorialLocalBankV2({...relationInput,semanticRelation:'conecta'})
+    const historicalFinish=b.bindEditorialLocalBankV2({...relationInput,semanticRelation:'conecta',
+      finishMode:'historical'})
     const withoutRelation=b.bindEditorialLocalBankV2(relationInput)
     const rejected=b.bindEditorialLocalBankV2({...relationInput,semanticRelation:'observa'})
     assert.deepEqual(rejected.sceneSpec.editorialBankV2.relations,[])
@@ -165,6 +167,23 @@ app.whenReady().then(async()=>{
       'VISIBLE_RELATION_MUST_CHANGE_PIXEL_IDENTITY')
     assert.equal(valid.sceneSpec.editorialBankV2.relationDecision.reason,'SCRIPT_CONNECTS')
     assert(valid.sceneSpec.editorialBankV2.relations.length>0,'VALID_RELATION_MUST_DRAW')
+    assert.equal(valid.sceneSpec.editorialBankV2.finishIntegration,
+      'editorial-finish-integration-2026-09-v2')
+    assert.equal(historicalFinish.sceneSpec.editorialBankV2.finishIntegration,undefined)
+    assert.deepEqual(valid.sceneSpec.slots,historicalFinish.sceneSpec.slots)
+    assert.deepEqual(valid.sceneSpec.text,historicalFinish.sceneSpec.text)
+    assert.deepEqual(valid.sceneSpec.editorialBankV2.portraitLayout,
+      historicalFinish.sceneSpec.editorialBankV2.portraitLayout)
+    assert.deepEqual(valid.sceneSpec.editorialBankV2.landscapeLayout,
+      historicalFinish.sceneSpec.editorialBankV2.landscapeLayout)
+    assert.notEqual(valid.pixelIdentity,historicalFinish.pixelIdentity)
+    assert.deepEqual(valid.sceneSpec.editorialBankV2.events.filter(e=>e.kind==='arrival').map(e=>e.target),
+      valid.sceneSpec.editorialBankV2.relations.map(r=>r.to))
+    assert.equal(historicalFinish.sceneSpec.editorialBankV2.events.filter(e=>e.kind==='arrival').length,0)
+    const ungrounded=structuredClone(valid.sceneSpec)
+    ungrounded.editorialBankV2.events.push({...ungrounded.editorialBankV2.events.at(-1),
+      id:'invented-arrival'})
+    assert.throws(()=>b.validateVisualSceneSpecV2(ungrounded),/EDITORIAL_FINISH_ARRIVAL_NOT_GROUNDED/)
     const within=(v,r)=>v>r.x&&v<r.x+r.width
     for(const relation of valid.sceneSpec.editorialBankV2.relations){
       assert.equal(relation.meaning,'connects')
@@ -200,7 +219,8 @@ app.whenReady().then(async()=>{
     assert.throws(()=>b.validateVisualSceneSpecV2(forged),/EDITORIAL_LOCAL_V4_RELATION_DECISION_INVALID/)
     const relationEvidence=process.env.CIPHER_DECISION_EVIDENCE||path.resolve(root,'../_cipher-scene-corrections-20260927/relation-integrity')
     fs.mkdirSync(relationEvidence,{recursive:true})
-    for(const [name,rendered] of [['valid',valid],['omitted',withoutRelation]]){
+    for(const [name,rendered] of [['valid',valid],['omitted',withoutRelation],
+      ['historical-finish',historicalFinish]]){
       fs.writeFileSync(path.join(relationEvidence,`${name}-scene-spec.json`),
         JSON.stringify(rendered.sceneSpec,null,2)+'\n')
       b.prepareGraphicForVisualRender({graphicData:rendered.graphicData,projectRoot,

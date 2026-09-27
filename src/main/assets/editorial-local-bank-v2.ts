@@ -8,7 +8,10 @@ import { MODULAR_CATALOG_REVISION_V1,
 import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_HISTORICAL, EDITORIAL_LOCAL_BANK_V3_2, EDITORIAL_LOCAL_CATALOG_REVISION_V3,
   EDITORIAL_LOCAL_FAMILIES_V3, type EditorialLocalBankPlanV3 } from '../../shared/editorial-local-bank-v3'
 import { EDITORIAL_LOCAL_BANK_V4, type EditorialLocalBankPlanV4 } from '../../shared/editorial-local-bank-v4'
-import { EDITORIAL_RELATION_MEANING, validateEditorialDirectionV2, type EditorialDirectionV2 } from '../../shared/editorial-scene-direction'
+import { EDITORIAL_FINISH_INTEGRATION_V2, editorialArrivalEventsV2,
+  editorialFinishRecipeV2 } from '../../shared/editorial-finish-integration-v2'
+import { EDITORIAL_RELATION_MEANING, validateEditorialDirectionCurrent,
+  type EditorialDirectionCurrent } from '../../shared/editorial-scene-direction'
 import { EDITORIAL_FINISH_FONT_SHA_V11, EDITORIAL_FINISH_BODY_FONT_SHA_V11,
   EDITORIAL_FINISH_LABEL_FONT_SHA_V11, routeEditorialFinishV11,
   type FinishFont } from '../../shared/editorial-finish-v1-1'
@@ -275,7 +278,7 @@ export function selectEditorialLocalBankV3Detailed(input:{catalog:ModularCatalog
  * never synthesizes a concept from nearby scenes or a demo asset ID. */
 export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModularCatalogV2;
   semantic:LocalSceneSemanticV1;recentFamilies?:readonly ModernLayoutStructureV4[];
-  contextualChoice?:{heroId:string;supportIds:string[];direction?:EditorialDirectionV2};useInventoryMetadata?:boolean}):{
+  contextualChoice?:{heroId:string;supportIds:string[];direction?:EditorialDirectionCurrent};useInventoryMetadata?:boolean}):{
     selection:EditorialLocalSelectionV2|null;trace:EditorialLocalSelectionTraceV2}{
   const literalTerms=[...new Set((['hero-core','support','rear-collage'] as const)
     .flatMap(role=>input.catalog.literalTermsInText(input.semantic.localText,role)))].slice(0,12)
@@ -294,7 +297,7 @@ export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModular
     minimumSupports:0})
   if(input.contextualChoice){
     const choice=input.contextualChoice
-    if(choice.direction)validateEditorialDirectionV2(choice.direction,choice.heroId,choice.supportIds)
+    if(choice.direction)validateEditorialDirectionCurrent(choice.direction,choice.heroId,choice.supportIds)
     if(input.catalog.getById(choice.heroId)?.role!=='hero-core'||choice.supportIds.length>4||
       choice.supportIds.some(id=>input.catalog.getById(id)?.role!=='support'))throw Error('EDITORIAL_CONTEXTUAL_ROLE_INVALID')
     // Geometry remains the existing resolver; do not rotate families to fill quotas.
@@ -392,13 +395,16 @@ export function bindEditorialLocalBankV2(input:{
   sceneDecision?:EditorialLocalBankPlanV4['sceneDecision']
   /** Only the sanitized subclip relation may authorize a new V4 connector. */
   semanticRelation?:string
+  /** Controlled comparison only. The ordinary V4 route uses the integrated finish. */
+  finishMode?:'historical'
   contract?:typeof EDITORIAL_LOCAL_BANK_V3|typeof EDITORIAL_LOCAL_BANK_V3_HISTORICAL|
     typeof EDITORIAL_LOCAL_BANK_V3_2|typeof EDITORIAL_LOCAL_BANK_V4
 }){
   const chosen=input.selection
   const isV4=input.contract?.revision===EDITORIAL_LOCAL_BANK_V4.revision
+  const integratedFinish=isV4&&input.finishMode!=='historical'
   const direction=isV4?input.sceneDecision?.planning?.direction:undefined
-  if(direction)validateEditorialDirectionV2(direction,chosen.heroId,chosen.supportIds)
+  if(direction)validateEditorialDirectionCurrent(direction,chosen.heroId,chosen.supportIds)
   const adjustments=[...(input.sceneDecision?.planning?.adjustments??[])]
   if(!/^#[0-9A-F]{6}$/.test(input.color)||chosen.supportIds.length<(isV4?0:2)||chosen.supportIds.length>6||
       new Set(chosen.supportIds).size!==chosen.supportIds.length||
@@ -492,10 +498,13 @@ export function bindEditorialLocalBankV2(input:{
       catch(error){throw new Error(`EDITORIAL_LOCAL_ROUTE_${orientation.toUpperCase()}:${chosen.family}:${from}>${to}:${error instanceof Error?error.message:String(error)}`)}
     }
     return {from,to,meaning:relationMeaning,
-      // These V4 relationships are symmetric. An arrow would invent a causal direction.
-      representation:isV4?relationMeaning==='compares'?'dotted':'accent-link':
+      // The older V4 script cues are symmetric; the integrated recipe may add a
+      // direction only when the persisted relation meaning authorizes it.
+      representation:integratedFinish?editorialFinishRecipeV2(relationMeaning).representation:
+        isV4?relationMeaning==='compares'?'dotted':'accent-link':
         index%3===0?'arrow':index%3===1?'dotted':'dot-flow',
-      response:index%2===0?'pulse':'accent',portrait:routeFor(portrait,'portrait'),
+      response:integratedFinish?editorialFinishRecipeV2(relationMeaning).response:
+        index%2===0?'pulse':'accent',portrait:routeFor(portrait,'portrait'),
       landscape:routeFor(landscape,'landscape'),color:input.color,
       start,arrival:start+.045,end:start+.105}
   })
@@ -514,8 +523,11 @@ export function bindEditorialLocalBankV2(input:{
         const meaning=EDITORIAL_RELATION_MEANING[edge.relation]
         const portraitRoute=route(portrait,'portrait'),landscapeRoute=route(landscape,'landscape')
         previousArrival=start+.055
-        return [{from,to,meaning,representation:meaning==='compares'?'dotted' as const:meaning==='connects'?'accent-link' as const:'arrow' as const,
-          response:'accent' as const,portrait:portraitRoute,landscape:landscapeRoute,color:input.color,
+        const recipe=editorialFinishRecipeV2(meaning)
+        return [{from,to,meaning,representation:integratedFinish?recipe.representation:
+          meaning==='compares'?'dotted' as const:meaning==='connects'?'accent-link' as const:'arrow' as const,
+          response:integratedFinish?recipe.response:'accent' as const,
+          portrait:portraitRoute,landscape:landscapeRoute,color:input.color,
           start,arrival:previousArrival,end:previousArrival+.045}]
       }catch(error){
         adjustments.push(`RELATION_OMITTED_GEOMETRY:${edge.fromId}>${edge.toId}:${error instanceof Error?error.message:String(error)}`)
@@ -524,6 +536,7 @@ export function bindEditorialLocalBankV2(input:{
     })
   }
   const plan:EditorialLocalBankPlanV2|EditorialLocalBankPlanV3|EditorialLocalBankPlanV4={revision:input.contract?.revision??EDITORIAL_LOCAL_BANK_V2.revision,
+    ...(integratedFinish?{finishIntegration:EDITORIAL_FINISH_INTEGRATION_V2}:{}),
     catalogRevision:input.contract?EDITORIAL_LOCAL_CATALOG_REVISION_V3:
       input.catalog.catalogRevision??MODULAR_CATALOG_REVISION_V1,family:chosen.family,layoutVariant:chosen.variant,
     portraitLayout:portrait,landscapeLayout:landscape,
@@ -545,7 +558,8 @@ export function bindEditorialLocalBankV2(input:{
       seed:13,color:input.color,count:4,size:.55,opacity:.35,intensity:'discreto'},
       ...supportsPlan.map((s,index)=>({id:`support-${index}-entry`,target:s.slotId,
         kind:'support-entry' as const,start:s.enter,duration:.15,seed:index+17,color:input.color,
-        count:3,size:.45,opacity:.34,intensity:'discreto' as const}))],
+        count:3,size:.45,opacity:.34,intensity:'discreto' as const})),
+      ...(integratedFinish?editorialArrivalEventsV2(relations,input.color):[])],
     hero:{assetId:hero.curated.assetId,sha256:hero.asset.sha256,...heroTiming},
     supports:supportsPlan,layers:planLayers,relations,
     ...(isV4?{relationDecision:direction?{status:relations.length?'drawn' as const:'omitted' as const,
