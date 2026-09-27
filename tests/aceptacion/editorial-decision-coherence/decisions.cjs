@@ -189,11 +189,18 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
     const cases=JSON.parse(fs.readFileSync(process.env.CIPHER_DECISION_CASES,'utf8'))
     const results=[]
     for(const item of cases){
-      assert(Number.isFinite(item.duration)&&item.duration>0,'REAL_CASE_DURATION_INVALID:'+item.id)
-      assert(Math.abs(item.duration-(item.semantic.end-item.semantic.start))<.001,'REAL_CASE_INTERVAL_MISMATCH:'+item.id)
-      const result=await b.decideEditorialScene({catalog,semantic:item.semantic,duration:item.duration,
+      const semantic=item.semantic??b.createLocalSceneSemanticV1({sceneId:item.id,start:item.start,end:item.end,
+        transcriptSegments:item.transcriptSegments??[{start:item.start,end:item.end,text:item.text}],
+        globalText:item.globalText??item.text,globalHints:[],globalContextRef:item.globalContextRef??`case:${item.id}`})
+      if(item.text)semantic.localText=item.text
+      semantic.neighborBefore=item.neighborBefore??''
+      semantic.neighborAfter=item.neighborAfter??''
+      const duration=item.duration??semantic.end-semantic.start
+      assert(Number.isFinite(duration)&&duration>0,'REAL_CASE_DURATION_INVALID:'+item.id)
+      assert(Math.abs(duration-(semantic.end-semantic.start))<.001,'REAL_CASE_INTERVAL_MISMATCH:'+item.id)
+      const result=await b.decideEditorialScene({catalog,semantic,duration,
         orientation:item.orientation??'9:16',apiKey:process.env.DEEPSEEK_API_KEY})
-      results.push({...item,...result});fs.writeFileSync(path.join(evidence,'real-decisions.json'),JSON.stringify(results,null,2))
+      results.push({...item,semantic,...result});fs.writeFileSync(path.join(evidence,'real-decisions.json'),JSON.stringify(results,null,2))
       console.log(JSON.stringify({id:item.id,title:result.meaning?.headline,hero:result.decision?.heroId,
         supports:result.decision?.supportIds.length,family:result.decision?.direction?.family,errors:result.attempts.map(a=>a.error??null),metrics:result.metrics}))
     }
