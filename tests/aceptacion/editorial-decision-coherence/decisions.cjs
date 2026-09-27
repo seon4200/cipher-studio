@@ -19,7 +19,9 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
   const semantic=b.createLocalSceneSemanticV1({sceneId:'critique',start:2,end:5,
     transcriptSegments:[{start:2,end:5,text:'el potencial es suficiente'}],
     globalText:'El error es creer que el potencial es suficiente para progresar.',globalContextRef:'fixture:clause'})
-  const meaning={sourceQuote:semantic.globalText,proposition:'Creer que el potencial basta es un error.',
+  semantic.neighborBefore='El error es creer que'
+  semantic.neighborAfter='para progresar.'
+  const meaning={sourceQuote:'El error es creer que el potencial es suficiente',proposition:'Creer que el potencial basta es un error.',
     headline:'El potencial no basta',secondary:'',framing:'critique',concepts:['potencial','progreso'],intent:'statement',reason:'Preserva la crítica.'}
   check('faithful paraphrase retains questioned assertion',()=>assert.equal(b.validateEditorialMeaningV2(meaning,semantic,3).headline,meaning.headline))
   check('literal substring is not necessarily faithful',()=>assert.throws(()=>b.validateEditorialMeaningV2({...meaning,
@@ -76,7 +78,19 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
   const rejected=await b.decideEditorialScene({catalog,semantic,duration:3,apiKey:'not-a-key',request:async()=>{
     failed++;return {ok:true,json:async()=>({choices:[{message:{content:'{"headline":"fabricated"}'}}]})}}
   })
-  check('failed meanings retained, no silent literal Hero',()=>{assert.equal(failed,2);assert.equal(rejected.decision,undefined);assert.equal(rejected.fallbackReason,'MEANING_VALIDATION_FAILED')})
+  check('three bounded meaning attempts retain failure without a literal Hero',()=>{assert.equal(failed,3);assert.equal(rejected.decision,undefined);assert.equal(rejected.fallbackReason,'MEANING_VALIDATION_FAILED')})
+  const overlong={...meaning,headline:'El potencial no basta por sí solo para avanzar de verdad',secondary:''}
+  let phase1Calls=0
+  const staged=await b.decideEditorialScene({catalog,semantic,duration:3,apiKey:'not-a-key',request:async()=>({ok:true,
+    json:async()=>({choices:[{message:{content:JSON.stringify([overlong,meaning,choice][phase1Calls++])}}]})})})
+  check('overlong title preserves meaning and proceeds to retrieval',()=>{
+    assert.equal(phase1Calls,3)
+    assert.equal(staged.meaning.proposition,meaning.proposition)
+    assert(Array.isArray(staged.candidates))
+    assert.equal(staged.decision.omission,'deliberate-typography')
+    assert(staged.presentationAdjustments.includes('PRESENTATION_MODEL_REDUCED'))
+    assert.deepEqual(staged.attempts.map(a=>a.stage),['meaning','presentation','scene'])
+  })
   const report={checks,health,bundleSha256:crypto.createHash('sha256').update(fs.readFileSync(path.join(root,'dist-electron/main/index.js'))).digest('hex')}
   fs.writeFileSync(path.join(evidence,'contracts.json'),JSON.stringify(report,null,2))
   console.log(JSON.stringify({checks:checks.length,health}))

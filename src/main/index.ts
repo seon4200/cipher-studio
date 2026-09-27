@@ -80,11 +80,12 @@ import { EDITORIAL_LOCAL_BANK_V3, EDITORIAL_LOCAL_BANK_V3_2,
   isEditorialLocalBankV3Revision } from '../shared/editorial-local-bank-v3'
 import { EDITORIAL_LOCAL_BANK_V4 } from '../shared/editorial-local-bank-v4'
 import { editorialPhraseWindow, editorialSlotWindow, editorialHeadlineForScene, stockCoverFilter } from '../shared/editorial-scene-input'
-import { decideEditorialScene } from './assets/editorial-scene-selection'
-import { EDITORIAL_DECISION_V2 } from '../shared/editorial-scene-direction'
+import { decideEditorialScene, editorialFallbackTextV3, editorialSourceScopeV3 } from './assets/editorial-scene-selection'
+import { EDITORIAL_DECISION_V3 } from '../shared/editorial-scene-direction'
 export { editorialPhraseWindow, editorialSlotWindow, editorialHeadlineForScene, stockCoverFilter } from '../shared/editorial-scene-input'
 export { retrieveEditorialCandidates, validateEditorialCandidateDecision, editorialCandidatePrompt, decideEditorialScene } from './assets/editorial-scene-selection'
 export { validateEditorialMeaningV2, validateEditorialSceneChoiceV2, editorialMeaningPromptV2, editorialSceneChoicePromptV2 } from './assets/editorial-scene-selection'
+export { editorialFallbackTextV3, editorialReadingBudgetV3, editorialSourceScopeV3 } from './assets/editorial-scene-selection'
 import { bindEditorialLocalBankV2, preflightEditorialLocalCatalogV2, preflightEditorialLocalCatalogV3,
   selectEditorialLocalBankV2Detailed, selectEditorialLocalBankV3Detailed,
   selectEditorialLocalBankV4Detailed } from './assets/editorial-local-bank-v2'
@@ -5458,8 +5459,22 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           // Only this Visual decision sees bounded neighboring narration. Keep its
           // source explicitly separate from the timed interval (never Stock/IA).
           const first=Math.max(0,item.phraseIndex-1),last=Math.min(newAudioSegments.length-1,item.phraseIndex+1)
+          const timedNeighbor=(start:number,end:number)=>{
+            if(end<=start)return ''
+            try{return createLocalSceneSemanticV1({sceneId:`${localSemantic.sceneId}:neighbor`,start,end,
+              transcriptSegments:transcriptForLocalSemantics}).localTokens
+              .filter(token=>token.temporalAlignment==='direct'&&token.end>start&&token.start<end)
+              .map(token=>token.text).join(' ').trim()}
+            catch{return ''}
+          }
+          const earlierInPhrase=seg?timedNeighbor(seg.start,ini):''
+          const laterInPhrase=seg?timedNeighbor(fin,seg.end):''
           localSemantic.globalText=newAudioSegments.slice(first,last+1).map((s:any)=>s.text??'').join(' ')
-          localSemantic.globalContextRef=`phrases:${first}-${last}; interval:${ini}-${fin}`
+          localSemantic.neighborBefore=[...newAudioSegments.slice(first,item.phraseIndex).map((s:any)=>s.text??''),
+            earlierInPhrase].filter(Boolean).join(' ')
+          localSemantic.neighborAfter=[laterInPhrase,...newAudioSegments.slice(item.phraseIndex+1,last+1)
+            .map((s:any)=>s.text??'')].filter(Boolean).join(' ')
+          localSemantic.globalContextRef=`phrases:${first}-${last}; interval:${ini}-${fin}; timed-neighbors`
         }
         const keywordSelection = selectNarrativeKeywordV2(localSemantic, keywordCandidates);
         return {
@@ -5551,7 +5566,24 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           // Failed comprehension is not permission to crop away scope. Preserve
           // the timed source verbatim; Text Fit/QC may reject it, visibly, instead
           // of turning a subordinate or negated clause into an invented claim.
-          const undecidedText=base.localSemantic.localText.trim()
+          const safeFallback=localBankV4Selected?editorialFallbackTextV3(base.localSemantic.localText,
+            context.duration,base.localSemantic.neighborBefore):null
+          const undecidedText=safeFallback??''
+          if (localBankV4Selected && !meaning && !safeFallback) {
+            // Never publish a dangling transcript prefix as a standalone title.
+            // Keep the original interval for diagnostics and let the ordinary
+            // visual fallback account for this unrenderable subclip explicitly.
+            solicitudesGraficas.push({skipReason:'editorial-no-faithful-text',
+              diagnosticSceneId:base.decision.sceneId,localSemantic:base.localSemantic,
+              contextualDecision:contextual,inputFallback:base.inputFallback})
+            continue
+          }
+          if (localBankV4Selected && contextual?.presentationAdjustments.includes('PRESENTATION_UNRESOLVED')) {
+            solicitudesGraficas.push({skipReason:'editorial-presentation-unresolved',
+              diagnosticSceneId:base.decision.sceneId,localSemantic:base.localSemantic,
+              contextualDecision:contextual,inputFallback:base.inputFallback})
+            continue
+          }
           const localDecision = localBankSelected && curatedFamilyCatalog ? (localBankV4Selected?
             chosen?.heroId?
             selectEditorialLocalBankV4Detailed({catalog:curatedFamilyCatalog as CuratedModularCatalogV2,
@@ -5574,17 +5606,22 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             missingTerms:localSelected?.missingTerms??localDecision?.trace.missingTerms??[],
             colorMode:editorialFamilyColor&&editorialFamilyColor!=='auto'?'manual' as const:'auto' as const,
             seed:resolved.compiled.sceneSpec.direccion.semilla,
-            planning:{revision:meaning?EDITORIAL_DECISION_V2:'editorial-scene-selection-2026-09-v1' as const,
+            planning:{revision:meaning?EDITORIAL_DECISION_V3:'editorial-scene-selection-2026-09-v1' as const,
               start:base.localSemantic.start,end:base.localSemantic.end,
               intervalText:base.localSemantic.localText,neighborContext:base.localSemantic.globalText??'',
               proposition:meaning?.proposition??base.localSemantic.localText,
-              propositionSource:chosen?.propositionSource??'interval',
+              propositionSource:chosen?.propositionSource??(meaning &&
+                editorialSourceScopeV3(meaning.sourceQuote,base.localSemantic)==='interval-with-prior-context'
+                ?'neighbor-context':'interval'),
               visibleText:meaning?[meaning.headline,meaning.secondary].filter(Boolean).join(' '):
                 undecidedText,
               ...(meaning?{sourceQuote:meaning.sourceQuote,headline:meaning.headline,secondary:meaning.secondary,
                 framing:meaning.framing,contextRef:base.localSemantic.globalContextRef??'',
+                sourceScope:editorialSourceScopeV3(meaning.sourceQuote,base.localSemantic),
+                neighborBefore:base.localSemantic.neighborBefore??'',neighborAfter:base.localSemantic.neighborAfter??'',
                 ...(chosen?.direction?{direction:chosen.direction}:{}),
-                adjustments:chosen?[]:['SCENE_CHOICE_UNAVAILABLE_PRESERVED_VALIDATED_MEANING']}:{}),
+                adjustments:[...(contextual?.presentationAdjustments??[]),
+                  ...(!chosen?['SCENE_CHOICE_UNAVAILABLE_PRESERVED_VALIDATED_MEANING']:[])]}:{}),
               reason:chosen?.reason??contextual?.fallbackReason??'CATALOG_UNAVAILABLE'}}:undefined
           const editorialDisplayText=localBankV4Selected
             ?(meaning?[meaning.headline,meaning.secondary].filter(Boolean).join(' '):undecidedText)
@@ -5731,8 +5768,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         for(const entry of localSelectionTraces)
           await logMessage(`[CATALOGO EDITORIAL] scene=${entry.sceneId} ${JSON.stringify(entry.trace)}`)
         const qcReports = new Map<number, { hash: string; report: VisualRuntimeQcReport }>();
+        const renderableIndices=solicitudesGraficas.map((request,index)=>request.skipReason?null:index)
+          .filter((index):index is number=>index!==null)
+        const renderIndexByOriginal=new Map(renderableIndices.map((index,renderIndex)=>[index,renderIndex]))
         const resVis = await renderGraphicClipsLote(
-          solicitudesGraficas,
+          renderableIndices.map(index=>solicitudesGraficas[index]),
           {
             aspectRatio, fps: 30, modo: 'pantalla', sistema: SISTEMA_VISUAL,
             onQcFailure: ({ index, hash }, report) => { qcReports.set(index, { hash, report }); },
@@ -5754,10 +5794,26 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         const countDiagnosticReason = (reason: string) =>
           diagnosticReasons.set(reason, (diagnosticReasons.get(reason) ?? 0) + 1);
         for (let i = 0; i < aRenderizar.length; i++) {
-          const ruta = resVis.rutas?.[i];
+          const renderIndex=renderIndexByOriginal.get(i)
+          const ruta = renderIndex===undefined?null:resVis.rutas?.[renderIndex];
           const item = aRenderizar[i].item;
           const request = solicitudesGraficas[i];
-          const qc = qcReports.get(i);
+          if(request.skipReason){
+            item.origenPedido ??= item.type
+            item.motivoRespaldo=request.skipReason
+            item.type='original'
+            substitutedWithOriginal++
+            countDiagnosticReason(request.skipReason)
+            diagnosticScenes.push({sceneId:request.diagnosticSceneId,
+              localSemantic:{start:request.localSemantic.start,end:request.localSemantic.end,
+                localText:request.localSemantic.localText},
+              catalogDecision:{requestedProfile:EDITORIAL_LOCAL_BANK_V4.id,
+                contextualDecision:request.contextualDecision??null,
+                fallbackReason:request.skipReason},
+              render:{outcome:'omitted-no-faithful-text',substitutedWithOriginal:true}})
+            continue
+          }
+          const qc=renderIndex===undefined?undefined:qcReports.get(renderIndex);
           const spec = sceneSpecFromGraphicDataAny(request.graphicData);
           const sceneSpecIdentity = spec
             ? createHash('sha256').update(sceneSpecPixelIdentityAny(spec)).digest('hex') : null;
@@ -5811,7 +5867,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               ...(request.catalogDecision?{catalogDecision:request.catalogDecision}:{}),
               render: {
                 outcome: qc ? 'qc-rejected' : 'render-failed',
-                hash: qc?.hash ?? resVis.hashes?.[i] ?? null,
+                hash: qc?.hash ?? (renderIndex===undefined?null:resVis.hashes?.[renderIndex]) ?? null,
                 ...(qc ? { qcReport: qc.report } : {}),
                 substitutedWithOriginal: true,
               },
@@ -5879,7 +5935,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             visualRegeneration: request.visualRegeneration,
             render: {
               outcome: 'materialized',
-              hash: resVis.hashes?.[i] ?? null,
+              hash: renderIndex===undefined?null:resVis.hashes?.[renderIndex] ?? null,
               durationSeconds: durReal,
               substitutedWithOriginal: false,
             },

@@ -1,8 +1,12 @@
 import type { CuratedModularCatalogV2 } from './editorial-modular-catalog-v2'
 import type { LocalSceneSemanticV1 } from '../../shared/local-scene-semantic'
-import { EDITORIAL_DECISION_V2, validateEditorialDirectionV2, type EditorialDirectionV2 } from '../../shared/editorial-scene-direction'
+import { EDITORIAL_DECISION_V2, EDITORIAL_DECISION_V3, validateEditorialDirectionV2, type EditorialDirectionV2 } from '../../shared/editorial-scene-direction'
 
 const norm=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+/** Model quotes cross transcript segment boundaries that contain repeated spaces. */
+const quoteNorm=(value:string)=>norm(value).replace(/\s+/gu,' ').trim()
+export const editorialSourceScopeV3=(quote:string,semantic:LocalSceneSemanticV1):'interval'|'interval-with-prior-context'=>
+  quoteNorm(semantic.localText).includes(quoteNorm(quote))?'interval':'interval-with-prior-context'
 // Limited inflection folding improves recall (forestales/forestal), not relevance.
 const grammatical=new Set('para como cuando donde mientras aunque desde hasta entre sobre porque este esta estos estas todo todos toda todas algo cada puede pueden tiene tienen hacer mismo misma mas muy tambien'.split(' '))
 const tokens=(value:string)=>(norm(value).match(/[a-z0-9]{4,}/g)??[]).filter(word=>!grammatical.has(word)).map(word=>
@@ -28,6 +32,26 @@ export type EditorialMeaningV2={
 // Budget is an upper guard, not a certificate of perceptual readability. Most
 // scenes are ~3 s, including entry/exit; reserve at least half for stable reading.
 const readingBudget=(seconds:number)=>Math.max(4,Math.min(14,Math.floor(seconds*2.6)))
+const visibleWords=(value:string)=>value.trim().split(/\s+/u).filter(Boolean).length
+const scopeWords=(value:string)=>new Set((quoteNorm(value).match(/[a-z0-9]{3,}/gu)??[])
+  .filter(word=>!grammatical.has(word)))
+export const editorialReadingBudgetV3=readingBudget
+export function editorialFallbackTextV3(localText:string,duration:number,neighborBefore=''):string|null{
+  const limit=Math.max(8,readingBudget(duration)+2)
+  const preceding=quoteNorm(neighborBefore).slice(-120)
+  if(/\b(?:error|mito|falso|problema|dicen|dice|cree|creen|segun|sostiene|aunque|pero)\b/u.test(preceding)&&
+    !/[.!?;]\s*$/u.test(neighborBefore.trim()))return null
+  // A complete source clause is safer than a budgeted prefix that ends in a
+  // conjunction. This is a fallback, never permission to claim later context.
+  const clauses=localText.match(/[^.!?;]+[.!?;]/gu)??[]
+  for(const clause of clauses){
+    const candidate=clause.trim().replace(/[.!?;]+$/u,'').trim()
+    if(/^(?:y|que|con)\s+(?=\p{L})/iu.test(candidate))continue
+    if(candidate&&visibleWords(candidate)<=limit&&visibleWords(candidate)>=2)
+      return candidate.charAt(0).toLocaleUpperCase('es')+candidate.slice(1)
+  }
+  return null
+}
 type CatalogMetadata=NonNullable<ReturnType<CuratedModularCatalogV2['selectionMetadata']>>
 const metadataCache=new WeakMap<CuratedModularCatalogV2,{
   corpus:CatalogMetadata[];bags:Set<string>[];frequency:Map<string,number>
@@ -141,13 +165,29 @@ ${error?'La respuesta previa se rechazó por '+error+'. Corrige sólo con eviden
 /** Conservative linguistic guards, not a claim to mechanically prove entailment.
  * Paraphrases are reviewed semantically by the model; quotes, scope, quantities,
  * offered IDs and drawing capabilities have independent deterministic checks. */
-export function validateEditorialMeaningV2(raw:unknown,semantic:LocalSceneSemanticV1,duration:number):EditorialMeaningV2{
+export function validateEditorialMeaningV2(raw:unknown,semantic:LocalSceneSemanticV1,duration:number,
+  options:{phase1?:boolean;allowOverBudget?:boolean}={}):EditorialMeaningV2{
   if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('EDITORIAL_MEANING_OBJECT_INVALID')
   const m=raw as EditorialMeaningV2
   const sourceQuote=text(m.sourceQuote,900),proposition=text(m.proposition,360),headline=text(m.headline,100)
   const secondary=typeof m.secondary==='string'?m.secondary.trim():''
   const visible=headline+' '+secondary,local=norm(semantic.localText),context=norm(semantic.globalText??'')
-  if(!local.includes(norm(sourceQuote))&&!context.includes(norm(sourceQuote)))throw Error('EDITORIAL_SOURCE_QUOTE_NOT_FOUND')
+  const quoted=options.phase1?quoteNorm(sourceQuote):norm(sourceQuote)
+  const quotedLocal=options.phase1?quoteNorm(semantic.localText):local
+  const quotedContext=options.phase1?quoteNorm(semantic.globalText??''):context
+  if(!quotedLocal.includes(quoted)&&!quotedContext.includes(quoted))throw Error('EDITORIAL_SOURCE_QUOTE_NOT_FOUND')
+  if(options.phase1){
+    // Neighboring words may identify the subject, but a statement first made
+    // after this slot cannot become its headline. The timed transcript remains
+    // untouched; this guard governs only new editorial decisions.
+    const authorized=quoteNorm([semantic.neighborBefore,semantic.localText].filter(Boolean).join(' '))
+    if(!authorized.includes(quoted))throw Error('EDITORIAL_SOURCE_OUTSIDE_INTERVAL_OR_PRIOR_CONTEXT')
+    const current=scopeWords([semantic.neighborBefore,semantic.localText].filter(Boolean).join(' '))
+    const future=scopeWords(semantic.neighborAfter??'')
+    const claim=scopeWords([proposition,headline,secondary].join(' '))
+    if([...claim].some(word=>future.has(word)&&!current.has(word)))
+      throw Error('EDITORIAL_FUTURE_CLAIM_NOT_IN_INTERVAL')
+  }
   const sourceTokens=tokens(sourceQuote),localTokens=tokens(semantic.localText)
   const distinctLocal=[...new Set(localTokens)]
   if(!distinctLocal.length||distinctLocal.filter(word=>sourceTokens.includes(word)).length/ distinctLocal.length<.5)
@@ -173,8 +213,9 @@ export function validateEditorialMeaningV2(raw:unknown,semantic:LocalSceneSemant
   if(m.framing!=='assertion'&&!signals[m.framing].test(norm(visible)))throw Error('EDITORIAL_VISIBLE_SCOPE_LOST')
   const quantities=sourceQuote.match(/\d+(?:[.,]\d+)*(?:\s*(?:%|millones?\b|mil\b|por ciento\b))?/giu)??[]
   if(quantities.some(q=>!norm(visible).includes(norm(q))))throw Error('EDITORIAL_VISIBLE_QUANTITY_LOST')
-  if(secondary.length>140||visible.trim().split(/\s+/u).length>readingBudget(duration)||
-    headline.split(/\s+/u).length>7)throw Error('EDITORIAL_MEANING_READING_BUDGET')
+  if(secondary.length>140||(!options.allowOverBudget&&
+    (visibleWords(visible)>readingBudget(duration)||visibleWords(headline)>7)))
+    throw Error('EDITORIAL_MEANING_READING_BUDGET')
   return {sourceQuote,proposition,headline,secondary,framing:m.framing,intent:m.intent,
     concepts:m.concepts.map(c=>c.trim()),reason:brief(m.reason)}
 }
@@ -190,6 +231,25 @@ El contexto sólo completa sujeto/referencia y alcance; no adelantes otra afirma
 Intervalo ${semantic.start}–${semantic.end}: ${JSON.stringify(semantic.localText)}
 Contexto (${semantic.globalContextRef??'neighbor-unidentified'}): ${JSON.stringify(semantic.globalText??'')}
 ${error?'Respuesta anterior rechazada: '+error+'. Corrige fielmente.':''}`
+}
+
+function editorialMeaningPromptV3(semantic:LocalSceneSemanticV1,duration:number,error?:string){
+  return `${editorialMeaningPromptV2(semantic,duration,error)}
+Regla de esta revisión: sourceQuote debe estar en el intervalo o completar hacia atrás una cláusula que lo contiene. El contexto posterior NO autoriza adelantar su afirmación al intervalo actual. No inventes correcciones de nombres o palabras dudosas de la transcripción.
+Antes (contexto, no voz actual): ${JSON.stringify(semantic.neighborBefore??'')}
+Después (NO usar como afirmación actual): ${JSON.stringify(semantic.neighborAfter??'')}
+Si la idea es válida pero no cabe en el presupuesto de lectura, conserva la proposición fiel; una etapa separada reducirá sólo el texto visible.`
+}
+
+function editorialPresentationPromptV3(meaning:EditorialMeaningV2,semantic:LocalSceneSemanticV1,
+  duration:number,error?:string){
+  return `Reduce sólo el titular de una comprensión ya validada. Devuelve el mismo JSON completo:
+${JSON.stringify(meaning)}
+Mantén exactamente sourceQuote, proposition, framing, concepts e intent. Cambia sólo headline y secondary; reason puede describir la reducción.
+Máximo ${readingBudget(duration)} palabras visibles y 7 en headline. Conserva negación, cifra, unidad, atribución y contraste. Si no cabe, usa una afirmación más sencilla del MISMO intervalo, nunca la siguiente.
+Intervalo: ${JSON.stringify(semantic.localText)}
+Contexto posterior prohibido como nueva afirmación: ${JSON.stringify(semantic.neighborAfter??'')}
+${error?'Rechazo anterior: '+error:''}`
 }
 
 export function editorialSceneChoicePromptV2(meaning:EditorialMeaningV2,candidates:readonly Candidate[],orientation:string,
@@ -239,7 +299,7 @@ export function validateEditorialSceneChoiceV2(raw:any,meaning:EditorialMeaningV
   }
   return {mode:raw.mode,heroId:raw.heroId,supportIds:raw.supportIds,proposition:meaning.proposition,
     visibleText:[meaning.headline,meaning.secondary].filter(Boolean).join(' '),emphasis:'',
-    propositionSource:norm(semantic.localText).includes(norm(meaning.sourceQuote))?'interval':'neighbor-context',
+    propositionSource:editorialSourceScopeV3(meaning.sourceQuote,semantic)==='interval'?'interval':'neighbor-context',
     reason:brief(raw.reason),evidence,rejected,omission:raw.omission,meaning,direction:raw.direction}
 }
 
@@ -247,6 +307,7 @@ export async function decideEditorialScene(input:{catalog:CuratedModularCatalogV
   duration:number;apiKey:string;request?:typeof fetch;orientation?:string;recentFamilies?:readonly string[]}){
   const attempts:{stage:string;prompt:string;response:unknown;error?:string;milliseconds:number;usage:unknown}[]=[]
   let meaning:EditorialMeaningV2|undefined,decision:EditorialCandidateDecision|undefined,candidates:Candidate[]=[],error:string|undefined
+  const presentationAdjustments:string[]=[]
   const request=async(stage:string,prompt:string,validate:(raw:any)=>any)=>{
     const started=Date.now();let raw:unknown=null,usage:unknown=null
     try{
@@ -264,19 +325,49 @@ export async function decideEditorialScene(input:{catalog:CuratedModularCatalogV
   }
   const terminal=()=>!!error&&/^DEEPSEEK_HTTP_(401|402|403|429)$/.test(error)
   for(let i=0;i<2&&!meaning;i++){
-    meaning=(await request('meaning',editorialMeaningPromptV2(input.semantic,input.duration,error),
-      raw=>validateEditorialMeaningV2(raw,input.semantic,input.duration)))?.result
+    meaning=(await request('meaning',editorialMeaningPromptV3(input.semantic,input.duration,error),
+      raw=>validateEditorialMeaningV2(raw,input.semantic,input.duration,
+        {phase1:true,allowOverBudget:true})))?.result
     if(terminal())break
   }
+  if(!meaning&&!terminal()){
+    meaning=(await request('meaning-recovery',editorialMeaningPromptV3(input.semantic,input.duration,error)+
+      '\nÚltimo intento: usa solamente una cláusula del intervalo actual, o complétala hacia atrás. Evita cualquier afirmación de la frase siguiente. La reducción del titular se hará después.',
+      raw=>validateEditorialMeaningV2(raw,input.semantic,input.duration,
+        {phase1:true,allowOverBudget:true})))?.result
+  }
   if(meaning){
-    const retrievalSemantic={...input.semantic,localText:meaning.proposition,globalText:undefined,anchor:undefined,
-      concepts:meaning.concepts.map(label=>({label,scope:'scene' as const}))}
+    if(visibleWords(meaning.headline+' '+meaning.secondary)>readingBudget(input.duration)||
+      visibleWords(meaning.headline)>7){
+      const original=meaning
+      for(let i=0;i<2;i++){
+        const revised=(await request('presentation',editorialPresentationPromptV3(original,input.semantic,
+          input.duration,error),raw=>{
+          const checked=validateEditorialMeaningV2(raw,input.semantic,input.duration,{phase1:true})
+          for(const key of ['sourceQuote','proposition','framing','intent','concepts'] as const)
+            if(JSON.stringify(checked[key])!==JSON.stringify(original[key]))
+              throw Error('EDITORIAL_PRESENTATION_CHANGED_MEANING')
+          return checked
+        }))?.result
+        if(revised){meaning=revised;presentationAdjustments.push('PRESENTATION_MODEL_REDUCED');break}
+        if(terminal())break
+      }
+      if(meaning===original){
+        const literal=editorialFallbackTextV3(input.semantic.localText,input.duration,input.semantic.neighborBefore)
+        if(literal){meaning={...original,headline:literal,secondary:''}
+          presentationAdjustments.push('PRESENTATION_TIMED_CLAUSE_FALLBACK')}
+        else presentationAdjustments.push('PRESENTATION_UNRESOLVED')
+      }
+    }
+    const validatedMeaning=meaning!
+    const retrievalSemantic={...input.semantic,localText:validatedMeaning.proposition,globalText:undefined,anchor:undefined,
+      concepts:validatedMeaning.concepts.map(label=>({label,scope:'scene' as const}))}
     candidates=retrieveEditorialCandidates(input.catalog,retrievalSemantic)
     const coverage=[...new Set(input.catalog.entries().filter(e=>e.role==='hero-core').map(e=>
       input.catalog.selectionMetadata(e.assetId)?.semanticFamily).filter(Boolean))]
     for(let i=0;i<2;i++){
-      const response=await request('scene',editorialSceneChoicePromptV2(meaning,candidates,input.orientation??'portrait',
-        input.duration,input.recentFamilies??[],coverage,error),raw=>validateEditorialSceneChoiceV2(raw,meaning!,candidates,input.semantic))
+      const response=await request('scene',editorialSceneChoicePromptV2(validatedMeaning,candidates,input.orientation??'portrait',
+        input.duration,input.recentFamilies??[],coverage,error),raw=>validateEditorialSceneChoiceV2(raw,validatedMeaning,candidates,input.semantic))
       if(response){decision=response.result
         const extra=(response.raw as any).additionalTerms
         if(decision!.heroId||decision!.omission==='deliberate-typography'||i===1||!Array.isArray(extra)||!extra.length)break
@@ -287,8 +378,10 @@ export async function decideEditorialScene(input:{catalog:CuratedModularCatalogV
       if(terminal())break
     }
   }
-  return {revision:EDITORIAL_DECISION_V2,meaning,decision,candidates,attempts,
-    metrics:{calls:attempts.length,retries:Math.max(0,attempts.length-(meaning?2:1)),milliseconds:attempts.reduce((s,a)=>s+a.milliseconds,0)},
+  return {revision:EDITORIAL_DECISION_V3,meaning,decision,candidates,attempts,presentationAdjustments,
+    metrics:{calls:attempts.length,retries:attempts.length-new Set(attempts.map(a=>
+      a.stage==='meaning-recovery'?'meaning':a.stage)).size,
+      milliseconds:attempts.reduce((s,a)=>s+a.milliseconds,0)},
     fallbackReason:decision?decision.omission==='no-suitable-material'?
       candidates.length?'CANDIDATES_NOT_SUITABLE':'RETRIEVAL_INSUFFICIENT':decision.omission??null:
       !meaning?'MEANING_VALIDATION_FAILED':error==='EDITORIAL_DIRECTION_NOT_ELIGIBLE'?

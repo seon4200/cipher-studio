@@ -47,6 +47,9 @@ export type LocalSceneSemanticV1 = {
   anchor?: string
   relation?: string
   globalText?: string
+  /** V4 editorial decision only: neighboring phrases are context, not timed voice. */
+  neighborBefore?: string
+  neighborAfter?: string
   globalHints: string[]
   globalContextRef?: string
   directEvidence: DirectConcreteEvidenceV1[]

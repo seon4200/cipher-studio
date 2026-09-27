@@ -28,7 +28,8 @@ app.whenReady().then(async()=>{let exit=1;try{
   }
   const invoke=(channel,payload)=>ipcMain._invokeHandlers.get(channel)({sender:{send:()=>{},isDestroyed:()=>false}},payload)
   const context={version:3,sceneId:spec.editorialBankV2.sceneDecision.sceneId,revision:spec.presentationProfile.revision,
-    graphicData:saved.graphicData,renderBindings:saved.renderBindings,duration:4,sistema:'editorial'}
+    graphicData:saved.graphicData,renderBindings:saved.renderBindings,
+    duration:spec.editorialBankV2.sceneDecision.durationSeconds,sistema:'editorial'}
   const contextSha=sha(JSON.stringify(context)),outputs=[]
   fs.mkdirSync(output,{recursive:true})
   for(const orientation of ['vertical','horizontal']){

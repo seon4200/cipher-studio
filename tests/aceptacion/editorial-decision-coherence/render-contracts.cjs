@@ -36,9 +36,11 @@ app.whenReady().then(async()=>{let code=1;try{
   const template=(await b.resolveModernVisualGenerationBatchV2({contexts:[context],projectRoot:project}))[0].resolved.compiled
   const sceneDecision={sceneId:semantic.sceneId,localText:narration,anchor:'',evidence:[],durationSeconds:4,
     selectionReason:'directed-test',familyReason:'directed-test',missingTerms:[],colorMode:'auto',seed:22131,
-    planning:{revision:direction.revision,start:0,end:4,intervalText:narration,neighborContext:narration,
+    planning:{revision:process.env.CIPHER_PHASE1_REVISION==='1'?'editorial-scene-decision-2026-09-v3':direction.revision,
+      start:0,end:4,intervalText:narration,neighborContext:narration,
       proposition:narration,visibleText:'El análisis aporta datos',sourceQuote:narration,headline:'El análisis aporta datos',secondary:'',
-      framing:'assertion',contextRef:'fixture:0-4',direction,adjustments:[],reason:'Directed test, not selection validation.'}}
+      framing:'assertion',contextRef:'fixture:0-4',direction,adjustments:[],reason:'Directed test, not selection validation.',
+      ...(process.env.CIPHER_PHASE1_REVISION==='1'?{sourceScope:'interval',neighborBefore:'',neighborAfter:''}:{})}}
   const input={template,catalog,imported,selection:selection.selection,color:'#A83B19',contract:b.EDITORIAL_LOCAL_BANK_V4,
     sceneDecision,headline:{keyword:sceneDecision.planning.headline}}
   const built=b.bindEditorialLocalBankV2(input),again=b.bindEditorialLocalBankV2(input)

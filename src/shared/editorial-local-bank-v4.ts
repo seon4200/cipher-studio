@@ -1,6 +1,6 @@
 import { EDITORIAL_LOCAL_BANK_V2, validateEditorialLocalBankPlanV2 } from './editorial-local-bank-v2'
 import { EDITORIAL_LOCAL_CATALOG_REVISION_V3, type EditorialLocalBankPlanV3 } from './editorial-local-bank-v3'
-import { EDITORIAL_DECISION_V2, EDITORIAL_RELATION_MEANING, validateEditorialDirectionV2, type EditorialDirectionV2 } from './editorial-scene-direction'
+import { EDITORIAL_DECISION_V2, EDITORIAL_DECISION_V3, EDITORIAL_RELATION_MEANING, validateEditorialDirectionV2, type EditorialDirectionV2 } from './editorial-scene-direction'
 
 /** New opt-in product route. Published V2/V3 plans are never rewritten. */
 export const EDITORIAL_LOCAL_BANK_V4 = Object.freeze({
@@ -21,7 +21,7 @@ export type EditorialLocalSceneDecisionV4 = {
   seed: number
   /** Only new decisions carry this; saved scenes are neither reselected nor rewritten. */
   planning?: {
-    revision:'editorial-scene-selection-2026-09-v1'|typeof EDITORIAL_DECISION_V2
+    revision:'editorial-scene-selection-2026-09-v1'|typeof EDITORIAL_DECISION_V2|typeof EDITORIAL_DECISION_V3
     start:number;end:number;intervalText:string;neighborContext:string
     proposition:string;visibleText:string;reason:string
     propositionSource?:'interval'|'neighbor-context'
@@ -32,6 +32,9 @@ export type EditorialLocalSceneDecisionV4 = {
     contextRef?:string
     direction?:EditorialDirectionV2
     adjustments?:string[]
+    sourceScope?:'interval'|'interval-with-prior-context'
+    neighborBefore?:string
+    neighborAfter?:string
   }
 }
 
@@ -82,11 +85,13 @@ const keys=(value:unknown,required:readonly string[])=>!!value&&typeof value==='
 
 export function validateEditorialLocalSceneDecisionV4(sceneDecision:EditorialLocalSceneDecisionV4):void{
   const {planning,...historical}=sceneDecision
-  const v2=planning?.revision===EDITORIAL_DECISION_V2
-  const optional=v2?['propositionSource','sourceQuote','headline','secondary','framing','contextRef','direction','adjustments']:['propositionSource']
+  const v3=planning?.revision===EDITORIAL_DECISION_V3
+  const v2=planning?.revision===EDITORIAL_DECISION_V2||v3
+  const optional=v2?['propositionSource','sourceQuote','headline','secondary','framing','contextRef','direction','adjustments',
+    ...(v3?['sourceScope','neighborBefore','neighborAfter']:[])]:['propositionSource']
   const planningKeys=planning?Object.fromEntries(Object.entries(planning).filter(([key])=>!optional.includes(key))):undefined
   if(planning!==undefined&&(!keys(planningKeys,['revision','start','end','intervalText','neighborContext',
-    'proposition','visibleText','reason'])||!['editorial-scene-selection-2026-09-v1',EDITORIAL_DECISION_V2].includes(planning.revision)||
+    'proposition','visibleText','reason'])||!['editorial-scene-selection-2026-09-v1',EDITORIAL_DECISION_V2,EDITORIAL_DECISION_V3].includes(planning.revision)||
     !Number.isFinite(planning.start)||!Number.isFinite(planning.end)||planning.end<=planning.start||
     ['intervalText','neighborContext','proposition','visibleText','reason'].some(key=>
       typeof planning[key as keyof typeof planning]!=='string')))
@@ -97,6 +102,9 @@ export function validateEditorialLocalSceneDecisionV4(sceneDecision:EditorialLoc
     typeof planning.contextRef!=='string'||!Array.isArray(planning.adjustments)||
     planning.adjustments.some(item=>typeof item!=='string')))
     throw new Error('EDITORIAL_SCENE_MEANING_INVALID')
+  if(v3&&(!['interval','interval-with-prior-context'].includes(planning.sourceScope??'')||
+    typeof planning.neighborBefore!=='string'||typeof planning.neighborAfter!=='string'))
+    throw new Error('EDITORIAL_SCENE_TEMPORAL_SCOPE_INVALID')
   if(planning?.propositionSource!==undefined&&!['interval','neighbor-context'].includes(planning.propositionSource))
     throw new Error('EDITORIAL_SCENE_PROPOSITION_SOURCE_INVALID')
   if(!keys(historical,['sceneId','localText','anchor','evidence','durationSeconds','selectionReason',

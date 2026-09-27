@@ -2,6 +2,8 @@ import { EDITORIAL_LOCAL_FAMILIES_V3 } from './editorial-local-bank-v3'
 
 /** Internal decision revision in the existing V4 route; never rewrites saved plans. */
 export const EDITORIAL_DECISION_V2 = 'editorial-scene-decision-2026-09-v2' as const
+/** Same product route, revised meaning/presentation contract for new scenes only. */
+export const EDITORIAL_DECISION_V3 = 'editorial-scene-decision-2026-09-v3' as const
 export const EDITORIAL_RELATION_MEANING = {
   conecta:'connects',contrasta:'compares',informa:'informs',causa:'causes',transfiere:'transfers',
 } as const
