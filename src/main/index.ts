@@ -83,7 +83,8 @@ import { editorialPhraseWindow, editorialSlotWindow, editorialHeadlineForScene, 
 import { decideEditorialScene, editorialFallbackTextV3, editorialSourceScopeV3 } from './assets/editorial-scene-selection'
 import { EDITORIAL_DECISION_V3 } from '../shared/editorial-scene-direction'
 export { editorialPhraseWindow, editorialSlotWindow, editorialHeadlineForScene, stockCoverFilter } from '../shared/editorial-scene-input'
-export { retrieveEditorialCandidates, validateEditorialCandidateDecision, editorialCandidatePrompt, decideEditorialScene } from './assets/editorial-scene-selection'
+export { retrieveEditorialCandidates, retrieveEditorialLayerCandidates, mergeEditorialCandidateSets,
+  validateEditorialCandidateDecision, editorialCandidatePrompt, decideEditorialScene } from './assets/editorial-scene-selection'
 export { validateEditorialMeaningV2, validateEditorialSceneChoiceV2, editorialMeaningPromptV2, editorialSceneChoicePromptV2 } from './assets/editorial-scene-selection'
 export { editorialFallbackTextV3, editorialReadingBudgetV3, editorialSourceScopeV3 } from './assets/editorial-scene-selection'
 import { bindEditorialLocalBankV2, preflightEditorialLocalCatalogV2, preflightEditorialLocalCatalogV3,
@@ -5588,7 +5589,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             chosen?.heroId?
             selectEditorialLocalBankV4Detailed({catalog:curatedFamilyCatalog as CuratedModularCatalogV2,
               semantic:base.localSemantic,recentFamilies:recentLocalFamilies,
-              contextualChoice:{heroId:chosen.heroId,supportIds:chosen.supportIds,direction:chosen.direction},useInventoryMetadata:true}):
+              contextualChoice:{heroId:chosen.heroId,supportIds:chosen.supportIds,direction:chosen.direction,
+                ...(chosen.layerChoices?{layerChoices:{revision:'editorial-layer-selection-2026-09-v1' as const,
+                  source:'model' as const,choices:chosen.layerChoices}}:{})},useInventoryMetadata:true}):
             {selection:null,trace:{terms:base.localSemantic.concepts.map(c=>c.label),heroCandidates:[],supportCandidates:[],
               missingTerms:[],outcome:'NO_HERO' as const}}:localBankV3Selected?
             selectEditorialLocalBankV3Detailed({catalog:curatedFamilyCatalog,semantic:base.localSemantic,
@@ -5620,6 +5623,8 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
                 sourceScope:editorialSourceScopeV3(meaning.sourceQuote,base.localSemantic),
                 neighborBefore:base.localSemantic.neighborBefore??'',neighborAfter:base.localSemantic.neighborAfter??'',
                 ...(chosen?.direction?{direction:chosen.direction}:{}),
+                ...(chosen?.layerChoices?{layerChoices:{revision:'editorial-layer-selection-2026-09-v1' as const,
+                  source:'model' as const,choices:chosen.layerChoices}}:{}),
                 adjustments:[...(contextual?.presentationAdjustments??[]),
                   ...(!chosen?['SCENE_CHOICE_UNAVAILABLE_PRESERVED_VALIDATED_MEANING']:[])]}:{}),
               reason:chosen?.reason??contextual?.fallbackReason??'CATALOG_UNAVAILABLE'}}:undefined

@@ -42,11 +42,20 @@ app.whenReady().then(async()=>{
         }
         if(prompt.includes('Candidatos por rol:')){
           const candidates=JSON.parse(prompt.split('Candidatos por rol: ')[1].split('\n')[0])
+          const surfaces=JSON.parse(prompt.split('Superficies de composición opcionales (metadata, nunca prueba de inspección visual): ')[1].split('\n')[0])
           const hero=candidates.find(c=>c.role==='hero-core'&&c.primaryWordEs.toLowerCase().includes('cromatógrafo'))
+          const background=surfaces.find(c=>c.role==='background')
+          const accent=surfaces.find(c=>c.role==='accent-mask')
+          const rear=surfaces.find(c=>c.role==='rear-collage'&&c.retrievalEvidence.includes('metadata-overlap')&&
+            /qu[ií]mic|cromat|laborat/i.test([c.primaryWordEs,c.description].join(' ')))
           const selected={mode:hero?'asset':'typographic',heroId:hero?.assetId??null,supportIds:[],
             proposition:words,visibleText:words,emphasis:'',reason:'Controlled fixture based on offered metadata, not real semantics.',
             evidence:hero?[{assetId:hero.assetId,quote:words,reason:'Fixture selects the exact instrument present in the text.'}]:[],
             omission:hero?null:'no-suitable-material',rejected:[],additionalTerms:[],
+            layerChoices:{'rear-collage':{assetId:hero?rear?.assetId??null:null,
+              reason:hero&&rear?'El metadato de relación conecta el papel de análisis con el concepto.':'No hay papel temático compatible ofrecido.'},
+              'accent-mask':{assetId:hero?accent?.assetId??null:null,reason:hero?'Backing de rol seguro ofrecido.':'Sin Hero que acompañar.'},
+              background:{assetId:hero?background?.assetId??null:null,reason:hero?'Superficie neutral editorial.':'La tipografía conserva el fondo base.'}},
             direction:{revision:'editorial-scene-decision-2026-09-v2',intent:hero?'object':'statement',
               family:'editorial',variant:'base',entry:'word-first',background:'ivory-clean',relations:[],reason:'Contract fixture'}}
           return {ok:true,status:200,json:async()=>({choices:[{finish_reason:'stop',message:{content:JSON.stringify(selected)}}]})}
@@ -92,6 +101,10 @@ app.whenReady().then(async()=>{
     assert.equal(plan.finishIntegration,'editorial-finish-integration-2026-09-v2',
       'ORDINARY_HANDLER_DID_NOT_PERSIST_INTEGRATED_FINISH')
     assert(plan.hero.assetId,'SEMANTIC_HERO_MUST_SURVIVE')
+    assert.equal(plan.sceneDecision.planning.layerChoices.source,'model')
+    assert.equal(plan.sceneDecision.planning.layerChoices.choices.background.assetId,plan.backgroundAsset?.assetId??null)
+    assert.equal(plan.sceneDecision.planning.layerChoices.choices['rear-collage'].assetId,
+      plan.layers.find(layer=>layer.id==='idea-rear')?.catalogAssetId??null)
     const catalog=new b.CuratedModularCatalogV2(catalogRoot)
     const active=JSON.parse(fs.readFileSync(path.join(catalogRoot,'extension-v2','active.json'),'utf8'))
     const extensionIds=new Set(active.batches.flatMap(batch=>JSON.parse(fs.readFileSync(path.join(catalogRoot,

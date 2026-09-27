@@ -93,6 +93,9 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
       }
       if(prompt.includes('Candidatos por rol:')){
         const candidates=JSON.parse(prompt.split('Candidatos por rol: ')[1].split('\n')[0])
+        const surfaces=JSON.parse(prompt.split('Superficies de composición opcionales (metadata, nunca prueba de inspección visual): ')[1].split('\n')[0])
+        const chosenBackground=surfaces.find(item=>item.role==='background')
+        const chosenAccent=surfaces.find(item=>item.role==='accent-mask')
         const hero=abstractScene?null:candidates.find(item=>item.role==='hero-core'&&
           item.primaryWordEs?.toLowerCase().includes(networkScene?'sensor':'cromatógrafo'))
         const supports=networkScene?['cámara','datos'].map(term=>candidates.find(item=>
@@ -103,6 +106,11 @@ app.whenReady().then(async()=>{let code=1,semanticCalls=0,otherNetwork=0,openDia
           evidence:hero?[{assetId:hero.assetId,quote:words,reason:'Subject named in the interval.'},
             ...supports.map(item=>({assetId:item.assetId,quote:words,reason:'Participant named in the interval.'}))]:[],
           rejected:[],omission:hero?null:'deliberate-typography',additionalTerms:[],
+          layerChoices:{'rear-collage':{assetId:null,reason:'This controlled scene does not need thematic paper.'},
+            'accent-mask':{assetId:hero&&richScene?chosenAccent?.assetId??null:null,
+              reason:hero&&richScene?'Role-safe accent backing from the offered shortlist.':'No extra accent needed.'},
+            background:{assetId:hero?chosenBackground?.assetId??null:null,
+              reason:hero?'Neutral editorial reading surface offered by metadata.':'Typography remains on the base paper.'}},
           direction:{revision:networkScene?'editorial-scene-direction-2026-09-v3':'editorial-scene-decision-2026-09-v2',
             intent:networkScene?'relation':hero?'object':'statement',
             family:networkScene?'redNodos':hero?'marcoPoster':'editorial',variant:'base',

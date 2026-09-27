@@ -73,6 +73,7 @@ function editorialHeroAlphaTargetV4(bytes:Buffer,layout:ReturnType<typeof create
 }
 
 const normalized=(text:string)=>text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').trim()
+const editorialTokens=(text:string)=>(normalized(text).match(/[a-z0-9]{5,}/g)??[])
 const intentRules:readonly {family:ModernLayoutStructureV4;test:RegExp}[]=[
   {family:'lineaTiempo',test:/cronolog|linea de tiempo|antes y despues|año|siglo|decada/},
   {family:'partidoVertical',test:/compar|contraste|frente a|versus|diferencia/},
@@ -278,7 +279,10 @@ export function selectEditorialLocalBankV3Detailed(input:{catalog:ModularCatalog
  * never synthesizes a concept from nearby scenes or a demo asset ID. */
 export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModularCatalogV2;
   semantic:LocalSceneSemanticV1;recentFamilies?:readonly ModernLayoutStructureV4[];
-  contextualChoice?:{heroId:string;supportIds:string[];direction?:EditorialDirectionCurrent};useInventoryMetadata?:boolean}):{
+  contextualChoice?:{heroId:string;supportIds:string[];direction?:EditorialDirectionCurrent;
+    layerChoices?:{revision:'editorial-layer-selection-2026-09-v1';source:'model';choices:Record<
+      'rear-collage'|'accent-mask'|'background',{assetId:string|null;reason:string}>}};
+  useInventoryMetadata?:boolean}):{
     selection:EditorialLocalSelectionV2|null;trace:EditorialLocalSelectionTraceV2}{
   const literalTerms=[...new Set((['hero-core','support','rear-collage'] as const)
     .flatMap(role=>input.catalog.literalTermsInText(input.semantic.localText,role)))].slice(0,12)
@@ -331,8 +335,24 @@ export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModular
   const neutralBacking=(entry:Entry)=>input.useInventoryMetadata&&entry.role==='accent-mask'&&
     (entry as Entry&{surfaceUse?:string}).surfaceUse==='hero-backing-accent-v1'&&
     entry.surfaceProfile==='continuous-filled-v1'
+  const neutralRear=(entry:Entry)=>input.useInventoryMetadata&&entry.role==='rear-collage'&&
+    entry.surfaceProfile==='continuous-filled-v1'&&
+    (((entry as Entry&{compatibleRelations?:string[]}).compatibleRelations??[]).includes('editorial-collage')||
+      (entry as Entry&{semanticFamily?:string}).semanticFamily==='editorial-collage')
+  const conceptRelated=(entry:Entry)=>{
+    const metadata=entry as Entry&{semanticFamily?:string;aliasesEs?:string[];description?:string}
+    const conceptTokens=editorialTokens([input.semantic.localText,input.semantic.anchor??'',...input.semantic.concepts.filter(item=>item.scope!=='context')
+      .map(item=>item.label)].join(' '))
+    const relations=(entry as Entry&{compatibleRelations?:string[]}).compatibleRelations??[]
+    const surfaceTokens=editorialTokens([entry.primaryWordEs,metadata.semanticFamily,...(metadata.aliasesEs??[]),
+      metadata.description??'',...relations].join(' '))
+    return surfaceTokens.some((token:string)=>conceptTokens.some((concept:string)=>token===concept||
+      (Math.min(token.length,concept.length)>=5&&token.slice(0,5)===concept.slice(0,5))))
+  }
   const neutralBackground=(entry:Entry)=>input.useInventoryMetadata&&entry.role==='background'&&
     tags(entry).has('neutral-background')&&tags(entry).has('editorial-reading')
+  const selectedParticipants=[hero,...(input.contextualChoice?.supportIds??[]).map(id=>lookup(id))]
+    .filter((entry):entry is Entry=>!!entry)
   const compatible=(entry:Entry,related:Entry)=>(intersects(entry,related)||neutralBacking(entry)||neutralBackground(entry))&&
     !excluded(entry,related)&&!excluded(related,entry)
   const preferred=input.catalog.aspectClass(hero.assetId)==='wide'?'wide':'vertical'
@@ -342,15 +362,33 @@ export function selectEditorialLocalBankV4Detailed(input:{catalog:CuratedModular
       (role!=='accent-mask'||(entry as Entry&{surfaceUse?:string}).surfaceUse==='hero-backing-accent-v1'))
     .sort((a,b)=>Number(input.catalog.aspectClass(a.assetId)!==preferred)-
       Number(input.catalog.aspectClass(b.assetId)!==preferred)||a.assetId.localeCompare(b.assetId))
-  const background=candidates('background').find(entry=>compatible(entry,hero))
-  const rear=candidates('rear-collage').find(entry=>compatible(entry,hero)||
-    Boolean(background&&compatible(entry,background)))
-  const accent=candidates('accent-mask').find(entry=>compatible(entry,hero)||
+  const layerPlan=input.contextualChoice?.layerChoices?.choices
+  const modelLayer=(role:'rear-collage'|'accent-mask'|'background')=>{
+    const id=layerPlan?.[role].assetId
+    if(!id)return undefined
+    const entry=lookup(id)
+    if(!entry||entry.role!==role)throw new Error('EDITORIAL_CONTEXTUAL_LAYER_ROLE_INVALID:'+role)
+    const structurallySafe=role==='rear-collage'
+      ?entry.surfaceProfile==='continuous-filled-v1'
+      :role==='accent-mask'?neutralBacking(entry):neutralBackground(entry)
+    const relevant=role==='rear-collage'?selectedParticipants.some(participant=>compatible(entry,participant))||
+      conceptRelated(entry)||neutralRear(entry):
+      role==='accent-mask'?neutralBacking(entry):neutralBackground(entry)
+    if(!structurallySafe||!relevant)throw new Error('EDITORIAL_CONTEXTUAL_LAYER_INCOMPATIBLE:'+role)
+    return entry
+  }
+  const background=layerPlan?modelLayer('background'):candidates('background').find(entry=>compatible(entry,hero))
+  const rear=layerPlan?modelLayer('rear-collage'):candidates('rear-collage').find(entry=>compatible(entry,hero)||
+    neutralRear(entry)||Boolean(background&&compatible(entry,background)))
+  const accent=layerPlan?modelLayer('accent-mask'):candidates('accent-mask').find(entry=>compatible(entry,hero)||
     Boolean(background&&compatible(entry,background))||Boolean(rear&&compatible(entry,rear)))
   const layerDecisions:NonNullable<EditorialLocalSelectionTraceV2['layerDecisions']>=[
-    {role:'background',assetId:background?.assetId,reason:background?neutralBackground(background)?'AUTHORIZED_NEUTRAL_READING_BACKGROUND':'HERO_METADATA_RELATION':'NO_COMPATIBLE_BACKGROUND'},
-    {role:'rear-collage',assetId:rear?.assetId,reason:rear?'HERO_OR_BACKGROUND_METADATA_RELATION':'NO_COMPATIBLE_REAR'},
-    {role:'accent-mask',assetId:accent?.assetId,reason:accent?neutralBacking(accent)?'AUTHORIZED_COMPOSITIONAL_BACKING':'HERO_OR_LAYER_METADATA_RELATION':'NO_COMPATIBLE_ACCENT'},
+    {role:'background',assetId:background?.assetId,reason:layerPlan?background?'MODEL_SELECTED:'+layerPlan.background.reason:
+      'MODEL_OMITTED:'+layerPlan.background.reason:background?neutralBackground(background)?'AUTHORIZED_NEUTRAL_READING_BACKGROUND':'HERO_METADATA_RELATION':'NO_COMPATIBLE_BACKGROUND'},
+    {role:'rear-collage',assetId:rear?.assetId,reason:layerPlan?rear?'MODEL_SELECTED:'+layerPlan['rear-collage'].reason:
+      'MODEL_OMITTED:'+layerPlan['rear-collage'].reason:rear?'HERO_OR_BACKGROUND_METADATA_RELATION':'NO_COMPATIBLE_REAR'},
+    {role:'accent-mask',assetId:accent?.assetId,reason:layerPlan?accent?'MODEL_SELECTED:'+layerPlan['accent-mask'].reason:
+      'MODEL_OMITTED:'+layerPlan['accent-mask'].reason:accent?neutralBacking(accent)?'AUTHORIZED_COMPOSITIONAL_BACKING':'HERO_OR_LAYER_METADATA_RELATION':'NO_COMPATIBLE_ACCENT'},
   ]
   if(input.contextualChoice?.direction)layerDecisions.push({role:'front-collage',
     reason:'OMITTED_NO_CERTIFIED_FRONT_OCCLUSION_PAIRING'})

@@ -38,7 +38,10 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
   const candidates=b.retrieveEditorialCandidates(catalog,semantic)
   const direction={revision,intent:'statement',family:'editorial',variant:'base',entry:'word-first',background:'ivory-clean',relations:[],reason:'Afirmación crítica.'}
   const choice={mode:'typographic',heroId:null,supportIds:[],evidence:[],reason:'Texto deliberado, no hueco supuesto.',rejected:[],
-    omission:'deliberate-typography',direction,additionalTerms:[]}
+    omission:'deliberate-typography',direction,additionalTerms:[],layerChoices:{
+      'rear-collage':{assetId:null,reason:'No aporta a una escena tipográfica.'},
+      'accent-mask':{assetId:null,reason:'No hay Hero que acompañar.'},
+      background:{assetId:null,reason:'Se conserva el fondo editorial base.'}}}
   check('explicit typography has no fake edges',()=>assert.equal(b.validateEditorialSceneChoiceV2(choice,meaning,candidates,semantic).direction.relations.length,0))
   check('unknown Hero rejected',()=>assert.throws(()=>b.validateEditorialSceneChoiceV2({...choice,mode:'asset',heroId:'unoffered',omission:null},meaning,candidates,semantic),/NOT_OFFERED/))
   check('unsupported relation rejected',()=>assert.throws(()=>b.validateEditorialSceneChoiceV2({...choice,
@@ -47,6 +50,33 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
   const relationSemantic={...semantic,localText:relationText,globalText:relationText,
     concepts:[{label:'cromatógrafo líquido',scope:'scene'},{label:'datos',scope:'scene'}]}
   const offered=b.retrieveEditorialCandidates(catalog,relationSemantic)
+  const layerOffered=b.retrieveEditorialLayerCandidates(catalog,relationSemantic,'16:9')
+  const chemistrySemantic=b.createLocalSceneSemanticV1({sceneId:'chemistry-layer-recall',start:0,end:3,
+    transcriptSegments:[{start:0,end:3,text:'El cromatógrafo líquido analiza una muestra.'}],
+    concepts:[{label:'cromatógrafo líquido',scope:'scene'},{label:'muestra',scope:'scene'}],
+    globalText:'El cromatógrafo líquido analiza una muestra.'})
+  const chemistryLayers=b.retrieveEditorialLayerCandidates(catalog,chemistrySemantic,'16:9')
+  check('layer shortlist is bounded and role-safe',()=>{
+    assert(layerOffered.length<=12)
+    assert(layerOffered.every(c=>c.role==='rear-collage'?c.surfaceProfile==='continuous-filled-v1':
+      c.role==='accent-mask'?c.surfaceProfile==='continuous-filled-v1'&&c.surfaceUse==='hero-backing-accent-v1':
+      c.role==='background'&&c.compatibleRelations.includes('neutral-background')&&
+        c.compatibleRelations.includes('editorial-reading')))
+  })
+  check('metadata retrieves a thematically compatible paper layer for natural chemistry wording',()=>{
+    assert(chemistryLayers.some(item=>item.role==='rear-collage'&&item.retrievalEvidence.includes('metadata-overlap')&&
+      /qu[ií]mic|cromat|laborat/i.test([item.primaryWordEs,item.description].join(' '))),
+      'A relevant layer must be recoverable through metadata, not a fixture ID.')
+  })
+  check('expanded retrieval retains core and adds rather than replaces candidates',()=>{
+    const initial=b.retrieveEditorialCandidates(catalog,relationSemantic)
+    const expansion=b.retrieveEditorialCandidates(catalog,relationSemantic,['motor eléctrico','experiencia'])
+    const union=b.mergeEditorialCandidateSets(initial,expansion)
+    const ids=new Set(union.map(item=>item.assetId))
+    assert([...initial].every(item=>ids.has(item.assetId)))
+    assert(union.length<=48)
+    assert(expansion.every(item=>['hero-core','support'].includes(item.role)))
+  })
   const hero=offered.find(c=>c.role==='hero-core'&&c.primaryWordEs.toLowerCase()==='cromatógrafo líquido')
   const support=offered.find(c=>c.role==='support'&&c.primaryWordEs.toLowerCase()==='datos')
   assert(hero&&support,'CONTRACT_FIXTURE_CANDIDATES_MISSING')
@@ -57,6 +87,16 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
       fromId:hero.assetId,toId:support.assetId,relation:'informa',quote:relationText,reason:'Instrument records data.'}]}}
   check('one support and explicit information edge accepted',()=>assert.equal(
     b.validateEditorialSceneChoiceV2(assetChoice,relationMeaning,offered,relationSemantic).supportIds.length,1))
+  check('unoffered layer IDs are rejected',()=>assert.throws(()=>b.validateEditorialSceneChoiceV2({...assetChoice,
+    layerChoices:{...choice.layerChoices,'rear-collage':{assetId:'invented-paper',reason:'Seems relevant.'}}},
+    relationMeaning,offered,relationSemantic,layerOffered),/LAYER_NOT_OFFERED/))
+  const safeBackground=layerOffered.find(item=>item.role==='background')
+  if(safeBackground)check('selected neutral background persists as a role-bound layer decision',()=>{
+    const decided=b.validateEditorialSceneChoiceV2({...assetChoice,layerChoices:{...choice.layerChoices,
+      background:{assetId:safeBackground.assetId,reason:'Neutral editorial reading surface; aspect fits.'}}},
+      relationMeaning,offered,relationSemantic,layerOffered)
+    assert.equal(decided.layerChoices.background.assetId,safeBackground.assetId)
+  })
   check('observa rejected with otherwise valid endpoints',()=>assert.throws(()=>b.validateEditorialSceneChoiceV2({
     ...assetChoice,direction:{...assetChoice.direction,relations:[{...assetChoice.direction.relations[0],relation:'observa'}]}},
     relationMeaning,offered,relationSemantic),/RELATION_INVALID/))

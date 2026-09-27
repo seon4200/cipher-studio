@@ -37,6 +37,15 @@ export type EditorialLocalSceneDecisionV4 = {
     sourceScope?:'interval'|'interval-with-prior-context'
     neighborBefore?:string
     neighborAfter?:string
+    layerChoices?:{
+      revision:'editorial-layer-selection-2026-09-v1'
+      source:'model'
+      choices:{
+        'rear-collage':{assetId:string|null;reason:string}
+        'accent-mask':{assetId:string|null;reason:string}
+        background:{assetId:string|null;reason:string}
+      }
+    }
   }
 }
 
@@ -92,7 +101,7 @@ export function validateEditorialLocalSceneDecisionV4(sceneDecision:EditorialLoc
   const v3=planning?.revision===EDITORIAL_DECISION_V3
   const v2=planning?.revision===EDITORIAL_DECISION_V2||v3
   const optional=v2?['propositionSource','sourceQuote','headline','secondary','framing','contextRef','direction','adjustments',
-    ...(v3?['sourceScope','neighborBefore','neighborAfter']:[])]:['propositionSource']
+    ...(v3?['sourceScope','neighborBefore','neighborAfter','layerChoices']:[])]:['propositionSource']
   const planningKeys=planning?Object.fromEntries(Object.entries(planning).filter(([key])=>!optional.includes(key))):undefined
   if(planning!==undefined&&(!keys(planningKeys,['revision','start','end','intervalText','neighborContext',
     'proposition','visibleText','reason'])||!['editorial-scene-selection-2026-09-v1',EDITORIAL_DECISION_V2,EDITORIAL_DECISION_V3].includes(planning.revision)||
@@ -109,6 +118,16 @@ export function validateEditorialLocalSceneDecisionV4(sceneDecision:EditorialLoc
   if(v3&&(!['interval','interval-with-prior-context'].includes(planning.sourceScope??'')||
     typeof planning.neighborBefore!=='string'||typeof planning.neighborAfter!=='string'))
     throw new Error('EDITORIAL_SCENE_TEMPORAL_SCOPE_INVALID')
+  if(planning?.layerChoices!==undefined){
+    const layerPlan=planning.layerChoices
+    if(!v3||!keys(layerPlan,['revision','source','choices'])||
+      layerPlan.revision!=='editorial-layer-selection-2026-09-v1'||layerPlan.source!=='model'||
+      !keys(layerPlan.choices,['rear-collage','accent-mask','background']))
+      throw new Error('EDITORIAL_SCENE_LAYER_SELECTION_INVALID')
+    for(const value of Object.values(layerPlan.choices))if(!keys(value,['assetId','reason'])||
+      (value.assetId!==null&&typeof value.assetId!=='string')||typeof value.reason!=='string'||!value.reason.trim())
+      throw new Error('EDITORIAL_SCENE_LAYER_CHOICE_INVALID')
+  }
   if(planning?.propositionSource!==undefined&&!['interval','neighbor-context'].includes(planning.propositionSource))
     throw new Error('EDITORIAL_SCENE_PROPOSITION_SOURCE_INVALID')
   if(!keys(historical,['sceneId','localText','anchor','evidence','durationSeconds','selectionReason',
@@ -171,6 +190,16 @@ export function validateEditorialLocalBankPlanV4(value:unknown):EditorialLocalBa
       (relationDecision.sourceRelation==='conecta'?'connects':'compares')))
       throw new Error('EDITORIAL_LOCAL_V4_RELATION_MEANING_INVALID')
     }
+  }
+  const layerChoices=sceneDecision.planning?.layerChoices?.choices
+  if(layerChoices){
+    const actual=(role:'rear-collage'|'accent-mask'|'background')=>{
+      if(role==='background')return backgroundAsset?.assetId??null
+      const id=role==='rear-collage'?'idea-rear':'idea-accent'
+      return common.layers.find(layer=>layer.id===id)?.catalogAssetId??null
+    }
+    for(const role of ['rear-collage','accent-mask','background'] as const)
+      if(layerChoices[role].assetId!==actual(role))throw new Error('EDITORIAL_LAYER_DECISION_RENDER_MISMATCH:'+role)
   }
   validateEditorialLocalBankPlanV2({...common,revision:EDITORIAL_LOCAL_BANK_V2.revision,
     catalogRevision:'editorial-modular-catalog-2026-09-v1'},
