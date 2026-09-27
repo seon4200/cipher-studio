@@ -3,6 +3,9 @@ const {app,ipcMain}=require('electron'),assert=require('node:assert/strict')
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto')
 const {createTestFixture}=require('../../helpers/safe-fixture.js')
 const root=path.resolve(__dirname,'../../..'),fixture=createTestFixture('editorial-decision-coherence')
+// These contract tests do not render. Disable hardware acceleration before
+// Electron readiness so a headless GPU-process failure cannot truncate them.
+app.disableHardwareAcceleration()
 const evidence=process.env.CIPHER_DECISION_EVIDENCE
 if(!evidence)throw Error('CIPHER_DECISION_EVIDENCE_REQUIRED')
 app.setPath('userData',path.join(fixture,'userData'));process.chdir(fixture)
@@ -32,10 +35,57 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
     headline:'El potencial basta'},semantic,3),/SCOPE_LOST/))
   check('neighbor assertion cannot replace timed proposition',()=>assert.throws(()=>b.validateEditorialMeaningV2({...meaning,
     sourceQuote:'La lluvia interrumpe los vuelos.'},{...semantic,globalText:semantic.globalText+' La lluvia interrumpe los vuelos.'},3),/WRONG_INTERVAL/))
+  const critiqueInterval='Su problema es querer que con el potencial es suficiente, como tú, que te la pasas planeando, aprendiendo, estudiando,'
+  const critiqueScope=b.createLocalSceneSemanticV1({sceneId:'saved-critique-potential',start:19.16,end:24.54,
+    transcriptSegments:[{start:19.16,end:24.54,text:critiqueInterval}],
+    globalText:critiqueInterval+' Te lo dices aquí misma para poder sentirte cómoda con la persona que podrías llegar a ser.'})
+  critiqueScope.neighborAfter='Te lo dices aquí misma para poder sentirte cómoda con la persona que podrías llegar a ser.'
+  const clarifiedReferent={...meaning,sourceQuote:critiqueInterval,
+    proposition:'La persona a la que habla cree que el potencial basta y se queda planeando, aprendiendo y estudiando.',
+    headline:'El problema de creer que basta',secondary:'',framing:'critique',intent:'statement'}
+  check('generic subject clarification does not falsely import the next assertion',()=>assert.equal(
+    b.validateEditorialMeaningV2(clarifiedReferent,critiqueScope,5.38,{phase1:true}).headline,
+    clarifiedReferent.headline))
+  const incompleteCut='cómoda con la persona que podrías llegar a ser. Pero lo que tú y'
+  const cutScope=b.createLocalSceneSemanticV1({sceneId:'saved-cut-29-31',start:29,end:31.49,
+    transcriptSegments:[{start:29,end:31.49,text:incompleteCut}],
+    globalText:incompleteCut+' Mejumi entienden que el mundo se basa en la acción.'})
+  cutScope.neighborAfter='Mejumi entienden que el mundo se basa en la acción.'
+  check('future predicate cluster cannot complete a cut adversative from the next phrase',()=>assert.throws(()=>
+    b.validateEditorialMeaningV2({...meaning,sourceQuote:incompleteCut,
+      proposition:'La persona se siente cómoda con quien podría ser, pero ella y otros entienden que el mundo se basa en actuar.',
+      headline:'Cómoda con quien podría ser',framing:'critique',intent:'statement'},cutScope,3,{phase1:true}),
+    /FUTURE_CLAIM_NOT_IN_INTERVAL/))
+  check('unspoken contrast is rejected while critique itself can remain',()=>assert.throws(()=>
+    b.validateEditorialMeaningV2({...meaning,sourceQuote:meaning.sourceQuote,
+      proposition:'Es un error creer que el potencial basta en lugar de actuar.',
+      headline:'El error de creer que el potencial basta',framing:'critique'},semantic,4),
+    /UNSUPPORTED_CONTRAST/))
+  const correctionQuote='La mayor portaleza de yuyuy no es el potencial que tiene, que es llevarse al límite una y otra vez con lo que ya es.'
+  const correctionSemantic=b.createLocalSceneSemanticV1({sceneId:'negation-correction',start:0,end:8,
+    transcriptSegments:[{start:0,end:8,text:correctionQuote}],globalText:correctionQuote})
+  check('paraphrase may express an explicitly grounded negative correction with sino',()=>assert.equal(
+    b.validateEditorialMeaningV2({...meaning,sourceQuote:correctionQuote,
+      proposition:'La fortaleza no es el potencial, sino llevarse al límite.',
+      headline:'No es potencial: es llevarse al límite',secondary:'',framing:'negation',intent:'statement'},
+      correctionSemantic,8).headline,'No es potencial: es llevarse al límite'))
+  check('repair prompt explains the failed temporal-scope rule',()=>assert.match(
+    b.editorialMeaningPromptV2(cutScope,3,'EDITORIAL_FUTURE_CLAIM_NOT_IN_INTERVAL'),
+    /contexto posterior NO puede aportar predicados/u))
   const quantified={...semantic,localText:'266 millones de personas sufren hambre',globalText:''}
   check('quantity survives paraphrase',()=>assert.throws(()=>b.validateEditorialMeaningV2({...meaning,
     sourceQuote:quantified.localText,framing:'assertion',headline:'Millones sufren hambre'},quantified,3),/QUANTITY_LOST/))
   const candidates=b.retrieveEditorialCandidates(catalog,semantic)
+  const candidatePrompt=b.editorialSceneChoicePromptV2(meaning,candidates,
+    b.retrieveEditorialLayerCandidates(catalog,semantic,'9:16',candidates),'9:16',3,[],
+    b.editorialCandidateCoverageV1(catalog,semantic))
+  check('model receives only canonical IDs and compact matched coverage',()=>{
+    assert(candidatePrompt.includes('Lista cerrada de IDs permitidos por rol'))
+    assert(candidatePrompt.includes(`"assetId":"${candidates[0].assetId}"`))
+    assert(!candidatePrompt.includes('"code":'))
+    const coverage=b.editorialCandidateCoverageV1(catalog,semantic)
+    assert(coverage.length<=10&&coverage.every(item=>item.matchedTerms>0))
+  })
   const direction={revision,intent:'statement',family:'editorial',variant:'base',entry:'word-first',background:'ivory-clean',relations:[],reason:'Afirmación crítica.'}
   const choice={mode:'typographic',heroId:null,supportIds:[],evidence:[],reason:'Texto deliberado, no hueco supuesto.',rejected:[],
     omission:'deliberate-typography',direction,additionalTerms:[],layerChoices:{
@@ -124,6 +174,38 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
       fromId:hero.assetId,toId:support.assetId,relation:'informa',quote:relationText,reason:'Instrument records data.'}]}}
   check('one support and explicit information edge accepted',()=>assert.equal(
     b.validateEditorialSceneChoiceV2(assetChoice,relationMeaning,offered,relationSemantic).supportIds.length,1))
+  const duplicateConceptCandidates=offered.map(candidate=>candidate.assetId===support.assetId
+    ?{...candidate,primaryWordEs:hero.primaryWordEs}:candidate)
+  check('duplicate catalogue word alone does not reject an otherwise valid composition',()=>assert.equal(
+    b.validateEditorialSceneChoiceV2(assetChoice,relationMeaning,duplicateConceptCandidates,relationSemantic).supportIds.length,1))
+  const distinctGroundedSupport={...support,assetId:'test-support-personas',primaryWordEs:'Personas',
+    retrievalEvidence:['concept:personas']}
+  const duplicateMeaning={...relationMeaning,concepts:['personas']}
+  const duplicateChoice={...assetChoice,direction:{...assetChoice.direction,relations:[]}}
+  const distinctChoice={...assetChoice,supportIds:[distinctGroundedSupport.assetId],
+    evidence:[{assetId:hero.assetId,quote:relationText,reason:'Central subject.'},
+      {assetId:distinctGroundedSupport.assetId,quote:relationText,reason:'Distinct narrated participant.'}],
+    direction:{...assetChoice.direction,relations:[]}}
+  const groundedSlate=[...duplicateConceptCandidates,distinctGroundedSupport]
+  check('redundant participant triggers repair only when a distinct directly grounded candidate is offered',()=>assert.throws(()=>
+    b.validateEditorialSceneChoiceV2(duplicateChoice,duplicateMeaning,groundedSlate,relationSemantic),
+    /REDUNDANT_SUPPORT_WITH_GROUNDED_ALTERNATIVE/))
+  const rescued=b.validateEditorialSceneChoiceWithAlternativeV1({...duplicateChoice,alternative:distinctChoice},
+    duplicateMeaning,groundedSlate,relationSemantic)
+  check('complete valid alternative rescues one rejected primary without relaxing IDs or relation rules',()=>{
+    assert.equal(rescued.heroId,hero.assetId)
+    assert.deepEqual(rescued.supportIds,[distinctGroundedSupport.assetId])
+    assert.equal(rescued.choiceAudit.selected,'alternative')
+    assert.match(rescued.choiceAudit.primaryRejection,/REDUNDANT_SUPPORT_WITH_GROUNDED_ALTERNATIVE/)
+  })
+  const primaryWins=b.validateEditorialSceneChoiceWithAlternativeV1({...assetChoice,alternative:{...distinctChoice,
+    heroId:'not-offered'}},relationMeaning,offered,relationSemantic)
+  check('invalid optional alternative does not invalidate a sound primary',()=>{
+    assert.equal(primaryWins.heroId,hero.assetId)
+    assert.equal(primaryWins.choiceAudit.selected,'primary')
+    assert.equal(primaryWins.choiceAudit.alternativeStatus,'invalid')
+    assert.match(primaryWins.choiceAudit.alternativeRejection,/NOT_OFFERED/)
+  })
   check('unoffered layer IDs are rejected',()=>assert.throws(()=>b.validateEditorialSceneChoiceV2({...assetChoice,
     layerChoices:{...choice.layerChoices,'rear-collage':{assetId:'invented-paper',reason:'Seems relevant.'}}},
     relationMeaning,offered,relationSemantic,layerOffered),/LAYER_NOT_OFFERED/))
@@ -180,6 +262,19 @@ app.whenReady().then(async()=>{let code=1;const checks=[];try{
     assert.equal(staged.decision.omission,'deliberate-typography')
     assert(staged.presentationAdjustments.includes('PRESENTATION_MODEL_REDUCED'))
     assert.deepEqual(staged.attempts.map(a=>a.stage),['meaning','presentation','scene'])
+  })
+  let unresolvedCalls=0
+  const unresolved=await b.decideEditorialScene({catalog,semantic,duration:3,apiKey:'not-a-key',request:async()=>({ok:true,
+    json:async()=>({choices:[{message:{content:JSON.stringify([overlong,overlong,overlong,choice][unresolvedCalls++])}}]})})})
+  check('failed shortening retains valid meaning, candidates, and scene choice',()=>{
+    assert.equal(unresolvedCalls,4)
+    assert.equal(unresolved.meaning.headline,overlong.headline)
+    assert(unresolved.candidates.length>0)
+    assert.equal(unresolved.decision.omission,'deliberate-typography')
+    assert(unresolved.presentationAdjustments.includes('PRESENTATION_UNRESOLVED'))
+    assert.equal(unresolved.attempts.filter(item=>item.stage==='presentation').length,2)
+    assert.match(unresolved.attempts[2].prompt,/titular tenía \d+ palabras y su secondary \d+; total \d+/u)
+    assert.match(unresolved.attempts[2].prompt,/puedes dejarlo vacío/u)
   })
   const report={checks,health,bundleSha256:crypto.createHash('sha256').update(fs.readFileSync(path.join(root,'dist-electron/main/index.js'))).digest('hex')}
   fs.writeFileSync(path.join(evidence,'contracts.json'),JSON.stringify(report,null,2))

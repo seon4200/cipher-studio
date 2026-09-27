@@ -88,7 +88,9 @@ export { retrieveEditorialCandidates, retrieveEditorialLayerCandidates, mergeEdi
   validateEditorialCandidateDecision, editorialCandidatePrompt, decideEditorialScene } from './assets/editorial-scene-selection'
 export { editorialMetadataAffinityV1, editorialLayerConceptAffinityV1, editorialGenericRearV1 }
   from '../shared/editorial-layer-affinity-v1'
-export { validateEditorialMeaningV2, validateEditorialSceneChoiceV2, editorialMeaningPromptV2, editorialSceneChoicePromptV2 } from './assets/editorial-scene-selection'
+export { validateEditorialMeaningV2, validateEditorialSceneChoiceV2,
+  validateEditorialSceneChoiceWithAlternativeV1, editorialCandidateCoverageV1,
+  editorialMeaningPromptV2, editorialSceneChoicePromptV2 } from './assets/editorial-scene-selection'
 export { editorialFallbackTextV3, editorialReadingBudgetV3, editorialSourceScopeV3 } from './assets/editorial-scene-selection'
 import { bindEditorialLocalBankV2, preflightEditorialLocalCatalogV2, preflightEditorialLocalCatalogV3,
   selectEditorialLocalBankV2Detailed, selectEditorialLocalBankV3Detailed,
@@ -5583,10 +5585,14 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             continue
           }
           if (localBankV4Selected && contextual?.presentationAdjustments.includes('PRESENTATION_UNRESOLVED')) {
-            solicitudesGraficas.push({skipReason:'editorial-presentation-unresolved',
-              diagnosticSceneId:base.decision.sceneId,localSemantic:base.localSemantic,
-              contextualDecision:contextual,inputFallback:base.inputFallback})
-            continue
+            // A failed shortening pass is not a failed comprehension or asset
+            // decision. Keep the already-validated meaning and let the ordinary
+            // binder/Text Fit/QC judge its layout; preserve the unresolved marker
+            // in SceneSpec diagnostics so this is never silent.
+            avisar({severidad:'aviso',codigo:'EDITORIAL_PRESENTATION_UNRESOLVED_PRESERVED',
+              origen:'editorial-text',
+              mensaje:'No se logró una reducción breve validada; se conserva la comprensión aprobada y se envía a ajuste de texto/QC.',
+              detalle:`scene=${base.decision.sceneId}; headlineWords=${meaning?.headline.trim().split(/\s+/u).filter(Boolean).length??0}; duration=${context.duration}`})
           }
           const localDecision = localBankSelected && curatedFamilyCatalog ? (localBankV4Selected?
             chosen?.heroId?
