@@ -2,6 +2,12 @@ export interface IElectronAPI {
   rutaDeFichero: (f: File) => string;
   onMainMessage: (callback: (message: string) => void) => () => void;
   startTranscription: (filePath: string) => void;
+  startCipherLocalDownload: (params: { idempotencyKey: string; sourceUrl: string; name: string; qualityProfile: 'fhd' | 'best' }) => Promise<{ success: boolean; projectId?: string; operationId?: string; attemptId?: string; projectPath?: string; state?: string; error?: string }>;
+  getCipherLocalDownload: (params: { projectId: string; attemptId: string }) => Promise<{ success: boolean; state?: any; error?: string }>;
+  listCipherLocalDownloads: () => Promise<{ success: boolean; downloads?: any[]; error?: string }>;
+  openCipherLocalDownloadProject: (params: { projectId: string; attemptId: string }) => Promise<{ success: boolean; projectPath?: string; error?: string }>;
+  cancelCipherLocalDownload: (params: { projectId: string; attemptId: string }) => Promise<{ success: boolean; state?: string; error?: string }>;
+  retryCipherLocalDownload: (params: { projectId: string; attemptId: string }) => Promise<{ success: boolean; projectId?: string; operationId?: string; attemptId?: string; projectPath?: string; error?: string }>;
   onTranscriptionUpdate: (callback: (event: any, data: any) => void) => () => void;
   rewriteTranscript: (text: string) => Promise<{ success: boolean; data?: string; error?: string }>;
   generateVoice: (params: { text: string; model: string; voiceId: string; speed: number; stability: number }) => Promise<{ success: boolean; filePath?: string; audioUrl?: string; durationSeconds?: number; newAudioSegments?: any[]; error?: string }>;

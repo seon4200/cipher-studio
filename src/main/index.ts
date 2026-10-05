@@ -5,6 +5,7 @@ import { once } from 'events'
 import { createHash, randomUUID } from 'crypto'
 import fs from 'fs'
 import { createProjectFiles, loadProjectFile, saveProjectFile } from './services/project-persistence'
+import { isUuid, validateControlAdapterJob, type ControlAdapterJob, type ControlAdapterProgress, type ControlAdapterResult } from '../shared/control-adapter'
 // Tests exercise the real compiled consumers, never copies of migration or IO.
 export * from './services/project-persistence'
 // 3.4B exposes the real local catalog from the compiled main bundle. It does not
@@ -176,11 +177,108 @@ async function exists(p: string): Promise<boolean> {
   }
 }
 
+const controlDataRoot = path.resolve(process.env.CIPHER_CONTROL_DATA_ROOT || 'C:\\graphify\\cipher-control-data')
+const sharedDeviceLockPath = path.join(controlDataRoot, 'device-processing.lock')
+const deviceReviewHoldPath = path.join(controlDataRoot, 'device-review-hold.json')
+function processIsAlive(pid: number) {
+  try { process.kill(pid, 0); return true }
+  catch (error: any) { return error?.code !== 'ESRCH' }
+}
+async function assertDeviceProcessingAccess(requestedOperationId?: string) {
+  const operationId = requestedOperationId || controlJob?.operationId
+  if (await exists(sharedDeviceLockPath)) {
+    let lock: any
+    try { lock = JSON.parse(await fs.promises.readFile(sharedDeviceLockPath, 'utf8')) }
+    catch { throw new Error('DEVICE_LOCK_DAMAGED') }
+    if (lock?.schemaVersion !== 1 || !Number.isSafeInteger(lock.ownerPid) ||
+        !(lock.childPid === null || Number.isSafeInteger(lock.childPid)) || typeof lock.operationId !== 'string')
+      throw new Error('DEVICE_LOCK_DAMAGED')
+    if (operationId !== lock.operationId && (processIsAlive(lock.ownerPid) || (lock.childPid !== null && processIsAlive(lock.childPid))))
+      throw new Error('DEVICE_PROCESSING_BUSY')
+  }
+  if (await exists(deviceReviewHoldPath)) {
+    let hold: any
+    try { hold = JSON.parse(await fs.promises.readFile(deviceReviewHoldPath, 'utf8')) }
+    catch { throw new Error('DEVICE_REVIEW_HOLD_DAMAGED') }
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    if (hold?.schemaVersion !== 1 || !uuid.test(String(hold.operationId || '')) || !uuid.test(String(hold.attemptId || '')) || typeof hold.heldAt !== 'string')
+      throw new Error('DEVICE_REVIEW_HOLD_DAMAGED')
+    if (operationId !== hold.operationId) throw new Error('DEVICE_REVIEW_PENDING')
+  }
+}
+async function acquireDesktopProcessingLock() {
+  if (controlJob) { await assertDeviceProcessingAccess(); return { release: async () => {} } }
+  await assertDeviceProcessingAccess()
+  await fs.promises.mkdir(controlDataRoot, { recursive: true })
+  for (let tries = 0; tries < 3; tries++) {
+    const record = { schemaVersion: 1, lockId: randomUUID(), operationId: randomUUID(), ownerPid: process.pid, childPid: null,
+      ownerMarker: 'cipher-studio-desktop ' + path.basename(process.execPath), startedAt: new Date().toISOString() }
+    try {
+      const handle = await fs.promises.open(sharedDeviceLockPath, 'wx')
+      try { await handle.writeFile(JSON.stringify(record), 'utf8'); await handle.sync() } finally { await handle.close() }
+      try { await assertDeviceProcessingAccess(record.operationId) }
+      catch (error) { await fs.promises.unlink(sharedDeviceLockPath).catch(() => {}); throw error }
+      return { release: async () => {
+        try { const current = JSON.parse(await fs.promises.readFile(sharedDeviceLockPath, 'utf8'))
+          if (current?.operationId === record.operationId && current?.ownerPid === process.pid && current?.lockId === record.lockId)
+            await fs.promises.unlink(sharedDeviceLockPath)
+        } catch {}
+      } }
+    } catch (error: any) { if (error?.code !== 'EEXIST') throw error }
+    await assertDeviceProcessingAccess()
+    let inspected: any
+    try { inspected = JSON.parse(await fs.promises.readFile(sharedDeviceLockPath, 'utf8')) }
+    catch (error: any) { if (error?.code === 'ENOENT') continue; throw new Error('DEVICE_LOCK_DAMAGED') }
+    if (inspected?.schemaVersion !== 1 || !localUuid.test(String(inspected.operationId || '')) ||
+        !Number.isSafeInteger(inspected.ownerPid) || !(inspected.childPid === null || Number.isSafeInteger(inspected.childPid)))
+      throw new Error('DEVICE_LOCK_DAMAGED')
+    if (processIsAlive(inspected.ownerPid) || (inspected.childPid !== null && processIsAlive(inspected.childPid)))
+      throw new Error('DEVICE_PROCESSING_BUSY')
+    let current: any
+    try { current = JSON.parse(await fs.promises.readFile(sharedDeviceLockPath, 'utf8')) }
+    catch (error: any) { if (error?.code === 'ENOENT') continue; throw new Error('DEVICE_LOCK_DAMAGED') }
+    if (JSON.stringify(current) !== JSON.stringify(inspected)) throw new Error('DEVICE_PROCESSING_BUSY')
+    const stale = sharedDeviceLockPath + '.stale.' + randomUUID()
+    try { await fs.promises.rename(sharedDeviceLockPath, stale); await fs.promises.unlink(stale) }
+    catch (error: any) { if (error?.code !== 'ENOENT') throw error }
+  }
+  throw new Error('DEVICE_PROCESSING_BUSY')
+}
+function handleProcessing(channel: string, handler: (...args: any[]) => any) {
+  ipcMain.handle(channel, async (...args: any[]) => {
+    const lock = await acquireDesktopProcessingLock()
+    try { return await handler(...args) }
+    finally { await lock.release() }
+  })
+}
+
 // Load env variables at startup
 loadEnv()
 
 process.env.DIST = path.join(__dirname, '../..')
 process.env.PUBLIC = app.isPackaged ? path.join(process.env.DIST, 'dist') : path.join(process.env.DIST, 'public')
+
+const CONTROL_JOB_ARG = '--cipher-control-job='
+const controlJobPath = process.argv.find(arg => arg.startsWith(CONTROL_JOB_ARG))?.slice(CONTROL_JOB_ARG.length)
+let controlJob: ControlAdapterJob | null = null
+let controlProjectPath: string | null = null
+let controlSourcePath: string | null = null
+let controlResultWritten = false
+if (controlJobPath) {
+  const absoluteJob = path.resolve(controlJobPath)
+  const projectsRoot = path.resolve(controlDataRoot, 'projects')
+  if (!absoluteJob.toLowerCase().startsWith(projectsRoot.toLowerCase() + path.sep.toLowerCase()))
+    throw new Error('CONTROL_JOB_PATH_INVALID')
+  const raw = validateControlAdapterJob(JSON.parse(fs.readFileSync(absoluteJob, 'utf8')))
+  const expectedJob = path.join(controlDataRoot, 'projects', raw.projectId, 'adapter', 'jobs', raw.attemptId + '.json')
+  if (path.resolve(expectedJob).toLowerCase() !== absoluteJob.toLowerCase()) throw new Error('CONTROL_JOB_PATH_INVALID')
+  controlJob = raw
+  controlProjectPath = path.join(controlDataRoot, 'projects', raw.projectId, 'cipher')
+  if (raw.sourceRelativePath) controlSourcePath = path.resolve(controlDataRoot, ...raw.sourceRelativePath.split('/'))
+  const workerUserData = path.join(controlProjectPath, 'userData')
+  fs.mkdirSync(workerUserData, { recursive: true })
+  app.setPath('userData', workerUserData)
+}
 
 let win: BrowserWindow | null = null
 const preload = path.join(__dirname, '../preload/index.js')
@@ -279,9 +377,309 @@ async function initClipFolders() {
   }
 }
 
+ipcMain.handle('control-adapter:get-job', async () => {
+  if (!controlJob || !controlProjectPath) throw new Error('CONTROL_WORKER_UNAVAILABLE')
+  if (controlSourcePath && controlJob.sourceRelativePath && controlJob.sourceAttemptId) {
+    const expectedDir = path.join(controlDataRoot, 'projects', controlJob.projectId, 'source', 'attempts', controlJob.sourceAttemptId)
+    let current = path.parse(expectedDir).root
+    for (const part of path.relative(current, expectedDir).split(path.sep).filter(Boolean)) {
+      current = path.join(current, part)
+      if (fs.existsSync(current) && fs.lstatSync(current).isSymbolicLink()) throw new Error('CONTROL_SOURCE_SYMLINK_REJECTED')
+    }
+    if (!fs.existsSync(controlSourcePath) || fs.lstatSync(controlSourcePath).isSymbolicLink() || !fs.statSync(controlSourcePath).isFile())
+      throw new Error('CONTROL_SOURCE_FILE_UNAVAILABLE')
+  }
+  return { job: controlJob, sourcePath: controlSourcePath, projectPath: controlProjectPath }
+})
+
+ipcMain.handle('control-adapter:progress', async (_event, raw: ControlAdapterProgress) => {
+  if (!controlJob || raw?.operationId !== controlJob.operationId || raw?.attemptId !== controlJob.attemptId ||
+      typeof raw.stage !== 'string' || raw.stage.length < 1 || raw.stage.length > 120 ||
+      (raw.progressPercent !== undefined && (!Number.isFinite(raw.progressPercent) || raw.progressPercent < 0 || raw.progressPercent > 100))) return false
+  const line = { operationId: raw.operationId, attemptId: raw.attemptId, stage: raw.stage,
+    ...(raw.progressPercent !== undefined ? { progressPercent: raw.progressPercent } : {}) }
+  process.stdout.write('CC_PROGRESS ' + JSON.stringify(line) + '\n')
+  return true
+})
+
+ipcMain.handle('control-adapter:complete', async (_event, raw: ControlAdapterResult) => {
+  if (!controlJob || !controlJobPath || controlResultWritten || raw?.operationId !== controlJob.operationId ||
+      raw?.attemptId !== controlJob.attemptId || typeof raw.ok !== 'boolean') return false
+  if (raw.errorCode !== undefined && (typeof raw.errorCode !== 'string' || !/^[A-Z0-9_-]{1,80}$/.test(raw.errorCode)))
+    throw new Error('CONTROL_RESULT_INVALID')
+  if (raw.errorMessage !== undefined && (typeof raw.errorMessage !== 'string' || raw.errorMessage.length > 500))
+    throw new Error('CONTROL_RESULT_INVALID')
+  const body = JSON.stringify(raw)
+  if (Buffer.byteLength(body, 'utf8') > 64 * 1024 * 1024) throw new Error('CONTROL_RESULT_TOO_LARGE')
+  const resultPath = path.join(path.dirname(controlJobPath), controlJob.attemptId + '.result.json')
+  const tempPath = resultPath + '.' + randomUUID() + '.tmp'
+  await fs.promises.writeFile(tempPath, body, { encoding: 'utf8', flag: 'wx' })
+  await fs.promises.rename(tempPath, resultPath)
+  controlResultWritten = true
+  process.stdout.write('CC_RESULT ' + JSON.stringify({ operationId: raw.operationId, attemptId: raw.attemptId, ok: raw.ok }) + '\n')
+  setTimeout(() => app.quit(), 50)
+  return true
+})
+
+const localDownloadRequests = new Map<string, Promise<any>>()
+const localUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+function safeLocalSourceInput(raw: unknown) {
+  if (typeof raw !== 'string' || raw.length > 2048) throw new Error('SOURCE_URL_INVALID')
+  const value = raw.trim(), url = new URL(value)
+  const host = url.hostname.toLowerCase().replace(/\.$/, '')
+  const supported = host === 'youtu.be' || host === 'youtube.com' || host.endsWith('.youtube.com') ||
+    host === 'fb.watch' || host === 'facebook.com' || host.endsWith('.facebook.com') ||
+    ['tiktok.com','www.tiktok.com','vt.tiktok.com','vm.tiktok.com'].includes(host) ||
+    host === 'instagram.com' || host.endsWith('.instagram.com')
+  if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') || !supported)
+    throw new Error('SOURCE_URL_INVALID')
+  return value
+}
+function localDownloadStatePath(projectId: string, attemptId: string) {
+  if (!localUuid.test(projectId) || !localUuid.test(attemptId)) throw new Error('LOCAL_DOWNLOAD_ID_INVALID')
+  return path.join(controlDataRoot, 'projects', projectId, 'adapter', 'local-downloads', attemptId + '.state.json')
+}
+async function readLocalDownloadState(projectId: string, attemptId: string) {
+  const file = localDownloadStatePath(projectId, attemptId)
+  let state: any
+  try { state = JSON.parse(await fs.promises.readFile(file, 'utf8')) }
+  catch (error: any) { if (error?.code === 'ENOENT') return null; throw new Error('LOCAL_DOWNLOAD_STATE_INVALID') }
+  if (state?.schemaVersion !== 1 || state.projectId !== projectId || state.attemptId !== attemptId || typeof state.operationId !== 'string')
+    throw new Error('LOCAL_DOWNLOAD_STATE_INVALID')
+  const cancelFile = path.join(path.dirname(file), attemptId + '.cancel')
+  if (await exists(cancelFile) && ['WAITING_FOR_DEVICE','QUERYING','DOWNLOADING','PREPARING','VERIFYING'].includes(state.state))
+    return { ...state, state: 'CANCEL_REQUESTED', label: 'Solicitud de cancelación; esperando confirmación del proceso' }
+  return state
+}
+async function createLocalProject(requestId: string, sourceUrl: string, nameInput: string, quality: string) {
+  if (!localUuid.test(requestId)) throw new Error('LOCAL_REQUEST_ID_INVALID')
+  if (quality !== 'fhd' && quality !== 'best') throw new Error('QUALITY_PROFILE_INVALID')
+  const name = nameInput.trim() || ('Proyecto ' + new Date().toLocaleDateString('es-CO'))
+  if (name.length > 80 || /[<>:"/\\|?*\x00-\x1f]/.test(name)) throw new Error('PROJECT_NAME_INVALID')
+  const safeUrl = safeLocalSourceInput(sourceUrl)
+  const reservationDir = path.join(controlDataRoot, 'local-idempotency')
+  await fs.promises.mkdir(reservationDir, { recursive: true })
+  const reservationFile = path.join(reservationDir, requestId + '.json')
+  let reservation: any
+  try { reservation = JSON.parse(await fs.promises.readFile(reservationFile, 'utf8')) }
+  catch (error: any) {
+    if (error?.code !== 'ENOENT') throw new Error('LOCAL_RESERVATION_INVALID')
+    const candidate = { schemaVersion: 1, idempotencyKey: requestId, projectId: randomUUID(), operationId: randomUUID(), attemptId: randomUUID(), name, sourceUrl: safeUrl, qualityProfile: quality, createdAt: new Date().toISOString() }
+    const handle = await fs.promises.open(reservationFile, 'wx').catch(async createError => {
+      if (createError?.code !== 'EEXIST') throw createError
+      return null
+    })
+    if (handle) {
+      try { await handle.writeFile(JSON.stringify(candidate), 'utf8'); await handle.sync() } finally { await handle.close() }
+      reservation = candidate
+    } else reservation = JSON.parse(await fs.promises.readFile(reservationFile, 'utf8'))
+  }
+  if (reservation?.schemaVersion !== 1 || reservation.idempotencyKey !== requestId || !localUuid.test(reservation.projectId) ||
+      !localUuid.test(reservation.operationId) || !localUuid.test(reservation.attemptId)) throw new Error('LOCAL_RESERVATION_INVALID')
+  if (reservation.sourceUrl !== safeUrl || reservation.name !== name || reservation.qualityProfile !== quality)
+    throw new Error('IDEMPOTENCY_CONFLICT')
+  const projectRoot = path.join(controlDataRoot, 'projects', reservation.projectId)
+  const projectPath = path.join(projectRoot, 'cipher')
+  const stateFile = path.join(projectPath, 'project-state.json')
+  if (!(await exists(stateFile)) && !(await exists(stateFile + '.bak'))) {
+    await initProjectDirs(projectPath)
+    createProjectFiles(projectPath, { id: reservation.projectId, name: reservation.name, date: Date.now(), durationSeconds: 0,
+      clips: [], timelineVideoClips: [], timelineVersions: [], transcriptionStatus: '', transcriptSegments: [], aiScript: '',
+      originalTranscriptText: '', voiceModel: 'Eleven Multilingual v2', voiceSpeaker: '', voiceSpeed: 1, voiceStability: 50,
+      generatedVoices: [], timelineWeights: [...PESOS_POR_DEFECTO], assignedTransitions: {} })
+  }
+  const downloadsDir = path.join(projectRoot, 'adapter', 'local-downloads')
+  await fs.promises.mkdir(downloadsDir, { recursive: true })
+  const requestFile = path.join(downloadsDir, reservation.attemptId + '.request.json')
+  const statePath = localDownloadStatePath(reservation.projectId, reservation.attemptId)
+  if (!(await exists(requestFile))) {
+    await fs.promises.writeFile(requestFile, JSON.stringify({ schemaVersion: 1, projectId: reservation.projectId,
+      operationId: reservation.operationId, attemptId: reservation.attemptId, name: reservation.name,
+      sourceUrl: reservation.sourceUrl, qualityProfile: reservation.qualityProfile }), { encoding: 'utf8', flag: 'wx' })
+  } else {
+    let savedRequest: any
+    try { savedRequest = JSON.parse(await fs.promises.readFile(requestFile, 'utf8')) }
+    catch { throw new Error('LOCAL_REQUEST_INVALID') }
+    if (savedRequest?.schemaVersion !== 1 || savedRequest.projectId !== reservation.projectId ||
+        savedRequest.operationId !== reservation.operationId || savedRequest.attemptId !== reservation.attemptId ||
+        savedRequest.name !== reservation.name || savedRequest.sourceUrl !== reservation.sourceUrl || savedRequest.qualityProfile !== reservation.qualityProfile)
+      throw new Error('LOCAL_REQUEST_IDEMPOTENCY_CONFLICT')
+  }
+  if (!(await exists(statePath))) {
+    const seed = { schemaVersion: 1, projectId: reservation.projectId, operationId: reservation.operationId, attemptId: reservation.attemptId,
+      name: reservation.name, state: 'WAITING_FOR_DEVICE', progressPercent: null, downloadedBytes: null, totalBytes: null,
+      label: 'Preparando el descargador local', errorCode: null, errorMessage: null, file: null,
+      timings: { sourceLookupSeconds: null, downloadSeconds: null, validationSeconds: null },
+      startedAt: reservation.createdAt, updatedAt: reservation.createdAt }
+    await fs.promises.writeFile(statePath, JSON.stringify(seed), { encoding: 'utf8', flag: 'wx' })
+    const entry = path.join(controlDataRoot, 'tools', 'cipher-agent', 'dist', 'index.js')
+    try { await fs.promises.access(entry) }
+    catch {
+      await fs.promises.writeFile(statePath, JSON.stringify({ ...seed, state: 'FAILED', label: null, errorCode: 'LOCAL_AGENT_NOT_INSTALLED',
+        errorMessage: 'Falta instalar el componente local de descargas de Cipher Control.' }), 'utf8')
+      return { success: true, projectId: reservation.projectId, operationId: reservation.operationId, attemptId: reservation.attemptId,
+        projectPath, state: 'FAILED' }
+    }
+    const nodeExecutable = process.env.CIPHER_NODE_PATH || 'node.exe'
+    const child = spawn(nodeExecutable, [entry, 'download-local', requestFile], { cwd: path.dirname(entry), detached: true,
+      windowsHide: true, shell: false, stdio: 'ignore', env: { ...process.env, CIPHER_CONTROL_DATA_ROOT: controlDataRoot } })
+    try {
+      await new Promise<void>((resolve, reject) => { child.once('spawn', () => resolve()); child.once('error', reject) })
+      child.unref()
+    } catch {
+      await fs.promises.writeFile(statePath, JSON.stringify({ ...seed, state: 'FAILED', label: null, errorCode: 'LOCAL_AGENT_START_FAILED',
+        errorMessage: 'No se pudo iniciar el descargador local. Comprueba Node.js y la instalación del agente.' }), 'utf8')
+      return { success: true, projectId: reservation.projectId, operationId: reservation.operationId, attemptId: reservation.attemptId,
+        projectPath, state: 'FAILED' }
+    }
+  }
+  return { success: true, projectId: reservation.projectId, operationId: reservation.operationId, attemptId: reservation.attemptId, projectPath }
+}
+async function retryLocalProject(projectId: string, previousAttemptId: string) {
+  if (!localUuid.test(projectId) || !localUuid.test(previousAttemptId)) throw new Error('LOCAL_DOWNLOAD_ID_INVALID')
+  const downloadsDir = path.join(controlDataRoot, 'projects', projectId, 'adapter', 'local-downloads')
+  const previousRequestPath = path.join(downloadsDir, previousAttemptId + '.request.json')
+  const previousState = await readLocalDownloadState(projectId, previousAttemptId)
+  if (!previousState || !['FAILED','CANCELED'].includes(previousState.state)) throw new Error('LOCAL_RETRY_NOT_ALLOWED')
+  const requests = (await fs.promises.readdir(downloadsDir)).filter(file => file.endsWith('.request.json'))
+  if (requests.length >= 3) throw new Error('LOCAL_RETRY_LIMIT_REACHED')
+  const old = JSON.parse(await fs.promises.readFile(previousRequestPath, 'utf8'))
+  if (old?.schemaVersion !== 1 || old.projectId !== projectId || old.attemptId !== previousAttemptId ||
+      (old.qualityProfile !== 'fhd' && old.qualityProfile !== 'best')) throw new Error('LOCAL_REQUEST_INVALID')
+  const sourceUrl = safeLocalSourceInput(old.sourceUrl), operationId = randomUUID(), attemptId = randomUUID()
+  const requestFile = path.join(downloadsDir, attemptId + '.request.json'), stateFile = localDownloadStatePath(projectId, attemptId)
+  const createdAt = new Date().toISOString(), request = { schemaVersion: 1, projectId, operationId, attemptId,
+    name: String(old.name || previousState.name || 'Proyecto desde enlace'), sourceUrl, qualityProfile: old.qualityProfile }
+  await fs.promises.writeFile(requestFile, JSON.stringify(request), { encoding: 'utf8', flag: 'wx' })
+  const seed = { schemaVersion: 1, projectId, operationId, attemptId, name: request.name, state: 'WAITING_FOR_DEVICE',
+    progressPercent: null, downloadedBytes: null, totalBytes: null, label: 'Esperando turno del PC', errorCode: null,
+    errorMessage: null, file: null, timings: { sourceLookupSeconds: null, downloadSeconds: null, validationSeconds: null },
+    startedAt: createdAt, updatedAt: createdAt }
+  await fs.promises.writeFile(stateFile, JSON.stringify(seed), { encoding: 'utf8', flag: 'wx' })
+  const entry = path.join(controlDataRoot, 'tools', 'cipher-agent', 'dist', 'index.js')
+  try {
+    await fs.promises.access(entry)
+    const child = spawn(process.env.CIPHER_NODE_PATH || 'node.exe', [entry, 'download-local', requestFile], { cwd: path.dirname(entry),
+      detached: true, windowsHide: true, shell: false, stdio: 'ignore', env: { ...process.env, CIPHER_CONTROL_DATA_ROOT: controlDataRoot } })
+    await new Promise<void>((resolve, reject) => { child.once('spawn', () => resolve()); child.once('error', reject) })
+    child.unref()
+  } catch {
+    await fs.promises.writeFile(stateFile, JSON.stringify({ ...seed, state: 'FAILED', label: null,
+      errorCode: 'LOCAL_AGENT_START_FAILED', errorMessage: 'No se pudo iniciar el intento nuevo; el proyecto y el intento quedaron registrados.',
+      updatedAt: new Date().toISOString() }), 'utf8')
+  }
+  return { success: true, projectId, operationId, attemptId, projectPath: path.join(controlDataRoot, 'projects', projectId, 'cipher') }
+}
+ipcMain.handle('cipher-control:start-local-download', async (_event, raw: any) => {
+  try {
+    const key = String(raw?.idempotencyKey || '')
+    const running = localDownloadRequests.get(key)
+    if (running) return await running
+    const task = createLocalProject(key, raw?.sourceUrl, String(raw?.name || ''), String(raw?.qualityProfile || ''))
+    localDownloadRequests.set(key, task)
+    try { return await task } finally { localDownloadRequests.delete(key) }
+  } catch (error: any) { return { success: false, error: error?.message || 'LOCAL_DOWNLOAD_START_FAILED' } }
+})
+ipcMain.handle('cipher-control:retry-local-download', async (_event, raw: any) => {
+  try { return await retryLocalProject(String(raw?.projectId || ''), String(raw?.attemptId || '')) }
+  catch (error: any) { return { success: false, error: error?.message || 'LOCAL_RETRY_FAILED' } }
+})
+ipcMain.handle('cipher-control:get-local-download', async (_event, raw: any) => {
+  try { return { success: true, state: await readLocalDownloadState(String(raw?.projectId || ''), String(raw?.attemptId || '')) } }
+  catch (error: any) { return { success: false, error: error?.message || 'LOCAL_DOWNLOAD_READ_FAILED' } }
+})
+ipcMain.handle('cipher-control:cancel-local-download', async (_event, raw: any) => {
+  try {
+    const projectId = String(raw?.projectId || ''), attemptId = String(raw?.attemptId || '')
+    const state = await readLocalDownloadState(projectId, attemptId)
+    if (!state || !['WAITING_FOR_DEVICE','QUERYING','DOWNLOADING','PREPARING','VERIFYING'].includes(state.state))
+      return { success: false, error: 'LOCAL_DOWNLOAD_NOT_CANCELLABLE' }
+    const cancelFile = path.join(controlDataRoot, 'projects', projectId, 'adapter', 'local-downloads', attemptId + '.cancel')
+    await fs.promises.writeFile(cancelFile, new Date().toISOString(), { encoding: 'utf8', flag: 'wx' }).catch(error => {
+      if (error?.code !== 'EEXIST') throw error
+    })
+    return { success: true, state: 'CANCEL_REQUESTED' }
+  } catch (error: any) { return { success: false, error: error?.message || 'LOCAL_DOWNLOAD_CANCEL_FAILED' } }
+})
+ipcMain.handle('cipher-control:list-local-downloads', async () => {
+  try {
+    const root = path.join(controlDataRoot, 'projects'), rows: any[] = []
+    for (const projectId of await fs.promises.readdir(root).catch(() => [])) {
+      if (!localUuid.test(projectId)) continue
+      const dir = path.join(root, projectId, 'adapter', 'local-downloads')
+      for (const file of await fs.promises.readdir(dir).catch(() => [])) {
+        if (!file.endsWith('.state.json')) continue
+        const attemptId = file.slice(0, -'.state.json'.length)
+        try { const state = await readLocalDownloadState(projectId, attemptId); if (state) rows.push(state) } catch {}
+      }
+    }
+    rows.sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)))
+    return { success: true, downloads: rows.slice(0, 20) }
+  } catch (error: any) { return { success: false, error: error?.message || 'LOCAL_DOWNLOAD_LIST_FAILED' } }
+})
+ipcMain.handle('cipher-control:open-local-download-project', async (_event, raw: any) => {
+  try {
+    await assertDeviceProcessingAccess()
+    const projectId = String(raw?.projectId || ''), attemptId = String(raw?.attemptId || '')
+    const state = await readLocalDownloadState(projectId, attemptId)
+    if (!state || state.state !== 'AVAILABLE' || !state.file || typeof state.file.relative_path !== 'string') throw new Error('SOURCE_NOT_AVAILABLE')
+    const expectedPrefix = `projects/${projectId}/source/attempts/${attemptId}/`
+    const relative = state.file.relative_path.replace(/\\/g, '/')
+    if (!relative.startsWith(expectedPrefix) || relative.split('/').some((part: string) => !part || part === '.' || part === '..')) throw new Error('SOURCE_PATH_INVALID')
+    const sourcePath = path.resolve(controlDataRoot, ...relative.split('/'))
+    let current = path.parse(controlDataRoot).root
+    for (const part of path.relative(current, sourcePath).split(path.sep).filter(Boolean)) {
+      current = path.join(current, part); if ((await fs.promises.lstat(current)).isSymbolicLink()) throw new Error('SOURCE_SYMLINK_REJECTED')
+    }
+    const real = await fs.promises.realpath(sourcePath), root = await fs.promises.realpath(controlDataRoot)
+    if (!real.toLowerCase().startsWith(root.toLowerCase() + path.sep) || !(await fs.promises.stat(real)).isFile()) throw new Error('SOURCE_PATH_INVALID')
+    const projectPath = path.join(controlDataRoot, 'projects', projectId, 'cipher'), projectStatePath = path.join(projectPath, 'project-state.json')
+    const persisted = loadProjectFile(projectStatePath).state
+    const name = String(state.name || persisted.name || 'Proyecto desde enlace')
+    const original = { id: `control-source-${projectId}`, name: String(state.file.file_name || path.basename(real)), duration: '',
+      durationSeconds: Number(state.file.duration_seconds), type: 'video', path: real, url: urlDeRuta(real),
+      size: `${(Number(state.file.size_bytes) / (1024 * 1024)).toFixed(1)} MB`, category: 'original' }
+    if (!(original.durationSeconds > 0) || !(Number(state.file.size_bytes) > 0)) throw new Error('SOURCE_METADATA_INVALID')
+    saveProjectFile(projectStatePath, { ...persisted, id: projectId, name, durationSeconds: original.durationSeconds,
+      clips: [...(persisted.clips || []).filter((clip: any) => clip.id !== original.id), original], controlSource: {
+        operationId: state.operationId, attemptId, relativePath: relative, audioPresent: state.file.audio_present === true,
+        width: state.file.width, height: state.file.height, container: state.file.container, sizeBytes: state.file.size_bytes,
+      } })
+    return { success: true, projectPath }
+  } catch (error: any) { return { success: false, error: error?.message || 'LOCAL_PROJECT_OPEN_FAILED' } }
+})
+
+async function runControlAdapterWorker() {
+  if (!controlJob || !controlProjectPath) throw new Error('CONTROL_WORKER_UNAVAILABLE')
+  await initProjectDirs(controlProjectPath)
+  const statePath = path.join(controlProjectPath, 'project-state.json')
+  if (!fs.existsSync(statePath) && !fs.existsSync(statePath + '.bak')) {
+    createProjectFiles(controlProjectPath, { id: controlJob.projectId, name: controlJob.name || 'Cipher Control',
+      date: Date.now(), durationSeconds: 0, clips: [], timelineVideoClips: [], timelineVersions: [],
+      transcriptionStatus: '', transcriptSegments: [], aiScript: '', originalTranscriptText: '',
+      voiceModel: 'Eleven Multilingual v2', voiceSpeaker: '', voiceSpeed: 1, voiceStability: 50,
+      generatedVoices: [], timelineWeights: [...PESOS_POR_DEFECTO], assignedTransitions: {} })
+  }
+  activeProjectPath = controlProjectPath
+  activeProjectStateFile = statePath
+  const adapterHtml = path.join(process.env.DIST!, 'dist', 'control-adapter.html')
+  if (!(await exists(adapterHtml))) throw new Error('CONTROL_ADAPTER_RENDERER_NOT_BUILT')
+  win = new BrowserWindow({ show: false, width: 2, height: 2, webPreferences: {
+    preload, nodeIntegration: false, contextIsolation: true
+  } })
+  await win.loadFile(adapterHtml)
+}
+
 app.whenReady().then(async () => {
+  if (controlJobPath) {
+    await runControlAdapterWorker()
+    return
+  }
   await initClipFolders()
   createWindow()
+}).catch(error => {
+  console.error('[Cipher worker/startup] Operation could not start:', error instanceof Error ? error.message : 'WORKER_START_FAILED')
+  app.exit(1)
 })
 
 app.on('window-all-closed', () => {
@@ -330,6 +728,13 @@ const MODELO_WHISPER = 'base';
 
 // IPC listener for Whisper local transcription
 ipcMain.on('start-transcription', async (event, filePath) => {
+  let processLock: { release: () => Promise<void> }
+  try { processLock = await acquireDesktopProcessingLock() }
+  catch (error: any) {
+    event.reply('transcription-update', { status: 'error', error: error?.message === 'DEVICE_PROCESSING_BUSY'
+      ? 'El PC está ocupado con otro proyecto; la transcripción no se inició.' : 'No se pudo reservar el turno de procesamiento.' })
+    return
+  }
   const transcriptsDir = path.join(app.getPath('userData'), 'transcripts')
   if (!(await exists(transcriptsDir))) {
     await fs.promises.mkdir(transcriptsDir, { recursive: true })
@@ -351,6 +756,7 @@ ipcMain.on('start-transcription', async (event, filePath) => {
       status: 'error',
       error: `El archivo de audio no existe en la ruta: ${filePath}`
     })
+    await processLock.release()
     return
   }
 
@@ -471,6 +877,11 @@ ipcMain.on('start-transcription', async (event, filePath) => {
         error: `Whisper falló con código de salida ${code}` 
       })
     }
+    await processLock.release()
+  })
+  whisperProcess.on('error', async () => {
+    event.reply('transcription-update', { status: 'error', error: 'Whisper no pudo iniciarse.' })
+    await processLock.release()
   })
 })
 
@@ -686,6 +1097,24 @@ ipcMain.handle('list-projects', async () => {
         }
       }
     }
+
+    // Control Web projects live beside their downloaded source, not in the legacy local
+    // projects folder. Surface only validated UUID directories with a readable Cipher state.
+    const connectedRoot = path.join(controlDataRoot, 'projects')
+    const connectedItems = await fs.promises.readdir(connectedRoot).catch(() => [])
+    const knownPaths = new Set(projectsList.map(project => path.resolve(project.projectPath).toLowerCase()))
+    for (const item of connectedItems) {
+      if (!localUuid.test(item)) continue
+      const projectPath = path.join(connectedRoot, item, 'cipher')
+      if (knownPaths.has(path.resolve(projectPath).toLowerCase())) continue
+      const stateFile = path.join(projectPath, 'project-state.json')
+      if (!(await exists(stateFile)) && !(await exists(stateFile + '.bak'))) continue
+      try {
+        const data = loadProjectFile(stateFile).state
+        projectsList.push({ id: data.id || item, name: data.name || 'Cipher Control', durationSeconds: data.durationSeconds || 0,
+          date: data.date || (await fs.promises.stat(stateFile)).mtimeMs, projectPath, thumbnailUrl: data.thumbnailUrl || '' })
+      } catch { /* Ignore malformed linked state; loading it should remain an explicit error. */ }
+    }
     
     projectsList.sort((a, b) => b.date - a.date);
     return { success: true, projects: projectsList };
@@ -841,7 +1270,7 @@ async function extraerAudioMaestro(videoPath: string, projPath: string) {
   return { path: destino, durationSeconds, url: urlDeRuta(destino) };
 }
 
-ipcMain.handle('extract-master-audio', async (_event, { videoPath }) => {
+handleProcessing('extract-master-audio', async (_event, { videoPath }) => {
   try {
     if (!activeProjectPath) return { success: false, error: 'No hay proyecto activo.' };
     if (!videoPath || !(await exists(videoPath))) {
@@ -865,7 +1294,7 @@ const TOLERANCIA_RECORTE_S = 1 / 30;
 // usando el fichero entero: Whisper transcribia 1048s de un video recortado a 580s, y FASE 5
 // acababa generando 388 sub-clips para borrar 168 con sus ficheros. Medido en un proyecto
 // real: el video final salio a la mitad de lo que duraba el guion.
-ipcMain.handle('recortar-fuente', async (_event, { videoPath, duracion }) => {
+handleProcessing('recortar-fuente', async (_event, { videoPath, duracion }) => {
   try {
     if (!activeProjectPath) return { success: false, error: 'No hay proyecto activo.' };
     if (!videoPath || !(await exists(videoPath))) {
@@ -1782,7 +2211,7 @@ export async function renderGraphicClipsLote(
   return { rutas, hashes, total, renderizados, aciertos, fallos, sinIntentar, cancelado, motivo };
 }
 
-ipcMain.handle('render-graphics-batch', async (event,
+handleProcessing('render-graphics-batch', async (event,
     { graficos, aspectRatio, resolution, fps, modo }) => {
   try {
     const r = await renderGraphicClipsLote(graficos || [],
@@ -2023,7 +2452,7 @@ function cleanMarkdown(text: string): string {
 }
 
 // IPC handle for rewriting transcription using DeepSeek API
-ipcMain.handle('rewrite-transcript', async (_event, text) => {
+handleProcessing('rewrite-transcript', async (_event, text) => {
   try {
     let promptPath = path.join(process.cwd(), 'src/prompt-maestro.txt')
     if (!(await exists(promptPath))) {
@@ -2077,8 +2506,7 @@ ipcMain.handle('rewrite-transcript', async (_event, text) => {
     })
 
     if (!response.ok) {
-      const errText = await response.text()
-      return { success: false, error: `Error de API DeepSeek (${response.status}): ${errText}` }
+      return { success: false, error: `DEEPSEEK_HTTP_${response.status}` }
     }
 
     const data = (await response.json()) as any
@@ -2113,8 +2541,7 @@ ipcMain.handle('get-elevenlabs-voices', async () => {
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      return { success: false, error: `Error de ElevenLabs API (${response.status}): ${errText}` };
+      return { success: false, error: `ELEVENLABS_HTTP_${response.status}` };
     }
 
     const data = await response.json();
@@ -2129,14 +2556,6 @@ ipcMain.handle('get-elevenlabs-voices', async () => {
       myVoice.name = `${myVoice.name} (Mi voz)`;
       voices.splice(myVoiceIndex, 1);
       voices.unshift(myVoice);
-    } else {
-      voices.unshift({
-        voice_id: myVoiceId,
-        name: 'Clon de mi Voz (Mi voz)',
-        preview_url: '',
-        category: 'cloned',
-        is_my_voice: true
-      });
     }
 
     return { success: true, voices };
@@ -2147,7 +2566,7 @@ ipcMain.handle('get-elevenlabs-voices', async () => {
 });
 
 // IPC handle for ElevenLabs voice generation
-ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stability }) => {
+handleProcessing('generate-voice', async (_event, { text, model, voiceId, stability, speed }) => {
   try {
     loadEnv() // ensure env variables are loaded
     const apiKey = process.env.ELEVENLABS_API_KEY
@@ -2168,14 +2587,13 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
     }
 
     const cleanStability = typeof stability === 'number' ? stability / 100 : 0.5
+    const cleanSpeed = typeof speed === 'number' && Number.isFinite(speed) ? Math.min(1.2, Math.max(0.7, speed)) : 1
 
     console.log(`[generate-voice] Iniciando proceso de generación de voz:`)
-    console.log(`  - Texto a procesar: "${text.substring(0, 60)}${text.length > 60 ? '...' : ''}" (longitud: ${text.length} caracteres)`)
     console.log(`  - Modelo seleccionado: "${model}" => API Model ID: "${modelId}"`)
     console.log(`  - Voice ID seleccionado: "${targetVoiceId}"`)
     console.log(`  - Estabilidad: ${stability}% (procesada: ${cleanStability})`)
-    const maskedKey = apiKey.substring(0, 6) + '...' + apiKey.substring(apiKey.length - 6)
-    console.log(`  - API Key de ElevenLabs: ${maskedKey} (longitud: ${apiKey.length} caracteres)`)
+    console.log(`  - Velocidad: ${cleanSpeed}`)
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => {
@@ -2197,7 +2615,8 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
           model_id: modelId,
           voice_settings: {
             stability: cleanStability,
-            similarity_boost: 0.75
+            similarity_boost: 0.75,
+            speed: cleanSpeed
           }
         }),
         signal: controller.signal
@@ -2207,9 +2626,8 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
       console.log(`[generate-voice] Respuesta recibida de ElevenLabs. Status: ${response.status} (${response.statusText})`)
 
       if (!response.ok) {
-        const errText = await response.text()
-        const errMessage = `Error de API ElevenLabs (${response.status}): ${errText}`
-        console.error(`[generate-voice] La API retornó un error: ${errMessage}`)
+        const errMessage = `ELEVENLABS_HTTP_${response.status}`
+        console.error(`[generate-voice] La API devolvió HTTP ${response.status}.`)
         return { success: false, error: errMessage }
       }
 
@@ -2330,21 +2748,16 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
       return { success: true, filePath, audioUrl, durationSeconds, newAudioSegments }
     } catch (fetchErr: any) {
       clearTimeout(timeoutId)
-      let fetchErrMsg = fetchErr.message || 'Error de conexión'
-      if (fetchErr.name === 'AbortError') {
-        fetchErrMsg = 'La conexión con ElevenLabs excedió el tiempo límite de espera de 40 segundos.'
-      }
-      console.error(`[generate-voice] Excepción durante el fetch: ${fetchErrMsg}`, fetchErr)
-      return { success: false, error: `Error de red/conexión: ${fetchErrMsg}` }
+      console.error(`[generate-voice] Falló la solicitud de voz (${fetchErr.name === 'AbortError' ? 'TIMEOUT' : 'NETWORK_ERROR'}).`)
+      return { success: false, error: fetchErr.name === 'AbortError' ? 'ELEVENLABS_TIMEOUT' : 'ELEVENLABS_NETWORK_ERROR' }
     }
   } catch (err: any) {
-    const errMessage = err.message || 'Error desconocido en ElevenLabs TTS'
-    console.error(`[generate-voice] Excepción general: ${errMessage}`, err)
-    return { success: false, error: errMessage }
+    console.error('[generate-voice] La generación o preparación de voz falló.')
+    return { success: false, error: 'VOICE_GENERATION_OR_PREPARATION_FAILED' }
   }
 })
 
-ipcMain.handle('generate-minimax-video', async (_event, { prompt }) => {
+handleProcessing('generate-minimax-video', async (_event, { prompt }) => {
   try {
     loadEnv(true);
     const apiKey = process.env.FAL_KEY;
@@ -2488,6 +2901,32 @@ ipcMain.handle('load-bank-clips', async (_event, { category }) => {
       }
     }
 
+    // An original downloaded by Control Web/local-link flow stays in its attempt folder.
+    // Expose it in the existing project library without copying or re-downloading the file.
+    if (useActiveProj && category.toLowerCase() === 'originales') {
+      const stateFile = path.join(activeProjectPath!, 'project-state.json')
+      try {
+        const state = loadProjectFile(stateFile).state
+        for (const clip of (state.clips || []).filter((item: any) => item?.type === 'video' && item?.category === 'original' && typeof item.path === 'string')) {
+          const resolved = path.resolve(clip.path)
+          if (bankClips.some(item => path.resolve(item.path).toLowerCase() === resolved.toLowerCase()) || !(await exists(resolved))) continue
+          const stat = await fs.promises.stat(resolved)
+          if (!stat.isFile() || !/\.(mp4|mkv|avi|mov|webm)$/i.test(resolved)) continue
+          const durationSeconds = Number(clip.durationSeconds) || await getVideoDuration(resolved)
+          const thumbnailName = `${path.basename(resolved, path.extname(resolved))}.jpg`, thumbnailPath = path.join(thumbnailDir, thumbnailName)
+          let thumbnailUrl = ''
+          if (await exists(thumbnailPath)) {
+            try { thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbnailPath)).toString('base64')}` } catch {}
+          } else {
+            try { await generateVideoThumbnail(resolved, thumbnailPath); if (await exists(thumbnailPath)) thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbnailPath)).toString('base64')}` } catch {}
+          }
+          bankClips.push({ id: clip.id || `linked-original-${path.basename(resolved)}`, name: clip.name || path.basename(resolved), path: resolved,
+            url: urlDeRuta(resolved), duration: formatTimeMinutesSeconds(durationSeconds), durationSeconds, type: 'video',
+            size: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`, thumbnailUrl })
+        }
+      } catch { /* An absent state file is normal for an empty project. */ }
+    }
+
     return { success: true, clips: bankClips }
   } catch (err: any) {
     console.error(`[load-bank-clips] Error: ${err.message}`)
@@ -2496,7 +2935,7 @@ ipcMain.handle('load-bank-clips', async (_event, { category }) => {
 })
 
 // IPC handle to automatically slice a video into segments of exactly 3 seconds using segment muxer
-ipcMain.handle('cut-video-clips', async (_event, { videoPath, timestamps }) => {
+handleProcessing('cut-video-clips', async (_event, { videoPath, timestamps }) => {
   try {
     console.log(`[cut-video-clips] Slicing video: ${videoPath}, timestamps length: ${timestamps?.length || 0}`)
     const bankDir = getBancoClipsPath()
@@ -3061,7 +3500,7 @@ async function componerTarjetas(
     sinComponer: tarjetas.length - compuestasSet.size, segDir, aCaballo };
 }
 
-ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, format, quality, assignedTransitions, transitionDuration, ajustesVideo }) => {
+handleProcessing('export-video', async (event, { clips, aspectRatio, resolution, format, quality, assignedTransitions, transitionDuration, ajustesVideo, controlExportId }) => {
   // Viaja al frontend para que el aviso llegue al usuario y no solo al log.
   let avisoTiempos = '';
   // El objetivo de frames se calcula DENTRO de la rama del export normal (P0) y la
@@ -3103,12 +3542,22 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
     const hasTransitions = assignedTransitions && Object.keys(assignedTransitions).length > 0;
     await writeDebugLog(`[EXPORT] Transiciones asignadas: ${hasTransitions ? Object.keys(assignedTransitions).length : 0}, duracion: ${trDuration}s, primer mapa de test: ${mapTransition('fade')}`);
     if (!win) return { success: false, error: 'Ventana no disponible' }
+    let controlFilePath: string | null = null
+    if (controlExportId !== undefined) {
+      if (!controlJob || controlJob.kind !== 'export' || controlExportId !== controlJob.attemptId || !isUuid(controlExportId) || !controlProjectPath)
+        return { success: false, error: 'Destino de exportación no autorizado.' }
+      const finalDir = path.join(controlDataRoot, 'projects', controlJob.projectId, 'final')
+      await fs.promises.mkdir(finalDir, { recursive: true })
+      controlFilePath = path.join(finalDir, controlExportId + '.mp4')
+      if (await exists(controlFilePath)) return { success: false, error: 'El archivo de este intento ya existe; no se sobrescribió.' }
+    }
 
     // ANTES del dialogo de guardar: preguntar donde guardar y despues decir que el video
     // saldra incompleto es peor que no avisar. Hoy los clips cuyo fichero no esta se
     // descartan en silencio y el video sale mas corto sin que nada lo diga.
     const auditoria = await auditarClips(clips, activeProjectPath);
     if (auditoria.hayProblema) {
+      if (controlFilePath) return { success: false, error: `Faltan ${auditoria.faltan.length + auditoria.sinRuta.length} materiales; el export no se inició.` }
       const ausentes = [...auditoria.faltan, ...auditoria.sinRuta];
       const lista = ausentes.slice(0, 6)
         .map((c: any) => `  - ${c.name} [${c.origen}]`).join('\n');
@@ -3146,18 +3595,20 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
     const ext = format === 'mov' ? 'mov' : 'mp4';
     const filterName = format === 'mov' ? 'QuickTime Movie' : 'MP4 Video';
 
-    const { filePath, canceled } = await dialog.showSaveDialog(win, {
-      title: 'Exportar Video',
-      defaultPath: path.join(app.getPath('downloads'), `export.${ext}`),
-      filters: [{ name: filterName, extensions: [ext] }]
-    })
-
-    if (canceled || !filePath) {
-      return { success: false, error: 'Exportación cancelada por el usuario' }
+    let filePath = controlFilePath || ''
+    if (!controlFilePath) {
+      const selected = await dialog.showSaveDialog(win, {
+        title: 'Exportar Video',
+        defaultPath: path.join(app.getPath('downloads'), `export.${ext}`),
+        filters: [{ name: filterName, extensions: [ext] }]
+      })
+      if (selected.canceled || !selected.filePath) return { success: false, error: 'Exportación cancelada por el usuario' }
+      filePath = selected.filePath
     }
 
     const exportStart = Date.now();
     const videoClipsOnly = clips.filter((c: any) => c.path && c.type !== 'graphic' && c.type !== 'audio');
+    const outputFlag = controlFilePath ? '-n' : '-y'
     await writeDebugLog(`[EXPORT] Iniciando exportacion: ${videoClipsOnly.length} clips de video, aspect=${aspectRatio}, res=${resolution}, quality=${quality}`);
 
     if (!clips || clips.length === 0) {
@@ -3207,7 +3658,7 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
         return { success: false, error: `El archivo original no existe o no tiene ruta: ${clips[0].name}` }
       }
       const escapedVideo = videoPath.replace(/"/g, '\\"')
-      const ffmpegCmd = `ffmpeg -y -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -c:a aac "${escapedOut}"`
+      const ffmpegCmd = `ffmpeg ${outputFlag} -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -c:a aac "${escapedOut}"`
       
       await new Promise<void>((resolve, reject) => {
         exec(ffmpegCmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => {
@@ -3741,9 +4192,9 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
         ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" -c:v copy -an "${videoBase.replace(/"/g, '\\"')}"`;
       } else if (audioClip && audioClip.path && (await exists(audioClip.path))) {
         const escapedAudio = audioClip.path.replace(/"/g, '\\"');
-        ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" -i "${escapedAudio}" -map 0:v -map 1:a -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart "${escapedOut}"`;
+        ffmpegCmd = `ffmpeg ${outputFlag} -f concat -safe 0 -i "${escapedTxt}" -i "${escapedAudio}" -map 0:v -map 1:a -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart "${escapedOut}"`;
       } else {
-        ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" -c:v copy -an -movflags +faststart "${escapedOut}"`;
+        ffmpegCmd = `ffmpeg ${outputFlag} -f concat -safe 0 -i "${escapedTxt}" -c:v copy -an -movflags +faststart "${escapedOut}"`;
       }
 
       await new Promise<void>((resolve, reject) => {
@@ -3833,10 +4284,10 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
 
         let mux = '';
         if (audioClip && audioClip.path && (await exists(audioClip.path))) {
-          mux = `ffmpeg -y -i "${fuente.replace(/"/g, '\\"')}" -i "${audioClip.path.replace(/"/g, '\\"')}" ` +
+          mux = `ffmpeg ${outputFlag} -i "${fuente.replace(/"/g, '\\"')}" -i "${audioClip.path.replace(/"/g, '\\"')}" ` +
             `-map 0:v -map 1:a -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart "${escapedOut}"`;
         } else {
-          mux = `ffmpeg -y -i "${fuente.replace(/"/g, '\\"')}" -c:v copy -an -movflags +faststart "${escapedOut}"`;
+          mux = `ffmpeg ${outputFlag} -i "${fuente.replace(/"/g, '\\"')}" -c:v copy -an -movflags +faststart "${escapedOut}"`;
         }
         await new Promise<void>((res, rej) => exec(mux, { maxBuffer: 1024 * 1024 * 50 },
           (e) => e ? rej(e) : res()));
@@ -3917,7 +4368,7 @@ function enviarAviso(event: any, carga: unknown): void {
   } catch (e) { /* ventana cerrada: el log ya lo tiene */ }
 }
 
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
+handleProcessing('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
   const isOriginalAudio = transcriptSegments && newAudioSegments && 
     transcriptSegments.length === newAudioSegments.length &&
     transcriptSegments[0]?.start === newAudioSegments[0]?.start;
@@ -5801,7 +6252,7 @@ async function regenerateModernVisuals(event: any, params: any) {
   }
 }
 
-ipcMain.handle('regenerate-graphics', async (event, params: any) => {
+handleProcessing('regenerate-graphics', async (event, params: any) => {
   if (params?.mode === 'modern-visual') return regenerateModernVisuals(event, params)
   const { clips, graphicsPercent } = params;
   const logMessage = async (msg: string) => {
@@ -6023,7 +6474,7 @@ ipcMain.handle('regenerate-graphics', async (event, params: any) => {
   }
 });
 
-ipcMain.handle('generate-perfect-sync', async (event, {
+handleProcessing('generate-perfect-sync', async (event, {
   videoPath,
   transcriptSegments,
   syncWeights,
