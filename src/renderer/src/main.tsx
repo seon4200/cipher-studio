@@ -8039,7 +8039,7 @@ ${res.filePath}`);
         </div>
       )}
 
-      <TrendsPanel isOpen={showTrendsPanel} onClose={() => setShowTrendsPanel(false)} />
+      <TrendsPanel isOpen={showTrendsPanel} onClose={() => setShowTrendsPanel(false)} onOpenProject={handleLoadProject} />
     </div>
   )
 }

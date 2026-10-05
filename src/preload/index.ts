@@ -76,6 +76,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openProject: () => ipcRenderer.invoke('open-project'),
   deleteBankClip: (params: { category: string, file: string }) => ipcRenderer.invoke('delete-bank-clip', params),
   exportVideo: (params: any) => ipcRenderer.invoke('export-video', params),
+  getControlAdapterJob: () => ipcRenderer.invoke('control-adapter:get-job'),
+  reportControlProgress: (params: any) => ipcRenderer.invoke('control-adapter:progress', params),
+  completeControlAdapter: (params: any) => ipcRenderer.invoke('control-adapter:complete', params),
+  startCipherLocalDownload: (params: { idempotencyKey: string; sourceUrl: string; name: string; qualityProfile: 'fhd' | 'best' }) =>
+    ipcRenderer.invoke('cipher-control:start-local-download', params),
+  getCipherLocalDownload: (params: { projectId: string; attemptId: string }) =>
+    ipcRenderer.invoke('cipher-control:get-local-download', params),
+  listCipherLocalDownloads: () => ipcRenderer.invoke('cipher-control:list-local-downloads'),
+  openCipherLocalDownloadProject: (params: { projectId: string; attemptId: string }) =>
+    ipcRenderer.invoke('cipher-control:open-local-download-project', params),
+  cancelCipherLocalDownload: (params: { projectId: string; attemptId: string }) =>
+    ipcRenderer.invoke('cipher-control:cancel-local-download', params),
+  retryCipherLocalDownload: (params: { projectId: string; attemptId: string }) =>
+    ipcRenderer.invoke('cipher-control:retry-local-download', params),
   getElevenLabsVoices: () => ipcRenderer.invoke('get-elevenlabs-voices'),
   listProjects: () => ipcRenderer.invoke('list-projects'),
   createProject: (params: { name: string }) => ipcRenderer.invoke('create-project', params),
