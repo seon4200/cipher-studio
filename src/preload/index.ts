@@ -76,7 +76,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openProject: () => ipcRenderer.invoke('open-project'),
   deleteBankClip: (params: { category: string, file: string }) => ipcRenderer.invoke('delete-bank-clip', params),
   exportVideo: (params: any) => ipcRenderer.invoke('export-video', params),
-  getElevenLabsVoices: () => ipcRenderer.invoke('get-elevenlabs-voices'),
+  getElevenLabsVoices: (options?: { strict?: boolean }) => ipcRenderer.invoke('get-elevenlabs-voices', options),
   listProjects: () => ipcRenderer.invoke('list-projects'),
   createProject: (params: { name: string }) => ipcRenderer.invoke('create-project', params),
   loadProject: (params: { projectPath: string }) => ipcRenderer.invoke('load-project', params),
@@ -98,4 +98,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
   readyToClose: () => ipcRenderer.send('ready-to-close'),
+  getControlAdapterJob: () => ipcRenderer.invoke('control-adapter:get-job'),
+  reportControlProgress: (value: any) => ipcRenderer.invoke('control-adapter:progress', value),
+  completeControlAdapter: (value: any) => ipcRenderer.invoke('control-adapter:complete', value),
 })

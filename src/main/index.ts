@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, screen } from 'electron'
+﻿import { app, BrowserWindow, ipcMain, dialog, screen } from 'electron'
 import { MODERN_VISUAL_PACK_V1 } from '../shared/modern-visual-pack-v1'
 export * from '../shared/modern-visual-pack-v1'
 export * from './assets/modern-visual-pack'
@@ -7,6 +7,7 @@ import os from 'os'
 import { spawn, exec } from 'child_process'
 import { once } from 'events'
 import { createHash, randomUUID } from 'crypto'
+import { isUuid, validateControlAdapterJob, type ControlAdapterJob, type ControlAdapterResult, type ControlAdapterProgress } from '../shared/control-adapter'
 import fs from 'fs'
 import { createProjectFiles, loadProjectFile, saveProjectFile } from './services/project-persistence'
 // Tests exercise the real compiled consumers, never copies of migration or IO.
@@ -242,6 +243,7 @@ let envLoaded = false
 function loadEnv(force = false) {
   if (envLoaded && !force) return
   const possiblePaths = [
+    ...(process.env.CIPHER_STUDIO_ENV_FILE ? [path.resolve(process.env.CIPHER_STUDIO_ENV_FILE)] : []),
     path.join(process.cwd(), '.env'),
     path.join(process.cwd(), 'cipher-studio', '.env'),
     path.join(app.getAppPath(), '.env'),
@@ -299,7 +301,36 @@ process.env.PUBLIC = app.isPackaged ? path.join(process.env.DIST, 'dist') : path
 
 const GRAPHICS_JOB_ARG = '--cipher-graphics-job='
 const graphicsJobPath = process.argv.find(arg => arg.startsWith(GRAPHICS_JOB_ARG))?.slice(GRAPHICS_JOB_ARG.length)
-if (graphicsJobPath) {
+const CONTROL_JOB_ARG = '--cipher-control-job='
+const controlJobPath = process.argv.find(arg => arg.startsWith(CONTROL_JOB_ARG))?.slice(CONTROL_JOB_ARG.length)
+const controlDataRoot = path.resolve(process.env.CIPHER_CONTROL_DATA_ROOT || 'C:\\graphify\\cipher-control-data')
+let controlJob: ControlAdapterJob | null = null
+let controlProjectPath: string | null = null
+let controlSourcePath: string | null = null
+let controlResultWritten = false
+if (controlJobPath) {
+  const absoluteJob = path.resolve(controlJobPath)
+  const raw = validateControlAdapterJob(JSON.parse(fs.readFileSync(absoluteJob, 'utf8')))
+  if (path.basename(absoluteJob).toLowerCase() !== (raw.attemptId + '.json').toLowerCase()) throw new Error('CONTROL_JOB_PATH_INVALID')
+  const expectedJob = path.join(controlDataRoot, 'projects', raw.projectId, 'adapter', 'jobs', raw.attemptId + '.json')
+  if (path.resolve(expectedJob).toLowerCase() !== absoluteJob.toLowerCase()) throw new Error('CONTROL_JOB_PATH_INVALID')
+  controlJob = raw
+  controlProjectPath = path.join(controlDataRoot, 'projects', raw.projectId, 'cipher')
+  if (raw.sourceRelativePath) {
+    const sourceName = path.posix.basename(raw.sourceRelativePath)
+    if (!raw.sourceAttemptId || !isUuid(raw.sourceAttemptId) || sourceName === '.' || sourceName === '..' ||
+        /[\\\\:*?"<>|\x00-\x1f]/.test(sourceName) ||
+        raw.sourceRelativePath !== `projects/${raw.projectId}/source/attempts/${raw.sourceAttemptId}/${sourceName}`) {
+      throw new Error('CONTROL_SOURCE_PATH_INVALID')
+    }
+    controlSourcePath = path.resolve(controlDataRoot, ...raw.sourceRelativePath.split('/'))
+    const expectedSourceDir = path.resolve(controlDataRoot, 'projects', raw.projectId, 'source', 'attempts', raw.sourceAttemptId)
+    if (path.dirname(controlSourcePath).toLowerCase() !== expectedSourceDir.toLowerCase()) throw new Error('CONTROL_SOURCE_PATH_INVALID')
+  }
+  const workerUserData = path.join(controlProjectPath, 'userData')
+  fs.mkdirSync(workerUserData, { recursive: true })
+  app.setPath('userData', workerUserData)
+} else if (graphicsJobPath) {
   const workerUserData = path.join(path.dirname(graphicsJobPath), 'userData')
   fs.mkdirSync(workerUserData, { recursive: true })
   app.setPath('userData', workerUserData)
@@ -402,7 +433,68 @@ async function initClipFolders() {
   }
 }
 
+ipcMain.handle('control-adapter:get-job', async () => {
+  if (!controlJob || !controlProjectPath) throw new Error('CONTROL_WORKER_UNAVAILABLE')
+  if (controlSourcePath) {
+    const expectedDir = path.join(controlDataRoot, 'projects', controlJob.projectId, 'source', 'attempts', controlJob.sourceAttemptId!)
+    let current = path.parse(expectedDir).root
+    for (const part of path.relative(current, expectedDir).split(path.sep).filter(Boolean)) {
+      current = path.join(current, part)
+      if ((await exists(current)) && fs.lstatSync(current).isSymbolicLink()) throw new Error('CONTROL_SOURCE_SYMLINK_REJECTED')
+    }
+    if (!(await exists(controlSourcePath)) || !fs.statSync(controlSourcePath).isFile()) throw new Error('CONTROL_SOURCE_FILE_UNAVAILABLE')
+  }
+  return { job: controlJob, sourcePath: controlSourcePath, projectPath: controlProjectPath }
+})
+ipcMain.handle('control-adapter:progress', async (_event, raw: ControlAdapterProgress) => {
+  if (!controlJob || raw?.operationId !== controlJob.operationId || raw?.attemptId !== controlJob.attemptId ||
+      typeof raw.stage !== 'string' || raw.stage.length > 120 ||
+      (raw.progressPercent !== undefined && (!Number.isFinite(raw.progressPercent) || raw.progressPercent < 0 || raw.progressPercent > 100))) return false
+  const line = { operationId: raw.operationId, attemptId: raw.attemptId, stage: raw.stage,
+    ...(raw.progressPercent !== undefined ? { progressPercent: raw.progressPercent } : {}) }
+  process.stdout.write('CC_PROGRESS ' + JSON.stringify(line) + '\n')
+  return true
+})
+ipcMain.handle('control-adapter:complete', async (_event, raw: ControlAdapterResult) => {
+  if (!controlJob || controlResultWritten || raw?.operationId !== controlJob.operationId || raw?.attemptId !== controlJob.attemptId || typeof raw.ok !== 'boolean') return false
+  const body = JSON.stringify(raw)
+  if (Buffer.byteLength(body, 'utf8') > 64 * 1024 * 1024) throw new Error('CONTROL_RESULT_TOO_LARGE')
+  const resultPath = path.join(path.dirname(controlJobPath!), controlJob.attemptId + '.result.json')
+  const tempPath = resultPath + '.' + randomUUID() + '.tmp'
+  await fs.promises.writeFile(tempPath, body, { encoding: 'utf8', flag: 'wx' })
+  await fs.promises.rename(tempPath, resultPath)
+  controlResultWritten = true
+  process.stdout.write('CC_RESULT ' + JSON.stringify({ operationId: raw.operationId, attemptId: raw.attemptId, ok: raw.ok }) + '\n')
+  setTimeout(() => app.quit(), 50)
+  return true
+})
+
+async function runControlAdapterWorker() {
+  if (!controlJob || !controlProjectPath) throw new Error('CONTROL_WORKER_UNAVAILABLE')
+  await initProjectDirs(controlProjectPath)
+  const statePath = path.join(controlProjectPath, 'project-state.json')
+  if (!(await exists(statePath)) && !(await exists(statePath + '.bak'))) {
+    createProjectFiles(controlProjectPath, { id: controlJob.projectId, name: controlJob.name || 'Cipher Control',
+      date: Date.now(), durationSeconds: 0, clips: [], timelineVideoClips: [], timelineVersions: [],
+      transcriptionStatus: '', transcriptSegments: [], aiScript: '', originalTranscriptText: '',
+      voiceModel: 'Eleven Multilingual v2', voiceSpeaker: '', voiceSpeed: 1, voiceStability: 50,
+      generatedVoices: [], timelineWeights: [...PESOS_POR_DEFECTO], assignedTransitions: {} })
+  }
+  activeProjectPath = controlProjectPath
+  activeProjectStateFile = statePath
+  const adapterHtml = path.join(process.env.DIST!, 'dist', 'control-adapter.html')
+  if (!(await exists(adapterHtml))) throw new Error('CONTROL_ADAPTER_RENDERER_NOT_BUILT')
+  win = new BrowserWindow({ show: false, width: 2, height: 2, webPreferences: {
+    preload, nodeIntegration: false, contextIsolation: true
+  } })
+  await win.loadFile(adapterHtml)
+}
+
 app.whenReady().then(async () => {
+  if (controlJobPath) {
+    await runControlAdapterWorker()
+    return
+  }
   if (graphicsJobPath) {
     await runGraphicsWorkerJob(graphicsJobPath)
     app.quit()
@@ -410,7 +502,7 @@ app.whenReady().then(async () => {
   }
   await initClipFolders()
   createWindow()
-}).catch(error => { console.error('[GRAFICO] Worker/startup:', error); app.exit(1) })
+}).catch(error => { console.error('[Cipher worker/startup] Operation could not start:', error instanceof Error ? error.message : 'WORKER_START_FAILED'); app.exit(1) })
 
 app.on('window-all-closed', () => {
   win = null
@@ -2345,8 +2437,7 @@ ipcMain.handle('rewrite-transcript', async (_event, text) => {
     })
 
     if (!response.ok) {
-      const errText = await response.text()
-      return { success: false, error: `Error de API DeepSeek (${response.status}): ${errText}` }
+      return { success: false, error: `Error de API DeepSeek (${response.status}).` }
     }
 
     const data = (await response.json()) as any
@@ -2363,7 +2454,7 @@ ipcMain.handle('rewrite-transcript', async (_event, text) => {
 })
 
 // IPC handle to get all voices from ElevenLabs API
-ipcMain.handle('get-elevenlabs-voices', async () => {
+ipcMain.handle('get-elevenlabs-voices', async (_event, options?: { strict?: boolean }) => {
   try {
     loadEnv();
     const apiKey = process.env.ELEVENLABS_API_KEY;
@@ -2381,8 +2472,7 @@ ipcMain.handle('get-elevenlabs-voices', async () => {
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      return { success: false, error: `Error de ElevenLabs API (${response.status}): ${errText}` };
+      return { success: false, error: `Error de ElevenLabs API (${response.status}).` };
     }
 
     const data = await response.json();
@@ -2397,7 +2487,7 @@ ipcMain.handle('get-elevenlabs-voices', async () => {
       myVoice.name = `${myVoice.name} (Mi voz)`;
       voices.splice(myVoiceIndex, 1);
       voices.unshift(myVoice);
-    } else {
+    } else if (!options?.strict) {
       voices.unshift({
         voice_id: myVoiceId,
         name: 'Clon de mi Voz (Mi voz)',
@@ -2415,7 +2505,7 @@ ipcMain.handle('get-elevenlabs-voices', async () => {
 });
 
 // IPC handle for ElevenLabs voice generation
-ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stability }) => {
+ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stability, speed }) => {
   try {
     loadEnv() // ensure env variables are loaded
     const apiKey = process.env.ELEVENLABS_API_KEY
@@ -2436,14 +2526,14 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
     }
 
     const cleanStability = typeof stability === 'number' ? stability / 100 : 0.5
+    const cleanSpeed = typeof speed === 'number' && Number.isFinite(speed) ? Math.min(1.2, Math.max(0.7, speed)) : 1.0
 
     console.log(`[generate-voice] Iniciando proceso de generación de voz:`)
-    console.log(`  - Texto a procesar: "${text.substring(0, 60)}${text.length > 60 ? '...' : ''}" (longitud: ${text.length} caracteres)`)
+    console.log(`  - Texto a procesar: ${text.length} caracteres`)
     console.log(`  - Modelo seleccionado: "${model}" => API Model ID: "${modelId}"`)
     console.log(`  - Voice ID seleccionado: "${targetVoiceId}"`)
     console.log(`  - Estabilidad: ${stability}% (procesada: ${cleanStability})`)
-    const maskedKey = apiKey.substring(0, 6) + '...' + apiKey.substring(apiKey.length - 6)
-    console.log(`  - API Key de ElevenLabs: ${maskedKey} (longitud: ${apiKey.length} caracteres)`)
+    console.log(`  - Velocidad: ${cleanSpeed}×`)
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => {
@@ -2465,7 +2555,8 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
           model_id: modelId,
           voice_settings: {
             stability: cleanStability,
-            similarity_boost: 0.75
+            similarity_boost: 0.75,
+            speed: cleanSpeed
           }
         }),
         signal: controller.signal
@@ -3329,7 +3420,7 @@ async function componerTarjetas(
     sinComponer: tarjetas.length - compuestasSet.size, segDir, aCaballo };
 }
 
-ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, format, quality, assignedTransitions, transitionDuration, ajustesVideo }) => {
+ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, format, quality, assignedTransitions, transitionDuration, ajustesVideo, controlExportId }) => {
   // Viaja al frontend para que el aviso llegue al usuario y no solo al log.
   let avisoTiempos = '';
   // El objetivo de frames se calcula DENTRO de la rama del export normal (P0) y la
@@ -3371,12 +3462,22 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
     const hasTransitions = assignedTransitions && Object.keys(assignedTransitions).length > 0;
     await writeDebugLog(`[EXPORT] Transiciones asignadas: ${hasTransitions ? Object.keys(assignedTransitions).length : 0}, duracion: ${trDuration}s, primer mapa de test: ${mapTransition('fade')}`);
     if (!win) return { success: false, error: 'Ventana no disponible' }
+    let controlFilePath: string | null = null
+    if (controlExportId !== undefined) {
+      if (!controlJob || controlJob.kind !== 'export' || controlExportId !== controlJob.attemptId || !isUuid(controlExportId))
+        return { success: false, error: 'Destino de exportación no autorizado.' }
+      const finalDir = path.join(controlDataRoot, 'projects', controlJob.projectId, 'final')
+      await fs.promises.mkdir(finalDir, { recursive: true })
+      controlFilePath = path.join(finalDir, controlExportId + '.mp4')
+      if (await exists(controlFilePath)) return { success: false, error: 'El archivo de este intento ya existe; no se sobrescribió.' }
+    }
 
     // ANTES del dialogo de guardar: preguntar donde guardar y despues decir que el video
     // saldra incompleto es peor que no avisar. Hoy los clips cuyo fichero no esta se
     // descartan en silencio y el video sale mas corto sin que nada lo diga.
     const auditoria = await auditarClips(clips, activeProjectPath);
     if (auditoria.hayProblema) {
+      if (controlFilePath) return { success: false, error: `Faltan ${auditoria.faltan.length + auditoria.sinRuta.length} materiales; el export no se inició.` }
       const ausentes = [...auditoria.faltan, ...auditoria.sinRuta];
       const lista = ausentes.slice(0, 6)
         .map((c: any) => `  - ${c.name} [${c.origen}]`).join('\n');
@@ -3414,15 +3515,12 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
     const ext = format === 'mov' ? 'mov' : 'mp4';
     const filterName = format === 'mov' ? 'QuickTime Movie' : 'MP4 Video';
 
-    const { filePath, canceled } = await dialog.showSaveDialog(win, {
+    const filePath = controlFilePath || (await dialog.showSaveDialog(win, {
       title: 'Exportar Video',
       defaultPath: path.join(app.getPath('downloads'), `export.${ext}`),
       filters: [{ name: filterName, extensions: [ext] }]
-    })
-
-    if (canceled || !filePath) {
-      return { success: false, error: 'Exportación cancelada por el usuario' }
-    }
+    })).filePath
+    if (!filePath) return { success: false, error: 'Exportación cancelada por el usuario' }
 
     const exportStart = Date.now();
     const videoClipsOnly = clips.filter((c: any) => c.path && c.type !== 'graphic' && c.type !== 'audio');
@@ -6901,10 +6999,16 @@ ipcMain.handle('regenerate-graphics', async (event, params: any) => {
         });
       }
     }
+    if (params?.strict === true) {
+      const expected = Math.min(audioSegs.length || totalClips, Math.round((graphicsPercent / 100) * (audioSegs.length || totalClips)));
+      const actual = generatedClips.filter((clip: any) => Boolean(clip?.graphicData)).length;
+      if (actual < expected) return { success: false, error: `El motor devolvió ${actual} de ${expected} gráficos solicitados.`, code: 'GRAPHICS_RESULT_INCOMPLETE' };
+    }
     return { success: true, clips: generatedClips };
   } catch (err: any) {
     console.error('Error en regenerate-graphics:', err);
-    // Fallback: asignar gráficos simulados en base al porcentaje
+    if (params?.strict === true) return { success: false, error: err?.message || 'No se pudieron generar gráficos reales.', code: 'GRAPHICS_GENERATION_FAILED' };
+    // La demo de escritorio conserva su fallback visual; el adapter real nunca inventa resultados.
     const targetGraphicsCount = Math.round((graphicsPercent / 100) * clips.length);
     const generatedClips = clips.map((c: any, idx: number) => {
       const copy = { ...c };

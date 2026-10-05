@@ -6811,18 +6811,18 @@ ${res.filePath}`);
                         <div className="space-y-1.5">
                           <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase font-sans">
                             <span>Velocidad</span>
-                            <span className="font-mono text-indigo-400 font-bold">{voiceSpeed.toFixed(1)}x</span>
+                            <span className="font-mono text-indigo-400 font-bold">{voiceSpeed.toFixed(2)}×</span>
                           </div>
                           <input 
                             type="range" 
-                            min="0.5" 
-                            max="2.0" 
-                            step="0.1" 
+                            min="0.7"
+                            max="1.2"
+                            step="0.05"
                             value={voiceSpeed}
                             onChange={(e) => setVoiceSpeed(parseFloat(e.target.value))}
                             className="w-full h-1 bg-[#3a3a3c] rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
                             style={{
-                              background: `linear-gradient(to right, rgb(99, 102, 241) ${Math.round(((voiceSpeed - 0.5) / 1.5) * 100)}%, rgb(30, 41, 59) 0%)`
+                              background: `linear-gradient(to right, rgb(99, 102, 241) ${Math.round(((voiceSpeed - 0.7) / 0.5) * 100)}%, rgb(30, 41, 59) 0%)`
                             }}
                           />
                           <div className="flex justify-between text-[8px] text-slate-600 font-medium font-sans">
