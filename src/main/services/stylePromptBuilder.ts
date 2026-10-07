@@ -38,27 +38,30 @@ let cachedGuide: StyleGuideConfig | null = null;
 
 // Configuración robusta en memoria por si falla la lectura física del archivo
 const DEFAULT_GUIDE_FALLBACK: StyleGuideConfig = {
-  version: "2.0",
-  defaultStyle: "motion_graphics",
+  version: "4.0",
+  defaultStyle: "editorial_object_collage",
   styles: {
-    motion_graphics: {
-      label: "Motion Graphics Editorial",
+    editorial_object_collage: {
+      label: "COLLAGE EDITORIAL FOTOGRÁFICO DE PAPEL",
       enabled: true,
-      description: "Ilustración editorial fotográfica: una imagen = una metáfora visual clara, sin texto, leíble en menos de 2 segundos.",
+      description: "Collage editorial fotográfico adulto y explicativo, vertical 9:16. Fotografía predominantemente en blanco y negro, con detalle reconocible y contraste claro, montada sobre papel marfil, naranja quemado, teal apagado o azul marino. Textura de impresión discreta, bordes blancos naturales estrechos o moderados y sombras cortas de papel, sin objetos 3D flotantes. Variar posición, escala, encuadre, composición y recursos de montaje según la idea. Cada apoyo debe aclarar una relación. Sin personas, caras, manos, siluetas humanas, texto legible, números, etiquetas, logotipos solicitados, plantas, juguetes, iconos 3D brillantes ni protagonista vectorial. El servicio puede añadir su propia marca de agua.",
       techniques: {
-        silueta_plana: {
-          label: "silueta plana negra",
-          promptFragment: "silueta plana negra vectorial, sin rasgos faciales, recorte limpio tipo papel"
+        photographic_paper_cutout: {
+          label: "Objeto fotográfico recortado en papel",
+          promptFragment: "editorial black-and-white photography with crisp recognizable detail, a natural narrow or moderate white paper edge, and a short shallow paper shadow"
         }
       },
       colorPalette: {
-        beige_papel: { hex: "#E8E0CF", emotion: ["introspeccion"] }
+        marfil: { hex: "#F2EBDD", emotion: ["claridad", "documental"] },
+        azul_marino: { hex: "#10253B", emotion: ["seriedad", "análisis"] },
+        naranja_quemado: { hex: "#C85B32", emotion: ["énfasis", "energía"] },
+        teal_apagado: { hex: "#477C78", emotion: ["contexto", "documental"] }
       },
       metaphors: {},
-      promptTemplate: "{techniquePromptFragment} de {object} representando {conceptLabel}, sobre fondo {colorHex} sólido, sin texto, composición vertical 9:16, alto contraste, sin marcas de agua",
+      promptTemplate: "{conceptLabel}. Main photographic image: {object}, sharply defined and placed according to the idea. Add only the supporting elements needed to explain the scene and make their visual relationship clear. Editorial black-and-white photographic paper collage, 9:16, using a varied composition, one suitable paper background color, discreet print grain, natural white cut edges and short paper shadows. Mature explanatory art direction. No people, human silhouettes, readable text, numbers, labels, requested logos or unrelated decoration.",
       fallbackRule: {
-        defaultTechnique: "silueta_plana",
-        defaultColor: "beige_papel"
+        defaultTechnique: "photographic_paper_cutout",
+        defaultColor: "marfil"
       }
     }
   }
@@ -94,25 +97,25 @@ function normalizeText(text: string): string {
 
 export function buildStylePrompt(baseText: string, iaStyle?: string): StylePrompts {
   const guide = loadStyleGuide();
-  const textToUse = baseText && baseText.trim() ? baseText.trim() : 'cinematic scene';
+  const textToUse = baseText && baseText.trim() ? baseText.trim() : 'editorial scene';
 
   // 1. Obtener estilo configurado con fallback a defaultStyle si está deshabilitado
-  let styleKey = iaStyle || guide.defaultStyle || 'motion_graphics';
+  let styleKey = iaStyle || guide.defaultStyle || 'editorial_object_collage';
   let styleConf = guide.styles?.[styleKey];
 
   if (!styleConf || styleConf.enabled === false) {
     console.log(`[stylePromptBuilder] Fallback de estilo a "${guide.defaultStyle}" (solicitado: "${styleKey}" no existe o está inactivo)`);
-    styleKey = guide.defaultStyle || 'motion_graphics';
+    styleKey = guide.defaultStyle || 'editorial_object_collage';
     styleConf = guide.styles?.[styleKey];
   }
 
   // Si falló toda resolución (por ejemplo, archivo vacío), usamos el de respaldo
   if (!styleConf) {
-    styleConf = DEFAULT_GUIDE_FALLBACK.styles.motion_graphics;
+    styleConf = DEFAULT_GUIDE_FALLBACK.styles.editorial_object_collage;
   }
 
   let imagePrompt = '';
-  const videoPrompt = `${textToUse}, smooth camera motion, subtle realistic animation`;
+  const videoPrompt = `Use the supplied image as a frozen background. The main photographic objects and every existing element stay exactly unchanged.\n\nOne relevant supporting graphic that explains ${textToUse} appears or slides in and stops.\n\nMatch the new element to the original image style. No other motion. Fixed camera.`;
 
   // 2. Normalizar el texto de entrada para búsquedas
   const normalizedInput = normalizeText(textToUse);
@@ -157,8 +160,8 @@ export function buildStylePrompt(baseText: string, iaStyle?: string): StylePromp
   }
 
   // Configuración de reglas por defecto de fallback
-  const defaultTech = styleConf.fallbackRule?.defaultTechnique || 'silueta_plana';
-  const defaultCol = styleConf.fallbackRule?.defaultColor || 'beige_papel';
+  const defaultTech = styleConf.fallbackRule?.defaultTechnique || 'photographic_paper_cutout';
+  const defaultCol = styleConf.fallbackRule?.defaultColor || 'marfil';
 
   if (bestMatch) {
     // 4. Match directo encontrado
@@ -168,7 +171,7 @@ export function buildStylePrompt(baseText: string, iaStyle?: string): StylePromp
                      styleConf.colorPalette?.[defaultCol]?.hex || '';
 
     const template = styleConf.promptTemplate || 
-                     "{techniquePromptFragment} de {object} representando {conceptLabel}, sobre fondo {colorHex} sólido, sin texto, composición vertical 9:16, alto contraste, sin marcas de agua";
+                     "{conceptLabel}. Main photographic image: {object}, sharply defined and placed according to the idea. Add only the supporting elements needed to explain the scene and make their visual relationship clear. Editorial black-and-white photographic paper collage, 9:16, using a varied composition, one suitable paper background color, discreet print grain, natural white cut edges and short paper shadows. Mature explanatory art direction. No people, human silhouettes, readable text, numbers, labels, requested logos or unrelated decoration.";
 
     imagePrompt = template
       .replace('{techniquePromptFragment}', techFragment)
@@ -192,11 +195,11 @@ export function buildStylePrompt(baseText: string, iaStyle?: string): StylePromp
     const shortLabel = words.slice(0, 10).join(' ');
 
     const template = styleConf.promptTemplate || 
-                     "{techniquePromptFragment} de {object} representando {conceptLabel}, sobre fondo {colorHex} sólido, sin texto, composición vertical 9:16, alto contraste, sin marcas de agua";
+                     "{conceptLabel}. Main photographic image: {object}, sharply defined and placed according to the idea. Add only the supporting elements needed to explain the scene and make their visual relationship clear. Editorial black-and-white photographic paper collage, 9:16, using a varied composition, one suitable paper background color, discreet print grain, natural white cut edges and short paper shadows. Mature explanatory art direction. No people, human silhouettes, readable text, numbers, labels, requested logos or unrelated decoration.";
 
     imagePrompt = template
       .replace('{techniquePromptFragment}', techFragment)
-      .replace('{object}', 'una escena relacionada con el tema')
+      .replace('{object}', 'one or two photographic objects related to the topic')
       .replace('{conceptLabel}', shortLabel)
       .replace('{colorHex}', colorHex);
 

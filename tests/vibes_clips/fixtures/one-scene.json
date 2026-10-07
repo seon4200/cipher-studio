@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "generationMode": "images_only",
+  "title": "Vibes offline test fixture",
+  "styleVersion": "vibes-editorial-photographic-paper@2.0.0",
+  "variations": 1,
+  "concurrency": 1,
+  "scenes": [
+    {
+      "sceneId": "idea-se-ordena",
+      "scriptFragment": "Las ideas se ordenan con claridad.",
+      "narrativeIntent": "Organización y claridad.",
+      "visualDescription": "Papeles ordenados con contraste editorial.",
+      "styleVersion": "vibes-editorial-photographic-paper@2.0.0",
+      "imagePrompt": "Fotografía editorial de papeles ordenados sobre fondo marfil, alto contraste y textura de papel.",
+      "aspectRatio": "9:16",
+      "targetDurationSeconds": 3
+    }
+  ]
+}

@@ -44,7 +44,7 @@ Requiere FFmpeg/ffprobe en PATH, el proyecto y exportación citados en `INFORME.
 No ejecutar esto para mirar la hoja. Solo con autorización para volver a gastar y regenerar:
 
 ```powershell
-npx --no-install electron tests/aceptacion/mvp-produccion.cjs "C:\Proyectos\mi-app\cipher-studio\proyectos\video-3-1788402898964" generar
+npx --no-install electron tests/aceptacion/mvp-produccion.cjs "%CIPHER_STUDIO_SOURCE%\cipher-studio\proyectos\video-3-1788402898964" generar
 ```
 
 Reutiliza guion/voz/transcripción existentes, llama a los handlers reales de corte, generación y exportación, guarda una nueva versión del timeline y usa **caché de producción**. Conserva copias `estado-antes-*` y no sobrescribe el MP4 anterior. El modo `mix`, en vez de `generar`, solo persiste los pesos actuales del código. Watchdog de cuatro minutos sin progreso; un frame que agota cinco intentos sin validarse provoca salida 3. Un resultado de generación no vuelve deterministas las APIs ni el rasterizado: conservar cada medición con sus condiciones.

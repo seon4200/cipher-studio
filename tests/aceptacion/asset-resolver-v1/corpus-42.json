@@ -1,0 +1,3392 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-09T06:02:49.861Z",
+  "source": {
+    "trace": "tests/aceptacion/mvp-paso7/video.json",
+    "sha256": "2a76e93cfe036d38bbab349f387925c23cc0b69fdcde68c13fb04c33826d1dd9",
+    "sceneCount": 42,
+    "phraseStatus": "not-stored-in-physical-trace"
+  },
+  "method": "AssetIntentV1 + resolveAndCompileVisualSceneV1 del main compilado; sin lookup de decisiones humanas experimentales.",
+  "offline": {
+    "networkAttempts": 0
+  },
+  "metrics": {
+    "sceneCount": 42,
+    "assetLed": 20,
+    "editorialText": 22,
+    "providers": {
+      "openmoji": 8,
+      "solar": 12,
+      "editorial-text": 22
+    },
+    "families": {
+      "icon-monochrome": 12,
+      "simple-icon": 6,
+      "complex-illustration": 2,
+      "editorial-text": 22
+    },
+    "ambiguous": 1,
+    "fallbacks": 22,
+    "falsePositiveGuards": {
+      "thermodynamics": true,
+      "pedestrians": true,
+      "mast": true
+    },
+    "totalMs": 2447.629,
+    "medianMs": 1.522,
+    "p95Ms": 171.836,
+    "openMojiQueries": 84,
+    "publications": 8,
+    "reusedAssets": 0,
+    "manifestReads": 20
+  },
+  "scenes": [
+    {
+      "sceneIndex": 1,
+      "id": "visual-1",
+      "keyword": "termodinámica",
+      "anchor": "caos",
+      "relation": "expande",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-1",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-1",
+          "keyword": "termodinámica",
+          "concepts": [
+            "caos",
+            "desorden",
+            "derrame"
+          ],
+          "relation": "expande",
+          "anchor": "caos",
+          "searchTerms": [
+            "caos",
+            "termodinámica",
+            "desorden",
+            "derrame"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+        "reasons": [
+          "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+          "ABSTRACT_PROCESS_WITHOUT_OBJECT"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 1.522
+    },
+    {
+      "sceneIndex": 2,
+      "id": "visual-3",
+      "keyword": "complejos",
+      "anchor": "red",
+      "relation": "conecta",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": "connection-link",
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "AMBIGUOUS_ASSET_CANDIDATES",
+      "alerts": [
+        "AMBIGUOUS_ASSET_CANDIDATES"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-3",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-3",
+          "keyword": "complejos",
+          "concepts": [
+            "red",
+            "enredo",
+            "enjambre"
+          ],
+          "relation": "conecta",
+          "anchor": "red",
+          "searchTerms": [
+            "red",
+            "complejos",
+            "enredo",
+            "enjambre"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "connection-link",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:connection-link"
+          }
+        ],
+        "selectedMetaphor": "connection-link",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f517",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "link",
+            "stableId": "openmoji:1f517",
+            "annotation": "link"
+          },
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:e269",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "link",
+            "stableId": "openmoji:e269",
+            "annotation": "link"
+          },
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1fac0",
+            "score": 1,
+            "reason": "anchor:all-tokens",
+            "query": "red",
+            "stableId": "openmoji:1fac0",
+            "annotation": "anatomical heart"
+          },
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f94a",
+            "score": 1,
+            "reason": "anchor:all-tokens",
+            "query": "red",
+            "stableId": "openmoji:1f94a",
+            "annotation": "boxing glove"
+          },
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f352",
+            "score": 1,
+            "reason": "anchor:all-tokens",
+            "query": "red",
+            "stableId": "openmoji:1f352",
+            "annotation": "cherries"
+          }
+        ],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "AMBIGUOUS_ASSET_CANDIDATES",
+        "reasons": [
+          "CONCRETE_METAPHOR:connection-link",
+          "AMBIGUOUS_ASSET_CANDIDATES"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 5,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 132.774
+    },
+    {
+      "sceneIndex": 3,
+      "id": "visual-5",
+      "keyword": "desperarse",
+      "anchor": "universo",
+      "relation": "expande",
+      "visualMode": "asset-led",
+      "family": "complex-illustration",
+      "provider": "openmoji",
+      "metaphor": "universe-astronaut",
+      "candidate": "openmoji:1f9d1-200d-1f680",
+      "treatment": "duotone",
+      "structure": "marcoPoster",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-5",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-5",
+          "keyword": "desperarse",
+          "concepts": [
+            "universo",
+            "estrellas",
+            "escombros"
+          ],
+          "relation": "expande",
+          "anchor": "universo",
+          "searchTerms": [
+            "universo",
+            "desperarse",
+            "estrellas",
+            "escombros"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "universe-astronaut",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:universe-astronaut"
+          }
+        ],
+        "selectedMetaphor": "universe-astronaut",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f9d1-200d-1f680",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "astronaut",
+            "stableId": "openmoji:1f9d1-200d-1f680",
+            "annotation": "astronaut"
+          },
+          {
+            "provider": "solar",
+            "identity": "telescope-bold-duotone",
+            "score": 2,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "openmoji",
+          "identity": "openmoji:1f9d1-200d-1f680",
+          "score": 3,
+          "reason": "OPENMOJI_PUBLISHED:created",
+          "stableId": "openmoji:1f9d1-200d-1f680",
+          "annotation": "astronaut"
+        },
+        "visualMode": "asset-led",
+        "treatment": {
+          "requested": "auto",
+          "effective": "duotone",
+          "reason": "COMPLEX_ILLUSTRATION_DUOTONE",
+          "revision": "asset-treatment-v1"
+        },
+        "structure": "marcoPoster",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:universe-astronaut",
+          "CONCRETE_METAPHOR:universe-astronaut",
+          "OPENMOJI_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 1,
+        "manifestReads": 1
+      },
+      "elapsedMs": 121.695
+    },
+    {
+      "sceneIndex": 4,
+      "id": "visual-8",
+      "keyword": "sincronización",
+      "anchor": "bandada",
+      "relation": "orbita",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-8",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-8",
+          "keyword": "sincronización",
+          "concepts": [
+            "bandada",
+            "cardumen",
+            "enjambre"
+          ],
+          "relation": "orbita",
+          "anchor": "bandada",
+          "searchTerms": [
+            "bandada",
+            "sincronización",
+            "cardumen",
+            "enjambre"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+        "reasons": [
+          "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+          "ABSTRACT_PROCESS_WITHOUT_OBJECT"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.238
+    },
+    {
+      "sceneIndex": 5,
+      "id": "visual-11",
+      "keyword": "luciérnagas",
+      "anchor": "corazón",
+      "relation": "secuencia",
+      "visualMode": "asset-led",
+      "family": "simple-icon",
+      "provider": "openmoji",
+      "metaphor": "heart",
+      "candidate": "openmoji:2764",
+      "treatment": "accent-mask",
+      "structure": "constelacion",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-11",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-11",
+          "keyword": "luciérnagas",
+          "concepts": [
+            "corazón",
+            "pulso",
+            "latido"
+          ],
+          "relation": "secuencia",
+          "anchor": "corazón",
+          "searchTerms": [
+            "corazón",
+            "luciérnagas",
+            "pulso",
+            "latido"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "heart",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:heart"
+          }
+        ],
+        "selectedMetaphor": "heart",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:2764",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "red heart",
+            "stableId": "openmoji:2764",
+            "annotation": "red heart"
+          },
+          {
+            "provider": "solar",
+            "identity": "heart-bold-duotone",
+            "score": 2,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "openmoji",
+          "identity": "openmoji:2764",
+          "score": 3,
+          "reason": "OPENMOJI_PUBLISHED:created",
+          "stableId": "openmoji:2764",
+          "annotation": "red heart"
+        },
+        "visualMode": "asset-led",
+        "treatment": {
+          "requested": "auto",
+          "effective": "accent-mask",
+          "reason": "SIMPLE_ICON_ACCENT_MASK",
+          "revision": "asset-treatment-v1"
+        },
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:heart",
+          "CONCRETE_METAPHOR:heart",
+          "OPENMOJI_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 1,
+        "manifestReads": 1
+      },
+      "elapsedMs": 125.05
+    },
+    {
+      "sceneIndex": 6,
+      "id": "visual-13",
+      "keyword": "tendencia",
+      "anchor": "naturaleza",
+      "relation": "expande",
+      "visualMode": "asset-led",
+      "family": "simple-icon",
+      "provider": "openmoji",
+      "metaphor": "growth-seedling",
+      "candidate": "openmoji:1f331",
+      "treatment": "accent-mask",
+      "structure": "editorial",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-13",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-13",
+          "keyword": "tendencia",
+          "concepts": [
+            "naturaleza",
+            "decadencia",
+            "erosión"
+          ],
+          "relation": "expande",
+          "anchor": "naturaleza",
+          "searchTerms": [
+            "naturaleza",
+            "tendencia",
+            "decadencia",
+            "erosión"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "growth-seedling",
+            "score": 2,
+            "reason": "CONCRETE_METAPHOR:growth-seedling"
+          }
+        ],
+        "selectedMetaphor": "growth-seedling",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f331",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "seedling",
+            "stableId": "openmoji:1f331",
+            "annotation": "seedling"
+          },
+          {
+            "provider": "solar",
+            "identity": "leaf-bold-duotone",
+            "score": 2,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "openmoji",
+          "identity": "openmoji:1f331",
+          "score": 3,
+          "reason": "OPENMOJI_PUBLISHED:created",
+          "stableId": "openmoji:1f331",
+          "annotation": "seedling"
+        },
+        "visualMode": "asset-led",
+        "treatment": {
+          "requested": "auto",
+          "effective": "accent-mask",
+          "reason": "SIMPLE_ICON_ACCENT_MASK",
+          "revision": "asset-treatment-v1"
+        },
+        "structure": "editorial",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:growth-seedling",
+          "CONCRETE_METAPHOR:growth-seedling",
+          "OPENMOJI_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 1,
+        "manifestReads": 1
+      },
+      "elapsedMs": 135.159
+    },
+    {
+      "sceneIndex": 7,
+      "id": "visual-15",
+      "keyword": "inauguró",
+      "anchor": "Londres",
+      "relation": "cruza",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-15",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-15",
+          "keyword": "inauguró",
+          "concepts": [
+            "Londres",
+            "Támesis",
+            "peatones"
+          ],
+          "relation": "cruza",
+          "anchor": "Londres",
+          "searchTerms": [
+            "Londres",
+            "inauguró",
+            "Támesis",
+            "peatones"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+        "reasons": [
+          "HUMAN_SCENE_REQUIRES_EDITORIAL",
+          "HUMAN_SCENE_REQUIRES_EDITORIAL"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.193
+    },
+    {
+      "sceneIndex": 8,
+      "id": "visual-18",
+      "keyword": "acumulaba",
+      "anchor": "",
+      "relation": null,
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-18",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-18",
+          "keyword": "acumulaba",
+          "concepts": [
+            "multitud",
+            "puente",
+            "fila"
+          ],
+          "searchTerms": [
+            "acumulaba",
+            "multitud",
+            "puente",
+            "fila"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+        "reasons": [
+          "HUMAN_SCENE_REQUIRES_EDITORIAL",
+          "HUMAN_SCENE_REQUIRES_EDITORIAL"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.168
+    },
+    {
+      "sceneIndex": 9,
+      "id": "visual-20",
+      "keyword": "restringir",
+      "anchor": "",
+      "relation": null,
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "editorial",
+      "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-20",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-20",
+          "keyword": "restringir",
+          "concepts": [
+            "policía",
+            "barrera",
+            "puente"
+          ],
+          "searchTerms": [
+            "restringir",
+            "policía",
+            "barrera",
+            "puente"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "editorial",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+        "reasons": [
+          "HUMAN_SCENE_REQUIRES_EDITORIAL",
+          "HUMAN_SCENE_REQUIRES_EDITORIAL"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.15
+    },
+    {
+      "sceneIndex": 10,
+      "id": "visual-22",
+      "keyword": "tambaleo",
+      "anchor": "",
+      "relation": null,
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-22",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-22",
+          "keyword": "tambaleo",
+          "concepts": [
+            "puente",
+            "balanceo",
+            "multitud"
+          ],
+          "searchTerms": [
+            "tambaleo",
+            "puente",
+            "balanceo",
+            "multitud"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+        "reasons": [
+          "HUMAN_SCENE_REQUIRES_EDITORIAL",
+          "HUMAN_SCENE_REQUIRES_EDITORIAL"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.131
+    },
+    {
+      "sceneIndex": 11,
+      "id": "visual-24",
+      "keyword": "costado",
+      "anchor": "",
+      "relation": null,
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "NO_CONCRETE_METAPHOR",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-24",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-24",
+          "keyword": "costado",
+          "concepts": [
+            "puente",
+            "cerrado",
+            "barrera"
+          ],
+          "searchTerms": [
+            "costado",
+            "puente",
+            "cerrado",
+            "barrera"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "NO_CONCRETE_METAPHOR",
+        "reasons": [
+          "NO_CONCRETE_METAPHOR",
+          "NO_CONCRETE_METAPHOR"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.258
+    },
+    {
+      "sceneIndex": 12,
+      "id": "visual-26",
+      "keyword": "clausurado",
+      "anchor": "",
+      "relation": null,
+      "visualMode": "asset-led",
+      "family": "icon-monochrome",
+      "provider": "solar",
+      "metaphor": "calendar",
+      "candidate": "calendar-bold-duotone",
+      "treatment": "none",
+      "structure": "marcoPoster",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-26",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-26",
+          "keyword": "clausurado",
+          "concepts": [
+            "años",
+            "puente",
+            "cerrado"
+          ],
+          "searchTerms": [
+            "clausurado",
+            "años",
+            "puente",
+            "cerrado"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "calendar",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:calendar"
+          }
+        ],
+        "selectedMetaphor": "calendar",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f4c5",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "calendar",
+            "stableId": "openmoji:1f4c5",
+            "annotation": "calendar"
+          },
+          {
+            "provider": "solar",
+            "identity": "calendar-bold-duotone",
+            "score": 3,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "solar",
+          "identity": "calendar-bold-duotone",
+          "score": 3,
+          "reason": "ABSTRACT_SOLAR_PREFERRED"
+        },
+        "visualMode": "asset-led",
+        "treatment": null,
+        "structure": "marcoPoster",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:calendar",
+          "CONCRETE_METAPHOR:calendar",
+          "SOLAR_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 1
+      },
+      "elapsedMs": 89.929
+    },
+    {
+      "sceneIndex": 13,
+      "id": "visual-28",
+      "keyword": "tiempo",
+      "anchor": "",
+      "relation": null,
+      "visualMode": "asset-led",
+      "family": "icon-monochrome",
+      "provider": "solar",
+      "metaphor": "time-stopwatch",
+      "candidate": "stopwatch-bold-duotone",
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-28",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-28",
+          "keyword": "tiempo",
+          "concepts": [
+            "tiempo",
+            "saber",
+            "puente"
+          ],
+          "searchTerms": [
+            "tiempo",
+            "saber",
+            "puente"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "time-stopwatch",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:time-stopwatch"
+          }
+        ],
+        "selectedMetaphor": "time-stopwatch",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:23f1",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "stopwatch",
+            "stableId": "openmoji:23f1",
+            "annotation": "stopwatch"
+          },
+          {
+            "provider": "solar",
+            "identity": "stopwatch-bold-duotone",
+            "score": 3,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "solar",
+          "identity": "stopwatch-bold-duotone",
+          "score": 3,
+          "reason": "ABSTRACT_SOLAR_PREFERRED"
+        },
+        "visualMode": "asset-led",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:time-stopwatch",
+          "CONCRETE_METAPHOR:time-stopwatch",
+          "SOLAR_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 1
+      },
+      "elapsedMs": 85.694
+    },
+    {
+      "sceneIndex": 14,
+      "id": "visual-30",
+      "keyword": "puentes",
+      "anchor": "",
+      "relation": null,
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-30",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-30",
+          "keyword": "puentes",
+          "concepts": [
+            "soldado",
+            "puente",
+            "pasos"
+          ],
+          "searchTerms": [
+            "puentes",
+            "soldado",
+            "puente",
+            "pasos"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+        "reasons": [
+          "HUMAN_SCENE_REQUIRES_EDITORIAL",
+          "HUMAN_SCENE_REQUIRES_EDITORIAL"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.151
+    },
+    {
+      "sceneIndex": 15,
+      "id": "visual-32",
+      "keyword": "marcharon",
+      "anchor": "puente",
+      "relation": "cruza",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "marcoPoster",
+      "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-32",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-32",
+          "keyword": "marcharon",
+          "concepts": [
+            "soldado",
+            "puente",
+            "marcha"
+          ],
+          "relation": "cruza",
+          "anchor": "puente",
+          "searchTerms": [
+            "puente",
+            "marcharon",
+            "soldado",
+            "marcha"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "marcoPoster",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+        "reasons": [
+          "HUMAN_SCENE_REQUIRES_EDITORIAL",
+          "HUMAN_SCENE_REQUIRES_EDITORIAL"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.117
+    },
+    {
+      "sceneIndex": 16,
+      "id": "visual-33",
+      "keyword": "marcharon",
+      "anchor": "puente",
+      "relation": "conecta",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-33",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-33",
+          "keyword": "marcharon",
+          "concepts": [
+            "cuerda",
+            "puente",
+            "río"
+          ],
+          "relation": "conecta",
+          "anchor": "puente",
+          "searchTerms": [
+            "puente",
+            "marcharon",
+            "cuerda",
+            "río"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+        "reasons": [
+          "HUMAN_SCENE_REQUIRES_EDITORIAL",
+          "HUMAN_SCENE_REQUIRES_EDITORIAL"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.088
+    },
+    {
+      "sceneIndex": 17,
+      "id": "visual-35",
+      "keyword": "sincronizados",
+      "anchor": "caída",
+      "relation": "secuencia",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-35",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-35",
+          "keyword": "sincronizados",
+          "concepts": [
+            "caída",
+            "río",
+            "salpicadura"
+          ],
+          "relation": "secuencia",
+          "anchor": "caída",
+          "searchTerms": [
+            "caída",
+            "sincronizados",
+            "río",
+            "salpicadura"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+        "reasons": [
+          "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+          "ABSTRACT_PROCESS_WITHOUT_OBJECT"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.116
+    },
+    {
+      "sceneIndex": 18,
+      "id": "visual-38",
+      "keyword": "fallecidos",
+      "anchor": "orden",
+      "relation": "anota",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "marcoPoster",
+      "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-38",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-38",
+          "keyword": "fallecidos",
+          "concepts": [
+            "ejército",
+            "orden",
+            "británico"
+          ],
+          "relation": "anota",
+          "anchor": "orden",
+          "searchTerms": [
+            "orden",
+            "fallecidos",
+            "ejército",
+            "británico"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "marcoPoster",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+        "reasons": [
+          "HUMAN_SCENE_REQUIRES_EDITORIAL",
+          "HUMAN_SCENE_REQUIRES_EDITORIAL"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.1
+    },
+    {
+      "sceneIndex": 19,
+      "id": "visual-40",
+      "keyword": "puentes",
+      "anchor": "puente",
+      "relation": "cruza",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-40",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-40",
+          "keyword": "puentes",
+          "concepts": [
+            "peatones",
+            "puente",
+            "Londres"
+          ],
+          "relation": "cruza",
+          "anchor": "puente",
+          "searchTerms": [
+            "puente",
+            "puentes",
+            "peatones",
+            "Londres"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+        "reasons": [
+          "HUMAN_SCENE_REQUIRES_EDITORIAL",
+          "HUMAN_SCENE_REQUIRES_EDITORIAL"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.07
+    },
+    {
+      "sceneIndex": 20,
+      "id": "visual-42",
+      "keyword": "sincronizada",
+      "anchor": "peatones",
+      "relation": "secuencia",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-42",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-42",
+          "keyword": "sincronizada",
+          "concepts": [
+            "peatones",
+            "sincronía",
+            "puente"
+          ],
+          "relation": "secuencia",
+          "anchor": "peatones",
+          "searchTerms": [
+            "peatones",
+            "sincronizada",
+            "sincronía",
+            "puente"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+        "reasons": [
+          "HUMAN_SCENE_REQUIRES_EDITORIAL",
+          "HUMAN_SCENE_REQUIRES_EDITORIAL"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.092
+    },
+    {
+      "sceneIndex": 21,
+      "id": "visual-44",
+      "keyword": "ejército",
+      "anchor": "gente",
+      "relation": "contiene",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "marcoPoster",
+      "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-44",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-44",
+          "keyword": "ejército",
+          "concepts": [
+            "gente",
+            "público",
+            "puente"
+          ],
+          "relation": "contiene",
+          "anchor": "gente",
+          "searchTerms": [
+            "gente",
+            "ejército",
+            "público",
+            "puente"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "marcoPoster",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+        "reasons": [
+          "HUMAN_SCENE_REQUIRES_EDITORIAL",
+          "HUMAN_SCENE_REQUIRES_EDITORIAL"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.092
+    },
+    {
+      "sceneIndex": 22,
+      "id": "visual-46",
+      "keyword": "caminan",
+      "anchor": "puente",
+      "relation": "construye",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-46",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-46",
+          "keyword": "caminan",
+          "concepts": [
+            "puente",
+            "acero",
+            "peatón"
+          ],
+          "relation": "construye",
+          "anchor": "puente",
+          "searchTerms": [
+            "puente",
+            "caminan",
+            "acero",
+            "peatón"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+        "reasons": [
+          "HUMAN_SCENE_REQUIRES_EDITORIAL",
+          "HUMAN_SCENE_REQUIRES_EDITORIAL"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.08
+    },
+    {
+      "sceneIndex": 23,
+      "id": "visual-48",
+      "keyword": "transeuntes",
+      "anchor": "multitud",
+      "relation": "conecta",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-48",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-48",
+          "keyword": "transeuntes",
+          "concepts": [
+            "multitud",
+            "tráfico",
+            "puente"
+          ],
+          "relation": "conecta",
+          "anchor": "multitud",
+          "searchTerms": [
+            "multitud",
+            "transeuntes",
+            "tráfico",
+            "puente"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "HUMAN_SCENE_REQUIRES_EDITORIAL",
+        "reasons": [
+          "HUMAN_SCENE_REQUIRES_EDITORIAL",
+          "HUMAN_SCENE_REQUIRES_EDITORIAL"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.099
+    },
+    {
+      "sceneIndex": 24,
+      "id": "visual-50",
+      "keyword": "entenderlo",
+      "anchor": "mapa",
+      "relation": "anota",
+      "visualMode": "asset-led",
+      "family": "icon-monochrome",
+      "provider": "solar",
+      "metaphor": "map",
+      "candidate": "map-bold-duotone",
+      "treatment": "none",
+      "structure": "editorial",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-50",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-50",
+          "keyword": "entenderlo",
+          "concepts": [
+            "mapa",
+            "brújula",
+            "pluma"
+          ],
+          "relation": "anota",
+          "anchor": "mapa",
+          "searchTerms": [
+            "mapa",
+            "entenderlo",
+            "brújula",
+            "pluma"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "map",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:map"
+          }
+        ],
+        "selectedMetaphor": "map",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f5fa",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "world map",
+            "stableId": "openmoji:1f5fa",
+            "annotation": "world map"
+          },
+          {
+            "provider": "solar",
+            "identity": "map-bold-duotone",
+            "score": 3,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "solar",
+          "identity": "map-bold-duotone",
+          "score": 3,
+          "reason": "ABSTRACT_SOLAR_PREFERRED"
+        },
+        "visualMode": "asset-led",
+        "treatment": null,
+        "structure": "editorial",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:map",
+          "CONCRETE_METAPHOR:map",
+          "SOLAR_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 1
+      },
+      "elapsedMs": 85.34
+    },
+    {
+      "sceneIndex": 25,
+      "id": "visual-53",
+      "keyword": "holandés",
+      "anchor": "reloj",
+      "relation": "construye",
+      "visualMode": "asset-led",
+      "family": "icon-monochrome",
+      "provider": "solar",
+      "metaphor": "time-stopwatch",
+      "candidate": "stopwatch-bold-duotone",
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-53",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-53",
+          "keyword": "holandés",
+          "concepts": [
+            "reloj",
+            "péndulo",
+            "engranaje"
+          ],
+          "relation": "construye",
+          "anchor": "reloj",
+          "searchTerms": [
+            "reloj",
+            "holandés",
+            "péndulo",
+            "engranaje"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "time-stopwatch",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:time-stopwatch"
+          }
+        ],
+        "selectedMetaphor": "time-stopwatch",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:23f1",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "stopwatch",
+            "stableId": "openmoji:23f1",
+            "annotation": "stopwatch"
+          },
+          {
+            "provider": "solar",
+            "identity": "stopwatch-bold-duotone",
+            "score": 3,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "solar",
+          "identity": "stopwatch-bold-duotone",
+          "score": 3,
+          "reason": "ABSTRACT_SOLAR_PREFERRED"
+        },
+        "visualMode": "asset-led",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:time-stopwatch",
+          "CONCRETE_METAPHOR:time-stopwatch",
+          "SOLAR_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 1
+      },
+      "elapsedMs": 85.132
+    },
+    {
+      "sceneIndex": 26,
+      "id": "visual-55",
+      "keyword": "objetivo",
+      "anchor": "brújula",
+      "relation": "orbita",
+      "visualMode": "asset-led",
+      "family": "simple-icon",
+      "provider": "openmoji",
+      "metaphor": "direction-compass",
+      "candidate": "openmoji:1f9ed",
+      "treatment": "accent-mask",
+      "structure": "constelacion",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-55",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-55",
+          "keyword": "objetivo",
+          "concepts": [
+            "velero",
+            "brújula",
+            "mapa"
+          ],
+          "relation": "orbita",
+          "anchor": "brújula",
+          "searchTerms": [
+            "brújula",
+            "objetivo",
+            "velero",
+            "mapa"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "direction-compass",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:direction-compass"
+          }
+        ],
+        "selectedMetaphor": "direction-compass",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f9ed",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "compass",
+            "stableId": "openmoji:1f9ed",
+            "annotation": "compass"
+          },
+          {
+            "provider": "solar",
+            "identity": "compass-bold-duotone",
+            "score": 2,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "openmoji",
+          "identity": "openmoji:1f9ed",
+          "score": 3,
+          "reason": "OPENMOJI_PUBLISHED:created",
+          "stableId": "openmoji:1f9ed",
+          "annotation": "compass"
+        },
+        "visualMode": "asset-led",
+        "treatment": {
+          "requested": "auto",
+          "effective": "accent-mask",
+          "reason": "SIMPLE_ICON_ACCENT_MASK",
+          "revision": "asset-treatment-v1"
+        },
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:direction-compass",
+          "CONCRETE_METAPHOR:direction-compass",
+          "OPENMOJI_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 1,
+        "manifestReads": 1
+      },
+      "elapsedMs": 153.83
+    },
+    {
+      "sceneIndex": 27,
+      "id": "visual-57",
+      "keyword": "determinada",
+      "anchor": "sol",
+      "relation": "orbita",
+      "visualMode": "asset-led",
+      "family": "icon-monochrome",
+      "provider": "solar",
+      "metaphor": "sun",
+      "candidate": "sun-bold-duotone",
+      "treatment": "none",
+      "structure": "marcoPoster",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-57",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-57",
+          "keyword": "determinada",
+          "concepts": [
+            "sol",
+            "estrellas",
+            "sextante"
+          ],
+          "relation": "orbita",
+          "anchor": "sol",
+          "searchTerms": [
+            "sol",
+            "determinada",
+            "estrellas",
+            "sextante"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "sun",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:sun"
+          }
+        ],
+        "selectedMetaphor": "sun",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:2600",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "sun",
+            "stableId": "openmoji:2600",
+            "annotation": "sun"
+          },
+          {
+            "provider": "solar",
+            "identity": "sun-bold-duotone",
+            "score": 3,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "solar",
+          "identity": "sun-bold-duotone",
+          "score": 3,
+          "reason": "ABSTRACT_SOLAR_PREFERRED"
+        },
+        "visualMode": "asset-led",
+        "treatment": null,
+        "structure": "marcoPoster",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:sun",
+          "CONCRETE_METAPHOR:sun",
+          "SOLAR_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 1
+      },
+      "elapsedMs": 89.663
+    },
+    {
+      "sceneIndex": 28,
+      "id": "visual-59",
+      "keyword": "necesita",
+      "anchor": "reloj",
+      "relation": "anota",
+      "visualMode": "asset-led",
+      "family": "icon-monochrome",
+      "provider": "solar",
+      "metaphor": "time-stopwatch",
+      "candidate": "stopwatch-bold-duotone",
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-59",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-59",
+          "keyword": "necesita",
+          "concepts": [
+            "reloj",
+            "puerto",
+            "ubicación"
+          ],
+          "relation": "anota",
+          "anchor": "reloj",
+          "searchTerms": [
+            "reloj",
+            "necesita",
+            "puerto",
+            "ubicación"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "time-stopwatch",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:time-stopwatch"
+          }
+        ],
+        "selectedMetaphor": "time-stopwatch",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:23f1",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "stopwatch",
+            "stableId": "openmoji:23f1",
+            "annotation": "stopwatch"
+          },
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f1f5-1f1f7",
+            "score": 1,
+            "reason": "concept:all-tokens",
+            "query": "puerto",
+            "stableId": "openmoji:1f1f5-1f1f7",
+            "annotation": "flag: Puerto Rico"
+          },
+          {
+            "provider": "solar",
+            "identity": "stopwatch-bold-duotone",
+            "score": 3,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "solar",
+          "identity": "stopwatch-bold-duotone",
+          "score": 3,
+          "reason": "ABSTRACT_SOLAR_PREFERRED"
+        },
+        "visualMode": "asset-led",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:time-stopwatch",
+          "CONCRETE_METAPHOR:time-stopwatch",
+          "SOLAR_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 2,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 1
+      },
+      "elapsedMs": 77.421
+    },
+    {
+      "sceneIndex": 29,
+      "id": "visual-61",
+      "keyword": "retrasaban",
+      "anchor": "reloj",
+      "relation": "contrasta",
+      "visualMode": "asset-led",
+      "family": "icon-monochrome",
+      "provider": "solar",
+      "metaphor": "time-stopwatch",
+      "candidate": "stopwatch-bold-duotone",
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-61",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-61",
+          "keyword": "retrasaban",
+          "concepts": [
+            "reloj",
+            "retraso",
+            "diario"
+          ],
+          "relation": "contrasta",
+          "anchor": "reloj",
+          "searchTerms": [
+            "reloj",
+            "retrasaban",
+            "retraso",
+            "diario"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "time-stopwatch",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:time-stopwatch"
+          }
+        ],
+        "selectedMetaphor": "time-stopwatch",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:23f1",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "stopwatch",
+            "stableId": "openmoji:23f1",
+            "annotation": "stopwatch"
+          },
+          {
+            "provider": "solar",
+            "identity": "stopwatch-bold-duotone",
+            "score": 3,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "solar",
+          "identity": "stopwatch-bold-duotone",
+          "score": 3,
+          "reason": "ABSTRACT_SOLAR_PREFERRED"
+        },
+        "visualMode": "asset-led",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:time-stopwatch",
+          "CONCRETE_METAPHOR:time-stopwatch",
+          "SOLAR_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 1
+      },
+      "elapsedMs": 88.624
+    },
+    {
+      "sceneIndex": 30,
+      "id": "visual-64",
+      "keyword": "segundos",
+      "anchor": "precisión",
+      "relation": "secuencia",
+      "visualMode": "asset-led",
+      "family": "icon-monochrome",
+      "provider": "solar",
+      "metaphor": "time-stopwatch",
+      "candidate": "stopwatch-bold-duotone",
+      "treatment": "none",
+      "structure": "marcoPoster",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-64",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-64",
+          "keyword": "segundos",
+          "concepts": [
+            "precisión",
+            "medida",
+            "diario"
+          ],
+          "relation": "secuencia",
+          "anchor": "precisión",
+          "searchTerms": [
+            "precisión",
+            "segundos",
+            "medida",
+            "diario"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "time-stopwatch",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:time-stopwatch"
+          }
+        ],
+        "selectedMetaphor": "time-stopwatch",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:23f1",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "stopwatch",
+            "stableId": "openmoji:23f1",
+            "annotation": "stopwatch"
+          },
+          {
+            "provider": "solar",
+            "identity": "stopwatch-bold-duotone",
+            "score": 3,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "solar",
+          "identity": "stopwatch-bold-duotone",
+          "score": 3,
+          "reason": "ABSTRACT_SOLAR_PREFERRED"
+        },
+        "visualMode": "asset-led",
+        "treatment": null,
+        "structure": "marcoPoster",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:time-stopwatch",
+          "CONCRETE_METAPHOR:time-stopwatch",
+          "SOLAR_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 1
+      },
+      "elapsedMs": 87.94
+    },
+    {
+      "sceneIndex": 31,
+      "id": "visual-66",
+      "keyword": "Hoygens",
+      "anchor": "mástil",
+      "relation": "conecta",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "CONTEXTUAL_HISTORY_REQUIRES_EDITORIAL",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-66",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-66",
+          "keyword": "Hoygens",
+          "concepts": [
+            "barco",
+            "mástil",
+            "cuerda"
+          ],
+          "relation": "conecta",
+          "anchor": "mástil",
+          "searchTerms": [
+            "mástil",
+            "Hoygens",
+            "barco",
+            "cuerda"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "CONTEXTUAL_HISTORY_REQUIRES_EDITORIAL",
+        "reasons": [
+          "CONTEXTUAL_HISTORY_REQUIRES_EDITORIAL",
+          "CONTEXTUAL_HISTORY_REQUIRES_EDITORIAL"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.153
+    },
+    {
+      "sceneIndex": 32,
+      "id": "visual-67",
+      "keyword": "embarcación",
+      "anchor": "gancho",
+      "relation": "conecta",
+      "visualMode": "asset-led",
+      "family": "complex-illustration",
+      "provider": "openmoji",
+      "metaphor": "hook",
+      "candidate": "openmoji:1fa9d",
+      "treatment": "duotone",
+      "structure": "marcoPoster",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-67",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-67",
+          "keyword": "embarcación",
+          "concepts": [
+            "reloj",
+            "gancho",
+            "cuerda"
+          ],
+          "relation": "conecta",
+          "anchor": "gancho",
+          "searchTerms": [
+            "gancho",
+            "embarcación",
+            "reloj",
+            "cuerda"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "hook",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:hook"
+          }
+        ],
+        "selectedMetaphor": "hook",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1fa9d",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "hook",
+            "stableId": "openmoji:1fa9d",
+            "annotation": "hook"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "openmoji",
+          "identity": "openmoji:1fa9d",
+          "score": 3,
+          "reason": "OPENMOJI_PUBLISHED:created",
+          "stableId": "openmoji:1fa9d",
+          "annotation": "hook"
+        },
+        "visualMode": "asset-led",
+        "treatment": {
+          "requested": "auto",
+          "effective": "duotone",
+          "reason": "COMPLEX_ILLUSTRATION_DUOTONE",
+          "revision": "asset-treatment-v1"
+        },
+        "structure": "marcoPoster",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:hook",
+          "CONCRETE_METAPHOR:hook",
+          "OPENMOJI_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 1,
+        "manifestReads": 1
+      },
+      "elapsedMs": 161.252
+    },
+    {
+      "sceneIndex": 33,
+      "id": "visual-69",
+      "keyword": "requería",
+      "anchor": "mesa",
+      "relation": "apila",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-69",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-69",
+          "keyword": "requería",
+          "concepts": [
+            "reloj",
+            "reloj2",
+            "mesa"
+          ],
+          "relation": "apila",
+          "anchor": "mesa",
+          "searchTerms": [
+            "mesa",
+            "requería",
+            "reloj",
+            "reloj2"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+        "reasons": [
+          "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+          "ABSTRACT_PROCESS_WITHOUT_OBJECT"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.159
+    },
+    {
+      "sceneIndex": 34,
+      "id": "visual-71",
+      "keyword": "mecanismo",
+      "anchor": "cama",
+      "relation": "contiene",
+      "visualMode": "asset-led",
+      "family": "simple-icon",
+      "provider": "openmoji",
+      "metaphor": "bed",
+      "candidate": "openmoji:1f6cf",
+      "treatment": "accent-mask",
+      "structure": "constelacion",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-71",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-71",
+          "keyword": "mecanismo",
+          "concepts": [
+            "cama",
+            "fiebre",
+            "medicina"
+          ],
+          "relation": "contiene",
+          "anchor": "cama",
+          "searchTerms": [
+            "cama",
+            "mecanismo",
+            "fiebre",
+            "medicina"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "bed",
+            "score": 2,
+            "reason": "CONCRETE_METAPHOR:bed"
+          }
+        ],
+        "selectedMetaphor": "bed",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f6cf",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "bed",
+            "stableId": "openmoji:1f6cf",
+            "annotation": "bed"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "openmoji",
+          "identity": "openmoji:1f6cf",
+          "score": 3,
+          "reason": "OPENMOJI_PUBLISHED:created",
+          "stableId": "openmoji:1f6cf",
+          "annotation": "bed"
+        },
+        "visualMode": "asset-led",
+        "treatment": {
+          "requested": "auto",
+          "effective": "accent-mask",
+          "reason": "SIMPLE_ICON_ACCENT_MASK",
+          "revision": "asset-treatment-v1"
+        },
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:bed",
+          "CONCRETE_METAPHOR:bed",
+          "OPENMOJI_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 1,
+        "manifestReads": 1
+      },
+      "elapsedMs": 171.836
+    },
+    {
+      "sceneIndex": 35,
+      "id": "visual-73",
+      "keyword": "descubrió",
+      "anchor": "notas",
+      "relation": "anota",
+      "visualMode": "asset-led",
+      "family": "icon-monochrome",
+      "provider": "solar",
+      "metaphor": "discovery-notebook",
+      "candidate": "book-bold-duotone",
+      "treatment": "none",
+      "structure": "editorial",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-73",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-73",
+          "keyword": "descubrió",
+          "concepts": [
+            "idea",
+            "notas",
+            "reloj"
+          ],
+          "relation": "anota",
+          "anchor": "notas",
+          "searchTerms": [
+            "notas",
+            "descubrió",
+            "idea",
+            "reloj"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "discovery-notebook",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:discovery-notebook"
+          }
+        ],
+        "selectedMetaphor": "discovery-notebook",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f4d3",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "notebook",
+            "stableId": "openmoji:1f4d3",
+            "annotation": "notebook"
+          },
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f4a1",
+            "score": 1,
+            "reason": "concept:all-tokens",
+            "query": "idea",
+            "stableId": "openmoji:1f4a1",
+            "annotation": "light bulb"
+          },
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f4ad",
+            "score": 1,
+            "reason": "concept:all-tokens",
+            "query": "idea",
+            "stableId": "openmoji:1f4ad",
+            "annotation": "thought balloon"
+          },
+          {
+            "provider": "solar",
+            "identity": "book-bold-duotone",
+            "score": 3,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "solar",
+          "identity": "book-bold-duotone",
+          "score": 3,
+          "reason": "ABSTRACT_SOLAR_PREFERRED"
+        },
+        "visualMode": "asset-led",
+        "treatment": null,
+        "structure": "editorial",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:discovery-notebook",
+          "CONCRETE_METAPHOR:discovery-notebook",
+          "SOLAR_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 3,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 1
+      },
+      "elapsedMs": 84.519
+    },
+    {
+      "sceneIndex": 36,
+      "id": "visual-80",
+      "keyword": "relojo",
+      "anchor": "",
+      "relation": null,
+      "visualMode": "asset-led",
+      "family": "icon-monochrome",
+      "provider": "solar",
+      "metaphor": "time-stopwatch",
+      "candidate": "stopwatch-bold-duotone",
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-80",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-80",
+          "keyword": "relojo",
+          "concepts": [
+            "reloj",
+            "tic",
+            "sonido"
+          ],
+          "searchTerms": [
+            "relojo",
+            "reloj",
+            "tic",
+            "sonido"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "time-stopwatch",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:time-stopwatch"
+          }
+        ],
+        "selectedMetaphor": "time-stopwatch",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:23f1",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "stopwatch",
+            "stableId": "openmoji:23f1",
+            "annotation": "stopwatch"
+          },
+          {
+            "provider": "solar",
+            "identity": "stopwatch-bold-duotone",
+            "score": 3,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "solar",
+          "identity": "stopwatch-bold-duotone",
+          "score": 3,
+          "reason": "ABSTRACT_SOLAR_PREFERRED"
+        },
+        "visualMode": "asset-led",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:time-stopwatch",
+          "CONCRETE_METAPHOR:time-stopwatch",
+          "SOLAR_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 1
+      },
+      "elapsedMs": 96.314
+    },
+    {
+      "sceneIndex": 37,
+      "id": "visual-84",
+      "keyword": "desincronizado",
+      "anchor": "",
+      "relation": null,
+      "visualMode": "asset-led",
+      "family": "icon-monochrome",
+      "provider": "solar",
+      "metaphor": "time-stopwatch",
+      "candidate": "stopwatch-bold-duotone",
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-84",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-84",
+          "keyword": "desincronizado",
+          "concepts": [
+            "reloj",
+            "ajuste",
+            "mano"
+          ],
+          "searchTerms": [
+            "desincronizado",
+            "reloj",
+            "ajuste",
+            "mano"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "time-stopwatch",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:time-stopwatch"
+          }
+        ],
+        "selectedMetaphor": "time-stopwatch",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:23f1",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "stopwatch",
+            "stableId": "openmoji:23f1",
+            "annotation": "stopwatch"
+          },
+          {
+            "provider": "solar",
+            "identity": "stopwatch-bold-duotone",
+            "score": 3,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "solar",
+          "identity": "stopwatch-bold-duotone",
+          "score": 3,
+          "reason": "ABSTRACT_SOLAR_PREFERRED"
+        },
+        "visualMode": "asset-led",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:time-stopwatch",
+          "CONCRETE_METAPHOR:time-stopwatch",
+          "SOLAR_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 1
+      },
+      "elapsedMs": 95.355
+    },
+    {
+      "sceneIndex": 38,
+      "id": "visual-87",
+      "keyword": "corrientes",
+      "anchor": "",
+      "relation": null,
+      "visualMode": "asset-led",
+      "family": "simple-icon",
+      "provider": "openmoji",
+      "metaphor": "wind",
+      "candidate": "openmoji:1f32c",
+      "treatment": "accent-mask",
+      "structure": "marcoPoster",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-87",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-87",
+          "keyword": "corrientes",
+          "concepts": [
+            "aire",
+            "péndulo",
+            "corriente"
+          ],
+          "searchTerms": [
+            "corrientes",
+            "aire",
+            "péndulo",
+            "corriente"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "wind",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:wind"
+          }
+        ],
+        "selectedMetaphor": "wind",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f32c",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "wind face",
+            "stableId": "openmoji:1f32c",
+            "annotation": "wind face"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "openmoji",
+          "identity": "openmoji:1f32c",
+          "score": 3,
+          "reason": "OPENMOJI_PUBLISHED:created",
+          "stableId": "openmoji:1f32c",
+          "annotation": "wind face"
+        },
+        "visualMode": "asset-led",
+        "treatment": {
+          "requested": "auto",
+          "effective": "accent-mask",
+          "reason": "SIMPLE_ICON_ACCENT_MASK",
+          "revision": "asset-treatment-v1"
+        },
+        "structure": "marcoPoster",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:wind",
+          "CONCRETE_METAPHOR:wind",
+          "OPENMOJI_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 1,
+        "manifestReads": 1
+      },
+      "elapsedMs": 184.576
+    },
+    {
+      "sceneIndex": 39,
+      "id": "visual-95",
+      "keyword": "regresaba",
+      "anchor": "científico",
+      "relation": "anota",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "NO_CONCRETE_METAPHOR",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-95",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-95",
+          "keyword": "regresaba",
+          "concepts": [
+            "científico",
+            "idea",
+            "reloj"
+          ],
+          "relation": "anota",
+          "anchor": "científico",
+          "searchTerms": [
+            "científico",
+            "regresaba",
+            "idea",
+            "reloj"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "NO_CONCRETE_METAPHOR",
+        "reasons": [
+          "NO_CONCRETE_METAPHOR",
+          "NO_CONCRETE_METAPHOR"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.222
+    },
+    {
+      "sceneIndex": 40,
+      "id": "visual-99",
+      "keyword": "osciladores",
+      "anchor": "oscilador",
+      "relation": "encaja",
+      "visualMode": "editorial-text",
+      "family": "editorial-text",
+      "provider": null,
+      "metaphor": null,
+      "candidate": null,
+      "treatment": "none",
+      "structure": "constelacion",
+      "fallback": "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+      "alerts": [
+        "NO_VISUAL_METAPHOR"
+      ],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-99",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-99",
+          "keyword": "osciladores",
+          "concepts": [
+            "oscilador",
+            "acoplamiento",
+            "sincronía"
+          ],
+          "relation": "encaja",
+          "anchor": "oscilador",
+          "searchTerms": [
+            "oscilador",
+            "osciladores",
+            "acoplamiento",
+            "sincronía"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [],
+        "selectedMetaphor": null,
+        "providerCandidates": [],
+        "selectedCandidate": null,
+        "visualMode": "editorial-text",
+        "treatment": null,
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+        "reasons": [
+          "ABSTRACT_PROCESS_WITHOUT_OBJECT",
+          "ABSTRACT_PROCESS_WITHOUT_OBJECT"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 0,
+        "openMojiCandidates": 0,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 0
+      },
+      "elapsedMs": 0.104
+    },
+    {
+      "sceneIndex": 41,
+      "id": "visual-102",
+      "keyword": "descripto",
+      "anchor": "apuntes",
+      "relation": "anota",
+      "visualMode": "asset-led",
+      "family": "icon-monochrome",
+      "provider": "solar",
+      "metaphor": "discovery-notebook",
+      "candidate": "book-bold-duotone",
+      "treatment": "none",
+      "structure": "marcoPoster",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-102",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-102",
+          "keyword": "descripto",
+          "concepts": [
+            "escritura",
+            "apuntes",
+            "científico"
+          ],
+          "relation": "anota",
+          "anchor": "apuntes",
+          "searchTerms": [
+            "apuntes",
+            "descripto",
+            "escritura",
+            "científico"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "discovery-notebook",
+            "score": 3,
+            "reason": "CONCRETE_METAPHOR:discovery-notebook"
+          }
+        ],
+        "selectedMetaphor": "discovery-notebook",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:1f4d3",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "notebook",
+            "stableId": "openmoji:1f4d3",
+            "annotation": "notebook"
+          },
+          {
+            "provider": "solar",
+            "identity": "book-bold-duotone",
+            "score": 3,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "solar",
+          "identity": "book-bold-duotone",
+          "score": 3,
+          "reason": "ABSTRACT_SOLAR_PREFERRED"
+        },
+        "visualMode": "asset-led",
+        "treatment": null,
+        "structure": "marcoPoster",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:discovery-notebook",
+          "CONCRETE_METAPHOR:discovery-notebook",
+          "SOLAR_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 0,
+        "manifestReads": 1
+      },
+      "elapsedMs": 98.805
+    },
+    {
+      "sceneIndex": 42,
+      "id": "visual-113",
+      "keyword": "parece",
+      "anchor": "magia",
+      "relation": "orbita",
+      "visualMode": "asset-led",
+      "family": "simple-icon",
+      "provider": "openmoji",
+      "metaphor": "magic-sparkles",
+      "candidate": "openmoji:2728",
+      "treatment": "accent-mask",
+      "structure": "constelacion",
+      "fallback": null,
+      "alerts": [],
+      "trace": {
+        "sceneId": "mvp-paso7-visual-113",
+        "input": {
+          "version": 1,
+          "sceneId": "mvp-paso7-visual-113",
+          "keyword": "parece",
+          "concepts": [
+            "metrónomo",
+            "sincronía",
+            "magia"
+          ],
+          "relation": "orbita",
+          "anchor": "magia",
+          "searchTerms": [
+            "magia",
+            "parece",
+            "metrónomo",
+            "sincronía"
+          ],
+          "preferredVisualMode": "auto"
+        },
+        "metaphorCandidates": [
+          {
+            "id": "magic-sparkles",
+            "score": 2,
+            "reason": "CONCRETE_METAPHOR:magic-sparkles"
+          }
+        ],
+        "selectedMetaphor": "magic-sparkles",
+        "providerCandidates": [
+          {
+            "provider": "openmoji",
+            "identity": "openmoji:2728",
+            "score": 3,
+            "reason": "concrete-metaphor:annotation-exact",
+            "query": "sparkles",
+            "stableId": "openmoji:2728",
+            "annotation": "sparkles"
+          },
+          {
+            "provider": "solar",
+            "identity": "star-bold-duotone",
+            "score": 2,
+            "reason": "SOLAR_RESOLVED:exacto"
+          }
+        ],
+        "selectedCandidate": {
+          "provider": "openmoji",
+          "identity": "openmoji:2728",
+          "score": 3,
+          "reason": "OPENMOJI_PUBLISHED:created",
+          "stableId": "openmoji:2728",
+          "annotation": "sparkles"
+        },
+        "visualMode": "asset-led",
+        "treatment": {
+          "requested": "auto",
+          "effective": "accent-mask",
+          "reason": "SIMPLE_ICON_ACCENT_MASK",
+          "revision": "asset-treatment-v1"
+        },
+        "structure": "constelacion",
+        "reuse": {
+          "allowedByContinuity": false,
+          "reusedProjectAsset": false,
+          "reason": null
+        },
+        "fallback": null,
+        "reasons": [
+          "CONCRETE_METAPHOR:magic-sparkles",
+          "CONCRETE_METAPHOR:magic-sparkles",
+          "OPENMOJI_HERO"
+        ]
+      },
+      "metrics": {
+        "openMojiQueries": 4,
+        "openMojiCandidates": 1,
+        "projectAssetsReused": 0,
+        "assetsPublished": 1,
+        "manifestReads": 1
+      },
+      "elapsedMs": 192.418
+    }
+  ]
+}

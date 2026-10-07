@@ -1,0 +1,170 @@
+[
+  {
+    "scene": "01-object-hero",
+    "format": "vertical",
+    "stage": "entry",
+    "at": 0.272,
+    "image": "01-object-hero-vertical-entry.png"
+  },
+  {
+    "scene": "01-object-hero",
+    "format": "vertical",
+    "stage": "read",
+    "at": 0.969,
+    "image": "01-object-hero-vertical-read.png"
+  },
+  {
+    "scene": "01-object-hero",
+    "format": "vertical",
+    "stage": "exit",
+    "at": 1.53,
+    "image": "01-object-hero-vertical-exit.png"
+  },
+  {
+    "scene": "06-data",
+    "format": "vertical",
+    "stage": "entry",
+    "at": 8.772,
+    "image": "06-data-vertical-entry.png"
+  },
+  {
+    "scene": "06-data",
+    "format": "vertical",
+    "stage": "read",
+    "at": 9.469,
+    "image": "06-data-vertical-read.png"
+  },
+  {
+    "scene": "06-data",
+    "format": "vertical",
+    "stage": "exit",
+    "at": 10.03,
+    "image": "06-data-vertical-exit.png"
+  },
+  {
+    "scene": "08-process",
+    "format": "vertical",
+    "stage": "entry",
+    "at": 12.172,
+    "image": "08-process-vertical-entry.png"
+  },
+  {
+    "scene": "08-process",
+    "format": "vertical",
+    "stage": "read",
+    "at": 12.869,
+    "image": "08-process-vertical-read.png"
+  },
+  {
+    "scene": "08-process",
+    "format": "vertical",
+    "stage": "exit",
+    "at": 13.43,
+    "image": "08-process-vertical-exit.png"
+  },
+  {
+    "scene": "12-editorial",
+    "format": "vertical",
+    "stage": "entry",
+    "at": 18.972,
+    "image": "12-editorial-vertical-entry.png"
+  },
+  {
+    "scene": "12-editorial",
+    "format": "vertical",
+    "stage": "read",
+    "at": 19.669,
+    "image": "12-editorial-vertical-read.png"
+  },
+  {
+    "scene": "12-editorial",
+    "format": "vertical",
+    "stage": "exit",
+    "at": 20.23,
+    "image": "12-editorial-vertical-exit.png"
+  },
+  {
+    "scene": "01-object-hero",
+    "format": "horizontal",
+    "stage": "entry",
+    "at": 0.272,
+    "image": "01-object-hero-horizontal-entry.png"
+  },
+  {
+    "scene": "01-object-hero",
+    "format": "horizontal",
+    "stage": "read",
+    "at": 0.969,
+    "image": "01-object-hero-horizontal-read.png"
+  },
+  {
+    "scene": "01-object-hero",
+    "format": "horizontal",
+    "stage": "exit",
+    "at": 1.53,
+    "image": "01-object-hero-horizontal-exit.png"
+  },
+  {
+    "scene": "06-data",
+    "format": "horizontal",
+    "stage": "entry",
+    "at": 8.772,
+    "image": "06-data-horizontal-entry.png"
+  },
+  {
+    "scene": "06-data",
+    "format": "horizontal",
+    "stage": "read",
+    "at": 9.469,
+    "image": "06-data-horizontal-read.png"
+  },
+  {
+    "scene": "06-data",
+    "format": "horizontal",
+    "stage": "exit",
+    "at": 10.03,
+    "image": "06-data-horizontal-exit.png"
+  },
+  {
+    "scene": "08-process",
+    "format": "horizontal",
+    "stage": "entry",
+    "at": 12.172,
+    "image": "08-process-horizontal-entry.png"
+  },
+  {
+    "scene": "08-process",
+    "format": "horizontal",
+    "stage": "read",
+    "at": 12.869,
+    "image": "08-process-horizontal-read.png"
+  },
+  {
+    "scene": "08-process",
+    "format": "horizontal",
+    "stage": "exit",
+    "at": 13.43,
+    "image": "08-process-horizontal-exit.png"
+  },
+  {
+    "scene": "12-editorial",
+    "format": "horizontal",
+    "stage": "entry",
+    "at": 18.972,
+    "image": "12-editorial-horizontal-entry.png"
+  },
+  {
+    "scene": "12-editorial",
+    "format": "horizontal",
+    "stage": "read",
+    "at": 19.669,
+    "image": "12-editorial-horizontal-read.png"
+  },
+  {
+    "scene": "12-editorial",
+    "format": "horizontal",
+    "stage": "exit",
+    "at": 20.23,
+    "image": "12-editorial-horizontal-exit.png"
+  }
+]

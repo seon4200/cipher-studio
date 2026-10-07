@@ -1,0 +1,363 @@
+import React, { useLayoutEffect, useRef } from 'react'
+import type { RuntimeRenderAssetV2, VisualSceneSpecV2 } from '../../../shared/visual-scene-spec-v2'
+import type { EditorialModularFamiliesPlanV1 } from '../../../shared/editorial-modular-families-v1'
+import type { EditorialLocalBankPlanV2 } from '../../../shared/editorial-local-bank-v2'
+import { EDITORIAL_LOCAL_BANK_V3_2, type EditorialLocalBankPlanV3 } from '../../../shared/editorial-local-bank-v3'
+import { EDITORIAL_LOCAL_BANK_V4 } from '../../../shared/editorial-local-bank-v4'
+import { EDITORIAL_FINISH_INTEGRATION_V2 } from '../../../shared/editorial-finish-integration-v2'
+import { editorialLocalHeroScaleV2 } from '../../../shared/editorial-local-bank-v2'
+import type { EditorialFinishPlanV11, FinishRoute } from '../../../shared/editorial-finish-v1-1'
+import { sceneSpecReactKeyAny } from '../../../shared/visual-scene-spec-v2'
+import { AlphaMaskRasterV4 } from './alpha-mask-raster-v4'
+import { fitVisualTextV2 } from './text-fit-v2'
+
+const clamp=(value:number)=>Math.max(0,Math.min(1,value))
+const ease=(value:number)=>1-(1-clamp(value))**3
+const phase=(u:number,start:number,end:number)=>ease((u-start)/(end-start))
+const cue=(u:number,start:number,end:number)=>u<=start||u>=end?0:
+  Math.sin(Math.PI*(u-start)/(end-start))
+type Point={x:number;y:number}
+type Rect={x:number;y:number;width:number;height:number}
+const center=(r:Rect):Point=>({x:r.x+r.width/2,y:r.y+r.height/2})
+// The layout envelope includes transparent margins and collage. Lines must reach
+// the visible subject, not stop at the edge of that oversized envelope.
+const relationTarget=(r:Rect):Rect=>({x:r.x+r.width*.19,y:r.y+r.height*.17,
+  width:r.width*.62,height:r.height*.66})
+const supportTarget=(r:Rect,landscape:boolean,alpha?:Rect):Rect=>{
+  const height=Math.min(r.height*.7,r.width*.84/(landscape ? 0.5625 : 1.7778))
+  const width=height*(landscape ? 0.5625 : 1.7778)
+  const card={x:r.x+(r.width-width)/2,y:r.y+r.height*.43-height/2,width,height}
+  return alpha?{x:card.x+card.width*alpha.x,y:card.y+card.height*alpha.y,
+    width:card.width*alpha.width,height:card.height*alpha.height}:card
+}
+function edge(from:Rect,to:Rect):Point {
+  const a=center(from),b=center(to),dx=b.x-a.x,dy=b.y-a.y
+  const ratio=Math.min(Math.abs(dx)>0?from.width*.48/Math.abs(dx):Infinity,
+    Math.abs(dy)>0?from.height*.48/Math.abs(dy):Infinity)
+  return {x:a.x+dx*ratio,y:a.y+dy*ratio}
+}
+type CubicRoute={path:string;tip:Point;points:[Point,Point,Point,Point]}
+const cubicPoint=(points:CubicRoute['points'],t:number):Point=>{
+  const q=clamp(t),v=1-q,[a,b,c,d]=points
+  return {x:v*v*v*a.x+3*v*v*q*b.x+3*v*q*q*c.x+q*q*q*d.x,
+    y:v*v*v*a.y+3*v*v*q*b.y+3*v*q*q*c.y+q*q*q*d.y}
+}
+const finishPath=(route:FinishRoute)=>route.points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(3)} ${p.y.toFixed(3)}`).join(' ')
+const finishPoint=(route:FinishRoute,t:number):Point=>{
+  const lengths=route.points.slice(1).map((p,i)=>Math.hypot(p.x-route.points[i].x,p.y-route.points[i].y))
+  const total=lengths.reduce((a,b)=>a+b,0)
+  let remaining=clamp(t)*total
+  for(let i=0;i<lengths.length;i++){
+    if(remaining<=lengths[i]||i===lengths.length-1){
+      const a=route.points[i],b=route.points[i+1],q=lengths[i]?remaining/lengths[i]:0
+      return {x:a.x+(b.x-a.x)*q,y:a.y+(b.y-a.y)*q}
+    }
+    remaining-=lengths[i]
+  }
+  return route.points[route.points.length-1]
+}
+const eventMarks=(finish:EditorialFinishPlanV11|EditorialLocalBankPlanV2,target:string,u:number)=>finish.events
+  .filter(event=>event.target===target&&event.intensity!=='off').flatMap(event=>{
+    const life=cue(u,event.start,event.start+event.duration)
+    if(life<=0)return []
+    return Array.from({length:event.count},(_,index)=>{
+      // The perimeter is local to the moving actor; glyphs and focal center stay untouched.
+      const angle=(index*137.508+event.seed*11)*Math.PI/180
+      const radius=36+((index*7+event.seed)%11)
+      const x=50+Math.cos(angle)*radius,y=43+Math.sin(angle)*radius
+      return <span key={`${event.id}-${index}`} aria-hidden="true" data-editorial-finish-particle={event.kind}
+        style={{position:'absolute',left:`${x}%`,top:`${y}%`,zIndex:7,pointerEvents:'none',
+          width:`${event.size}cqmin`,height:index%3===0?`${event.size*.28}cqmin`:`${event.size}cqmin`,
+          borderRadius:index%3===0?'0':'50%',background:event.color,
+          opacity:event.opacity*life,transform:`translate(${(1-life)*Math.cos(angle)*1.4}cqmin,${(1-life)*Math.sin(angle)*1.4}cqmin)`}}/>
+    })
+  })
+function route(from:Rect,to:Rect,obstacles:readonly Rect[]=[],supportToSupport=false):CubicRoute {
+  let a=edge(from,to),b=edge(to,from)
+  if(supportToSupport&&Math.abs(center(to).y-center(from).y)>
+      Math.abs(center(to).x-center(from).x)*.75){
+    const side=center(to).x>=center(from).x?1:-1
+    a={x:center(from).x+side*from.width*.55,y:center(from).y}
+    b={x:center(to).x-side*to.width*.55,y:center(to).y}
+  }
+  const dx=b.x-a.x,dy=b.y-a.y
+  const bend=Math.min(6,Math.max(2,Math.abs(dx)+Math.abs(dy))*.08)
+  const horizontal=Math.abs(dx)>=Math.abs(dy)
+  const candidates=[0,-bend,bend,-bend*2,bend*2,-bend*3,bend*3].map(offset=>{
+    const c1=horizontal?{x:a.x+dx*.42,y:a.y+offset}:{x:a.x+offset,y:a.y+dy*.42}
+    const c2=horizontal?{x:a.x+dx*.58,y:b.y+offset}:{x:b.x+offset,y:a.y+dy*.58}
+    const points:[Point,Point,Point,Point]=[a,c1,c2,b]
+    const hits=Array.from({length:19},(_,i)=>cubicPoint(points,(i+1)/20)).reduce((sum,p)=>
+      sum+obstacles.filter(r=>p.x>=r.x-1&&p.x<=r.x+r.width+1&&
+        p.y>=r.y-1&&p.y<=r.y+r.height+1).length,0)
+    const outside=Array.from({length:19},(_,i)=>cubicPoint(points,(i+1)/20))
+      .filter(p=>p.x<2||p.x>98||p.y<2||p.y>98).length
+    return {points,score:hits*100+outside*100+Math.abs(offset)*.1}
+  })
+  const best=candidates.reduce((a,b)=>a.score<=b.score?a:b)
+  const [,c1,c2]=best.points
+  return {path:`M ${a.x.toFixed(3)} ${a.y.toFixed(3)} C ${c1.x.toFixed(3)} ${c1.y.toFixed(3)} ${c2.x.toFixed(3)} ${c2.y.toFixed(3)} ${b.x.toFixed(3)} ${b.y.toFixed(3)}`,
+    tip:b,points:best.points}
+}
+const paperBackground=(plan:EditorialModularFamiliesPlanV1|EditorialLocalBankPlanV2|EditorialLocalBankPlanV3):React.CSSProperties=>({
+  backgroundColor:plan.paper,
+  backgroundImage:plan.background==='ivory-subtle-grid'
+    ?'linear-gradient(rgba(88,83,76,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(88,83,76,.045) 1px,transparent 1px)'
+    :plan.background==='white-soft-paper'
+      ?'radial-gradient(circle at 20% 10%,rgba(210,205,194,.11),transparent 45%),radial-gradient(circle at 80% 90%,rgba(211,205,193,.10),transparent 48%)'
+      :'none',
+  backgroundSize:plan.background==='ivory-subtle-grid'?'5cqmin 5cqmin':'auto',
+})
+
+export const EditorialModularFamiliesV1:React.FC<{
+  spec:VisualSceneSpecV2;runtimeAssets:readonly RuntimeRenderAssetV2[];u:number
+}>=({spec,runtimeAssets,u})=>{
+  const plan=spec.editorialBankV2??spec.editorialFamily!
+  const finish=spec.editorialBankV2??spec.editorialFinish
+  const integratedFinish=(spec.editorialBankV2 as {finishIntegration?:string}|undefined)?.finishIntegration===
+    EDITORIAL_FINISH_INTEGRATION_V2
+  const v3Background=(spec.editorialBankV2 as EditorialLocalBankPlanV3|undefined)?.backgroundAsset
+  const readableSupportLabels=(spec.editorialBankV2 as {supportLabelSize?:string}|undefined)?.supportLabelSize===
+    'mobile-readable-v1'
+  const landscape=window.innerWidth>window.innerHeight
+  const layout=landscape?(finish?.landscapeLayout??plan.landscapeLayout):spec.layout
+  const byId=new Map(runtimeAssets.map(asset=>[asset.slotId,asset.objectUrl]))
+  const url=(id:string)=>{
+    const value=byId.get(id as RuntimeRenderAssetV2['slotId'])
+    if(!value) throw new Error('EDITORIAL_FAMILY_RUNTIME_RESOURCE_MISSING:'+id)
+    return value
+  }
+  const exit=1-phase(u,.89,1)
+  const textStart=plan.entry==='text-first'||plan.entry==='word-first'?.02:.12
+  const textEnter=phase(u,textStart,textStart+.15)
+  const localBeat=spec.editorialBankV2?.beats.find(beat=>u>=beat.start&&u<beat.end)?.id??
+    (spec.editorialBankV2?'read':undefined)
+  const root=useRef<HTMLDivElement>(null)
+  useLayoutEffect(()=>{if(root.current) fitVisualTextV2(root.current)},[spec,landscape])
+  const title=layout.textBounds
+  const visibleWords=[spec.text.connector,spec.text.keyword,spec.text.closing]
+    .filter(Boolean).join(' ').split(/\s+/u).filter(Boolean).length
+  const heroLayout=layout.slotLayouts.find(item=>item.slotId==='hero')
+  const visibleHero=spec.slots.find(item=>item.role==='hero'&&item.state==='present')
+  const opticalHeroScale=visibleHero&&visibleHero.state==='present'
+    ?spec.editorialBankV2?editorialLocalHeroScaleV2(visibleHero.bounds):
+      Math.min(1.35,Math.max(1,.82/visibleHero.bounds.visibleWidthRatio)):1
+  const heroEnter=plan.hero?phase(u,plan.hero.enter,plan.hero.settle):0
+  const camera=plan.camera.mode==='quiet-drift'?{
+    x:(1-phase(u,spec.editorialBankV2 ? .02 : .05,spec.editorialBankV2 ? .24 : .38))*plan.camera.dx,
+    y:(1-phase(u,spec.editorialBankV2 ? .02 : .05,spec.editorialBankV2 ? .24 : .38))*plan.camera.dy,
+  }:{x:0,y:0}
+  const nodeRect=(id:string)=>{
+    const envelope=layout.slotLayouts.find(slot=>slot.slotId===id)?.envelope
+    const slot=spec.slots.find(item=>item.slotId===id&&item.state==='present')
+    const alpha=plan.supportTreatment==='naked-label'&&slot?.state==='present'
+      ?slot.bounds.alphaBounds:undefined
+    return envelope&&id==='hero'?relationTarget(envelope):envelope?supportTarget(envelope,landscape,alpha):undefined
+  }
+  return <div key={sceneSpecReactKeyAny(spec)} data-visual-mvp="true" data-visual-composition={spec.editorialBankV2?'v15-editorial-local-bank-v2':'v15-editorial-modular-families'}
+    data-editorial-local-beat={localBeat}
+    data-qc-layout-family={plan.family} data-qc-empty-hero-frames="0" data-editorial-family={plan.family}
+    data-qc-background-motion="none" data-qc-decorator-count="0"
+    style={{position:'absolute',inset:0,overflow:'hidden',containerType:'size',fontSynthesis:'none',color:plan.ink,
+      ...paperBackground(plan),...(v3Background?{backgroundImage:`url("${url('idea-background')}")`,backgroundSize:'cover',backgroundPosition:'center'}:{})}}>
+    {finish&&finish.ambientIntensity!=='off'&&Array.from({length:7},(_,index)=>{
+      const x=5+(index*37)%90,y=6+(index*29)%88
+      const occupied=(r:Rect)=>x>=r.x-2&&x<=r.x+r.width+2&&y>=r.y-2&&y<=r.y+r.height+2
+      if(occupied(layout.textBounds)||layout.slotLayouts.some(s=>occupied(s.envelope)))return null
+      const strength=finish.ambientIntensity==='enfasis'?.44:.31
+      const readBudget=integratedFinish&&localBeat==='read'?.28:
+        finish.relations.some(r=>u>=r.start&&u<=r.end)?0.4:1
+      return <span key={`ambient-${index}`} aria-hidden="true" data-editorial-finish-ambient="true"
+        style={{position:'absolute',left:`${x}%`,top:`${y}%`,width:'.62cqmin',height:'.62cqmin',
+          borderRadius:'50%',background:finish.colors.effects,opacity:strength*readBudget*phase(u,.05,.18)*exit,
+          pointerEvents:'none'}}/>
+    })}
+    {!finish&&plan.particles.mode!=='none'&&Array.from({length:plan.particles.count},(_,index)=>{
+      const x=7+(index*37)%86,y=6+(index*29)%88
+      return <span key={index} aria-hidden="true" style={{position:'absolute',left:`${x}%`,top:`${y}%`,
+        width:plan.particles.mode==='ticks'?'.4cqmin':'.22cqmin',
+        height:plan.particles.mode==='ticks'?'.08cqmin':'.22cqmin',borderRadius:'50%',
+        background:plan.accent,opacity:plan.particles.opacity*phase(u,.5,.72),pointerEvents:'none'}}/>
+    })}
+    <div ref={root} data-qc-text="true" data-qc-hide-container="true" data-qc-text-fit="v2" data-qc-max-lines="3"
+      data-qc-visible-words={visibleWords} data-qc-contrast-treatment="dark-text"
+      style={{position:'absolute',left:`${title.x}%`,top:`${title.y}%`,width:`${title.width}%`,height:`${title.height}%`,
+        zIndex:10,display:'flex',flexDirection:'column',justifyContent:'center',gap:'.6cqmin',
+        opacity:textEnter*exit,padding:'.5cqmin',boxSizing:'border-box',textAlign:layout.textAlignment,
+        overflow:'hidden'}}>
+      {spec.text.connector&&<div data-fit-body="true" data-qc-text-glyph="true"
+        style={{opacity:spec.editorialBankV2?phase(u,textStart,textStart+.11):1,
+          fontFamily:finish?`'${finish.typography.display}',serif`:plan.family==='editorial'?'Fraunces,serif':'DM Sans,sans-serif',
+          fontSize:plan.family==='editorial'?'9cqmin':'3.35cqmin',fontWeight:finish?finish.typography.weight:plan.family==='editorial'?600:500,
+          color:finish?.colors.headline,letterSpacing:'-.02em',lineHeight:1.1}}>{spec.text.connector}</div>}
+      <div data-fit-title="true" data-qc-keyword="true" data-qc-text-glyph="true" data-qc-keyword-family={finish?.typography.display??'Fraunces'}
+        style={{opacity:spec.editorialBankV2?phase(u,textStart+.04,textStart+.17):1,
+          fontFamily:finish?`'${finish.typography.display}',serif`:'Fraunces,serif',fontSize:plan.family==='editorial'?'21cqmin':'17.5cqmin',
+          fontWeight:finish?.typography.weight??650,lineHeight:.95,letterSpacing:'-.04em',color:finish?.colors.keyword??plan.accent}}>{spec.text.keyword}</div>
+      {spec.text.closing&&<div data-fit-body="true" data-qc-closing="true" data-qc-text-glyph="true"
+        style={{opacity:spec.editorialBankV2?phase(u,textStart+.09,textStart+.22):1,
+          fontFamily:'DM Sans,sans-serif',fontSize:'3.35cqmin',fontWeight:500,lineHeight:1.18,
+          color:finish?.colors.body}}>{spec.text.closing}</div>}
+      <span aria-hidden="true" style={{display:'block',width:'10cqmin',height:'.17cqmin',
+        background:plan.accent,transform:`scaleX(${phase(u,textStart+.10,textStart+.26)})`,transformOrigin:'left'}}/>
+    </div>
+    {plan.hero&&heroLayout&&<div data-qc-asset="true" data-qc-hero="true" data-qc-slot="hero" data-qc-role="hero"
+      style={{position:'absolute',left:`${heroLayout.envelope.x}%`,top:`${heroLayout.envelope.y}%`,
+        width:`${heroLayout.envelope.width}%`,height:`${heroLayout.envelope.height}%`,zIndex:4,
+        opacity:heroEnter*exit,transform:`translate(${camera.x}cqmin,${camera.y}cqmin) scale(${(.94+.06*heroEnter).toFixed(4)})`,
+        transformOrigin:'50% 55%'}}>
+      {plan.layers.filter(layer=>layer.id==='idea-rear'||layer.id==='idea-accent').map(layer=>{
+        const enter=phase(u,layer.timing.start,layer.timing.settle)
+        const style:React.CSSProperties={position:'absolute',left:`${layer.rect.x}%`,top:`${layer.rect.y}%`,
+          width:`${layer.rect.width}%`,height:`${layer.rect.height}%`,zIndex:layer.zIndex,
+          opacity:enter,transform:`translate(${(1-enter)*layer.from.x}%,${(1-enter)*layer.from.y}%) scale(${layer.from.scale+(1-layer.from.scale)*enter})`,
+          objectFit:'contain',pointerEvents:'none'}
+        return layer.colorCapability==='accent-primary'
+          ?<AlphaMaskRasterV4 key={layer.id} url={url(layer.id)} color={plan.accent}
+            maskId={`family-${layer.id}`} style={style} />
+          :<img key={layer.id} src={url(layer.id)} alt="" style={style}/>
+      })}
+      {finish&&eventMarks(finish,'hero',u)}
+      {!finish&&plan.particles.mode!=='none'&&[[8,24],[88,27],[13,78],[85,75]].map(([x,y],index)=><span
+        key={`hero-dust-${index}`} aria-hidden="true" style={{position:'absolute',left:`${x}%`,top:`${y}%`,
+          width:'.45cqmin',height:'.45cqmin',borderRadius:'50%',background:plan.accent,zIndex:2,
+          opacity:.18*cue(u,plan.hero!.enter,plan.hero!.settle),pointerEvents:'none'}}/>)}
+      <img src={url('hero')} alt="" style={{position:'absolute',left:'5%',top:'5%',width:'90%',height:'90%',
+        objectFit:'contain',zIndex:3,transform:`scale(${opticalHeroScale.toFixed(4)})`,
+        filter:'drop-shadow(.4cqmin .75cqmin .85cqmin rgba(25,22,18,.19))'}}/>
+      {plan.layers.filter(layer=>layer.id==='idea-front').map(layer=>{
+        const enter=phase(u,layer.timing.start,layer.timing.settle)
+        return <img key={layer.id} src={url(layer.id)} alt="" style={{position:'absolute',
+          left:`${layer.rect.x}%`,top:`${layer.rect.y}%`,width:`${layer.rect.width}%`,height:`${layer.rect.height}%`,
+          zIndex:layer.zIndex,objectFit:'contain',opacity:enter}}/>
+      })}
+    </div>}
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" data-editorial-relations="true"
+      style={{position:'absolute',inset:0,width:'100%',height:'100%',zIndex:3,pointerEvents:'none',opacity:exit}}>
+      {finish&&finish.relations.map((relation,index)=>{
+        const route=landscape?relation.landscape:relation.portrait
+        const path=finishPath(route),draw=phase(u,relation.start,relation.arrival)
+        const directional=['informs','causes','transfers'].includes(relation.meaning)
+        const travel=directional&&['dot-flow','light-pulse'].includes(relation.representation)&&
+          u>=relation.start&&u<relation.arrival
+        const tip=route.points[route.points.length-1]
+        const before=route.points[route.points.length-2]
+        const angle=Math.atan2(tip.y-before.y,tip.x-before.x)*180/Math.PI
+        const moving=finishPoint(route,phase(u,relation.start,relation.arrival))
+        const arrival=cue(u,relation.arrival-.015,relation.end)
+        const dotted=relation.representation==='dotted'
+        const maskId=`editorial-finish-route-${index}`
+        return <g key={`finish-${index}`} data-editorial-finish-relation={relation.representation}
+          data-relation-meaning={relation.meaning}>
+          <defs><mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+            <path d={path} pathLength={100} fill="none" stroke="white" strokeWidth="2"
+              strokeDasharray={`${(100*draw).toFixed(3)} 100`} />
+          </mask></defs>
+          {relation.representation!=='dot-flow'&&<path d={path} fill="none" pathLength={100}
+            stroke={relation.representation==='accent-link'?relation.color:plan.ink}
+            strokeWidth={relation.representation==='light-pulse'?.2:.19}
+            strokeLinecap="round" strokeLinejoin="round"
+            strokeDasharray={dotted?'1.4 2.2':undefined}
+            mask={`url(#${maskId})`} opacity={relation.representation==='accent-link'?.5:1} />}
+          {relation.representation==='dot-flow'&&<path d={path} fill="none" stroke={plan.ink}
+            strokeWidth=".18" strokeDasharray=".55 1.25" strokeLinecap="round"
+            mask={integratedFinish?`url(#${maskId})`:undefined} opacity={draw*.68} />}
+          {directional&&draw>.98&&relation.representation!=='accent-link'&&
+            <path d="M -1.1 -.53 L 0 0 L -1.1 .53" fill="none" stroke={relation.color}
+              strokeWidth=".19" strokeLinecap="round" strokeLinejoin="round"
+              transform={`translate(${tip.x} ${tip.y}) rotate(${angle})`} />}
+          {!directional&&draw>.98&&<circle cx={tip.x} cy={tip.y} r=".31" fill={relation.color}/>}
+          {travel&&<>
+            {relation.representation==='light-pulse'&&<circle cx={moving.x} cy={moving.y} r="1.6"
+              fill={relation.color} opacity=".12" data-editorial-finish-light="true" />}
+            <circle cx={moving.x} cy={moving.y} r={relation.representation==='dot-flow'?.78:.56}
+              fill={relation.color} data-editorial-finish-token="true" />
+          </>}
+          {arrival>0&&relation.response!=='none'&&<circle cx={tip.x} cy={tip.y}
+            r={.4+arrival*.85} fill="none" stroke={relation.color} strokeWidth=".16"
+            opacity={arrival*.65} data-editorial-finish-arrival="true" />}
+        </g>
+      })}
+      {!finish&&plan.relations.map((relation,index)=>{
+        const from=nodeRect(relation.from),to=nodeRect(relation.to)
+        if(!from||!to) throw new Error('EDITORIAL_FAMILY_RELATION_LAYOUT_MISSING')
+        const endpointLabels=[relation.from,relation.to].filter(id=>id!=='hero').flatMap(id=>{
+          const r=layout.slotLayouts.find(slot=>slot.slotId===id)?.envelope
+          return r?[{x:r.x,y:r.y+r.height*.68,width:r.width,height:r.height*.32}]:[]
+        })
+        const obstacles=[layout.textBounds,...endpointLabels,...layout.slotLayouts
+          .filter(slot=>slot.slotId!==relation.from&&slot.slotId!==relation.to)
+          .map(slot=>slot.slotId==='hero'?relationTarget(slot.envelope):slot.envelope)]
+        const {path,tip,points}=route(from,to,obstacles,
+          relation.from!=='hero'&&relation.to!=='hero'),draw=phase(u,relation.start,relation.end)
+        const transfer=relation.meaning==='transfers'&&u>=relation.end&&u<relation.end+.14
+        const moving=cubicPoint(points,phase(u,relation.end,relation.end+.12))
+        const directional=relation.meaning==='causes'||relation.meaning==='transfers'
+        return <g key={index} opacity={draw>0?1:0} data-relation-meaning={relation.meaning}>
+          <path d={path} pathLength={1} fill="none" stroke={plan.ink} strokeWidth=".16"
+            strokeDasharray={1} strokeDashoffset={1-draw}/>
+          <circle cx={tip.x} cy={tip.y} r=".23" fill={plan.accent} opacity={draw>.98?1:0}/>
+          {directional&&draw>.98&&<circle cx={tip.x} cy={tip.y} r=".37" fill={plan.accent}/>}
+          {transfer&&<circle cx={moving.x} cy={moving.y} r=".52" fill={plan.accent}
+            data-editorial-transfer-token="true" />}
+          {transfer&&<circle cx={tip.x} cy={tip.y} r={.4+.6*cue(u,relation.end+.10,relation.end+.18)}
+            fill="none" stroke={plan.accent} strokeWidth=".12"
+            opacity={cue(u,relation.end+.10,relation.end+.18)} data-editorial-arrival="true"/>}
+        </g>
+      })}
+    </svg>
+    {plan.supports.map((support,index)=>{
+      const position=layout.slotLayouts.find(slot=>slot.slotId===support.slotId)!.envelope
+      const enter=phase(u,support.enter,support.settle)
+      const localReposition=spec.editorialBankV2&&heroLayout?{
+        x:(heroLayout.envelope.x+heroLayout.envelope.width/2-position.x-position.width/2)*.12*(1-enter),
+        y:(heroLayout.envelope.y+heroLayout.envelope.height/2-position.y-position.height/2)*.12*(1-enter),
+      }:undefined
+      const material=plan.supportTreatment
+      const card=material!=='naked-label'
+      const dark=material==='ink-badge',orange=material==='accent-tile'
+      const receiving=finish?.relations.filter(r=>r.to===support.slotId).map(r=>({
+        recipe:r,level:cue(u,r.arrival-.025,r.end)})).sort((a,b)=>b.level-a.level)[0]
+      const response=receiving?.level??0
+      const tint=receiving?.recipe.response==='accent'&&response>0&&!dark&&!orange?receiving.recipe.color:
+        dark||orange?'#FAF9F6':plan.supportTint
+      return <div key={support.slotId} data-qc-asset="true" data-qc-slot={support.slotId} data-qc-role={support.slotId}
+        style={{position:'absolute',left:`${position.x}%`,top:`${position.y}%`,
+          width:`${position.width}%`,height:`${position.height}%`,zIndex:5,
+          opacity:enter*exit,transform:localReposition?
+            `translate(${localReposition.x.toFixed(3)}cqw,${localReposition.y.toFixed(3)}cqh)`:
+            `translateY(${((1-enter)*1.3).toFixed(3)}cqmin)`,
+          display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'.4cqmin'}}>
+        <div style={{height:readableSupportLabels?'60%':'70%',
+          aspectRatio:'1',maxWidth:'84%',borderRadius:dark?'50%':'1.2cqmin',
+          background:card?(dark?plan.ink:orange?plan.accent:'#FAF9F6'):'transparent',
+          border:card?'1px solid rgba(17,17,15,.11)':'none',boxSizing:'border-box',
+          boxShadow:card?'.18cqmin .27cqmin .24cqmin rgba(17,17,15,.12),.4cqmin .7cqmin 1.25cqmin rgba(17,17,15,.07)':'none',
+          padding:card?'1cqmin':'0',display:'flex',alignItems:'center',justifyContent:'center',
+          outline:finish&&response>0&&(receiving?.recipe.response==='halo'||
+            receiving?.recipe.response==='accent'&&(dark||orange))
+            ?`${(.12+response*.14).toFixed(3)}cqmin solid ${receiving.recipe.color}`:undefined,
+          outlineOffset:'.35cqmin'}}>
+          {finish?<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',
+            transform:finish&&receiving?.recipe.response==='scale'?`scale(${(1+response*.06).toFixed(4)})`:undefined}}>
+            <AlphaMaskRasterV4 url={url(support.slotId)} color={tint}
+              maskId={`family-${support.slotId}-${index}`} renderMode="css" />
+          </div>:<AlphaMaskRasterV4 url={url(support.slotId)} color={dark||orange?'#FAF9F6':plan.supportTint}
+            maskId={`family-${support.slotId}-${index}`} renderMode="css" />}
+        </div>
+        {finish&&eventMarks(finish,support.slotId,u)}
+        {!finish&&plan.particles.mode!=='none'&&<span aria-hidden="true" style={{position:'absolute',left:'14%',top:'8%',
+          width:'.28cqmin',height:'.28cqmin',borderRadius:'50%',background:plan.accent,
+          opacity:.2*cue(u,support.enter,support.settle),pointerEvents:'none'}}/>}
+        <div data-qc-text-glyph="true" style={{fontFamily:'IBM Plex Sans Condensed,sans-serif',
+          fontSize:readableSupportLabels?'3cqmin':'1.85cqmin',
+          letterSpacing:'.12em',fontWeight:400,
+          ...([EDITORIAL_LOCAL_BANK_V3_2.revision,EDITORIAL_LOCAL_BANK_V4.revision].includes(spec.editorialBankV2?.revision as typeof EDITORIAL_LOCAL_BANK_V3_2.revision)
+            ?{whiteSpace:'normal' as const,overflowWrap:'anywhere' as const,textAlign:'center' as const,
+              width:'130%',lineHeight:1.08}
+            :{whiteSpace:'nowrap' as const}),
+          color:finish?.colors.body}}>{support.label}</div>
+      </div>
+    })}
+  </div>
+}

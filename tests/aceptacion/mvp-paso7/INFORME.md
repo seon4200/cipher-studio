@@ -13,11 +13,11 @@ Medido el 05/09/2026, hora de Bogotá (algunas evidencias llevan 06/09 en UTC). 
 
 ## Vídeo de producción, no simulación
 
-Proyecto existente: `C:\Proyectos\mi-app\cipher-studio\proyectos\video-3-1788402898964` (`video 3`). Se reutilizaron su guion, sus 47 segmentos de transcripción, su fuente y la voz `materiales/audio/maestro.m4a` (285,955 s). No se inventó contenido.
+Proyecto existente: `%CIPHER_STUDIO_SOURCE%\cipher-studio\proyectos\video-3-1788402898964` (`video 3`). Se reutilizaron su guion, sus 47 segmentos de transcripción, su fuente y la voz `materiales/audio/maestro.m4a` (285,955 s). No se inventó contenido.
 
 Salida para que Jairo la vea entera:
 
-`C:\Proyectos\mi-app\cipher-studio\proyectos\video-3-1788402898964\mvp-paso7\cipher-mvp-1788651762739.mp4`
+`%CIPHER_STUDIO_SOURCE%\cipher-studio\proyectos\video-3-1788402898964\mvp-paso7\cipher-mvp-1788651762739.mp4`
 
 74.621.552 bytes; H.264, 1080×1920, 30 fps, 8.578 frames, 285,922 s de vídeo y audio AAC. Generación y exportación por los handlers reales, APIs y caché de producción. El arnés solo sustituye el diálogo de destino por una ruta nueva. El estado anterior queda respaldado en `mvp-paso7/estado-antes-*.json`, y el timeline nuevo es una versión adicional del proyecto.
 
@@ -125,7 +125,7 @@ Umbral de ingeniería contra el falso cambio de un píxel, **no medición psicof
 
 ## Verificación y límites pendientes
 
-7b (clon nuevo, instalación y nueve suites) ya estaba cerrado y no se repitió. En el árbol final de este paso: `npx tsc -p tsconfig.json` **0**, `npm run build` **0**, `npm test` **9/9 y exit 0**. `test:exclusion` no crasheó en esta ejecución. Logs locales de esta vuelta: `C:\graphify\mvp-build-final.log` y `mvp-test-final.log`.
+7b (clon nuevo, instalación y nueve suites) ya estaba cerrado y no se repitió. En el árbol final de este paso: `npx tsc -p tsconfig.json` **0**, `npm run build` **0**, `npm test` **9/9 y exit 0**. `test:exclusion` no crasheó en esta ejecución. Logs locales de esta vuelta: `%CIPHER_LOCAL_ROOT%\mvp-build-final.log` y `mvp-test-final.log`.
 
 Build verificado por ficheros: **17 en dist y 4 en dist-electron**, no un código de salida solamente. Cero artefactos banco/MvpCobertura. Los 21 SHA-256 no cambiaron al añadir la vista de cobertura y sus arneses. Muestras de tamaño REAL en disco (no tamaño de texto que imprime Vite):
 

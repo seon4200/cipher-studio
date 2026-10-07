@@ -41,3 +41,17 @@ export function sanearSemanticaVisual(crudo: unknown): SemanticaVisual | null {
     return null;
   }
 }
+
+/** Diagnostic only: preserve the historic sanitizer and expose its rejection point without
+ * persisting raw model output, credentials, or a guessed replacement relation. */
+export function diagnosticarSemanticaVisual(crudo: unknown): string | null {
+  if (crudo === null) return null;
+  if (!crudo || typeof crudo !== 'object' || Array.isArray(crudo)) return 'SEMANTICA_SHAPE';
+  const value = crudo as Record<string, unknown>;
+  if (typeof value.relacion !== 'string' || !estructurasParaRelacion(value.relacion).length)
+    return 'RELACION_FUERA_DE_ENUM';
+  if (!sanearConceptos(value.terminos)) return 'TERMINOS_INVALIDOS';
+  if (value.ancla !== undefined && !conceptoSeguro(value.ancla)) return 'ANCLA_INVALIDA';
+  if (!sanearSemanticaVisual(crudo)) return 'TERMINOS_REPETIDOS_O_INCOMPATIBLES';
+  return null;
+}

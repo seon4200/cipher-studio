@@ -1,11 +1,164 @@
 # AVANCE — dónde vamos
 
+> **Ronda D — Motion Graphics productivo V15, pendiente de revisión humana
+> (10/09/2026).** La rama acumulativa `motion-graphics-productivo-v15` parte del
+> HEAD de C `754ac864`. El commit `3b310af` contiene el cambio productivo y el
+> único salto `VERSION_PLANTILLAS=14 → 15`; `c29996f` fija pruebas y evidencia.
+> SceneSpec/Bindings V2 materializan hasta un Hero y dos Supports, Pixabay sólo
+> como ProjectAsset local verificado, OpenMoji original-color, Solar system-tint,
+> VideoVisualStyle por vídeo, motion por rol y QC multiasset dentro del único
+> renderer `visual_escena`. La aceptación pasa 17/17 familias y 20/20 escenas;
+> V14 y legacy tienen `pixelDiff=0`. El holdout congelado es deliberadamente
+> adverso y revela deuda de Retrieval: Top-1 0/72, Top-5 5/72, 67 sin resultado.
+> No se ajustó el lexicón después de verlo. Las hojas y el MP4 están en
+> `tests/aceptacion/motion-graphics-v15/`; `technicalVerdict=PASS` y
+> `visualVerdict=PENDING_HUMAN_REVIEW`. No hay merge, tag ni push.
+
+> **Ronda 4B — composición visual V2, pendiente de revisión humana
+> (09/09/2026).** La rama `visual-composition-repair-v1` parte de
+> `v-semantic-decision-repair-v1`. El commit productivo `693af0f` agrupa los
+> cambios de píxel y la única subida `VERSION_PLANTILLAS=12 → 13`; `5c3a6f3`
+> añade la aceptación real-like. Sobre 50 solicitudes forenses: las 50 se
+> materializan, 0 se rechazan/sustituyen y 0 vuelven a legacy;
+> la densidad pasa de 33/34 saturadas a baja 3 · media 31 · alta 16 · saturada 0,
+> los decoradores bajan de 13,74 a 1,66 por escena y los huecos de Hero de 5 a 0.
+> La vía legacy comparada conserva 0 píxeles distintos; V12 y V13 usan hashes de
+> caché diferentes. La hoja V12/V13 y el vídeo productivo de 12 clips están en
+> `tests/aceptacion/visual-composition-v2/`. Las puertas automáticas pasan, pero
+> no constituyen aprobación estética: `visualVerdict=pending-human-review`.
+> No hay merge ni tag de 4B, y no se inicia otra ronda.
+>
+> **Ronda 4A — reparación semántica local integrada (09/09/2026).** El merge
+> `d701b5b` y el tag inmutable `v-semantic-decision-repair-v1` cerraron la ronda
+> tras aprobación humana de la corrección temporal. Sustituye el
+> párrafo global como entrada de AssetIntent por contexto temporizado local de
+> hasta 360 caracteres, evita que una escena nueva vuelva a legacy por longitud
+> y persiste traza y report QC fuera de `project-state` y PixelIdentity. En su
+> corpus forense de 22 escenas: 0 caen a legacy por input, 0 ganadores
+> residuales, 14 decisiones OpenMoji y 8 editorial-text; 14/14 oportunidades
+> concretas se evalúan/materializan o rechazan con razón explícita (100,0 %).
+> La corrección temporal conserva `INDIGNACIÓN`
+> cuando su intervalo contiene esa palabra, sin dejar que `EMOCIÓN`, vecina en
+> la misma cláusula, la desplace.
+> La revisión humana aprobó la decisión semántica, no los problemas visuales que
+> quedaron expresamente para 4B. 4A no cambió renderer, hash, QC, fondos,
+> estructuras, motion o `VERSION_PLANTILLAS=12`. La huella de 7
+> `project-state.json` se conserva sólo como lectura. Evidencia:
+> `docs/asset-engine/semantic-decision-repair-v1.md` y
+> `tests/aceptacion/semantic-decision-repair-v1/`.
+
+> **Asset Resolver V1 integrado localmente (09/09/2026).** El merge
+> `de9f6087` incorpora `AssetIntentV1`, metáfora antes de asset, resolver local
+> y compilador único a `VisualSceneSpecV1 + RenderBindingsV1`. Las únicas fuentes
+> activas son ProjectAsset reutilizable, OpenMoji local, Solar procedimental y
+> editorial-text; no hay red, IA ni provider nuevo. El corpus físico de 42 escenas
+> resolvió 20 asset-led (8 OpenMoji, 12 Solar) y 22 editorial-text, con las tres
+> barreras críticas activas: termodinámica no recibe *mobile phone off*, peatones
+> no recibe *no pedestrians* y mástil no recibe *mastodon*. Un vídeo automático de
+> once Visuales termina por `renderGraphicClip → export-video`, con Hero, texto,
+> motion, tres estructuras y fallback trazable; no hay selección manual de assets.
+> La suite nueva pasa 40/40 y el runner pasa 14/14 en el repo y en un clon nuevo
+> del árbol de código final. Legacy sin `sceneSpec` no se recompila al abrir;
+> `VERSION_PLANTILLAS=12` se conserva porque la identidad nueva queda delimitada
+> por `sceneSpec`, revisiones y SHA, sin cambiar píxeles legacy. Los tres proyectos
+> reales conservaron su huella y no recibieron assets. ByPeople sigue
+> `planned-not-audited`: no es candidato activo. Retorno: `v-asset-resolver-v1`.
+> Próxima acción: usar Cipher en vídeos reales y recoger evidencia, no iniciar otra
+> fase lineal automáticamente. Evidencia:
+> `docs/asset-engine/asset-resolver-v1.md` y
+> `tests/aceptacion/asset-resolver-v1/`.
+
+> **Visual MVP productivo integrado localmente (08/09/2026).** El merge
+> `471476ac` incorpora desde una rama limpia el primer Visual productivo con
+> ProjectAsset OpenMoji verificado, texto editorial, tratamientos por familia,
+> motion mínimo y QC. `extra.sceneSpec` es la única vía nueva; su ausencia
+> conserva legacy. RenderBindings y rutas quedan fuera de PixelIdentity, mientras
+> SHA/estado/tratamiento/fit/bounds/motion/texto/revisiones gobiernan tanto
+> `hashGrafico` como la clave React. Se certifican `constelacion`, `marcoPoster` y
+> `editorial`; `accent-mask` para icono simple, `duotone` para ilustración
+> compleja y `none` como excepción explícita. La hoja productiva contiene doce
+> casos y el vídeo real siete Visuales/11,2 s por `renderGraphicClip` → timeline/
+> export. QC: cero findings y contraste local p10 16,49–17,80. Regresión legacy
+> contra `b735f05`: 0%/0 de diferencia bajo el mismo runtime. Rendimiento medido:
+> +4,97% mediano, bajo la puerta de +25%. La suite nueva pasa 40/40; runner
+> 13/13 en el repo y en clon nuevo. Los tres proyectos reales conservaron huella
+> y no recibieron SVG/manifest. `VERSION_PLANTILLAS=12`: la nueva identidad está
+> completamente versionada y legacy no cambió. Retorno:
+> `v-visual-asset-mvp-v1`. Siguiente: Asset Resolver mínimo automático, no nuevos
+> providers. Evidencia: `docs/asset-engine/visual-asset-mvp-v1.md` y
+> `tests/aceptacion/visual-asset-mvp/`.
+
+> **3.4C — round trip OpenMoji integrado localmente (08/09/2026).** El merge
+> local `04cba197` integra `openmoji-asset-roundtrip-3-4c`; el retorno
+> `v-openmoji-asset-roundtrip-v1` queda sobre el cierre documental de este
+> estado. Publica sólo `openmoji:1f382` en un proyecto
+> temporal explícito: valida SVG profundo, calcula SHA-256, publica mediante
+> temporal+rename en `materiales/assets/openmoji/<sha>.svg`, registra el
+> AssetManifest V1 real y lo reabre sin red. La suite nueva tiene 50 casos y el
+> runner pasa a 12 suites. Un clon nuevo del árbol ejecutable pasó `npm ci`,
+> typecheck, build, catálogo 30/30, round trip 50/50 y 12/12 suites. No hay Hero,
+> renderer, hash, píxeles, IPC, selector, descarga ni SVG/manifest añadido a los
+> tres proyectos reales. Evidencia:
+> `docs/asset-engine/openmoji-asset-roundtrip-v1.md`.
+
+> **3.4B — integrado y comprobado (08/09/2026).** El merge local `5bf8635` de la
+> rama
+> `openmoji-catalog-3-4b` fija `openmoji@17.0.0` como devDependency de build y
+> genera un catálogo local de metadata + SVG color + licencia, fuera de Git. El
+> catálogo devuelve candidatos deterministas por annotation/emoji/hex/grupo/
+> subgrupo/alias, con 14 entradas `food-drink/food-sweet` y `birthday cake`
+> (`1F382`) localizado. La validación exhaustiva de 4.495 SVG queda en build;
+> carga, búsqueda y listas no tocan `color/svg`, y resolver el SVG elegido lo
+> valida lazy. La suite 11 cubre 30 casos con red bloqueada; el retorno
+> `v-openmoji-catalog-v1` cierra esta evidencia. No se copió SVG a proyectos, no
+> se escribió ningún registro OpenMoji en AssetManifest, no se dibujó Hero y
+> `VERSION_PLANTILLAS` sigue en 12.
+> Evidencia y límites:
+> `docs/asset-engine/openmoji-catalog-v1.md`.
+>
+> **Reconciliación 3.4B.1 — tres proyectos actuales y pruebas aisladas
+> (08/09/2026).** El usuario confirmó que eliminó manualmente la mayoría de los
+> proyectos: 61 y 56 son recuentos históricos; la línea base operativa actual son
+> exactamente tres `proyectos/**/project-state.json`. Se hizo una copia externa
+> completa antes de probar. Los tres conservaron ruta, SHA-256, tamaño y
+> `LastWriteTimeUtc` después de typecheck, build, 30/30 casos OpenMoji y 11/11
+> suites. Por tanto, el descenso 56 → 3 no se atribuye a `npm test` ni al catálogo.
+> El merge local `23ed2c2` añade fixtures marcados bajo `%TEMP%`, rechazos de
+> raíces peligrosas y una huella que el runner compara después de cada suite.
+> Un `EBUSY` de Windows conserva el fixture temporal marcado para inspección; no
+> amplía la limpieza. Un `project-state.json` V1 vacío y su `.bak` legacy hallados
+> en la raíz no coincidían con los tres proyectos: se copiaron y movieron a
+> cuarentena externa. El producto conserva un fallback posible a `process.cwd()`,
+> pero no hay evidencia que permita atribuir esos dos archivos a una ejecución
+> concreta; el origen queda como no demostrable.
+>
+> **3.4A — persistencia V1 integrada y comprobada (07/09/2026).**
+> Merge local `8760491` de `asset-persistence-3-4a`. Estado versionado V1,
+> migración legacy en memoria, ProjectSubstrate null/validado sin consumo visual,
+> manifest vacío para nuevos proyectos, rutas confinadas y JSON recuperable con
+> backup. Los legacy sin manifest abren sin crearlo. Guardado conserva campos
+> desconocidos; Guardar como captura el origen antes del diálogo.
+> Clon NUEVO de `6b8dddf`: npm ci, tsc, build por ficheros y **10/10 suites**;
+> suite nueva de persistencia/assets con 25 grupos sobre consumidores compilados.
+> Los commits posteriores a ese árbol ejecutable son sólo documentación. La
+> certificación de rama registró 61 estados reales intactos; otra medición
+> posterior registró 56, también sin cambios de SHA, tamaño o fecha durante esa
+> ejecución. Ambos son recuentos históricos. El usuario confirmó después la
+> eliminación manual hasta los tres proyectos que decidió conservar. Evidencia y
+> limitaciones:
+> `docs/asset-engine/persistencia-assets-v1.md`.
+> El retorno `v-persistencia-assets-v1` apunta al cierre documental final. Versión
+> 12 y visual_escena intactas. Sin OpenMoji, Hero ni imágenes; siguiente código
+> **3.4B**. Las referencias históricas inferiores a 3.4A describen master previo.
+
 **Regla:** un punto solo se marca ✅ con **evidencia** — hash del commit, suites
 verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho".
 
-> **Estado auditado al 06/09/2026 — este bloque manda sobre el texto histórico
-> inferior.** El código está en `44ca34a`: `COMPOSICION_VISUAL='visual_escena'`
-> y `VERSION_PLANTILLAS=11` (`src/main/index.ts:1081,4724`). El catálogo activo
+> **Estado auditado al 07/09/2026 — este bloque manda sobre el texto histórico
+> inferior.** El checkpoint integrado `v-densidad-solar-instrumentado` conserva
+> `COMPOSICION_VISUAL='visual_escena'` y deja `VERSION_PLANTILLAS=12` por el cambio
+> de resolución Solar que puede mover
+> píxeles de `extra` ya existente. El catálogo activo
 > contiene 17 estructuras, 22 fondos, 16 cámaras, 5 densidades, 5 ritmos y 10
 > tipografías (`src/shared/escena.ts:281–971`). `combinacionesLegales()` devuelve
 > 692.750 identidades legales; las 618.389.000 instancias nominales no son una
@@ -18,6 +171,41 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 > tipografías implementadas. La Fase 9 de imágenes sigue sin implementar y debe
 > reevaluarse antes de continuar el plan antiguo: la prioridad de producto ahora
 > son motion graphics con recortes/imágenes protagonistas. No se inicia aquí.
+>
+> **Densidad y Solar (integrados desde `5388088`).** La densidad deja de partir de tres
+> conceptos fijos: deriva de frase, palabra y etiquetas. En la traza real de 42
+> Visuales de `mvp-paso7`, `alta 42` se recalcula como `media 2 · alta 26 ·
+> saturada 14`; es una medición de esa traza, no una promesa de distribución general.
+> Solar conserva `68/188` como agregado histórico irrecuperable y mide un corpus
+> nuevo, versionado, de 158 solicitudes: `43/158 → 72/158`. No son muestras
+> comparables.
+>
+> **Auditoría 3.3 integrada (`993a123`).** Los documentos de `docs/asset-engine/`
+> trazan proyecto, materiales, stock, descarga, timeline y hash. Estado auditado
+> antes de 3.4A (`c0a9c78`): rutas mayormente absolutas, sin schema/migraciones ni
+> manifiesto productivo de assets. 3.4A incorpora schema V1 y un manifest mínimo
+> para proyectos nuevos; no migra rutas legacy ni implementa OpenMoji o Photo Hero.
+> Retorno de la auditoría: `v-auditoria-pipeline-assets`.
+> **3.3.5 integrada documentalmente:** merge local `1d8415a` desde la base
+> `291069e` / `v-auditoria-pipeline-assets`, conserva `74d1572` y corrección
+> `140ed8e`. Retorno de cierre: `v-scene-recipe-editorial-v1`.
+> Scene Recipe + ProjectSubstrate separan identidad/locator y fijan una única
+> proyección `extra.sceneSpec`. Validador documental: 18 ejemplos (16 asset-led,
+> 2 editorial-text), 6 hard cuts y 5 Heroes sin salida; no prueba calidad visual.
+> Fuente: `docs/asset-engine/validar-scene-recipe-v1.cjs`, corpus de `140ed8e`.
+> No existe OpenMoji integrado ni Photo Hero. `materiales/assets/` y su manifest
+> existen sólo como cimiento vacío de proyectos V1; no descargan ni validan assets.
+> No se implementó movimiento nuevo. 3.4A ya cerró schema/migración legacy,
+> ProjectSubstrate, manifest V1, rutas confinadas, escritura recuperable y
+> recuperación; **3.4B** ya integra el catálogo OpenMoji local con carga runtime
+> ligera. El siguiente código es **3.4C**, no Hero.
+>
+> **Spike limpio de proveedores (`c94cc3f`).** Se conserva evidencia sin binarios:
+> OpenMoji oficial (SVG válido), PurePNG como muestra secundaria con alpha útil y
+> PNGImages pendiente por alpha no útil. El renderer, Photo Hero y Asset Engine no
+> se implementaron. El flujo por vídeo hacia `materiales/assets/` es una propuesta
+> auditada en 3.3, pendiente de validar schema e implementación; Git no
+> guarda ni redistribuye assets crudos de terceros.
 >
 > Evidencia real conservada: `tests/aceptacion/mvp-paso7/` documenta un MP4 de
 > producción de `1f1a6cb` con 42 Visuales, 41 palabras y 41 direcciones distintas.
@@ -47,7 +235,7 @@ verdes desde clon limpio, o el artefacto mirado. Nunca por "creo que está hecho
 | 6 | Resto del vocabulario | ✅ piezas portadas; calibración perceptiva pendiente |
 | 7 | La IA elige | 🟨 relación/contrato/fallback implementados; calidad no certificada |
 | 8 | Moduladores | 🟨 4 paletas por proyecto + 10 tipografías; sin acabado |
-| 9 | Imágenes | ⬜ 0/8 |
+| 9 | Imágenes | ✅ Visual MVP + Asset Resolver V1 local; validar uso en vídeos reales |
 | 10 | YouTube 16:9 | ⬜ 0/4 |
 
 El texto posterior conserva el plan y sus mediciones intermedias. Las marcas `0/…`,
@@ -66,7 +254,10 @@ instancia y `combinacionesLegales()` devolviendo **dos** números.
 
 El interruptor es `COMPOSICION_VISUAL` en `src/main/index.ts`, hoy `'visual_escena'`.
 La dirección entra en `extra` y en el hash desde `v-fase4f-interruptor`; la versión
-vigente es 11 tras los merges `d4e11ce` (9), `16bf7a6` (10) y `44ca34a` (11).
+vigente en esta rama es 13: los merges `d4e11ce` (9), `16bf7a6` (10),
+`44ca34a` (11) y el checkpoint de densidad/Solar (12) preceden al cambio visual
+atómico `693af0f` (13). El master etiquetado de 4A conserva 12 hasta que 4B tenga
+revisión humana y, sólo entonces, pueda integrarse.
 A.0 incorporo el lote `84062d7` con merge `d0dae0d`: tres estructuras de prueba,
 fuera del sorteo. El plan A-F posterior se trabaja en `plan-A-cajas`; A no esta cerrada.
 
@@ -75,7 +266,7 @@ mitad del vídeo se degrada: avisos tipados con código estable y contador, resu
 por origen con la columna respaldo desglosada por motivo, y sale **también si la
 generación aborta**.
 
-**El suelo de las pruebas.** `npm test` corre las nueve y devuelve error si alguna
+**El suelo de las pruebas.** `npm test` corre las dieciséis y devuelve error si alguna
 falla, con un seguro que salta si alguien añade una suite sin engancharla. Los
 arneses de aceptación versionados, con su propio fixture. Y un comparador de
 capturas con tolerancia.
@@ -104,7 +295,8 @@ sorteos desde el bundle (tipografia ultima), no salidas congeladas del catalogo.
 Capturas: `tests/aceptacion/tono-oscuro-claro.png`, `trama-tejida-lab-pieza.png` y las tres
 `capas-pareja-*.png`. El grano mas marcado y la calibracion pendiente estan documentados.
 Aquella etiqueta tenia `visual_mapa`; el interruptor se movio despues, en `8f7004c`.
-Hoy `COMPOSICION_VISUAL='visual_escena'` y `VERSION_PLANTILLAS=11`.
+Hoy `COMPOSICION_VISUAL='visual_escena'`; `5388088` está integrado y
+`VERSION_PLANTILLAS=13` en la rama 4B pendiente de revisión humana.
 
 **Coste vigente (A.0, condiciones y JSON en `tests/rendimiento/README-m7.md`):**
 40,84 ms/frame y 1,644 intentos/frame en regimen; seis clips completos, 0/540
@@ -161,7 +353,12 @@ El resumen auditado de arriba sustituye estos contadores históricos.
 - ⬜ Rotar las 6 claves de API (1 de 6). **Rotar primero, reescribir el historial
   después** — al revés no sirve de nada
 - ⬜ `writeDebugLog` crece sin límite (`index.ts:185-201`, sin rotación)
-- ⬜ Autoguardado con temporal + rename
+- ✅ ~~Autoguardado con temporal + rename~~ — cerrado en 3.4A para
+  `project-state.json`: temporal en el mismo directorio, `fsync`, publicación sin
+  borrar el principal y backup recuperable. Límites vivos: no hay transacción
+  conjunta estado+manifest, bloqueo multiproceso, medición de JSON grande,
+  recuperación de backups en `list-projects` ni aviso específico de recuperación
+  en UI.
 - ⬜ `node_modules` fuera del historial de git
 - ⬜ Registrar `usage` de las APIs
 - ⬜ Los **1.154 huérfanos** (`VisualEngine.ts`, `visual-holograms.tsx`) →

@@ -1,0 +1,706 @@
+{
+  "provenance": [
+    {
+      "collection": "fluent",
+      "license": "MIT",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/LICENSE",
+      "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+    },
+    {
+      "collection": "tabler",
+      "license": "MIT",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/LICENSE",
+      "sha256": "b740a1d46122672da62833e97f7e7c8a13fa85cbc7445b584b297cc00dde93db"
+    },
+    {
+      "collection": "ph",
+      "license": "MIT",
+      "url": "https://raw.githubusercontent.com/phosphor-icons/core/main/LICENSE",
+      "sha256": "b5b1f1da112d18ea2147decfd48ddc1bf2b5aeb6c265381579340e95b15a2bb2"
+    },
+    {
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "url": "https://raw.githubusercontent.com/Richard9394/MingCute/main/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "collection": "lucide",
+      "license": "ISC",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/LICENSE",
+      "sha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
+    },
+    {
+      "assetId": "modern-fluent-camera-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Camera/Flat/camera_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "6c471cdb66eb41fefceac7fa999a78f54597af71"
+    },
+    {
+      "assetId": "modern-fluent-phone-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Mobile%20phone/Flat/mobile_phone_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "dd5da94b347e3f9e01078be71ca07073b9b5b652"
+    },
+    {
+      "assetId": "modern-fluent-laptop-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Laptop/Flat/laptop_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "5f7b89ec1bf644c943a4d354a31ad3919d666b26"
+    },
+    {
+      "assetId": "modern-fluent-computer-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Desktop%20computer/Flat/desktop_computer_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "620530d7c23eac175dc2a1fad8993c715fe2cb7c"
+    },
+    {
+      "assetId": "modern-fluent-microphone-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Microphone/Flat/microphone_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "fdce7630d64b684c788b4fa8c04f527fb4c58c70"
+    },
+    {
+      "assetId": "modern-fluent-robot-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Robot/Flat/robot_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "5cd1f010af2a7a2c180f80dd5aa4ecfb37d4985b"
+    },
+    {
+      "assetId": "modern-fluent-rocket-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Rocket/Flat/rocket_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "24b93749639d5c665b2d3be7bf80a374ce3b2ae3"
+    },
+    {
+      "assetId": "modern-fluent-airplane-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Airplane/Flat/airplane_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "f506a849031d19c7989d62eb87015f0c2a90d90c"
+    },
+    {
+      "assetId": "modern-fluent-book-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Open%20book/Flat/open_book_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "bd34ea54e51c842017646d2003663ea5713c32e5"
+    },
+    {
+      "assetId": "modern-fluent-calendar-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Calendar/Flat/calendar_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "7827458bcbce08fd0a47af915ad1adaf16640007"
+    },
+    {
+      "assetId": "modern-fluent-alarm-clock-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Alarm%20clock/Flat/alarm_clock_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "5040c46138f416a2a5ca66befcd6efbdaab4bff8"
+    },
+    {
+      "assetId": "modern-fluent-money-bag-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Money%20bag/Flat/money_bag_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "8214dff090dd3a186d94bd9928f4acf296f58da6"
+    },
+    {
+      "assetId": "modern-fluent-factory-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Factory/Flat/factory_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "79410afa09fba26182339da77ef6362da27bc75f"
+    },
+    {
+      "assetId": "modern-fluent-house-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/House/Flat/house_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "7cacfd0c2f5d886c7d5ea5489fa3cb08bb412696"
+    },
+    {
+      "assetId": "modern-fluent-city-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Cityscape/Flat/cityscape_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "e1d990bb7248f08870a25fe4f2b14cfbc885b019"
+    },
+    {
+      "assetId": "modern-fluent-school-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/School/Flat/school_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "18b96f11e54edad7508b4ee9f7cfd2bf42cfb9c9"
+    },
+    {
+      "assetId": "modern-fluent-hospital-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Hospital/Flat/hospital_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "5dd5b0affa312b29a1a45db878365e3723ac2b7b"
+    },
+    {
+      "assetId": "modern-fluent-stadium-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Stadium/Flat/stadium_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "f5e5218b690628daefb6535dc2b97d4ac3868b08"
+    },
+    {
+      "assetId": "modern-fluent-football-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Soccer%20ball/Flat/soccer_ball_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "081bd09d898034015197a22ea856594fe82e82e6"
+    },
+    {
+      "assetId": "modern-fluent-tree-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Deciduous%20tree/Flat/deciduous_tree_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "381f8382d1d3d85f0796379c17e6d6e4055cc736"
+    },
+    {
+      "assetId": "modern-fluent-seedling-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Seedling/Flat/seedling_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "541a51175d0aad261c0a2e5f446bb87797c84781"
+    },
+    {
+      "assetId": "modern-fluent-fire-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Fire/Flat/fire_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "4960ae64e711b9aae9774601d04977103eb10df4"
+    },
+    {
+      "assetId": "modern-fluent-water-drop-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Droplet/Flat/droplet_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "932e5c24ce753fae2fa5c293c8c2b3c0fb0d0ad0"
+    },
+    {
+      "assetId": "modern-fluent-brain-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Brain/Flat/brain_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "b015e84b03771423ada88d379ac29e12c14f03b3"
+    },
+    {
+      "assetId": "modern-fluent-anatomical-heart-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Anatomical%20heart/Flat/anatomical_heart_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "551b1147ad50a4c2ef0700b049f527e1c66fe86f"
+    },
+    {
+      "assetId": "modern-fluent-planet-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Ringed%20planet/Flat/ringed_planet_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "b29dbec3e6acffccd6871578328a0dd080d89e2f"
+    },
+    {
+      "assetId": "modern-fluent-microscope-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Microscope/Flat/microscope_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "91691913320b3419310ce87b67f905ea7ad078a2"
+    },
+    {
+      "assetId": "modern-fluent-telescope-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Telescope/Flat/telescope_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "b6220417f1b78fc5973273544c915256dd458273"
+    },
+    {
+      "assetId": "modern-fluent-hammer-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Hammer/Flat/hammer_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "a0663fa1ea694e3cef95bc9440cc19f230ddec5a"
+    },
+    {
+      "assetId": "modern-fluent-wrench-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Wrench/Flat/wrench_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "b186d3b3e1c1f6e39db2f271abb9d0085497caf5"
+    },
+    {
+      "assetId": "modern-fluent-gear-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Gear/Flat/gear_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "8351a33a5418111a71624953c0faf221739835d6"
+    },
+    {
+      "assetId": "modern-fluent-satellite-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Satellite/Flat/satellite_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "7d73e49888722a2b0a1c5762654478746c71f55e"
+    },
+    {
+      "assetId": "modern-fluent-newspaper-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Newspaper/Flat/newspaper_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "84850acfca3953bcd62d8a0f233e06c6bd35ce7d"
+    },
+    {
+      "assetId": "modern-fluent-folder-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/File%20folder/Flat/file_folder_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "000f5185b7c7494e6c134363ecbaa821da5d979a"
+    },
+    {
+      "assetId": "modern-fluent-lightbulb-v1",
+      "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/1ffb34c752ecf5d402f04cfb4b392c77f57c54bc/assets/Light%20bulb/Flat/light_bulb_flat.svg",
+      "upstreamRevision": "1ffb34c752ecf5d402f04cfb4b392c77f57c54bc",
+      "upstreamBlob": "9c460204af9f00fc41069e8801f598205a173a7b"
+    },
+    {
+      "assetId": "modern-lucide-computer-v1",
+      "url": "https://api.iconify.design/lucide/computer.svg",
+      "inventorySha256": "f1de6ab0867283fcee4cf29a9078897e2af85fa38ac3bc2335604b55f21362a5",
+      "upstreamName": "computer"
+    },
+    {
+      "assetId": "modern-mingcute-computer-fill-v1",
+      "url": "https://api.iconify.design/mingcute/computer-fill.svg",
+      "inventorySha256": "a70deed68db24eac5e38831f0aaea0eadfb0837348be7764648efdcf2b4d647a",
+      "upstreamName": "computer-fill"
+    },
+    {
+      "assetId": "modern-mingcute-chip-fill-v1",
+      "url": "https://api.iconify.design/mingcute/chip-fill.svg",
+      "inventorySha256": "c006d1b3a2bd843e4f9911a096a0e70a67556ef2940f874bc8d4f51261fffedd",
+      "upstreamName": "chip-fill"
+    },
+    {
+      "assetId": "modern-mingcute-robot-fill-v1",
+      "url": "https://api.iconify.design/mingcute/robot-fill.svg",
+      "inventorySha256": "d6263e44469b8e72b58dd2cc053d4b07c362daf2e4cf90c2ac8c77859c804276",
+      "upstreamName": "robot-fill"
+    },
+    {
+      "assetId": "modern-ph-drone-v1",
+      "url": "https://api.iconify.design/ph/drone.svg",
+      "inventorySha256": "0bd2afc380d2c4324cfd1cc41dc2fba0466a721649f8e0ec76e5a93c3daa5309",
+      "upstreamName": "drone"
+    },
+    {
+      "assetId": "modern-lucide-percent-v1",
+      "url": "https://api.iconify.design/lucide/percent.svg",
+      "inventorySha256": "f0a9aaee09ccc7740f07945d6d5639866f95d53e77afe3711489cc89f0e6dc44",
+      "upstreamName": "percent"
+    },
+    {
+      "assetId": "modern-lucide-newspaper-v1",
+      "url": "https://api.iconify.design/lucide/newspaper.svg",
+      "inventorySha256": "3b4873af64d69e94c647470d762dfbf213222a6a61acc1f756b5f5a3b61defb7",
+      "upstreamName": "newspaper"
+    },
+    {
+      "assetId": "modern-lucide-clock-v1",
+      "url": "https://api.iconify.design/lucide/clock.svg",
+      "inventorySha256": "eae71c61b63fccf2bd0672b33921816e05fdc4d684c8c086371a7f9fc41e0964",
+      "upstreamName": "clock"
+    },
+    {
+      "assetId": "modern-mingcute-clock-fill-v1",
+      "url": "https://api.iconify.design/mingcute/clock-fill.svg",
+      "inventorySha256": "65970dbe1296d4d93704595c7517bdfa869f5eb974f37130ad12c219aeeeae0d",
+      "upstreamName": "clock-fill"
+    },
+    {
+      "assetId": "modern-mingcute-bank-fill-v1",
+      "url": "https://api.iconify.design/mingcute/bank-fill.svg",
+      "inventorySha256": "0265355896ece6ffe83beefba6ef1794a3eee79f396cc6d91031d29acec61b8b",
+      "upstreamName": "bank-fill"
+    },
+    {
+      "assetId": "modern-ph-coin-v1",
+      "url": "https://api.iconify.design/ph/coin.svg",
+      "inventorySha256": "912b75ec42ae5150c4fff36040ffaafe49ef9cd5914b12ba42452a0d3dc018cb",
+      "upstreamName": "coin"
+    },
+    {
+      "assetId": "modern-ph-detective-v1",
+      "url": "https://api.iconify.design/ph/detective.svg",
+      "inventorySha256": "e5b87dad9fe5e526a1edcb2d23bc00afebdacf319b47af9fd34128a146b59a26",
+      "upstreamName": "detective"
+    },
+    {
+      "assetId": "modern-mingcute-run-fill-v1",
+      "url": "https://api.iconify.design/mingcute/run-fill.svg",
+      "inventorySha256": "dc4d3bd953dd5263dd11568b8e023977d57da7a8a53e6dc3aa526d2f2973f08d",
+      "upstreamName": "run-fill"
+    },
+    {
+      "assetId": "modern-mingcute-walk-fill-v1",
+      "url": "https://api.iconify.design/mingcute/walk-fill.svg",
+      "inventorySha256": "b4f6341bae40264214e2f25a94e7257f37335d9091c70ee059e517df72b23662",
+      "upstreamName": "walk-fill"
+    },
+    {
+      "assetId": "modern-mingcute-search-fill-v1",
+      "url": "https://api.iconify.design/mingcute/search-fill.svg",
+      "inventorySha256": "44793346464bf43c271e6755a15908a10d87eee88cd1ada1e8786e85976a69b0",
+      "upstreamName": "search-fill"
+    },
+    {
+      "assetId": "modern-mingcute-store-fill-v1",
+      "url": "https://api.iconify.design/mingcute/store-fill.svg",
+      "inventorySha256": "d1c58e3e05fe7638d992715af53547303c3ff7aa578c9782962d49e6a27ef426",
+      "upstreamName": "store-fill"
+    },
+    {
+      "assetId": "modern-ph-student-v1",
+      "url": "https://api.iconify.design/ph/student.svg",
+      "inventorySha256": "7b1293ed00fe0b8eb5c30b109510e5c0528d24a75706fc5bfb4f53641570196b",
+      "upstreamName": "student"
+    },
+    {
+      "assetId": "modern-ph-engine-v1",
+      "url": "https://api.iconify.design/ph/engine.svg",
+      "inventorySha256": "3e144bb4363a9798765125ae6591d8b519ad09250c1b2eed5dace123418604f6",
+      "upstreamName": "engine"
+    },
+    {
+      "assetId": "modern-ph-factory-v1",
+      "url": "https://api.iconify.design/ph/factory.svg",
+      "inventorySha256": "c1efff4e587ffc595ee73225181acf2ba03b85e69a2adf14cc68ff6715796ed5",
+      "upstreamName": "factory"
+    },
+    {
+      "assetId": "modern-ph-gear-v1",
+      "url": "https://api.iconify.design/ph/gear.svg",
+      "inventorySha256": "bd3f36d00d7cf615fff83b4ebf7a0cd361aa9f771f7fa56f2d4d25155e75a1df",
+      "upstreamName": "gear"
+    },
+    {
+      "assetId": "modern-mingcute-tool-fill-v1",
+      "url": "https://api.iconify.design/mingcute/tool-fill.svg",
+      "inventorySha256": "f3a075acd357132e002f8112975634cee6606a0afe2c52b5809c49d4b3e92d9e",
+      "upstreamName": "tool-fill"
+    },
+    {
+      "assetId": "modern-lucide-hammer-v1",
+      "url": "https://api.iconify.design/lucide/hammer.svg",
+      "inventorySha256": "7eebe1e296de958ef38aaf1b8af3e20f4b18ba11fffded8ad8cce2b7a09947ef",
+      "upstreamName": "hammer"
+    },
+    {
+      "assetId": "modern-mingcute-hammer-fill-v1",
+      "url": "https://api.iconify.design/mingcute/hammer-fill.svg",
+      "inventorySha256": "b4f74d0c732db567dedc30d9ca0b11485193ca97096af60902f0c7c252fd64f1",
+      "upstreamName": "hammer-fill"
+    },
+    {
+      "assetId": "modern-lucide-wrench-v1",
+      "url": "https://api.iconify.design/lucide/wrench.svg",
+      "inventorySha256": "889e06cf672413c6f87be392bb748c060808c302e3b0a96436d9205bc96c0fe2",
+      "upstreamName": "wrench"
+    },
+    {
+      "assetId": "modern-ph-crane-v1",
+      "url": "https://api.iconify.design/ph/crane.svg",
+      "inventorySha256": "8d4002d2c9592b6761ad8c359cfdc5d7b0cdfd08b3a38611052d62a9d9b51f64",
+      "upstreamName": "crane"
+    },
+    {
+      "assetId": "modern-ph-tractor-v1",
+      "url": "https://api.iconify.design/ph/tractor.svg",
+      "inventorySha256": "6e9aa9d9fc0211da70f84ab0d2b8cda89860a6de00f2ab08af674fd2ff4ff437",
+      "upstreamName": "tractor"
+    },
+    {
+      "assetId": "modern-lucide-microscope-v1",
+      "url": "https://api.iconify.design/lucide/microscope.svg",
+      "inventorySha256": "e0a6c7dc9736fd06d4bf2e024c5d40507e2b9ee527d5d1f5cbdda6ab8150ffdc",
+      "upstreamName": "microscope"
+    },
+    {
+      "assetId": "modern-mingcute-microscope-fill-v1",
+      "url": "https://api.iconify.design/mingcute/microscope-fill.svg",
+      "inventorySha256": "3e3c4f8aa26266c23922bea36f8f0ac1e243724984d897360385649371f77fb3",
+      "upstreamName": "microscope-fill"
+    },
+    {
+      "assetId": "modern-lucide-school-v1",
+      "url": "https://api.iconify.design/lucide/school.svg",
+      "inventorySha256": "3642d8d3ccba980eb71b4ca33c906c5e91a6d22708bc5664533cb1b5e22c7b48",
+      "upstreamName": "school"
+    },
+    {
+      "assetId": "modern-mingcute-school-fill-v1",
+      "url": "https://api.iconify.design/mingcute/school-fill.svg",
+      "inventorySha256": "66adcb2c8589015fe2636168c26c695b0d764241d73a16add5e061bb4e03ed5d",
+      "upstreamName": "school-fill"
+    },
+    {
+      "assetId": "modern-lucide-mountain-v1",
+      "url": "https://api.iconify.design/lucide/mountain.svg",
+      "inventorySha256": "27a76a8a708a0de1bfca767927805ae99218d355931c3a1c4bd3d0e126244855",
+      "upstreamName": "mountain"
+    },
+    {
+      "assetId": "modern-mingcute-mountain-fill-v1",
+      "url": "https://api.iconify.design/mingcute/mountain-fill.svg",
+      "inventorySha256": "b9be1fbfc5262641ef59b4d01320641d2e9accdc8467611dcf45817a3778f32e",
+      "upstreamName": "mountain-fill"
+    },
+    {
+      "assetId": "modern-mingcute-tree-fill-v1",
+      "url": "https://api.iconify.design/mingcute/tree-fill.svg",
+      "inventorySha256": "389f32bfeda8896d590eab28cdd69f39a09cbc7b8cad50fc6b01f79d0376dceb",
+      "upstreamName": "tree-fill"
+    },
+    {
+      "assetId": "modern-lucide-flower-v1",
+      "url": "https://api.iconify.design/lucide/flower.svg",
+      "inventorySha256": "1e6e73471de9609567222964ccf9b3f984726710b102e9dafe6d9dd5916b0fe4",
+      "upstreamName": "flower"
+    },
+    {
+      "assetId": "modern-mingcute-flower-fill-v1",
+      "url": "https://api.iconify.design/mingcute/flower-fill.svg",
+      "inventorySha256": "452b0644e3d8514a675a576b4fe399a813f4b9c5676fd5d66a6cd0bc3d8ec9e4",
+      "upstreamName": "flower-fill"
+    },
+    {
+      "assetId": "modern-ph-bird-v1",
+      "url": "https://api.iconify.design/ph/bird.svg",
+      "inventorySha256": "4e5c4e84879d6bca85c884106626f46819e95b01f586f943aa6853f01320ddd3",
+      "upstreamName": "bird"
+    },
+    {
+      "assetId": "modern-ph-fish-v1",
+      "url": "https://api.iconify.design/ph/fish.svg",
+      "inventorySha256": "ce1d2d054b3d3723952fb9f44b1b43e33dcfaf8b40c24100c61e30ab1e099248",
+      "upstreamName": "fish"
+    },
+    {
+      "assetId": "modern-lucide-fish-v1",
+      "url": "https://api.iconify.design/lucide/fish.svg",
+      "inventorySha256": "2855fc6e7ca709c2a9f03329d35b32f3bb788aede436519696c7c47f8604b31f",
+      "upstreamName": "fish"
+    },
+    {
+      "assetId": "modern-ph-alien-v1",
+      "url": "https://api.iconify.design/ph/alien.svg",
+      "inventorySha256": "10ffcdef261cda0bf5e4e737349a4f04e53c84353163e3b6fe6fda6ac45db4c4",
+      "upstreamName": "alien"
+    },
+    {
+      "assetId": "modern-tabler-robot-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/robot.svg"
+    },
+    {
+      "assetId": "modern-tabler-drone-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/drone.svg"
+    },
+    {
+      "assetId": "modern-tabler-satellite-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/satellite.svg"
+    },
+    {
+      "assetId": "modern-tabler-camera-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/camera.svg"
+    },
+    {
+      "assetId": "modern-tabler-phone-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/phone.svg"
+    },
+    {
+      "assetId": "modern-tabler-chart-line-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/chart-line.svg"
+    },
+    {
+      "assetId": "modern-tabler-clipboard-data-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/clipboard-data.svg"
+    },
+    {
+      "assetId": "modern-tabler-pig-money-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/pig-money.svg"
+    },
+    {
+      "assetId": "modern-tabler-wallet-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/wallet.svg"
+    },
+    {
+      "assetId": "modern-tabler-building-bank-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/building-bank.svg"
+    },
+    {
+      "assetId": "modern-tabler-chalkboard-teacher-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/chalkboard-teacher.svg"
+    },
+    {
+      "assetId": "modern-tabler-run-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/run.svg"
+    },
+    {
+      "assetId": "modern-tabler-walk-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/walk.svg"
+    },
+    {
+      "assetId": "modern-tabler-engine-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/engine.svg"
+    },
+    {
+      "assetId": "modern-tabler-building-factory-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/building-factory.svg"
+    },
+    {
+      "assetId": "modern-tabler-school-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/school.svg"
+    },
+    {
+      "assetId": "modern-tabler-tree-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/tree.svg"
+    },
+    {
+      "assetId": "modern-tabler-flower-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/flower.svg"
+    },
+    {
+      "assetId": "modern-tabler-brain-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/brain.svg"
+    },
+    {
+      "assetId": "modern-tabler-heart-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/heart.svg"
+    },
+    {
+      "assetId": "modern-tabler-dna-v1",
+      "url": "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/outline/dna.svg"
+    },
+    {
+      "assetId": "modern-tabler-robot-v1",
+      "upstreamSha256": "d1dbd329f869a168699a632f5469a42d4d1dca5b972e2c1fbf9572faefb9a991",
+      "transform": "strip-xml-comments-only",
+      "sha256": "ed8423bc2077a177813ecc2b6123471bd736e388fc6f241c7c3d01fbc5b926ef"
+    },
+    {
+      "assetId": "modern-tabler-drone-v1",
+      "upstreamSha256": "dad4dc8ccfe06a066ddafa9cdc67a1cc8fe6fd8d1e3c7f1120deb78cce9b6183",
+      "transform": "strip-xml-comments-only",
+      "sha256": "46cb3cef9b3c750d850c7afe8873419f18953b8747bb04b83d6bbabd9ebaca9b"
+    },
+    {
+      "assetId": "modern-tabler-satellite-v1",
+      "upstreamSha256": "7dfbb88659207f6703cb254e031b6a03a7900cf95debc2b29e55801894820216",
+      "transform": "strip-xml-comments-only",
+      "sha256": "15ea9827e1879cba6b21bf589a79f7f7091e832836e961cade62128676c9894b"
+    },
+    {
+      "assetId": "modern-tabler-camera-v1",
+      "upstreamSha256": "24c3560560e6177528dada3805efab129c5667ef97b0ea342a21d0a34032baa8",
+      "transform": "strip-xml-comments-only",
+      "sha256": "06fc6190b43b8cd51cb1e03514b7b03e9d4482491e3691198e0fa19ee728166a"
+    },
+    {
+      "assetId": "modern-tabler-phone-v1",
+      "upstreamSha256": "1b75d2a1fb7ac21d8c3db9e6e729b5445c72ae793e24be65b245d88c38622ab4",
+      "transform": "strip-xml-comments-only",
+      "sha256": "92701c3eda869355cba6ec62430dd6264ebdfbb29de7bb97016ad798011a73c9"
+    },
+    {
+      "assetId": "modern-tabler-chart-line-v1",
+      "upstreamSha256": "0a2ec43a92e585dfc29e515cedaf1fc656c466bab5a6b9e0aa0a56f0c384f88a",
+      "transform": "strip-xml-comments-only",
+      "sha256": "e5d4cf63e19e0260e0f36885410609dd6263740d2127065d2824feec60d6417c"
+    },
+    {
+      "assetId": "modern-tabler-clipboard-data-v1",
+      "upstreamSha256": "867ec4d7907f9c2166aceb084a004e603c0eea9e3cae672f4f6185a8934d7494",
+      "transform": "strip-xml-comments-only",
+      "sha256": "d437916f3d1a39a5e38e198bbfdfb7cea31942dd555ccf9ec2ae813c21234d16"
+    },
+    {
+      "assetId": "modern-tabler-pig-money-v1",
+      "upstreamSha256": "cc8634af2a74b85ddf6cbb1d077c715d032cc0c0da4cf7ae4b6fddf242e631c8",
+      "transform": "strip-xml-comments-only",
+      "sha256": "298919c32115f9a2378c8fa11cd0f7f1841022cf371f1f9db1047c29dae2ec7f"
+    },
+    {
+      "assetId": "modern-tabler-wallet-v1",
+      "upstreamSha256": "4f08d6965f6d9bd97ecd94eb78432631fbd2fb0e4061ec8629ad420735020052",
+      "transform": "strip-xml-comments-only",
+      "sha256": "fc5bb2e0d3f7795f81815908f19f6b45b923f8d90900b0fb2525fdff4be8b16f"
+    },
+    {
+      "assetId": "modern-tabler-building-bank-v1",
+      "upstreamSha256": "ba532c2d12e97465ee586d59cb824fd2ecfa351cbfc055d87df4ef775a1e17e4",
+      "transform": "strip-xml-comments-only",
+      "sha256": "8901bcb89ee1c9ca92536ba1f81dad40e9dc92b4746c0e3c033cbc5c4db15c0c"
+    },
+    {
+      "assetId": "modern-tabler-chalkboard-teacher-v1",
+      "upstreamSha256": "6bc9d5b7303ea839dc5328640cf9f6a9a65b23569bd5828113677cff625da529",
+      "transform": "strip-xml-comments-only",
+      "sha256": "9485e53d338dc8fd78c4a782ee7fe62232090e21ef4f2a5547489116f84dbf66"
+    },
+    {
+      "assetId": "modern-tabler-run-v1",
+      "upstreamSha256": "fd43f9f69aaf903c233d9826be5c1e4153857590f74f9442bcd333737f5743e7",
+      "transform": "strip-xml-comments-only",
+      "sha256": "20251b7d2e5fbd1614558374845ac14ff25ec6d767d8a323e7aee08320e6e7f5"
+    },
+    {
+      "assetId": "modern-tabler-walk-v1",
+      "upstreamSha256": "f2c5bd771519e3be6096467b682460b41aff8090d1105ead9be9cc367316b59b",
+      "transform": "strip-xml-comments-only",
+      "sha256": "84ad1bd313aff01e2470c46168a0b1e19afb0ee3d0d7118c277467cd07e28a4a"
+    },
+    {
+      "assetId": "modern-tabler-engine-v1",
+      "upstreamSha256": "37f5bafee6840a1c1e2faa26955284b90ef8ef829290202bef79a5ab6d940ac4",
+      "transform": "strip-xml-comments-only",
+      "sha256": "18854e348df807e29bff0c2e2ff3235757a5472084da82e7b1b0643d279dbf30"
+    },
+    {
+      "assetId": "modern-tabler-building-factory-v1",
+      "upstreamSha256": "a82a3077992e190508671908f941342742c8c8eb41d7d50f84e8068ef8df39d2",
+      "transform": "strip-xml-comments-only",
+      "sha256": "4b186b996bca6a9816eb427a70b304992ebeda817743f089c3fd5d3d87f9802a"
+    },
+    {
+      "assetId": "modern-tabler-school-v1",
+      "upstreamSha256": "eeb18ee74b3f64022ff7479ba3671b8e22e5304651e2971cebebb55c84c1998a",
+      "transform": "strip-xml-comments-only",
+      "sha256": "eb30a416ec188911f6bc659b8d97d2950b50b2f70f88eb362e445a3b46be8d05"
+    },
+    {
+      "assetId": "modern-tabler-tree-v1",
+      "upstreamSha256": "1ebddabee729822b183d4ce803ec7510e714bb81c148d2befcbf85bec0da26d7",
+      "transform": "strip-xml-comments-only",
+      "sha256": "69f8005dc6c1f5db21bbf1830999515a97ca00e8f657c2094b86890151c5ac25"
+    },
+    {
+      "assetId": "modern-tabler-flower-v1",
+      "upstreamSha256": "0b998b8b949ad720ae1b1f3226c19c42345c13dbb260a0e4608bb4bb98603334",
+      "transform": "strip-xml-comments-only",
+      "sha256": "2b57205923b6ba80e039df2a73813c4a2489e26ef469a5a4387191fcd197c906"
+    },
+    {
+      "assetId": "modern-tabler-brain-v1",
+      "upstreamSha256": "0517f8f1cd2b0780bc4101252db226f529d86115a598ec79babb3bdf596d3ecd",
+      "transform": "strip-xml-comments-only",
+      "sha256": "415145a5266d96bca0385159de5bf094d3eb61e4030b6a0bc1274ee8da3631fd"
+    },
+    {
+      "assetId": "modern-tabler-heart-v1",
+      "upstreamSha256": "f9f42a4d4ae0aca8f01dde4a7a255eff7af26ed0ee133b1458e9d3ff257464d6",
+      "transform": "strip-xml-comments-only",
+      "sha256": "37f851da5fae0e68339b322ae348163645833374d3f1f588bae84cd186bcefc1"
+    },
+    {
+      "assetId": "modern-tabler-dna-v1",
+      "upstreamSha256": "1e10c89ec432bd71a87cf31605c006cff9ae707a9fdc4f34957eb38d7e30089c",
+      "transform": "strip-xml-comments-only",
+      "sha256": "79773fa1e23a024f5b0a550420023aafcebfc1c19676c448b731fba00a49b82e"
+    }
+  ],
+  "excluded": [
+    {
+      "name": "user-hide-fill",
+      "reason": "overbroad-or-context-dependent"
+    },
+    {
+      "name": "wash-machine-fill",
+      "reason": "overbroad-or-context-dependent"
+    },
+    {
+      "name": "space",
+      "reason": "overbroad-or-context-dependent"
+    },
+    {
+      "name": "space-fill",
+      "reason": "overbroad-or-context-dependent"
+    }
+  ]
+}

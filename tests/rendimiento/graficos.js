@@ -11,8 +11,11 @@
 const { app, ipcMain } = require('electron')
 const fs = require('fs')
 const path = require('path')
+const { createTestFixture, cleanupTestFixture, removeFixtureFile } = require('../helpers/safe-fixture')
 
 const RAIZ = path.resolve(__dirname, '..', '..')
+const FIXTURE_ROOT = createTestFixture('bench-graficos')
+process.chdir(FIXTURE_ROOT)
 const MARCA = 'zz-bench-graficos'
 const MUESTRAS = 6
 const MUESTRAS_POR_FASE = 3
@@ -50,6 +53,14 @@ const llamar = (canal, arg) => {
   const h = ipcMain._invokeHandlers.get(canal)
   if (!h) throw new Error('sin handler: ' + canal)
   return h({ sender: { send: () => {} } }, arg)
+}
+
+let fixtureCleaned = false
+const limpiarFixture = () => {
+  if (fixtureCleaned) return
+  process.chdir(path.dirname(FIXTURE_ROOT))
+  cleanupTestFixture(FIXTURE_ROOT)
+  fixtureCleaned = true
 }
 
 const percentil = (valores, p) => {
@@ -163,7 +174,7 @@ async function compararObservador (bundle) {
         (activo ? ` · interno ${r.medicion.ms} ms` : ''))
       // El segundo lado del par usa exactamente el mismo arbol y semilla; se borra el fichero
       // para evitar que la cache convierta la comparacion en 1 ms contra un render real.
-      try { fs.rmSync(r.ruta, { force: true }) } catch (e) {}
+      try { removeFixtureFile(FIXTURE_ROOT, r.ruta) } catch (e) {}
     }
   }
 
@@ -188,12 +199,8 @@ async function main (bundle) {
   } finally {
     try { bundle.cerrarVentanaGraficos() } catch (e) {}
     try { await llamar('close-project', {}) } catch (e) {}
-    // Se borra la ruta REAL devuelta por create-project. En un clon sin .env la raiz no es
-    // necesariamente RAIZ/proyectos; suponerla dejaria basura justo en la prueba limpia.
-    const ruta = proyecto?.projectPath
-    if (ruta && path.basename(ruta).toLowerCase().startsWith(MARCA)) {
-      try { fs.rmSync(ruta, { recursive: true, force: true }) } catch (e) {}
-    }
+    // El proyecto entero queda bajo el fixture marcado de esta ejecución y se elimina sólo al
+    // cerrar esa raíz exacta; nunca se barre por prefijo dentro del repositorio.
   }
 }
 
@@ -201,6 +208,7 @@ app.whenReady().then(async () => {
   const bundle = require(path.join(RAIZ, 'dist-electron/main/index.js'))
   await new Promise(resolve => setTimeout(resolve, 1500))
   let watchdog
+  let code = 1
   try {
     await Promise.race([
       main(bundle),
@@ -209,11 +217,12 @@ app.whenReady().then(async () => {
           `WATCHDOG: bench:graficos no termino en ${WATCHDOG_MS / 1000}s`)), WATCHDOG_MS)
       })
     ])
-    app.exit(0)
+    code = 0
   } catch (e) {
     console.error('FALLO DEL BANCO: ' + (e.stack || e.message || e))
-    app.exit(1)
   } finally {
     clearTimeout(watchdog)
+    limpiarFixture()
   }
+  app.exit(code)
 })

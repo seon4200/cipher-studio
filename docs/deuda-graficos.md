@@ -2455,7 +2455,7 @@ tamaño y mtime tanto cache/graficos como materiales/visual de TODOS los proyect
 Vigila esos destinos mientras ejecuta el arnés M7, que bloquea fetch/HTTP y cambia
 cwd y userData ANTES de importar el bundle. Evidencia en plan-a2-20260905/cache.json;
 el manifiesto completo queda en la carpeta de salida indicada por el arnés.
-Las suites de A.2 se ejecutaron en C:/graphify/cipher-a2-pruebas-20260905:
+Las suites de A.2 se ejecutaron en %CIPHER_LOCAL_ROOT%/cipher-a2-pruebas-20260905:
 clon desechable con el parche aplicado, CONSUMIDO, no válido para cerrar A.
 No se renderizó en un proyecto de producción.
 
@@ -2580,11 +2580,11 @@ la base nueva ni un porcentaje de fallo del motor actual.
 **Dónde se transmitió, inventario de citas — no búsqueda del corpus:**
 
 - CIPHER  EJAR EL MOTOR DE V.txt:407, en
-  C:/Users/John Benites/OneDrive/Documents/: A.3 dice «828 cajas».
+[Referencia privada a documento omitida; permanece en el proyecto privado.]
 - 1PLAN COMPLETO  Cipher.txt:372, en la misma carpeta: misma atribución.
 - PLAN COMPLETO — DEJAR EL MOTOR DE V.txt:352, en la misma carpeta: misma atribución.
-- C:/Users/John Benites/Downloads/PLAN-MOTOR-COMPLETO-astra.txt:282: misma atribución.
-- C:/Users/John Benites/.codex/attachments/a95a8bfb-e739-41fc-a4ec-f58a80d92388/pasted-text.txt:84:
+- La atribución se conserva en el proyecto; se omite aquí la ruta local.
+- [Referencia a adjunto privado omitida.]
   material enviado a revisión, «509 de 828 cajas de concepto».
 - El prompt del sistema de cajas de esta conversación heredó esa lectura.
   Esta errata no reescribe mensajes ni adjuntos históricos.
@@ -2650,7 +2650,7 @@ vertical ni se resolvieron vecinos. La hoja al 45% deja ambos solapes visibles.
 
 **Verificación ROJA, no cerrada.** Tsc y build exit 0, artefactos de renderer,
 main y preload existentes. En el clon CONSUMIDO
-C:/graphify/cipher-a2-pruebas-20260905, bundle con el mismo cambio:
+%CIPHER_LOCAL_ROOT%/cipher-a2-pruebas-20260905, bundle con el mismo cambio:
 npm test = 8/9, exit 1 por test:mapa; ninguna aserción se rebajó.
 No es verificación de cierre de fase. El cierre de A requerirá clon NUEVO.
 
@@ -2851,3 +2851,35 @@ escritos: generación fuera del render, `materiales/`, hash de contenido y no ru
 La etiqueta local y remota `v-fase3-banco` resuelve a `219bdad`, no se mueve. El
 merge del banco que la precede en la historia es `581ac6b`. Esta nota corrige la
 lectura de la cronología sin reescribir ningún tag.
+
+---
+
+## Densidad y Solar — condiciones del ajuste `5388088` (07/09/2026)
+
+**Densidad: cerrada contra el colapso, no calibrada perceptualmente.**
+`CUANTOS_CONCEPTOS = 3` y la fórmula anterior sumaba dos puntos por cada uno:
+con etiquetas reales arrancaba en seis y casi todo acababa en `alta`. La regla
+actual mide frase del tramo, palabra visible y etiquetas. Sobre la traza real
+`tests/aceptacion/mvp-paso7/video.json`, ligada al `project-state.json` local del
+proyecto `video-3-1788402898964`, las 42 direcciones grabadas como `alta` se
+recalculan a **2 media · 26 alta · 14 saturada**. Es una medición de una traza,
+no una promesa estadística. `tests/ciclo.js` conserva un corpus fijo de cargas
+baja/media/alta y falla si vuelve a colapsar en `alta`. La legibilidad y el peso
+visual de esos cinco perfiles siguen abiertos.
+
+**Solar: histórico no recuperable; línea base nueva versionada.** El log histórico
+solo guardó el agregado **68/188**, no los nombres solicitados: no puede medirse
+una mejora honesta contra esa cifra. `tests/aceptacion/solar-resolver-corpus/`
+fija 158 solicitudes de `mvp-paso7`, su SHA-256 y resultados del bundle real:
+**43/158 (27,22 %) → 72/158 (45,57 %)**. La mejora viene de vocabulario curado y
+aliases conservadores; casos sin equivalente inequívoco (`bridge`, `pedestrians`,
+`rope`, `sync`) permanecen en emoji. Cada generación registra solicitud,
+candidatos, decisión y motivo de fallback tanto para semántica completa como para
+el contrato histórico. No se compara esta muestra con 68/188 ni se considera
+Solar cerrado.
+
+**Spike de imagen: bloqueado por evidencia ausente.** No había OpenMoji ni los dos
+PNGs manuales de ByPeople. `docs/spike-hero/README.md` y
+`manifest.example.json` fijan los tres ficheros, licencias y procedencia para
+cuando existan. No se implementó renderer, Asset Engine, almacén paralelo ni
+falsa hoja visual.

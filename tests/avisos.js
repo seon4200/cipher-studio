@@ -15,8 +15,11 @@
  */
 const { app } = require('electron')
 const path = require('path')
+const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
 
 const RAIZ = path.resolve(__dirname, '..')
+const FIXTURE_ROOT = createTestFixture('avisos')
+process.chdir(FIXTURE_ROOT)
 const fallos = []
 const ok = (cond, titulo, detalle) => {
   if (cond) console.log(`  OK    ${titulo}${detalle ? '\n          ' + detalle : ''}`)
@@ -132,6 +135,18 @@ function main (bundle) {
   ok(/Todo cuadra/.test(tBien[tBien.length - 1]), 'y lo dice explicitamente', tBien[tBien.length - 1])
   ok(totalRespaldo(bien) === 0, 'y el respaldo suma cero')
 
+  const planAnimation = armarResumen([
+    { origen: 'original', objetivo: 0, real: 0 }, { origen: 'stock', objetivo: 0, real: 0 },
+    { origen: 'IA', objetivo: 0, real: 0 },
+    { origen: 'Visual', objetivo: 1, real: 0, pendienteAnimation: 1 }
+  ], [], 1, true)
+  const textoPlanAnimation = textoResumen(planAnimation)
+  ok(planAnimation.cuadra === true, 'un slot asignado a Animation satisface la cuota sin fingir un MP4')
+  ok(textoPlanAnimation.some(l => /1 quedaron planificados en Animation/.test(l)),
+    'el resumen distingue el slot pendiente de Animation de un vídeo materializado')
+  ok(/aún deben crearse y aplicarse en Animation/.test(textoPlanAnimation[textoPlanAnimation.length - 1]),
+    'el cierre del resumen indica el siguiente paso real')
+
   // Basta UNA fila desviada para que deje de cuadrar. Tolerar "casi cuadra" seria volver al
   // "exito, 78 de 78".
   const casi = armarResumen([
@@ -207,5 +222,8 @@ app.whenReady().then(async () => {
   } else {
     console.log('TODO CORRECTO — un fallo repetido es una linea, y el resumen no miente.')
   }
-  app.exit(fallos.length ? 1 : 0)
+  const exitCode = fallos.length ? 1 : 0
+  process.chdir(path.dirname(FIXTURE_ROOT))
+  cleanupTestFixture(FIXTURE_ROOT)
+  app.exit(exitCode)
 })

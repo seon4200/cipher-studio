@@ -971,7 +971,13 @@ export type Ritmo = 'simultaneo' | 'regular' | 'acelerando' | 'frenando' | 'golp
 export const RITMOS: readonly Ritmo[] = ['simultaneo', 'regular', 'acelerando', 'frenando', 'golpeSeco'];
 
 /** La minima informacion de contenido que necesita el eje densidad; no depende de React ni DOM. */
-export type ContenidoDensidad = { texto?: unknown; conceptos?: readonly unknown[] };
+export type ContenidoDensidad = {
+  /** Palabra visible en el pie. */
+  texto?: unknown;
+  /** Frase completa del sub-clip: aporta la carga que tres conceptos fijos no expresan. */
+  frase?: unknown;
+  conceptos?: readonly unknown[];
+};
 
 function textoConcepto(c: unknown): string {
   if (typeof c === 'string') return c;
@@ -989,15 +995,35 @@ function textoConcepto(c: unknown): string {
  * frases breves de las cargadas. Es deliberadamente una funcion pura para que main y renderer
  * resuelvan el mismo resultado antes de que la direccion entre en la clave de cache.
  */
-export function densidadDesdeContenido(contenido: ContenidoDensidad = {}): Densidad {
+/** Carga lingüística pura, exportada para medir corpus reales sin copiar la regla. */
+export function cargaDensidad(contenido: ContenidoDensidad = {}): number {
   const texto = String(contenido.texto ?? '').trim();
+  const frase = String(contenido.frase ?? '').trim();
   const etiquetas = Array.isArray(contenido.conceptos)
     ? contenido.conceptos.map(textoConcepto).map(x => x.trim()).filter(Boolean) : [];
-  const carga = Math.max(1, etiquetas.length * 2 + Math.ceil((texto.length + etiquetas.join('').length) / 18));
+  // El contrato normaliza a tres conceptos. Dar dos puntos a CADA uno hacia que la carga
+  // empezara en seis y una etiqueta real la empujara siempre a `alta`: parecia derivada del
+  // contenido, pero en produccion era una constante disfrazada. La frase decide ahora la
+  // carga principal; palabra y etiquetas solo distinguen escenas breves del mismo tramo.
+  const fuente = frase || texto;
+  const palabras = fuente.match(/[\p{L}\p{N}]+/gu)?.length ?? 0;
+  return Math.max(1,
+    Math.ceil(palabras / 6) +
+    Math.ceil(fuente.length / 45) +
+    // Sin cajas, la palabra aislada no se penaliza tres veces: conserva la densidad mínima.
+    (etiquetas.length ? Math.ceil((texto.length + etiquetas.join('').length) / 30) : 0) +
+    (etiquetas.length ? 1 : 0));
+}
+
+export function densidadDesdeContenido(contenido: ContenidoDensidad = {}): Densidad {
+  const carga = cargaDensidad(contenido);
   if (carga <= 2) return 'minima';
   if (carga <= 4) return 'baja';
-  if (carga <= 6) return 'media';
-  if (carga <= 9) return 'alta';
+  // 7 ya combina tramo/etiquetas suficientes para cinco elementos, no ocho. La separación
+  // 7/8/9 conserva una regla semántica fija y evita que un tramo real de carga 7–9 colapse
+  // bajo el mismo nombre `alta` solo porque siempre haya tres conceptos por contrato.
+  if (carga <= 7) return 'media';
+  if (carga <= 8) return 'alta';
   return 'saturada';
 }
 

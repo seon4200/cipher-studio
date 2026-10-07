@@ -9,7 +9,7 @@ compilado. Comprueba el DOM despues de cada clip para rechazar un respaldo.
 Desde un repositorio compilado:
 
 ```powershell
-npx electron tests/rendimiento/escena-m7.cjs . C:\graphify\m7-otra-tirada
+npx electron tests/rendimiento/escena-m7.cjs . %CIPHER_LOCAL_ROOT%\m7-otra-tirada
 ```
 
 Los argumentos son repositorio compilado y carpeta de salida. Sin argumentos
@@ -50,8 +50,8 @@ contenido medido, capturada despues del intervalo cronometrado.
 
 ## A.0: verificacion anterior a la medicion (04/09/2026)
 
-Clon nuevo: C:\graphify\cipher-plan-a0-verificacion-20260904.
-No existia node_modules en C:\graphify ni C:\. La verificacion anterior del
+Clon nuevo: %CIPHER_LOCAL_ROOT%\cipher-plan-a0-verificacion-20260904.
+No existia node_modules en %CIPHER_LOCAL_ROOT%\ ni C:\. La verificacion anterior del
 lote usaba un worktree: se repitio con git clone --no-hardlinks y npm ci.
 Commit 84062d76c5b878c8a7766ea4c17e16b9dcd461e3; arbol
 e69d531789d0d9ca73a220a8b78626df556de632.

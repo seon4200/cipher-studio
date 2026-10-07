@@ -5,7 +5,7 @@
 En el repositorio compilado, abrir `npm run banco`. En otra terminal:
 
 ```powershell
-node node_modules/electron/cli.js tests/aceptacion/medir-a1.cjs . C:\graphify\a1-otra-medicion
+node node_modules/electron/cli.js tests/aceptacion/medir-a1.cjs . %CIPHER_LOCAL_ROOT%\a1-otra-medicion
 ```
 
 Usar una carpeta de salida nueva. El arnes carga el banco real, permite solo
