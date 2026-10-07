@@ -1,0 +1,664 @@
+{
+  "frozenBeforeFirstRun": true,
+  "count": 72,
+  "top1": 0,
+  "top5": 5,
+  "noResult": 67,
+  "ambiguous": 2,
+  "providers": {
+    "openmoji": 0,
+    "solar": 0,
+    "editorial": 72
+  },
+  "latencyMs": 2435.112799999999,
+  "rows": [
+    {
+      "id": "holdout-v15-001",
+      "term": "helicóptero",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-002",
+      "term": "autobús urbano",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-003",
+      "term": "motocicleta",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-004",
+      "term": "patinete",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-005",
+      "term": "tractor agrícola",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-006",
+      "term": "camión de bomberos",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-007",
+      "term": "coche de policía",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-008",
+      "term": "silla de ruedas",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-009",
+      "term": "ancla marina",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-010",
+      "term": "tienda de campaña",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-011",
+      "term": "castillo medieval",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-012",
+      "term": "mezquita",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-013",
+      "term": "sinagoga",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-014",
+      "term": "hotel",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": true,
+      "candidateCount": 6
+    },
+    {
+      "id": "holdout-v15-015",
+      "term": "oficina postal",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-016",
+      "term": "farmacia",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-017",
+      "term": "dentista",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-018",
+      "term": "estetoscopio",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-019",
+      "term": "termómetro",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-020",
+      "term": "hélice de ADN",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-021",
+      "term": "átomo",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-022",
+      "term": "imán",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-023",
+      "term": "placa de Petri",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-024",
+      "term": "ábaco",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-025",
+      "term": "llave inglesa",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-026",
+      "term": "destornillador",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-027",
+      "term": "serrucho",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-028",
+      "term": "pala de obra",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-029",
+      "term": "ladrillo",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-030",
+      "term": "escalera de mano",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-031",
+      "term": "casco de seguridad",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-032",
+      "term": "guantes",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-033",
+      "term": "bota",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-034",
+      "term": "camiseta",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-035",
+      "term": "paraguas",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-036",
+      "term": "maleta",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-037",
+      "term": "pasaporte",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-038",
+      "term": "boleto",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-039",
+      "term": "trofeo",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-040",
+      "term": "medalla",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-041",
+      "term": "baloncesto",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-042",
+      "term": "raqueta de tenis",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-043",
+      "term": "béisbol",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-044",
+      "term": "voleibol",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-045",
+      "term": "guante de boxeo",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-046",
+      "term": "peón de ajedrez",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-047",
+      "term": "dados",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-048",
+      "term": "pieza de rompecabezas",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-049",
+      "term": "guitarra",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-050",
+      "term": "violín",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": true,
+      "candidateCount": 1
+    },
+    {
+      "id": "holdout-v15-051",
+      "term": "piano",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": true,
+      "candidateCount": 1
+    },
+    {
+      "id": "holdout-v15-052",
+      "term": "trompeta",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-053",
+      "term": "tambor",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-054",
+      "term": "pincel de artista",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-055",
+      "term": "paleta de pintura",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-056",
+      "term": "máscaras de teatro",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-057",
+      "term": "carpa de circo",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-058",
+      "term": "volcán",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-059",
+      "term": "desierto",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-060",
+      "term": "isla tropical",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-061",
+      "term": "cascada natural",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-062",
+      "term": "mariposa",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-063",
+      "term": "abeja",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-064",
+      "term": "caballo",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-065",
+      "term": "vaca",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-066",
+      "term": "manzana",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-067",
+      "term": "plátano",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-068",
+      "term": "aguacate",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-069",
+      "term": "pizza",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": true,
+      "candidateCount": 2
+    },
+    {
+      "id": "holdout-v15-070",
+      "term": "empanadilla",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    },
+    {
+      "id": "holdout-v15-071",
+      "term": "sushi",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": true,
+      "candidateCount": 1
+    },
+    {
+      "id": "holdout-v15-072",
+      "term": "tetera",
+      "selected": null,
+      "provider": "editorial",
+      "top1": false,
+      "top5": false,
+      "candidateCount": 0
+    }
+  ]
+}

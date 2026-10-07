@@ -17,16 +17,19 @@
  */
 const { app, ipcMain, BrowserWindow } = require('electron')
 const fs = require('fs')
-const os = require('os')
 const path = require('path')
 const crypto = require('crypto')
 const { exec } = require('child_process')
+const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
 
 const RAIZ = path.resolve(__dirname, '..')
-const PROY = path.join(RAIZ, 'proyectos')
-const LOG = path.join(RAIZ, 'generation-debug.log')
+const FIXTURE_ROOT = createTestFixture('graficos')
+process.chdir(FIXTURE_ROOT)
+const PROY = path.join(FIXTURE_ROOT, 'cipher-studio', 'proyectos')
+const LOG = path.join(FIXTURE_ROOT, 'generation-debug.log')
 const MARCA = 'zz-prueba-graficos'
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-graf-'))
+const TMP = path.join(FIXTURE_ROOT, 'output')
+fs.mkdirSync(TMP, { recursive: true })
 
 const ANCHO = 1080, ALTO = 1920, FPS = 30, DUR = 2
 // Alto de la franja de la sonda. Copiado de SONDA_ALTO en main/index.ts y grafico.tsx: la
@@ -57,13 +60,12 @@ const ejecutar = (cmd) => new Promise((resolve, reject) => {
     err ? reject(new Error(String(stderr || err.message).slice(-600))) : resolve(String(stdout)))
 })
 
-const limpiar = () => {
-  if (!fs.existsSync(PROY)) return
-  for (const d of fs.readdirSync(PROY)) {
-    if (d.toLowerCase().startsWith(MARCA)) {
-      fs.rmSync(path.join(PROY, d), { recursive: true, force: true })
-    }
-  }
+let fixtureCleaned = false
+const limpiarFixture = () => {
+  if (fixtureCleaned) return
+  process.chdir(path.dirname(FIXTURE_ROOT))
+  cleanupTestFixture(FIXTURE_ROOT)
+  fixtureCleaned = true
 }
 
 // Solo las offscreen: el bundle abre su ventana principal al arrancar.
@@ -123,7 +125,6 @@ async function main (bundle) {
   const sinNada = bundle.dimensionesDeExport(undefined, undefined)
   ok(sinNada.ancho === 1920 && sinNada.alto === 1080, 'y sin argumentos, igual')
 
-  limpiar()
   const p = await llamar('create-project', { name: MARCA })
   const cacheGraficos = path.join(p.projectPath, 'cache', 'graficos')
   const logAntes = fs.existsSync(LOG) ? fs.statSync(LOG).size : 0
@@ -311,32 +312,21 @@ async function main (bundle) {
       'un tipo desconocido no pinta el diagnostico dentro del video')
     ok(estadoDesconocido.avisos.some(a => a.includes('TIPO NO SOPORTADO:')),
       'un tipo desconocido deja un aviso en el canal que recoge main')
-    const respaldo = {
-      type: 'visual_mapa',
-      value: 'memoria',
-      label: '',
-      unit: '',
-      emoji: '',
-      extra: { pos: 'test:respaldo', conceptos: [] }
-    }
+    const respaldo = { type: 'visual_mapa', value: 'memoria', extra: { conceptos: [] } }
     await ventana.webContents.executeJavaScript(
       `window.__montar(${JSON.stringify(respaldo)}, ${JSON.stringify({
         ancho: ANCHO, alto: ALTO, modo: 'pantalla', sistema: 'voltaje', duracion: DUR
       })})`)
-    const estadoRespaldo = await ventana.webContents.executeJavaScript(`({
+    const estadoVisualRetirado = await ventana.webContents.executeJavaScript(`({
       texto: document.body.innerText,
-      tieneMapa: !!document.querySelector('[class*="cm-"]'),
-      avisos: window.__avisosCiclo || []
+      tieneMapa: !!document.querySelector('[class*="cm-"]')
     })`)
-    ok(estadoRespaldo.texto.includes('memoria') &&
-       !estadoRespaldo.texto.includes('Tipo no soportado'),
-      'puedeDibujar=false pinta el Visual de texto real, no un cartel de error',
-      estadoRespaldo.texto)
-    ok(!estadoRespaldo.tieneMapa,
-      'el respaldo no deja una composicion parcial debajo')
-    ok(estadoRespaldo.avisos.some(a => a.includes('[mapa] RESPALDO:')),
-      'y deposita el aviso de respaldo en el canal que recoge main')
-
+    ok(estadoVisualRetirado.texto.includes('motor retirado') &&
+       estadoVisualRetirado.texto.includes('Animation'),
+      'el renderer informa la incompatibilidad histórica y dirige a Animation',
+      estadoVisualRetirado.texto)
+    ok(!estadoVisualRetirado.tieneMapa,
+      'el renderer antiguo no dibuja parcialmente bajo el aviso')
     // Y un fallo forzado: ancho 0. Por donde sale el null lo dice la linea [GRAFICO] FALLO
     // del log, mas abajo — importa saber si lo caza la guarda del tamano o revienta antes.
     const dejados = movs(cacheGraficos).length
@@ -490,106 +480,18 @@ async function main (bundle) {
       'la clave cambio de FORMA: los MOV anteriores quedan invalidados',
       `vieja ${claveVieja} -> nueva ${hOverlay}`)
 
-    // ── K) EL VISUAL A PANTALLA COMPLETA (V2) ──────────────────────────────────────
-    // VA AQUI, ANTES del close-project de abajo, a proposito: sin proyecto activo
-    // renderGraphicClip devuelve null por OTRA razon y el test pasaria por el motivo
-    // equivocado, que es peor que fallar.
-    console.log('\n=== K) EL VISUAL A PANTALLA COMPLETA ===')
-    const G_VIS = { type: 'donut', value: 87, label: 'Cuota', unit: '%' }
-    const DUR_VIS = 3
-    const FRAMES_VIS = DUR_VIS * FPS
-
-    const mp4 = await renderGraphicClip(G_VIS,
-      { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: DUR_VIS, modo: 'pantalla', sistema: 'voltaje' })
-    ok(mp4 !== null, 'modo=pantalla YA renderiza', String(mp4))
-    ok(!!mp4 && mp4.endsWith('.mp4'), 'el fichero es .mp4, no .mov',
-      mp4 ? path.basename(mp4) : '(null)')
-
-    // Donde vive, y la asimetria importa: un Visual que falta rompe la aritmetica del export
-    // y el -shortest se come el audio; una tarjeta que falta no rompe nada.
-    const dirVisual = path.join(p.projectPath, 'materiales', 'visual')
-    ok(!!mp4 && path.dirname(mp4) === dirVisual,
-      'cae en materiales/visual, NO en cache', mp4 ? path.dirname(mp4) : '(null)')
-
-    const crudoVis = await ejecutar(`ffprobe -v error -select_streams v:0 -count_frames ` +
-      `-show_entries stream=nb_read_frames,width,height,pix_fmt,codec_name ` +
-      `-show_entries format=duration -of json "${String(mp4).replace(/"/g, '\\"')}"`)
-    const iv = JSON.parse(crudoVis)
-    const sv = (iv.streams && iv.streams[0]) || {}
-    ok(sv.codec_name === 'h264', 'el codec es h264', String(sv.codec_name))
-    ok(sv.pix_fmt === 'yuv420p', 'el pix_fmt es yuv420p', String(sv.pix_fmt))
-    ok(Number(sv.nb_read_frames) === FRAMES_VIS, `tiene ${FRAMES_VIS} frames exactos`,
-      'nb_read_frames = ' + sv.nb_read_frames)
-    ok(sv.width === ANCHO && sv.height === ALTO, `mide ${ANCHO}x${ALTO}`,
-      `${sv.width}x${sv.height}  (la franja de la sonda NO viaja al MP4)`)
-
-    // Los tres frames distintos: el reloj sigue vivo. Si el Visual se congelara, los tres
-    // saldrian identicos y el video mostraria una imagen fija durante 3 segundos.
-    // Se reutiliza huellaDelFrame, que ya existe y se usa en la seccion D).
-    const v1 = await huellaDelFrame(mp4, 0.1, 'vis1')
-    const v2 = await huellaDelFrame(mp4, 0.5, 'vis2')
-    const v3 = await huellaDelFrame(mp4, 1.0, 'vis3')
-    ok(new Set([v1.hash, v2.hash, v3.hash]).size === 3,
-      'los frames de t=0.1, 0.5 y 1.0 son los TRES distintos',
-      `${v1.hash} · ${v2.hash} · ${v3.hash}`)
-
-    // 0 frames completamente negros. Es el sintoma del fallo del alpha AL REVES: si el
-    // componente no pintara su fondo, yuv420p descartaria el alfa y saldria todo negro.
-    // blackdetect con pix_th=0.10 marca los tramos cuyos frames son casi todos oscuros; se
-    // cuenta cuanta DURACION cae ahi, que es mas robusto que mirar un frame suelto.
-    const bd = await ejecutar(`ffmpeg -hide_banner -nostats -i "${String(mp4).replace(/"/g, '\\"')}" ` +
-      `-vf blackdetect=d=0.05:pix_th=0.10 -an -f null - 2>&1 || true`)
-    const tramosNegros = (String(bd).match(/black_duration:(\d+(\.\d+)?)/g) || [])
-      .map(m => parseFloat(m.split(':')[1]))
-    const segNegros = tramosNegros.reduce((a, b) => a + b, 0)
-    ok(segNegros === 0, 'ningun tramo completamente negro',
-      tramosNegros.length ? `${segNegros.toFixed(2)}s en ${tramosNegros.length} tramo(s)` : '0.00s')
-
-    // ── L) LA SONDA SIGUE LEGIBLE BAJO EL FONDO OPACO ──────────────────────────────
-    // Si el fondo del Visual cubriera los 1928 en vez de los 1920 del lienzo, el lazo cerrado
-    // no podria leer la franja y TODOS los frames agotarian los 5 intentos.
-    // Se comprueba el PIXEL y no la media de intentos: con voltaje el fondo es #0A0A0A, casi
-    // negro, asi que un fallo podria colarse por parecido; con clinico —fondo #F7F6F3— seria
-    // imposible confundirlos. Por eso van los dos.
-    console.log('\n=== L) LA SONDA SIGUE LEGIBLE BAJO EL FONDO ===')
-    const leerPixelSonda = async (sistema, tSonda) => {
-      const v = offscreens()[0]
-      if (!v) return null
-      await v.webContents.executeJavaScript(
-        `window.__montar(${JSON.stringify(G_VIS)}, ${JSON.stringify(
-          { ancho: ANCHO, alto: ALTO, modo: 'pantalla', sistema })})`)
-      await v.webContents.executeJavaScript(`window.__setT(${tSonda})`)
-      // Mismo offset que usa renderGraphicClip: centro horizontal, mitad de la franja.
-      const off = (Math.floor(SONDA_ALTO_TEST / 2) * ANCHO + Math.floor(ANCHO / 2)) * 4
-      for (let k = 0; k < 20; k++) {
-        const raw = (await v.webContents.capturePage()).getBitmap()
-        if (raw[off] === Math.round((tSonda * 30) % 255)) {
-          // El pixel de DEBAJO de la franja: tiene que ser el fondo del sistema, no la sonda.
-          const offFondo = ((SONDA_ALTO_TEST + 4) * ANCHO + 4) * 4
-          return { intentos: k + 1, sonda: raw[off],
-                   fondo: [raw[offFondo + 2], raw[offFondo + 1], raw[offFondo]] }
-        }
-      }
-      return { intentos: 21, sonda: -1, fondo: null }
-    }
-
-    // La ventana sigue viva del render anterior; si no, se abre montando.
-    await renderGraphicClip({ ...G_VIS, value: 1 },
-      { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: 1, modo: 'pantalla', sistema: 'voltaje' })
-
-    for (const [sis, fondoEsperado] of [['voltaje', [10, 10, 10]], ['clinico', [247, 246, 243]]]) {
-      const t = sis === 'voltaje' ? 1.0 : 1.1
-      const r = await leerPixelSonda(sis, t)
-      const esperado = Math.round((t * 30) % 255)
-      ok(!!r && r.sonda === esperado,
-        `sistema ${sis}: el pixel de la sonda vale lo que se fijo`,
-        r ? `esperado ${esperado}, leido ${r.sonda}` : '(sin ventana)')
-      ok(!!r && !!r.fondo && r.fondo.every((c, i) => Math.abs(c - fondoEsperado[i]) <= 6),
-        `sistema ${sis}: y justo debajo esta el fondo del sistema, no la sonda`,
-        r && r.fondo ? `rgb(${r.fondo.join(',')}) contra rgb(${fondoEsperado.join(',')})` : '(sin dato)')
-      console.log(`  MEDIDA sistema ${sis}: ${r ? r.intentos : '-'} intento(s) para leer la sonda`)
-    }
-
+    // ── K) LOS VISUALES HISTÓRICOS NO SE REGENERAN ────────────────────────────────
+    console.log('\n=== K) LOS VISUALES HISTÓRICOS NO SE REGENERAN ===')
+    const visualPantalla = await renderGraphicClip(
+      { type: 'visual_escena', value: 'memoria' },
+      { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: 3, modo: 'pantalla' })
+    ok(visualPantalla === null,
+      'modo=pantalla rechaza la regeneración antigua antes de renderizar', String(visualPantalla))
+    const visualOverlay = await renderGraphicClip(
+      { type: 'visual_texto', value: 'memoria' },
+      { ancho: ANCHO, alto: ALTO, fps: FPS, duracion: DUR, modo: 'overlay' })
+    ok(visualOverlay === null,
+      'un tipo visual histórico tampoco cae a las tarjetas genéricas', String(visualOverlay))
     // Cancelacion: sin proyecto activo. Recorre la MISMA rama que un cambio de proyecto a
     // mitad, entrando por la puerta de arriba en vez de por la de en medio. La comparacion
     // dentro del bucle no tiene test: no hay forma determinista de mover activeProjectPath a
@@ -627,8 +529,7 @@ async function main (bundle) {
     // proceso de test se queda colgado.
     try { bundle.cerrarVentanaGraficos() } catch (e) {}
     try { await llamar('close-project', {}) } catch (e) {}
-    limpiar()
-    try { fs.rmSync(TMP, { recursive: true, force: true }) } catch (e) {}
+    limpiarFixture()
   }
 }
 
@@ -654,8 +555,7 @@ app.whenReady().then(async () => {
     // dejar una ventana Electron viva esperando para siempre.
     try { bundle.cerrarVentanaGraficos() } catch (e) {}
     try { await llamar('close-project', {}) } catch (e) {}
-    limpiar()
-    try { fs.rmSync(TMP, { recursive: true, force: true }) } catch (e) {}
+    limpiarFixture()
   }
 
   console.log('\n' + '─'.repeat(70))

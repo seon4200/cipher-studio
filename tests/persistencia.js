@@ -21,10 +21,13 @@
 const { app, ipcMain } = require('electron')
 const fs = require('fs')
 const path = require('path')
+const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
 
 const RAIZ = path.resolve(__dirname, '..')
 const FUENTE = path.join(RAIZ, 'src/renderer/src/main.tsx')
-const PROY = path.join(RAIZ, 'proyectos')
+const FIXTURE_ROOT = createTestFixture('persistencia')
+process.chdir(FIXTURE_ROOT)
+const PROY = path.join(FIXTURE_ROOT, 'cipher-studio', 'proyectos')
 const MARCA = 'zz-prueba-persistencia'
 
 // Claves que NO son un estado con el mismo nombre. Se declaran aqui, a la vista, con su
@@ -128,6 +131,9 @@ const MUESTRA = {
   timelineVideoClips: [{ id: 'c1', name: 'x.mp4', type: 'video', startSeconds: 0, durationSeconds: 3 }],
   timelineVersions: [{ id: 'v1', name: 'V', timestamp: 1, timelineVideoClips: [] }],
   activeVersionId: 'v1',
+  vibesSourceStartSeconds: 12.5,
+  vibesSourceMediaDurationSeconds: 93.8,
+  vibesSourceTranscriptSegments: [{ start: 12.5, end: 13.2, text: 'segmento Vibes' }],
   transcriptionStatus: 'success',
   transcriptSegments: [{ start: 0, end: 1, text: 'hola' }],
   newAudioSegments: [{ start: 0, end: 1, text: 'adios' }],
@@ -137,6 +143,29 @@ const MUESTRA = {
   voiceModel: 'Modelo X', voiceSpeaker: 'Voz Y', voiceSpeed: 1.4, voiceStability: 71,
   generatedVoices: [{ id: 'g1', timestamp: 2 }],
   graphicsPercent: 33,
+  visualPresentationProfile: 'editorial-modular-catalog-v1',
+  visualAssetPack: 'modern-pack-100-v1',
+  ideaV4AssetRoot: path.join(FIXTURE_ROOT, 'idea-v4-assets'),
+  ideaV4Color: { supportSource: 'custom', customColor: '#7B4EA3',
+                 heroMode: 'recolorable', heroPrimary: '#238C87' },
+  modularCatalogRoot: path.join(FIXTURE_ROOT, 'catalogo-250'),
+  editorialLocalAccent: '#7B4EA3',
+  editorialFamilyChoice: 'cuaderno',
+  editorialFamilyColor: '#238C87',
+  editorialFamilyEffects: 'none',
+  editorialFinishControls: {
+    display: 'Instrument Serif', local: 'enfasis', ambient: 'off',
+    composition: 'focus', representation: 'dotted', response: 'halo',
+    headline: '#11110F', keyword: '#176A66', body: '#11110F', effects: '#238C87'
+  },
+  modularHeroId: 'editorial-hero-h011-v1',
+  modularSupportIds: ['idea-support-camera-v1', 'idea-support-network-v1',
+                      'idea-support-time-v1', 'idea-support-target-v1'],
+  modularRearId: 'editorial-layer-l002-v1',
+  modularAccentId: 'editorial-layer-l037-v1',
+  modularFrontId: 'editorial-layer-l021-v1',
+  modularRecipe: 'wide',
+  modularHeadline: { connector: 'LA', keyword: 'SEÑAL', closing: 'conecta conceptos' },
   timelineWeights: [11, 22, 67],
   aspectRatio: 'vertical',
   exportResolution: '4K', exportFormat: 'mov', exportQuality: 'high',
@@ -151,11 +180,12 @@ const llamar = (canal, arg) => {
   if (!h) throw new Error('sin handler: ' + canal)
   return h({ sender: { send: () => {} } }, arg)
 }
-const limpiar = () => {
-  if (!fs.existsSync(PROY)) return
-  for (const d of fs.readdirSync(PROY)) {
-    if (d.toLowerCase().startsWith(MARCA)) fs.rmSync(path.join(PROY, d), { recursive: true, force: true })
-  }
+let fixtureCleaned = false
+const limpiarFixture = () => {
+  if (fixtureCleaned) return
+  process.chdir(path.dirname(FIXTURE_ROOT))
+  cleanupTestFixture(FIXTURE_ROOT)
+  fixtureCleaned = true
 }
 
 async function parteB (claves) {
@@ -171,7 +201,6 @@ async function parteB (claves) {
         : `${Object.keys(MUESTRA).length} campos en la muestra`)
   }
 
-  limpiar()
   const p = await llamar('create-project', { name: MARCA })
   await llamar('save-project-state', { id: p.data.id, name: p.data.name, clips: [], ...MUESTRA })
   await llamar('close-project', {})
@@ -201,7 +230,6 @@ async function parteB (claves) {
     'un proyecto guardado ANTES de estos campos sigue abriendose',
     excepcion ? 'EXCEPCION: ' + excepcion : 'abre sin los campos nuevos, que llegan undefined')
 
-  limpiar()
 }
 
 app.whenReady().then(async () => {
@@ -217,6 +245,7 @@ app.whenReady().then(async () => {
   console.log('\n' + '─'.repeat(70))
   if (fallos.length === 0) {
     console.log('TODO CORRECTO — lo que se guarda se restaura, y las dependencias estan al dia.')
+    limpiarFixture()
     app.exit(0)
   } else {
     console.log(`${fallos.length} FALLO(S):`)
@@ -224,6 +253,7 @@ app.whenReady().then(async () => {
     console.log('\nUn campo que no sobrevive significa que el usuario pierde ese ajuste al')
     console.log('reabrir su proyecto, y en el caso de aspectRatio, que exporta con el formato')
     console.log('equivocado sin enterarse.')
+    limpiarFixture()
     app.exit(1)
   }
 }).catch(e => { console.error('LA PRUEBA NO PUDO EJECUTARSE:', e); app.exit(1) })

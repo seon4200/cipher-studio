@@ -1,0 +1,115 @@
+// Isolated one-scene authoring acceptance using productive resolver, ProjectAssets and renderGraphicClip.
+const {app,session,ipcMain}=require('electron')
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict')
+const crypto=require('node:crypto')
+const {spawnSync}=require('node:child_process')
+const {createTestFixture,cleanupTestFixture}=require('../../helpers/safe-fixture')
+const root=path.resolve(__dirname,'../../..')
+const packageRoot=path.resolve(root,'../_cipher-idea-assembly-v1')
+const runtime=path.join(packageRoot,'runtime')
+const run=path.join(packageRoot,'runs',`run-${new Date().toISOString().replace(/[-:]/g,'').replace(/\..*/, '').replace('T','-')}`)
+const fixture=createTestFixture('editorial-idea-assembly-v1')
+const project=path.join(fixture,'project')
+const ffmpeg=process.env.CIPHER_FFMPEG_EXE||'ffmpeg'
+app.setPath('userData',path.join(fixture,'userData'))
+app.commandLine.appendSwitch('force-device-scale-factor','1')
+process.chdir(fixture)
+const write=(name,data)=>{const file=path.join(run,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,data);return file}
+function ff(args){const r=spawnSync(ffmpeg,['-hide_banner','-loglevel','error','-y',...args],{encoding:'utf8',timeout:300000})
+  if(r.status!==0)throw Error(`FFMPEG:${r.status}:${r.error?.message||r.stderr}`)}
+const still=(video,t,name)=>{const target=path.join(run,name);fs.mkdirSync(path.dirname(target),{recursive:true});ff(['-ss',String(t),'-i',video,'-frames:v','1','-update','1',target]);return target}
+function publish(b,name){const bytes=fs.readFileSync(path.join(runtime,`${name}.png`))
+  const p=b.publishRasterProjectAssetV1({projectRoot:project,provider:'editorial-pilot-raster',
+    assetId:`idea-${name}`,bytes,requireUsefulAlpha:name!=='paper-background',
+    source:{providerVersion:'chatgpt-imagegen-2026-09',attribution:'Generated specifically for IDEA assembly pilot'},
+    validationRevision:'editorial-idea-pilot-raster-v1'})
+  return {asset:p.asset,bytes}}
+function context(b,hero){const duration=80/24,sceneId='idea-assembly-synthetic'
+  const localSemantic=b.createLocalSceneSemanticV1({sceneId,start:0,end:duration,
+    transcriptSegments:[{start:0,end:duration,text:'Una idea abre nuevas posibilidades'}],
+    concepts:[{label:'idea',canonicalHint:'idea',start:0,end:duration,scope:'scene'}],
+    anchor:'idea',globalText:'Una idea abre nuevas posibilidades',globalHints:[],
+    globalContextRef:'synthetic:editorial-idea-assembly-v1'})
+  return b.createModernVisualGenerationContextV2({sceneId,duration,localSemantic,
+    keywordCandidates:[{keyword:'IDEA',source:'scene-semantic'}],preferredVisualMode:'asset-led',
+    sistema:'editorial',direction:{fondo:'ondas',estructura:'marcoPoster',camara:'quieto',
+      densidad:'alta',ritmo:'simultaneo',semilla:91551},videoStyleId:'cream-editorial',
+    presentationProfile:b.EDITORIAL_EXPLAINER_V3,
+    lockedChoices:[{slotId:'hero',concept:'idea',provider:'editorial-pilot-raster',
+      representation:'photo-cutout',reason:'EXPLICIT_IDEA_PILOT_CHATGPT_GENERATED',score:3,
+      assetId:hero.asset.id,relativeFile:hero.asset.relativeFile,sha256:hero.asset.sha256,
+      mime:hero.asset.mime,bounds:b.subjectBoundsFromPixabayRasterV1(hero.bytes),
+      kind:'photo-cutout',alphaMode:'useful-alpha'}],
+    colorPalettePlan:{version:1,primaryFamily:'blue-tech',compatibleFamilies:[],revision:b.COLOR_PALETTE_REVISION_V1}})}
+async function render(b,compiled,format,tag){const vertical=format==='vertical',width=vertical?720:1280,height=vertical?1280:720
+  let qc;const source=await b.renderGraphicClip(compiled.graphicData,{ancho:width,alto:height,fps:24,duracion:80/24,
+    modo:'pantalla',sistema:'editorial',projectRoot:project,renderBindings:compiled.renderBindings,
+    onQcReport:v=>qc=v,onQcFailure:v=>qc=v})
+  if(!source&&qc)console.error('IDEA_QC_GEOMETRY',JSON.stringify({contrast:qc.localTextContrast,
+    samples:qc.snapshots?.filter(x=>Math.abs(x.normalizedTime-.5)<.1).map(x=>({keyword:x.keyword,text:x.text,hero:x.hero,textColor:x.textColor}))}))
+  assert(source&&fs.existsSync(source),`VISUAL_SIN_FICHERO:${format}:${tag}:${JSON.stringify(qc?.findings)}`)
+  if(qc)assert.equal(qc.findings.filter(x=>x.level==='error').length,0,JSON.stringify(qc.findings))
+  const dest=path.join(run,`idea-${tag}-${format}.mp4`);fs.mkdirSync(run,{recursive:true});fs.copyFileSync(source,dest)
+  const frames={};for(const [label,t] of Object.entries({first:0,assembly:.42,bulb:.82,stable:2.1,exit:3.18}))
+    frames[label]=still(dest,t,`frames/idea-${tag}-${format}-${label}.png`)
+  return {mp4:dest,frames,qc:qc?.findings||[],width,height,framesExpected:80}
+}
+function htmlCell(file,label){return `<figure><img src="${path.relative(run,file).replace(/\\/g,'/')}" alt=""><figcaption>${label}</figcaption></figure>`}
+app.whenReady().then(async()=>{let exitCode=1;try{
+  global.fetch=()=>{throw Error('NETWORK_FORBIDDEN_AFTER_MATERIALIZATION')}
+  session.defaultSession.webRequest.onBeforeRequest((d,cb)=>cb({cancel:/^https?:/i.test(d.url)}))
+  const b=require(path.join(root,'dist-electron/main/index.js'))
+  ipcMain.removeHandler('get-elevenlabs-voices');ipcMain.handle('get-elevenlabs-voices',()=>({success:true,voices:[]}))
+  b.createProjectFiles(project,{id:'idea-assembly-synthetic',clips:[],timelineVideoClips:[],aiScript:'synthetic one-scene pilot'})
+  const names=['bust','bulb','collage-rear','accent-paper','collage-front-neutral','personas','datos','soluciones','impacto','paper-background']
+  const published=Object.fromEntries(names.map(name=>[name,publish(b,name)]))
+  const batch=await b.resolveModernVisualGenerationBatchV2({contexts:[context(b,published.bust)],projectRoot:project})
+  const base=batch[0].resolved.compiled
+  const historicalBaseIdentity=b.sceneSpecPixelIdentityAny(base.sceneSpec)
+  const historicalBaseBytes=JSON.stringify(base.sceneSpec)
+  const assets={hero:published.bust,supports:[published.personas,published.datos,published.soluciones,published.impacto],
+    resources:{'idea-background':published['paper-background'],'idea-rear':published['collage-rear'],
+      'idea-accent':published['accent-paper'],'idea-bulb':published.bulb,'idea-front':published['collage-front-neutral']}}
+  const compile=theme=>b.compileEditorialIdeaAssemblyPilotV1({base,assets,accentTheme:theme})
+  const orange=compile('orange')
+  assert.equal(b.sceneSpecPixelIdentityAny(orange.sceneSpec),b.sceneSpecPixelIdentityAny(compile('orange').sceneSpec))
+  assert.equal(b.sceneSpecPixelIdentityAny(base.sceneSpec),historicalBaseIdentity)
+  assert.equal(JSON.stringify(base.sceneSpec),historicalBaseBytes)
+  assert.equal(orange.sceneSpec.slots.length,5)
+  assert.equal(orange.sceneSpec.ideaAssembly.resources.length,5)
+  assert.throws(()=>b.validateVisualSceneSpecV2({...base.sceneSpec,
+    slots:[...base.sceneSpec.slots,orange.sceneSpec.slots[3],orange.sceneSpec.slots[4]]}))
+  assert.throws(()=>b.validateVisualSceneSpecV2({...orange.sceneSpec,ideaAssembly:{
+    ...orange.sceneSpec.ideaAssembly,resources:orange.sceneSpec.ideaAssembly.resources.slice(1)}}))
+  assert.throws(()=>b.prepareGraphicForVisualRender({graphicData:orange.graphicData,projectRoot:project,
+    renderBindings:{...orange.renderBindings,assets:orange.renderBindings.assets.slice(0,-1)}}))
+  assert.notEqual(b.sceneSpecPixelIdentityAny(orange.sceneSpec),b.sceneSpecPixelIdentityAny(compile('teal').sceneSpec))
+  const vertical=await render(b,orange,'vertical','orange')
+  const replay=await b.renderGraphicClip(orange.graphicData,{ancho:720,alto:1280,fps:24,duracion:80/24,
+    modo:'pantalla',sistema:'editorial',projectRoot:project,renderBindings:orange.renderBindings})
+  const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')
+  assert(replay&&fs.existsSync(replay));assert.equal(sha(replay),sha(vertical.mp4))
+  const horizontal=await render(b,orange,'horizontal','orange')
+  const themes={orange:vertical.frames.stable}
+  for(const theme of ['teal','crimson'])themes[theme]=(await render(b,compile(theme),'vertical',theme)).frames.stable
+  const v3=path.resolve(root,'../_editorial-explainer-v3-evidence/run-20260921-044113/keyframes/idea-v3-vertical-stable.png')
+  const ideaRef = process.env.CIPHER_IDEA_REFERENCE_IMAGE || ""
+  const refDest=path.join(run,'reference-idea.png');fs.copyFileSync(ideaRef,refDest)
+  const v3Dest=path.join(run,'idea-v3-comparison.png');if(fs.existsSync(v3))fs.copyFileSync(v3,v3Dest)
+  const style='<style>body{background:#24221f;color:#f4f2ed;font:16px Arial;padding:24px}main{display:grid;grid-template-columns:repeat(3,minmax(230px,1fr));gap:16px}figure{margin:0;background:#33302c;padding:10px}img{width:100%;max-height:750px;object-fit:contain;background:#f0eee8}figcaption{margin-top:8px}</style>'
+  write('comparison.html',`<!doctype html><meta charset="utf-8">${style}<h1>Referencia · V3 · IDEA assembly V1</h1><p>Comparación de dirección, NO A/B controlado: textos/assets distintos.</p><main>${htmlCell(refDest,'Referencia artística')}${fs.existsSync(v3Dest)?htmlCell(v3Dest,'IDEA V3'):''}${htmlCell(vertical.frames.stable,'Nuevo ensamblaje')}</main>`)
+  write('assembly-keyframes.html',`<!doctype html><meta charset="utf-8">${style}<h1>IDEA — entrada por capas / 24 fps</h1><main>${Object.entries(vertical.frames).map(([label,file])=>htmlCell(file,label)).join('')}</main>`)
+  write('accent-themes.html',`<!doctype html><meta charset="utf-8">${style}<h1>Un conjunto, tres acentos</h1><main>${Object.entries(themes).map(([label,file])=>htmlCell(file,label)).join('')}</main>`)
+  const evidence={branch:'v15-editorial-idea-assembly-v1',synthetic:true,source:'ChatGPT image generation',
+    frames:80,fps:24,durationSeconds:80/24,assets:names.map(name=>({name,sha256:published[name].asset.sha256,
+      alphaUseful:published[name].asset.validation.alphaUseful})),
+    sceneSpec:orange.sceneSpec,renderBindings:orange.renderBindings,
+    identity:b.sceneSpecPixelIdentityAny(orange.sceneSpec),
+    themeIdentities:Object.fromEntries(['orange','teal','crimson'].map(theme=>[theme,b.sceneSpecPixelIdentityAny(compile(theme).sceneSpec)])),
+    render:{vertical,horizontal},visualSinFichero:0,offlineAfterMaterialization:true}
+  write('evidence.json',JSON.stringify(evidence,null,2))
+  const debugFile=path.join(fixture,'cipher-studio','generation-debug.log')
+  if(fs.existsSync(debugFile))assert(!/FUENTE AUSENTE|fonts\.load lanzo/iu.test(fs.readFileSync(debugFile,'utf8')),
+    'FONT_LOAD_FAILURE')
+  console.log(`IDEA_PILOT_PASS:${run}`);exitCode=0
+}catch(e){console.error('IDEA_PILOT_FAIL',e.stack||e);console.error('IDEA_FIXTURE_ON_FAILURE',fixture)}finally{if(exitCode===0)cleanupTestFixture(fixture);app.exit(exitCode)}}).catch(e=>{console.error(e);app.exit(1)})

@@ -1,0 +1,2 @@
+# SHA-addressed payloads must retain exactly the validated bytes on Windows checkout.
+* -text

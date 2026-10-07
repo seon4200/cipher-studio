@@ -1,0 +1,118 @@
+{
+  "id": "editorial-idea-supports-v4-1",
+  "revision": "editorial-idea-support-catalog-2026-09-v1",
+  "assetCount": 10,
+  "provenance": "Local editorial IDEA Support microcatalog; no remote URLs or runtime network dependencies.",
+  "assets": [
+    {
+      "assetId": "idea-support-personas-v1", "concept": "personas", "label": "PERSONAS", "kind": "support",
+      "source": "Codex/OpenAI integrated image generation; carried forward unchanged from approved V3/V4 pilot",
+      "promptLiteral": null, "promptStatus": "historical literal prompt unavailable; not reconstructed",
+      "masterRelativePath": "masters/personas-v2.png", "runtimeRelativePath": "runtime/personas-v2.png",
+      "masterSha256": "c08045a69c674111850fde5002e51abbf44cae25bdc36b43c400639900fc6ca2",
+      "sha256": "c08045a69c674111850fde5002e51abbf44cae25bdc36b43c400639900fc6ca2",
+      "masterDimensions": { "width": 1254, "height": 1254 }, "dimensions": { "width": 1254, "height": 1254 },
+      "alphaValidation": { "hasAlpha": true, "alphaUseful": true, "transparentPixels": 1388696, "partialAlphaPixels": 179494, "opaquePixels": 4326 },
+      "colorCapability": "alpha-mask", "curationStatus": "approved", "curation": { "legacyApprovedBytePreserved": true }
+    },
+    {
+      "assetId": "idea-support-datos-v1", "concept": "datos", "label": "DATOS", "kind": "support",
+      "source": "Codex/OpenAI integrated image generation; carried forward unchanged from approved V3/V4 pilot",
+      "promptLiteral": null, "promptStatus": "historical literal prompt unavailable; not reconstructed",
+      "masterRelativePath": "masters/datos.png", "runtimeRelativePath": "runtime/datos.png",
+      "masterSha256": "30d12fccc09efa73b72922bf0c4deadb0daf7b6c57e4ff546726bdf0d127db13",
+      "sha256": "30d12fccc09efa73b72922bf0c4deadb0daf7b6c57e4ff546726bdf0d127db13",
+      "masterDimensions": { "width": 1254, "height": 1254 }, "dimensions": { "width": 1254, "height": 1254 },
+      "alphaValidation": { "hasAlpha": true, "alphaUseful": true, "transparentPixels": 1104656, "partialAlphaPixels": 467225, "opaquePixels": 635 },
+      "colorCapability": "alpha-mask", "curationStatus": "approved", "curation": { "legacyApprovedBytePreserved": true }
+    },
+    {
+      "assetId": "idea-support-soluciones-v1", "concept": "soluciones", "label": "SOLUCIONES", "kind": "support",
+      "source": "Codex/OpenAI integrated image generation; carried forward unchanged from approved V3/V4 pilot",
+      "promptLiteral": null, "promptStatus": "historical literal prompt unavailable; not reconstructed",
+      "masterRelativePath": "masters/soluciones.png", "runtimeRelativePath": "runtime/soluciones.png",
+      "masterSha256": "dd672b9f82bbf418b4d499c240ea942bbb4da48daaff36c6d97ecef306b4d227",
+      "sha256": "dd672b9f82bbf418b4d499c240ea942bbb4da48daaff36c6d97ecef306b4d227",
+      "masterDimensions": { "width": 1254, "height": 1254 }, "dimensions": { "width": 1254, "height": 1254 },
+      "alphaValidation": { "hasAlpha": true, "alphaUseful": true, "transparentPixels": 1240738, "partialAlphaPixels": 330327, "opaquePixels": 1451 },
+      "colorCapability": "alpha-mask", "curationStatus": "approved", "curation": { "legacyApprovedBytePreserved": true }
+    },
+    {
+      "assetId": "idea-support-impacto-v1", "concept": "impacto", "label": "IMPACTO", "kind": "support",
+      "source": "Codex/OpenAI integrated image generation; carried forward unchanged from approved V3/V4 pilot",
+      "promptLiteral": null, "promptStatus": "historical literal prompt unavailable; not reconstructed",
+      "masterRelativePath": "masters/impacto.png", "runtimeRelativePath": "runtime/impacto.png",
+      "masterSha256": "da8a6b755facffc73df096b42b73b03e30471bc21318fe10542169fdd7636152",
+      "sha256": "da8a6b755facffc73df096b42b73b03e30471bc21318fe10542169fdd7636152",
+      "masterDimensions": { "width": 1254, "height": 1254 }, "dimensions": { "width": 1254, "height": 1254 },
+      "alphaValidation": { "hasAlpha": true, "alphaUseful": true, "transparentPixels": 1248214, "partialAlphaPixels": 321856, "opaquePixels": 2446 },
+      "colorCapability": "alpha-mask", "curationStatus": "approved", "curation": { "legacyApprovedBytePreserved": true }
+    },
+    {
+      "assetId": "idea-support-camera-v1", "concept": "camera", "label": "CÁMARA", "kind": "support",
+      "source": "Codex/OpenAI integrated image generation tool",
+      "promptLiteral": "Create one isolated runtime support icon representing a simple editorial camera.\n\nStyle: premium editorial technical monoline icon, visually compatible with Cipher’s existing PERSONAS, DATOS, SOLUCIONES and IMPACTO Supports. Clean black ink linework, consistent rounded stroke, minimal geometry, centered composition.\n\nOutput: one 1024x1024 PNG with genuine transparent alpha and generous transparent margins. The icon only.\n\nConstraints: black monochrome line art only; no color accents; no card; no label; no text; no logo; no watermark; no border; no shadow; no background; no paper texture; no green screen; no checkerboard; no mockup; no filled illustration; no scenery.\n\nThe Cipher renderer will create the card, label, connector, shadow and selectable color later.",
+      "masterRelativePath": "masters/camera-master.png", "runtimeRelativePath": "runtime/camera.png",
+      "masterSha256": "da619199821a3f6508a1ab7e1887801db64ed93d4141f74f47a78492fd307f22",
+      "sha256": "006a5e0be174c2e33762915cc77d285fcb7298a015eea68c2d6d279966b49d58",
+      "masterDimensions": { "width": 1254, "height": 1254 }, "dimensions": { "width": 1024, "height": 1024 },
+      "alphaValidation": { "hasAlpha": true, "alphaUseful": true, "transparentPixels": 935759, "partialAlphaPixels": 106985, "opaquePixels": 5832 },
+      "colorCapability": "alpha-mask", "curationStatus": "approved", "curation": { "simpleIcon": true, "blackMonochrome": true, "bakedBackground": false, "card": false, "text": false, "logo": false, "watermark": false, "shadow": false, "manualVisualReview": true }
+    },
+    {
+      "assetId": "idea-support-network-v1", "concept": "network", "label": "RED", "kind": "support",
+      "source": "Codex/OpenAI integrated image generation tool",
+      "promptLiteral": "Create one isolated runtime support icon representing a few connected nodes.\n\nStyle: premium editorial technical monoline icon, visually compatible with Cipher’s existing PERSONAS, DATOS, SOLUCIONES and IMPACTO Supports. Clean black ink linework, consistent rounded stroke, minimal geometry, centered composition.\n\nOutput: one 1024x1024 PNG with genuine transparent alpha and generous transparent margins. The icon only.\n\nConstraints: black monochrome line art only; no color accents; no card; no label; no text; no logo; no watermark; no border; no shadow; no background; no paper texture; no green screen; no checkerboard; no mockup; no filled illustration; no scenery.\n\nThe Cipher renderer will create the card, label, connector, shadow and selectable color later.",
+      "masterRelativePath": "masters/network-master.png", "runtimeRelativePath": "runtime/network.png",
+      "masterSha256": "5eefbcc6ebfffdddc63cdcea2995c26291a7aed8689b610ae6802a8aecff138e",
+      "sha256": "5253a242efe17a171df4e43236032f0131ffe91c70dcd286a1f25998c275b209",
+      "masterDimensions": { "width": 1254, "height": 1254 }, "dimensions": { "width": 1024, "height": 1024 },
+      "alphaValidation": { "hasAlpha": true, "alphaUseful": true, "transparentPixels": 960186, "partialAlphaPixels": 84906, "opaquePixels": 3484 },
+      "colorCapability": "alpha-mask", "curationStatus": "approved", "curation": { "simpleIcon": true, "blackMonochrome": true, "bakedBackground": false, "card": false, "text": false, "logo": false, "watermark": false, "shadow": false, "manualVisualReview": true }
+    },
+    {
+      "assetId": "idea-support-time-v1", "concept": "time", "label": "TIEMPO", "kind": "support",
+      "source": "Codex/OpenAI integrated image generation tool",
+      "promptLiteral": "Create one isolated runtime support icon representing a clear clock symbol.\n\nStyle: premium editorial technical monoline icon, visually compatible with Cipher’s existing PERSONAS, DATOS, SOLUCIONES and IMPACTO Supports. Clean black ink linework, consistent rounded stroke, minimal geometry, centered composition.\n\nOutput: one 1024x1024 PNG with genuine transparent alpha and generous transparent margins. The icon only.\n\nConstraints: black monochrome line art only; no color accents; no card; no label; no text; no logo; no watermark; no border; no shadow; no background; no paper texture; no green screen; no checkerboard; no mockup; no filled illustration; no scenery.\n\nThe Cipher renderer will create the card, label, connector, shadow and selectable color later.",
+      "masterRelativePath": "masters/time-master.png", "runtimeRelativePath": "runtime/time.png",
+      "masterSha256": "0f13395b4efb7b7c796cec15e2086ed2f08cd5884c1a0ce149f06b99a562564e",
+      "sha256": "e6fbab323900a808246df126968c6962a38297933c5ecc294db5c0cea9e507c8",
+      "masterDimensions": { "width": 1254, "height": 1254 }, "dimensions": { "width": 1024, "height": 1024 },
+      "alphaValidation": { "hasAlpha": true, "alphaUseful": true, "transparentPixels": 961364, "partialAlphaPixels": 84059, "opaquePixels": 3153 },
+      "colorCapability": "alpha-mask", "curationStatus": "approved", "curation": { "simpleIcon": true, "blackMonochrome": true, "bakedBackground": false, "card": false, "text": false, "logo": false, "watermark": false, "shadow": false, "manualVisualReview": true }
+    },
+    {
+      "assetId": "idea-support-target-v1", "concept": "target", "label": "OBJETIVO", "kind": "support",
+      "source": "Codex/OpenAI integrated image generation tool",
+      "promptLiteral": "Create one isolated runtime support icon representing a clean target.\n\nStyle: premium editorial technical monoline icon, visually compatible with Cipher’s existing PERSONAS, DATOS, SOLUCIONES and IMPACTO Supports. Clean black ink linework, consistent rounded stroke, minimal geometry, centered composition.\n\nOutput: one 1024x1024 PNG with genuine transparent alpha and generous transparent margins. The icon only.\n\nConstraints: black monochrome line art only; no color accents; no card; no label; no text; no logo; no watermark; no border; no shadow; no background; no paper texture; no green screen; no checkerboard; no mockup; no filled illustration; no scenery.\n\nThe Cipher renderer will create the card, label, connector, shadow and selectable color later.",
+      "masterRelativePath": "masters/target-master.png", "runtimeRelativePath": "runtime/target.png",
+      "masterSha256": "89a098efbc422242b8458185a52c43e3e03ac6a7ee69518629b690ff2f4955b1",
+      "sha256": "6174308f3e6c0ec080a545380383a2e71e64a454e9f3c37b9258397c70ceda46",
+      "masterDimensions": { "width": 1254, "height": 1254 }, "dimensions": { "width": 1024, "height": 1024 },
+      "alphaValidation": { "hasAlpha": true, "alphaUseful": true, "transparentPixels": 921928, "partialAlphaPixels": 121094, "opaquePixels": 5554 },
+      "colorCapability": "alpha-mask", "curationStatus": "approved", "curation": { "simpleIcon": true, "blackMonochrome": true, "bakedBackground": false, "card": false, "text": false, "logo": false, "watermark": false, "shadow": false, "manualVisualReview": true }
+    },
+    {
+      "assetId": "idea-support-connection-v1", "concept": "connection", "label": "CONEXIÓN", "kind": "support",
+      "source": "Codex/OpenAI integrated image generation tool",
+      "promptLiteral": "Create one isolated runtime support icon representing two clearly joined links.\n\nStyle: premium editorial technical monoline icon, visually compatible with Cipher’s existing PERSONAS, DATOS, SOLUCIONES and IMPACTO Supports. Clean black ink linework, consistent rounded stroke, minimal geometry, centered composition.\n\nOutput: one 1024x1024 PNG with genuine transparent alpha and generous transparent margins. The icon only.\n\nConstraints: black monochrome line art only; no color accents; no card; no label; no text; no logo; no watermark; no border; no shadow; no background; no paper texture; no green screen; no checkerboard; no mockup; no filled illustration; no scenery.\n\nThe Cipher renderer will create the card, label, connector, shadow and selectable color later.",
+      "masterRelativePath": "masters/connection-master.png", "runtimeRelativePath": "runtime/connection.png",
+      "masterSha256": "453803cef306c12ad7a1cb5bb4431d7b11baa06df0239e22b7fde4cc1763b897",
+      "sha256": "e80068f280fa3b3c91692e8bfb3ec1d7e9b3a2bf376953cf074713e15fdc2c6f",
+      "masterDimensions": { "width": 1254, "height": 1254 }, "dimensions": { "width": 1024, "height": 1024 },
+      "alphaValidation": { "hasAlpha": true, "alphaUseful": true, "transparentPixels": 950592, "partialAlphaPixels": 95387, "opaquePixels": 2597 },
+      "colorCapability": "alpha-mask", "curationStatus": "approved", "curation": { "simpleIcon": true, "blackMonochrome": true, "bakedBackground": false, "card": false, "text": false, "logo": false, "watermark": false, "shadow": false, "manualVisualReview": true }
+    },
+    {
+      "assetId": "idea-support-flow-v1", "concept": "flow", "label": "FLUJO", "kind": "support",
+      "source": "Codex/OpenAI integrated image generation tool",
+      "promptLiteral": "Create one isolated runtime support icon representing a simple directional flow.\n\nStyle: premium editorial technical monoline icon, visually compatible with Cipher’s existing PERSONAS, DATOS, SOLUCIONES and IMPACTO Supports. Clean black ink linework, consistent rounded stroke, minimal geometry, centered composition.\n\nOutput: one 1024x1024 PNG with genuine transparent alpha and generous transparent margins. The icon only.\n\nConstraints: black monochrome line art only; no color accents; no card; no label; no text; no logo; no watermark; no border; no shadow; no background; no paper texture; no green screen; no checkerboard; no mockup; no filled illustration; no scenery.\n\nThe Cipher renderer will create the card, label, connector, shadow and selectable color later.",
+      "masterRelativePath": "masters/flow-master.png", "runtimeRelativePath": "runtime/flow.png",
+      "masterSha256": "496aabf7c04a7634c511e3fe9e94aac2ccb6082975bc0b558075811c44720839",
+      "sha256": "cd800fcedb71a9ef0f8484834909e166d80a22bc200d50bbe053d3089abf7f93",
+      "masterDimensions": { "width": 1254, "height": 1254 }, "dimensions": { "width": 1024, "height": 1024 },
+      "alphaValidation": { "hasAlpha": true, "alphaUseful": true, "transparentPixels": 1003436, "partialAlphaPixels": 43135, "opaquePixels": 2005 },
+      "colorCapability": "alpha-mask", "curationStatus": "approved", "curation": { "simpleIcon": true, "blackMonochrome": true, "bakedBackground": false, "card": false, "text": false, "logo": false, "watermark": false, "shadow": false, "manualVisualReview": true }
+    }
+  ]
+}

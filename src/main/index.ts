@@ -1,11 +1,28 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, screen } from 'electron'
 import path from 'path'
+import os from 'os'
 import { spawn, exec } from 'child_process'
 import { once } from 'events'
-import { createHash } from 'crypto'
+import { createHash, randomUUID } from 'crypto'
 import fs from 'fs'
+import { createProjectFiles, loadProjectFile, saveProjectFile } from './services/project-persistence'
+import { isUuid, validateControlAdapterJob, type ControlAdapterJob, type ControlAdapterProgress, type ControlAdapterResult } from '../shared/control-adapter'
+import { registerVibesIntegration } from './services/vibes-integration'
+// Keep the compiled project, catalog-persistence, Original and shared graphics surfaces.
+export * from './services/project-persistence'
+export * from './services/original-clip-segmentation'
+export * from './assets/visual-render'
+import { stockCoverFilter } from '../shared/editorial-scene-input'
+export { editorialPhraseWindow, editorialSlotWindow, editorialHeadlineForScene, stockCoverFilter } from '../shared/editorial-scene-input'
+import { getAnimationConnectionStatus, loadAnimationProject, loadAnimationDraft, listAnimationDrafts, saveAnimationProject, addAnimationReference,
+  generateAnimationDraft, adjustAnimationDraftStyle, reviewAnimationDraft, replayAnimationDraft, saveAnimationTemplate, listAnimationTemplates } from './services/animation-integration'
+import { prepareOriginalClipSegmentation } from './services/original-clip-segmentation'
+import { prepareGraphicForVisualRender } from './assets/visual-render'
+import { classifyGraphicsCapture, requireExactGraphicsCapture } from './graphics-capture-diagnostics'
+export * from './graphics-capture-diagnostics'
 import { pathToFileURL } from 'url'
 import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, getVideoDimensions } from './services/ffmpeg'
+import { isSquareAspectRatioV1, isVerticalAspectRatioV1 } from '../shared/aspect-ratio-v1'
 import { fal } from '@fal-ai/client'
 // Re-exportado ademas de importado para que tests/reparto.js alcance la implementacion REAL
 // desde el bundle: una prueba que reimplementara el reparto probaria su copia, no el reparto.
@@ -25,13 +42,10 @@ import { fraccion, esLegal, divisoresDe, comprobarCiclo, ajustar, cicloValido,
 export { fraccion, esLegal, divisoresDe, comprobarCiclo, ajustar, cicloValido, TOLERANCIA_S }
 import { semillaDe, semillaVisual, generador, entre, entero } from '../shared/semilla'
 export { semillaDe, semillaVisual, generador, entre, entero }
-import { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA } from '../shared/conceptos'
-import { sanearSemanticaVisual } from '../shared/semantica'
-export { sanearSemanticaVisual } from '../shared/semantica'
-import { resolverNombreSolar } from '../shared/iconos-solar'
-export { resolverNombreSolar, normalizarNombreSolar } from '../shared/iconos-solar'
+export { diagnosticarSemanticaVisual, sanearSemanticaVisual } from '../shared/semantica'
+export { resolverNombreSolar, resolverSolarDetallado, normalizarNombreSolar, NOMBRES_SOLAR_CURADOS } from '../shared/iconos-solar'
 import { SISTEMAS, type NombreSistema } from '../shared/sistemas'
-export { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA }
+export { sanearConceptos, CUANTOS_CONCEPTOS, MAX_PALABRAS_ETIQUETA } from '../shared/conceptos'
 export { SISTEMAS, contraste, coloresCaja, coloresEscena, contrasteTextoEscena,
   CONTRASTE_MINIMO_CAJA, CONTRASTE_MINIMO_ESCENA } from '../shared/sistemas'
 // SOLO RE-EXPORTACION, para que tests/mapa.js pueda ejercitar el modulo sobre el BUNDLE
@@ -54,7 +68,7 @@ export const {
 import * as escenaShared from '../shared/escena'
 export const {
   FONDOS: FONDOS_ESCENA, ESTRUCTURAS: ESTRUCTURAS_ESCENA, CAMARAS: CAMARAS_ESCENA,
-  TIPOGRAFIAS, direccionDesde, combinacionesLegales, direccionDe, densidadDesdeContenido, entradaRitmo,
+  TIPOGRAFIAS, direccionDesde, combinacionesLegales, direccionDe, cargaDensidad, densidadDesdeContenido, entradaRitmo,
   DENSIDAD_A_N, RITMOS, acotarPuntos, cabeEnElPie, cabeLaEtiqueta,
   maxCaracteresPie, MAX_CARACTERES_ETIQUETA, FRANJA_TEXTO_Y, MARGEN_CAMARA_PIE_Y, ZONA_X_MIN, ZONA_X_MAX,
   parametrosDe, instanciasDe, esParFondoCamaraLegal, paresFondoCamaraLegales,
@@ -68,8 +82,9 @@ import {
   type Aviso, type Resumen, type FilaResumen, type MotivoRespaldo
 } from '../shared/avisos'
 export { coleccionDeAvisos, armarResumen, textoResumen, describirMotivo, totalRespaldo, MOTIVOS }
-import { recortarTexto } from '../shared/texto'
 export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
+// Shared graphics keep their own scene validation and render binding helpers.
+export { prepareGraphicForVisualRender } from './assets/visual-render'
 
 // Construir "file:///" concatenando la ruta FALLA con espacios, acentos y '#'. Medido en un
 // Chromium real con webSecurity:false, cargando un video desde
@@ -77,8 +92,8 @@ export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
 //   file:///<ruta>          -> MEDIA_ELEMENT_ERROR: Format error
 //   file:///encodeURI(...)  -> MEDIA_ELEMENT_ERROR (no escapa '#', que corta la URL como ancla)
 //   pathToFileURL(...)      -> CARGA
-// Hoy no se nota porque el proyecto vive en C:\Proyectos\mi-app\cipher-studio, sin espacios
-// ni acentos. En C:\Users\Jose\... o "Archivos de programa" no se reproduciria NADA.
+// Hoy no se nota porque el proyecto vive en %CIPHER_STUDIO_SOURCE%\cipher-studio, sin espacios
+// ni acentos. En %USERPROFILE%\... o "Archivos de programa" no se reproduciria NADA.
 // Hace el replace de barras por dentro, asi que las llamadas ya no lo necesitan.
 const urlDeRuta = (p: string) => pathToFileURL(p).href
 
@@ -136,11 +151,116 @@ async function exists(p: string): Promise<boolean> {
   }
 }
 
+const controlDataRoot = path.resolve(process.env.CIPHER_CONTROL_DATA_ROOT || 'C:\\graphify\\cipher-control-data')
+const sharedDeviceLockPath = path.join(controlDataRoot, 'device-processing.lock')
+const deviceReviewHoldPath = path.join(controlDataRoot, 'device-review-hold.json')
+function processIsAlive(pid: number) {
+  try { process.kill(pid, 0); return true }
+  catch (error: any) { return error?.code !== 'ESRCH' }
+}
+async function assertDeviceProcessingAccess(requestedOperationId?: string) {
+  const operationId = requestedOperationId || controlJob?.operationId
+  if (await exists(sharedDeviceLockPath)) {
+    let lock: any
+    try { lock = JSON.parse(await fs.promises.readFile(sharedDeviceLockPath, 'utf8')) }
+    catch { throw new Error('DEVICE_LOCK_DAMAGED') }
+    if (lock?.schemaVersion !== 1 || !Number.isSafeInteger(lock.ownerPid) ||
+        !(lock.childPid === null || Number.isSafeInteger(lock.childPid)) || typeof lock.operationId !== 'string')
+      throw new Error('DEVICE_LOCK_DAMAGED')
+    if (operationId !== lock.operationId && (processIsAlive(lock.ownerPid) || (lock.childPid !== null && processIsAlive(lock.childPid))))
+      throw new Error('DEVICE_PROCESSING_BUSY')
+  }
+  if (await exists(deviceReviewHoldPath)) {
+    let hold: any
+    try { hold = JSON.parse(await fs.promises.readFile(deviceReviewHoldPath, 'utf8')) }
+    catch { throw new Error('DEVICE_REVIEW_HOLD_DAMAGED') }
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    if (hold?.schemaVersion !== 1 || !uuid.test(String(hold.operationId || '')) || !uuid.test(String(hold.attemptId || '')) || typeof hold.heldAt !== 'string')
+      throw new Error('DEVICE_REVIEW_HOLD_DAMAGED')
+    if (operationId !== hold.operationId) throw new Error('DEVICE_REVIEW_PENDING')
+  }
+}
+async function acquireDesktopProcessingLock() {
+  if (controlJob) { await assertDeviceProcessingAccess(); return { release: async () => {} } }
+  await assertDeviceProcessingAccess()
+  await fs.promises.mkdir(controlDataRoot, { recursive: true })
+  for (let tries = 0; tries < 3; tries++) {
+    const record = { schemaVersion: 1, lockId: randomUUID(), operationId: randomUUID(), ownerPid: process.pid, childPid: null,
+      ownerMarker: 'cipher-studio-desktop ' + path.basename(process.execPath), startedAt: new Date().toISOString() }
+    try {
+      const handle = await fs.promises.open(sharedDeviceLockPath, 'wx')
+      try { await handle.writeFile(JSON.stringify(record), 'utf8'); await handle.sync() } finally { await handle.close() }
+      try { await assertDeviceProcessingAccess(record.operationId) }
+      catch (error) { await fs.promises.unlink(sharedDeviceLockPath).catch(() => {}); throw error }
+      return { release: async () => {
+        try { const current = JSON.parse(await fs.promises.readFile(sharedDeviceLockPath, 'utf8'))
+          if (current?.operationId === record.operationId && current?.ownerPid === process.pid && current?.lockId === record.lockId)
+            await fs.promises.unlink(sharedDeviceLockPath)
+        } catch {}
+      } }
+    } catch (error: any) { if (error?.code !== 'EEXIST') throw error }
+    await assertDeviceProcessingAccess()
+    let inspected: any
+    try { inspected = JSON.parse(await fs.promises.readFile(sharedDeviceLockPath, 'utf8')) }
+    catch (error: any) { if (error?.code === 'ENOENT') continue; throw new Error('DEVICE_LOCK_DAMAGED') }
+    if (inspected?.schemaVersion !== 1 || !localUuid.test(String(inspected.operationId || '')) ||
+        !Number.isSafeInteger(inspected.ownerPid) || !(inspected.childPid === null || Number.isSafeInteger(inspected.childPid)))
+      throw new Error('DEVICE_LOCK_DAMAGED')
+    if (processIsAlive(inspected.ownerPid) || (inspected.childPid !== null && processIsAlive(inspected.childPid)))
+      throw new Error('DEVICE_PROCESSING_BUSY')
+    let current: any
+    try { current = JSON.parse(await fs.promises.readFile(sharedDeviceLockPath, 'utf8')) }
+    catch (error: any) { if (error?.code === 'ENOENT') continue; throw new Error('DEVICE_LOCK_DAMAGED') }
+    if (JSON.stringify(current) !== JSON.stringify(inspected)) throw new Error('DEVICE_PROCESSING_BUSY')
+    const stale = sharedDeviceLockPath + '.stale.' + randomUUID()
+    try { await fs.promises.rename(sharedDeviceLockPath, stale); await fs.promises.unlink(stale) }
+    catch (error: any) { if (error?.code !== 'ENOENT') throw error }
+  }
+  throw new Error('DEVICE_PROCESSING_BUSY')
+}
+function handleProcessing(channel: string, handler: (...args: any[]) => any) {
+  ipcMain.handle(channel, async (...args: any[]) => {
+    const lock = await acquireDesktopProcessingLock()
+    try { return await handler(...args) }
+    finally { await lock.release() }
+  })
+}
+
 // Load env variables at startup
 loadEnv()
 
 process.env.DIST = path.join(__dirname, '../..')
 process.env.PUBLIC = app.isPackaged ? path.join(process.env.DIST, 'dist') : path.join(process.env.DIST, 'public')
+
+const GRAPHICS_JOB_ARG = '--cipher-graphics-job='
+const graphicsJobPath = process.argv.find(arg => arg.startsWith(GRAPHICS_JOB_ARG))?.slice(GRAPHICS_JOB_ARG.length)
+const CONTROL_JOB_ARG = '--cipher-control-job='
+const controlJobPath = process.argv.find(arg => arg.startsWith(CONTROL_JOB_ARG))?.slice(CONTROL_JOB_ARG.length)
+let controlJob: ControlAdapterJob | null = null
+let controlProjectPath: string | null = null
+let controlSourcePath: string | null = null
+let controlResultWritten = false
+if (graphicsJobPath && controlJobPath) throw new Error('CIPHER_WORKER_JOB_AMBIGUOUS')
+if (controlJobPath) {
+  const absoluteJob = path.resolve(controlJobPath)
+  const projectsRoot = path.resolve(controlDataRoot, 'projects')
+  if (!absoluteJob.toLowerCase().startsWith(projectsRoot.toLowerCase() + path.sep.toLowerCase()))
+    throw new Error('CONTROL_JOB_PATH_INVALID')
+  const raw = validateControlAdapterJob(JSON.parse(fs.readFileSync(absoluteJob, 'utf8')))
+  const expectedJob = path.join(controlDataRoot, 'projects', raw.projectId, 'adapter', 'jobs', raw.attemptId + '.json')
+  if (path.resolve(expectedJob).toLowerCase() !== absoluteJob.toLowerCase()) throw new Error('CONTROL_JOB_PATH_INVALID')
+  controlJob = raw
+  controlProjectPath = path.join(controlDataRoot, 'projects', raw.projectId, 'cipher')
+  if (raw.sourceRelativePath) controlSourcePath = path.resolve(controlDataRoot, ...raw.sourceRelativePath.split('/'))
+  const workerUserData = path.join(controlProjectPath, 'userData')
+  fs.mkdirSync(workerUserData, { recursive: true })
+  app.setPath('userData', workerUserData)
+}
+if (graphicsJobPath) {
+  const workerUserData = path.join(path.dirname(graphicsJobPath), 'userData')
+  fs.mkdirSync(workerUserData, { recursive: true })
+  app.setPath('userData', workerUserData)
+}
 
 let win: BrowserWindow | null = null
 const preload = path.join(__dirname, '../preload/index.js')
@@ -239,9 +359,314 @@ async function initClipFolders() {
   }
 }
 
+ipcMain.handle('control-adapter:get-job', async () => {
+  if (!controlJob || !controlProjectPath) throw new Error('CONTROL_WORKER_UNAVAILABLE')
+  if (controlSourcePath && controlJob.sourceRelativePath && controlJob.sourceAttemptId) {
+    const expectedDir = path.join(controlDataRoot, 'projects', controlJob.projectId, 'source', 'attempts', controlJob.sourceAttemptId)
+    let current = path.parse(expectedDir).root
+    for (const part of path.relative(current, expectedDir).split(path.sep).filter(Boolean)) {
+      current = path.join(current, part)
+      if (fs.existsSync(current) && fs.lstatSync(current).isSymbolicLink()) throw new Error('CONTROL_SOURCE_SYMLINK_REJECTED')
+    }
+    if (!fs.existsSync(controlSourcePath) || fs.lstatSync(controlSourcePath).isSymbolicLink() || !fs.statSync(controlSourcePath).isFile())
+      throw new Error('CONTROL_SOURCE_FILE_UNAVAILABLE')
+  }
+  return { job: controlJob, sourcePath: controlSourcePath, projectPath: controlProjectPath }
+})
+
+ipcMain.handle('control-adapter:progress', async (_event, raw: ControlAdapterProgress) => {
+  if (!controlJob || raw?.operationId !== controlJob.operationId || raw?.attemptId !== controlJob.attemptId ||
+      typeof raw.stage !== 'string' || raw.stage.length < 1 || raw.stage.length > 120 ||
+      (raw.progressPercent !== undefined && (!Number.isFinite(raw.progressPercent) || raw.progressPercent < 0 || raw.progressPercent > 100))) return false
+  const line = { operationId: raw.operationId, attemptId: raw.attemptId, stage: raw.stage,
+    ...(raw.progressPercent !== undefined ? { progressPercent: raw.progressPercent } : {}) }
+  process.stdout.write('CC_PROGRESS ' + JSON.stringify(line) + '\n')
+  return true
+})
+
+ipcMain.handle('control-adapter:complete', async (_event, raw: ControlAdapterResult) => {
+  if (!controlJob || !controlJobPath || controlResultWritten || raw?.operationId !== controlJob.operationId ||
+      raw?.attemptId !== controlJob.attemptId || typeof raw.ok !== 'boolean') return false
+  if (raw.errorCode !== undefined && (typeof raw.errorCode !== 'string' || !/^[A-Z0-9_-]{1,80}$/.test(raw.errorCode)))
+    throw new Error('CONTROL_RESULT_INVALID')
+  if (raw.errorMessage !== undefined && (typeof raw.errorMessage !== 'string' || raw.errorMessage.length > 500))
+    throw new Error('CONTROL_RESULT_INVALID')
+  const body = JSON.stringify(raw)
+  if (Buffer.byteLength(body, 'utf8') > 64 * 1024 * 1024) throw new Error('CONTROL_RESULT_TOO_LARGE')
+  const resultPath = path.join(path.dirname(controlJobPath), controlJob.attemptId + '.result.json')
+  const tempPath = resultPath + '.' + randomUUID() + '.tmp'
+  await fs.promises.writeFile(tempPath, body, { encoding: 'utf8', flag: 'wx' })
+  await fs.promises.rename(tempPath, resultPath)
+  controlResultWritten = true
+  process.stdout.write('CC_RESULT ' + JSON.stringify({ operationId: raw.operationId, attemptId: raw.attemptId, ok: raw.ok }) + '\n')
+  setTimeout(() => app.quit(), 50)
+  return true
+})
+
+const localDownloadRequests = new Map<string, Promise<any>>()
+const localUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+function safeLocalSourceInput(raw: unknown) {
+  if (typeof raw !== 'string' || raw.length > 2048) throw new Error('SOURCE_URL_INVALID')
+  const value = raw.trim(), url = new URL(value)
+  const host = url.hostname.toLowerCase().replace(/\.$/, '')
+  const supported = host === 'youtu.be' || host === 'youtube.com' || host.endsWith('.youtube.com') ||
+    host === 'fb.watch' || host === 'facebook.com' || host.endsWith('.facebook.com') ||
+    ['tiktok.com','www.tiktok.com','vt.tiktok.com','vm.tiktok.com'].includes(host) ||
+    host === 'instagram.com' || host.endsWith('.instagram.com')
+  if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') || !supported)
+    throw new Error('SOURCE_URL_INVALID')
+  return value
+}
+function localDownloadStatePath(projectId: string, attemptId: string) {
+  if (!localUuid.test(projectId) || !localUuid.test(attemptId)) throw new Error('LOCAL_DOWNLOAD_ID_INVALID')
+  return path.join(controlDataRoot, 'projects', projectId, 'adapter', 'local-downloads', attemptId + '.state.json')
+}
+async function readLocalDownloadState(projectId: string, attemptId: string) {
+  const file = localDownloadStatePath(projectId, attemptId)
+  let state: any
+  try { state = JSON.parse(await fs.promises.readFile(file, 'utf8')) }
+  catch (error: any) { if (error?.code === 'ENOENT') return null; throw new Error('LOCAL_DOWNLOAD_STATE_INVALID') }
+  if (state?.schemaVersion !== 1 || state.projectId !== projectId || state.attemptId !== attemptId || typeof state.operationId !== 'string')
+    throw new Error('LOCAL_DOWNLOAD_STATE_INVALID')
+  const cancelFile = path.join(path.dirname(file), attemptId + '.cancel')
+  if (await exists(cancelFile) && ['WAITING_FOR_DEVICE','QUERYING','DOWNLOADING','PREPARING','VERIFYING'].includes(state.state))
+    return { ...state, state: 'CANCEL_REQUESTED', label: 'Solicitud de cancelación; esperando confirmación del proceso' }
+  return state
+}
+async function createLocalProject(requestId: string, sourceUrl: string, nameInput: string, quality: string) {
+  if (!localUuid.test(requestId)) throw new Error('LOCAL_REQUEST_ID_INVALID')
+  if (quality !== 'fhd' && quality !== 'best') throw new Error('QUALITY_PROFILE_INVALID')
+  const name = nameInput.trim() || ('Proyecto ' + new Date().toLocaleDateString('es-CO'))
+  if (name.length > 80 || /[<>:"/\\|?*\x00-\x1f]/.test(name)) throw new Error('PROJECT_NAME_INVALID')
+  const safeUrl = safeLocalSourceInput(sourceUrl)
+  const reservationDir = path.join(controlDataRoot, 'local-idempotency')
+  await fs.promises.mkdir(reservationDir, { recursive: true })
+  const reservationFile = path.join(reservationDir, requestId + '.json')
+  let reservation: any
+  try { reservation = JSON.parse(await fs.promises.readFile(reservationFile, 'utf8')) }
+  catch (error: any) {
+    if (error?.code !== 'ENOENT') throw new Error('LOCAL_RESERVATION_INVALID')
+    const candidate = { schemaVersion: 1, idempotencyKey: requestId, projectId: randomUUID(), operationId: randomUUID(), attemptId: randomUUID(), name, sourceUrl: safeUrl, qualityProfile: quality, createdAt: new Date().toISOString() }
+    const handle = await fs.promises.open(reservationFile, 'wx').catch(async createError => {
+      if (createError?.code !== 'EEXIST') throw createError
+      return null
+    })
+    if (handle) {
+      try { await handle.writeFile(JSON.stringify(candidate), 'utf8'); await handle.sync() } finally { await handle.close() }
+      reservation = candidate
+    } else reservation = JSON.parse(await fs.promises.readFile(reservationFile, 'utf8'))
+  }
+  if (reservation?.schemaVersion !== 1 || reservation.idempotencyKey !== requestId || !localUuid.test(reservation.projectId) ||
+      !localUuid.test(reservation.operationId) || !localUuid.test(reservation.attemptId)) throw new Error('LOCAL_RESERVATION_INVALID')
+  if (reservation.sourceUrl !== safeUrl || reservation.name !== name || reservation.qualityProfile !== quality)
+    throw new Error('IDEMPOTENCY_CONFLICT')
+  const projectRoot = path.join(controlDataRoot, 'projects', reservation.projectId)
+  const projectPath = path.join(projectRoot, 'cipher')
+  const stateFile = path.join(projectPath, 'project-state.json')
+  if (!(await exists(stateFile)) && !(await exists(stateFile + '.bak'))) {
+    await initProjectDirs(projectPath)
+    createProjectFiles(projectPath, { id: reservation.projectId, name: reservation.name, date: Date.now(), durationSeconds: 0,
+      clips: [], timelineVideoClips: [], timelineVersions: [], transcriptionStatus: '', transcriptSegments: [], aiScript: '',
+      originalTranscriptText: '', voiceModel: 'Eleven Multilingual v2', voiceSpeaker: '', voiceSpeed: 1, voiceStability: 50,
+      generatedVoices: [], timelineWeights: [...PESOS_POR_DEFECTO], assignedTransitions: {} })
+  }
+  const downloadsDir = path.join(projectRoot, 'adapter', 'local-downloads')
+  await fs.promises.mkdir(downloadsDir, { recursive: true })
+  const requestFile = path.join(downloadsDir, reservation.attemptId + '.request.json')
+  const statePath = localDownloadStatePath(reservation.projectId, reservation.attemptId)
+  if (!(await exists(requestFile))) {
+    await fs.promises.writeFile(requestFile, JSON.stringify({ schemaVersion: 1, projectId: reservation.projectId,
+      operationId: reservation.operationId, attemptId: reservation.attemptId, name: reservation.name,
+      sourceUrl: reservation.sourceUrl, qualityProfile: reservation.qualityProfile }), { encoding: 'utf8', flag: 'wx' })
+  } else {
+    let savedRequest: any
+    try { savedRequest = JSON.parse(await fs.promises.readFile(requestFile, 'utf8')) }
+    catch { throw new Error('LOCAL_REQUEST_INVALID') }
+    if (savedRequest?.schemaVersion !== 1 || savedRequest.projectId !== reservation.projectId ||
+        savedRequest.operationId !== reservation.operationId || savedRequest.attemptId !== reservation.attemptId ||
+        savedRequest.name !== reservation.name || savedRequest.sourceUrl !== reservation.sourceUrl || savedRequest.qualityProfile !== reservation.qualityProfile)
+      throw new Error('LOCAL_REQUEST_IDEMPOTENCY_CONFLICT')
+  }
+  if (!(await exists(statePath))) {
+    const seed = { schemaVersion: 1, projectId: reservation.projectId, operationId: reservation.operationId, attemptId: reservation.attemptId,
+      name: reservation.name, state: 'WAITING_FOR_DEVICE', progressPercent: null, downloadedBytes: null, totalBytes: null,
+      label: 'Preparando el descargador local', errorCode: null, errorMessage: null, file: null,
+      timings: { sourceLookupSeconds: null, downloadSeconds: null, validationSeconds: null },
+      startedAt: reservation.createdAt, updatedAt: reservation.createdAt }
+    await fs.promises.writeFile(statePath, JSON.stringify(seed), { encoding: 'utf8', flag: 'wx' })
+    const entry = path.join(controlDataRoot, 'tools', 'cipher-agent', 'dist', 'index.js')
+    try { await fs.promises.access(entry) }
+    catch {
+      await fs.promises.writeFile(statePath, JSON.stringify({ ...seed, state: 'FAILED', label: null, errorCode: 'LOCAL_AGENT_NOT_INSTALLED',
+        errorMessage: 'Falta instalar el componente local de descargas de Cipher Control.' }), 'utf8')
+      return { success: true, projectId: reservation.projectId, operationId: reservation.operationId, attemptId: reservation.attemptId,
+        projectPath, state: 'FAILED' }
+    }
+    const nodeExecutable = process.env.CIPHER_NODE_PATH || 'node.exe'
+    const child = spawn(nodeExecutable, [entry, 'download-local', requestFile], { cwd: path.dirname(entry), detached: true,
+      windowsHide: true, shell: false, stdio: 'ignore', env: { ...process.env, CIPHER_CONTROL_DATA_ROOT: controlDataRoot } })
+    try {
+      await new Promise<void>((resolve, reject) => { child.once('spawn', () => resolve()); child.once('error', reject) })
+      child.unref()
+    } catch {
+      await fs.promises.writeFile(statePath, JSON.stringify({ ...seed, state: 'FAILED', label: null, errorCode: 'LOCAL_AGENT_START_FAILED',
+        errorMessage: 'No se pudo iniciar el descargador local. Comprueba Node.js y la instalación del agente.' }), 'utf8')
+      return { success: true, projectId: reservation.projectId, operationId: reservation.operationId, attemptId: reservation.attemptId,
+        projectPath, state: 'FAILED' }
+    }
+  }
+  return { success: true, projectId: reservation.projectId, operationId: reservation.operationId, attemptId: reservation.attemptId, projectPath }
+}
+async function retryLocalProject(projectId: string, previousAttemptId: string) {
+  if (!localUuid.test(projectId) || !localUuid.test(previousAttemptId)) throw new Error('LOCAL_DOWNLOAD_ID_INVALID')
+  const downloadsDir = path.join(controlDataRoot, 'projects', projectId, 'adapter', 'local-downloads')
+  const previousRequestPath = path.join(downloadsDir, previousAttemptId + '.request.json')
+  const previousState = await readLocalDownloadState(projectId, previousAttemptId)
+  if (!previousState || !['FAILED','CANCELED'].includes(previousState.state)) throw new Error('LOCAL_RETRY_NOT_ALLOWED')
+  const requests = (await fs.promises.readdir(downloadsDir)).filter(file => file.endsWith('.request.json'))
+  if (requests.length >= 3) throw new Error('LOCAL_RETRY_LIMIT_REACHED')
+  const old = JSON.parse(await fs.promises.readFile(previousRequestPath, 'utf8'))
+  if (old?.schemaVersion !== 1 || old.projectId !== projectId || old.attemptId !== previousAttemptId ||
+      (old.qualityProfile !== 'fhd' && old.qualityProfile !== 'best')) throw new Error('LOCAL_REQUEST_INVALID')
+  const sourceUrl = safeLocalSourceInput(old.sourceUrl), operationId = randomUUID(), attemptId = randomUUID()
+  const requestFile = path.join(downloadsDir, attemptId + '.request.json'), stateFile = localDownloadStatePath(projectId, attemptId)
+  const createdAt = new Date().toISOString(), request = { schemaVersion: 1, projectId, operationId, attemptId,
+    name: String(old.name || previousState.name || 'Proyecto desde enlace'), sourceUrl, qualityProfile: old.qualityProfile }
+  await fs.promises.writeFile(requestFile, JSON.stringify(request), { encoding: 'utf8', flag: 'wx' })
+  const seed = { schemaVersion: 1, projectId, operationId, attemptId, name: request.name, state: 'WAITING_FOR_DEVICE',
+    progressPercent: null, downloadedBytes: null, totalBytes: null, label: 'Esperando turno del PC', errorCode: null,
+    errorMessage: null, file: null, timings: { sourceLookupSeconds: null, downloadSeconds: null, validationSeconds: null },
+    startedAt: createdAt, updatedAt: createdAt }
+  await fs.promises.writeFile(stateFile, JSON.stringify(seed), { encoding: 'utf8', flag: 'wx' })
+  const entry = path.join(controlDataRoot, 'tools', 'cipher-agent', 'dist', 'index.js')
+  try {
+    await fs.promises.access(entry)
+    const child = spawn(process.env.CIPHER_NODE_PATH || 'node.exe', [entry, 'download-local', requestFile], { cwd: path.dirname(entry),
+      detached: true, windowsHide: true, shell: false, stdio: 'ignore', env: { ...process.env, CIPHER_CONTROL_DATA_ROOT: controlDataRoot } })
+    await new Promise<void>((resolve, reject) => { child.once('spawn', () => resolve()); child.once('error', reject) })
+    child.unref()
+  } catch {
+    await fs.promises.writeFile(stateFile, JSON.stringify({ ...seed, state: 'FAILED', label: null,
+      errorCode: 'LOCAL_AGENT_START_FAILED', errorMessage: 'No se pudo iniciar el intento nuevo; el proyecto y el intento quedaron registrados.',
+      updatedAt: new Date().toISOString() }), 'utf8')
+  }
+  return { success: true, projectId, operationId, attemptId, projectPath: path.join(controlDataRoot, 'projects', projectId, 'cipher') }
+}
+ipcMain.handle('cipher-control:start-local-download', async (_event, raw: any) => {
+  try {
+    const key = String(raw?.idempotencyKey || '')
+    const running = localDownloadRequests.get(key)
+    if (running) return await running
+    const task = createLocalProject(key, raw?.sourceUrl, String(raw?.name || ''), String(raw?.qualityProfile || ''))
+    localDownloadRequests.set(key, task)
+    try { return await task } finally { localDownloadRequests.delete(key) }
+  } catch (error: any) { return { success: false, error: error?.message || 'LOCAL_DOWNLOAD_START_FAILED' } }
+})
+ipcMain.handle('cipher-control:retry-local-download', async (_event, raw: any) => {
+  try { return await retryLocalProject(String(raw?.projectId || ''), String(raw?.attemptId || '')) }
+  catch (error: any) { return { success: false, error: error?.message || 'LOCAL_RETRY_FAILED' } }
+})
+ipcMain.handle('cipher-control:get-local-download', async (_event, raw: any) => {
+  try { return { success: true, state: await readLocalDownloadState(String(raw?.projectId || ''), String(raw?.attemptId || '')) } }
+  catch (error: any) { return { success: false, error: error?.message || 'LOCAL_DOWNLOAD_READ_FAILED' } }
+})
+ipcMain.handle('cipher-control:cancel-local-download', async (_event, raw: any) => {
+  try {
+    const projectId = String(raw?.projectId || ''), attemptId = String(raw?.attemptId || '')
+    const state = await readLocalDownloadState(projectId, attemptId)
+    if (!state || !['WAITING_FOR_DEVICE','QUERYING','DOWNLOADING','PREPARING','VERIFYING'].includes(state.state))
+      return { success: false, error: 'LOCAL_DOWNLOAD_NOT_CANCELLABLE' }
+    const cancelFile = path.join(controlDataRoot, 'projects', projectId, 'adapter', 'local-downloads', attemptId + '.cancel')
+    await fs.promises.writeFile(cancelFile, new Date().toISOString(), { encoding: 'utf8', flag: 'wx' }).catch(error => {
+      if (error?.code !== 'EEXIST') throw error
+    })
+    return { success: true, state: 'CANCEL_REQUESTED' }
+  } catch (error: any) { return { success: false, error: error?.message || 'LOCAL_DOWNLOAD_CANCEL_FAILED' } }
+})
+ipcMain.handle('cipher-control:list-local-downloads', async () => {
+  try {
+    const root = path.join(controlDataRoot, 'projects'), rows: any[] = []
+    for (const projectId of await fs.promises.readdir(root).catch(() => [])) {
+      if (!localUuid.test(projectId)) continue
+      const dir = path.join(root, projectId, 'adapter', 'local-downloads')
+      for (const file of await fs.promises.readdir(dir).catch(() => [])) {
+        if (!file.endsWith('.state.json')) continue
+        const attemptId = file.slice(0, -'.state.json'.length)
+        try { const state = await readLocalDownloadState(projectId, attemptId); if (state) rows.push(state) } catch {}
+      }
+    }
+    rows.sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)))
+    return { success: true, downloads: rows.slice(0, 20) }
+  } catch (error: any) { return { success: false, error: error?.message || 'LOCAL_DOWNLOAD_LIST_FAILED' } }
+})
+ipcMain.handle('cipher-control:open-local-download-project', async (_event, raw: any) => {
+  try {
+    await assertDeviceProcessingAccess()
+    const projectId = String(raw?.projectId || ''), attemptId = String(raw?.attemptId || '')
+    const state = await readLocalDownloadState(projectId, attemptId)
+    if (!state || state.state !== 'AVAILABLE' || !state.file || typeof state.file.relative_path !== 'string') throw new Error('SOURCE_NOT_AVAILABLE')
+    const expectedPrefix = `projects/${projectId}/source/attempts/${attemptId}/`
+    const relative = state.file.relative_path.replace(/\\/g, '/')
+    if (!relative.startsWith(expectedPrefix) || relative.split('/').some((part: string) => !part || part === '.' || part === '..')) throw new Error('SOURCE_PATH_INVALID')
+    const sourcePath = path.resolve(controlDataRoot, ...relative.split('/'))
+    let current = path.parse(controlDataRoot).root
+    for (const part of path.relative(current, sourcePath).split(path.sep).filter(Boolean)) {
+      current = path.join(current, part); if ((await fs.promises.lstat(current)).isSymbolicLink()) throw new Error('SOURCE_SYMLINK_REJECTED')
+    }
+    const real = await fs.promises.realpath(sourcePath), root = await fs.promises.realpath(controlDataRoot)
+    if (!real.toLowerCase().startsWith(root.toLowerCase() + path.sep) || !(await fs.promises.stat(real)).isFile()) throw new Error('SOURCE_PATH_INVALID')
+    const projectPath = path.join(controlDataRoot, 'projects', projectId, 'cipher'), projectStatePath = path.join(projectPath, 'project-state.json')
+    const persisted = loadProjectFile(projectStatePath).state
+    const name = String(state.name || persisted.name || 'Proyecto desde enlace')
+    const original = { id: `control-source-${projectId}`, name: String(state.file.file_name || path.basename(real)), duration: '',
+      durationSeconds: Number(state.file.duration_seconds), type: 'video', path: real, url: urlDeRuta(real),
+      size: `${(Number(state.file.size_bytes) / (1024 * 1024)).toFixed(1)} MB`, category: 'original' }
+    if (!(original.durationSeconds > 0) || !(Number(state.file.size_bytes) > 0)) throw new Error('SOURCE_METADATA_INVALID')
+    saveProjectFile(projectStatePath, { ...persisted, id: projectId, name, durationSeconds: original.durationSeconds,
+      clips: [...(persisted.clips || []).filter((clip: any) => clip.id !== original.id), original], controlSource: {
+        operationId: state.operationId, attemptId, relativePath: relative, audioPresent: state.file.audio_present === true,
+        width: state.file.width, height: state.file.height, container: state.file.container, sizeBytes: state.file.size_bytes,
+      } })
+    return { success: true, projectPath }
+  } catch (error: any) { return { success: false, error: error?.message || 'LOCAL_PROJECT_OPEN_FAILED' } }
+})
+
+async function runControlAdapterWorker() {
+  if (!controlJob || !controlProjectPath) throw new Error('CONTROL_WORKER_UNAVAILABLE')
+  await initProjectDirs(controlProjectPath)
+  const statePath = path.join(controlProjectPath, 'project-state.json')
+  if (!fs.existsSync(statePath) && !fs.existsSync(statePath + '.bak')) {
+    createProjectFiles(controlProjectPath, { id: controlJob.projectId, name: controlJob.name || 'Cipher Control',
+      date: Date.now(), durationSeconds: 0, clips: [], timelineVideoClips: [], timelineVersions: [],
+      transcriptionStatus: '', transcriptSegments: [], aiScript: '', originalTranscriptText: '',
+      voiceModel: 'Eleven Multilingual v2', voiceSpeaker: '', voiceSpeed: 1, voiceStability: 50,
+      generatedVoices: [], timelineWeights: [...PESOS_POR_DEFECTO], assignedTransitions: {} })
+  }
+  activeProjectPath = controlProjectPath
+  activeProjectStateFile = statePath
+  const adapterHtml = path.join(process.env.DIST!, 'dist', 'control-adapter.html')
+  if (!(await exists(adapterHtml))) throw new Error('CONTROL_ADAPTER_RENDERER_NOT_BUILT')
+  win = new BrowserWindow({ show: false, width: 2, height: 2, webPreferences: {
+    preload, nodeIntegration: false, contextIsolation: true
+  } })
+  await win.loadFile(adapterHtml)
+}
+
 app.whenReady().then(async () => {
+  if (controlJobPath) {
+    await runControlAdapterWorker()
+    return
+  }
+  if (graphicsJobPath) {
+    await runGraphicsWorkerJob(graphicsJobPath)
+    app.quit()
+    return
+  }
   await initClipFolders()
   createWindow()
+}).catch(error => {
+  console.error('[Cipher worker/startup] Operation could not start:', error instanceof Error ? error.message : 'WORKER_START_FAILED')
+  app.exit(1)
 })
 
 app.on('window-all-closed', () => {
@@ -290,6 +715,13 @@ const MODELO_WHISPER = 'base';
 
 // IPC listener for Whisper local transcription
 ipcMain.on('start-transcription', async (event, filePath) => {
+  let processLock: { release: () => Promise<void> }
+  try { processLock = await acquireDesktopProcessingLock() }
+  catch (error: any) {
+    event.reply('transcription-update', { status: 'error', error: error?.message === 'DEVICE_PROCESSING_BUSY'
+      ? 'El PC está ocupado con otro proyecto; la transcripción no se inició.' : 'No se pudo reservar el turno de procesamiento.' })
+    return
+  }
   const transcriptsDir = path.join(app.getPath('userData'), 'transcripts')
   if (!(await exists(transcriptsDir))) {
     await fs.promises.mkdir(transcriptsDir, { recursive: true })
@@ -311,6 +743,7 @@ ipcMain.on('start-transcription', async (event, filePath) => {
       status: 'error',
       error: `El archivo de audio no existe en la ruta: ${filePath}`
     })
+    await processLock.release()
     return
   }
 
@@ -431,10 +864,54 @@ ipcMain.on('start-transcription', async (event, filePath) => {
         error: `Whisper falló con código de salida ${code}` 
       })
     }
+    await processLock.release()
+  })
+  whisperProcess.on('error', async () => {
+    event.reply('transcription-update', { status: 'error', error: 'Whisper no pudo iniciarse.' })
+    await processLock.release()
   })
 })
 
 let activeProjectPath: string | null = null;
+// Keeps unknown persisted fields even when open-project selected a non-default JSON name.
+let activeProjectStateFile: string | null = null;
+type AnimationJob = { controller: AbortController; projectRoot: string; settled: Promise<void>; resolveSettled: () => void }
+const animationJobs = new Map<string, AnimationJob>()
+function registerAnimationJob(jobId: string, projectRoot: string) {
+  if (animationJobs.has(jobId)) throw new Error('ANIMATION_JOB_ID_DUPLICATE')
+  const target = path.resolve(projectRoot).toLowerCase()
+  if (animationJobs.size > 0) {
+    const sameProject = [...animationJobs.values()].some(job => path.resolve(job.projectRoot).toLowerCase() === target)
+    throw new Error(sameProject ? 'ANIMATION_PROJECT_JOB_ALREADY_RUNNING' : 'ANIMATION_JOB_ALREADY_RUNNING')
+  }
+  const controller = new AbortController()
+  let resolveSettled!: () => void
+  const settled = new Promise<void>(resolve => { resolveSettled = resolve })
+  const job = { controller, projectRoot, settled, resolveSettled }
+  animationJobs.set(jobId, job)
+  return job
+}
+function finishAnimationJob(jobId: string, registered: AnimationJob | null) {
+  if (!registered || animationJobs.get(jobId) !== registered) return
+  animationJobs.delete(jobId)
+  registered.resolveSettled()
+}
+async function waitForAnimationJob(job: AnimationJob, timeoutMs = 15_000) {
+  let timer: NodeJS.Timeout | undefined
+  try {
+    return await Promise.race([
+      job.settled.then(() => true),
+      new Promise<boolean>(resolve => { timer = setTimeout(() => resolve(false), timeoutMs) }),
+    ])
+  } finally { if (timer) clearTimeout(timer) }
+}
+function cancelAnimationJobsForProject(projectRoot: string | null) {
+  if (!projectRoot) return
+  const target = path.resolve(projectRoot).toLowerCase()
+  for (const job of animationJobs.values()) if (path.resolve(job.projectRoot).toLowerCase() === target) job.controller.abort()
+}
+
+registerVibesIntegration(ipcMain, () => activeProjectPath, () => win);
 
 function slugify(text: string): string {
   return text
@@ -614,10 +1091,6 @@ async function initProjectDirs(projectPath: string) {
   }
 }
 
-async function sanitizeProjectState(parsed: any) {
-  return parsed;
-}
-
 // Project Management Handlers
 ipcMain.handle('list-projects', async () => {
   try {
@@ -647,6 +1120,24 @@ ipcMain.handle('list-projects', async () => {
           }
         }
       }
+    }
+
+    // Control Web projects live beside their downloaded source, not in the legacy local
+    // projects folder. Surface only validated UUID directories with a readable Cipher state.
+    const connectedRoot = path.join(controlDataRoot, 'projects')
+    const connectedItems = await fs.promises.readdir(connectedRoot).catch(() => [])
+    const knownPaths = new Set(projectsList.map(project => path.resolve(project.projectPath).toLowerCase()))
+    for (const item of connectedItems) {
+      if (!localUuid.test(item)) continue
+      const projectPath = path.join(connectedRoot, item, 'cipher')
+      if (knownPaths.has(path.resolve(projectPath).toLowerCase())) continue
+      const stateFile = path.join(projectPath, 'project-state.json')
+      if (!(await exists(stateFile)) && !(await exists(stateFile + '.bak'))) continue
+      try {
+        const data = loadProjectFile(stateFile).state
+        projectsList.push({ id: data.id || item, name: data.name || 'Cipher Control', durationSeconds: data.durationSeconds || 0,
+          date: data.date || (await fs.promises.stat(stateFile)).mtimeMs, projectPath, thumbnailUrl: data.thumbnailUrl || '' })
+      } catch { /* Ignore malformed linked state; loading it should remain an explicit error. */ }
     }
     
     projectsList.sort((a, b) => b.date - a.date);
@@ -683,31 +1174,32 @@ ipcMain.handle('create-project', async (_event, { name }) => {
       timelineWeights: [...PESOS_POR_DEFECTO]
     };
     
-    const stateFile = path.join(projectPath, 'project-state.json');
-    await fs.promises.writeFile(stateFile, JSON.stringify(initialState, null, 2), 'utf8');
+    const persistedState = createProjectFiles(projectPath, initialState);
 
     // El anterior se limpia cuando el nuevo YA existe. Antes se limpiaba primero, asi que
     // si la creacion fallaba te quedabas sin el viejo y sin el nuevo.
     const anterior = activeProjectPath;
+    cancelAnimationJobsForProject(anterior)
     activeProjectPath = projectPath;
+    activeProjectStateFile = path.join(projectPath, 'project-state.json');
     if (anterior && anterior !== projectPath) await cleanupProjectTemp(anterior);
 
     console.log(`[create-project] Proyecto creado en: ${projectPath}`);
-    return { success: true, data: initialState, projectPath };
+    return { success: true, data: persistedState, projectPath };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, code: err.code, details: err.details };
   }
 });
 
 ipcMain.handle('load-project', async (_event, { projectPath }) => {
   try {
     const stateFile = path.join(projectPath, 'project-state.json');
-    if (!(await exists(stateFile))) {
+    if (!(await exists(stateFile)) && !(await exists(stateFile + '.bak'))) {
       return { success: false, error: 'No se encontró el estado del proyecto en la carpeta seleccionada.' };
     }
 
-    const raw = await fs.promises.readFile(stateFile, 'utf8');
-    const parsed = await sanitizeProjectState(JSON.parse(raw));
+    const persistence = loadProjectFile(stateFile);
+    const parsed = persistence.state;
 
     // Se crean las carpetas que falten, pero NO se limpia el temp del proyecto que se
     // ABRE: ahi viven sus clips. Antes era initProjectDirs -> cleanup -> initProjectDirs,
@@ -718,7 +1210,9 @@ ipcMain.handle('load-project', async (_event, { projectPath }) => {
     // La limpieza del ANTERIOR va DESPUES de que el nuevo este cargado. Antes iba
     // primero, asi que una carga fallida destruia el viejo sin abrir el nuevo.
     const anterior = activeProjectPath;
+    cancelAnimationJobsForProject(anterior)
     activeProjectPath = projectPath;
+    activeProjectStateFile = stateFile;
     if (anterior && anterior !== projectPath) await cleanupProjectTemp(anterior);
 
     // La auditoria se calcula AQUI, en el backend, y no en el frontend: hay dos caminos de
@@ -733,15 +1227,16 @@ ipcMain.handle('load-project', async (_event, { projectPath }) => {
     }
 
     console.log(`[load-project] Proyecto cargado desde: ${projectPath}`);
-    return { success: true, data: parsed, projectPath, auditoria };
+    return { success: true, data: parsed, projectPath, auditoria, persistence };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, code: err.code, details: err.details };
   }
 });
 
 ipcMain.handle('close-project', async () => {
   try {
     if (activeProjectPath) {
+      cancelAnimationJobsForProject(activeProjectPath)
       await cleanupProjectTemp(activeProjectPath);
       console.log(`[close-project] Proyecto cerrado y temporales limpiados: ${activeProjectPath}`);
       activeProjectPath = null;
@@ -802,7 +1297,7 @@ async function extraerAudioMaestro(videoPath: string, projPath: string) {
   return { path: destino, durationSeconds, url: urlDeRuta(destino) };
 }
 
-ipcMain.handle('extract-master-audio', async (_event, { videoPath }) => {
+handleProcessing('extract-master-audio', async (_event, { videoPath }) => {
   try {
     if (!activeProjectPath) return { success: false, error: 'No hay proyecto activo.' };
     if (!videoPath || !(await exists(videoPath))) {
@@ -826,7 +1321,7 @@ const TOLERANCIA_RECORTE_S = 1 / 30;
 // usando el fichero entero: Whisper transcribia 1048s de un video recortado a 580s, y FASE 5
 // acababa generando 388 sub-clips para borrar 168 con sus ficheros. Medido en un proyecto
 // real: el video final salio a la mitad de lo que duraba el guion.
-ipcMain.handle('recortar-fuente', async (_event, { videoPath, duracion }) => {
+handleProcessing('recortar-fuente', async (_event, { videoPath, duracion }) => {
   try {
     if (!activeProjectPath) return { success: false, error: 'No hay proyecto activo.' };
     if (!videoPath || !(await exists(videoPath))) {
@@ -932,12 +1427,12 @@ ipcMain.handle('recortar-fuente', async (_event, { videoPath, duracion }) => {
 // seria acertar con el tamano equivocado: un MOV de 1080 escalado a 4K.
 export function dimensionesDeExport(aspectRatio?: string, resolution?: string):
     { ancho: number; alto: number } {
-  if (aspectRatio === 'vertical') {
+  if (isVerticalAspectRatioV1(aspectRatio)) {
     if (resolution === '4K') return { ancho: 2160, alto: 3840 };
     if (resolution === '720p') return { ancho: 720, alto: 1280 };
     return { ancho: 1080, alto: 1920 };
   }
-  if (aspectRatio === 'square') {
+  if (isSquareAspectRatioV1(aspectRatio)) {
     if (resolution === '4K') return { ancho: 2160, alto: 2160 };
     if (resolution === '720p') return { ancho: 720, alto: 720 };
     return { ancho: 1080, alto: 1080 };
@@ -1075,10 +1570,15 @@ const canonizar = (v: any): string => {
 // Encargo 2: iconos, héroe, semilla por posición y relación cambian píxeles. Esta subida entra
 // en el MISMO merge para que ninguna generación sirva caché vieja entre ambos commits.
 // También invalida tarjetas sin cambios: coste aceptado de la versión global compartida.
-// El contraste efectivo de escena cambia píxeles sin cambiar `extra`; esta subida impide
-// servir Visuales cacheados con la tinta anterior. También invalida tarjetas: coste aceptado
-// para mantener una sola clave de versión global.
-const VERSION_PLANTILLAS = 11;
+// El contraste efectivo y el resolvedor Solar pueden cambiar píxeles sin modificar el
+// graphicData ya cacheado; esta subida impide servirlo con apariencia antigua. También
+// invalida tarjetas: coste aceptado para mantener una sola clave de versión global.
+// 15 — el contrato moderno V2 incorpora Hero + hasta dos Supports, raster ProjectAsset,
+// original-color, VideoVisualStyle, geometría de 17 familias y motion coordinado por rol.
+// Todo ello puede cambiar píxeles para una generación moderna aunque conserve semántica. El
+// incremento vive en el mismo commit atómico que renderer/schema/layout; V1/V14 persisted specs
+// siguen despachándose por su implementación histórica y no se migran al abrir.
+export const VERSION_PLANTILLAS = 15;
 
 // EL FORMATO LO DECIDE EL MODO, y se dice AQUI una sola vez. Las tres cosas —codec, pix_fmt y
 // extension— tienen que ir juntas o el fichero sale mintiendo sobre si mismo: un .mp4 con
@@ -1154,17 +1654,26 @@ export function sistemaDeGeneracion(idEstable: string): NombreSistema {
 // Se EXPORTA para que la prueba pueda comprobar la clave directamente, sin renderizar. Las
 // propiedades que importan de un hash —que dos entradas distintas den claves distintas, que
 // sea estable— se verifican mejor sobre la funcion que a traves del nombre de un fichero.
-export function hashGrafico(graphicData: any, ancho: number, alto: number,
-                            duracion: number, fps: number,
-                            modo: 'overlay' | 'pantalla',
-                            sistema: NombreSistema = 'voltaje'): string {
+export function hashGraficoConVersionPlantillas(
+  graphicData: any,
+  ancho: number,
+  alto: number,
+  duracion: number,
+  fps: number,
+  modo: 'overlay' | 'pantalla',
+  sistema: NombreSistema,
+  versionPlantillas: number,
+): string {
+  if (!Number.isSafeInteger(versionPlantillas) || versionPlantillas < 1)
+    throw new Error('VERSION_PLANTILLAS inválida para identidad de caché');
   const g = graphicData || {};
+  const contenido = [canonizar(g.type), canonizar(g.value), canonizar(g.label),
+    canonizar(g.unit), canonizar(g.emoji), canonizar(g.extra)];
   const partes = [
-    canonizar(g.type), canonizar(g.value), canonizar(g.label),
-    canonizar(g.unit), canonizar(g.emoji), canonizar(g.extra),
+    ...contenido,
     // La duracion SI entra: 2s y 3s son animaciones distintas, no la misma estirada.
     String(ancho), String(alto), String(duracion), String(fps),
-    'plantillas=' + VERSION_PLANTILLAS,
+    'plantillas=' + versionPlantillas,
     // EL MODO Y EL CODEC ENTRAN, y esto arregla un fallo que YA EXISTE hoy: el modo cambia el
     // layout —'pantalla' centra y quita el margen inferior, 'overlay' lo pega abajo— y sin el
     // en la clave la misma tarjeta en los dos modos devolveria el fichero del OTRO, con el log
@@ -1181,12 +1690,100 @@ export function hashGrafico(graphicData: any, ancho: number, alto: number,
   return createHash('sha1').update(partes.join('|')).digest('hex').slice(0, 12);
 }
 
+export function hashGrafico(graphicData: any, ancho: number, alto: number,
+                            duracion: number, fps: number,
+                            modo: 'overlay' | 'pantalla',
+                            sistema: NombreSistema = 'voltaje'): string {
+  return hashGraficoConVersionPlantillas(
+    graphicData, ancho, alto, duracion, fps, modo, sistema, VERSION_PLANTILLAS,
+  );
+}
+
+type GraphicsWorkerJob = {
+  graphicData: any
+  projectRoot: string
+  options: {
+    ancho: number; alto: number; fps: number; duracion: number;
+    modo: 'overlay' | 'pantalla'; sistema?: string;
+    diagnosticCaptureFrames?: number[];
+  }
+}
+
+type GraphicsWorkerResult = {
+  route: string | null
+  diagnosticPngs?: Array<{ frame: number; seconds: number; base64: string }>
+}
+
+async function runGraphicsWorkerJob(jobPath: string): Promise<void> {
+  const job = JSON.parse(await fs.promises.readFile(jobPath, 'utf8')) as GraphicsWorkerJob
+  activeProjectPath = job.projectRoot
+  const diagnosticPngs: NonNullable<GraphicsWorkerResult['diagnosticPngs']> = []
+  const route = await renderGraphicClip(job.graphicData, {
+    ...job.options, projectRoot: job.projectRoot,
+    onDiagnosticFrame: (frame, seconds, png) => {
+      diagnosticPngs.push({ frame, seconds, base64: png.toString('base64') })
+    },
+  })
+  const result: GraphicsWorkerResult = { route, diagnosticPngs }
+  await fs.promises.writeFile(path.join(path.dirname(jobPath), 'result.json'), JSON.stringify(result), 'utf8')
+  cerrarVentanaGraficos()
+}
+
+/** Electron 31 ties OSR to the primary display. The worker fixes only its own DPI. */
+async function renderGraphicClipAtFixedScale(job: GraphicsWorkerJob): Promise<GraphicsWorkerResult> {
+  const tempRoot = path.resolve(os.tmpdir())
+  const workDir = await fs.promises.mkdtemp(path.join(tempRoot, 'cipher-osr-'))
+  const jobPath = path.join(workDir, 'job.json')
+  const resultPath = path.join(workDir, 'result.json')
+  try {
+    await fs.promises.writeFile(jobPath, JSON.stringify(job), 'utf8')
+    const args = [
+      '--force-device-scale-factor=1',
+      ...(app.isPackaged ? [] : [__filename]),
+      GRAPHICS_JOB_ARG + jobPath,
+    ]
+    const child = spawn(process.execPath, args, {
+      cwd: process.cwd(), windowsHide: true,
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined },
+      stdio: ['ignore', 'ignore', 'pipe'],
+    })
+    let stderr = ''
+    child.stderr.on('data', chunk => {
+      stderr += String(chunk)
+      if (stderr.length > 8000) stderr = stderr.slice(-8000)
+    })
+    const timeoutMs = Math.min(1_200_000, Math.max(120_000, job.options.duracion * job.options.fps * 500))
+    const exitCode = await new Promise<number>((resolve, reject) => {
+      const timeout = setTimeout(() => { child.kill(); reject(new Error(`Worker offscreen excedió ${timeoutMs} ms`)) }, timeoutMs)
+      child.once('error', error => { clearTimeout(timeout); reject(error) })
+      child.once('close', code => { clearTimeout(timeout); resolve(code ?? -1) })
+    })
+    if (exitCode !== 0) throw new Error(`Worker offscreen salió con ${exitCode}: ${stderr.slice(-2000)}`)
+    return JSON.parse(await fs.promises.readFile(resultPath, 'utf8')) as GraphicsWorkerResult
+  } finally {
+    // The resolved target is one direct child made by mkdtemp, never a user or project path.
+    if (path.dirname(path.resolve(workDir)) === tempRoot && path.basename(workDir).startsWith('cipher-osr-')) {
+      await fs.promises.rm(workDir, { recursive: true, force: true }).catch(() => {})
+    }
+  }
+}
+
 async function obtenerVentanaGraficos(ancho: number, alto: number): Promise<BrowserWindow> {
   const altoTotal = alto + SONDA_ALTO;
 
+  const fijarContenidoExacto = (window: BrowserWindow) => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      window.setContentSize(ancho, altoTotal)
+      const [w, h] = window.getContentSize()
+      if (w === ancho && h === altoTotal) return
+    }
+    const [w, h] = window.getContentSize()
+    throw new Error(`CAPTURE_ASPECT_MISMATCH: contenido pedido=${ancho}x${altoTotal} actual=${w}x${h}`)
+  }
+
   if (ventanaGraficos && !ventanaGraficos.isDestroyed()) {
     const [w, h] = ventanaGraficos.getContentSize();
-    if (w !== ancho || h !== altoTotal) ventanaGraficos.setContentSize(ancho, altoTotal);
+    if (w !== ancho || h !== altoTotal) fijarContenidoExacto(ventanaGraficos)
     return ventanaGraficos;
   }
 
@@ -1215,7 +1812,7 @@ async function obtenerVentanaGraficos(ancho: number, alto: number): Promise<Brow
   // Medido: pedir 1080x1928 daba 1080x1032 y los MOV salian cortados por la mitad sin que
   // nada lo dijera. setContentSize DESPUES de cargar si lo aplica. enableLargerThanScreen
   // no sirve — es solo macOS, tambien medido.
-  v.setContentSize(ancho, altoTotal);
+  fijarContenidoExacto(v)
 
   // __listo NO solo espera: FUERZA la carga de Outfit, Archivo y Anton con fonts.load() y
   // comprueba que estan de verdad. Espera aqui, UNA vez por ventana, y no en cada __montar:
@@ -1296,6 +1893,12 @@ export async function renderGraphicClip(
     ancho?: number; alto?: number; fps?: number; duracion?: number;
     modo?: 'overlay' | 'pantalla';
     sistema?: string;
+    /** Mandatory for extra.sceneSpec; legacy deliberately retains its current active project. */
+    projectRoot?: string;
+    /** Diagnostics only: capture lossless NativeImage PNGs for selected frame indexes; never hashed. */
+    diagnosticCaptureFrames?: readonly number[];
+    /** Receives selected lossless Electron captures before video encoding; never changes pixels. */
+    onDiagnosticFrame?: (frame: number, seconds: number, png: Buffer) => void | Promise<void>;
   } = {}
 ): Promise<string | null> {
   const ancho = opciones.ancho ?? 1080;
@@ -1303,18 +1906,33 @@ export async function renderGraphicClip(
   const fps = opciones.fps ?? 30;
   const duracion = opciones.duracion ?? 2;
   const modo = opciones.modo ?? 'overlay';
+  if (modo === 'pantalla') {
+    await writeDebugLog('[GRAFICO] Visual histórico rechazado: use Animation para crear Visuales nuevos.');
+    return null;
+  }
   const totalFrames = Math.round(duracion * fps);
 
-  if (!activeProjectPath) {
+  let preparado: ReturnType<typeof prepareGraphicForVisualRender>;
+  try {
+    preparado = prepareGraphicForVisualRender({
+      graphicData,
+    });
+  } catch (e: any) {
+    await writeDebugLog(`[GRAFICO] RenderSpec/binding rechazado: ${e.code || e.message}`);
+    return null;
+  }
+  const graphicDataEfectivo = preparado.graphicData as any;
+  const proyectoRender = activeProjectPath;
+
+  if (!proyectoRender) {
     await writeDebugLog('[GRAFICO] Sin proyecto activo: no se renderiza.');
     return null;
   }
-
   // La carpeta la crea quien la llena, con su propio mkdir recursive. Hacen falta las dos
   // razones: cache/graficos salio de SUB_CACHE en 7dd9b64 para que cleanupProjectTemp dejara
   // de borrarla, asi que initProjectDirs no la crea; y materiales/visual SI esta en
   // SUB_MATERIALES, pero un proyecto anterior a este cambio no la tiene hasta que se abra.
-  const destDir = dirDeModo(activeProjectPath, modo);
+  const destDir = dirDeModo(proyectoRender, modo);
   await fs.promises.mkdir(destDir, { recursive: true });
 
   // El nombre ES el hash: no hay indice que mantener ni que pueda desincronizarse del disco.
@@ -1331,7 +1949,7 @@ export async function renderGraphicClip(
     await writeDebugLog(`[GRAFICO] sistema desconocido "${sistemaPedido}": se usa voltaje.`);
   }
 
-  const hash = hashGrafico(graphicData, ancho, alto, duracion, fps, modo, sistema);
+  const hash = hashGrafico(graphicDataEfectivo, ancho, alto, duracion, fps, modo, sistema);
   const destino = path.join(destDir, hash + FORMATO_POR_MODO[modo].ext);
 
   // ACIERTO. Se exige tamano > 0: un MOV de 0 bytes de un render interrumpido existe pero no
@@ -1345,6 +1963,29 @@ export async function renderGraphicClip(
     }
     await writeDebugLog(`[GRAFICO] ${hash} estaba a 0 bytes: no cuenta, se re-renderiza.`);
   } catch (e) { /* no existe: se renderiza */ }
+
+  if (!graphicsJobPath && Math.abs(screen.getPrimaryDisplay().scaleFactor - 1) > 0.0001) {
+    const hostScale = screen.getPrimaryDisplay().scaleFactor
+    await writeDebugLog(`[GRAFICO] ${hostScale === 1 ? 'CAPTURE_EXACT_SIZE' : 'CAPTURE_UNIFORM_DPI_SCALE'} ` +
+      `hostScale=${hostScale} requested=${ancho}x${alto + SONDA_ALTO}; captura aislada a escala 1`)
+    try {
+      const result = await renderGraphicClipAtFixedScale({
+        graphicData, projectRoot: proyectoRender,
+        options: {
+          ancho, alto, fps, duracion, modo, sistema: opciones.sistema,
+          diagnosticCaptureFrames: opciones.diagnosticCaptureFrames?.filter(frame =>
+            Number.isInteger(frame) && frame >= 0 && frame < totalFrames),
+        },
+      })
+      for (const captured of result.diagnosticPngs ?? []) {
+        await opciones.onDiagnosticFrame?.(captured.frame, captured.seconds, Buffer.from(captured.base64, 'base64'))
+      }
+      return result.route
+    } catch (error: any) {
+      await writeDebugLog(`[GRAFICO] Worker offscreen falló: ${error?.message ?? error}`)
+      return null
+    }
+  }
 
   const yaHabiaLote = loteGraficosActivo;
   loteGraficosActivo = true;
@@ -1361,7 +2002,7 @@ export async function renderGraphicClip(
     // dos Visuales con el mismo texto y distinta duracion ya eran ficheros distintos: pasarla
     // no cambia la cache ni invalida nada de lo renderizado.
     await v.webContents.executeJavaScript(
-      `window.__montar(${JSON.stringify(graphicData)}, ` +
+      `window.__montar(${JSON.stringify(graphicDataEfectivo)}, ` +
       `${JSON.stringify({ ancho, alto, modo, duracion, sistema })})`);
 
     // EL CANDADO DEL CICLO, recogido AQUI y no en la consola de la pagina. Esta ventana es
@@ -1381,10 +2022,15 @@ export async function renderGraphicClip(
     // que se midio. Si no cuadra se aborta antes de escribir un MOV cortado.
     const sonda0 = await v.webContents.capturePage();
     const tam = sonda0.getSize();
-    if (tam.width !== ancho || tam.height !== alto + SONDA_ALTO) {
-      throw new Error(`la ventana mide ${tam.width}x${tam.height} y se pidio ` +
-        `${ancho}x${alto + SONDA_ALTO}: el MOV saldria recortado`);
-    }
+    const captureDiagnostic = classifyGraphicsCapture(
+      ancho, alto + SONDA_ALTO, tam.width, tam.height,
+      screen.getPrimaryDisplay().scaleFactor, sonda0.isEmpty(),
+    )
+    await writeDebugLog(`[GRAFICO] ${captureDiagnostic.code} ` +
+      `requested=${ancho}x${alto + SONDA_ALTO} actual=${tam.width}x${tam.height} ` +
+      `ratioX=${captureDiagnostic.ratioX.toFixed(6)} ratioY=${captureDiagnostic.ratioY.toFixed(6)} ` +
+      `displayScale=${captureDiagnostic.expectedScale} zoom=${v.webContents.getZoomFactor()}`)
+    requireExactGraphicsCapture(captureDiagnostic)
 
     // Patron NUEVO en este codigo: todo lo demas invoca ffmpeg con exec y una cadena. Aqui
     // hace falta spawn porque los frames entran por stdin y exec bufferea la salida entera.
@@ -1433,7 +2079,6 @@ export async function renderGraphicClip(
       // o el modelo tarda mas en componer, ese numero sube y el reparto de arriba cambia.
       // (Un dato anterior decia 54 contra 37 ms/frame y esta RETIRADO: los 37 venian de
       // tarjetas medidas en otra tirada, con la maquina en otro estado.)
-      ...(modo === 'pantalla' ? ['-preset', 'veryfast', '-crf', '18'] : []),
       destino
     ]);
 
@@ -1466,7 +2111,15 @@ export async function renderGraphicClip(
       let frame: Buffer | null = null;
       for (let intento = 1; intento <= MAX_INTENTOS_FRAME; intento++) {
         const img = await v.webContents.capturePage();
+        const frameSize = img.getSize()
+        requireExactGraphicsCapture(classifyGraphicsCapture(
+          ancho, alto + SONDA_ALTO, frameSize.width, frameSize.height,
+          screen.getPrimaryDisplay().scaleFactor, img.isEmpty(),
+        ))
         const raw = img.getBitmap();   // NO copia
+        if (raw.length !== ancho * (alto + SONDA_ALTO) * 4) {
+          throw new Error(`CAPTURE_EMPTY: bitmap bytes=${raw.length} expected=${ancho * (alto + SONDA_ALTO) * 4}`)
+        }
         intentosTotales++;
         // Los TRES canales, no solo uno: la sonda es gris, asi que B, G y R tienen que
         // valer lo mismo Y coincidir con lo esperado. Cuesta igual y descarta ruido.
@@ -1477,6 +2130,11 @@ export async function renderGraphicClip(
           // documentacion y eso es una carrera: 3 ms sobre 33 compran determinismo.
           // El subarray descarta la franja de la sonda, que no viaja a ffmpeg.
           frame = Buffer.from(raw.subarray(bytesSonda));
+          if (opciones.diagnosticCaptureFrames?.includes(i)) {
+            // Lossless diagnostic evidence from Electron's actual NativeImage, before ffmpeg.
+            // It is deliberately outside cache/identity and does not feed the encoder.
+            await opciones.onDiagnosticFrame?.(i, t, img.toPNG());
+          }
           if (intento === MAX_INTENTOS_FRAME) framesEnElTope++;
           break;
         }
@@ -1499,7 +2157,7 @@ export async function renderGraphicClip(
     const ms = Date.now() - t0;
     const medicion: MedicionRenderGrafico = {
       hash,
-      type: String(graphicData?.type ?? ''),
+      type: String(graphicDataEfectivo?.type ?? ''),
       totalFrames,
       ancho,
       alto,
@@ -1511,7 +2169,7 @@ export async function renderGraphicClip(
     };
     // Antes del await del log: la medida no depende de que su cola avance o llegue a disco.
     emitirMedicionRenderGrafico(medicion);
-    await writeDebugLog(`[GRAFICO] RENDER ${hash} — ${graphicData?.type} — ` +
+    await writeDebugLog(`[GRAFICO] RENDER ${hash} — ${graphicDataEfectivo?.type} — ` +
       `${totalFrames}f ${ancho}x${alto} — ${(size / 1048576).toFixed(2)} MB — ` +
       `${ms} ms — ${medicion.intentosPorFrame.toFixed(2)} intentos/frame — ` +
       `${framesEnElTope} frame(s) en el tope de ${MAX_INTENTOS_FRAME}`);
@@ -1519,7 +2177,7 @@ export async function renderGraphicClip(
 
   } catch (e: any) {
     // Se pierde ESTE grafico, no el export. Y se dice por que.
-    await writeDebugLog(`[GRAFICO] FALLO (${graphicData?.type}): ${e.message}`);
+    await writeDebugLog(`[GRAFICO] FALLO (${graphicDataEfectivo?.type}): ${e.message}`);
     try { ff?.kill(); } catch {}
     try { await fs.promises.unlink(destino); } catch {}
     return null;
@@ -1534,12 +2192,11 @@ export async function renderGraphicClip(
  * La PIEZA 3 necesita saber CUAL falto para poder decir "esperaba 19, compuse 17".
  */
 export async function renderGraphicClipsLote(
-  peticiones: { graphicData: any; duracion?: number }[],
+  peticiones: { graphicData: any; duracion?: number; projectRoot?: string }[],
   opciones: { aspectRatio?: string; resolution?: string;
               fps?: number; modo?: 'overlay' | 'pantalla';
-              // Sin esto, un lote de Visuales los renderizaria TODOS con el sistema por
-              // defecto y el usuario no podria elegir el color. Estaba anotado como pendiente.
-              sistema?: string } = {},
+              sistema?: string;
+              } = {},
   emitirProgreso?: (p: { index: number; total: number; paragraph: string; type: string }) => void
 ) {
   // El lote no sabe de pixeles: recibe lo mismo que el export —formato y resolucion, que el
@@ -1573,6 +2230,7 @@ export async function renderGraphicClipsLote(
   const proyectoDelLote = activeProjectPath;
 
   const rutas: (string | null)[] = new Array(total).fill(null);
+  const hashes: (string | null)[] = new Array(total).fill(null);
   let aciertos = 0, renderizados = 0, fallos = 0, intentados = 0;
   let cancelado = false, motivo = '';
 
@@ -1603,6 +2261,7 @@ export async function renderGraphicClipsLote(
       const hash = hashGrafico(peticiones[i].graphicData, ancho, alto, duracion, fps, modo,
         (SISTEMAS_VALIDOS as readonly string[]).includes(opciones.sistema ?? '')
           ? opciones.sistema as NombreSistema : 'voltaje');
+      hashes[i] = hash;
       let cacheado = false;
       try {
         // dirDeModo y no dirCache: un lote en modo pantalla buscaria los .mp4 en cache y
@@ -1628,7 +2287,10 @@ export async function renderGraphicClipsLote(
 
       intentados++;
       const ruta = await renderGraphicClip(peticiones[i].graphicData,
-        { ancho, alto, fps, duracion, modo, sistema: opciones.sistema });
+        {
+          ancho, alto, fps, duracion, modo, sistema: opciones.sistema,
+          projectRoot: peticiones[i].projectRoot,
+        });
 
       rutas[i] = ruta;                      // POSICIONAL: el hueco se queda en su sitio
       if (!ruta) fallos++;
@@ -1655,10 +2317,10 @@ export async function renderGraphicClipsLote(
     ` — ${((Date.now() - t0) / 1000).toFixed(1)}s` +
     (cancelado ? ` — CANCELADO: ${motivo}` : ''));
 
-  return { rutas, total, renderizados, aciertos, fallos, sinIntentar, cancelado, motivo };
+  return { rutas, hashes, total, renderizados, aciertos, fallos, sinIntentar, cancelado, motivo };
 }
 
-ipcMain.handle('render-graphics-batch', async (event,
+handleProcessing('render-graphics-batch', async (event,
     { graficos, aspectRatio, resolution, fps, modo }) => {
   try {
     const r = await renderGraphicClipsLote(graficos || [],
@@ -1737,12 +2399,11 @@ ipcMain.handle('save-project-state', async (_event, state) => {
   try {
     const targetPath = activeProjectPath || process.cwd();
     const filePath = path.join(targetPath, 'project-state.json');
-    const sanitized = await sanitizeProjectState(state);
-    sanitized.date = Date.now();
-    await fs.promises.writeFile(filePath, JSON.stringify(sanitized, null, 2), 'utf8');
+    saveProjectFile(filePath, state, activeProjectPath && activeProjectStateFile ? activeProjectStateFile : filePath);
+    if (activeProjectPath) activeProjectStateFile = filePath;
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, code: err.code, details: err.details };
   }
 });
 
@@ -1750,22 +2411,20 @@ ipcMain.handle('load-project-state', async () => {
   try {
     if (activeProjectPath) {
       const stateFile = path.join(activeProjectPath, 'project-state.json');
-      if (await exists(stateFile)) {
-        const raw = await fs.promises.readFile(stateFile, 'utf8');
-        const parsed = await sanitizeProjectState(JSON.parse(raw));
-        return { success: true, data: parsed };
+      if ((await exists(stateFile)) || (await exists(stateFile + '.bak'))) {
+        const persistence = loadProjectFile(stateFile);
+        return { success: true, data: persistence.state, persistence };
       }
     }
     // Backward compatibility fallback to process.cwd()
     const filePath = path.join(process.cwd(), 'project-state.json');
-    if (await exists(filePath)) {
-      const rawData = await fs.promises.readFile(filePath, 'utf8');
-      const parsed = await sanitizeProjectState(JSON.parse(rawData));
-      return { success: true, data: parsed };
+    if ((await exists(filePath)) || (await exists(filePath + '.bak'))) {
+      const persistence = loadProjectFile(filePath);
+      return { success: true, data: persistence.state, persistence };
     }
     return { success: false, error: 'No se encontró proyecto activo.' };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, code: err.code, details: err.details };
   }
 });
 
@@ -1778,6 +2437,8 @@ ipcMain.on('ready-to-close', () => {
 ipcMain.handle('save-project-as', async (_event, state) => {
   try {
     if (!win) return { success: false, error: 'Ventana no disponible' };
+    // Capture the source before the dialog yields: project switching must not mix substrates.
+    const sourceStateFile = activeProjectPath && activeProjectStateFile ? activeProjectStateFile : null;
     const { filePath, canceled } = await dialog.showSaveDialog(win, {
       title: 'Guardar Proyecto Como',
       defaultPath: activeProjectPath ? path.join(activeProjectPath, 'project-state.json') : path.join(process.cwd(), 'project-state.json'),
@@ -1786,12 +2447,10 @@ ipcMain.handle('save-project-as', async (_event, state) => {
     if (canceled || !filePath) {
       return { success: false, error: 'Guardado cancelado por el usuario' };
     }
-    const sanitized = await sanitizeProjectState(state);
-    sanitized.date = Date.now();
-    await fs.promises.writeFile(filePath, JSON.stringify(sanitized, null, 2), 'utf8');
+    saveProjectFile(filePath, state, sourceStateFile || filePath);
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, code: err.code, details: err.details };
   }
 });
 
@@ -1810,8 +2469,8 @@ ipcMain.handle('open-project', async () => {
     const filePath = filePaths[0];
     const projectPath = path.dirname(filePath);
     
-    const raw = await fs.promises.readFile(filePath, 'utf8');
-    const parsed = await sanitizeProjectState(JSON.parse(raw));
+    const persistence = loadProjectFile(filePath);
+    const parsed = persistence.state;
 
     // Mismo criterio que load-project: NO se limpia el temp del proyecto que se abre,
     // y el anterior se limpia solo cuando el nuevo ya esta cargado.
@@ -1819,11 +2478,12 @@ ipcMain.handle('open-project', async () => {
 
     const anterior = activeProjectPath;
     activeProjectPath = projectPath;
+    activeProjectStateFile = filePath;
     if (anterior && anterior !== projectPath) await cleanupProjectTemp(anterior);
 
-    return { success: true, data: parsed, projectPath };
+    return { success: true, data: parsed, projectPath, persistence };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    return { success: false, error: err.message, code: err.code, details: err.details };
   }
 });
 
@@ -1901,7 +2561,7 @@ function cleanMarkdown(text: string): string {
 }
 
 // IPC handle for rewriting transcription using DeepSeek API
-ipcMain.handle('rewrite-transcript', async (_event, text) => {
+handleProcessing('rewrite-transcript', async (_event, text) => {
   try {
     let promptPath = path.join(process.cwd(), 'src/prompt-maestro.txt')
     if (!(await exists(promptPath))) {
@@ -1955,8 +2615,7 @@ ipcMain.handle('rewrite-transcript', async (_event, text) => {
     })
 
     if (!response.ok) {
-      const errText = await response.text()
-      return { success: false, error: `Error de API DeepSeek (${response.status}): ${errText}` }
+      return { success: false, error: `DEEPSEEK_HTTP_${response.status}` }
     }
 
     const data = (await response.json()) as any
@@ -1991,8 +2650,7 @@ ipcMain.handle('get-elevenlabs-voices', async () => {
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      return { success: false, error: `Error de ElevenLabs API (${response.status}): ${errText}` };
+      return { success: false, error: `ELEVENLABS_HTTP_${response.status}` };
     }
 
     const data = await response.json();
@@ -2007,14 +2665,6 @@ ipcMain.handle('get-elevenlabs-voices', async () => {
       myVoice.name = `${myVoice.name} (Mi voz)`;
       voices.splice(myVoiceIndex, 1);
       voices.unshift(myVoice);
-    } else {
-      voices.unshift({
-        voice_id: myVoiceId,
-        name: 'Clon de mi Voz (Mi voz)',
-        preview_url: '',
-        category: 'cloned',
-        is_my_voice: true
-      });
     }
 
     return { success: true, voices };
@@ -2025,7 +2675,7 @@ ipcMain.handle('get-elevenlabs-voices', async () => {
 });
 
 // IPC handle for ElevenLabs voice generation
-ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stability }) => {
+handleProcessing('generate-voice', async (_event, { text, model, voiceId, stability, speed }) => {
   try {
     loadEnv() // ensure env variables are loaded
     const apiKey = process.env.ELEVENLABS_API_KEY
@@ -2046,14 +2696,13 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
     }
 
     const cleanStability = typeof stability === 'number' ? stability / 100 : 0.5
+    const cleanSpeed = typeof speed === 'number' && Number.isFinite(speed) ? Math.min(1.2, Math.max(0.7, speed)) : 1
 
     console.log(`[generate-voice] Iniciando proceso de generación de voz:`)
-    console.log(`  - Texto a procesar: "${text.substring(0, 60)}${text.length > 60 ? '...' : ''}" (longitud: ${text.length} caracteres)`)
     console.log(`  - Modelo seleccionado: "${model}" => API Model ID: "${modelId}"`)
     console.log(`  - Voice ID seleccionado: "${targetVoiceId}"`)
     console.log(`  - Estabilidad: ${stability}% (procesada: ${cleanStability})`)
-    const maskedKey = apiKey.substring(0, 6) + '...' + apiKey.substring(apiKey.length - 6)
-    console.log(`  - API Key de ElevenLabs: ${maskedKey} (longitud: ${apiKey.length} caracteres)`)
+    console.log(`  - Velocidad: ${cleanSpeed}`)
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => {
@@ -2075,7 +2724,8 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
           model_id: modelId,
           voice_settings: {
             stability: cleanStability,
-            similarity_boost: 0.75
+            similarity_boost: 0.75,
+            speed: cleanSpeed
           }
         }),
         signal: controller.signal
@@ -2085,9 +2735,8 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
       console.log(`[generate-voice] Respuesta recibida de ElevenLabs. Status: ${response.status} (${response.statusText})`)
 
       if (!response.ok) {
-        const errText = await response.text()
-        const errMessage = `Error de API ElevenLabs (${response.status}): ${errText}`
-        console.error(`[generate-voice] La API retornó un error: ${errMessage}`)
+        const errMessage = `ELEVENLABS_HTTP_${response.status}`
+        console.error(`[generate-voice] La API devolvió HTTP ${response.status}.`)
         return { success: false, error: errMessage }
       }
 
@@ -2208,21 +2857,16 @@ ipcMain.handle('generate-voice', async (_event, { text, model, voiceId, stabilit
       return { success: true, filePath, audioUrl, durationSeconds, newAudioSegments }
     } catch (fetchErr: any) {
       clearTimeout(timeoutId)
-      let fetchErrMsg = fetchErr.message || 'Error de conexión'
-      if (fetchErr.name === 'AbortError') {
-        fetchErrMsg = 'La conexión con ElevenLabs excedió el tiempo límite de espera de 40 segundos.'
-      }
-      console.error(`[generate-voice] Excepción durante el fetch: ${fetchErrMsg}`, fetchErr)
-      return { success: false, error: `Error de red/conexión: ${fetchErrMsg}` }
+      console.error(`[generate-voice] Falló la solicitud de voz (${fetchErr.name === 'AbortError' ? 'TIMEOUT' : 'NETWORK_ERROR'}).`)
+      return { success: false, error: fetchErr.name === 'AbortError' ? 'ELEVENLABS_TIMEOUT' : 'ELEVENLABS_NETWORK_ERROR' }
     }
   } catch (err: any) {
-    const errMessage = err.message || 'Error desconocido en ElevenLabs TTS'
-    console.error(`[generate-voice] Excepción general: ${errMessage}`, err)
-    return { success: false, error: errMessage }
+    console.error('[generate-voice] La generación o preparación de voz falló.')
+    return { success: false, error: 'VOICE_GENERATION_OR_PREPARATION_FAILED' }
   }
 })
 
-ipcMain.handle('generate-minimax-video', async (_event, { prompt }) => {
+handleProcessing('generate-minimax-video', async (_event, { prompt }) => {
   try {
     loadEnv(true);
     const apiKey = process.env.FAL_KEY;
@@ -2366,6 +3010,32 @@ ipcMain.handle('load-bank-clips', async (_event, { category }) => {
       }
     }
 
+    // An original downloaded by Control Web/local-link flow stays in its attempt folder.
+    // Expose it in the existing project library without copying or re-downloading the file.
+    if (useActiveProj && category.toLowerCase() === 'originales') {
+      const stateFile = path.join(activeProjectPath!, 'project-state.json')
+      try {
+        const state = loadProjectFile(stateFile).state
+        for (const clip of (state.clips || []).filter((item: any) => item?.type === 'video' && item?.category === 'original' && typeof item.path === 'string')) {
+          const resolved = path.resolve(clip.path)
+          if (bankClips.some(item => path.resolve(item.path).toLowerCase() === resolved.toLowerCase()) || !(await exists(resolved))) continue
+          const stat = await fs.promises.stat(resolved)
+          if (!stat.isFile() || !/\.(mp4|mkv|avi|mov|webm)$/i.test(resolved)) continue
+          const durationSeconds = Number(clip.durationSeconds) || await getVideoDuration(resolved)
+          const thumbnailName = `${path.basename(resolved, path.extname(resolved))}.jpg`, thumbnailPath = path.join(thumbnailDir, thumbnailName)
+          let thumbnailUrl = ''
+          if (await exists(thumbnailPath)) {
+            try { thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbnailPath)).toString('base64')}` } catch {}
+          } else {
+            try { await generateVideoThumbnail(resolved, thumbnailPath); if (await exists(thumbnailPath)) thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbnailPath)).toString('base64')}` } catch {}
+          }
+          bankClips.push({ id: clip.id || `linked-original-${path.basename(resolved)}`, name: clip.name || path.basename(resolved), path: resolved,
+            url: urlDeRuta(resolved), duration: formatTimeMinutesSeconds(durationSeconds), durationSeconds, type: 'video',
+            size: `${(stat.size / (1024 * 1024)).toFixed(1)} MB`, thumbnailUrl })
+        }
+      } catch { /* An absent state file is normal for an empty project. */ }
+    }
+
     return { success: true, clips: bankClips }
   } catch (err: any) {
     console.error(`[load-bank-clips] Error: ${err.message}`)
@@ -2374,30 +3044,25 @@ ipcMain.handle('load-bank-clips', async (_event, { category }) => {
 })
 
 // IPC handle to automatically slice a video into segments of exactly 3 seconds using segment muxer
-ipcMain.handle('cut-video-clips', async (_event, { videoPath, timestamps }) => {
+handleProcessing('cut-video-clips', async (_event, { videoPath, timestamps }) => {
   try {
     console.log(`[cut-video-clips] Slicing video: ${videoPath}, timestamps length: ${timestamps?.length || 0}`)
     const bankDir = getBancoClipsPath()
     const useActiveProj = !!activeProjectPath
     const outDir = useActiveProj ? dirMat(activeProjectPath!, 'originales') : path.join(bankDir, 'originales')
     const thumbnailDir = useActiveProj ? dirCache(activeProjectPath!, 'thumbnails') : path.join(bankDir, 'thumbnails')
-    
-    if (!(await exists(outDir))) {
-      await fs.promises.mkdir(outDir, { recursive: true })
-    }
+
+    // The input can be the user's persisted `fuente_recortada.mp4` inside
+    // materiales/originales. Verify it before cleanup and remove only stale
+    // segment outputs; broad directory cleanup would delete the input itself.
+    const segmentacion = await prepareOriginalClipSegmentation({ inputPath: videoPath, outputDir: outDir })
     if (!(await exists(thumbnailDir))) {
       await fs.promises.mkdir(thumbnailDir, { recursive: true })
     }
+    await writeDebugLog(`[cut-video-clips] Limpieza segura: ${segmentacion.removedClipOutputs.length} clip(s) previos; ` +
+      `input protegido=${segmentacion.preservedInputInsideOutputDir}.`)
 
-    // Clean up any existing clips in outDir first to avoid mixing projects
-    const existingFiles = await fs.promises.readdir(outDir)
-    for (const file of existingFiles) {
-      try {
-        await fs.promises.unlink(path.join(outDir, file))
-      } catch (e) {}
-    }
-
-    const escapedVideo = videoPath.replace(/"/g, '\\"')
+    const escapedVideo = segmentacion.inputPath.replace(/"/g, '\\"')
 
     if (timestamps && Array.isArray(timestamps) && timestamps.length > 0) {
       for (let i = 0; i < timestamps.length; i++) {
@@ -2944,7 +3609,7 @@ async function componerTarjetas(
     sinComponer: tarjetas.length - compuestasSet.size, segDir, aCaballo };
 }
 
-ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, format, quality, assignedTransitions, transitionDuration, ajustesVideo }) => {
+handleProcessing('export-video', async (event, { clips, aspectRatio, resolution, format, quality, assignedTransitions, transitionDuration, ajustesVideo, controlExportId }) => {
   // Viaja al frontend para que el aviso llegue al usuario y no solo al log.
   let avisoTiempos = '';
   // El objetivo de frames se calcula DENTRO de la rama del export normal (P0) y la
@@ -2986,12 +3651,22 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
     const hasTransitions = assignedTransitions && Object.keys(assignedTransitions).length > 0;
     await writeDebugLog(`[EXPORT] Transiciones asignadas: ${hasTransitions ? Object.keys(assignedTransitions).length : 0}, duracion: ${trDuration}s, primer mapa de test: ${mapTransition('fade')}`);
     if (!win) return { success: false, error: 'Ventana no disponible' }
+    let controlFilePath: string | null = null
+    if (controlExportId !== undefined) {
+      if (!controlJob || controlJob.kind !== 'export' || controlExportId !== controlJob.attemptId || !isUuid(controlExportId) || !controlProjectPath)
+        return { success: false, error: 'Destino de exportación no autorizado.' }
+      const finalDir = path.join(controlDataRoot, 'projects', controlJob.projectId, 'final')
+      await fs.promises.mkdir(finalDir, { recursive: true })
+      controlFilePath = path.join(finalDir, controlExportId + '.mp4')
+      if (await exists(controlFilePath)) return { success: false, error: 'El archivo de este intento ya existe; no se sobrescribió.' }
+    }
 
     // ANTES del dialogo de guardar: preguntar donde guardar y despues decir que el video
     // saldra incompleto es peor que no avisar. Hoy los clips cuyo fichero no esta se
     // descartan en silencio y el video sale mas corto sin que nada lo diga.
     const auditoria = await auditarClips(clips, activeProjectPath);
     if (auditoria.hayProblema) {
+      if (controlFilePath) return { success: false, error: `Faltan ${auditoria.faltan.length + auditoria.sinRuta.length} materiales; el export no se inició.` }
       const ausentes = [...auditoria.faltan, ...auditoria.sinRuta];
       const lista = ausentes.slice(0, 6)
         .map((c: any) => `  - ${c.name} [${c.origen}]`).join('\n');
@@ -3029,18 +3704,20 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
     const ext = format === 'mov' ? 'mov' : 'mp4';
     const filterName = format === 'mov' ? 'QuickTime Movie' : 'MP4 Video';
 
-    const { filePath, canceled } = await dialog.showSaveDialog(win, {
-      title: 'Exportar Video',
-      defaultPath: path.join(app.getPath('downloads'), `export.${ext}`),
-      filters: [{ name: filterName, extensions: [ext] }]
-    })
-
-    if (canceled || !filePath) {
-      return { success: false, error: 'Exportación cancelada por el usuario' }
+    let filePath = controlFilePath || ''
+    if (!controlFilePath) {
+      const selected = await dialog.showSaveDialog(win, {
+        title: 'Exportar Video',
+        defaultPath: path.join(app.getPath('downloads'), `export.${ext}`),
+        filters: [{ name: filterName, extensions: [ext] }]
+      })
+      if (selected.canceled || !selected.filePath) return { success: false, error: 'Exportación cancelada por el usuario' }
+      filePath = selected.filePath
     }
 
     const exportStart = Date.now();
     const videoClipsOnly = clips.filter((c: any) => c.path && c.type !== 'graphic' && c.type !== 'audio');
+    const outputFlag = controlFilePath ? '-n' : '-y'
     await writeDebugLog(`[EXPORT] Iniciando exportacion: ${videoClipsOnly.length} clips de video, aspect=${aspectRatio}, res=${resolution}, quality=${quality}`);
 
     if (!clips || clips.length === 0) {
@@ -3053,9 +3730,9 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
     // Determine crop & scale filter. Se guarda SIN el envoltorio -vf "..." para poder
     // componer sobre la cadena sin cirugia de strings.
     let baseVF = ''
-    if (aspectRatio === 'vertical') {
+    if (isVerticalAspectRatioV1(aspectRatio)) {
       baseVF = `crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}`
-    } else if (aspectRatio === 'square') {
+    } else if (isSquareAspectRatioV1(aspectRatio)) {
       baseVF = `crop=w='min(iw,ih)':h='min(ih,iw)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}`
     } else { // horizontal
       baseVF = `crop=w='min(iw,ih*16/9)':h='min(ih,iw*9/16)':x='(iw-ow)/2':y='(ih-oh)/2',scale=${targetW}:${targetH}`
@@ -3090,7 +3767,7 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
         return { success: false, error: `El archivo original no existe o no tiene ruta: ${clips[0].name}` }
       }
       const escapedVideo = videoPath.replace(/"/g, '\\"')
-      const ffmpegCmd = `ffmpeg -y -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -c:a aac "${escapedOut}"`
+      const ffmpegCmd = `ffmpeg ${outputFlag} -i "${escapedVideo}" ${filterStr} -c:v libx264 -preset ${preset} -crf ${crf} -pix_fmt yuv420p -c:a aac "${escapedOut}"`
       
       await new Promise<void>((resolve, reject) => {
         exec(ffmpegCmd, { maxBuffer: 1024 * 1024 * 50 }, (err) => {
@@ -3624,9 +4301,9 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
         ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" -c:v copy -an "${videoBase.replace(/"/g, '\\"')}"`;
       } else if (audioClip && audioClip.path && (await exists(audioClip.path))) {
         const escapedAudio = audioClip.path.replace(/"/g, '\\"');
-        ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" -i "${escapedAudio}" -map 0:v -map 1:a -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart "${escapedOut}"`;
+        ffmpegCmd = `ffmpeg ${outputFlag} -f concat -safe 0 -i "${escapedTxt}" -i "${escapedAudio}" -map 0:v -map 1:a -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart "${escapedOut}"`;
       } else {
-        ffmpegCmd = `ffmpeg -y -f concat -safe 0 -i "${escapedTxt}" -c:v copy -an -movflags +faststart "${escapedOut}"`;
+        ffmpegCmd = `ffmpeg ${outputFlag} -f concat -safe 0 -i "${escapedTxt}" -c:v copy -an -movflags +faststart "${escapedOut}"`;
       }
 
       await new Promise<void>((resolve, reject) => {
@@ -3716,10 +4393,10 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
 
         let mux = '';
         if (audioClip && audioClip.path && (await exists(audioClip.path))) {
-          mux = `ffmpeg -y -i "${fuente.replace(/"/g, '\\"')}" -i "${audioClip.path.replace(/"/g, '\\"')}" ` +
+          mux = `ffmpeg ${outputFlag} -i "${fuente.replace(/"/g, '\\"')}" -i "${audioClip.path.replace(/"/g, '\\"')}" ` +
             `-map 0:v -map 1:a -c:v copy -c:a aac -b:a 128k -shortest -movflags +faststart "${escapedOut}"`;
         } else {
-          mux = `ffmpeg -y -i "${fuente.replace(/"/g, '\\"')}" -c:v copy -an -movflags +faststart "${escapedOut}"`;
+          mux = `ffmpeg ${outputFlag} -i "${fuente.replace(/"/g, '\\"')}" -c:v copy -an -movflags +faststart "${escapedOut}"`;
         }
         await new Promise<void>((res, rej) => exec(mux, { maxBuffer: 1024 * 1024 * 50 },
           (e) => e ? rej(e) : res()));
@@ -3800,7 +4477,144 @@ function enviarAviso(event: any, carga: unknown): void {
   } catch (e) { /* ventana cerrada: el log ya lo tiene */ }
 }
 
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
+ipcMain.handle('animation:connection-status', async () => {
+  try { return await getAnimationConnectionStatus() }
+  catch { return { available: false, authenticated: false, status: 'error', provider: 'codex-app-server' } }
+})
+ipcMain.handle('animation:load-project', async () => {
+  try {
+    if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
+    return loadAnimationProject(activeProjectPath)
+  } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+})
+ipcMain.handle('animation:load-draft', async (_event, draftId: string) => {
+  try {
+    if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
+    return { success: true, draft: loadAnimationDraft(activeProjectPath, draftId) }
+  } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+})
+ipcMain.handle('animation:list-drafts', async (_event, timelineClipId: string) => {
+  try {
+    if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
+    return listAnimationDrafts(activeProjectPath, timelineClipId)
+  } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+})
+ipcMain.handle('animation:save-project', async (_event, state) => {
+  try {
+    if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
+    return saveAnimationProject(activeProjectPath, state)
+  } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+})
+ipcMain.handle('animation:add-reference', async (_event, sourcePath: string) => {
+  try {
+    if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
+    return await addAnimationReference(activeProjectPath, sourcePath)
+  } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+})
+ipcMain.handle('animation:generate-draft', async (event, input: any) => {
+  const jobId = String(input?.jobId || '')
+  let registeredJob: AnimationJob | null = null
+  try {
+    if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
+    if (!/^[\w-]{8,100}$/.test(jobId)) throw new Error('ANIMATION_JOB_ID_INVALID')
+    const projectRoot = activeProjectPath
+    const job = registerAnimationJob(jobId, projectRoot)
+    registeredJob = job
+    const controller = job.controller
+    const onProgress = (progress: any) => {
+      if (activeProjectPath !== projectRoot || event.sender.isDestroyed()) return
+      event.sender.send('animation:progress', { jobId, ...progress })
+    }
+    const result = await generateAnimationDraft(projectRoot, input, { signal: controller.signal, onProgress })
+    if (activeProjectPath !== projectRoot) throw new Error('ANIMATION_PROJECT_CHANGED')
+    return result
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) }
+  } finally { finishAnimationJob(jobId, registeredJob) }
+})
+ipcMain.handle('animation:adjust-style', async (event, input: any) => {
+  const jobId = String(input?.jobId || '')
+  let registeredJob: AnimationJob | null = null
+  try {
+    if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
+    if (!/^[\w-]{8,100}$/.test(jobId)) throw new Error('ANIMATION_JOB_ID_INVALID')
+    const projectRoot = activeProjectPath
+    const job = registerAnimationJob(jobId, projectRoot)
+    registeredJob = job
+    const controller = job.controller
+    const onProgress = (progress: any) => {
+      if (activeProjectPath !== projectRoot || event.sender.isDestroyed()) return
+      event.sender.send('animation:progress', { jobId, ...progress })
+    }
+    const result = await adjustAnimationDraftStyle(projectRoot, String(input.draftId || ''), input.patch,
+      { signal: controller.signal, instruction: String(input.instruction || ''), onProgress })
+    if (activeProjectPath !== projectRoot) throw new Error('ANIMATION_PROJECT_CHANGED')
+    return result
+  } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+  finally { finishAnimationJob(jobId, registeredJob) }
+})
+ipcMain.handle('animation:review-draft', async (event, input: any) => {
+  const jobId = String(input?.jobId || '')
+  let registeredJob: AnimationJob | null = null
+  try {
+    if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
+    if (!/^[\w-]{8,100}$/.test(jobId)) throw new Error('ANIMATION_JOB_ID_INVALID')
+    const projectRoot = activeProjectPath
+    const job = registerAnimationJob(jobId, projectRoot)
+    registeredJob = job
+    const controller = job.controller
+    const onProgress = (progress: any) => {
+      if (activeProjectPath !== projectRoot || event.sender.isDestroyed()) return
+      event.sender.send('animation:progress', { jobId, ...progress })
+    }
+    const result = await reviewAnimationDraft(projectRoot, String(input.draftId || ''),
+      input.threadId ? String(input.threadId) : null, String(input.userMessage || ''), { signal: controller.signal, onProgress })
+    if (activeProjectPath !== projectRoot) throw new Error('ANIMATION_PROJECT_CHANGED')
+    return result
+  } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+  finally { finishAnimationJob(jobId, registeredJob) }
+})
+ipcMain.handle('animation:cancel', async (_event, jobId: string) => {
+  const job = animationJobs.get(String(jobId))
+  if (!job) return { success: true, cancelled: false, settled: true }
+  job.controller.abort()
+  const settled = await waitForAnimationJob(job)
+  return { success: true, cancelled: true, settled }
+})
+ipcMain.handle('animation:replay-draft', async (event, params: { draftId: string; jobId: string; parameters?: Record<string, unknown> }) => {
+  const jobId = String(params?.jobId || '')
+  let projectRoot: string | null = null
+  let registeredJob: AnimationJob | null = null
+  try {
+    if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
+    if (!/^[\w-]{8,100}$/.test(jobId)) throw new Error('ANIMATION_JOB_ID_INVALID')
+    projectRoot = activeProjectPath
+    const job = registerAnimationJob(jobId, projectRoot)
+    registeredJob = job
+    const controller = job.controller
+    event.sender.send('animation:progress', { jobId, phase: 'replay', message: 'Regenerando ScenePlan guardado localmente.' })
+    const result = await replayAnimationDraft(projectRoot, params.draftId, { signal: controller.signal, parameters: params.parameters,
+      onProgress: (progress: any) => { if (activeProjectPath === projectRoot && !event.sender.isDestroyed()) event.sender.send('animation:progress', { jobId, ...progress }) } })
+    if (activeProjectPath !== projectRoot) throw new Error('ANIMATION_PROJECT_CHANGED')
+    return result
+  } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) }
+  } finally { finishAnimationJob(jobId, registeredJob) }
+})
+ipcMain.handle('animation:save-template', async (_event, params: { draftId: string; title: string; kind: 'component'|'recipe'|'sequence'; componentId?: string }) => {
+  try {
+    if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
+    return saveAnimationTemplate(activeProjectPath, params.draftId, params.title, params.kind, params.componentId)
+  } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+})
+ipcMain.handle('animation:list-templates', async () => {
+  try {
+    if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
+    return listAnimationTemplates(activeProjectPath)
+  } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+})
+
+handleProcessing('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
+  // The fourth quota creates Animation slots. No legacy icon, catalogue, or raster renderer is called.
   const isOriginalAudio = transcriptSegments && newAudioSegments && 
     transcriptSegments.length === newAudioSegments.length &&
     transcriptSegments[0]?.start === newAudioSegments[0]?.start;
@@ -3836,6 +4650,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
   // Ver el comentario de `decisiones = clipsDecision`: existe para que el resumen del `finally`
   // pueda contar aunque la generacion no llegue al final.
   let decisiones: any[] = [];
+  // Keep the real media outputs visible to the finally-summary. Decisions alone
+  // are only a plan: they are not proof that an MP4 was materialized.
+  let resultadosMaterializados: any[] = [];
   let completa = false;
 
   /**
@@ -3906,7 +4723,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     if (newAudioSegments && Array.isArray(newAudioSegments)) {
       newAudioSegments.forEach((seg: any) => {
         const duration = seg.end - seg.start;
-        totalVisualClipsCount += duration > 4.0 ? Math.ceil(duration / 3.0) : 1;
+        totalVisualClipsCount += seg.animationSlot === true ? 1 : duration > 4.0 ? Math.ceil(duration / 3.0) : 1;
       });
     }
 
@@ -3925,6 +4742,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     const targetVisualClips = obj1.visual;
     const targetOriginalClips = obj1.original;
 
+
     await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ` +
       `ia=${targetIaClips}, visual=${targetVisualClips}/${totalVisualClipsCount}`);
 
@@ -3936,10 +4754,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
 
 
-      // Seis y no doce, por el TRUNCADO. El contrato actual devuelve conceptos de respaldo Y
-      // semantica: doce frases agotaron `max_tokens: 8000` en una generacion real. Seis reduce
-      // a la mitad el peor lote sin quitar ninguna capa ni convertir una respuesta truncada en
-      // clips originales.
+      // Seis frases por lote limita el impacto de una respuesta truncada.
       //
       // Y un lote truncado NO se degrada: se pierde ENTERO. El propio codigo lo dice mas abajo:
       // "AVISO: respuesta truncada (finish_reason=length). El lote se perdera y esas frases
@@ -3947,8 +4762,6 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // El precio es mas llamadas, que a este tamaño es ruido frente a perder un lote.
       const BATCH_SIZE = 6;
       let phrasesDecision: any[] = [];
-      let respuestasSemanticasRechazadas = 0;
-      const causasSemantica = new Map<string, number>();
 
       for (let batchStart = 0; batchStart < newAudioSegments.length; batchStart += BATCH_SIZE) {
         const batchEnd = Math.min(batchStart + BATCH_SIZE, newAudioSegments.length);
@@ -3957,9 +4770,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         const batchFragmentos = batchSegs.map((seg: any, idx: number) => {
           const phraseNum = batchStart + idx + 1;
           const duration = seg.end - seg.start;
-          const count = duration > 4.0 ? Math.ceil(duration / 3.0) : 1;
+          const count = seg.animationSlot === true ? 1 : duration > 4.0 ? Math.ceil(duration / 3.0) : 1;
           return '[Frase ' + phraseNum + '] \"' + seg.text + '\" (' + 
-            Number(seg.start).toFixed(1) + 's - ' + Number(seg.end).toFixed(1) + 
+            Number(seg.start).toFixed(1) + 's - ' + Number(seg.start+duration).toFixed(1) +
             's, duración: ' + duration.toFixed(2) + 's). Requiere exactamente ' + 
             count + ' sub-clip(s) visual(es) de aprox ' + 
             (duration / count).toFixed(2) + 's cada uno.';
@@ -3967,7 +4780,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
 
         const batchVisualCount = batchSegs.reduce((acc: number, seg: any) => {
           const duration = seg.end - seg.start;
-          return acc + (duration > 4.0 ? Math.ceil(duration / 3.0) : 1);
+          return acc + (seg.animationSlot === true ? 1 : duration > 4.0 ? Math.ceil(duration / 3.0) : 1);
         }, 0);
         
         // Ya no se piden cuotas de tipo: los tipos se asignan en codigo, por posicion, para
@@ -3986,77 +4799,15 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             ' con "type":"ia" y dales ademas un prompt descriptivo en ingles. El resto NO lleva campo type.\n'
           : 'NO asignes tipos de clip. Eso se decide despues; tu unica tarea es describir cada sub-clip.\n';
 
-        // LOS CONCEPTOS son para los Visuales, y se piden AQUI y no en una segunda llamada por
-        // dos razones. La barata: ahorrar la segunda llamada son ~2400 tokens, menos de una
-        // milesima de dolar, a cambio de otro punto de fallo y ~14 s de espera por lote. La que
-        // de verdad decide: aqui DeepSeek tiene delante el keyword que acaba de escribir para
-        // ese mismo trozo, asi que los conceptos salen coherentes con el. Pedidos aparte serian
-        // a ciegas.
-        //
-        // Se piden para TODOS los sub-clips aunque solo los Visuales los usen —hoy el 32%—
-        // porque cuando esta llamada ocurre la cuota TODAVIA no ha decidido quien es Visual:
-        // los tipos se asignan despues, en codigo. Se tira el 68% a proposito.
-        // ── LA LINEA DE LOS CONCEPTOS, reescrita con dos medidas delante ──────────────
-        //
-        // (a) "Nunca banderas ni caras" NO FUNCIONABA: 18 de 243 conceptos (7.4%) las traian
-        //     igual. Era una prohibicion en negativo, corta y enterrada al final de una linea
-        //     que ya decia otras tres cosas. Se sustituye por una regla EN POSITIVO -- que sea
-        //     un objeto fotografiable -- con la lista de lo excluido aparte y con la salida
-        //     por defecto dicha ("si dudas, un objeto"), que es lo que evita que el modelo
-        //     resuelva la duda inventando.
-        //
-        //     Y no es cosmetico: las banderas salen TOFU. Medido, la 🇷🇺 se pinta como las
-        //     letras "RU" en gris, porque Windows no trae glifos de bandera. No se puede
-        //     arreglar en el render -- cambiar el glifo moveria los pixeles bajo el MISMO
-        //     hash-- asi que el unico sitio donde se arregla es aqui. Ver 10 quinquies y
-        //     10 octies de docs/AUDITORIA.md.
-        //
-        // (b) CON FRASES DE IDEA devolvia ideas: "crisis", "union", "problema", "confusion".
-        //     El patron esta medido: con frases de escena acierta -- estadio, protesta,
-        //     bufanda -- y con frases abstractas no tiene de donde agarrar. La instruccion
-        //     nueva no le pide que evite lo abstracto otra vez; le da un METODO: mirar la
-        //     escena de la que habla la frase y sacar de ahi lo que se veria en pantalla.
-        //
-        // EL EJEMPLO ANCLA, y se acepta a sabiendas. En el prompt de graficos, el unico
-        // ejemplo del FORMATO hizo que `decorativo_emoji` saliera el 78.8% de las veces. Aqui
-        // el ejemplo es de METODO y no de FORMATO, y va con tres objetos distintos para no
-        // sugerir uno; aun asi, si la proxima generacion trae calendarios y maletas de mas,
-        // la causa es esta linea.
-        // Se derivan en cada llamada del registro real. El modelo recibe enums, no los nombres
-        // ni descripciones internas de las estructuras: decide significado, el motor decide forma.
-        const relacionesPrompt = Object.keys(catalogoRelaciones()).sort().join(', ');
-        const lineaConceptos =
-          // `conceptos` es el contrato historico que mantiene el video util si la capa
-          // semantica completa se rechaza. No se deriva de `semantica`: una relacion
-          // invalida no puede convertir un lote entero en clips sin Visual.
-          '- conceptos: EXACTAMENTE 3 objetos {icono:"nombre Solar libre en ingles", ic:"emoji respaldo", etiqueta:"1-2 palabras"}. Son el respaldo compatible con el motor anterior.\n' +
-          '- semantica: UNA relacion y EXACTAMENTE 3 terminos de una misma idea visual.\n' +
-          '    relacion: usa exactamente uno de estos enums: ' + relacionesPrompt + '.\n' +
-          '    ancla: {icono:"nombre Solar libre en ingles", ic:"emoji respaldo", etiqueta:"1-2 palabras"}.\n' +
-          '    terminos: EXACTAMENTE 3 objetos {icono:"nombre Solar libre en ingles", ic:"emoji respaldo", etiqueta:"1-2 palabras"}.\n' +
-          '  icono nombra un objeto fotografiable; ic es respaldo si Solar no lo resuelve.\n' +
-          '  Los tres terminos deben expresar LA RELACION, no ser tres ideas independientes.\n' +
-          '  Dos terminos iguales solo se permiten si la relacion los compara o encaja.\n' +
-          '  Si el trozo no tiene sujeto ilustrable ni relacion visual, devuelve semantica:null.\n';
-
         const batchPrompt = 'Eres un editor de video experto.\n' +
-          'Para cada frase decide como ilustrarla visualmente. Si dura mas de 4.0s divide en 2-3 sub-clips (maximo 3.0s cada uno).\n' +
-          'Para CADA sub-clip da SIEMPRE estos tres campos:\n' +
+          'Para cada frase describe exactamente la cantidad de sub-clips indicada. Respeta el orden temporal y no asignes la misma proposición a todos.\n' +
+          'Para cada sub-clip responde únicamente con estos campos:\n' +
           '- keyword: en ingles, corta y concreta, algo filmable que ilustre ESE trozo. Nunca abstracta: evita palabras como "consequences", "awareness" o "meaning".\n' +
           '- timestamp: el segundo del video original (0-' + Number(maxTsVal).toFixed(1) + ') que mejor acompana ese trozo.\n' +
-          lineaConceptos +
           lineaTipos +
           'FRASES:\n' + batchFragmentos + '\n' +
           'Responde SOLO JSON:\n' +
-          // EL FORMATO VA SIN EMOJIS CONCRETOS, y no es un descuido de redaccion. El unico
-          // ejemplo del FORMATO del prompt de graficos es `decorativo_emoji`, y es la causa
-          // MEDIDA de que ese tipo salga el 78.8% de las veces sobre 250 graficos reales: el
-          // modelo copia el ejemplo. Poner aqui tres emojis concretos los anclaria igual.
-          // Se describe la forma con marcadores y se deja que el modelo elija el contenido.
-          '{"phrases":[{"phraseIndex":' + (batchStart+1) + ',"visualClips":[{"keyword":"protest march","timestamp":12.3,"duration":2.5,' +
-          '"conceptos":[{"icono":"megaphone","ic":"📣","etiqueta":"voz"},{"icono":"people-nearby","ic":"👥","etiqueta":"marcha"},{"icono":"flag","ic":"🚩","etiqueta":"plaza"}],' +
-          '"semantica":{"relacion":"conecta","ancla":{"icono":"megaphone","ic":"📣","etiqueta":"voz"},' +
-          '"terminos":[{"icono":"megaphone","ic":"📣","etiqueta":"voz"},{"icono":"people-nearby","ic":"👥","etiqueta":"marcha"},{"icono":"flag","ic":"🚩","etiqueta":"plaza"}]}}]}]}';
+          '{"phrases":[{"phraseIndex":' + (batchStart+1) + ',"visualClips":[{"keyword":"protest march","timestamp":12.3,"duration":2.5}]}]}';
 
         try {
           await logMessage('[FASE 2] Lote ' + Math.ceil((batchStart+1)/BATCH_SIZE) + 
@@ -4086,23 +4837,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               content = content.substring(content.indexOf('{'), content.lastIndexOf('}')+1);
             }
             const parsed = JSON.parse(content);
-            if (Array.isArray(parsed.phrases)) {
-              const candidatas = parsed.phrases.flatMap((p: any) => p?.visualClips ?? p?.clips ?? []);
-              // Una respuesta semantica es atomica: no se mezcla media capa nueva con media
-              // capa vieja. Si una relacion/forma no valida, se descarta ESA capa completa;
-              // keywords y cuotas siguen vivos y el motor vuelve a direccionDe determinista.
-              const invalida = candidatas.find((c: any) => c?.semantica !== null && !sanearSemanticaVisual(c?.semantica));
-              if (invalida) {
-                respuestasSemanticasRechazadas++;
-                const causa = !invalida?.semantica ? 'sin-semantica' : 'semantica-invalida';
-                causasSemantica.set(causa, (causasSemantica.get(causa) ?? 0) + 1);
-                for (const frase of parsed.phrases) {
-                  for (const clip of frase?.visualClips ?? frase?.clips ?? []) delete clip.semantica;
-                }
-                await logMessage(`[FASE 2] SEMANTICA RECHAZADA lote=${Math.ceil((batchStart + 1) / BATCH_SIZE)} causa=${causa}; se usa sorteo determinista.`);
-              }
-              phrasesDecision.push(...parsed.phrases);
-            }
+            if (Array.isArray(parsed.phrases)) phrasesDecision.push(...parsed.phrases);
           } else {
             const errBody = await dsResp.text().catch(() => '');
             await logMessage(`[FASE 2] DeepSeek HTTP ${dsResp.status}: ${errBody.slice(0, 300)}`);
@@ -4125,225 +4860,62 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         }
       }
 
-      // Gráficos se generan por separado con Regenerar Gráficos
-      if (respuestasSemanticasRechazadas) {
-        await logMessage(`[FASE 2] SEMANTICA: ${respuestasSemanticasRechazadas} respuestas rechazadas | ` +
-          Array.from(causasSemantica, ([causa, n]) => `${causa}=${n}`).join(' | '));
-      }
-
-      // ── OBSERVABILIDAD DE LOS CONCEPTOS ────────────────────────────────────────────
-      //
-      // SOLO MIRA Y ESCRIBE. No toca `extra`, ni la clave del hash, ni sanearConceptos, ni
-      // VERSION_PLANTILLAS: si tocara cualquiera de esas cosas la cache se invalidaria y los
-      // Visuales se re-renderizarian para nada.
-      //
-      // Existe porque una auditoria real no pudo medir los conceptos: llegan bien —15 de 15
-      // Visuales los llevaban, verificado por fuerza bruta contra el hash— pero NO son
-      // observables. Viajan de DeepSeek a graphicData.extra y de ahi a los pixeles, sin pasar
-      // por el project-state.json ni por el log. Y el hash no es reversible, asi que no hay
-      // forma de saber CUALES son ni por que alguno salio null.
-      //
-      // SE REGISTRAN LOS DOS LADOS DEL SANEO. Un log solo del resultado no distingue "el campo
-      // no vino" de "vinieron dos y la regla los anulo", y las dos se arreglan distinto: la
-      // primera es que el prompt no se entendio, la segunda que se entendio y no cumplio.
-      const cLineas: string[] = [];
-      let cTotal = 0, cOK = 0, cSinCampo = 0, cInsuficiente = 0;
-      let iconosSolarPedidos = 0, iconosSolarResueltos = 0, iconosSolarRespaldo = 0;
-
-      // Pinta un concepto sin fiarse de el. El objeto viene del modelo y puede traer getters
-      // hostiles — ya paso con sanearConceptos, que lanzaba hasta que se envolvio la LECTURA.
-      const pintaConcepto = (x: any): string => {
-        try {
-          const e = String(x?.emoji ?? '?').slice(0, 8);
-          const t = String(x?.etiqueta ?? '?').slice(0, 24);
-          return e + ' ' + t;
-        } catch (err) { return '(ilegible)'; }
-      };
-
-      // Procesar y sanitizar con phrasesDecision
+      // Proyectar sólo decisiones de medios comunes. Este flujo no selecciona iconos,
+      // escenas ni recursos gráficos; los Visuales se crean desde el chat de Animation.
       for (let idx = 0; idx < newAudioSegments.length; idx++) {
         const seg = newAudioSegments[idx];
         const nextSegStart = newAudioSegments[idx + 1]?.start;
         const phraseDuration = (typeof nextSegStart === 'number' && nextSegStart > seg.start)
-          ? (nextSegStart - seg.start)
-          : (seg.end - seg.start);
-        const numClipsExpected = phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
-        
+          ? nextSegStart - seg.start
+          : seg.end - seg.start;
+        const numClipsExpected = seg.animationSlot === true ? 1 : phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
         const matchClips = phrasesDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
-
         let visualClips = matchClips?.visualClips || matchClips?.clips;
-        if (!Array.isArray(visualClips) || visualClips.length === 0) {
-          visualClips = [];
-          for (let c = 0; c < numClipsExpected; c++) {
-            visualClips.push({
-              type: 'original',
-              timestamp: parseFloat((newAudioSegments[idx]?.start ?? ((idx / newAudioSegments.length) * maxTsVal)).toFixed(1)),
-              keyword: 'broll',
-              prompt: 'cinematic video clip',
-              duration: phraseDuration / numClipsExpected
-            });
-          }
+        if (!Array.isArray(visualClips)) visualClips = [];
+
+        visualClips = visualClips.slice(0, numClipsExpected);
+        while (visualClips.length < numClipsExpected) {
+          visualClips.push({
+            type: 'original',
+            timestamp: seg.start ?? ((idx / newAudioSegments.length) * maxTsVal),
+            keyword: 'broll',
+            prompt: 'cinematic video clip',
+            duration: phraseDuration / numClipsExpected
+          });
         }
 
-        if (visualClips.length !== numClipsExpected) {
-          if (visualClips.length < numClipsExpected) {
-            while (visualClips.length < numClipsExpected) {
-              visualClips.push({
-                type: 'original',
-                timestamp: parseFloat((newAudioSegments[idx]?.start ?? ((idx / newAudioSegments.length) * maxTsVal)).toFixed(1)),
-                keyword: 'broll',
-                prompt: 'cinematic video clip',
-                duration: phraseDuration / numClipsExpected
-              });
-            }
-          } else {
-            visualClips = visualClips.slice(0, numClipsExpected);
-          }
-        }
-
-        visualClips = visualClips.map((c: any, ci: number) => {
+        visualClips = visualClips.map((raw: any) => {
+          const c = raw && typeof raw === 'object' ? raw : {};
           const type = ['original', 'stock', 'ia'].includes(c.type) ? c.type : 'original';
-          const effectiveTimestamp = (isOriginalAudio && type === 'original' && newAudioSegments[idx]?.start !== undefined)
-            ? newAudioSegments[idx].start
-            : (c.timestamp ?? parseFloat(((idx / newAudioSegments.length) * maxTsVal).toFixed(1)));
-
-          // EL LOG DE LOS CONCEPTOS. Va ANTES del return y no altera nada de lo que se devuelve.
-          // El try envuelve TODO —incluida la lectura de `c.conceptos`, que puede ejecutar un
-          // getter— porque una excepcion aqui mataria FASE 2 entera: 78 sub-clips perdidos por
-          // una linea de log seria un intercambio absurdo.
-          const sinIlustracion = c.semantica === null;
-          const semantica = sinIlustracion ? null : sanearSemanticaVisual(c.semantica);
-          // Una capa semantica valida proyecta los mismos conceptos que ve escena. Si no viene
-          // o fue rechazada, conserva el contrato historico para que el video siga generando.
-          const saneados = semantica?.terminos ?? sanearConceptos(c.conceptos);
-          if (semantica) {
-            const iconos = [semantica.ancla, ...semantica.terminos];
-            for (const icono of iconos) {
-              iconosSolarPedidos++;
-              if (resolverNombreSolar(icono.icono, icono === semantica.ancla ? 'bold-duotone' : 'linear')) {
-                iconosSolarResueltos++;
-              } else {
-                iconosSolarRespaldo++;
-              }
-            }
-          }
-          try {
-            cTotal++;
-            let crudo: any;
-            try { crudo = c.conceptos; } catch (err) { crudo = undefined; }
-            const esArray = Array.isArray(crudo);
-            const nCrudo = esArray ? crudo.length : -1;    // -1 = el campo no vino como array
-            if (saneados) cOK++;
-            else if (!esArray) cSinCampo++;                // causa (a): no vino el campo
-            else cInsuficiente++;                          // causa (b): vino con <3 validos
-            // Con NULL se imprime lo CRUDO igualmente, aunque sean dos o esten malformados: es
-            // el unico modo de ver POR QUE se anulo. Omitir la linea dejaria el mismo agujero
-            // que se esta cerrando.
-            const lista = saneados || (esArray ? crudo : []);
-            const pintados = lista.length
-              ? lista.map(pintaConcepto).join(' | ')
-              : '(sin conceptos)';
-            const frase = String(seg?.text ?? '').trim().replace(/\s+/g, ' ').slice(0, 80);
-            // EL LOTE, derivado del indice de frase con el MISMO BATCH_SIZE que uso el bucle de
-            // las llamadas. Va aqui porque en la auditoria no se pudo sacar el keyword propio
-            // POR LOTE: el log solo emitia el agregado `73/78`, y un lote perdido entero se
-            // disuelve en ese promedio y parece degradacion suave. Con `lote=` y `kw=` en la
-            // misma linea, ese desglose queda derivable del log sin tocar nada mas.
-            const lote = Math.floor(idx / BATCH_SIZE) + 1;
-            cLineas.push(
-              `[FASE 2] CONCEPTOS lote=${lote} pos=${idx}:${ci} ` +
-              `kw=${String(c.keyword ?? 'broll').slice(0, 28)} ` +
-              `crudo=${semantica ? 'SEMANTICA' : (nCrudo < 0 ? 'SIN-CAMPO' : nCrudo)} saneado=${saneados ? 'OK' : 'NULL'}  ` +
-              `${pintados}  frase="${frase}"`);
-          } catch (err) { /* el log jamas puede tumbar FASE 2 */ }
-
+          const fallbackTimestamp = seg.start ?? ((idx / newAudioSegments.length) * maxTsVal);
+          const timestamp = isOriginalAudio && type === 'original'
+            ? seg.start
+            : Number.isFinite(Number(c.timestamp)) ? Number(c.timestamp) : fallbackTimestamp;
+          const duration = Number(c.duration);
           return {
             type,
-            timestamp: effectiveTimestamp,
-            keyword: c.keyword || 'broll',
-            prompt: c.prompt || 'cinematic video clip',
-            duration: parseFloat((c.duration || (phraseDuration / numClipsExpected)).toFixed(2)),
-            // AÑADIDO A MANO, y tiene que estarlo: este `map` PROYECTA, no copia. Lo que no se
-            // nombre aqui, DeepSeek lo devuelve y el codigo lo tira sin error y sin log — el
-            // mismo "lo que no se añade a mano queda fuera por construccion" del hash, que alli
-            // protege y aqui jugaria en contra.
-            //
-            // Se reutiliza `saneados`, calculado arriba para el log. Es la MISMA llamada, no una
-            // segunda: sanearConceptos es puro, pero llamarlo dos veces pondria la duda de si el
-            // log describe lo que de verdad se guarda.
-            conceptos: saneados,
-            relacion: semantica?.relacion ?? null,
-            ancla: semantica?.ancla ?? null,
-            sinVisual: sinIlustracion
+            timestamp,
+            keyword: typeof c.keyword === 'string' && c.keyword.trim() ? c.keyword.trim() : 'broll',
+            prompt: typeof c.prompt === 'string' && c.prompt.trim() ? c.prompt.trim() : 'cinematic video clip',
+            duration: Number.isFinite(duration) && duration > 0 ? duration : phraseDuration / numClipsExpected
           };
         });
 
-        // Ajustar duraciones proporcionalmente para que sumen la duración exacta de la frase
-        const sumProposed = visualClips.reduce((acc: number, c: any) => acc + (c.duration || 0), 0);
-        if (sumProposed <= 0.05 || visualClips.some((c: any) => c.duration <= 0.05)) {
-          let runningSum = 0;
-          for (let i = 0; i < visualClips.length; i++) {
-            if (i === visualClips.length - 1) {
-              visualClips[i].duration = parseFloat((phraseDuration - runningSum).toFixed(2));
-            } else {
-              const val = parseFloat((phraseDuration / visualClips.length).toFixed(2));
-              visualClips[i].duration = val;
-              runningSum += val;
-            }
-          }
-        } else {
-          let runningSum = 0;
-          for (let i = 0; i < visualClips.length; i++) {
-            if (i === visualClips.length - 1) {
-              visualClips[i].duration = parseFloat((phraseDuration - runningSum).toFixed(2));
-            } else {
-              const scaled = (visualClips[i].duration / sumProposed) * phraseDuration;
-              visualClips[i].duration = parseFloat(scaled.toFixed(2));
-              runningSum += visualClips[i].duration;
-            }
+        // Normalizar duraciones para que cada grupo cubra la frase sin huecos ni solapes.
+        const sumProposed = visualClips.reduce((sum: number, clip: any) => sum + clip.duration, 0);
+        let runningSum = 0;
+        for (let i = 0; i < visualClips.length; i++) {
+          if (i === visualClips.length - 1) {
+            visualClips[i].duration = parseFloat((phraseDuration - runningSum).toFixed(2));
+          } else {
+            const scaled = (visualClips[i].duration / sumProposed) * phraseDuration;
+            visualClips[i].duration = parseFloat(scaled.toFixed(2));
+            runningSum += visualClips[i].duration;
           }
         }
 
-        // NUNCA HUBO GRAFICO POR ESTA VIA, y el codigo fingia que si. `graphicsDecision` se
-        // declaraba vacio y nadie le hacia push ni se lo reasignaba, o sea que su `.find`
-        // devolvia `undefined` SIEMPRE: las 35 lineas que saneaban `graphicStart`, recortaban
-        // a 2 segundos y montaban el objeto no se ejecutaron una sola vez. Peor que inutiles:
-        // se leian como si el camino existiera, y buscar por que "no salen los graficos"
-        // llevaba derecho a un saneo impecable de un valor que no llegaba nunca.
-        //
-        // Los graficos de verdad salen por `regenerate-graphics`, que parsea su propia
-        // respuesta de DeepSeek: ese camino esta vivo y no se toca. Y los Visuales son otra
-        // cosa distinta, con su composicion y su hash.
-        const graphic = null;
-
-        sanitizedPhrases.push({
-          phraseIndex: idx + 1,
-          visualClips,
-          graphic
-        });
+        sanitizedPhrases.push({ phraseIndex: idx + 1, visualClips, graphic: null });
       }
-
-      // VOLCADO. Se acumula en el bucle y se escribe aqui porque `map` no es async: hacerlo
-      // async por una linea de log obligaria a convertir el bucle entero en secuencial.
-      try {
-        for (const l of cLineas) await logMessage(l);
-        await logMessage(
-          `[FASE 2] CONCEPTOS: ${cTotal} sub-clips | ${cOK} con 3 validos | ` +
-          `${cSinCampo} NULL causa (a): no vino contenido util | ` +
-          `${cInsuficiente} NULL causa (b): venia con <3 validos tras saneo`);
-        await logMessage(`[FASE 2] ICONOS SOLAR: ${iconosSolarResueltos}/${iconosSolarPedidos} resueltos | ` +
-          `${iconosSolarRespaldo} al emoji de respaldo.`);
-        // LAS CASILLAS TIENEN QUE CUADRAR. Hoy cuadran por construccion —el if/else de arriba
-        // incrementa exactamente un contador en cada camino— pero eso es una propiedad del
-        // codigo actual, no una garantia. El dia que alguien añada una cuarta categoria y
-        // olvide contarla, ese caso desapareceria sin ruido: ni en OK, ni en (a), ni en (b),
-        // y el resumen seguiria pareciendo correcto porque nadie suma las casillas.
-        // Es el mismo modo de fallo que persigue toda la seccion 7.4 de la auditoria.
-        const suma = cOK + cSinCampo + cInsuficiente;
-        if (suma !== cTotal) {
-          await logMessage(`[FASE 2] CONCEPTOS DESCUADRE: ${cTotal} vs ${suma}`);
-        }
-      } catch (err) { /* ni el volcado puede tumbar FASE 2 */ }
     } catch (e: any) {
       await logMessage(`[FASE 2] DeepSeek error: ${e.message}. Usando fallback.`);
     }
@@ -4352,7 +4924,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       for (let idx = 0; idx < newAudioSegments.length; idx++) {
         const seg = newAudioSegments[idx];
         const phraseDuration = seg.end - seg.start;
-        const numClipsExpected = phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
+        const numClipsExpected = seg.animationSlot === true ? 1 : phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
         const visualClips: any[] = [];
         let runningSum = 0;
         for (let c = 0; c < numClipsExpected; c++) {
@@ -4454,7 +5026,6 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       const objStockReal = Math.min(objStock, reasignables.length);
       const cuantosStock = Math.min(objStockReal, conKeyword.length);
       const sinKeyword = objStockReal - cuantosStock;
-
       // Colocacion optima: en vez de repartir uniformemente sobre la lista de clips con
       // keyword (que amontona si los keywords estan agrupados), se eligen las posiciones
       // que MINIMIZAN la racha maxima de stock. Los clips sin keyword son originales
@@ -4524,27 +5095,19 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         cuotaLista[j].clip.type = elegidos.has(j) ? 'stock' : 'original';
       }
 
-      // LOS VISUALES SE SACAN DE LOS 'original', no de los 'stock', y a proposito: el reparto
-      // de rachas de arriba coloco el stock donde minimiza la racha maxima, y robarle de ahi
-      // desharia ese trabajo. Los 'original' no tienen esa restriccion —solo necesitan un
-      // timestamp— asi que ceder algunos no rompe nada.
-      // Se eligen REPARTIDOS de punta a punta con la misma formula que las transiciones
-      // ((k+0.5)*total/cantidad), no los primeros: amontonarlos al principio dejaria la
-      // segunda mitad del video sin un solo Visual.
       if (objVisual > 0) {
-        // La IA puede declarar `semantica:null`: no se fuerza un Visual decorativo sobre un
-        // conector. Ese slot sigue siendo original, que es el respaldo correcto del producto.
-        const originales = reasignables.filter(j =>
-          cuotaLista[j].clip.type === 'original' && !cuotaLista[j].clip.sinVisual);
-        const cuantos = Math.min(objVisual, originales.length);
-        for (let k = 0; k < cuantos; k++) {
-          const pos = Math.min(originales.length - 1,
-            Math.floor(((k + 0.5) * originales.length) / cuantos));
-          cuotaLista[originales[pos]].clip.type = 'visual';
+        // Visuales occupy eligible Original slots and become pending timeline entries. Their
+        // scene code and MP4 are created only by the selected Animation chat.
+        const eligible = reasignables.filter(j => cuotaLista[j].clip.type === 'original' &&
+          cuotaLista[j].clip.duration >= 3 && cuotaLista[j].clip.duration <= 10);
+        const count = Math.min(objVisual, eligible.length);
+        for (let k = 0; k < count; k++) {
+          const position = Math.min(eligible.length - 1,
+            Math.floor(((k + 0.5) * eligible.length) / count));
+          cuotaLista[eligible[position]].clip.type = 'visual';
         }
-        if (cuantos < objVisual) {
-          await logMessage(`[FASE 2] Visuales: se pidieron ${objVisual} pero solo habia ` +
-            `${originales.length} slots de 'original' que ceder. Se hacen ${cuantos}.`);
+        if (count < objVisual) {
+          await logMessage(`[FASE 2] Visuales: se pidieron ${objVisual}, pero sólo hay ${eligible.length} intervalos compatibles con Animation (3–10 s).`);
         }
       }
 
@@ -4623,25 +5186,13 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           phraseIndex: phraseIdx,
           clipIndexInPhrase: clipIdx,
           type: subClip.type,
+          animationSlotIndex: subClip.type === 'visual' ? globalIdx - 1 : undefined,
+          transcriptText: String(newAudioSegments[phraseIdx]?.text || '').trim(),
           timestamp: subClip.timestamp,
           keyword: subClip.keyword,
           prompt: subClip.prompt,
           duration: subClip.duration,
-          // NOMBRADO A MANO, como todo lo demas de este push. Es la PRIMERA reproyeccion
-          // despues del mapeo que los añade, y sin esta linea `conceptos` moria aqui: veinte
-          // lineas mas arriba se sanean y aqui se tiraban, sin error y sin log. El mismo patron
-          // que obligo a nombrarlos alli.
-          conceptos: subClip.conceptos,
-          relacion: subClip.relacion,
-          ancla: subClip.ancla,
-          sinVisual: subClip.sinVisual,
-          // EL ORIGEN PEDIDO Y EL MOTIVO CRUZAN EL APLANADO, y hay que nombrarlos igual que
-          // `conceptos`. Es LA MISMA TRAMPA que documenta el comentario de aqui arriba: este
-          // push construye objetos NUEVOS con claves a mano, asi que lo anotado sobre el
-          // sub-clip -- y la degradacion por falta de keyword se anota alli -- se tiraba aqui
-          // sin error y sin log. La advertencia ya estaba escrita en este mismo sitio y volvio
-          // a pasar. Lo cazo la prueba de aceptacion: el resumen decia 'stock: se pidieron 11 y
-          // salieron 0' con el desglose de motivos VACIO.
+          // Conserva el origen pedido aunque Stock o IA terminen usando un medio común.
           origenPedido: subClip.origenPedido,
           motivoRespaldo: subClip.motivoRespaldo,
           graphic: null
@@ -4657,7 +5208,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     decisiones = clipsDecision;
     totalClips = flattenedClips.length;
 
-    await logMessage(`[FASE 2] Decisiones de clips listas. Sub-clips totales: ${clipsDecision.length}. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}, Visuales asignados: ${clipsDecision.filter(c => c.type === 'visual').length}`);
+    await logMessage(`[FASE 2] Decisiones de clips listas. Sub-clips totales: ${clipsDecision.length}. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}.`);
 
     // FASE 3: FFmpeg e IA — generar clips
     await logMessage(`[FASE 3] Generando ${totalClips} clips con FFmpeg, Pexels y fal.ai (IA)...`);
@@ -4673,10 +5224,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     if (!(await exists(thumbDir))) await fs.promises.mkdir(thumbDir, { recursive: true });
 
     const results = new Array(totalClips);
+    resultadosMaterializados = results;
     // Evidencia de aceptacion separada del timeline: `finalClips` borra `graphic` a proposito
     // porque el MP4 ya sustituye la especificacion. Esta traza conserva la entrada exacta que
     // produjo cada hash sin reintroducir graphicData en el estado persistido del proyecto.
-    const trazasGraficos: Array<{ id: string, graphicData: any }> = [];
+    const trazasGraficos: Array<{ id: string, graphicData: any, resolverTrace?: unknown, motionGraphicsTrace?: unknown }> = [];
     // Fuentes de stock ya usadas en esta generacion (provider_id, la misma identidad que el
     // fichero de cache) y cuantas veces. Keywords distintas pueden rankear el mismo video
     // generico: medido, uno llego a aparecer 4 veces en el mismo montaje.
@@ -4693,172 +5245,30 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
     };
     const escapedVideo = videoPath.replace(/"/g, '\\"');
 
-    // ─── LOS VISUALES, EN LOTE APARTE Y SECUENCIAL ───────────────────────────────────
-    // NO entran en el pool de 3 workers de abajo: el render usa UNA ventana offscreen y
-    // renderGraphicClipsLote se protege con `loteEnCurso`, asi que tres workers pidiendo
-    // Visuales a la vez chocarian con esa guarda y dos de cada tres fallarian.
-    // Va ANTES del pool para que un fallo se vea antes de descargar stock y gastar IA.
-    //
-    // Una paleta POR VÍDEO. `activeProjectPath` identifica establemente al proyecto que se
-    // está generando y se captura antes del lote; todos sus sub-clips reciben el mismo sistema.
-    // Va al hash mediante el parámetro `sistema` de renderGraphicClipsLote, así que una paleta
-    // distinta nunca puede reutilizar un MP4 coloreado para otro vídeo.
-    const SISTEMA_VISUAL = sistemaDeGeneracion(activeProjectPath ?? scriptText ?? 'sin-proyecto');
-    // TEMPORAL, igual que el de arriba: la composicion va fija. El tipo decide QUE se pinta
-    // —AnimatedGraphic busca en el registro quitandole el prefijo `visual_`— y hasta ahora
-    // estaba cableado a 'visual_texto', asi que por muchas composiciones que se registraran
-    // NUNCA se habria pintado ninguna: se habria generado, se habria visto texto plano, y
-    // pareceria que el registro no funciona.
-    //
-    // Quien deberia elegirla es el guion, no esta constante: una frase sobre una represa pide
-    // otra cosa que una sobre un desierto (regla 12 del manual — solo palabras con imagen). Eso
-    // es una decision de producto que no esta tomada, y meterla en el prompt de DeepSeek es lo
-    // que ya colapso el reparto una vez. Mientras tanto, fija y en un solo sitio.
-    // ENCENDIDO. El despacho es por `type`: esta es la unica linea que decide que composicion
-    // de pantalla completa sale en una generacion normal. El cambio de `visual_mapa` a
-    // `visual_escena` ya invalida la cache de Visuales porque `type` entra en hashGrafico; NO se
-    // sube VERSION_PLANTILLAS, porque eso invalidaria tambien las tarjetas que no han cambiado.
-    //
-    // `puedeDibujar` protege el caso que falta: un Visual sin los tres conceptos -- 1 de 82 en
-    // la ultima generacion -- cae al Visual de texto de siempre y lo dice en el log.
-    const COMPOSICION_VISUAL = 'visual_escena';
-    const visuales = clipsDecision.filter((c: any) => c.type === 'visual');
-    if (visuales.length) {
-      // La palabra se elige AQUI y no en el componente: entra en graphicData y por tanto en la
-      // CLAVE DEL HASH, asi que dos Visuales con la misma palabra comparten fichero.
-      const conPalabra = visuales.map((item: any) => {
-        const seg = newAudioSegments[item.phraseIndex];
-        const dur = seg ? (seg.end - seg.start) : 0;
-        const n = dur > 4.0 ? Math.ceil(dur / 3.0) : 1;
-        const ini = seg ? seg.start + dur * item.clipIndexInPhrase / n : 0;
-        const fin = seg ? seg.start + dur * (item.clipIndexInPhrase + 1) / n : 0;
-        return { item, palabra: seg ? palabraIlustrableDelTramo(seg.words, ini, fin) : null };
-      });
-
-      // Sin palabra con significado en su tramo —menos del 1%, medido— el Visual se DESCARTA y
-      // su hueco cae a 'original'. No se inventa una palabra ni se amplia la ventana: ampliarla
-      // pintaria algo que no suena en ese momento.
-      const sinPalabra = conPalabra.filter(x => !x.palabra);
-      // EL ORIGEN PEDIDO Y EL MOTIVO SE GUARDAN ANTES DE REASIGNAR, y esto es lo que hace que
-      // el resumen no mienta. `type` se muta EN EL SITIO en los seis caminos de respaldo, asi
-      // que al final un Visual caido es indistinguible de un 'original' legitimo: el 25/8 los
-      // clips de stock y los Visuales perdidos habrian salido como 'original' correcto y el
-      // resumen habria dicho que todo cuadraba, igual que dijo la app.
-      //
-      // `??=` Y NO `=`: si un clip cae dos veces, el origen de verdad es el PRIMERO. Con `=` el
-      // segundo lo pisaria y el resumen contaria una caida de stock donde hubo una de Visual.
-      //
-      // ESTOS CAMPOS NO ENTRAN EN NINGUN HASH: `graphicData` se construye con claves EXPLICITAS
-      // y nadie esparce el item. `extra` se construye aparte con pos, conceptos y direccion.
-      for (const x of sinPalabra) {
-        x.item.origenPedido ??= x.item.type;
-        x.item.motivoRespaldo ??= 'visual-sin-palabra';
-        x.item.type = 'original';
+    // Los slots Visuales quedan pendientes para el chat Animation; no se envían al pool de
+    // Original, Stock, IA, ni a ningún renderer heredado.
+    for (const item of clipsDecision.filter((clip: any) => clip.type === 'visual')) {
+      if (item.duration < 3 || item.duration > 10) {
+        return { success: false, error: `ANIMATION_SLOT_DURATION_UNSUPPORTED:${item.index}:${item.duration}`,
+          diagnostics: { engine: 'animation', fallbackUsed: false } };
       }
-      if (sinPalabra.length) {
-        await logMessage(`[FASE 3] ${sinPalabra.length} de ${visuales.length} Visuales sin ` +
-          `palabra con significado en su tramo: pasan a original.`);
-      }
-
-      const aRenderizar = conPalabra.filter(x => !!x.palabra);
-      if (aRenderizar.length) {
-        // La traza vive junto a la solicitud que llega al renderer. El resultado de un Visual
-        // es un MP4 y antes se perdia el graphicData que explica sus pixeles: ni la aceptacion
-        // podia reconstruir un hash semantico (ancla/relacion) despues. No cambia el render ni
-        // la cache; solo conserva, en el clip resultante, la entrada exacta que ya se envio.
-        const solicitudesGraficas = aRenderizar.map(x => {
-            // UNA SOLA CADENA gobierna dibujo, direccion y hash. Resolver la direccion desde el
-            // texto sin recortar y hashear el recortado permitiria dos dibujos bajo una clave.
-            const value = recortarTexto(x.palabra);
-            const pos = `${x.item.phraseIndex}:${x.item.clipIndexInPhrase}`;
-            const semilla = semillaVisual(value, pos);
-            return {
-              graphicData: {
-                type: COMPOSICION_VISUAL,
-                value,
-                // LOS CONCEPTOS Y LA POSICION VIAJAN AQUI, DENTRO DE graphicData, y no por fuera.
-                // El motivo es la cache, no la comodidad: `canonizar` proyecta seis claves de
-                // graphicData —type, value, label, unit, emoji, extra— y `extra` es una de ellas.
-                // Lo que va por fuera NO entra en la clave, asi que dos Visuales con dibujos
-                // distintos compartirian .mov y la cache diria ACIERTO sobre un fichero que no es.
-                // Regla: lo que decide los pixeles tiene que estar en la clave.
-                extra: {
-                  // LA POSICION, como PAR y no como suma. `phraseIndex + clipIndexInPhrase`
-                  // colisiona —frase 3 clip 1 y frase 4 clip 0 dan los dos 4— y dos posiciones
-                  // distintas acabarian con el mismo hash, que es justo lo que se quiere evitar.
-                  // Y son phraseIndex/clipIndexInPhrase y no el indice global del timeline:
-                  // insertar un clip al principio desplazaria el global y re-renderizaria el
-                  // video entero.
-                  pos,
-                  // Misma palabra en dos sub-clips: dos semillas reproducibles y dos claves
-                  // distintas. La semilla se conserva para que main y renderer no rederiven.
-                  semilla,
-                  // Ya vienen proyectados a {emoji, etiqueta} por `sanearConceptos`, que es el
-                  // UNICO sitio donde vive esa regla. Volver a mapearlos aqui la pondria en dos
-                  // lugares — el patron de las dos puertas, que ya ha mordido cuatro veces.
-                  // `null` cuando DeepSeek no dio tres validos: la clave se mantiene siempre
-                  // presente para que la forma del objeto no cambie segun el caso.
-                  conceptos: x.item.conceptos ?? null,
-                  ancla: x.item.ancla ?? null,
-                  relacion: x.item.relacion ?? null,
-                  // Se resuelve ANTES del render y viaja dentro de `extra`, que hashGrafico
-                  // canoniza completo. Al crecer los registros, una palabra cuya direccion
-                  // cambie obtiene otra clave en vez de recibir un MOV viejo con pixeles falsos.
-                  // Densidad sale del contenido (no de otro sorteo): se resuelve aqui y viaja
-                  // dentro de la direccion hashable para que main y renderer no puedan divergir.
-                  direccion: x.item.relacion
-                    ? direccionParaRelacion(semilla, x.item.relacion, { texto: value, conceptos: x.item.conceptos ?? [] })
-                    : direccionDe(semilla, { texto: value, conceptos: x.item.conceptos ?? [] })
-                }
-              },
-              duracion: x.item.duration
-            };
-          });
-        const resVis = await renderGraphicClipsLote(
-          solicitudesGraficas,
-          { aspectRatio, fps: 30, modo: 'pantalla', sistema: SISTEMA_VISUAL },
-          (p) => event.sender.send('generation-progress',
-            { index: p.index, total: p.total, paragraph: p.paragraph, type: 'Visual' })
-        );
-
-        // EL CONTRATO DEL RELLENO, igual que las otras tres ramas: se escribe en
-        // results[index-1] SOLO si el fichero existe. Si no, el hueco se queda y FASE 4 lo
-        // rellena duplicando el vecino — un plano repetido, no un clip sin fichero que rompa
-        // la aritmetica de frames y se coma el audio por el -shortest del mux.
-        for (let i = 0; i < aRenderizar.length; i++) {
-          const ruta = resVis.rutas?.[i];
-          const item = aRenderizar[i].item;
-          if (!ruta || !(await exists(ruta))) {
-            item.origenPedido ??= item.type;
-            item.motivoRespaldo ??= 'visual-sin-fichero';
-            item.type = 'original';
-            continue;
-          }
-          const durReal = await getVideoDuration(ruta);
-          const id = `visual-${item.index}`;
-          trazasGraficos.push({ id, graphicData: solicitudesGraficas[i].graphicData });
-          results[item.index - 1] = {
-            id,
-            name: path.basename(ruta),
-            path: ruta,
-            url: urlDeRuta(ruta),
-            duration: formatTimeMinutesSeconds(durReal),
-            durationSeconds: durReal,
-            // 'video' + category 'visual': entra en videoOnly y en la aritmetica de frames sin
-            // tocar una sola linea del export. Y category lo hace contable en la auditoria.
-            type: 'video',
-            category: 'visual',
-            thumbnailUrl: ''
-          };
-        }
-        await logMessage(`[FASE 3] Visuales: ${aRenderizar.length} pedidos, ` +
-          `${resVis.renderizados} renderizados, ${resVis.aciertos} de cache, ` +
-          `${resVis.fallos} fallidos` + (resVis.cancelado ? ` — CANCELADO: ${resVis.motivo}` : ''));
-      }
+      results[item.index - 1] = {
+        id: `animation-pending-${randomUUID()}`,
+        name: 'Visual pendiente · Animation',
+        duration: formatTimeMinutesSeconds(item.duration),
+        durationSeconds: item.duration,
+        type: 'video',
+        category: 'visual',
+        requestedSource: 'visual',
+        materialized: false,
+        animationPending: true,
+        animationSlotIndex: item.animationSlotIndex,
+        transcriptText: item.transcriptText,
+        thumbnailUrl: ''
+      };
     }
 
-    // Cola de procesamiento. Los 'visual' que salieron bien ya tienen su results[] puesto y los
-    // que no, volvieron a 'original': ninguno llega al pool con type 'visual'.
+    // Cola de medios comunes. Visuales are created only through Animation.
     const queue = [...clipsDecision].filter((c: any) => c.type !== 'visual');
 
     // Procesamiento paralelo con límite de 3 workers simultáneos
@@ -4929,7 +5339,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             const pexelsApiKey = process.env.PEXELS_API_KEY;
             const pixabayApiKey = process.env.PIXABAY_API_KEY || '';
             const coverrApiKey = process.env.COVERR_API_KEY || '';
-            const isVertical = aspectRatio === '9:16' || aspectRatio === 'vertical';
+            const isVertical = isVerticalAspectRatioV1(aspectRatio);
             const targetOrientation = isVertical ? 'portrait' : 'landscape';
             const stockDir = path.join(getBancoClipsPath(), 'stock');
             if (!(await exists(stockDir))) {
@@ -5114,6 +5524,11 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               let repetido = false;
               if (!best) { best = ranked[0]; repetido = true; } // pool agotado: mejor repetir que no tener clip
               const claveFuente = `${best.provider}_${best.id}`;
+              item.stockDecision={query:keyword,ranking:'orientation-resolution-duration-reuse-v1',
+                contextualInspection:'not-performed',candidates:ranked.map((candidate:any)=>({
+                  provider:candidate.provider,id:candidate.id,width:candidate.width,height:candidate.height,
+                  duration:candidate.duration??null})),selected:{provider:best.provider,id:best.id},
+                offset:0,filter:'',reason:repetido?'CANDIDATE_POOL_EXHAUSTED':'HIGHEST_TECHNICAL_SCORE_UNUSED'};
               const usosPrevios = usosPorFuente.get(claveFuente) ?? 0;
               // Se marca ANTES de cualquier await: con 3 workers en paralelo, marcarlo
               // despues de la descarga dejaria que dos frases eligieran la misma fuente.
@@ -5129,6 +5544,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               if (margen > 0.2) {
                 stockOffset = Math.round(margen * vdc(usosPrevios) * 100) / 100;
               }
+              item.stockDecision.offset=stockOffset;
 
               const rawStockFilename = `${claveFuente}_raw.mp4`;
               const rawStockPath = path.join(stockDir, rawStockFilename);
@@ -5166,28 +5582,18 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
               let filter = '';
               try {
                 const dimensions = await getVideoDimensions(stockClipPath);
-                const isVerticalOutput = aspectRatio === '9:16' || aspectRatio === 'vertical';
-                if (isVerticalOutput) {
-                  if (dimensions.width > dimensions.height) {
-                    filter = 'crop=ih*9/16:ih,scale=1080:1920,setpts=0.8*PTS';
-                  } else {
-                    filter = 'crop=iw:iw*16/9,scale=1080:1920,setpts=0.8*PTS';
-                  }
-                } else {
-                  if (dimensions.width > dimensions.height) {
-                    filter = 'crop=iw:iw*9/16,scale=1920:1080,setpts=0.8*PTS';
-                  } else {
-                    filter = 'crop=iw:iw*9/16,scale=1920:1080,setpts=0.8*PTS';
-                  }
-                }
+                if(dimensions.width<=0||dimensions.height<=0)throw Error('STOCK_DIMENSIONS_INVALID');
+                filter=stockCoverFilter(aspectRatio);
+                if(item.stockDecision)item.stockDecision.sourceDimensions=dimensions;
               } catch (dimErr) {
-                const isVertical = aspectRatio === '9:16' || aspectRatio === 'vertical';
+                const isVertical = isVerticalAspectRatioV1(aspectRatio);
                 filter = isVertical
                   ? 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,setpts=0.8*PTS'
                   : 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setpts=0.8*PTS';
               }
 
               const escapedRawStock = stockClipPath.replace(/"/g, '\\"');
+              if(item.stockDecision)item.stockDecision.filter=filter;
               await new Promise<void>((resolve, reject) => {
                 const cmd = `ffmpeg -y -ss ${stockOffset} -i "${escapedRawStock}" -vf "${filter}" -t ${item.duration} -an "${escapedClip}"`;
                 exec(cmd, (err) => { if (err) reject(err); else resolve(); });
@@ -5247,6 +5653,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             durationSeconds,
             type: 'video',
             category: item.type === 'ia' ? 'ia' : (item.type === 'stock' ? 'stock' : 'original'),
+            requestedSource: item.origenPedido ?? item.type,
+            ...(item.stockDecision?{stockDecision:{...item.stockDecision,fallbackReason:item.motivoRespaldo??null}}:{}),
+            materialized: true,
             size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
             thumbnailUrl
           };
@@ -5254,7 +5663,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       }
     });
 
-    await Promise.all(workers);
+        await Promise.all(workers);
         // ═══ FASE 4: Rellenar slots fallidos SIN compactar ═══
         // CRÍTICO: results es posicional (results[item.index - 1]).
         // Filtrar y compactar desplaza todos los clips siguientes y rompe
@@ -5279,7 +5688,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
             }
           }
           if (donor) {
-            results[i] = { ...donor, id: `${donor.id}-fill-${i}` };
+            results[i] = { ...donor, id: `${donor.id}-fill-${i}`, materialized: false };
             filled++;
           }
         }
@@ -5317,7 +5726,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
         if (clip.startSeconds >= audioDuration) {
           // Eliminar el archivo físico si empieza después del audio
           try {
-            if (await exists(clip.path)) {
+            if (clip.path && await exists(clip.path)) {
               await fs.promises.unlink(clip.path);
               const thumbPath = rutaMiniatura(clip.path);
               if (await exists(thumbPath)) await fs.promises.unlink(thumbPath);
@@ -5326,7 +5735,7 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
           continue;
         }
 
-        if (clip.startSeconds + clip.durationSeconds > audioDuration) {
+        if (clip.category !== 'visual' && clip.path && clip.startSeconds + clip.durationSeconds > audioDuration) {
           const targetDuration = parseFloat((audioDuration - clip.startSeconds).toFixed(2));
           if (targetDuration > 0) {
             const tempTrimPath = clip.path.replace('.mp4', '_trimmed.mp4');
@@ -5417,12 +5826,13 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
       // EL `real` DE CADA ORIGEN. Un clip que cayo NO cuenta para el origen al que cayo: un
       // Visual que acabo en "original" es un Visual perdido, no un original legitimo.
       const legitimos = (t: string) =>
-        decisiones.filter((c: any) => c.type === t && !c.origenPedido).length;
+        resultadosMaterializados.filter((c: any) => c?.materialized === true &&
+          c.category === t && (c.requestedSource ?? c.category) === t).length;
       const filas: FilaResumen[] = [
         { origen: 'original', objetivo: objetivo.original, real: legitimos('original') },
         { origen: 'stock',    objetivo: objetivo.stock,    real: legitimos('stock') },
         { origen: 'IA',       objetivo: objetivo.ia,       real: legitimos('ia') },
-        { origen: 'Visual',   objetivo: objetivo.visual,   real: legitimos('visual') }
+        { origen: 'Visual',   objetivo: objetivo.visual,   real: legitimos('visual'), pendienteAnimation: decisiones.filter((c: any) => c.type === 'visual').length }
       ];
       const porMotivo = new Map<string, number>();
       for (const c of decisiones as any[]) {
@@ -5445,7 +5855,9 @@ ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDura
   }
 });
 
-ipcMain.handle('regenerate-graphics', async (_event, params: any) => {
+handleProcessing('regenerate-graphics', async (_event, params: any) => {
+  if (params?.mode === 'modern-visual' || (Array.isArray(params?.modernVisuals) && params.modernVisuals.length > 0))
+    return { success: false, error: 'LEGACY_VISUAL_GENERATOR_DISABLED', diagnostics: { engine: 'animation', fallbackUsed: false } }
   const { clips, graphicsPercent } = params;
   const logMessage = async (msg: string) => {
     console.log(msg);
@@ -5666,7 +6078,7 @@ ipcMain.handle('regenerate-graphics', async (_event, params: any) => {
   }
 });
 
-ipcMain.handle('generate-perfect-sync', async (event, {
+handleProcessing('generate-perfect-sync', async (event, {
   videoPath,
   transcriptSegments,
   syncWeights,
@@ -5901,7 +6313,7 @@ ipcMain.handle('generate-perfect-sync', async (event, {
         if (vc.type === 'stock' || (!success && vc.type !== 'ia')) {
           try {
             if (!pexelsApiKey) throw new Error('No PEXELS_API_KEY');
-            const isVert = aspectRatio === '9:16' || aspectRatio === 'vertical';
+            const isVert = isVerticalAspectRatioV1(aspectRatio);
             const orient = isVert ? 'portrait' : 'landscape';
             const pUrl = 'https://api.pexels.com/videos/search?query=' +
               encodeURIComponent(vc.keyword || 'broll') + '&per_page=5&orientation=' + orient;

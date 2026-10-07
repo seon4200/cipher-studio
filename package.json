@@ -7,11 +7,14 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "banco": "vite --mode banco",
     "build": "tsc && vite build",
+    "test:animation-chat": "node tests/aceptacion/animation-chat/contracts.cjs && node tests/aceptacion/animation-chat/graphics-placement.cjs && node tests/aceptacion/animation-chat/transcript-window.cjs && node tests/aceptacion/animation-chat/scene-module-contract.cjs && node tests/aceptacion/animation-chat/tool-schema-contract.cjs && node tests/aceptacion/animation-chat/codex-app-server-resume-recovery.cjs && node tests/aceptacion/animation-chat/scene-template-source-edits.cjs",
+    "test:animation-chat-bundle": "node tests/aceptacion/animation-chat/runtime-bundle.cjs",
+    "smoke:animation-codex": "node tests/aceptacion/animation-chat/codex-app-server-smoke.cjs",
     "preview": "vite preview",
     "test": "node tests/todas.js",
     "test:persistencia": "electron tests/persistencia.js",
+    "test:assets-persistencia": "electron tests/assets-persistencia.js",
     "test:via4": "electron tests/via4.js",
     "test:materiales": "electron tests/materiales.js",
     "test:graficos": "electron tests/graficos.js",
@@ -21,11 +24,15 @@
     "test:mapa": "electron tests/mapa.js",
     "test:avisos": "electron tests/avisos.js",
     "bench:graficos": "electron tests/rendimiento/graficos.js",
-    "test:ventana": "electron tests/ventana.js"
+    "test:ventana": "electron tests/ventana.js",
+    "test:vibes": "python -m unittest discover -s tests/vibes_clips -v"
   },
   "dependencies": {
+    "@babel/helper-string-parser": "7.29.7",
+    "@babel/helper-validator-identifier": "7.29.7",
+    "@babel/parser": "7.29.7",
+    "@babel/types": "7.29.7",
     "@fal-ai/client": "^1.10.1",
-    "@iconify-json/solar": "^1.2.10",
     "gl-transition": "^2.1.0",
     "gl-transitions": "^1.71.0",
     "lucide-react": "^0.475.0",
@@ -48,5 +55,28 @@
     "vite": "^5.2.11",
     "vite-plugin-electron": "^0.28.7",
     "vite-plugin-electron-renderer": "^0.14.5"
+  },
+  "build": {
+    "files": [
+      "dist/**",
+      "!dist/win-unpacked/**",
+      "dist-electron/main/**",
+      "dist-electron/preload/**",
+      "src/prompt-maestro.txt",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "vibes_clips",
+        "to": "vibes-bot/vibes_clips",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "requirements-vibes.txt",
+        "to": "vibes-bot/requirements-vibes.txt"
+      }
+    ]
   }
 }

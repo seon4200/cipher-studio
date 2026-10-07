@@ -19,7 +19,7 @@ En el repo A.2 compilado, indicando un checkout **compilado** de `84062d7` como 
 node node_modules/electron/cli.js tests/aceptacion/impacto-cota-a2.cjs . C:/ruta/base-compilada tests/aceptacion/plan-a2-impacto-20260905/etiquetas.json C:/ruta-temporal/impacto.json
 ```
 
-La base usada fue `C:/graphify/cipher-plan-a0-verificacion-20260904`, HEAD
+La base usada fue `%CIPHER_LOCAL_ROOT%/cipher-plan-a0-verificacion-20260904`, HEAD
 `84062d7`; su anchoCaja/puerta no cambiaron hasta A.1. La diferencia de energia
 de deriva no participa en esta medicion. Los SHA-256 de ambos bundles quedan
 en `resultados.json`; la rama medida fue `ea741c3`, antes de subir tamano alguno.

@@ -128,15 +128,18 @@
  */
 const { app, ipcMain } = require('electron')
 const fs = require('fs')
-const os = require('os')
 const path = require('path')
 const crypto = require('crypto')
 const { exec } = require('child_process')
+const { createTestFixture, cleanupTestFixture, removeFixtureFile } = require('./helpers/safe-fixture')
 
 const RAIZ = path.resolve(__dirname, '..')
-const PROY = path.join(RAIZ, 'proyectos')
+const FIXTURE_ROOT = createTestFixture('ventana')
+process.chdir(FIXTURE_ROOT)
+const PROY = path.join(FIXTURE_ROOT, 'cipher-studio', 'proyectos')
 const MARCA = 'zz-prueba-ventana'
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-ventana-'))
+const TMP = path.join(FIXTURE_ROOT, 'output')
+fs.mkdirSync(TMP, { recursive: true })
 
 // EL CLIP QUE SE MIDE, y sus DOS predecesores DISTINTOS.
 //
@@ -175,11 +178,12 @@ const ejecutar = (cmd) => new Promise((resolve, reject) => {
     err ? reject(new Error(String(stderr || err.message).slice(-600))) : resolve(String(stdout)))
 })
 
-const limpiar = () => {
-  if (!fs.existsSync(PROY)) return
-  for (const d of fs.readdirSync(PROY)) {
-    if (d.toLowerCase().startsWith(MARCA)) fs.rmSync(path.join(PROY, d), { recursive: true, force: true })
-  }
+let fixtureCleaned = false
+const limpiarFixture = () => {
+  if (fixtureCleaned) return
+  process.chdir(path.dirname(FIXTURE_ROOT))
+  cleanupTestFixture(FIXTURE_ROOT)
+  fixtureCleaned = true
 }
 
 const sha1 = (b) => crypto.createHash('sha1').update(b).digest('hex').slice(0, 12)
@@ -260,7 +264,6 @@ async function main (bundle) {
   console.log('LA VENTANA REUTILIZADA - un Visual no puede depender de cual se renderizo antes')
   console.log('Corre sobre el bundle compilado: ejecuta `npm run build` antes si has tocado el codigo.\n')
 
-  limpiar()
   await llamar('create-project', { name: MARCA })
 
   const nombres = composicionesRegistradas()
@@ -281,12 +284,12 @@ async function main (bundle) {
     if (!r || !fs.existsSync(r)) throw new Error('el render no devolvio fichero')
     const copia = path.join(TMP, etq + '.mp4')
     fs.copyFileSync(r, copia)
-    fs.unlinkSync(r)
+    removeFixtureFile(FIXTURE_ROOT, r)
     const f = await framesDe(copia, etq)
-    fs.unlinkSync(copia)
+    removeFixtureFile(FIXTURE_ROOT, copia)
     return f
   }
-  const tirar = async (nombre, c) => { const r = await render(nombre, c); if (r) fs.unlinkSync(r) }
+  const tirar = async (nombre, c) => { const r = await render(nombre, c); if (r) removeFixtureFile(FIXTURE_ROOT, r) }
 
   for (const nombre of nombres) {
     console.log('')
@@ -316,13 +319,12 @@ async function main (bundle) {
   }
 
   await cerrarVentanaGraficos()
-  limpiar()
 }
 
 app.whenReady().then(async () => {
   const bundle = require(path.join(RAIZ, 'dist-electron/main/index.js'))
   try { await main(bundle) } catch (e) { fallos.push('excepcion'); console.log('EXCEPCION: ' + e.stack) }
-  try { fs.rmSync(TMP, { recursive: true, force: true }) } catch (e) { }
+  limpiarFixture()
   console.log('\n' + '─'.repeat(70))
   if (fallos.length) {
     console.log('FALLOS: ' + fallos.length)

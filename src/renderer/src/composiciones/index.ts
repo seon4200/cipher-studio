@@ -33,6 +33,7 @@ import type { ReactNode } from 'react';
 import { comprobarCiclo, type DuracionUsada } from '../../../shared/ciclo';
 import type { Concepto } from '../../../shared/conceptos';
 import type { NombreSistema } from '../sistemas';
+import type { RuntimeRenderAssetAny, VisualSceneSpecAny } from '../../../shared/visual-scene-spec-v2';
 import { extrusion } from './extrusion';
 import { mapa } from './mapa';
 import { escena } from './escena';
@@ -86,6 +87,10 @@ export type PropsComposicion = DatosVisual & {
    * guarda en `extra`, que forma parte de la clave del hash.
    */
   semilla: number;
+  /** Productive V1 projection. Null preserves the legacy composition path exactly. */
+  sceneSpec?: VisualSceneSpecAny | null;
+  /** Ephemeral locators built from bytes already verified by the main process. */
+  runtimeAssets?: readonly RuntimeRenderAssetAny[];
 };
 
 export type Composicion = {

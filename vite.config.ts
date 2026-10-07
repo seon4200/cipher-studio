@@ -3,10 +3,9 @@ import react from '@vitejs/plugin-react'
 import electron from 'vite-plugin-electron'
 import renderer from 'vite-plugin-electron-renderer'
 import path from 'path'
+import fs from 'node:fs'
 
 export default defineConfig(({ mode }) => {
-  const esBanco = mode === 'banco'
-
   return {
     root: path.join(__dirname, 'src/renderer'),
     publicDir: path.join(__dirname, 'public'),
@@ -14,11 +13,8 @@ export default defineConfig(({ mode }) => {
       watch: {
         ignored: ['**/project-state.json']
       },
-      ...(esBanco ? { host: '127.0.0.1', port: 5174, strictPort: true } : {})
     },
-    // `npm run banco` usa ESTE MISMO config, pero sin los plugins que arrancan Electron.
-    // Asi el banco no necesita un fichero temporal ni puede abrir la app por accidente.
-    plugins: esBanco ? [react()] : [
+    plugins: [
       react(),
       electron([
       {
@@ -32,6 +28,16 @@ export default defineConfig(({ mode }) => {
             minify: false,
             sourcemap: true,
           },
+          plugins: [{
+            name: 'copy-cipher-animation-tools-runtime',
+            closeBundle() {
+              const sourceDir = path.join(__dirname, 'src/main/animation')
+              const targetDir = path.join(__dirname, 'dist-electron/main/animation')
+              fs.mkdirSync(targetDir, { recursive: true })
+              for (const file of ['cipher-animation-tools-server.cjs', 'scene-module-contract.cjs', 'scene-template-source-edits.cjs', 'contract-v1.cjs'])
+                fs.copyFileSync(path.join(sourceDir, file), path.join(targetDir, file))
+            },
+          }],
         },
       },
       {
@@ -64,6 +70,7 @@ export default defineConfig(({ mode }) => {
         input: {
           principal: path.join(__dirname, 'src/renderer/index.html'),
           grafico: path.join(__dirname, 'src/renderer/grafico.html'),
+          controlAdapter: path.join(__dirname, 'src/renderer/control-adapter.html'),
         },
       },
     },

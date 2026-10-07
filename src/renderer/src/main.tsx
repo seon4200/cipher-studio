@@ -1,27 +1,28 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { normalizeProjectAspectRatioV1 } from '../../shared/aspect-ratio-v1'
 import { excluirSobreVisuales, colocarYFiltrarTarjetas, avisoDeExclusion } from '../../shared/exclusion'
 import { textoResumen, type Aviso, type Resumen } from '../../shared/avisos'
 import { hayTiemposPorPalabra } from '../../shared/palabra'
 import { repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../../shared/reparto'
 import ReactDOM from 'react-dom/client'
-import { 
-  Play, Pause, FastForward, Rewind, Video, Volume2, VolumeX, Sparkles, 
-  Scissors, Type, Languages, Download, Upload, Plus, 
+import {
+  Play, Pause, FastForward, Rewind, Video, Volume2, VolumeX, Sparkles,
+  Scissors, Type, Languages, Download, Upload, Plus,
   FolderOpen, Trash2, Maximize, Copy, Clipboard, Crop, FlipHorizontal,
-  Undo, Redo, Sliders, ChevronDown, Save
+  Undo, Redo, Sliders, ChevronDown, Save, Image
 } from 'lucide-react'
 import './styles/globals.css'
 import TrendsPanel from './TrendsPanel'
 import { AnimatedGraphic } from './AnimatedGraphic'
-
+import { VibesWorkspace } from './components/VibesWorkspace'
+import AnimationWorkspace from './components/AnimationWorkspace'
 /* ------------------------------------------------------------------
    App component (ya existente)
    ------------------------------------------------------------------ */
-
 // Convierte una ruta de Windows en una url file:// que el reproductor pueda abrir.
 // Concatenar la ruta a pelo NO carga si lleva espacios, acentos o '#': medido en un
 // Chromium real, da MEDIA_ELEMENT_ERROR. Hoy no se nota porque el proyecto vive en
-// C:\Proyectos\..., pero en C:\Users\Jose\... no se veria NADA.
+// La ruta de instalación puede variar; convertir por segmentos mantiene la reproducción con espacios y acentos.
 //
 // No se usa pathToFileURL de Node: el preload va en SANDBOX y su require('url') devuelve un
 // polyfill de navegador SIN pathToFileURL — existe como funcion y revienta al llamarla.
@@ -31,25 +32,30 @@ import { AnimatedGraphic } from './AnimatedGraphic'
 // Un frame a 30 fps. Mismo umbral que TOLERANCIA_RECORTE_S en main/index.ts: el valor sale de
 // convertir pixeles a segundos en un arrastre de raton y no cae nunca en un numero exacto.
 const TOLERANCIA_RECORTE_S = 1 / 30
-
 const rutaAUrl = (p: string) =>
   'file:///' + p.replace(/\\/g, '/').split('/')
     .map((seg, i) => (i === 0 ? seg : encodeURIComponent(seg))).join('/')
-
 interface Clip {
   id: string;
   name: string;
   duration: string;
   durationSeconds: number;
-  type: 'video' | 'audio';
+  type: 'video' | 'audio' | 'image';
   path: string;
   size: string;
   url?: string;
   category?: string;
   thumbnailUrl?: string;
   graphicData?: any;
+  mediaKind?: 'image' | 'video';
+  exposureDurationSeconds?: number;
+  styleVersion?: string;
+  slotId?: string;
+  provider?: string;
+  imagePrompt?: string;
+  remoteImageBatchId?: string | null;
+  remoteContentItemId?: string | null;
 }
-
 interface TimelineClip {
   id: string;
   name: string;
@@ -57,6 +63,14 @@ interface TimelineClip {
   durationSeconds: number;
   /** Tipo de clip, incluye 'graphic' para gráficos animados */
   type?: 'video' | 'audio' | 'graphic';
+  mediaKind?: 'image' | 'video';
+  vibesPlaceholder?: boolean;
+  vibesSampleDurationLock?: number;
+  slotId?: string;
+  styleVersion?: string;
+  imagePrompt?: string;
+  remoteImageBatchId?: string | null;
+  remoteContentItemId?: string | null;
   path?: string;
   url?: string;
   origDurationSeconds?: number;
@@ -68,8 +82,19 @@ interface TimelineClip {
   category?: string;
   originalCategory?: string;
   thumbnailUrl?: string;
+  /** Semantic-only context used to regenerate a modern full-screen Visual without an LLM. */
+  visualRegeneration?: any;
+  /** Versioned Canvas v4 persisted plan/config/resource binding for offline replay. */
+  canvasV4?: any;
+  /** Versioned project-local Animation plan/config binding. */
+  animationV1?: any;
+  animationPending?: boolean;
+  animationSlotIndex?: number;
+  transcriptText?: string;
+  requestedSource?: string;
+  materialized?: boolean;
+  stockDecision?: any;
 }
-
 interface GeneratedVoiceVersion {
   id: string;
   timestamp: number;
@@ -82,15 +107,12 @@ interface GeneratedVoiceVersion {
   audioUrl: string;
   durationSeconds?: number;
 }
-
 interface TimelineVersion {
   id: string;
   name: string;
   timestamp: number;
   timelineVideoClips: TimelineClip[];
 }
-
-
 function App() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [appMode, setAppMode] = useState<'editor' | 'crear'>('editor');
@@ -103,9 +125,11 @@ function App() {
   const [perfectSyncMode, setPerfectSyncMode] = useState(false)
   const [showVideoV2Track, setShowVideoV2Track] = useState(false)
   const [syncWeights, setSyncWeights] = useState([40, 35, 25])
-  
   // Project Management States
   const [activeProjectPath, setActiveProjectPath] = useState<string | null>(null)
+  const [vibesSourceStartSeconds, setVibesSourceStartSeconds] = useState(0)
+  const [vibesSourceMediaDurationSeconds, setVibesSourceMediaDurationSeconds] = useState<number | undefined>(undefined)
+  const [vibesSourceTranscriptSegments, setVibesSourceTranscriptSegments] = useState<any[]>([])
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   const [activeProjectName, setActiveProjectName] = useState<string | null>(null)
   const [projectsList, setProjectsList] = useState<any[]>([])
@@ -113,14 +137,11 @@ function App() {
   const [newProjectName, setNewProjectName] = useState('')
   const [mainProcessTime, setMainProcessTime] = useState<string>('Esperando...')
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
-  
   // State for imported files/clips
   const [clips, setClips] = useState<Clip[]>([])
-
   const [timelineVideoClips, setTimelineVideoClips] = useState<TimelineClip[]>([])
   const [timelineVersions, setTimelineVersions] = useState<TimelineVersion[]>([])
   const [activeVersionId, setActiveVersionId] = useState<string>('')
-
   const handleSelectTimelineVersion = (versionId: string) => {
     setActiveVersionId(versionId);
     const targetVersion = timelineVersions.find(v => v.id === versionId);
@@ -129,26 +150,23 @@ function App() {
       pushHistory(targetVersion.timelineVideoClips);
     }
   };
-
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
-
   // Canvas Preview Active Video States
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null)
+  const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null)
+  const [showVibesWorkspace, setShowVibesWorkspace] = useState(false)
   const videoRef = React.useRef<HTMLVideoElement>(null)
   const videoV2Ref = React.useRef<HTMLVideoElement>(null)
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
-  
   // Timeline zoom and container refs
   const [timelineZoom, setTimelineZoom] = useState(1200)
   const timelineTracksRef = React.useRef<HTMLDivElement>(null)
-  
   // Track volume states
   const [videoTrackVolume, setVideoTrackVolume] = useState(1.0)
   const [isVideoTrackMuted, setIsVideoTrackMuted] = useState(false)
   const [audioTrackVolume, setAudioTrackVolume] = useState(1.0)
   const [isAudioTrackMuted, setIsAudioTrackMuted] = useState(false)
-
   // Zoom, pan, crop and mirror states
   const [zoom, setZoom] = useState(1)
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
@@ -188,7 +206,6 @@ function App() {
   const [copiedClip, setCopiedClip] = useState<TimelineClip | null>(null)
   // Porcentaje global de generación de gráficos (valor por defecto 50%)
   const [graphicsPercent, setGraphicsPercent] = useState<number>(-1);
-
   // Estados para transiciones GL
   const [transitionsPercent, setTransitionsPercent] = useState<number>(-1);
   const [showTransitionsPanel, setShowTransitionsPanel] = useState<boolean>(false);
@@ -220,29 +237,23 @@ function App() {
     'ButterflyWaveScrawler','old_tv_lost_signal','DefocusBlur',
     'directionalwipe','Revolve_Left'
   ]);
-
   useEffect(() => {
     if (transitionNextUrl && videoRef2.current) {
       videoRef2.current.load();
     }
   }, [transitionNextUrl]);
-
   if (typeof window !== 'undefined' && (window as any).__never) {
     console.log(assignedTransitions, setAssignedTransitions, draggingTransition, setDraggingTransition, transitionType, setTransitionType, showImportPanel, setShowImportPanel, importedClips, setImportedClips, showTrendsPanel, setShowTrendsPanel);
   }
-
-
   // Estados para controlar el ciclo de vida y visibilidad de los gráficos animados
   const [graphicVisible, setGraphicVisible] = useState(false);
   const [graphicFading, setGraphicFading] = useState(false);
-
   // Reset panOffset when zoom resets to 1
   useEffect(() => {
     if (zoom <= 1) {
       setPanOffset({ x: 0, y: 0 })
     }
   }, [zoom])
-
   // Player premium controls states
   // Performance: currentTimeSeconds lives in a ref to avoid 60 re-renders/sec during playback.
   // currentTimeForUI is a low-frequency state updated ~5 times/sec for UI elements that need React re-render.
@@ -255,46 +266,36 @@ function App() {
   const [playbackRate, setPlaybackRate] = useState(1)
   const [aspectRatio, setAspectRatio] = useState<'horizontal' | 'vertical' | 'square'>('horizontal')
   const [showFormatDropdown, setShowFormatDropdown] = useState(false)
-
   // Timeline interactive states
   const [selectedTimelineClipIds, setSelectedTimelineClipIds] = useState<string[]>([])
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; clipId: string } | null>(null)
-
   const [showFullscreenControls, setShowFullscreenControls] = useState(false);
   const fullscreenTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(!!document?.fullscreenElement);
-
   useEffect(() => {
     const handleFs = () => setIsFullscreen(!!document?.fullscreenElement);
     document.addEventListener('fullscreenchange', handleFs);
     return () => document.removeEventListener('fullscreenchange', handleFs);
   }, []);
-
   const trackRef = React.useRef<HTMLDivElement>(null)
   const trackV2Ref = React.useRef<HTMLDivElement>(null)
   const playerWrapperRef = React.useRef<HTMLDivElement>(null)
-
   const hiddenVideoRef = React.useRef<HTMLVideoElement>(null)
-
   // Refs to allow stable keyboard listener dependencies
   const timelineClipsRef = React.useRef<TimelineClip[]>([])
   const currentTimeSecondsRef = currentTimeRef
   const selectedTimelineClipIdsRef = React.useRef<string[]>([])
-
   useEffect(() => {
     timelineClipsRef.current = timelineVideoClips
     selectedTimelineClipIdsRef.current = selectedTimelineClipIds
   }, [timelineVideoClips, selectedTimelineClipIds])
-
   // Magnetic timeline layout builder helper
   const applyMagneticLayout = useCallback((clips: TimelineClip[]): TimelineClip[] => {
     // Excluimos clips de tipo 'graphic' del cálculo magnético
     const videoClips = clips.filter(c => c.type !== 'audio' && c.type !== 'graphic');
     const audioClips = clips.filter(c => c.type === 'audio');
-    
     // Sort video clips by their startSeconds
     videoClips.sort((a, b) => a.startSeconds - b.startSeconds);
-    
     let currentStart = 0;
     const rebuiltVideoClips = videoClips.map(clip => {
       const updated = {
@@ -304,17 +305,14 @@ function App() {
       currentStart += clip.durationSeconds;
       return updated;
     });
-    
     const graphicClips = clips.filter(c => c.type === 'graphic');
     return [...rebuiltVideoClips, ...audioClips, ...graphicClips];
   }, []);
-
   // Export Settings States
   const [showExportModal, setShowExportModal] = useState(false)
   const [exportResolution, setExportResolution] = useState<'1080p' | '4K' | '720p'>('1080p')
   const [exportFormat, setExportFormat] = useState<'mp4' | 'mov'>('mp4')
   const [exportQuality, setExportQuality] = useState<'high' | 'medium' | 'low'>('medium')
-
   useEffect(() => {
     if (!activeVersionId) return;
     setTimelineVersions(prev => {
@@ -325,11 +323,9 @@ function App() {
       return prev.map(v => v.id === activeVersionId ? { ...v, timelineVideoClips } : v);
     });
   }, [timelineVideoClips, activeVersionId]);
-
   // Helper: update time ref + direct DOM updates (avoids React re-render)
   const updateCurrentTime = useCallback((newTime: number) => {
     currentTimeRef.current = newTime;
-    
     // Direct DOM update for timecode display
     const timecodeEl = document.getElementById('cipher-timecode');
     if (timecodeEl) {
@@ -340,15 +336,14 @@ function App() {
       const pad = (n: number) => String(n).padStart(2, '0');
       timecodeEl.textContent = `${pad(hrs)}:${pad(mins)}:${pad(secs)}:${pad(frames)}`;
     }
-    
     // Direct DOM update for playhead line
     const playheadEl = document.getElementById('cipher-playhead');
     if (playheadEl) {
-      const totalDur = Math.max(120, timelineClipsRef.current.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0) + 10);
+      const durationLock = timelineClipsRef.current.find(c => c.vibesSampleDurationLock)?.vibesSampleDurationLock;
+      const totalDur = durationLock || Math.max(120, timelineClipsRef.current.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0) + 10);
       const percent = totalDur > 0 ? (newTime / totalDur) * 100 : 0;
       playheadEl.style.left = `${percent}%`;
     }
-    
     // Direct DOM update for scrubber position
     const scrubFill = document.getElementById('cipher-scrub-fill');
     const scrubThumb = document.getElementById('cipher-scrub-thumb');
@@ -359,7 +354,6 @@ function App() {
     if (scrubThumb) {
       scrubThumb.style.left = `${durationSec > 0 ? (newTime / durationSec) * 100 : 0}%`;
     }
-    
     // Direct DOM update for time text
     const timeTextEl = document.getElementById('cipher-time-text');
     if (timeTextEl) {
@@ -367,7 +361,6 @@ function App() {
       const fsecs = Math.floor(newTime % 60);
       timeTextEl.textContent = `${String(fmins).padStart(2, '0')}:${String(fsecs).padStart(2, '0')}`;
     }
-    
     // Throttled React state update (~5 times/sec, every 200ms) for components that need re-render
     const now = performance.now();
     if (now - lastUIUpdateRef.current > 200) {
@@ -375,49 +368,46 @@ function App() {
       setCurrentTimeForUI(newTime);
     }
   }, []);
-
   // Force a React re-render with current time (for user actions like seek, pause, etc.)
   const flushCurrentTime = useCallback(() => {
     setCurrentTimeForUI(currentTimeRef.current);
   }, []);
-
   // Dynamic total timeline duration (minimum 120 seconds, or max clip end + 10s buffer)
-  const totalDuration = useMemo(() => Math.max(120, timelineVideoClips.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0) + 10), [timelineVideoClips]);
+  const totalDuration = useMemo(() => {
+    const durationLock = timelineVideoClips.find(c => c.vibesSampleDurationLock)?.vibesSampleDurationLock;
+    return durationLock || Math.max(120, timelineVideoClips.reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0) + 10);
+  }, [timelineVideoClips]);
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
-  
+  const activeMediaIndexRef = React.useRef(-1)
   const sortedVideoClips = useMemo(() => {
     return timelineVideoClips
       .filter(c => c.type !== 'audio' && c.type !== 'graphic' && c.category !== 'v2_base')
       .sort((a, b) => a.startSeconds - b.startSeconds);
   }, [timelineVideoClips]);
-
   const graphicClips = useMemo(() => {
     return timelineVideoClips.filter(c => c.type === 'graphic');
   }, [timelineVideoClips]);
-
   const activeGraphicClip = useMemo(() => {
     const activeTime = audioRef.current ? audioRef.current.currentTime : currentTimeForUI;
     return graphicClips.find(c => activeTime >= c.startSeconds && activeTime < c.startSeconds + c.durationSeconds) || null;
   }, [graphicClips, currentTimeForUI]);
-
   const activeV2OverlayClip = useMemo(() => {
     if (!perfectSyncMode) return null;
-    const activeTime = audioRef.current 
-      ? audioRef.current.currentTime 
+    const activeTime = audioRef.current
+      ? audioRef.current.currentTime
       : currentTimeForUI;
-    return timelineVideoClips.find(c => 
+    return timelineVideoClips.find(c =>
       c.category === 'v2_overlay' &&
-      activeTime >= c.startSeconds && 
+      activeTime >= c.startSeconds &&
       activeTime < c.startSeconds + c.durationSeconds
     ) || null;
   }, [timelineVideoClips, currentTimeForUI, perfectSyncMode]);
-
   useEffect(() => {
     if (!perfectSyncMode || !videoV2Ref.current || !activeV2OverlayClip) return;
     const v2video = videoV2Ref.current;
     const masterTime = audioRef.current?.currentTime || 0;
     const offsetInClip = Math.max(0, masterTime - activeV2OverlayClip.startSeconds);
-    const src = activeV2OverlayClip.url || 
+    const src = activeV2OverlayClip.url ||
       (activeV2OverlayClip.path ? rutaAUrl(activeV2OverlayClip.path) : '');
     if (v2video.src !== src) {
       v2video.src = src;
@@ -427,34 +417,29 @@ function App() {
     if (isPlaying) v2video.play().catch(() => {});
     else v2video.pause();
   }, [activeV2OverlayClip, perfectSyncMode, isPlaying]);
-
   useEffect(() => {
     if (perfectSyncMode) {
       const overlayClips = timelineVideoClips.filter(c => c.category === 'v2_overlay');
-      console.log('[V2_OVERLAY] clips:', overlayClips.length, 
+      console.log('[V2_OVERLAY] clips:', overlayClips.length,
         overlayClips.slice(0,3).map(c => ({
-          start: c.startSeconds, 
+          start: c.startSeconds,
           dur: c.durationSeconds,
           cat: c.category
         })));
-      console.log('[V2_OVERLAY] activeClip:', activeV2OverlayClip?.name, 
+      console.log('[V2_OVERLAY] activeClip:', activeV2OverlayClip?.name,
         'time:', audioRef.current?.currentTime);
     }
   }, [timelineVideoClips, activeV2OverlayClip, perfectSyncMode]);
-
   const videoV2Clip = useMemo(() => {
     return timelineVideoClips.find(c => c.category === 'v2_base') || null;
   }, [timelineVideoClips]);
-
   if (false as any) {
     console.log(perfectSyncMode, setPerfectSyncMode, showVideoV2Track, setShowVideoV2Track, syncWeights, setSyncWeights, videoV2Ref, videoV2Clip, activeV2OverlayClip, transitionDuration, setTransitionDuration, setIsTransitionActive, selectedTransitions, setSelectedTransitions);
   }
-
   useEffect(() => {
     if (activeGraphicClip?.id && isPlaying) {
       const durMs = (activeGraphicClip.durationSeconds || 2.0) * 1000;
       const fadeMs = Math.max(0, durMs - 300);
-
       setGraphicVisible(true);
       setGraphicFading(false);
       const fadeTimer = setTimeout(() => setGraphicFading(true), fadeMs);
@@ -471,7 +456,6 @@ function App() {
       setGraphicFading(false);
     }
   }, [activeGraphicClip?.id, isPlaying]);
-
   interface MilestoneState {
     label: string;
     clips: Clip[];
@@ -485,19 +469,15 @@ function App() {
     /** optional percentage (0‑100) of graphic clips for this milestone */
     graphicsPercent?: number;
   }
-
   const [isDirty, setIsDirty] = useState(false)
   const [milestoneHistory, setMilestoneHistory] = useState<MilestoneState[]>([])
   const [milestoneIndex, setMilestoneIndex] = useState(-1)
-
   const milestoneHistoryRef = React.useRef(milestoneHistory)
   const milestoneIndexRef = React.useRef(milestoneIndex)
-
   useEffect(() => {
     milestoneHistoryRef.current = milestoneHistory
     milestoneIndexRef.current = milestoneIndex
   }, [milestoneHistory, milestoneIndex])
-
   // El valor de activeProjectPath queda CAPTURADO en la clausura de cada handler, asi que
   // leerlo despues de un await da el de cuando arranco, no el de ahora. Compararlo consigo
   // mismo seria un candado de atrezo: un if que nunca se cumple. Con un ref se puede preguntar
@@ -505,7 +485,6 @@ function App() {
   // durante los ~50 s que tarda un lote de graficos.
   const activeProjectPathRef = React.useRef(activeProjectPath)
   useEffect(() => { activeProjectPathRef.current = activeProjectPath }, [activeProjectPath])
-
   const pushMilestone = (label: string, customState?: Partial<MilestoneState>) => {
     setMilestoneHistory(prev => {
       const nextHistory = prev.slice(0, milestoneIndexRef.current + 1)
@@ -525,11 +504,9 @@ function App() {
     })
     setMilestoneIndex(prev => prev + 1)
   }
-
   const pushHistory = (newClips: TimelineClip[]) => {
     pushMilestone('Edición de Timeline', { timelineVideoClips: newClips })
   }
-
   const handleUndo = () => {
     const idx = milestoneIndexRef.current
     const hist = milestoneHistoryRef.current
@@ -548,7 +525,6 @@ function App() {
       if (state.graphicsPercent !== undefined) setGraphicsPercent(state.graphicsPercent)
     }
   }
-
   const handleRedo = () => {
     const idx = milestoneIndexRef.current
     const hist = milestoneHistoryRef.current
@@ -567,25 +543,21 @@ function App() {
       if (state.graphicsPercent !== undefined) setGraphicsPercent(state.graphicsPercent)
     }
   }
-
   // Seek video by offset (+10s / -10s)
   const seekForward = () => {
     if (videoRef.current) {
       videoRef.current.currentTime = Math.min(videoRef.current.duration || 0, videoRef.current.currentTime + 10)
     }
   }
-
   const seekBackward = () => {
     if (videoRef.current) {
       videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10)
     }
   }
-
   // Toggle Mute
   const toggleMute = () => {
     setIsMuted(!isMuted)
   }
-
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value)
     setVolume(val)
@@ -593,7 +565,6 @@ function App() {
       setIsMuted(false)
     }
   }
-
   // Toggle Fullscreen
   const toggleFullscreen = () => {
     if (playerWrapperRef.current) {
@@ -606,7 +577,6 @@ function App() {
       }
     }
   }
-
   const handleFullscreenMouseMove = () => {
     setShowFullscreenControls(true);
     if (fullscreenTimerRef.current) clearTimeout(fullscreenTimerRef.current);
@@ -614,7 +584,6 @@ function App() {
       setShowFullscreenControls(false);
     }, 3000);
   };
-
   // Helper to format duration to mm:ss
   const formatTimeMinutesSeconds = (seconds: number): string => {
     if (isNaN(seconds) || !isFinite(seconds)) return '00:00'
@@ -622,57 +591,55 @@ function App() {
     const secs = Math.floor(seconds % 60)
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
   }
-
   // Seek global timeline time (Corrección 1)
   const seekGlobalTime = (time: number) => {
     const boundedTime = Math.max(0, Math.min(time, totalDuration));
     updateCurrentTime(boundedTime);
     flushCurrentTime();
-
     if (audioRef.current) {
       audioRef.current.currentTime = boundedTime;
     }
-
-    const targetClip = sortedVideoClips.find(c => 
-      boundedTime >= c.startSeconds && 
+    const targetClip = sortedVideoClips.find(c =>
+      boundedTime >= c.startSeconds &&
       boundedTime < c.startSeconds + c.durationSeconds
     );
-
     const video = videoRef.current;
     if (targetClip) {
       const newIdx = sortedVideoClips.findIndex(c => c.id === targetClip.id);
+      activeMediaIndexRef.current = newIdx;
       setCurrentClipIndex(newIdx);
-      
       if (targetClip.path) {
-        const fileUrl = rutaAUrl(targetClip.path);
-        const scale = targetClip.origDurationSeconds 
-          ? (targetClip.origDurationSeconds / targetClip.durationSeconds) 
-          : 1;
-        const offsetInClip = boundedTime - targetClip.startSeconds;
-        const targetVideoTime = (targetClip.segmentStartOffset || 0) + offsetInClip * scale;
-
-        if (activeVideoUrl !== fileUrl) {
-          setActiveVideoUrl(fileUrl);
-          if (video) {
-            video.src = fileUrl;
+        const fileUrl = targetClip.url || rutaAUrl(targetClip.path);
+        if (targetClip.mediaKind === 'image') {
+          if (video) video.pause();
+          setActiveVideoUrl(null);
+          if (activeImageUrl !== fileUrl) setActiveImageUrl(fileUrl);
+        } else {
+          setActiveImageUrl(null);
+          const scale = targetClip.origDurationSeconds
+            ? (targetClip.origDurationSeconds / targetClip.durationSeconds)
+            : 1;
+          const offsetInClip = boundedTime - targetClip.startSeconds;
+          const targetVideoTime = (targetClip.segmentStartOffset || 0) + offsetInClip * scale;
+          if (activeVideoUrl !== fileUrl) {
+            setActiveVideoUrl(fileUrl);
+            if (video) {
+              video.src = fileUrl;
+            }
           }
-        }
-
-        if (video) {
-          video.currentTime = targetVideoTime;
+          if (video) video.currentTime = targetVideoTime;
         }
       } else {
-        if (activeVideoUrl !== null) {
-          setActiveVideoUrl(null);
-        }
+        activeMediaIndexRef.current = -1;
+        setActiveVideoUrl(null);
+        setActiveImageUrl(null);
       }
     } else {
-      if (activeVideoUrl !== null) {
-        setActiveVideoUrl(null);
-      }
+      activeMediaIndexRef.current = -1;
+      setActiveVideoUrl(null);
+      setActiveImageUrl(null);
     }
   };
-
   // Scrubber dragging logic
   const handleScrubberSeek = (clientX: number, rect: DOMRect) => {
     const clickX = clientX - rect.left
@@ -680,25 +647,20 @@ function App() {
     const newTime = percent * totalDuration
     seekGlobalTime(newTime);
   };
-
   const handleScrubberMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (totalDuration <= 0) return
     const rect = e.currentTarget.getBoundingClientRect()
     handleScrubberSeek(e.clientX, rect)
-    
     const handleMouseMove = (moveEvent: MouseEvent) => {
       handleScrubberSeek(moveEvent.clientX, rect)
     }
-    
     const handleMouseUp = () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
-    
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
   }
-
   // Timeline scrubbing logic
   const handleTimelineScrub = (clientX: number) => {
     if (!trackRef.current) return
@@ -708,23 +670,18 @@ function App() {
     const newTime = percent * totalDuration
     seekGlobalTime(newTime);
   }
-
   const handleTimelineScrubMouseDown = (e: React.MouseEvent) => {
     handleTimelineScrub(e.clientX)
-    
     const handleMouseMove = (moveEvent: MouseEvent) => {
       handleTimelineScrub(moveEvent.clientX)
     }
-    
     const handleMouseUp = () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
-    
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
   }
-
   // Clip dragging/trimming logic
   const handleClipMouseDown = (
     e: React.MouseEvent,
@@ -733,7 +690,6 @@ function App() {
   ) => {
     e.stopPropagation()
     e.preventDefault()
-    
     setSelectedTimelineClipIds(prev => {
       if (e.ctrlKey || e.metaKey) {
         if (prev.includes(clipId)) {
@@ -744,7 +700,6 @@ function App() {
       }
       return [clipId];
     });
-    
     // Find library clip and set active if needed
     const tClip = timelineVideoClips.find(c => c.id === clipId)
     if (tClip) {
@@ -752,27 +707,20 @@ function App() {
       flushCurrentTime();
       setIsPlaying(false);
     }
-    
     if (!trackRef.current) return
-    
     const rect = trackRef.current.getBoundingClientRect()
     const trackWidth = rect.width
     const startX = e.clientX
-    
     const clip = timelineVideoClips.find(c => c.id === clipId)
     if (!clip) return
-    
     const initialStart = clip.startSeconds
     const initialDuration = clip.durationSeconds
-    
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX
       const deltaSeconds = (deltaX / trackWidth) * totalDuration
-      
-      setTimelineVideoClips(prev => 
+      setTimelineVideoClips(prev =>
         prev.map(c => {
           if (c.id !== clipId) return c
-          
           if (action === 'move') {
             const newStart = Math.max(0, initialStart + deltaSeconds)
             return { ...c, startSeconds: newStart }
@@ -787,11 +735,9 @@ function App() {
         })
       )
     }
-    
     const handleMouseUp = () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
-      
       setTimelineVideoClips(prev => {
         const aligned = applyMagneticLayout(prev);
         setTimeout(() => {
@@ -800,21 +746,17 @@ function App() {
         return aligned;
       });
     }
-    
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
   }
-
   // Delete Clips central handler
   const handleDeleteClips = (clipIdsToDelete: string[]) => {
     const clips = timelineClipsRef.current || [];
     const videoClips = clips.filter(c => c.type !== 'audio' && c.type !== 'graphic' && !clipIdsToDelete.includes(c.id));
     const audioClips = clips.filter(c => c.type === 'audio' && !clipIdsToDelete.includes(c.id));
     const graphicClips = clips.filter(c => c.type === 'graphic' && !clipIdsToDelete.includes(c.id));
-    
     // Sort remaining video clips by start time
     videoClips.sort((a, b) => a.startSeconds - b.startSeconds);
-    
     let currentStart = 0;
     const rebuiltVideoClips = videoClips.map(clip => {
       const updated = {
@@ -824,18 +766,15 @@ function App() {
       currentStart += clip.durationSeconds;
       return updated;
     });
-    
     const updated = [...rebuiltVideoClips, ...audioClips, ...graphicClips];
     setTimelineVideoClips(updated);
     setSelectedTimelineClipIds([]);
     pushHistory(updated);
   };
-
   // Duplicate timeline clip
   const duplicateTimelineClip = (clipId: string) => {
     const clip = timelineVideoClips.find(c => c.id === clipId)
     if (!clip) return
-    
     const newClip: TimelineClip = {
       id: `timeline-${Math.random()}`,
       name: `${clip.name} (Copy)`,
@@ -852,14 +791,12 @@ function App() {
     setTimelineVideoClips(updated)
     pushHistory(updated)
   }
-
   // Duplicate timeline clips batched
   const duplicateTimelineClips = (clipIds: string[]) => {
     let updated = [...timelineVideoClips];
     clipIds.forEach(clipId => {
       const clip = updated.find(c => c.id === clipId);
       if (!clip) return;
-      
       const newClip: TimelineClip = {
         id: `timeline-${Math.random()}`,
         name: `${clip.name} (Copy)`,
@@ -874,30 +811,24 @@ function App() {
       };
       updated.push(newClip);
     });
-    
     const finalClips = applyMagneticLayout(updated);
     setTimelineVideoClips(finalClips);
     pushHistory(finalClips);
   };
-
   // Split clip at current playhead
   const handleSplit = () => {
     const targetTime = currentTimeSecondsRef.current
     const clips = timelineClipsRef.current
     const selectedIds = selectedTimelineClipIdsRef.current
-
     let clipToSplit = clips.find(c => selectedIds.includes(c.id))
     if (!clipToSplit || targetTime < clipToSplit.startSeconds || targetTime > clipToSplit.startSeconds + clipToSplit.durationSeconds) {
       clipToSplit = clips.find(c => targetTime >= c.startSeconds && targetTime <= c.startSeconds + c.durationSeconds)
     }
-    
     if (!clipToSplit) return
-    
     const splitOffset = targetTime - clipToSplit.startSeconds
     if (splitOffset <= 0.1 || splitOffset >= clipToSplit.durationSeconds - 0.1) {
       return
     }
-    
     const secondClip: TimelineClip = {
       id: `timeline-${Math.random()}`,
       name: `${clipToSplit.name} (Part 2)`,
@@ -907,9 +838,14 @@ function App() {
       path: clipToSplit.path,
       url: clipToSplit.url,
       category: clipToSplit.category,
-      thumbnailUrl: clipToSplit.thumbnailUrl
+      thumbnailUrl: clipToSplit.thumbnailUrl,
+      mediaKind: clipToSplit.mediaKind,
+      slotId: clipToSplit.slotId,
+      styleVersion: clipToSplit.styleVersion,
+      imagePrompt: clipToSplit.imagePrompt,
+      remoteImageBatchId: clipToSplit.remoteImageBatchId,
+      remoteContentItemId: clipToSplit.remoteContentItemId,
     }
-    
     const updated = clips.map(c => {
       if (c.id === clipToSplit.id) {
         return {
@@ -919,12 +855,10 @@ function App() {
       }
       return c
     }).concat(secondClip)
-    
     const magneticallyAligned = applyMagneticLayout(updated)
     setTimelineVideoClips(magneticallyAligned)
     pushHistory(magneticallyAligned)
   }
-
   // Copy clip
   const handleCopyClip = () => {
     const clip = timelineVideoClips.find(c => selectedTimelineClipIds.includes(c.id))
@@ -932,7 +866,6 @@ function App() {
       setCopiedClip(clip)
     }
   }
-
   // Paste clip at playhead
   const handlePasteClip = () => {
     if (!copiedClip) return
@@ -947,13 +880,11 @@ function App() {
     setTimelineVideoClips(updated)
     pushHistory(updated)
   }
-
   // Preview zoom & pan
   const handlePreviewWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     const zoomDelta = -e.deltaY * 0.001
     setZoom(prev => Math.max(1, Math.min(4, prev + zoomDelta)))
   }
-
   const handlePreviewMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (zoom <= 1 || isCropping || e.button !== 0) return
     if ((e.target as HTMLElement).closest('button')) return
@@ -961,7 +892,6 @@ function App() {
     setIsPanning(true)
     setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y })
   }
-
   const handlePreviewMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isPanning) return
     e.preventDefault()
@@ -970,11 +900,9 @@ function App() {
       y: e.clientY - panStart.y
     })
   }
-
   const handlePreviewMouseUpOrLeave = () => {
     setIsPanning(false)
   }
-
   // El pan se guarda en fraccion y se aplica en pixeles. La caja del preview no mide nada
   // hasta que el video esta montado, asi que la conversion espera a que lo este. Se reintenta
   // cuando cambia activeVideoUrl, que es lo que hace aparecer el reproductor.
@@ -988,7 +916,6 @@ function App() {
     })
     setPanFraccionPendiente(null)
   }, [panFraccionPendiente, activeVideoUrl])
-
   // El audio maestro se EXTRAE dentro del proyecto. Antes el clip apuntaba al video del
   // usuario, FUERA de la carpeta del proyecto, y su url era un blob: creado con
   // URL.createObjectURL, que muere con la pagina que lo creo. Por eso al reabrir un proyecto
@@ -1023,7 +950,6 @@ function App() {
       setExtrayendoAudio(false)
     }
   }
-
   // Los ajustes de encuadre que viajan al export. El pan se convierte a FRACCION del cuadro
   // del preview: panOffset se guarda en pixeles de pantalla (e.clientX - panStart.x), asi
   // que en crudo significaria otra cosa con la ventana a otro tamano. El backend necesita la
@@ -1046,7 +972,6 @@ function App() {
       background: 'black' as const
     }
   }
-
   // Crop resize handles
   const handleCropResizeMouseDown = (
     e: React.MouseEvent,
@@ -1054,21 +979,17 @@ function App() {
   ) => {
     e.stopPropagation()
     e.preventDefault()
-    
     const container = e.currentTarget.parentElement?.parentElement
     if (!container) return
     const rect = container.getBoundingClientRect()
-    
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const xPercent = ((moveEvent.clientX - rect.left) / rect.width) * 100
       const yPercent = ((moveEvent.clientY - rect.top) / rect.height) * 100
-      
       setCropRect(prev => {
         let left = prev.left
         let right = prev.right
         let top = prev.top
         let bottom = prev.bottom
-        
         if (handle === 'top-left') {
           left = Math.max(0, Math.min(100 - right - 10, xPercent))
           top = Math.max(0, Math.min(100 - bottom - 10, yPercent))
@@ -1082,58 +1003,47 @@ function App() {
           right = Math.max(0, Math.min(100 - left - 10, 100 - xPercent))
           bottom = Math.max(0, Math.min(100 - top - 10, 100 - yPercent))
         }
-        
         return { left, right, top, bottom }
       })
     }
-    
     const handleMouseUp = () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
-    
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
   }
-
   const handleConfirmCrop = (e: React.MouseEvent) => {
     e.stopPropagation()
     setActiveCrop(cropRect)
     setIsCropping(false)
   }
-
   const handleCancelCrop = (e: React.MouseEvent) => {
     e.stopPropagation()
     setIsCropping(false)
   }
-
   // Global Keyboard Shortcuts (Undo, Redo, Split, Delete, Select All)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA' || document.activeElement?.getAttribute('contenteditable') === 'true') {
         return
       }
-
       const key = e.key.toLowerCase()
-
       // Ctrl+B / Cmd+B -> Split
       if ((e.ctrlKey || e.metaKey) && (key === 'b' || e.code === 'KeyB')) {
         e.preventDefault()
         handleSplit()
       }
-
       // Ctrl+Z / Cmd+Z -> Undo
       if ((e.ctrlKey || e.metaKey) && key === 'z') {
         e.preventDefault()
         handleUndo()
       }
-
       // Ctrl+Y / Cmd+Y -> Redo
       if ((e.ctrlKey || e.metaKey) && key === 'y') {
         e.preventDefault()
         handleRedo()
       }
-
       // Ctrl+A / Cmd+A -> Select All Video Clips
       if ((e.ctrlKey || e.metaKey) && (key === 'a' || e.code === 'KeyA')) {
         e.preventDefault()
@@ -1141,7 +1051,6 @@ function App() {
         const videoClipIds = videoClips.map(c => c.id)
         setSelectedTimelineClipIds(videoClipIds)
       }
-
       // Delete / Backspace -> Delete Selected Clips
       if (key === 'delete' || key === 'backspace') {
         const selectedIds = selectedTimelineClipIdsRef.current
@@ -1150,24 +1059,20 @@ function App() {
           handleDeleteClips(selectedIds)
         }
       }
-
       // Ctrl+= / Ctrl++ -> Timeline Zoom In
       if ((e.ctrlKey || e.metaKey) && (key === '=' || key === '+' || e.code === 'Equal' || e.code === 'NumpadAdd')) {
         e.preventDefault()
         setTimelineZoom(prev => Math.min(6000, prev + 300))
       }
-
       // Ctrl+- -> Timeline Zoom Out
       if ((e.ctrlKey || e.metaKey) && (key === '-' || e.code === 'Minus' || e.code === 'NumpadSubtract')) {
         e.preventDefault()
         setTimelineZoom(prev => Math.max(1200, prev - 300))
       }
     }
-
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, []) // Stable!
-
   // Reset selected clips if they are no longer present in clips
   useEffect(() => {
     setSelectedTimelineClipIds(prev => {
@@ -1178,12 +1083,10 @@ function App() {
       return prev;
     });
   }, [timelineVideoClips]);
-
   // Bind non-passive wheel event to timeline tracks container to handle Ctrl+Scroll zoom
   useEffect(() => {
     const element = timelineTracksRef.current;
     if (!element) return;
-    
     const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey) {
         e.preventDefault(); // Blocks Electron page zoom
@@ -1193,13 +1096,11 @@ function App() {
         element.scrollLeft += e.deltaY;
       }
     };
-    
     element.addEventListener('wheel', handleWheel, { passive: false });
     return () => {
       element.removeEventListener('wheel', handleWheel);
     };
   }, []);
-
   // Handle right-click context menu
   const handleClipContextMenu = (e: React.MouseEvent, clipId: string) => {
     e.preventDefault()
@@ -1216,7 +1117,6 @@ function App() {
       clipId
     })
   }
-
   // Close context menu on click
   useEffect(() => {
     const handleCloseMenu = () => {
@@ -1225,7 +1125,6 @@ function App() {
     window.addEventListener('click', handleCloseMenu)
     return () => window.removeEventListener('click', handleCloseMenu)
   }, [])
-
   // HTML5 video handlers
   const loadClip = useCallback((index: number, autoPlay: boolean) => {
     const clip = sortedVideoClips[index];
@@ -1236,9 +1135,8 @@ function App() {
       if (audioRef.current) audioRef.current.pause();
       return;
     }
-
     setCurrentClipIndex(index);
-    
+    activeMediaIndexRef.current = index;
     if (!isTransitioningRef.current) {
       preloadedIndexRef.current = null;
       setMainVideoTransition('');
@@ -1250,45 +1148,48 @@ function App() {
         videoRef2.current.src = '';
       }
     }
-    
     if (clip.path) {
-      const fileUrl = rutaAUrl(clip.path);
-      setActiveVideoUrl(fileUrl);
-      if (video.src !== fileUrl) {
-        video.src = fileUrl;
-        video.load();
-      }
-      const masterTime = audioRef.current ? audioRef.current.currentTime : currentTimeRef.current;
-      const offsetInClip = masterTime - clip.startSeconds;
-      video.currentTime = Math.max(0, offsetInClip);
-      if (autoPlay) {
-        video.play().catch(e => console.error("loadClip play error:", e));
+      const fileUrl = clip.url || rutaAUrl(clip.path);
+      if (clip.mediaKind === 'image') {
+        video.pause();
+        setActiveVideoUrl(null);
+        setActiveImageUrl(fileUrl);
+      } else {
+        setActiveImageUrl(null);
+        setActiveVideoUrl(fileUrl);
+        if (video.src !== fileUrl) {
+          video.src = fileUrl;
+          video.load();
+        }
+        const masterTime = audioRef.current ? audioRef.current.currentTime : currentTimeRef.current;
+        const offsetInClip = masterTime - clip.startSeconds;
+        video.currentTime = Math.max(0, offsetInClip);
+        if (autoPlay) {
+          video.play().catch(e => console.error("loadClip play error:", e));
+        }
       }
     } else {
       setActiveVideoUrl(null);
+      setActiveImageUrl(null);
       if (video) video.pause();
     }
   }, [sortedVideoClips]);
-
   const handleVideoCanPlay = () => {
     if (videoRef.current && isPlaying) {
       videoRef.current.play().catch(e => console.error("canplay play error:", e));
     }
   };
-
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDurationSeconds(videoRef.current.duration || 0)
       handleVideoCanPlay();
     }
   }
-
   const handleDurationChange = () => {
     if (videoRef.current) {
       setDurationSeconds(videoRef.current.duration || 0)
     }
   }
-
   const handleEnded = () => {
     if (isTransitioningRef.current) return;
     const nextIdx = currentClipIndex + 1;
@@ -1303,12 +1204,10 @@ function App() {
     const nextClip = sortedVideoClips[nextIdx];
     const trKey = currentClip?.id + '->' + nextClip?.id;
     const assigned = assignedTransitions[trKey];
-    
     if (!assigned) {
       loadClip(nextIdx, true);
     }
   };
-
   const handleTimeUpdate = () => {
     const video = videoRef.current;
     if (video && isPlaying) {
@@ -1316,18 +1215,14 @@ function App() {
       const audio = audioRef.current;
       const cursor = (audio && !audio.paused) ? audio.currentTime : (clip ? clip.startSeconds + video.currentTime : video.currentTime);
       updateCurrentTime(cursor);
-
       if (clip) {
         const clipEnd = clip.startSeconds + clip.durationSeconds;
         const timeRemaining = clipEnd - cursor;
-
         const nextIdx = currentClipIndex + 1;
         const nextClip = sortedVideoClips[nextIdx];
-
         if (nextClip && nextClip.path) {
           const trKey = clip.id + '->' + nextClip.id;
           const assigned = assignedTransitions[trKey];
-
           if (assigned) {
             // 1. Precargar el siguiente clip en videoRef2 cuando falten 1.5 segundos o menos
             if (timeRemaining <= 1.5 && preloadedIndexRef.current !== nextIdx) {
@@ -1337,31 +1232,24 @@ function App() {
                 preloadedIndexRef.current = nextIdx;
               }
             }
-
             // 2. Disparar la transición crossfade al llegar al fin lógico
             if (cursor >= clipEnd && !isTransitioningRef.current) {
               isTransitioningRef.current = true;
-              
               if (videoRef2.current) {
                 videoRef2.current.currentTime = 0;
                 videoRef2.current.play().catch(e => console.error("videoRef2 play error during transition:", e));
               }
-
               // Aplicar transiciones CSS en los wrappers usando estados de React
               setMainVideoTransition(`opacity ${transitionDuration}s ease-in-out`);
               setVideo2Transition(`opacity ${transitionDuration}s ease-in-out`);
-
               requestAnimationFrame(() => {
                 setMainVideoOpacity(0);
                 setVideo2Opacity(1);
               });
-
               const dur = Math.max(300, transitionDuration * 1000);
               setTimeout(() => {
                 setMainVideoTransition('');
-                
                 loadClip(nextIdx, true);
-                
                 const checkReady = () => {
                   const v = videoRef.current;
                   if (v && v.readyState >= 2) {
@@ -1386,7 +1274,6 @@ function App() {
       }
     }
   };
-
   // Sync global timecode string representation
   useEffect(() => {
     const hrs = Math.floor(currentTimeForUI / 3600)
@@ -1396,14 +1283,12 @@ function App() {
     const pad = (num: number) => String(num).padStart(2, '0')
     setCurrentTime(`${pad(hrs)}:${pad(mins)}:${pad(secs)}:${pad(frames)}`)
   }, [currentTimeForUI]);
-
   // Force video element to load new source immediately when activeVideoUrl changes (Bug 1)
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.load();
     }
   }, [activeVideoUrl]);
-
   // Sync volume, mute, and speed
   useEffect(() => {
     if (videoRef.current) {
@@ -1411,13 +1296,11 @@ function App() {
       videoRef.current.muted = isMuted;
     }
   }, [volume, isMuted, activeVideoUrl]);
-
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.playbackRate = playbackRate;
     }
   }, [playbackRate, activeVideoUrl]);
-
   // AI Transcription States
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [transcriptionStatus, setTranscriptionStatus] = useState<string>('')
@@ -1429,12 +1312,11 @@ function App() {
   const [isRewriting, setIsRewriting] = useState(false)
   const [rewriteError, setRewriteError] = useState<string>('')
   const [isCopied, setIsCopied] = useState(false)
-
   // AI Asset Generation States
   const [isGeneratingAssets, setIsGeneratingAssets] = useState(false)
+  const [visualRegenerationStatus,setVisualRegenerationStatus]=useState('')
   const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number; paragraph: string; type: string } | null>(null)
   const [generationError, setGenerationError] = useState<string>('')
-
   useEffect(() => {
     if (window.electronAPI && window.electronAPI.onGenerationProgress) {
       const unsub = window.electronAPI.onGenerationProgress((_event, data) => {
@@ -1449,7 +1331,6 @@ function App() {
     }
     return undefined;
   }, []);
-
   // LOS AVISOS. Canal propio `generation-aviso`, no un campo mas en el progreso.
   useEffect(() => {
     if (!window.electronAPI?.onGenerationAviso) return undefined
@@ -1463,7 +1344,6 @@ function App() {
     })
     return () => unsub()
   }, [])
-
   useEffect(() => {
     const cleanup = window.electronAPI.onExportProgress((_event: any, data: any) => {
       setExportProgress(data);
@@ -1473,12 +1353,10 @@ function App() {
     });
     return cleanup;
   }, []);
-
   // Resizable panel dimensions
   const [libraryWidth, setLibraryWidth] = useState(360)
   const [toolsWidth, setToolsWidth] = useState(320)
   const [timelineHeight, setTimelineHeight] = useState(256)
-
   // Voice settings states (ElevenLabs style)
   const [voiceModel, setVoiceModel] = useState('Eleven Multilingual v2')
   const [voiceSpeaker, setVoiceSpeaker] = useState('Clon de mi Voz (Voz del Video)')
@@ -1487,7 +1365,6 @@ function App() {
   const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false)
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null)
   const [playingPreviewVoiceId, setPlayingPreviewVoiceId] = useState<string | null>(null)
-
   useEffect(() => {
     const fetchVoices = async () => {
       try {
@@ -1507,12 +1384,10 @@ function App() {
     };
     fetchVoices();
   }, []);
-
   const handleVoiceSelect = (voiceId: string) => {
     setSelectedVoiceId(voiceId);
     localStorage.setItem('elevenlabs_selected_voice_id', voiceId);
   };
-
   const playVoicePreview = (voice: any) => {
     if (playingPreviewVoiceId === voice.voice_id && previewAudio) {
       previewAudio.pause();
@@ -1520,11 +1395,9 @@ function App() {
       setPlayingPreviewVoiceId(null);
       return;
     }
-
     if (previewAudio) {
       previewAudio.pause();
     }
-
     if (voice.preview_url) {
       const audio = new Audio(voice.preview_url);
       audio.volume = 0.8;
@@ -1545,7 +1418,6 @@ function App() {
   const [generatedVoices, setGeneratedVoices] = useState<GeneratedVoiceVersion[]>([])
   const [isGeneratingVoice, setIsGeneratingVoice] = useState(false)
   const [voiceGenerationError, setVoiceGenerationError] = useState<string>('')
-
   // Bank Clips & Tabs states
   const [libraryTab, setLibraryTab] = useState('Principal')
   const [bankClips, setBankClips] = useState<Record<string, any[]>>({
@@ -1558,28 +1430,129 @@ function App() {
   const [cuttingClipsError, setCuttingClipsError] = useState('')
   const [isExporting, setIsExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState<{ step: string; current: number; total: number; message: string } | null>(null);
-
-  // Timeline IA weights: [Original, Stock, IA]
-  // Cuatro posiciones: [0] original, [1] stock, [2] IA, [3] Visuales. Visuales arranca en 0:
-  // un proyecto nuevo reparte exactamente como antes hasta que el usuario mueva el slider.
+  // [Original, Stock, IA, Visuales]. Visuales uses the Animation service inside Build.
   const [timelineWeights, setTimelineWeights] = useState<number[]>([...PESOS_POR_DEFECTO])
+  const restoreTimelineWeights = (stored: unknown) => {
+    setTimelineWeights(normalizarPesos(stored))
+    setVisualRegenerationStatus('')
+  }
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
-
+  const selectedAnimationClip = selectedTimelineClipIds.length === 1
+    ? timelineVideoClips.find(clip => clip.id === selectedTimelineClipIds[0] && clip.category === 'visual' && clip.type !== 'graphic') || null
+    : null
+  const animationTranscriptSegments = timelineVideoClips.find(clip => clip.type === 'audio')?.name === 'Voz - Audio Original'
+    ? transcriptSegments : newAudioSegments
+  const applyAnimationClip = (generatedClip: any, selectedClipId: string) => {
+    const source = timelineVideoClips.find(clip => clip.id === selectedClipId)
+    if (!source) {
+      const startSeconds = Number(generatedClip?.startSeconds)
+      const durationSeconds = Number(generatedClip?.durationSeconds)
+      const isNewDraft = generatedClip?.targetMode === 'new-visual-draft' && selectedTimelineClipIds.length === 0 &&
+        typeof generatedClip?.id === 'string' && generatedClip.id === selectedClipId &&
+        canApplyNewAnimationVisualAt(startSeconds, durationSeconds)
+      if (!isNewDraft || !generatedClip?.path) return false
+      const inserted: TimelineClip = { id: generatedClip.id, name: String(generatedClip.name || 'Animation'), type: 'video',
+        category: 'visual', startSeconds, durationSeconds, path: generatedClip.path, url: generatedClip.url,
+        animationV1: generatedClip.animationV1 }
+      const next = [...timelineVideoClips, inserted].sort((a, b) => a.startSeconds - b.startSeconds)
+      pushHistory(next); setTimelineVideoClips(next); setSelectedTimelineClipIds([inserted.id]); setIsDirty(true)
+      return true
+    }
+    if (selectedTimelineClipIds.length !== 1 || selectedTimelineClipIds[0] !== selectedClipId) return false
+    if (!source || source.category !== 'visual' || source.type === 'graphic' ||
+        Math.abs(source.durationSeconds - Number(generatedClip?.durationSeconds)) > 1 / 30) return false
+    const targetStart = Number(source.startSeconds || 0), targetEnd = targetStart + Number(source.durationSeconds || 0)
+    const next = timelineVideoClips.filter(clip => !(clip.type === 'graphic' &&
+      targetStart < Number(clip.startSeconds || 0) + Number(clip.durationSeconds || 0) - 1 / 30 &&
+      targetEnd > Number(clip.startSeconds || 0) + 1 / 30))
+    const { canvasV4: _canvasV4, visualRegeneration: _visualRegeneration, graphicData: _graphicData,
+      animationPending: _animationPending, animationSlotIndex: _animationSlotIndex,
+      transcriptText: _transcriptText, requestedSource: _requestedSource, materialized: _materialized,
+      ...stableSource } = source
+    const replaced = next.map(clip => clip.id === selectedClipId ? {
+      ...stableSource, name: String(generatedClip.name || source.name), path: generatedClip.path, url: generatedClip.url,
+      animationV1: generatedClip.animationV1,
+    } : clip)
+    pushHistory(replaced)
+    setTimelineVideoClips(replaced)
+    setIsDirty(true)
+    return true
+  }
+  const restoreAnimationSnapshot = (snapshot: any) => {
+    if (!activeProjectPathRef.current || String(snapshot?.projectPath).replace(/[\\/]+/g, '/').toLowerCase() !==
+        String(activeProjectPathRef.current).replace(/[\\/]+/g, '/').toLowerCase() || typeof snapshot?.clipId !== 'string' ||
+        !Array.isArray(snapshot?.previousClips) || snapshot.previousClips.some((clip: any) => !clip || typeof clip.id !== 'string') ||
+        (snapshot.previousClips.length > 0 && !snapshot.previousClips.some((clip: any) => clip.id === snapshot.clipId)) ||
+        (snapshot.timelineClipOrder !== undefined && (!Array.isArray(snapshot.timelineClipOrder) ||
+          snapshot.timelineClipOrder.length > 2000 || snapshot.timelineClipOrder.some((id: any) => typeof id !== 'string') ||
+          new Set(snapshot.timelineClipOrder).size !== snapshot.timelineClipOrder.length ||
+          (snapshot.previousClips.length > 0 && !snapshot.timelineClipOrder.includes(snapshot.clipId))))) return false
+    if (!timelineVideoClips.some(clip => clip.id === snapshot.clipId)) return false
+    let restoredClips = snapshot.previousClips.length === 0
+      ? timelineVideoClips.filter(clip => clip.id !== snapshot.clipId)
+      : [...timelineVideoClips]
+    for (const previousClip of snapshot.previousClips as TimelineClip[]) {
+      const index = restoredClips.findIndex(clip => clip.id === previousClip.id)
+      if (index >= 0) restoredClips[index] = previousClip
+      else restoredClips.push(previousClip)
+    }
+    if (Array.isArray(snapshot.timelineClipOrder)) {
+      const remaining = new Map(restoredClips.map(clip => [clip.id, clip]))
+      const ordered: TimelineClip[] = []
+      for (const id of snapshot.timelineClipOrder as string[]) {
+        const clip = remaining.get(id)
+        if (clip) { ordered.push(clip); remaining.delete(id) }
+      }
+      restoredClips = [...ordered, ...remaining.values()]
+    } else {
+      // Compatibility for snapshots written before exact timeline ordering was saved.
+      restoredClips = restoredClips.sort((a, b) => Number(a.startSeconds || 0) - Number(b.startSeconds || 0))
+    }
+    const ids = restoredClips.map(clip => clip.id)
+    if (ids.some(id => typeof id !== 'string') || new Set(ids).size !== ids.length) return false
+    const currentMilestone: MilestoneState = { label: 'Animation aplicado', clips, timelineVideoClips,
+      transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, generatedVoices, graphicsPercent }
+    const restoredMilestone: MilestoneState = { ...currentMilestone, label: 'Animation deshecho', timelineVideoClips: restoredClips }
+    setTimelineVideoClips(restoredClips)
+    const restoredSelection = Array.isArray(snapshot.selectedTimelineClipIds)
+      ? snapshot.selectedTimelineClipIds.filter((id: unknown) => typeof id === 'string' &&
+        (restoredClips.some(clip => clip.id === id)))
+      : []
+    setSelectedTimelineClipIds(restoredSelection)
+    setMilestoneHistory([restoredMilestone, currentMilestone])
+    setMilestoneIndex(0)
+    setIsDirty(true)
+    return true
+  }
+  const canApplyNewAnimationVisualAt = (startSeconds: number, duration: number) => {
+    if (!Number.isFinite(startSeconds) || !Number.isFinite(duration) || duration < 3 || duration > 10) return false
+    const endSeconds = startSeconds + duration
+    const tolerance = 1 / 30
+    return !timelineVideoClips.some(clip => {
+      if (clip.type === 'audio') return false
+      const clipStart = Number(clip.startSeconds || 0), clipEnd = clipStart + Number(clip.durationSeconds || 0)
+      return startSeconds < clipEnd - tolerance && endSeconds > clipStart + tolerance
+    })
+  }
   // Hub de IA — estados
   const [promptIa, setPromptIa] = useState<string>('')
   const [isGenerandoIa, setIsGenerandoIa] = useState(false)
   const [isOptimizingPrompt, setIsOptimizingPrompt] = useState(false)
   const [errorIa, setErrorIa] = useState<string>('')
-
   // Project persistence state
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [isFileMenuOpen, setIsFileMenuOpen] = useState(false)
   const hasLoaded = React.useRef(false)
-
   const firstLibraryClip = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
   const firstLibraryClipId = firstLibraryClip ? firstLibraryClip.id : null;
-
+  // Loading a saved project changes the first clip just like importing a new
+  // source, but its persisted script/transcription must not be cleared.
+  const projectLoadedSourceIdRef = React.useRef<string | null>(null);
   useEffect(() => {
+    if(firstLibraryClipId && projectLoadedSourceIdRef.current===firstLibraryClipId){
+      projectLoadedSourceIdRef.current=null;
+      return;
+    }
     setIsTranscribing(false);
     setTranscriptionStatus('');
     setTranscriptSegments([]);
@@ -1588,7 +1561,6 @@ function App() {
     setIsRewriting(false);
     setRewriteError('');
   }, [firstLibraryClipId]);
-
   useEffect(() => {
     if (window.electronAPI && typeof window.electronAPI.onTranscriptionUpdate === 'function') {
       const unsubscribe = window.electronAPI.onTranscriptionUpdate((_event, data) => {
@@ -1605,6 +1577,7 @@ function App() {
             setTranscriptSegments(data.result.segments);
             const compiled = data.result.segments.map((s: any) => s.text).join(' ');
             setOriginalTranscriptText(compiled);
+            setSelectedTool('animation');
             pushMilestone('Transcripción lista', {
               transcriptionStatus: 'Transcripción completada con éxito.',
               transcriptSegments: data.result.segments,
@@ -1619,7 +1592,6 @@ function App() {
       return () => unsubscribe();
     }
   }, []);
-
   // Master Audio initialization and volume/mute sync
   useEffect(() => {
     const voiceClip = timelineVideoClips.find(c => c.type === 'audio');
@@ -1640,19 +1612,31 @@ function App() {
       }
     }
   }, [timelineVideoClips]);
-
+  // The master voice also clocks image-only timeline clips. Video timeupdate cannot fire
+  // while a still image is on screen, so the audio clock advances the current media slot.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const syncTimelineMedia = () => {
+      if (!isPlaying) return;
+      const time = audio.currentTime;
+      updateCurrentTime(time);
+      const index = sortedVideoClips.findIndex(clip => time >= clip.startSeconds && time < clip.startSeconds + clip.durationSeconds);
+      if (index !== activeMediaIndexRef.current) loadClip(index, index >= 0);
+    };
+    audio.addEventListener('timeupdate', syncTimelineMedia);
+    return () => audio.removeEventListener('timeupdate', syncTimelineMedia);
+  }, [timelineVideoClips, sortedVideoClips, isPlaying, loadClip, updateCurrentTime]);
   // Synchronize HTML5 video and audio play state when isPlaying changes (Corrección 1)
   useEffect(() => {
     const video = videoRef.current;
     const audio = audioRef.current;
-    
     if (isPlaying) {
       const currentT = currentTimeRef.current;
       if (audio) {
         audio.currentTime = currentT;
         audio.play().catch(e => console.error("Audio play error:", e));
       }
-      
       const idx = Math.max(0, sortedVideoClips.findIndex((_, i) => {
         const next = sortedVideoClips[i + 1];
         return !next || currentT < next.startSeconds;
@@ -1667,7 +1651,6 @@ function App() {
       }
     }
   }, [isPlaying, loadClip, sortedVideoClips]);
-
   // Sync volume, mute, and speed of video & audio elements
   useEffect(() => {
     if (videoRef.current) {
@@ -1675,14 +1658,12 @@ function App() {
       videoRef.current.muted = isMuted;
     }
   }, [volume, isMuted, isVideoTrackMuted, videoTrackVolume, activeVideoUrl]);
-
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = isAudioTrackMuted ? 0 : audioTrackVolume * volume;
       audioRef.current.muted = isMuted;
     }
   }, [volume, isMuted, isAudioTrackMuted, audioTrackVolume]);
-
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.playbackRate = playbackRate;
@@ -1691,9 +1672,6 @@ function App() {
       audioRef.current.playbackRate = playbackRate;
     }
   }, [playbackRate, activeVideoUrl]);
-
-
-
   const refreshProjectsList = async () => {
     try {
       if (window.electronAPI && window.electronAPI.listProjects) {
@@ -1706,24 +1684,19 @@ function App() {
       console.error('Error refreshing projects list:', e);
     }
   };
-
   // Load project list on startup
   useEffect(() => {
     refreshProjectsList();
   }, []);
-
   // CapCut-style debounced auto-save (triggers 2 seconds after any changes)
   useEffect(() => {
     if (!hasLoaded.current) return;
-
     setIsDirty(true);
     const timer = setTimeout(() => {
       handleSaveProjectDirectly();
     }, 2000);
-
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
-
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, vibesSourceTranscriptSegments, newAudioSegments, activeProjectId, activeProjectName, vibesSourceStartSeconds, vibesSourceMediaDurationSeconds, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
   // UN solo sitio construye lo que se guarda. Estaba copiado en TRES (guardar al cerrar,
   // guardar, y guardar como), y por eso cada funcion nueva nacia sin persistencia en dos de
   // los tres caminos aunque alguien se acordara del primero.
@@ -1733,15 +1706,21 @@ function App() {
     clips: clips.map(c => ({
       id: c.id, name: c.name, duration: c.duration, durationSeconds: c.durationSeconds,
       type: c.type, path: c.path, size: c.size,
-      url: c.type === 'audio' ? c.url : undefined
+      url: c.type === 'audio' ? c.url : undefined,
+      mediaKind: c.mediaKind, exposureDurationSeconds: c.exposureDurationSeconds,
+      provider: c.provider, category: c.category, slotId: c.slotId, styleVersion: c.styleVersion,
+      imagePrompt: c.imagePrompt, remoteImageBatchId: c.remoteImageBatchId,
+      remoteContentItemId: c.remoteContentItemId, thumbnailUrl: c.thumbnailUrl,
     })),
     timelineVideoClips, timelineVersions, activeVersionId,
+    vibesSourceStartSeconds,
+    vibesSourceMediaDurationSeconds,
+    vibesSourceTranscriptSegments,
     transcriptionStatus, transcriptSegments, newAudioSegments,
     aiScript, originalTranscriptText,
     libraryWidth, toolsWidth, timelineHeight,
     voiceModel, voiceSpeaker, voiceSpeed, voiceStability,
     generatedVoices, graphicsPercent, timelineWeights,
-
     // ─── Lo que decide COMO sale el video exportado ───
     // aspectRatio es el mas peligroso de los siete: NO aparece en el modal de exportacion,
     // asi que un proyecto vertical reabria en horizontal y se exportaba mal sin que nada lo
@@ -1754,13 +1733,11 @@ function App() {
     // ventana a otro tamano. Es la misma forma que ya consume el export.
     ajustesVideo: construirAjustesVideo(),
   })
-
   // Save-on-close handler
   useEffect(() => {
     if (window.electronAPI && typeof window.electronAPI.onSaveBeforeClose === 'function') {
       const unsubscribe = window.electronAPI.onSaveBeforeClose(async () => {
         const stateToSave = construirEstadoAGuardar();
-        
         try {
           await window.electronAPI.saveProjectState(stateToSave);
         } catch (e) {
@@ -1770,13 +1747,11 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
-
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, vibesSourceTranscriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, activeProjectId, activeProjectName, vibesSourceStartSeconds, vibesSourceMediaDurationSeconds, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
     try {
       const stateToSave = construirEstadoAGuardar();
-
       const res = await window.electronAPI.saveProjectState(stateToSave);
       if (res && res.success) {
         setSaveStatus('saved');
@@ -1794,12 +1769,10 @@ function App() {
       return false;
     }
   };
-
   const handleSaveProjectAs = async () => {
     setSaveStatus('saving');
     try {
       const stateToSave = construirEstadoAGuardar();
-
       const res = await window.electronAPI.saveProjectAs(stateToSave);
       if (res && res.success) {
         setSaveStatus('saved');
@@ -1814,13 +1787,131 @@ function App() {
       setTimeout(() => setSaveStatus('idle'), 4000);
     }
   };
-
+  const handleVibesSlotsAssigned = async (sequence: any) => {
+    setVibesSourceStartSeconds(Number(sequence.sourceStartSeconds) || 0);
+    setTimelineWeights([0, 0, 100, 0]);
+    setVisualRegenerationStatus('');
+    setSyncWeights([0, 0, 100]);
+    setGraphicsPercent(0);
+    setTransitionsPercent(0);
+    setSelectedTransitions([]);
+    setAssignedTransitions({});
+    audioRef.current?.pause();
+    setIsPlaying(false);
+    const voice = timelineVideoClips.find(clip => clip.type === 'audio');
+    const placeholders: TimelineClip[] = sequence.slots.map((slot: any, index: number) => ({
+      id: slot.id,
+      slotId: slot.id,
+      name: `Vibes · Espacio ${String(index + 1).padStart(2, '0')}`,
+      startSeconds: slot.timelineStartSeconds,
+      durationSeconds: 3,
+      type: 'video',
+      mediaKind: 'image',
+      vibesPlaceholder: true,
+      category: 'ia',
+      styleVersion: sequence.styleVersion,
+    }));
+    const assigned: TimelineClip[] = [
+      ...(voice ? [{ ...voice, startSeconds: 0, durationSeconds: 60, vibesSampleDurationLock: 60 }] : []),
+      ...placeholders,
+    ];
+    setTimelineVideoClips(assigned);
+    pushHistory(assigned);
+    setSelectedTimelineClipIds([]);
+  };
+  const handleVibesImagesImported = async (assets: any[], sequence: any) => {
+    const imageBySlot = new Map(assets.map(asset => [asset.slotId, asset]));
+    const importedLibraryClips = assets.map((asset, index) => ({
+      ...asset,
+      id: asset.assetId || `vibes-${asset.slotId}`,
+      name: `Vibes · Imagen ${String(index + 1).padStart(2, '0')}`,
+      duration: 'Imagen',
+      durationSeconds: 0,
+      type: 'image' as const,
+      mediaKind: 'image' as const,
+      provider: 'vibes',
+      category: 'ia',
+      size: asset.size || '',
+    }));
+    setClips(previous => [...previous.filter(clip => !(clip as any).slotId), ...importedLibraryClips]);
+    const voice = timelineVideoClips.find(clip => clip.type === 'audio');
+    const images: TimelineClip[] = sequence.slots.map((slot: any, index: number) => {
+      const asset: any = imageBySlot.get(slot.id);
+      return {
+        id: slot.id,
+        slotId: slot.id,
+        name: `Vibes · Imagen ${String(index + 1).padStart(2, '0')}`,
+        startSeconds: slot.timelineStartSeconds,
+        durationSeconds: slot.timelineDurationSeconds || 3,
+        type: 'video',
+        mediaKind: 'image',
+        category: 'ia',
+        path: asset?.path,
+        url: asset?.url,
+        thumbnailUrl: asset?.thumbnailUrl,
+        styleVersion: asset?.styleVersion,
+        imagePrompt: asset?.imagePrompt,
+        remoteImageBatchId: asset?.remoteImageBatchId,
+        remoteContentItemId: asset?.remoteContentItemId,
+      };
+    });
+    const updated: TimelineClip[] = [
+      ...(voice ? [{ ...voice, startSeconds: 0, durationSeconds: 60, vibesSampleDurationLock: 60 }] : []),
+      ...images,
+    ];
+    setTimelineVideoClips(updated);
+    pushHistory(updated);
+    setSelectedTimelineClipIds([]);
+    setActiveVideoUrl(null);
+    setActiveImageUrl(images[0]?.url || null);
+    if (audioRef.current) audioRef.current.currentTime = 0;
+    updateCurrentTime(0);
+    flushCurrentTime();
+    setLibraryTab('IA');
+  };
+  const handleVibesVideoImported = async (asset: any, _sequence: any) => {
+    if (!asset?.path || !asset?.slotId || !asset?.url) throw new Error('VIBES_IMPORTED_VIDEO_INVALID')
+    const libraryClip = {
+      ...asset,
+      id: asset.id || asset.slotId + '-video',
+      name: asset.name || 'Vibes · Animación',
+      duration: 'Video',
+      type: 'video' as const,
+      mediaKind: 'video' as const,
+      provider: 'vibes',
+      category: 'ia',
+    }
+    setClips(previous => [...previous.filter(clip => clip.id !== libraryClip.id), libraryClip])
+    const existing = timelineVideoClips.find((clip: any) => clip.slotId === asset.slotId || clip.id === asset.slotId)
+    if (!existing) throw new Error('VIBES_TIMELINE_SLOT_NOT_FOUND:' + asset.slotId)
+    const replacement: any = {
+      ...existing,
+      ...asset,
+      id: asset.slotId,
+      slotId: asset.slotId,
+      name: asset.name || 'Vibes · Animación',
+      startSeconds: existing.startSeconds ?? asset.timelineStartSeconds,
+      durationSeconds: Number(asset.durationSeconds || existing.durationSeconds || 3),
+      type: 'video',
+      mediaKind: 'video',
+      category: 'ia',
+      url: asset.url,
+      path: asset.path,
+    }
+    const updated = timelineVideoClips.map((clip: any) => clip.slotId === asset.slotId || clip.id === asset.slotId ? replacement : clip)
+    setTimelineVideoClips(updated)
+    pushHistory(updated)
+    setSelectedTimelineClipIds([replacement.id])
+    setActiveImageUrl(null)
+    setActiveVideoUrl(asset.url)
+    setCurrentClipIndex(Math.max(0, sortedVideoClips.findIndex((clip: any) => clip.slotId === asset.slotId || clip.id === asset.slotId)))
+    setLibraryTab('IA')
+  }
   const handleLoadProject = async (projectPath: string) => {
     try {
       const res = await window.electronAPI.loadProject({ projectPath });
       if (res && res.success && res.data) {
         const loadedData = res.data;
-        
         // La url se DERIVA del path al cargar. El guardado descarta la url de los clips de
         // video, asi que al reabrir se quedaban sin nada que reproducir aunque el fichero
         // siguiera en su sitio.
@@ -1828,8 +1919,11 @@ function App() {
           ...c,
           url: c.url || (c.path ? rutaAUrl(c.path) : undefined)
         }));
-
+        projectLoadedSourceIdRef.current=restoredClips.find((clip:any)=>clip.type==='video'||clip.type==='audio')?.id??null;
         setClips(restoredClips);
+        setVibesSourceStartSeconds(Number(loadedData.vibesSourceStartSeconds) || 0);
+        setVibesSourceMediaDurationSeconds(Number(loadedData.vibesSourceMediaDurationSeconds) || undefined);
+        setVibesSourceTranscriptSegments(Array.isArray(loadedData.vibesSourceTranscriptSegments) ? loadedData.vibesSourceTranscriptSegments : []);
         const restoredVersions = loadedData.timelineVersions || [
           {
             id: 'v-original',
@@ -1841,11 +1935,9 @@ function App() {
         const restoredActiveId = loadedData.activeVersionId || restoredVersions[0]?.id || 'v-original';
         setTimelineVersions(restoredVersions);
         setActiveVersionId(restoredActiveId);
-
         const activeVersion = restoredVersions.find((v: any) => v.id === restoredActiveId);
         const clipsDelTimeline = activeVersion ? activeVersion.timelineVideoClips : (loadedData.timelineVideoClips || []);
         setTimelineVideoClips(clipsDelTimeline);
-
         // El preview arranca vacio si nadie fija activeVideoUrl: el <video> lleva
         // display:none mientras sea null, asi que al reabrir un proyecto no se veia NADA
         // hasta mover el cursor. No era un fotograma que faltara — medido, el <video>
@@ -1854,9 +1946,12 @@ function App() {
         const primerVideo = (clipsDelTimeline || [])
           .filter((c: any) => c.type === 'video' && (c.url || c.path))
           .sort((a: any, b: any) => (a.startSeconds || 0) - (b.startSeconds || 0))[0];
-        setActiveVideoUrl(primerVideo ? (primerVideo.url || rutaAUrl(primerVideo.path)) : null);
+        const primerUrl = primerVideo ? (primerVideo.url || rutaAUrl(primerVideo.path)) : null;
+        setActiveImageUrl(primerVideo?.mediaKind === 'image' ? primerUrl : null);
+        setActiveVideoUrl(primerVideo?.mediaKind === 'image' ? null : primerUrl);
         setTranscriptionStatus(loadedData.transcriptionStatus || '');
         setTranscriptSegments(loadedData.transcriptSegments || []);
+        if ((loadedData.transcriptSegments || []).length > 0) setSelectedTool('animation');
         setNewAudioSegments(loadedData.newAudioSegments || []);
         setAiScript(loadedData.aiScript || '');
         const loadedOriginalText = loadedData.originalTranscriptText || (loadedData.transcriptSegments || []).map((s: any) => s.text).join(' ') || '';
@@ -1869,15 +1964,11 @@ function App() {
         if (loadedData.voiceSpeed !== undefined) setVoiceSpeed(loadedData.voiceSpeed);
         if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
         setGeneratedVoices(loadedData.generatedVoices || []);
-        // normalizarPesos y no el valor crudo: un proyecto guardado antes del cuarto peso trae
-        // TRES posiciones, y uno ya corrompido trae [null,null,null,null]. Los dos entran sanos
-        // por aqui, asi que se recuperan solos sin tener que borrarlos.
-        if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
-
+        if (loadedData.timelineWeights !== undefined) restoreTimelineWeights(loadedData.timelineWeights);
         // ─── Lo que decide COMO sale el video exportado ───
         // Solo se restaura lo que VENGA: un proyecto guardado antes de esto no trae estos
         // campos, y machacar con undefined lo dejaria peor que con el valor por defecto.
-        if (loadedData.aspectRatio) setAspectRatio(loadedData.aspectRatio);
+        if (loadedData.aspectRatio) setAspectRatio(normalizeProjectAspectRatioV1(loadedData.aspectRatio));
         if (loadedData.exportResolution) setExportResolution(loadedData.exportResolution);
         if (loadedData.exportFormat) setExportFormat(loadedData.exportFormat);
         if (loadedData.exportQuality) setExportQuality(loadedData.exportQuality);
@@ -1891,11 +1982,9 @@ function App() {
           setPanFraccionPendiente({ x: aj.panXFrac ?? 0, y: aj.panYFrac ?? 0 });
         }
         if (loadedData.graphicsPercent !== undefined) setGraphicsPercent(loadedData.graphicsPercent);
-        
         setActiveProjectPath(projectPath);
         setActiveProjectId(loadedData.id || null);
         setActiveProjectName(loadedData.name || 'Proyecto Sin Nombre');
-
         const loadedMilestone: MilestoneState = {
           label: 'Proyecto cargado',
           clips: restoredClips,
@@ -1911,14 +2000,11 @@ function App() {
         setMilestoneHistory([loadedMilestone]);
         setMilestoneIndex(0);
         setIsDirty(false);
-        
         // Refresh bank clips for temp folders
         await loadClipsForCategory('originales');
         await loadClipsForCategory('ia');
-
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2500);
-
         setTimeout(() => {
           hasLoaded.current = true;
         }, 1000);
@@ -1930,7 +2016,6 @@ function App() {
       alert('Excepción al cargar proyecto: ' + err.message);
     }
   };
-
   const handleCreateProject = async (name: string) => {
     try {
       const res = await window.electronAPI.createProject({ name });
@@ -1938,7 +2023,6 @@ function App() {
         // Marca que la carga aún no terminó para evitar pantalla azul
         hasLoaded.current = false;
         const loadedData = res.data;
-        
         setClips([]);
         const initialVersion = {
           id: 'v-original',
@@ -1954,15 +2038,15 @@ function App() {
         setAiScript('');
         setOriginalTranscriptText('');
         setGeneratedVoices([]);
-        // CUATRO posiciones. Este reset se quedo con tres al aplicar V3 —se cambio el useState
-        // inicial y no este— y era la segunda via por la que un proyecto acababa con NaN.
+        // Keep the four active shares: Original, Stock, IA and Visuales.
         setTimelineWeights([...PESOS_POR_DEFECTO]);
+        setVisualRegenerationStatus('');
         setGraphicsPercent(50);
-
+        // New Visuals are authored only through Animation. Existing timeline
+        // clips retain their renderer bindings and pixels when projects open.
         setActiveProjectPath(res.projectPath || null);
         setActiveProjectId(loadedData.id || null);
         setActiveProjectName(name);
-
         const initialMilestone: MilestoneState = {
           label: 'Proyecto vacío',
           clips: [],
@@ -1977,18 +2061,15 @@ function App() {
         setMilestoneHistory([initialMilestone]);
         setMilestoneIndex(0);
         setIsDirty(false);
-        
         setBankClips({
           originales: [],
           stock: [],
           ia: [],
           veo3: []
         });
-
         console.log('Project created successfully:', res.projectPath);
         setShowNewProjectModal(false);
         setNewProjectName('');
-        
         setTimeout(() => {
           hasLoaded.current = true;
         }, 1000);
@@ -2000,7 +2081,6 @@ function App() {
       alert('Excepción al crear proyecto: ' + err.message);
     }
   };
-
   const handleCloseProject = async () => {
     try {
       if (hasLoaded.current) {
@@ -2023,13 +2103,11 @@ function App() {
       setAiScript('');
       setOriginalTranscriptText('');
       setGeneratedVoices([]);
-      
       refreshProjectsList();
     } catch (err: any) {
       console.error('Failed to close project:', err);
     }
   };
-
   const handleDeleteProject = async (projectPath: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm('¿Estás seguro de que deseas eliminar este proyecto de forma permanente?')) return;
@@ -2048,7 +2126,6 @@ function App() {
       console.error('Failed to delete project:', err);
     }
   };
-
   const handleClearGlobalStockCache = async () => {
     if (!confirm('¿Estás seguro de que deseas borrar la caché global de videos de stock de Pexels? Los videos se volverán a descargar cuando sean requeridos.')) return;
     try {
@@ -2062,14 +2139,12 @@ function App() {
       console.error('Failed to clear global stock cache:', err);
     }
   };
-
   const handleDeleteAllProjects = async () => {
     if (!confirm('¿Estás seguro de que deseas eliminar TODOS los proyectos de forma permanente? Esta acción no se puede deshacer.')) return;
     if (!confirm('¿De verdad quieres borrar absolutamente todos los proyectos y sus archivos del disco?')) return;
     try {
       const res = await window.electronAPI.deleteAllProjects();
       const borrados = (res as any)?.borrados ?? 0;
-
       // El estado se limpia tambien cuando el borrado es PARCIAL: lo que si se elimino ya
       // no existe, y dejar la UI apuntando a un proyecto borrado es peor que vaciarla.
       setClips([]);
@@ -2079,7 +2154,6 @@ function App() {
       setActiveProjectId(null);
       setActiveProjectName(null);
       refreshProjectsList();
-
       if (res && res.success) {
         // Un 0 con exito TAMBIEN hay que decirlo: sin este aviso el boton parecia no hacer
         // nada y el usuario no podia distinguirlo de un fallo.
@@ -2097,7 +2171,6 @@ function App() {
       alert('No se pudo completar el borrado: ' + (err?.message || err));
     }
   };
-
   const handleOpenProject = async () => {
     try {
       const res = await window.electronAPI.openProject();
@@ -2110,8 +2183,11 @@ function App() {
           ...c,
           url: c.url || (c.path ? rutaAUrl(c.path) : undefined)
         }));
-
+        projectLoadedSourceIdRef.current=restoredClips.find((clip:any)=>clip.type==='video'||clip.type==='audio')?.id??null;
         setClips(restoredClips);
+        setVibesSourceStartSeconds(Number(loadedData.vibesSourceStartSeconds) || 0);
+        setVibesSourceMediaDurationSeconds(Number(loadedData.vibesSourceMediaDurationSeconds) || undefined);
+        setVibesSourceTranscriptSegments(Array.isArray(loadedData.vibesSourceTranscriptSegments) ? loadedData.vibesSourceTranscriptSegments : []);
         const restoredVersions = loadedData.timelineVersions || [
           {
             id: 'v-original',
@@ -2123,11 +2199,9 @@ function App() {
         const restoredActiveId = loadedData.activeVersionId || restoredVersions[0]?.id || 'v-original';
         setTimelineVersions(restoredVersions);
         setActiveVersionId(restoredActiveId);
-
         const activeVersion = restoredVersions.find((v: any) => v.id === restoredActiveId);
         const clipsDelTimeline = activeVersion ? activeVersion.timelineVideoClips : (loadedData.timelineVideoClips || []);
         setTimelineVideoClips(clipsDelTimeline);
-
         // El preview arranca vacio si nadie fija activeVideoUrl: el <video> lleva
         // display:none mientras sea null, asi que al reabrir un proyecto no se veia NADA
         // hasta mover el cursor. No era un fotograma que faltara — medido, el <video>
@@ -2136,9 +2210,12 @@ function App() {
         const primerVideo = (clipsDelTimeline || [])
           .filter((c: any) => c.type === 'video' && (c.url || c.path))
           .sort((a: any, b: any) => (a.startSeconds || 0) - (b.startSeconds || 0))[0];
-        setActiveVideoUrl(primerVideo ? (primerVideo.url || rutaAUrl(primerVideo.path)) : null);
+        const primerUrl = primerVideo ? (primerVideo.url || rutaAUrl(primerVideo.path)) : null;
+        setActiveImageUrl(primerVideo?.mediaKind === 'image' ? primerUrl : null);
+        setActiveVideoUrl(primerVideo?.mediaKind === 'image' ? null : primerUrl);
         setTranscriptionStatus(loadedData.transcriptionStatus || '');
         setTranscriptSegments(loadedData.transcriptSegments || []);
+        if ((loadedData.transcriptSegments || []).length > 0) setSelectedTool('animation');
         setNewAudioSegments(loadedData.newAudioSegments || []);
         setAiScript(loadedData.aiScript || '');
         const loadedOriginalText = loadedData.originalTranscriptText || (loadedData.transcriptSegments || []).map((s: any) => s.text).join(' ') || '';
@@ -2151,15 +2228,11 @@ function App() {
         if (loadedData.voiceSpeed !== undefined) setVoiceSpeed(loadedData.voiceSpeed);
         if (loadedData.voiceStability !== undefined) setVoiceStability(loadedData.voiceStability);
         setGeneratedVoices(loadedData.generatedVoices || []);
-        // normalizarPesos y no el valor crudo: un proyecto guardado antes del cuarto peso trae
-        // TRES posiciones, y uno ya corrompido trae [null,null,null,null]. Los dos entran sanos
-        // por aqui, asi que se recuperan solos sin tener que borrarlos.
-        if (loadedData.timelineWeights !== undefined) setTimelineWeights(normalizarPesos(loadedData.timelineWeights));
-
+        if (loadedData.timelineWeights !== undefined) restoreTimelineWeights(loadedData.timelineWeights);
         // ─── Lo que decide COMO sale el video exportado ───
         // Solo se restaura lo que VENGA: un proyecto guardado antes de esto no trae estos
         // campos, y machacar con undefined lo dejaria peor que con el valor por defecto.
-        if (loadedData.aspectRatio) setAspectRatio(loadedData.aspectRatio);
+        if (loadedData.aspectRatio) setAspectRatio(normalizeProjectAspectRatioV1(loadedData.aspectRatio));
         if (loadedData.exportResolution) setExportResolution(loadedData.exportResolution);
         if (loadedData.exportFormat) setExportFormat(loadedData.exportFormat);
         if (loadedData.exportQuality) setExportQuality(loadedData.exportQuality);
@@ -2173,18 +2246,14 @@ function App() {
           setPanFraccionPendiente({ x: aj.panXFrac ?? 0, y: aj.panYFrac ?? 0 });
         }
         if (loadedData.graphicsPercent !== undefined) setGraphicsPercent(loadedData.graphicsPercent);
-        
         setActiveProjectPath(res.projectPath);
         setActiveProjectId(loadedData.id || null);
         setActiveProjectName(loadedData.name || 'Proyecto Sin Nombre');
-        
         // Refresh bank clips for temp folders
         await loadClipsForCategory('originales');
         await loadClipsForCategory('ia');
-
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2500);
-
         setTimeout(() => {
           hasLoaded.current = true;
         }, 1000);
@@ -2193,22 +2262,18 @@ function App() {
       console.error('Failed to open project:', err);
     }
   };
-
   const handleNewProject = () => {
     handleCloseProject().then(() => {
       setShowNewProjectModal(true);
     });
   };
-
   const handleTranscribeClick = () => {
     setSelectedTool('subtitles'); // Switch active tool in panel
   };
-
   const handleRewriteClick = async () => {
     if (!originalTranscriptText.trim()) return
     setIsRewriting(true)
     setRewriteError('')
-    
     try {
       const res = await window.electronAPI.rewriteTranscript(originalTranscriptText)
       if (res && res.success && res.data) {
@@ -2223,13 +2288,11 @@ function App() {
       setIsRewriting(false)
     }
   }
-
   const handleCopyScript = () => {
     navigator.clipboard.writeText(aiScript)
     setIsCopied(true)
     setTimeout(() => setIsCopied(false), 2050)
   }
-
   const loadClipsForCategory = async (category: string) => {
     try {
       const res = await window.electronAPI.loadBankClips({ category });
@@ -2243,13 +2306,11 @@ function App() {
       console.error(`Error al cargar clips para la categoría ${category}:`, e);
     }
   };
-
   useEffect(() => {
     if (libraryTab !== 'Principal') {
       loadClipsForCategory(libraryTab.toLowerCase());
     }
   }, [libraryTab]);
-
   const handleCutClipsClick = async () => {
     const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
     if (!firstVideoInLibrary) return;
@@ -2276,16 +2337,21 @@ function App() {
       setIsCuttingClips(false);
     }
   };
-
   const handleExportClick = async () => {
     if (timelineVideoClips.length === 0) {
       alert('No hay clips en el Timeline para exportar. Agrega clips primero.');
       return;
     }
-    
+    const pendingAnimation = timelineVideoClips.find((clip: TimelineClip) =>
+      clip.type === 'video' && clip.category === 'visual' && (clip.animationPending || !clip.path));
+    if (pendingAnimation) {
+      setSelectedTimelineClipIds([pendingAnimation.id]);
+      setSelectedTool('animation');
+      alert('El timeline contiene Visuales pendientes de Animation. Selecciona cada slot en el panel IA, crea y aplica su escena, y vuelve a exportar.');
+      return;
+    }
     setIsExporting(true);
     setShowExportModal(false);
-    
     try {
       console.log('Exportando timeline con aspecto:', aspectRatio, 'res:', exportResolution, 'fmt:', exportFormat, 'calidad:', exportQuality);
       const res = await window.electronAPI.exportVideo({
@@ -2298,7 +2364,6 @@ function App() {
         transitionDuration: transitionDuration,
         ajustesVideo: construirAjustesVideo()
       });
-      
       if (res && res.success && res.filePath) {
         // El aviso va CON el exito, no en lugar de el: el fichero existe y es utilizable, pero
         // si sus tiempos no cuadran hay que decirlo antes de que se publique. Es justo lo que
@@ -2306,7 +2371,6 @@ function App() {
         alert((res as any).avisoTiempos
           ? `Vídeo exportado en:
 ${res.filePath}
-
 ⚠ ${(res as any).avisoTiempos}`
           : `¡Video exportado con éxito en:
 ${res.filePath}`);
@@ -2321,14 +2385,10 @@ ${res.filePath}`);
       setIsExporting(false);
     }
   };
-
-  // Solo envuelve a repartirPesos con setState. El calculo vive en shared/reparto.ts y es
-  // PURO: es lo que permite probar "la suma sigue siendo 100" barriendo los cuatro indices y
-  // los 101 valores de cada uno, sin montar React.
+  // Solo envuelve a repartirPesos con setState; el cálculo puro está en shared/reparto.ts.
   const handleWeightChange = (index: number, newValue: number) => {
     setTimelineWeights(repartirPesos(timelineWeights, index, newValue));
   };
-
   const handleSyncWeightChange = (index: number, newValue: number) => {
     const updated = [...syncWeights];
     const oldValue = updated[index];
@@ -2353,7 +2413,6 @@ ${res.filePath}`);
     }
     setSyncWeights(updated);
   };
-
   /**
    * Renderiza los MOV de una tanda de clips de grafico y les sella el graphicMovHash.
    *
@@ -2381,7 +2440,6 @@ ${res.filePath}`);
     proyectoAlEmpezar: string | null
   ): Promise<any[] | null> => {
     if (!clipsDeGrafico.length) return clipsDeGrafico;
-
     // El frontend NO sabe de pixeles: manda formato y resolucion, y dimensionesDeExport
     // traduce en el backend — el MISMO sitio que usa el export, porque el WxH entra en el
     // hash del MOV.
@@ -2393,19 +2451,16 @@ ${res.filePath}`);
       aspectRatio: aspectRatioLote,
       resolution: resolutionLote
     });
-
     // Por el REF, no por la clausura: leer activeProjectPath aqui devolveria el valor de
     // cuando arranco el handler, y compararlo consigo mismo seria un if que nunca se cumple.
     if (activeProjectPathRef.current !== proyectoAlEmpezar) {
       console.warn('[GRAFICOS] El proyecto cambio durante la generacion: no se toca el timeline.');
       return null;
     }
-
     if (lote && lote.cancelado) {
       console.warn('[GRAFICOS] Lote cancelado:', lote.motivo,
         '— los clips entran igual; volver a pulsar ⟳ los completa desde la cache.');
     }
-
     // rutas es POSICIONAL: rutas[i] corresponde a clipsDeGrafico[i], y es null si ese grafico
     // no se hizo —fallo, o lote cancelado y quedo sin intentar—. El clip entra igual SIN el
     // campo: ni se quita ni se marca. Quitarlo dejaria al export sin nada que echar de menos
@@ -2420,16 +2475,15 @@ ${res.filePath}`);
       return { ...c, graphicMovHash: ruta.replace(/\\/g, '/').split('/').pop()!.replace(/\.mov$/, '') };
     });
   };
-
   const handleBuildIATimeline = async () => {
-    if (!aiScript.trim()) return;
-
+    const buildAnimationSlots = (timelineWeights[3] ?? 0) > 0;
+    const scriptForTimeline = aiScript.trim() || originalTranscriptText.trim();
+    if (!scriptForTimeline) return;
     // Se captura al EMPEZAR y por el REF: esta funcion tarda MINUTOS —cortar clips, DeepSeek,
     // descargar stock, generar IA— y toda esa ventana es tiempo en el que el usuario puede
     // abrir otro proyecto. Leerlo de la clausura daria el valor de cuando arranco y la
     // comparacion nunca se cumpliria.
     const proyectoAlEmpezar = activeProjectPathRef.current;
-
     const voiceClip = timelineVideoClips.find(c => c.type === 'audio');
     const isUsingOriginalAudio = voiceClip?.name === 'Voz - Audio Original';
     if (!voiceClip) {
@@ -2441,7 +2495,6 @@ ${res.filePath}`);
       return;
     }
     const effectiveAudioSegments = isUsingOriginalAudio ? transcriptSegments : newAudioSegments;
-
     // Guarda: la transcripcion tiene que cubrir el audio del timeline. Si no, FASE 5
     // estira el ultimo clip para tapar el hueco y esa parte sale congelada.
     // Medido: un desfase de 645s convirtio un clip de 2.5s en uno de 648s (11 minutos).
@@ -2468,12 +2521,11 @@ ${res.filePath}`);
       );
       return;
     }
-
     // LOS VISUALES NECESITAN TIEMPOS POR PALABRA, y solo los hay si el proyecto se transcribio
     // con --word_timestamps. Uno transcrito ANTES de ese cambio no los tiene, asi que TODOS sus
     // Visuales caerian a 'original' y el usuario veria el slider moverse sin que pasara nada:
     // parece roto. Se le dice POR QUE y como arreglarlo, en vez de dejarlo solo en el log.
-    if ((timelineWeights[3] ?? 0) > 0 && !hayTiemposPorPalabra(effectiveAudioSegments)) {
+    if (buildAnimationSlots && !hayTiemposPorPalabra(effectiveAudioSegments)) {
       setGenerationError(
         'Este proyecto se transcribió sin tiempos por palabra, y los Visuales los necesitan ' +
         'para elegir la palabra que suena en cada momento. Vuelve a transcribir el vídeo para ' +
@@ -2481,7 +2533,41 @@ ${res.filePath}`);
       );
       return;
     }
-
+    if (buildAnimationSlots && duracionAudio < 3) {
+      setGenerationError('Animation necesita un intervalo de al menos 3 segundos. Amplía el audio o pon Visuales a 0 para construir sólo Original, Stock e IA.');
+      return;
+    }
+    // Animation slots are exact, frame-based three-second windows over the already prepared
+    // voice. Their transcript is rebased to the clip-local clock and retains only words that
+    // actually overlap each slot; the normal planner then assigns Original/Stock/Visual.
+    const animationInputSegments = buildAnimationSlots
+      ? (() => {
+          const fps = 30;
+          const slotFrames = 3 * fps;
+          const totalFrames = Math.round(duracionAudio * fps);
+          const words = (effectiveAudioSegments || []).flatMap((segment: any) =>
+            Array.isArray(segment?.words) ? segment.words : []);
+          const result: any[] = [];
+          const fullSlots = Math.floor(totalFrames / slotFrames);
+          for (let slotIndex = 0; slotIndex < fullSlots; slotIndex++) {
+            const firstFrame = slotIndex * slotFrames;
+            // Fold a short audio tail into the final Animation slot so every slot remains
+            // at least three seconds and the final clip still covers the full narration.
+            const lastFrame = slotIndex === fullSlots - 1 ? totalFrames : firstFrame + slotFrames;
+            const start = firstFrame / fps;
+            const end = lastFrame / fps;
+            const overlappingWords = words.filter((word: any) =>
+              Number(word?.start) < end && Number(word?.end) > start);
+            result.push({
+              start, end,
+              text: overlappingWords.map((word: any) => String(word?.word ?? word?.text ?? '')).join(' ').replace(/\s+/g, ' ').trim(),
+              words: overlappingWords,
+              animationSlot: true,
+            });
+          }
+          return result;
+        })()
+      : effectiveAudioSegments;
     setIsGeneratingAssets(true);
     setGenerationError('');
     // SE LIMPIAN AL EMPEZAR. Un aviso viejo colgado de una generacion previa miente igual que
@@ -2489,7 +2575,6 @@ ${res.filePath}`);
     setAvisos([]);
     setResumen(null);
     setGenerationProgress(null);
-
     try {
       // 1. Slicing original video first if one is imported (Regla 1)
       const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
@@ -2508,15 +2593,14 @@ ${res.filePath}`);
           throw new Error(cutRes?.error || 'Error al segmentar el video original.');
         }
       }
-
       console.log('[handleBuildIATimeline] Iniciando generación de assets de Timeline IA...');
       const audioDuration = voiceClip ? voiceClip.durationSeconds : undefined;
-      const res = await window.electronAPI.generateTimelineAssets({ 
-        scriptText: aiScript, 
-        weights: timelineWeights, 
-        aspectRatio, 
+      const res = await window.electronAPI.generateTimelineAssets({
+        scriptText: scriptForTimeline,
+        weights: timelineWeights,
+        aspectRatio,
         audioDuration,
-        transcriptSegments,
+        transcriptSegments: buildAnimationSlots ? animationInputSegments : transcriptSegments,
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
         // CERO A PROPOSITO, NO ES UN OLVIDO. El commit e145119 partio la construccion en tres
@@ -2529,19 +2613,15 @@ ${res.filePath}`);
         // el unico camino que quedaria si este cero se reconecta, pero no se ejecuta hoy.
         // Anotado en docs/deuda-graficos.md.
         graphicsPercent: 0,
-        newAudioSegments: effectiveAudioSegments
+        newAudioSegments: buildAnimationSlots ? animationInputSegments : effectiveAudioSegments
       });
-      
       if (res && res.success && res.clips) {
         console.log('[handleBuildIATimeline] Generación completada con éxito. Clips recibidos:', res.clips.length);
-        
         // Refresh library bank folders so generated clips appear in their tabs
         await loadClipsForCategory('originales');
         await loadClipsForCategory('ia');
-
         const newVideoClips: any[] = [];
         const newGraphicClips: any[] = [];
-
          for (let i = 0; i < res.clips.length; i++) {
           const item = res.clips[i];
           const clipInfo = item.clip || item;
@@ -2559,7 +2639,7 @@ ${res.filePath}`);
               });
             } else {
               newVideoClips.push({
-                id: `timeline-${Math.random()}`,
+                id: clipInfo.id || `timeline-${Math.random()}`,
                 name: clipInfo.name,
                 startSeconds: clipInfo.startSeconds || 0,
                 phraseIdx: clipInfo.phraseIdx ?? -1,
@@ -2568,12 +2648,16 @@ ${res.filePath}`);
                 url: clipInfo.url,
                 path: clipInfo.path,
                 category: clipInfo.category || item.type,
+                visualRegeneration: clipInfo.visualRegeneration,
+                stockDecision: clipInfo.stockDecision,
+                animationPending: clipInfo.animationPending === true,
+                animationSlotIndex: clipInfo.animationSlotIndex,
+                transcriptText: clipInfo.transcriptText,
                 thumbnailUrl: clipInfo.thumbnailUrl || ''
               });
             }
           }
         }
-
         // CAMINO A: estos graficos llegan YA HECHOS de FASE 2 (index.ts:3603), no pasan por
         // regenerateGraphics. Traen graphicData con las seis claves y durationSeconds, asi que
         // sirven tal cual para el lote.
@@ -2583,7 +2667,6 @@ ${res.filePath}`);
         // clips de video que no tienen cache que los recupere — pero escribirlos en el
         // proyecto equivocado seria peor. Anotado como deuda.
         if (!graficosSellados) return;
-
         // EXCLUSION MUTUA. Este es el UNICO punto de este camino donde las dos listas estan
         // delante a la vez, antes de escribirse en la version del timeline.
         //
@@ -2606,11 +2689,9 @@ ${res.filePath}`);
           excluirSobreVisuales(graficosSellados as any[], visualesDelTimeline);
         anunciarExclusion(avisoDeExclusion(descartadas.length, graficosSellados.length),
           descartadas as any[]);
-
         // Keep all existing audio clips completely intact and untouched!
         const existingAudioClips = timelineVideoClips.filter(c => c.type === 'audio');
         const finalTimelineClips = [...newVideoClips, ...graficosQueQuedan, ...existingAudioClips];
-
         const nextVersionNumber = timelineVersions.filter(v => v.id.startsWith('v-ai-')).length + 1;
         const newVersionId = `v-ai-${Date.now()}`;
         const newVersionName = `Versión IA ${nextVersionNumber}`;
@@ -2620,17 +2701,30 @@ ${res.filePath}`);
           timestamp: Date.now(),
           timelineVideoClips: finalTimelineClips
         };
-
         setTimelineVersions(prev => [...prev, newVersion]);
         setActiveVersionId(newVersionId);
         setTimelineVideoClips(finalTimelineClips);
+        if (buildAnimationSlots) {
+          const firstPending = finalTimelineClips.find((clip: any) =>
+            clip.type === 'video' && clip.category === 'visual' && clip.animationPending === true);
+          if (firstPending) {
+            setSelectedTimelineClipIds([firstPending.id]);
+            setSelectedTool('animation');
+          }
+        }
         // FASE 2: Gráficos
         if (graphicsPercent > 0) {
           setGenerationProgress({ current: 0, total: 1, paragraph: 'Generando gráficos...', type: 'Gráficos' });
           try {
             const textToUse = aiScript.trim() || originalTranscriptText.trim();
             const voiceClip = finalTimelineClips.find(c => c.type === 'audio');
-            const videoClips = finalTimelineClips.filter(c => c.type !== 'audio' && c.type !== 'graphic');
+            // The provider receives only Original/Stock targets during Animation planning.
+            // Placement still needs the full timeline so an absolute timestamp cannot cover
+            // one of the procedural Visuals.
+            const timelineVideosForGraphicExclusion = finalTimelineClips.filter(c =>
+              c.type !== 'audio' && c.type !== 'graphic');
+            const videoClips = finalTimelineClips.filter(c => c.type !== 'audio' && c.type !== 'graphic' &&
+              (c.category === 'original' || c.category === 'stock'));
             const gRes = await window.electronAPI.regenerateGraphics({
               scriptText: textToUse,
               audioPath: voiceClip?.path || '',
@@ -2639,13 +2733,10 @@ ${res.filePath}`);
               audioSegments: effectiveAudioSegments.length > 0 ? effectiveAudioSegments : transcriptSegments
             });
             if (gRes && gRes.success && gRes.clips) {
-              // CAMINO B — el que fabrica las tarjetas de verdad, y el que estaba SIN NINGUNA de
-              // las dos protecciones. Se le pasa `videoClips`, que es la MISMA lista que se
-              // mando al backend, asi que los ids casan; y sale de `finalTimelineClips`, que ya
-              // tiene los Visuales dentro. No se puede leer `timelineVideoClips` aqui: el
-              // setState de arriba no ha corrido todavia y devolveria el timeline sin Visuales.
+              // The generator sees only eligible Original/Stock slots. Placement checks the
+              // complete video timeline, including the newly planned Visuals.
               const { quedan, descartadas, aviso, total, conRespaldo } =
-                colocarYFiltrarTarjetas(gRes.clips as any[], videoClips as any[]);
+                colocarYFiltrarTarjetas(gRes.clips as any[], timelineVideosForGraphicExclusion as any[]);
               anunciarExclusion(aviso, descartadas as any[]);
               console.log('[DIAG-GRAFICO]', { camino: 'B', total, conRespaldo, descartadas: descartadas.length });
               const newGClips = quedan.map((t) => ({
@@ -2667,7 +2758,6 @@ ${res.filePath}`);
             console.error('Error generando gráficos:', gErr);
           }
         }
-
         // FASE 3: Transiciones
         if (transitionsPercent > 0 && selectedTransitions.length > 0) {
           setGenerationProgress({ current: 0, total: 1, paragraph: 'Asignando transiciones...', type: 'Transiciones' });
@@ -2725,16 +2815,13 @@ ${res.filePath}`);
       setGenerationProgress(null);
     }
   };
-
   const handleClearGraphics = () => {
     setTimelineVideoClips(prev => prev.filter(c => c.type !== 'graphic'));
   };
-
   const handleClearTransitions = () => {
     setAssignedTransitions({});
     setTransitionsPercent(-1);
   };
-
   const handleBuildTransitions = () => {
     if (selectedTransitions.length === 0) return;
     const videoOnly = timelineVideoClips
@@ -2774,52 +2861,52 @@ ${res.filePath}`);
     }
     setAssignedTransitions(newAssigned);
   };
-
   const handleRegenerateGraphics = async () => {
     const textToUse = aiScript.trim() || originalTranscriptText.trim();
-    if (!textToUse) return;
     const voiceClip = timelineVideoClips.find(
       c => c.type === 'audio');
     const audioPath = voiceClip?.path || '';
     const v2Clips = timelineVideoClips.filter(c => c.category === 'v2_overlay');
-    const v1Clips = timelineVideoClips.filter(c => 
-      c.type !== 'audio' && 
-      c.type !== 'graphic' && 
+    const v1Clips = timelineVideoClips.filter(c =>
+      c.type !== 'audio' &&
+      c.type !== 'graphic' &&
       c.category !== 'v2_overlay'
     );
     const videoClips = perfectSyncMode && v2Clips.length > 0
       ? [...v1Clips, ...v2Clips]
       : v1Clips;
-    if (videoClips.length === 0) return;
+    const hasHistoricalVisuals = videoClips.some(clip => clip.category === 'visual');
+    const legacyVideoClips = videoClips.filter(c => c.category !== 'visual');
+    setVisualRegenerationStatus(hasHistoricalVisuals
+      ? 'Este proyecto conserva Visuales ya materializados. El motor de regeneración anterior fue retirado; usa Animation para crear Visuales nuevos.'
+      : '');
+    if (legacyVideoClips.length === 0) return;
     setIsGeneratingAssets(true);
     // Se captura al EMPEZAR, no justo antes del lote: asi la ventana de riesgo cubre tambien
     // la llamada a DeepSeek, que son decenas de segundos.
     const proyectoAlEmpezar = activeProjectPathRef.current;
     try {
-      const res = await window.electronAPI.regenerateGraphics({
-        scriptText: textToUse,
-        audioPath: audioPath,
-        clips: videoClips.map(c => ({ 
-          id: c.id, 
-          name: c.name,
-          startSeconds: c.startSeconds,
-          phraseIdx: (c as any).phraseIdx ?? -1
-        })),
-        graphicsPercent: graphicsPercent,
-        audioSegments: newAudioSegments && newAudioSegments.length > 0 
-          ? newAudioSegments 
-          : transcriptSegments
-      });
-      if (res && res.success && res.clips) {
+      // Legacy cards retain their compatible path. They are deliberately fed
+      // only legacy source clips, so they cannot replace a modern sceneSpec.
+      if (legacyVideoClips.length > 0 && textToUse) {
+        const res = await window.electronAPI.regenerateGraphics({
+          scriptText: textToUse,
+          audioPath: audioPath,
+          clips: legacyVideoClips.map(c => ({
+            id: c.id,
+            name: c.name,
+            startSeconds: c.startSeconds,
+            phraseIdx: (c as any).phraseIdx ?? -1
+          })),
+          graphicsPercent: graphicsPercent,
+          audioSegments: newAudioSegments && newAudioSegments.length > 0
+            ? newAudioSegments
+            : transcriptSegments
+        });
+        if (res && res.success && res.clips) {
         const nonGraphicClips = timelineVideoClips.filter(c => c.type !== 'graphic');
-        // Las dos protecciones viven en `colocarYFiltrarTarjetas`, no aqui: los Visuales fuera del
-        // emparejamiento y el descarte de las que caen encima. `videoClips` es la MISMA lista
-        // que se mando al backend, asi que los ids casan, y lleva los Visuales dentro para que
-        // la funcion pueda separarlos.
-        //
-        // Aqui el descarte va ANTES de sellar, al reves que en el camino de generar: alli las
-        // tarjetas llegan ya renderizadas y aqui la lista esta completa antes de renderizar, asi
-        // que no cuesta nada ahorrarse el trabajo.
+        // The backend sees only eligible legacy slots. Placement also needs the complete
+        // timeline so absolute timestamps that cover a modern Visual are rejected.
         const { quedan, descartadas, aviso, total, conRespaldo } =
           colocarYFiltrarTarjetas(res.clips as any[], videoClips as any[]);
         anunciarExclusion(aviso, descartadas as any[]);
@@ -2833,19 +2920,17 @@ ${res.filePath}`);
           type: 'graphic' as const,
           graphicData: t.cruda.graphicData
         }));
-
         const sellados = await renderizarYSellar(
           graficosQueQuedan, aspectRatio, exportResolution, proyectoAlEmpezar);
         // null = el proyecto cambio a mitad. No se escribe nada: los MOV hechos siguen en
         // cache/graficos del proyecto correcto y volver a pulsar ⟳ alli los recupera a ~2 ms
         // cada uno por la cache, asi que no se pierde trabajo.
-        if (!sellados) return;
-
-        // El timeline se escribe UNA vez, al final. Meter los clips antes y completarlos
-        // despues dispararia el autoguardado con clips sin MOV en disco, y la PIEZA 3 no
-        // podria distinguir "fallo" de "aun renderizando".
-        setTimelineVideoClips([...nonGraphicClips, ...sellados]);
-        setIsDirty(true);
+        if (sellados) {
+          // The timeline is written only after card MOVs exist on disk.
+          setTimelineVideoClips([...nonGraphicClips, ...sellados]);
+          setIsDirty(true);
+        }
+        }
       }
     } catch (err) {
       console.error('Error regenerando gráficos:', err);
@@ -2853,7 +2938,6 @@ ${res.filePath}`);
       setIsGeneratingAssets(false);
     }
   };
-
   const handleOptimizePromptWithDeepSeek = async () => {
     if (!promptIa.trim()) return;
     setIsOptimizingPrompt(true);
@@ -2872,7 +2956,6 @@ ${res.filePath}`);
       setIsOptimizingPrompt(false);
     }
   };
-
   const handleGenerarVideoIa = async () => {
     if (!promptIa.trim()) return;
     setIsGenerandoIa(true);
@@ -2893,13 +2976,10 @@ ${res.filePath}`);
           category: 'ia',
           thumbnailUrl: res.thumbnailUrl
         };
-        
         // Add to media bank list
         setClips(prev => [...prev, newClip]);
-        
         // Add to active library bank category
         await loadClipsForCategory('ia');
-        
         // Automatically append to the end of the timeline
         const startSec = timelineVideoClips.filter(c => c.type !== 'audio').reduce((max, c) => Math.max(max, c.startSeconds + c.durationSeconds), 0);
         const newTimelineClip: TimelineClip = {
@@ -2917,7 +2997,6 @@ ${res.filePath}`);
         const updated = [...timelineVideoClips, newTimelineClip];
         setTimelineVideoClips(updated);
         pushHistory(updated);
-        
         setPromptIa('');
       } else {
         setErrorIa(res?.error || 'Error al generar video con la API de MiniMax.');
@@ -2928,7 +3007,6 @@ ${res.filePath}`);
       setIsGenerandoIa(false);
     }
   };
-
   const handleGenerateVoiceClick = async () => {
     if (!aiScript.trim()) {
       setVoiceGenerationError('El guión está vacío. Por favor escribe o genera un guión primero.')
@@ -2945,15 +3023,12 @@ ${res.filePath}`);
         speed: voiceSpeed,
         stability: voiceStability
       })
-      
       if (res && res.success && res.filePath && res.audioUrl) {
         console.log('Audio generado con éxito y guardado en:', res.filePath)
-        
         // Use exact duration from backend if available, fallback to estimate
         const durationSecs = typeof res.durationSeconds === 'number' && res.durationSeconds > 0
           ? res.durationSeconds
           : Math.max(2, Math.ceil(aiScript.split(/\s+/).filter(Boolean).length / 2.5));
-
         const newVersion: GeneratedVoiceVersion = {
           id: `voice-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           timestamp: Date.now(),
@@ -2976,10 +3051,8 @@ ${res.filePath}`);
           url: res.audioUrl,
           size: '128 KB'
         };
-
         const voiceSegments = res.newAudioSegments || [];
         setNewAudioSegments(voiceSegments);
-
         const updatedClips = [...clips, libraryClip];
         const updatedVoices = [newVersion, ...generatedVoices];
         setClips(updatedClips);
@@ -3002,11 +3075,9 @@ ${res.filePath}`);
       setIsGeneratingVoice(false)
     }
   }
-
   const addVoiceToTimeline = (voice: GeneratedVoiceVersion) => {
     // Use exact duration if available, fallback to estimate
     const durationSecs = voice.durationSeconds || Math.max(2, Math.ceil(voice.text.split(/\s+/).filter(Boolean).length / 2.5));
-
     const newTimelineClip: TimelineClip = {
       id: `timeline-voice-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: `Voz - ${voice.speaker}`,
@@ -3016,12 +3087,10 @@ ${res.filePath}`);
       url: voice.audioUrl,
       path: voice.filePath
     }
-
     const updated = [...timelineVideoClips, newTimelineClip]
     setTimelineVideoClips(updated)
     pushHistory(updated)
   }
-
   // Panel drag-resize handlers
   const handleLibraryResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -3037,7 +3106,6 @@ ${res.filePath}`);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
   };
-
   const handleToolsResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -3052,7 +3120,6 @@ ${res.filePath}`);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
   };
-
   const handleTimelineResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -3067,9 +3134,6 @@ ${res.filePath}`);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
   };
-
-
-
   const formatDuration = (seconds: number): string => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -3078,7 +3142,6 @@ ${res.filePath}`);
     const pad = (num: number) => String(num).padStart(2, '0');
     return `${pad(hrs)}:${pad(mins)}:${pad(secs)}:${pad(frames)}`;
   };
-
   // UNA funcion con DOS llamadores. El boton de transcribir esta en dos paneles (:5683 y
   // :6122) y cada uno llamaba a startTranscription por su cuenta. Es el mismo patron que ya
   // mordio con los dos botones de "Usar Audio Original", resuelto en usarAudioOriginal.
@@ -3089,7 +3152,6 @@ ${res.filePath}`);
   const recortarYTranscribir = async () => {
     const fuente = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
     if (!fuente?.path || recortandoFuente) return;
-
     // El recorte vive en el clip de VIDEO de la linea de tiempo: processFiles lo mete ahi al
     // importar, asi que existe desde antes de transcribir. Se localiza por RUTA y no por
     // posicion, porque una vez generado el timeline hay cientos de clips de categoria
@@ -3103,7 +3165,6 @@ ${res.filePath}`);
     const clipFuente = timelineVideoClips.find(c => c.type === 'video' && c.path === fuente.path);
     const durPedida = clipFuente?.durationSeconds;
     const durActual = fuente.durationSeconds;
-
     // SIN RECORTE: no se llama al backend siquiera. Ni ffmpeg, ni re-extraccion del maestro,
     // ni un solo cambio de estado. El camino queda EXACTAMENTE como estaba.
     const hayCambio = typeof durPedida === 'number' && typeof durActual === 'number'
@@ -3112,7 +3173,6 @@ ${res.filePath}`);
       window.electronAPI.startTranscription(fuente.path);
       return;
     }
-
     setRecortandoFuente(true);
     setTranscriptionStatus('Preparando el vídeo…');
     try {
@@ -3124,7 +3184,6 @@ ${res.filePath}`);
       // despues de haberlo hecho —el material ya no estaria en el fichero—.
       const origen = (fuente as any).pathOriginal || fuente.path;
       const res = await window.electronAPI.recortarFuente({ videoPath: origen, duracion: durPedida });
-
       if (!res?.success) {
         setTranscriptionStatus('');
         alert('No se pudo preparar el vídeo: ' + (res?.error || 'error desconocido'));
@@ -3132,7 +3191,6 @@ ${res.filePath}`);
         // del video, que es exactamente el fallo que esto viene a cerrar.
         return;
       }
-
       // El backend promete estos campos cuando prepara el video, pero se COMPRUEBAN en vez de
       // afirmarlos con `!`: apuntar la biblioteca a undefined dejaria el proyecto sin fuente y
       // el fallo saldria mucho despues, en la generacion, sin nada que lo relacionase.
@@ -3143,7 +3201,6 @@ ${res.filePath}`);
       }
       const rutaFinal = res.path, durFinal = res.durationSeconds;
       const rutaAudio = res.audioPath, durAudio = res.audioDurationSeconds;
-
       // La biblioteca pasa a apuntar al fichero preparado y los SEIS consumidores lo siguen
       // sin tocar ninguno: todos leen clips[...], no la linea de tiempo. pathOriginal conserva
       // el fichero del usuario, que es de donde se corta siempre.
@@ -3155,7 +3212,6 @@ ${res.filePath}`);
             duration: formatDuration(durFinal),
             pathOriginal: (c as any).pathOriginal || fuente.path }
         : c));
-
       setTimelineVideoClips(prev => prev.map(c => {
         // El clip de origen pasa a apuntar al fichero preparado y a durar lo que ese fichero
         // mide DE VERDAD. Sin esto, la siguiente comparacion volveria a ver diferencia y se
@@ -3172,7 +3228,6 @@ ${res.filePath}`);
         }
         return c;
       }));
-
       // Se transcribe la ruta devuelta y no el estado recien puesto: setClips es asincrono y
       // leer `clips` aqui daria todavia la ruta vieja.
       window.electronAPI.startTranscription(rutaFinal);
@@ -3183,7 +3238,6 @@ ${res.filePath}`);
       setRecortandoFuente(false);
     }
   };
-
   // Texto del recorte para el boton de transcribir. Solo sale si hay recorte REAL: anunciar
   // "se transcribiran 17:28 de 17:28" seria ruido. Compara lo que el usuario ha marcado en la
   // linea de tiempo contra lo que el fichero mide hoy, que es justo lo que va a cambiar.
@@ -3196,7 +3250,6 @@ ${res.filePath}`);
     if (Math.abs(f.durationSeconds - pedida) <= TOLERANCIA_RECORTE_S) return null;
     return `Se transcribirán ${formatTimeMinutesSeconds(pedida)} de ${formatTimeMinutesSeconds(f.durationSeconds)}`;
   })();
-
   const formatSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -3204,7 +3257,6 @@ ${res.filePath}`);
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
-
   const processFiles = (filesList: File[]) => {
     filesList.forEach(file => {
       const nameLower = file.name.toLowerCase();
@@ -3213,7 +3265,6 @@ ${res.filePath}`);
       if (!isVideo && !isAudio) {
         return;
       }
-
       // Ruta real en disco. Antes se caia en `file.name` cuando no habia ruta: un nombre
       // suelto sin carpeta, que falla mas tarde, en otro sitio y sin decir por que.
       const rutaReal = window.electronAPI.rutaDeFichero(file) || (file as any).path || '';
@@ -3221,7 +3272,6 @@ ${res.filePath}`);
         alert(`No se pudo obtener la ruta de "${file.name}". Importalo desde el boton de archivo.`);
         return;
       }
-
       // file:// en vez de URL.createObjectURL: el blob muere con la pagina que lo creo, y al
       // reabrir el proyecto el clip apuntaba a una referencia muerta.
       const url = rutaAUrl(rutaReal);
@@ -3234,7 +3284,6 @@ ${res.filePath}`);
         }
         const formattedDuration = formatDuration(duration);
         const clipId = Math.random().toString();
-        
         const newClip: Clip = {
           id: clipId,
           name: file.name,
@@ -3245,15 +3294,12 @@ ${res.filePath}`);
           size: formatSize(file.size),
           url: url
         };
-
         const updatedClips = [newClip, ...clips];
         setClips(updatedClips);
-
         // Automatically add video clips to Video v1 track and load into preview canvas
         if (isVideo) {
           setActiveVideoUrl(url);
           setIsPlaying(false);
-          
           const lastClip = timelineClipsRef.current[timelineClipsRef.current.length - 1];
           const startSeconds = lastClip ? (lastClip.startSeconds + lastClip.durationSeconds + 2) : 0;
           const updated = [...timelineClipsRef.current, {
@@ -3275,11 +3321,9 @@ ${res.filePath}`);
       };
     });
   };
-
   const addClipToTimeline = (clip: Clip) => {
     const lastClip = timelineVideoClips[timelineVideoClips.length - 1];
     const startSeconds = lastClip ? (lastClip.startSeconds + lastClip.durationSeconds + 2) : 0;
-    
     let cat = clip.category;
     if (!cat && libraryTab) {
       const tabLower = libraryTab.toLowerCase();
@@ -3289,13 +3333,14 @@ ${res.filePath}`);
         cat = tabLower;
       }
     }
-
+    const isImage = clip.mediaKind === 'image' || clip.type === 'image';
     const updated = [...timelineVideoClips, {
       id: `timeline-${Math.random()}`,
       name: clip.name,
       startSeconds,
-      durationSeconds: clip.durationSeconds,
-      type: clip.type,
+      durationSeconds: isImage ? (clip.exposureDurationSeconds || 3) : clip.durationSeconds,
+      type: isImage ? 'video' as const : clip.type === 'audio' ? 'audio' as const : 'video' as const,
+      mediaKind: isImage ? 'image' as const : clip.type === 'video' ? 'video' as const : undefined,
       path: clip.path,
       url: clip.url,
       category: cat,
@@ -3304,35 +3349,34 @@ ${res.filePath}`);
     setTimelineVideoClips(updated);
     pushHistory(updated);
   };
-
   const handleClipClick = (clip: Clip) => {
-    if (clip.url) {
+    if ((clip.mediaKind === 'image' || clip.type === 'image') && clip.url) {
+      setActiveVideoUrl(null);
+      setActiveImageUrl(clip.url);
+    } else if (clip.url) {
+      setActiveImageUrl(null);
       setActiveVideoUrl(clip.url);
     } else {
       setActiveVideoUrl(null);
+      setActiveImageUrl(null);
     }
     setIsPlaying(false);
   };
-
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       processFiles(Array.from(e.target.files));
     }
   };
-
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
   };
-
   const handleDragLeave = () => {
     setIsDragging(false);
   };
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -3340,7 +3384,6 @@ ${res.filePath}`);
       processFiles(Array.from(e.dataTransfer.files));
     }
   };
-  
   useEffect(() => {
     // Listen for the active message from Main Process using the Preload bridge API
     if (window.electronAPI && typeof window.electronAPI.onMainMessage === 'function') {
@@ -3350,14 +3393,12 @@ ${res.filePath}`);
       return () => unsubscribe()
     }
   }, [])
-
   if (activeProjectPath === null) {
     return (
       <div className="flex flex-col h-screen w-screen bg-[#020712] text-slate-100 overflow-hidden font-sans select-none relative">
         {/* Background glow effects */}
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#6366f1]/5 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#c084fc]/5 rounded-full blur-[120px] pointer-events-none" />
-        
         {/* Header */}
         <header className="flex justify-between items-center px-8 py-4 bg-[#0D0D0F]/40 border-b border-slate-900/60 backdrop-blur-md">
           <div className="flex items-center space-x-3">
@@ -3371,7 +3412,7 @@ ${res.filePath}`);
               <p className="text-[10px] text-[#6366f1]/80 font-medium">AI VIDEO EDITOR • v1.0.0</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={handleOpenProject}
             className="text-xs font-semibold text-slate-300 hover:text-white px-4 py-2 rounded-xl hover:bg-[#1C1C1E] border border-[#3a3a3c] transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95"
           >
@@ -3379,12 +3420,11 @@ ${res.filePath}`);
             <span>Abrir desde Archivo</span>
           </button>
         </header>
-
         {/* Dashboard Content */}
         <main className="flex-1 max-w-6xl w-full mx-auto px-8 py-10 flex flex-col space-y-8 overflow-hidden">
           {/* Hero Actions */}
           <div className="grid grid-cols-2 gap-6">
-            <div 
+            <div
               onClick={() => setShowNewProjectModal(true)}
               className="group bg-gradient-to-br from-slate-950 to-slate-900 hover:from-slate-900 hover:to-slate-950 border border-[#3a3a3c] hover:border-[#6366f1]/40 rounded-2xl p-8 flex flex-col justify-between items-start space-y-12 cursor-pointer shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-indigo-500/5"
             >
@@ -3400,8 +3440,7 @@ ${res.filePath}`);
                 </p>
               </div>
             </div>
-
-            <div 
+            <div
               onClick={handleOpenProject}
               className="group bg-gradient-to-br from-slate-950 to-slate-900 hover:from-slate-900 hover:to-slate-950 border border-[#3a3a3c] hover:border-[#c084fc]/40 rounded-2xl p-8 flex flex-col justify-between items-start space-y-12 cursor-pointer shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-purple-500/5"
             >
@@ -3418,7 +3457,6 @@ ${res.filePath}`);
               </div>
             </div>
           </div>
-
           {/* Recent Projects List */}
           <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
             <div className="flex items-center justify-between">
@@ -3443,7 +3481,6 @@ ${res.filePath}`);
                 </button>
               </div>
             </div>
-            
             <div className="flex-1 overflow-y-auto pr-2 space-y-2.5">
               {projectsList.length === 0 ? (
                 <div className="h-48 border border-dashed border-slate-900 rounded-2xl flex flex-col items-center justify-center space-y-2 bg-[#0D0D0F]/20">
@@ -3459,9 +3496,8 @@ ${res.filePath}`);
                     hour: '2-digit',
                     minute: '2-digit'
                   });
-                  
                   return (
-                    <div 
+                    <div
                       key={project.id}
                       onClick={() => handleLoadProject(project.projectPath)}
                       className="group bg-[#0D0D0F]/60 hover:bg-[#1C1C1E] border border-slate-900 hover:border-[#3a3a3c] rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all duration-200 animate-fade-in"
@@ -3475,7 +3511,6 @@ ${res.filePath}`);
                             <Video className="h-4 w-4 text-slate-500" />
                           )}
                         </div>
-                        
                         <div>
                           <h4 className="text-xs font-bold text-white group-hover:text-[#6366f1] transition-colors leading-tight">
                             {project.name}
@@ -3487,8 +3522,7 @@ ${res.filePath}`);
                           </div>
                         </div>
                       </div>
-
-                      <button 
+                      <button
                         onClick={(e) => handleDeleteProject(project.projectPath, e)}
                         className="p-2 hover:bg-red-500/10 hover:text-red-405 text-slate-500 rounded-lg cursor-pointer active:scale-95 transition-all"
                         title="Eliminar proyecto"
@@ -3502,7 +3536,6 @@ ${res.filePath}`);
             </div>
           </div>
         </main>
-
         {/* New Project Modal */}
         {showNewProjectModal && (
           <div className="fixed inset-0 bg-[#0D0D0F]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -3511,11 +3544,10 @@ ${res.filePath}`);
                 <Sparkles className="h-4 w-4 text-[#6366f1] animate-pulse" />
                 <span>Crear Nuevo Proyecto</span>
               </h3>
-              
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-[#6366f1] uppercase tracking-wider">Nombre del Proyecto</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
                   placeholder="Mi impresionante video..."
@@ -3528,9 +3560,8 @@ ${res.filePath}`);
                   autoFocus
                 />
               </div>
-
               <div className="flex items-center justify-end space-x-3 pt-2">
-                <button 
+                <button
                   onClick={() => {
                     setShowNewProjectModal(false);
                     setNewProjectName('');
@@ -3539,7 +3570,7 @@ ${res.filePath}`);
                 >
                   Cancelar
                 </button>
-                <button 
+                <button
                   onClick={() => handleCreateProject(newProjectName || 'Nuevo Proyecto')}
                   className="bg-indigo-650 hover:bg-[#6366f1] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all cursor-pointer shadow-lg shadow-indigo-600/10 active:scale-95"
                 >
@@ -3552,23 +3583,20 @@ ${res.filePath}`);
       </div>
     );
   }
-
   const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
-
   if (typeof window !== 'undefined' && (window as any).__never) {
     console.log(durationSeconds, handleScrubberMouseDown, isTransitionActive, setIsTransitionActive, handleClearTransitions, handleBuildTransitions);
   }
-
   return (
     <div className="flex flex-col h-screen w-screen bg-[#1C1C1E] text-slate-100 overflow-hidden font-sans select-none">
       {/* Hidden File Input */}
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleFileChange} 
-        accept="video/*,audio/*" 
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="video/*,audio/*"
         multiple
-        className="hidden" 
+        className="hidden"
       />
       {/* Title Bar / Header */}
       <header className="flex justify-between items-center px-4 py-2 bg-[#242426] border-b border-[#3a3a3c] backdrop-blur-md">
@@ -3584,16 +3612,14 @@ ${res.filePath}`);
               <p className="text-[10px] text-slate-500 font-medium">Editor de Video IA</p>
             </div>
           </div>
-
           {/* Close Project / Back to Dashboard Button */}
-          <button 
+          <button
             onClick={handleCloseProject}
             className="text-[10px] bg-[#3a3a3c] hover:bg-slate-700 hover:text-indigo-400 text-slate-300 font-bold px-2 py-1 rounded-md border border-slate-700/50 active:scale-95 transition-all cursor-pointer flex items-center space-x-1"
             title="Volver al inicio (Cierra y guarda el proyecto actual)"
           >
             <span>&larr; Proyectos</span>
           </button>
-
           {activeProjectName && (
             <div className="flex items-center space-x-2.5 px-3 border-l border-[#3a3a3c]/80">
               <span className="text-xs font-bold text-slate-350 select-none tracking-wide">
@@ -3632,7 +3658,6 @@ ${res.filePath}`);
               </button>
             </div>
           )}
-
           {/* Selector de Versiones del Timeline */}
           {timelineVersions.length > 0 && (
             <div className="flex items-center space-x-2 bg-[#0D0D0F]/40 px-2.5 py-1 rounded-lg border border-[#3a3a3c]/80 text-xs">
@@ -3653,22 +3678,20 @@ ${res.filePath}`);
               </div>
             </div>
           )}
-
           {/* File Dropdown Menu */}
           <div className="relative">
-            <button 
+            <button
               onClick={() => setIsFileMenuOpen(!isFileMenuOpen)}
               className="text-xs font-semibold text-slate-300 hover:text-white px-2.5 py-1 rounded-md hover:bg-[#3a3a3c]/80 border border-transparent hover:border-[#3a3a3c] transition-all flex items-center space-x-1"
             >
               <span>Archivo</span>
               <span className="text-[8px] text-slate-500">▼</span>
             </button>
-            
             {isFileMenuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setIsFileMenuOpen(false)} />
                 <div className="absolute left-0 mt-1 w-40 bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl shadow-2xl p-1.5 z-50 flex flex-col space-y-0.5 backdrop-blur-md">
-                  <button 
+                  <button
                     onClick={() => {
                       setIsFileMenuOpen(false);
                       handleNewProject();
@@ -3677,7 +3700,7 @@ ${res.filePath}`);
                   >
                     Nuevo Proyecto
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       setIsFileMenuOpen(false);
                       handleOpenProject();
@@ -3686,7 +3709,7 @@ ${res.filePath}`);
                   >
                     Abrir proyecto
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       setIsFileMenuOpen(false);
                       handleSaveProjectDirectly();
@@ -3695,7 +3718,7 @@ ${res.filePath}`);
                   >
                     Guardar
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       setIsFileMenuOpen(false);
                       handleSaveProjectAs();
@@ -3709,16 +3732,14 @@ ${res.filePath}`);
             )}
           </div>
         </div>
-
         <div className="flex items-center space-x-4">
           {/* IPC Bridge oculto - variable mantenida para el sistema */}
           <span className="hidden">{mainProcessTime}</span>
-
           {/* Auto-save Status Indicator */}
           <div className="flex items-center space-x-1.5 bg-[#0D0D0F]/40 px-2.5 py-1.5 rounded-xl border border-[#3a3a3c]/50 text-[10px]">
             <span className={`w-1.5 h-1.5 rounded-full ${
-              saveStatus === 'saved' 
-                ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]' 
+              saveStatus === 'saved'
+                ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]'
                 : saveStatus === 'saving'
                 ? 'bg-sky-500 animate-pulse shadow-[0_0_6px_#0ea5e9]'
                 : saveStatus === 'error'
@@ -3731,16 +3752,14 @@ ${res.filePath}`);
               : 'Guardado'}
             </span>
           </div>
- 
-          <button 
+          <button
             onClick={handleTranscribeClick}
             className="flex items-center space-x-1.5 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white px-3 py-1.5 rounded-lg text-xs font-semibold border border-indigo-500/30 shadow-lg shadow-indigo-600/5 active:scale-95 transition-all"
           >
             <Sparkles className="h-3.5 w-3.5 animate-pulse" />
             <span>Transcribir con IA</span>
           </button>
- 
-          <button 
+          <button
             onClick={() => setShowExportModal(true)}
             disabled={isExporting}
             className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
@@ -3750,12 +3769,11 @@ ${res.filePath}`);
           </button>
         </div>
       </header>
-
       {/* Main Workspace Workspace layout */}
       <main className="flex flex-1 overflow-hidden">
         {/* Left Side: Project Media & Library */}
-        <section 
-          style={{ width: `${libraryWidth}px` }} 
+        <section
+          style={{ width: `${libraryWidth}px` }}
           className="bg-[#1C1C1E]/50 border-r border-[#3a3a3c]/80 flex flex-col flex-shrink-0"
         >
           <div className="p-2 border-b border-[#3a3a3c]/80">
@@ -3804,11 +3822,9 @@ ${res.filePath}`);
           </div>
           {appMode === 'crear' ? (
             <div className="flex-1 overflow-y-auto p-3 space-y-4">
-
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-2">
                 <span>Mix del Montaje</span>
               </div>
-
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
@@ -3819,7 +3835,6 @@ ${res.filePath}`);
                   <span className="text-[10px] text-[#555] w-6 text-right">0%</span>
                 </div>
                 <div className="text-[9px] text-[#555] pl-4 -mt-2">Sube un video para activar</div>
-
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-sky-500"></div>
                   <span className="text-[11px] text-slate-400 w-12">Stock</span>
@@ -3828,7 +3843,6 @@ ${res.filePath}`);
                   </div>
                   <span className="text-[10px] text-sky-500 font-medium w-6 text-right">80%</span>
                 </div>
-
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-amber-500"></div>
                   <span className="text-[11px] text-slate-400 w-12">IA</span>
@@ -3837,13 +3851,11 @@ ${res.filePath}`);
                   </div>
                   <span className="text-[10px] text-amber-500 font-medium w-6 text-right">20%</span>
                 </div>
-
                 <div className="h-1 rounded-full flex overflow-hidden">
                   <div style={{width:'80%'}} className="bg-sky-500"></div>
                   <div style={{width:'20%'}} className="bg-amber-500"></div>
                 </div>
               </div>
-
               <div className="border-t border-[#3a3a3c] pt-3">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Voz</div>
                 <select className="w-full bg-[#0D0D0F] border border-[#3a3a3c] rounded-lg p-1.5 text-[11px] text-slate-300 mb-2">
@@ -3856,24 +3868,20 @@ ${res.filePath}`);
                   <option>Velocidad: 1.2x</option>
                 </select>
               </div>
-
               <div className="border-t border-[#3a3a3c] pt-3">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Efectos</div>
-
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[11px] text-slate-300">Transiciones</span>
                   <div className="w-8 h-4 rounded-full bg-indigo-600 relative cursor-pointer">
                     <div className="w-3 h-3 rounded-full bg-white absolute right-0.5 top-0.5"></div>
                   </div>
                 </div>
-
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[11px] text-slate-300">Gráficos</span>
                   <div className="w-8 h-4 rounded-full bg-[#3a3a3c] relative cursor-pointer">
                     <div className="w-3 h-3 rounded-full bg-[#8e8e93] absolute left-0.5 top-0.5"></div>
                   </div>
                 </div>
-
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-slate-300">Música ambiental</span>
                   <div className="w-8 h-4 rounded-full bg-indigo-600 relative cursor-pointer">
@@ -3881,7 +3889,6 @@ ${res.filePath}`);
                   </div>
                 </div>
               </div>
-
               <div className="border-t border-[#3a3a3c] pt-3">
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5">
                   <div className="flex items-center gap-2">
@@ -3893,7 +3900,6 @@ ${res.filePath}`);
                   </div>
                 </div>
               </div>
-
             </div>
           ) : (
             <>
@@ -3904,70 +3910,78 @@ ${res.filePath}`);
                 key={tab}
                 onClick={() => setLibraryTab(tab)}
                 className={`text-[10px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer whitespace-nowrap ${
-                  libraryTab === tab 
-                    ? 'bg-indigo-600 text-white shadow-sm' 
+                  libraryTab === tab
+                    ? 'bg-indigo-600 text-white shadow-sm'
                     : 'text-slate-400 hover:text-slate-205 hover:bg-[#3a3a3c]/50'
                 }`}
               >
                 {tab}
               </button>
             ))}
-
-            {/* Veo 3 tab - disabled, red dot, Próximamente */}
-            <button
-              disabled
-              className="text-[10px] font-bold px-2 py-1 rounded-md text-slate-500/70 flex items-center space-x-1 cursor-not-allowed whitespace-nowrap opacity-60 bg-transparent border-none"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
-              <span>Veo 3 (Próximamente)</span>
-            </button>
+            {libraryTab === 'IA' ? (
+              <button
+                type="button"
+                onClick={() => setShowVibesWorkspace(true)}
+                aria-label="Abrir flujo de imágenes Vibes"
+                title="Abrir flujo de imágenes Vibes"
+                className="text-[10px] font-bold px-2 py-1 rounded-md text-amber-200 bg-amber-600/20 border border-amber-500/40 whitespace-nowrap"
+              >
+                Vibes
+              </button>
+            ) : (
+              <button
+                disabled
+                className="text-[10px] font-bold px-2 py-1 rounded-md text-slate-500/70 flex items-center space-x-1 cursor-not-allowed whitespace-nowrap opacity-60 bg-transparent border-none"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                <span>Veo 3 (Próximamente)</span>
+              </button>
+            )}
           </div>
-
           {/* Mix del montaje Section */}
           {!perfectSyncMode && (
-          <div className="p-3 border-b border-[#3a3a3c]/80 bg-[#0D0D0F]/20 space-y-3 flex-shrink-0">
+          <div className="p-3 border-b border-[#3a3a3c]/80 bg-[#0D0D0F]/20 space-y-3 min-h-0 overflow-y-auto"
+            style={{maxHeight:'calc(100vh - 13rem)',flexShrink:0}}
+            tabIndex={0} aria-label="Mezcla y construcción del timeline">
             <div className="flex items-center space-x-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               <Sliders className="h-3.5 w-3.5 text-indigo-400" />
               <span>Mix del montaje</span>
             </div>
-
             <div className="space-y-2.5">
               {/* Slider 1: Original */}
               <div className="flex items-center space-x-2.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Original</span>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="100" 
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
                   value={timelineWeights[0]}
                   onChange={(e) => handleWeightChange(0, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-[#2c2c2e] rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all outline-none" 
+                  className="flex-1 h-1 bg-[#2c2c2e] rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all outline-none"
                   style={{
                     background: `linear-gradient(to right, rgb(16, 185, 129) ${timelineWeights[0]}%, rgb(30, 41, 59) 0%)`
                   }}
                 />
                 <span className="font-mono text-[10px] text-emerald-400 font-bold w-8 text-right select-none">{timelineWeights[0]}%</span>
               </div>
-
               {/* Slider 2: Stock */}
               <div className="flex items-center space-x-2.5">
                 <span className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Stock</span>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="100" 
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
                   value={timelineWeights[1]}
                   onChange={(e) => handleWeightChange(1, parseInt(e.target.value))}
-                  className="flex-1 h-1 bg-[#2c2c2e] rounded-lg appearance-none cursor-pointer accent-sky-500 transition-all outline-none" 
+                  className="flex-1 h-1 bg-[#2c2c2e] rounded-lg appearance-none cursor-pointer accent-sky-500 transition-all outline-none"
                   style={{
                     background: `linear-gradient(to right, rgb(14, 165, 233) ${timelineWeights[1]}%, rgb(30, 41, 59) 0%)`
                   }}
                 />
                 <span className="font-mono text-[10px] text-sky-400 font-bold w-8 text-right select-none">{timelineWeights[1]}%</span>
               </div>
-
               {/* Slider 3: IA */}
               <div className="flex items-center space-x-2.5">
                 <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
@@ -3985,10 +3999,7 @@ ${res.filePath}`);
                 />
                 <span className="font-mono text-[10px] text-amber-400 font-bold w-8 text-right select-none">{timelineWeights[2]}%</span>
               </div>
-
-              {/* Slider 4: Visuales — graficos a pantalla completa que SUSTITUYEN al plano, no
-                  se superponen. Gris a proposito: los otros tres son ORIGENES de metraje y llevan color; un Visual es
-                  algo que se genera, y competir con ellos en saturacion despistaria. */}
+              {/* Visuales permanece como cuota funcional y se materializa exclusivamente con Animation. */}
               <div className="flex items-center space-x-2.5">
                 <span className="w-2 h-2 rounded-full bg-zinc-400 flex-shrink-0" />
                 <span className="text-[10px] font-semibold text-slate-400 w-16 select-none">Visuales</span>
@@ -4006,14 +4017,13 @@ ${res.filePath}`);
                 <span className="font-mono text-[10px] text-zinc-400 font-bold w-8 text-right select-none">{timelineWeights[3]}%</span>
               </div>
             </div>
-
             {/* Proportional Color Bar */}
             <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-[#3a3a3c] mt-2">
               <div style={{ width: `${timelineWeights[0]}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Original: ${timelineWeights[0]}%`} />
               <div style={{ width: `${timelineWeights[1]}%` }} className="h-full bg-sky-500 transition-all duration-300" title={`Stock: ${timelineWeights[1]}%`} />
               <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`MiniMax: ${timelineWeights[2]}%`} />
+              <div style={{ width: `${timelineWeights[3]}%` }} className="h-full bg-zinc-400 transition-all duration-300" title={`Visuales Animation: ${timelineWeights[3]}%`} />
             </div>
-
             {/* Selector de Estilo IA */}
             <div className="mt-3 flex items-center justify-between space-x-2">
               <span className="text-[10px] font-semibold text-slate-400 select-none">Estilo de Video IA</span>
@@ -4027,8 +4037,17 @@ ${res.filePath}`);
                 <option value="bw">Blanco y Negro (Noir)</option>
               </select>
             </div>
-
             {/* Botón Construir Timeline IA */}
+            <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-indigo-500/30 bg-indigo-950/20 p-2">
+              <span className="text-[10px] font-semibold text-slate-300">Motor activo para nuevos Visuales</span>
+              <span className="rounded bg-indigo-500/20 px-2 py-1 text-[10px] font-bold text-indigo-100">Animation · Canvas procedural</span>
+            </div>
+            <div className="mt-2 rounded-lg border border-indigo-500/30 bg-indigo-950/20 p-2 text-[10px] text-slate-200 space-y-2">
+              <p>Animation crea y modifica Visuales con geometría, texto y movimiento dibujados por código. Los clips históricos se conservan con sus medios y revisiones originales.</p>
+              {visualRegenerationStatus&&<p role="status" className="text-amber-200">{visualRegenerationStatus}</p>}
+              <p>El chat abre al terminar la transcripción. Sin Visual seleccionado, puedes crear un borrador de 3 s desde el cursor y aplicarlo después a un intervalo Visual compatible.</p>
+              <button type="button" onClick={()=>setSelectedTool('animation')} className="rounded bg-indigo-700 px-2 py-1 font-semibold text-white">Abrir director Animation</button>
+            </div>
             {isGeneratingAssets ? (
               <div className="w-full mt-3 p-3 bg-[#1C1C1E]/60 border border-[#3a3a3c] rounded-xl space-y-2 select-none">
                 <div className="flex items-center space-x-2">
@@ -4042,7 +4061,7 @@ ${res.filePath}`);
                       <span className="uppercase text-[7px] bg-[#2c2c2e] px-1 py-0.5 rounded text-indigo-400 font-bold">{generationProgress.type}</span>
                     </div>
                     <div className="h-1 w-full bg-[#0D0D0F] rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-indigo-500 transition-all duration-300"
                         style={{ width: `${(generationProgress.current / generationProgress.total) * 100}%` }}
                       />
@@ -4052,13 +4071,13 @@ ${res.filePath}`);
               </div>
             ) : (
               <>
-                <button 
-                  onClick={handleBuildIATimeline}
+                <button
+                  onClick={() => void handleBuildIATimeline()}
                   disabled={!aiScript.trim()}
                   className="w-full mt-3 bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
-                  <span>Construir Timeline IA</span>
+                  <span>Construir timeline</span>
                 </button>
                 {/* ----- Transiciones GL ----- */}
                 <div className='mt-4'>
@@ -4159,7 +4178,6 @@ ${res.filePath}`);
                 Error: {generationError}
               </div>
             )}
-
             {/* LOS AVISOS Y EL RESUMEN, en el MISMO contenedor donde ya viven `avisoGraficos`
                 y `generationError`: mismo estilo de caja, una por severidad. Ni pestana, ni
                 panel, ni ventana -- es una caja mas donde ya hay dos. */}
@@ -4177,7 +4195,6 @@ ${res.filePath}`);
                 )}
               </div>
             ))}
-
             {/* EL RESUMEN SALE SIEMPRE, tambien cuando todo cuadra: un resumen que solo
                 aparece con problemas entrena al usuario a no leerlo, y el dia que aparezca
                 tampoco lo leera. */}
@@ -4211,7 +4228,7 @@ ${res.filePath}`);
                       onChange={(e) => handleSyncWeightChange(i, parseInt(e.target.value))}
                       className={`flex-1 h-1 ${accent} appearance-none cursor-pointer rounded-lg outline-none transition-all`}
                       style={{
-                        background: 
+                        background:
                           i === 0 ? `linear-gradient(to right, rgb(14, 165, 233) ${syncWeights[0]}%, rgb(30, 41, 59) 0%)` :
                           i === 1 ? `linear-gradient(to right, rgb(16, 185, 129) ${syncWeights[1]}%, rgb(30, 41, 59) 0%)` :
                           `linear-gradient(to right, rgb(148, 163, 184) ${syncWeights[2]}%, rgb(30, 41, 59) 0%)`
@@ -4412,20 +4429,19 @@ ${res.filePath}`);
               </div>
             </div>
           )}
-
           {/* Media Items List */}
-          <div 
+          <div
             className="flex-1 overflow-y-auto p-3 space-y-3"
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
             {libraryTab === 'Principal' && (
-              <div 
+              <div
                 onClick={handleUploadClick}
                 className={`border border-dashed rounded-xl p-6 text-center flex flex-col items-center justify-center space-y-2 group cursor-pointer transition-all ${
-                  isDragging 
-                    ? 'border-indigo-500 bg-indigo-500/10 scale-[0.98]' 
+                  isDragging
+                    ? 'border-indigo-500 bg-indigo-500/10 scale-[0.98]'
                     : 'border-[#3a3a3c] hover:border-indigo-500/50 hover:bg-indigo-500/5'
                 }`}
               >
@@ -4434,13 +4450,17 @@ ${res.filePath}`);
                 <p className="text-[10px] text-slate-600">MP4, MOV, WAV, MP3</p>
               </div>
             )}
-
             {/* Clips List */}
             {(() => {
               if (libraryTab === 'IA') {
-                const currentClips = bankClips.ia || [];
+                const currentClips = [...clips.filter((clip: any) => clip.category === 'ia'), ...(bankClips.ia || [])];
                 return (
                   <div className="space-y-3">
+                    <div className="rounded-xl border border-amber-500/35 bg-gradient-to-br from-amber-950/50 to-[#111720] p-3 space-y-2">
+                      <div className="flex items-center gap-2 text-amber-200 text-xs font-bold"><Image className="w-4 h-4" /> Vibes · imágenes editoriales</div>
+                      <p className="text-[10px] text-slate-400 leading-relaxed">Asigna intervalos a la pista IA, planifica cada imagen con DeepSeek y genera con el bot Python conservando manifiestos y descargas.</p>
+                      <button onClick={() => setShowVibesWorkspace(true)} className="w-full rounded-lg bg-amber-600 hover:bg-amber-500 px-3 py-2 text-[11px] font-semibold text-white">Abrir flujo de Vibes</button>
+                    </div>
                     <div className="bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl p-3 space-y-3 select-none mb-3">
                       <div className="flex items-center space-x-1.5 text-amber-500">
                         <Sparkles className="h-4 w-4 animate-pulse" />
@@ -4449,7 +4469,6 @@ ${res.filePath}`);
                       <p className="text-[10px] text-slate-400 leading-relaxed">
                         Genera videos fotorrealistas por IA de 6 segundos en resolución 1080p usando MiniMax.
                       </p>
-
                       <div className="space-y-1.5">
                         <label className="text-[9px] font-bold text-slate-500 uppercase">Prompt del Video</label>
                         <textarea
@@ -4459,7 +4478,6 @@ ${res.filePath}`);
                           className="w-full bg-[#0D0D0F] border border-[#3a3a3c] focus:border-amber-500/50 rounded-lg p-2 text-xs text-white placeholder-slate-650 outline-none transition-all resize-none h-18 font-sans"
                         />
                       </div>
-
                       <div className="flex space-x-2">
                         <button
                           onClick={handleGenerarVideoIa}
@@ -4478,7 +4496,6 @@ ${res.filePath}`);
                             </>
                           )}
                         </button>
-
                         <button
                           onClick={handleOptimizePromptWithDeepSeek}
                           disabled={isOptimizingPrompt || !promptIa.trim()}
@@ -4492,25 +4509,23 @@ ${res.filePath}`);
                           )}
                         </button>
                       </div>
-
                       {errorIa && (
                         <div className="text-[9px] text-red-400 font-medium bg-red-950/20 border border-red-900/40 p-2 rounded-lg leading-relaxed select-text">
                           Error: {errorIa}
                         </div>
                       )}
                     </div>
-
                     {currentClips.length === 0 ? (
                       <div className="text-center py-10 text-slate-500 text-xs italic">
                         No hay videos de IA generados aún.
                       </div>
                     ) : (
                       currentClips.map(clip => (
-                        <div 
+                        <div
                           key={clip.id}
                           onClick={() => handleClipClick(clip)}
                           className={`border rounded-xl overflow-hidden p-2 flex space-x-3 transition-all cursor-pointer relative group/clip ${
-                            activeVideoUrl === clip.url && clip.url
+                            (activeVideoUrl === clip.url || activeImageUrl === clip.url) && clip.url
                               ? 'bg-indigo-950/30 border-indigo-500/55'
                               : 'bg-[#1C1C1E] border-[#3a3a3c]/60 hover:border-slate-700'
                           }`}
@@ -4518,6 +4533,8 @@ ${res.filePath}`);
                           <div className="w-20 h-14 bg-indigo-950/80 rounded-lg flex items-center justify-center relative overflow-hidden group flex-shrink-0">
                             {clip.thumbnailUrl ? (
                               <img src={clip.thumbnailUrl} className="w-full h-full object-cover" alt="miniatura" />
+                            ) : clip.mediaKind === 'image' || clip.type === 'image' ? (
+                              <Image className="h-5 w-5 text-amber-300" />
                             ) : (
                               <Video className="h-5 w-5 text-indigo-400" />
                             )}
@@ -4528,12 +4545,12 @@ ${res.filePath}`);
                           <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                             <div className="pr-12">
                               <h4 className="text-xs font-semibold truncate" title={clip.name}>{clip.name}</h4>
-                              <p className="text-[10px] text-slate-500 truncate" title={clip.path}>{clip.size || 'N/A'} • Video</p>
+                              <p className="text-[10px] text-slate-500 truncate" title={clip.path}>{clip.size || 'N/A'} • {clip.mediaKind === 'image' || clip.type === 'image' ? 'Imagen fija' : 'Video'}</p>
                             </div>
                             <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 self-start px-1.5 py-0.5 rounded-md">{clip.duration}</span>
                           </div>
                           <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover/clip:opacity-100 transition-opacity z-20">
-                            <button 
+                            {clip.provider !== 'vibes' && <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 addClipToTimeline(clip);
@@ -4542,8 +4559,8 @@ ${res.filePath}`);
                               title="Añadir al Timeline"
                             >
                               <Plus className="h-3 w-3" />
-                            </button>
-                            <button 
+                            </button>}
+                            <button
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 try {
@@ -4571,7 +4588,6 @@ ${res.filePath}`);
                   </div>
                 );
               }
-
               if (libraryTab === 'Transiciones') {
                 return (
                   <div className="space-y-3 p-1">
@@ -4666,11 +4682,9 @@ ${res.filePath}`);
                   </div>
                 );
               }
-
-              const currentClips = libraryTab === 'Principal' 
-                ? clips 
+              const currentClips = libraryTab === 'Principal'
+                ? clips
                 : (bankClips[libraryTab.toLowerCase()] || []);
-
               if (libraryTab === 'Stock' && currentClips.length === 0) {
                 return (
                   <div className="flex flex-col items-center justify-center py-10 text-slate-500 space-y-2.5 bg-[#1C1C1E]/10 rounded-xl p-6 border border-dashed border-[#3a3a3c]/40 select-none">
@@ -4682,7 +4696,6 @@ ${res.filePath}`);
                   </div>
                 );
               }
-              
               if (currentClips.length === 0) {
                 return (
                   <div className="text-center py-10 text-slate-500 text-xs italic">
@@ -4690,9 +4703,8 @@ ${res.filePath}`);
                   </div>
                 );
               }
-
               return currentClips.map(clip => (
-                <div 
+                <div
                   key={clip.id}
                   onClick={() => handleClipClick(clip)}
                   className={`border rounded-xl overflow-hidden p-2 flex space-x-3 transition-all cursor-pointer relative group/clip ${
@@ -4719,7 +4731,7 @@ ${res.filePath}`);
                     <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 self-start px-1.5 py-0.5 rounded-md">{clip.duration}</span>
                   </div>
                   <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover/clip:opacity-100 transition-opacity z-20">
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         addClipToTimeline(clip);
@@ -4730,7 +4742,7 @@ ${res.filePath}`);
                       <Plus className="h-3 w-3" />
                     </button>
                     {(
-                      <button 
+                      <button
                         onClick={async (e) => {
                           e.stopPropagation();
                           if (libraryTab === 'Principal') {
@@ -4768,7 +4780,6 @@ ${res.filePath}`);
           </>
           )}
         </section>
-
         {/* Resizer 1: Library Resizer */}
         <div
           onMouseDown={handleLibraryResizeMouseDown}
@@ -4776,7 +4787,6 @@ ${res.filePath}`);
         >
           <div className="absolute inset-y-0 -left-1 -right-1 cursor-col-resize" />
         </div>
-
         {/* Panel de Transiciones */}
         {showTransitionsPanel && (
           <section className='w-[280px] bg-[#1C1C1E]/70 border-r border-[#3a3a3c]/80 flex flex-col flex-shrink-0 overflow-hidden'>
@@ -4877,7 +4887,6 @@ ${res.filePath}`);
             </div>
           </section>
         )}
-
         {showImportPanel && (
           <section className='w-[280px] bg-[#1C1C1E]/70 border-r border-[#3a3a3c]/80 flex flex-col flex-shrink-0 overflow-hidden'>
             <div className='p-3 border-b border-[#3a3a3c]/80 flex justify-between items-center'>
@@ -5002,13 +5011,11 @@ ${res.filePath}`);
             </div>
           </section>
         )}
-
         {/* Center: Canvas Player */}
         {appMode === 'crear' ? (
           <section className="flex-1 bg-[#0D0D0F] flex flex-col p-6 overflow-y-auto">
             <div className="flex-1 flex items-center justify-center">
               <div className="w-full max-w-2xl">
-
                 <div className="flex gap-1 mb-5 bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl p-1">
                   {[
                     { id: 'idea', label: '💡 Idea' },
@@ -5023,7 +5030,6 @@ ${res.filePath}`);
                       }`}>{tab.label}</button>
                   ))}
                 </div>
-
                 {crearTab === 'idea' && (
                   <textarea
                     value={crearIdea}
@@ -5045,7 +5051,6 @@ ${res.filePath}`);
                     className="w-full bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl p-4 text-white text-sm font-sans mb-4 focus:border-indigo-500/50 focus:outline-none transition-colors"
                   />
                 )}
-
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
                     <label className="block text-[11px] text-slate-500 mb-1.5">Duración</label>
@@ -5074,7 +5079,6 @@ ${res.filePath}`);
                     </div>
                   </div>
                 </div>
-
                 <div className="mb-4">
                   <label className="block text-[11px] text-slate-500 mb-1.5">Tono narrativo</label>
                   <div className="grid grid-cols-4 gap-1 bg-[#1C1C1E] border border-[#3a3a3c] rounded-lg p-1">
@@ -5093,7 +5097,6 @@ ${res.filePath}`);
                     ))}
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-3 mb-5">
                   <div className="bg-[#1C1C1E] border border-dashed border-[#3a3a3c] rounded-xl p-4 text-center cursor-pointer hover:border-indigo-500/60 hover:bg-indigo-500/5 transition-all">
                     <div className="text-lg mb-1">📹</div>
@@ -5106,43 +5109,46 @@ ${res.filePath}`);
                     <div className="text-[9px] text-slate-600 mt-1">Opcional</div>
                   </div>
                 </div>
-
-                <button 
+                <button
                   disabled={!crearIdea.trim() && crearTab === 'idea'}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-medium flex items-center justify-center gap-2 hover:from-indigo-500 hover:to-violet-500 transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   ✦ Generar propuestas de guión
                 </button>
                 <p className="text-center text-[10px] text-slate-600 mt-2">La IA propondrá 3 enfoques narrativos para elegir</p>
-
               </div>
             </div>
           </section>
         ) : (
         <section className="flex-1 bg-[#0D0D0F] flex flex-col p-4 overflow-hidden">
-          <div 
+          <div
             ref={playerWrapperRef}
             onMouseMove={handleFullscreenMouseMove}
             className="flex-1 bg-[#0D0D0F] border border-[#3a3a3c] rounded-2xl relative overflow-hidden flex items-center justify-center group shadow-inner"
           >
             {/* Player Canvas Mockup / Real Player */}
-
-            
-            {activeVideoUrl ? (
-              <div 
+            {activeVideoUrl || activeImageUrl ? (
+              <div
                 onWheel={handlePreviewWheel}
                 onMouseDown={handlePreviewMouseDown}
                 onMouseMove={handlePreviewMouseMove}
                 onMouseUp={handlePreviewMouseUpOrLeave}
                 onMouseLeave={handlePreviewMouseUpOrLeave}
                 className={`relative z-10 bg-black shadow-2xl transition-all duration-300 flex items-center justify-center overflow-hidden border border-[#3a3a3c] ${
-                  aspectRatio === 'vertical' 
-                    ? 'h-[95%] aspect-[9/16]' 
-                    : aspectRatio === 'square' 
-                    ? 'h-[95%] aspect-square' 
+                  aspectRatio === 'vertical'
+                    ? 'h-[95%] aspect-[9/16]'
+                    : aspectRatio === 'square'
+                    ? 'h-[95%] aspect-square'
                     : 'w-[95%] aspect-video'
                 }`}
               >
+                {activeImageUrl && (
+                  <img
+                    src={activeImageUrl}
+                    alt="Imagen fija de la pista IA"
+                    className="absolute inset-0 z-20 h-full w-full object-contain pointer-events-none"
+                  />
+                )}
                 {perfectSyncMode && activeV2OverlayClip && (
                   <video
                     key={activeV2OverlayClip.id}
@@ -5179,7 +5185,7 @@ ${res.filePath}`);
                   }}
                   className="pointer-events-none"
                 >
-                  <video 
+                  <video
                     id="preview-video"
                     ref={videoRef}
                     src={activeVideoUrl || ''}
@@ -5197,7 +5203,6 @@ ${res.filePath}`);
                     onTimeUpdate={handleTimeUpdate}
                   />
                 </div>
-
                 <div
                   style={{
                     position: 'absolute',
@@ -5210,7 +5215,7 @@ ${res.filePath}`);
                   }}
                   className="pointer-events-none"
                 >
-                  <video 
+                  <video
                     id="preview-video-2"
                     ref={videoRef2}
                     src={transitionNextUrl || ''}
@@ -5238,38 +5243,36 @@ ${res.filePath}`);
                     muted
                   />
                 </div>
-
                 {/* Crop Editor Overlay */}
                 {isCropping && (
                    <div className="absolute inset-0 z-30 select-none cursor-crosshair">
                      {/* Dark surrounding panels */}
-                     <div 
-                       className="absolute left-0 right-0 top-0 bg-black/70 border-b border-white/10" 
+                     <div
+                       className="absolute left-0 right-0 top-0 bg-black/70 border-b border-white/10"
                        style={{ height: `${cropRect.top}%` }}
                      />
-                     <div 
-                       className="absolute left-0 right-0 bottom-0 bg-black/70 border-t border-white/10" 
+                     <div
+                       className="absolute left-0 right-0 bottom-0 bg-black/70 border-t border-white/10"
                        style={{ height: `${cropRect.bottom}%` }}
                      />
-                     <div 
-                       className="absolute left-0 bg-black/70 border-r border-white/10" 
-                       style={{ 
-                         top: `${cropRect.top}%`, 
-                         bottom: `${cropRect.bottom}%`, 
-                         width: `${cropRect.left}%` 
+                     <div
+                       className="absolute left-0 bg-black/70 border-r border-white/10"
+                       style={{
+                         top: `${cropRect.top}%`,
+                         bottom: `${cropRect.bottom}%`,
+                         width: `${cropRect.left}%`
                        }}
                      />
-                     <div 
-                       className="absolute right-0 bg-black/70 border-l border-white/10" 
-                       style={{ 
-                         top: `${cropRect.top}%`, 
-                         bottom: `${cropRect.bottom}%`, 
-                         width: `${cropRect.right}%` 
+                     <div
+                       className="absolute right-0 bg-black/70 border-l border-white/10"
+                       style={{
+                         top: `${cropRect.top}%`,
+                         bottom: `${cropRect.bottom}%`,
+                         width: `${cropRect.right}%`
                        }}
                      />
-
                      {/* Draggable Crop Box Area */}
-                     <div 
+                     <div
                        className="absolute border-2 border-indigo-500 border-dashed"
                        style={{
                          left: `${cropRect.left}%`,
@@ -5279,32 +5282,31 @@ ${res.filePath}`);
                        }}
                      >
                        {/* Interactive Crop Handles */}
-                       <div 
+                       <div
                          onMouseDown={(e) => handleCropResizeMouseDown(e, 'top-left')}
                          className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-indigo-500 rounded-full cursor-nwse-resize shadow"
                        />
-                       <div 
+                       <div
                          onMouseDown={(e) => handleCropResizeMouseDown(e, 'top-right')}
                          className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-indigo-500 rounded-full cursor-nesw-resize shadow"
                        />
-                       <div 
+                       <div
                          onMouseDown={(e) => handleCropResizeMouseDown(e, 'bottom-left')}
                          className="absolute -bottom-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-indigo-500 rounded-full cursor-nesw-resize shadow"
                        />
-                       <div 
+                       <div
                          onMouseDown={(e) => handleCropResizeMouseDown(e, 'bottom-right')}
                          className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-indigo-500 rounded-full cursor-nwse-resize shadow"
                        />
-
                        {/* Confirm/Cancel */}
                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-[#1C1C1E]/90 border border-[#3a3a3c] rounded-xl px-2.5 py-1.5 shadow-2xl flex items-center space-x-2 z-45">
-                         <button 
+                         <button
                            onClick={handleConfirmCrop}
                            className="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded transition-colors active:scale-95 cursor-pointer"
                          >
                            Aplicar
                          </button>
-                         <button 
+                         <button
                            onClick={handleCancelCrop}
                            className="bg-[#3a3a3c] hover:bg-slate-700 text-slate-355 text-[10px] font-bold px-2 py-1 rounded transition-colors active:scale-95 cursor-pointer"
                          >
@@ -5314,10 +5316,9 @@ ${res.filePath}`);
                      </div>
                    </div>
                  )}
-
                  {/* Overlay de Gráficos Animados (Fase 3) */}
                  {graphicVisible && activeGraphicClip && activeGraphicClip.graphicData && (
-                   <div 
+                   <div
                      key={activeGraphicClip.id}
                      className={`absolute inset-0 z-20 flex items-end justify-center pb-[20%] transition-opacity duration-300 select-none pointer-events-none ${
                        graphicFading ? 'opacity-0' : 'opacity-100'
@@ -5339,13 +5340,11 @@ ${res.filePath}`);
                 </div>
               </div>
             )}
-
             {/* Overlay controller */}
             <div className="absolute bottom-4 right-4 bg-[#0D0D0F]/80 px-3 py-1.5 rounded-xl border border-[#3a3a3c] text-[11px] font-mono text-slate-350 flex items-center space-x-2 z-20">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               <span>{activeVideoUrl ? 'Reproductor Activo' : 'Full Res (1080p)'}</span>
             </div>
-
             {isFullscreen && (
               <div
                 className={`absolute inset-0 z-50 flex flex-col justify-between p-4 transition-opacity duration-300 ${
@@ -5398,29 +5397,27 @@ ${res.filePath}`);
               </div>
             )}
           </div>
-
           {/* Player controls */}
           <div className="flex flex-col mt-4 p-3 bg-[#1C1C1E]/60 border border-[#3a3a3c]/80 rounded-xl space-y-3">
-
             {/* Controls row */}
             <div className="flex items-center justify-between">
               {/* Playback Controls */}
               <div className="flex items-center space-x-3">
-                <button 
+                <button
                   onClick={seekBackward}
                   className="p-1.5 hover:bg-[#3a3a3c] text-slate-400 hover:text-slate-200 rounded-lg transition-all active:scale-90"
                   title="Retroceder 10s"
                 >
                   <Rewind className="h-4 w-4" />
                 </button>
-                <button 
+                <button
                   onClick={() => setIsPlaying(!isPlaying)}
                   className="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full transition-all active:scale-95 shadow-md shadow-indigo-600/30"
                   title={isPlaying ? "Pausar" : "Reproducir"}
                 >
                   {isPlaying ? <Pause className="h-4 w-4 fill-white" /> : <Play className="h-4 w-4 fill-white" />}
                 </button>
-                <button 
+                <button
                   onClick={seekForward}
                   className="p-1.5 hover:bg-[#3a3a3c] text-slate-400 hover:text-slate-200 rounded-lg transition-all active:scale-90"
                   title="Adelantar 10s"
@@ -5428,20 +5425,18 @@ ${res.filePath}`);
                   <FastForward className="h-4 w-4" />
                 </button>
               </div>
-
               {/* Timecode */}
-              <div 
+              <div
                 id="cipher-timecode"
                 className="text-base font-mono tracking-wider font-semibold text-slate-100 bg-[#0D0D0F]/40 px-3 py-1 rounded-lg border border-[#3a3a3c]/60"
               >
                 {currentTime}
               </div>
-
               {/* Extras Controls (Volume, Speed, Aspect, Fullscreen) */}
               <div className="flex items-center space-x-3.5">
                 {/* Volume Slider */}
                 <div className="flex items-center space-x-2 group/volume relative">
-                  <button 
+                  <button
                     onClick={toggleMute}
                     className="p-1.5 hover:bg-[#2c2c2e] text-slate-400 hover:text-slate-200 rounded-lg transition-colors"
                   >
@@ -5451,7 +5446,7 @@ ${res.filePath}`);
                       <Volume2 className="h-4 w-4" />
                     )}
                   </button>
-                  <input 
+                  <input
                     type="range"
                     min="0"
                     max="1"
@@ -5464,10 +5459,9 @@ ${res.filePath}`);
                     }}
                   />
                 </div>
-
                 {/* Speed Dropdown */}
                 <div className="flex items-center">
-                  <select 
+                  <select
                     value={playbackRate}
                     onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
                     className="bg-[#0D0D0F] border border-[#3a3a3c] text-xs rounded-lg p-1.5 text-slate-300 font-semibold cursor-pointer outline-none hover:border-indigo-500/50 transition-colors"
@@ -5478,10 +5472,9 @@ ${res.filePath}`);
                     <option value="2">2.0x</option>
                   </select>
                 </div>
-
                 {/* Fullscreen / Aspect Ratio Dropdown */}
                 <div className="relative">
-                  <button 
+                  <button
                     onClick={() => setShowFormatDropdown(!showFormatDropdown)}
                     className={`p-1.5 rounded-lg transition-all flex items-center space-x-1 cursor-pointer ${
                       showFormatDropdown ? 'bg-indigo-600/25 text-indigo-400 border border-indigo-500/30' : 'hover:bg-[#3a3a3c] text-slate-400 hover:text-slate-200 border border-transparent'
@@ -5493,12 +5486,11 @@ ${res.filePath}`);
                       {aspectRatio === 'vertical' ? '9:16' : aspectRatio === 'square' ? '1:1' : '16:9'}
                     </span>
                   </button>
-                  
                   {showFormatDropdown && (
                     <>
                       {/* Invisible backdrop to close dropdown */}
-                      <div 
-                        className="fixed inset-0 z-40" 
+                      <div
+                        className="fixed inset-0 z-40"
                         onClick={() => setShowFormatDropdown(false)}
                       />
                       <div className="absolute right-0 bottom-full mb-2 w-48 bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl shadow-2xl p-1.5 z-50 flex flex-col space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-150">
@@ -5511,8 +5503,8 @@ ${res.filePath}`);
                             setShowFormatDropdown(false);
                           }}
                           className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg font-medium transition-colors text-left ${
-                            aspectRatio === 'horizontal' 
-                              ? 'bg-indigo-600 text-white' 
+                            aspectRatio === 'horizontal'
+                              ? 'bg-indigo-600 text-white'
                               : 'text-slate-350 hover:bg-[#3a3a3c] hover:text-white'
                           }`}
                         >
@@ -5525,8 +5517,8 @@ ${res.filePath}`);
                             setShowFormatDropdown(false);
                           }}
                           className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg font-medium transition-colors text-left ${
-                            aspectRatio === 'vertical' 
-                              ? 'bg-indigo-600 text-white' 
+                            aspectRatio === 'vertical'
+                              ? 'bg-indigo-600 text-white'
                               : 'text-slate-350 hover:bg-[#3a3a3c] hover:text-white'
                           }`}
                         >
@@ -5539,17 +5531,15 @@ ${res.filePath}`);
                             setShowFormatDropdown(false);
                           }}
                           className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg font-medium transition-colors text-left ${
-                            aspectRatio === 'square' 
-                              ? 'bg-indigo-600 text-white' 
+                            aspectRatio === 'square'
+                              ? 'bg-indigo-600 text-white'
                               : 'text-slate-350 hover:bg-[#3a3a3c] hover:text-white'
                           }`}
                         >
                           <span>1:1 Cuadrado</span>
                           <span className="text-[9px] opacity-70">Post / Feed</span>
                         </button>
-                        
                         <div className="border-t border-[#3a3a3c] my-1" />
-                        
                         <button
                           onClick={() => {
                             toggleFullscreen();
@@ -5569,7 +5559,6 @@ ${res.filePath}`);
           </div>
         </section>
         )}
-
         {/* Resizer 2: Tools Resizer */}
         <div
           onMouseDown={handleToolsResizeMouseDown}
@@ -5577,11 +5566,10 @@ ${res.filePath}`);
         >
           <div className="absolute inset-y-0 -left-1 -right-1 cursor-col-resize" />
         </div>
-
         {/* Right Side: AI Tools Panel */}
         {appMode === 'editor' && (
-        <section 
-          style={{ width: `${toolsWidth}px` }} 
+        <section
+          style={{ width: `${toolsWidth}px` }}
           className="bg-[#242426] border-l border-[#3a3a3c]/80 flex flex-col h-full overflow-hidden flex-shrink-0"
         >
           <div className="p-3 border-b border-[#3a3a3c]/80 flex items-center justify-between">
@@ -5590,7 +5578,7 @@ ${res.filePath}`);
               <h2 className="text-xs font-semibold tracking-wider text-slate-400 uppercase">Caja de Herramientas IA</h2>
             </div>
             {selectedTool && (
-              <button 
+              <button
                 onClick={() => setSelectedTool(null)}
                 className="text-[10px] text-indigo-400 hover:text-indigo-300 font-semibold transition-colors bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20 active:scale-95"
               >
@@ -5598,7 +5586,6 @@ ${res.filePath}`);
               </button>
             )}
           </div>
-
           {/* Selector de Modo de Sincronización */}
           <div className="px-3.5 py-2 bg-[#0D0D0F]/40 border-b border-[#3a3a3c]/80">
             <div className="flex w-full bg-[#0D0D0F] p-0.5 rounded-lg border border-[#3a3a3c]">
@@ -5624,14 +5611,13 @@ ${res.filePath}`);
               </button>
             </div>
           </div>
-
           <div className="flex-1 flex flex-col overflow-hidden">
             {!perfectSyncMode ? (
               !selectedTool ? (
               // List of Tool Cards
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {/* Smart Cut Tool */}
-                <div 
+                <div
                   onClick={() => setSelectedTool('smart-cut')}
                   className="p-3 rounded-xl border bg-[#1C1C1E] border-[#3a3a3c]/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
                 >
@@ -5644,9 +5630,8 @@ ${res.filePath}`);
                   </div>
                   <p className="text-[11px] text-slate-400">Corta silencios y pausas automáticamente usando transcripción acústica en milisegundos.</p>
                 </div>
-
                 {/* Transcript/Subtitles Tool */}
-                <div 
+                <div
                   onClick={() => setSelectedTool('subtitles')}
                   className="p-3 rounded-xl border bg-[#1C1C1E] border-[#3a3a3c]/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
                 >
@@ -5659,9 +5644,8 @@ ${res.filePath}`);
                   </div>
                   <p className="text-[11px] text-slate-400">Genera subtítulos editables y marcas de tiempo precisas para todo el audio detectado.</p>
                 </div>
-
                 {/* Style Transfer */}
-                <div 
+                <div
                   onClick={() => setSelectedTool('translate')}
                   className="p-3 rounded-xl border bg-[#1C1C1E] border-[#3a3a3c]/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
                 >
@@ -5674,9 +5658,8 @@ ${res.filePath}`);
                   </div>
                   <p className="text-[11px] text-slate-400">Traduce diálogos a múltiples idiomas manteniendo la clonación de la voz original.</p>
                 </div>
-
                 {/* Voice Generation Tool */}
-                <div 
+                <div
                   onClick={() => setSelectedTool('voice')}
                   className="p-3 rounded-xl border bg-[#1C1C1E] border-[#3a3a3c]/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
                 >
@@ -5689,9 +5672,8 @@ ${res.filePath}`);
                   </div>
                   <p className="text-[11px] text-slate-400">Genera una pista de voz en off profesional a partir de tu guion reescrito usando clonación de voz.</p>
                 </div>
-
                 {/* Timeline IA Tool */}
-                <div 
+                <div
                   onClick={() => setSelectedTool('timeline-ia')}
                   className="p-3 rounded-xl border bg-[#1C1C1E] border-[#3a3a3c]/60 hover:border-slate-700 transition-all cursor-pointer flex flex-col space-y-2"
                 >
@@ -5703,6 +5685,20 @@ ${res.filePath}`);
                     <span className="text-[9px] bg-[#3a3a3c] text-slate-400 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Montaje</span>
                   </div>
                   <p className="text-[11px] text-slate-400">Distribuye y organiza de forma inteligente tus clips en la línea de tiempo basado en la reescritura del guión.</p>
+                </div>
+                {/* Animation workspace */}
+                <div
+                  onClick={() => setSelectedTool('animation')}
+                  className="p-3 rounded-xl border bg-[#1C1C1E] border-indigo-500/30 hover:border-indigo-400 transition-all cursor-pointer flex flex-col space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Sparkles className="h-4 w-4 text-indigo-300" />
+                      <span className="text-xs font-bold">Animation · Canvas procedural</span>
+                    </div>
+                    <span className="text-[9px] bg-indigo-500/20 text-indigo-200 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Preview</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">Dirige Visuales por chat, conserva recetas y componentes, y aplica borradores reversibles al clip seleccionado.</p>
                 </div>
               </div>
              ) : (
@@ -5716,7 +5712,6 @@ ${res.filePath}`);
                          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wide">Transcripción Whisper</h3>
                          <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Whisper AI</span>
                        </div>
-                       
                        {!firstVideoInLibrary ? (
                          <div className="flex-1 flex flex-col items-center justify-center text-center p-6 border border-dashed border-[#3a3a3c] rounded-xl space-y-3 bg-[#0D0D0F]/20">
                            <Type className="h-8 w-8 text-slate-650" />
@@ -5724,7 +5719,7 @@ ${res.filePath}`);
                              <p className="text-xs font-semibold text-slate-300">No hay videos importados</p>
                              <p className="text-[10px] text-slate-500 mt-1">Por favor, importa al menos un video a la biblioteca para comenzar.</p>
                            </div>
-                           <button 
+                           <button
                              onClick={handleUploadClick}
                              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded-lg font-semibold active:scale-95 transition-all shadow-md shadow-indigo-600/25 cursor-pointer flex items-center space-x-1"
                            >
@@ -5816,7 +5811,6 @@ ${res.filePath}`);
                                     <span className="text-[10px] text-indigo-300 font-semibold animate-pulse">Reescribiendo...</span>
                                   </div>
                                 )}
-
                                 {!isCuttingClips ? (
                                   <button
                                     onClick={handleCutClipsClick}
@@ -5836,14 +5830,12 @@ ${res.filePath}`);
                                   </div>
                                 )}
                               </div>
-
                               {rewriteError && (
                                 <div className="text-[10px] text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl break-words">
                                   <p className="font-bold mb-0.5">Error de reescritura:</p>
                                   <p className="font-mono text-[9px] select-text">{rewriteError}</p>
                                 </div>
                               )}
-
                               {cuttingClipsError && (
                                 <div className="text-[10px] text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl break-words">
                                   <p className="font-bold mb-0.5">Error al cortar clips:</p>
@@ -5852,7 +5844,6 @@ ${res.filePath}`);
                               )}
                             </div>
                           </div>
-
                              {/* Guión IA Panel */}
                             <div className="bg-[#1C1C1E]/90 border border-[#3a3a3c] rounded-xl p-3 flex flex-col space-y-2.5 shadow-xl">
                               <div className="flex justify-between items-center pb-1 border-b border-[#3a3a3c]/80">
@@ -5861,7 +5852,6 @@ ${res.filePath}`);
                                   <span className="text-[10px] font-bold text-slate-300 tracking-wider uppercase font-sans">Guión IA</span>
                                 </div>
                               </div>
-
                               {/* Action Buttons Row */}
                               <div className="flex flex-wrap gap-1.5 py-1">
                                 <button
@@ -5910,7 +5900,6 @@ ${res.filePath}`);
                                   <span>Confirmar Guión</span>
                                 </button>
                               </div>
-
                               <textarea
                                 value={aiScript}
                                 onChange={(e) => setAiScript(e.target.value)}
@@ -5930,13 +5919,11 @@ ${res.filePath}`);
                                La transcripción real se conectará con Whisper local.
                              </p>
                            </div>
-                           
                            {transcriptionStatus && transcriptionStatus.startsWith('Error:') && (
                              <p className="text-[10px] text-rose-400 bg-rose-500/10 border border-rose-500/25 px-2 py-1 rounded max-w-[220px] select-text break-all">
                                {transcriptionStatus}
                              </p>
                            )}
-
                            {avisoRecorte && (
                              <p className="text-[10px] text-amber-400 font-mono mb-1.5">{avisoRecorte}</p>
                            )}
@@ -5952,7 +5939,6 @@ ${res.filePath}`);
                      </div>
                    );
                 })()}
-
                 {selectedTool === 'smart-cut' && (
                   <div className="flex-1 flex flex-col justify-center items-center text-center p-6 space-y-3">
                     <Scissors className="h-8 w-8 text-indigo-450 mb-1" />
@@ -5963,13 +5949,11 @@ ${res.filePath}`);
                     </button>
                   </div>
                 )}
-
                 {selectedTool === 'translate' && (
                   <div className="flex-1 flex flex-col justify-center items-center text-center p-6 space-y-4">
                     <Languages className="h-8 w-8 text-indigo-450 mb-1" />
                     <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wide">Doblaje e Idiomas</h3>
                     <p className="text-xs text-slate-400 max-w-[200px] leading-relaxed">Traduce tus pistas de audio a otros idiomas manteniendo tu tono de voz original.</p>
-                    
                     <div className="w-full space-y-2 text-left">
                       <label className="text-[10px] text-slate-500 font-bold uppercase">Idioma Destino</label>
                       <select className="w-full bg-[#1C1C1E] border border-[#3a3a3c] text-xs rounded-lg p-2 text-slate-300 outline-none">
@@ -5980,13 +5964,11 @@ ${res.filePath}`);
                         <option>Alemán (Alemania)</option>
                       </select>
                     </div>
-
                     <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs py-2 rounded-lg font-semibold active:scale-95 transition-all shadow-md shadow-indigo-600/25 cursor-pointer">
                       Iniciar Traducción
                     </button>
                   </div>
                 )}
-
                 {selectedTool === 'voice' && (
                   <div className="flex-1 flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between mb-3 border-b border-[#3a3a3c]/60 pb-2">
@@ -6002,7 +5984,6 @@ ${res.filePath}`);
                       </div>
                       <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Voice AI</span>
                     </div>
-
                     <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
                       <div className="bg-[#1C1C1E]/90 border border-slate-805 rounded-xl p-3 flex flex-col space-y-2.5 shadow-xl">
                         <span className="text-[10px] text-slate-400 font-bold uppercase font-sans">Guión de Entrada</span>
@@ -6013,14 +5994,12 @@ ${res.filePath}`);
                           placeholder="El guion a procesar aparecerá aquí..."
                         />
                       </div>
-
                       <div className="bg-[#1C1C1E]/90 border border-slate-805 rounded-xl p-3.5 flex flex-col space-y-4 shadow-xl">
                         <span className="text-[10px] text-slate-400 font-bold uppercase font-sans tracking-wide">Configuración de Voz</span>
-                        
                         {/* Selector de Modelo (Eleven Multilingual v2) */}
                         <div className="space-y-1">
                           <label className="text-[9px] text-slate-500 font-bold uppercase font-sans">Modelo</label>
-                          <select 
+                          <select
                             value={voiceModel}
                             onChange={(e) => setVoiceModel(e.target.value)}
                             className="w-full bg-[#0D0D0F] border border-slate-805 text-xs rounded-lg p-2 text-slate-300 outline-none focus:border-indigo-500/50 cursor-pointer"
@@ -6030,7 +6009,6 @@ ${res.filePath}`);
                             <option value="Eleven Turbo v2">Eleven Turbo v2</option>
                           </select>
                         </div>
-
                         {/* Selector de Voz */}
                         <div className="space-y-1 relative">
                           <label className="text-[9px] text-slate-500 font-bold uppercase font-sans">Clon o Locutor</label>
@@ -6045,7 +6023,6 @@ ${res.filePath}`);
                               </span>
                               <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
                             </button>
-                            
                             {isVoiceDropdownOpen && (
                               <div className="absolute left-0 right-0 mt-1 bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto p-1 space-y-0.5 scrollbar-thin">
                                 {elevenLabsVoices.length === 0 ? (
@@ -6075,7 +6052,6 @@ ${res.filePath}`);
                                           {voice.category}
                                         </span>
                                       </div>
-                                      
                                       {voice.preview_url && (
                                         <button
                                           type="button"
@@ -6102,21 +6078,20 @@ ${res.filePath}`);
                             )}
                           </div>
                         </div>
-
                         {/* Slider de Velocidad */}
                         <div className="space-y-1.5">
                           <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase font-sans">
                             <span>Velocidad</span>
                             <span className="font-mono text-indigo-400 font-bold">{voiceSpeed.toFixed(1)}x</span>
                           </div>
-                          <input 
-                            type="range" 
-                            min="0.5" 
-                            max="2.0" 
-                            step="0.1" 
+                          <input
+                            type="range"
+                            min="0.5"
+                            max="2.0"
+                            step="0.1"
                             value={voiceSpeed}
                             onChange={(e) => setVoiceSpeed(parseFloat(e.target.value))}
-                            className="w-full h-1 bg-[#3a3a3c] rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
+                            className="w-full h-1 bg-[#3a3a3c] rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none"
                             style={{
                               background: `linear-gradient(to right, rgb(99, 102, 241) ${Math.round(((voiceSpeed - 0.5) / 1.5) * 100)}%, rgb(30, 41, 59) 0%)`
                             }}
@@ -6126,20 +6101,19 @@ ${res.filePath}`);
                             <span>Más rápido</span>
                           </div>
                         </div>
-
                         {/* Slider de Estabilidad */}
                         <div className="space-y-1.5">
                           <div className="flex justify-between text-[9px] text-slate-500 font-bold uppercase font-sans">
                             <span>Estabilidad</span>
                             <span className="font-mono text-indigo-400 font-bold">{voiceStability}%</span>
                           </div>
-                          <input 
-                            type="range" 
-                            min="0" 
-                            max="100" 
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
                             value={voiceStability}
                             onChange={(e) => setVoiceStability(parseInt(e.target.value))}
-                            className="w-full h-1 bg-[#3a3a3c] rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none" 
+                            className="w-full h-1 bg-[#3a3a3c] rounded-lg appearance-none cursor-pointer accent-indigo-500 transition-all outline-none"
                             style={{
                               background: `linear-gradient(to right, rgb(99, 102, 241) ${voiceStability}%, rgb(30, 41, 59) 0%)`
                             }}
@@ -6149,21 +6123,19 @@ ${res.filePath}`);
                             <span>Más estable</span>
                           </div>
                         </div>
-
                         {/* Formato de Salida (Fijo) */}
                         <div className="space-y-1">
                           <label className="text-[9px] text-slate-500 font-bold uppercase font-sans">Formato de Salida</label>
-                          <input 
-                            type="text" 
-                            readOnly 
+                          <input
+                            type="text"
+                            readOnly
                             value={voiceFormat}
-                            className="w-full bg-[#0D0D0F]/50 border border-slate-805 text-xs rounded-lg p-2 text-slate-400 outline-none select-none font-mono cursor-not-allowed" 
+                            className="w-full bg-[#0D0D0F]/50 border border-slate-805 text-xs rounded-lg p-2 text-slate-400 outline-none select-none font-mono cursor-not-allowed"
                           />
                         </div>
                       </div>
-
                       {/* Botón Generar Voz */}
-                      <button 
+                      <button
                         onClick={handleGenerateVoiceClick}
                         disabled={isGeneratingVoice}
                         className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs py-2.5 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -6171,14 +6143,12 @@ ${res.filePath}`);
                         <Volume2 className="h-3.5 w-3.5" />
                         <span>{isGeneratingVoice ? 'Generando Voz...' : 'Generar Voz'}</span>
                       </button>
-
                       {voiceGenerationError && (
                         <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 text-[10px] text-rose-400 break-words leading-relaxed">
                           <span className="font-bold block mb-1">Error de generación:</span>
                           <span className="font-mono text-[9px] select-text">{voiceGenerationError}</span>
                         </div>
                       )}
-
                       {firstVideoInLibrary && (
                         <button
                           onClick={() => usarAudioOriginal(firstVideoInLibrary)}
@@ -6188,13 +6158,11 @@ ${res.filePath}`);
                           {extrayendoAudio ? 'Extrayendo audio…' : '🎙️ Usar Audio Original'}
                         </button>
                       )}
-
                       {/* Lista de Versiones Generadas (Mini Reproductor) */}
                       <div className="bg-[#1C1C1E]/90 border border-slate-805 rounded-xl p-3.5 flex flex-col space-y-3 shadow-xl">
                         <span className="text-[10px] text-slate-400 font-bold uppercase font-sans tracking-wide">
                           Versiones Generadas ({generatedVoices.length})
                         </span>
-                        
                         {generatedVoices.length === 0 ? (
                           <div className="text-center py-6 text-slate-500 text-[10px] italic">
                             No hay versiones generadas aún. Presiona "Generar Voz" para crear una.
@@ -6222,16 +6190,14 @@ ${res.filePath}`);
                                     <Trash2 className="h-3 w-3" />
                                   </button>
                                 </div>
-                                
                                 <div className="text-[9px] text-slate-450 bg-[#0D0D0F]/40 p-2 rounded border border-[#3a3a3c] line-clamp-2 select-text" title={voice.text}>
                                   "{voice.text}"
                                 </div>
-
                                 <div className="flex items-center space-x-2">
-                                  <audio 
-                                    controls 
-                                    src={voice.audioUrl} 
-                                    className="flex-1 h-7 rounded bg-[#0D0D0F]" 
+                                  <audio
+                                    controls
+                                    src={voice.audioUrl}
+                                    className="flex-1 h-7 rounded bg-[#0D0D0F]"
                                     style={{ outline: 'none' }}
                                   />
                                   <button
@@ -6249,7 +6215,6 @@ ${res.filePath}`);
                     </div>
                   </div>
                 )}
-
                 {selectedTool === 'timeline-ia' && (
                   <div className="flex-1 flex flex-col overflow-hidden">
                     <div className="flex items-center justify-between mb-3 border-b border-[#3a3a3c]/60 pb-2">
@@ -6265,7 +6230,6 @@ ${res.filePath}`);
                       </div>
                       <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">IA Assembly</span>
                     </div>
-
                     <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
                       <div className="bg-[#1C1C1E]/90 border border-[#3a3a3c] rounded-xl p-3.5 flex flex-col space-y-3 shadow-xl">
                         <div>
@@ -6273,7 +6237,6 @@ ${res.filePath}`);
                           <p className="text-[10px] text-slate-400 mt-1">El sistema organizará los clips en el timeline utilizando los porcentajes que configures en el panel izquierdo ("Mix del montaje").</p>
                         </div>
                       </div>
-
                       {/* Build Timeline IA Button */}
                       {isGeneratingAssets ? (
                         <div className="flex flex-col items-center justify-center text-center p-6 space-y-4 bg-[#1C1C1E]/90 border border-[#3a3a3c] rounded-xl shadow-xl select-none">
@@ -6287,7 +6250,7 @@ ${res.filePath}`);
                                   <span className="capitalize text-indigo-400 font-bold">{generationProgress.type}</span>
                                 </div>
                                 <div className="h-1.5 w-full bg-[#0D0D0F] rounded-full overflow-hidden">
-                                  <div 
+                                  <div
                                     className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 transition-all duration-300"
                                     style={{ width: `${(generationProgress.current / generationProgress.total) * 100}%` }}
                                   />
@@ -6302,28 +6265,25 @@ ${res.filePath}`);
                           </div>
                         </div>
                       ) : (
-                        <button 
-                          onClick={handleBuildIATimeline}
+                        <button
+                          onClick={() => void handleBuildIATimeline()}
                           disabled={!aiScript.trim()}
                           className="w-full bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2.5 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
-                          <span>Construir Timeline IA</span>
+                  <span>Construir timeline</span>
                         </button>
                       )}
-
                       {!aiScript.trim() && (
                         <div className="text-center py-2 text-[10px] text-slate-500 italic leading-relaxed">
                           * Genera o reescribe un guión en el panel de transcripción antes de construir el Timeline IA.
                         </div>
                       )}
-
                       {avisoGraficos && (
                         <div className="text-center py-2 px-3 text-[10px] text-amber-400 font-medium leading-relaxed bg-amber-950/20 border border-amber-900/50 rounded-xl mt-2 select-text">
                           {avisoGraficos}
                         </div>
                       )}
-
                       {generationError && (
                         <div className="text-center py-2 px-3 text-[10px] text-red-400 font-medium leading-relaxed bg-red-950/20 border border-red-900/50 rounded-xl mt-2 select-text">
                           Error de generación: {generationError}
@@ -6332,6 +6292,29 @@ ${res.filePath}`);
                     </div>
                   </div>
                 )}
+                {selectedTool === 'animation' && <AnimationWorkspace
+                  projectPath={activeProjectPath}
+                  selectedClip={selectedAnimationClip}
+                  selectedClipCount={selectedTimelineClipIds.length}
+                  transcriptSegments={animationTranscriptSegments}
+                  currentTimeSeconds={currentTimeForUI}
+                  projectDurationSeconds={Math.max(durationSeconds,
+                    ...timelineVideoClips.map(clip => Number(clip.startSeconds || 0) + Number(clip.durationSeconds || 0)),
+                    ...transcriptSegments.map(segment => Number(segment.end || 0)))}
+                  projectFps={30}
+                  projectFormat={aspectRatio}
+                  timelineWeights={timelineWeights}
+                  timelineVideoClips={timelineVideoClips}
+                  selectedTimelineClipIds={selectedTimelineClipIds}
+                  canApplyNewVisualAt={canApplyNewAnimationVisualAt}
+                  onSelectVisualSlot={(clipId) => {
+                    setSelectedTimelineClipIds([clipId]);
+                    setSelectedTool('animation');
+                  }}
+                  onApply={applyAnimationClip}
+                  onUndo={handleUndo}
+                  onRestore={restoreAnimationSnapshot}
+                />}
               </div>
             )) : (
               <div className='flex-1 flex flex-col overflow-hidden'>
@@ -6404,7 +6387,6 @@ ${res.filePath}`);
         </section>
         )}
       </main>
-
       {/* Resizer 3: Timeline Resizer */}
       <div
         onMouseDown={handleTimelineResizeMouseDown}
@@ -6412,47 +6394,43 @@ ${res.filePath}`);
       >
         <div className="absolute inset-x-0 -top-1 -bottom-1 cursor-row-resize" />
       </div>
-
       {/* Bottom Timeline Editor */}
-      <footer 
-        style={{ height: `${timelineHeight}px` }} 
+      <footer
+        style={{ height: `${timelineHeight}px` }}
         className="bg-[#1C1C1E] flex flex-col flex-shrink-0 overflow-hidden"
       >
         {/* Timeline toolbar */}
         <div className="px-4 py-2 border-b border-[#3a3a3c]/60 flex items-center justify-between text-xs text-slate-455">
           <div className="flex items-center space-x-4 flex-wrap">
             {/* Undo */}
-            <button 
+            <button
               disabled={milestoneIndex <= 0}
               onClick={handleUndo}
               className={`flex items-center space-x-1 transition-all active:scale-95 ${
-                milestoneIndex > 0 
-                  ? 'text-slate-300 hover:text-indigo-400 cursor-pointer' 
+                milestoneIndex > 0
+                  ? 'text-slate-300 hover:text-indigo-400 cursor-pointer'
                   : 'text-slate-650 cursor-not-allowed'
               }`}
               title="Deshacer (Ctrl+Z)"
             >
               <Undo className="h-3.5 w-3.5" />
             </button>
-
             {/* Redo */}
-            <button 
+            <button
               disabled={milestoneIndex >= milestoneHistory.length - 1}
               onClick={handleRedo}
               className={`flex items-center space-x-1 transition-all active:scale-95 ${
-                milestoneIndex < milestoneHistory.length - 1 
-                  ? 'text-slate-300 hover:text-indigo-400 cursor-pointer' 
+                milestoneIndex < milestoneHistory.length - 1
+                  ? 'text-slate-300 hover:text-indigo-400 cursor-pointer'
                   : 'text-slate-655 cursor-not-allowed'
               }`}
               title="Rehacer (Ctrl+Y)"
             >
               <Redo className="h-3.5 w-3.5" />
             </button>
-
             <div className="w-[1px] h-4 bg-[#3a3a3c] mx-1" />
-
             {/* Split / Tijeras */}
-            <button 
+            <button
               onClick={handleSplit}
               className="flex items-center space-x-1 text-slate-300 hover:text-indigo-400 cursor-pointer transition-all active:scale-95"
               title="Dividir clip en la línea de tiempo (Ctrl+B)"
@@ -6460,14 +6438,13 @@ ${res.filePath}`);
               <Scissors className="h-3.5 w-3.5" />
               <span>Dividir</span>
             </button>
-
             {/* Copiar Clip */}
-            <button 
+            <button
               disabled={selectedTimelineClipIds.length === 0}
               onClick={handleCopyClip}
               className={`flex items-center space-x-1 transition-all active:scale-95 ${
-                selectedTimelineClipIds.length > 0 
-                  ? 'text-slate-300 hover:text-indigo-400 cursor-pointer' 
+                selectedTimelineClipIds.length > 0
+                  ? 'text-slate-300 hover:text-indigo-400 cursor-pointer'
                   : 'text-slate-600 cursor-not-allowed'
               }`}
               title="Copiar clip seleccionado"
@@ -6475,14 +6452,13 @@ ${res.filePath}`);
               <Copy className="h-3.5 w-3.5" />
               <span>Copiar</span>
             </button>
-
             {/* Pegar Clip */}
-            <button 
+            <button
               disabled={!copiedClip}
               onClick={handlePasteClip}
               className={`flex items-center space-x-1 transition-all active:scale-95 ${
-                copiedClip 
-                  ? 'text-slate-300 hover:text-indigo-400 cursor-pointer' 
+                copiedClip
+                  ? 'text-slate-300 hover:text-indigo-400 cursor-pointer'
                   : 'text-slate-600 cursor-not-allowed'
               }`}
               title="Pegar clip copiado en el cabezal de reproducción"
@@ -6490,13 +6466,12 @@ ${res.filePath}`);
               <Clipboard className="h-3.5 w-3.5" />
               <span>Pegar</span>
             </button>
-
             {/* Espejo */}
-            <button 
+            <button
               onClick={() => setIsMirrored(!isMirrored)}
               className={`flex items-center space-x-1 transition-all active:scale-95 ${
-                isMirrored 
-                  ? 'text-indigo-400 hover:text-indigo-300 font-bold' 
+                isMirrored
+                  ? 'text-indigo-400 hover:text-indigo-300 font-bold'
                   : 'text-slate-300 hover:text-indigo-400 cursor-pointer'
               }`}
               title="Voltear horizontalmente (Espejo)"
@@ -6504,13 +6479,12 @@ ${res.filePath}`);
               <FlipHorizontal className="h-3.5 w-3.5" />
               <span>Espejo</span>
             </button>
-
             {/* Crop */}
-            <button 
+            <button
               onClick={() => setIsCropping(!isCropping)}
               className={`flex items-center space-x-1 transition-all active:scale-95 ${
-                isCropping 
-                  ? 'text-indigo-400 hover:text-indigo-300 font-bold' 
+                isCropping
+                  ? 'text-indigo-400 hover:text-indigo-300 font-bold'
                   : 'text-slate-300 hover:text-indigo-400 cursor-pointer'
               }`}
               title="Recortar video (Crop)"
@@ -6519,7 +6493,7 @@ ${res.filePath}`);
               <span>Crop</span>
             </button>
             {activeCrop && (
-              <button 
+              <button
                 onClick={() => setActiveCrop(null)}
                 className="text-[9px] bg-[#3a3a3c] hover:bg-slate-750 text-indigo-400 border border-slate-700 px-1.5 py-0.5 rounded transition-all active:scale-95 cursor-pointer"
                 title="Restaurar recorte original"
@@ -6527,16 +6501,14 @@ ${res.filePath}`);
                 Reset Crop
               </button>
             )}
-
             <div className="w-[1px] h-4 bg-[#3a3a3c] mx-1" />
-
             {/* Duplicar */}
-            <button 
+            <button
               disabled={selectedTimelineClipIds.length === 0}
               onClick={() => duplicateTimelineClips(selectedTimelineClipIds)}
               className={`flex items-center space-x-1 transition-all active:scale-95 ${
-                selectedTimelineClipIds.length > 0 
-                  ? 'text-slate-300 hover:text-indigo-400 cursor-pointer' 
+                selectedTimelineClipIds.length > 0
+                  ? 'text-slate-300 hover:text-indigo-400 cursor-pointer'
                   : 'text-slate-600 cursor-not-allowed'
               }`}
               title="Duplicar clip seleccionado"
@@ -6544,14 +6516,13 @@ ${res.filePath}`);
               <Plus className="h-3.5 w-3.5" />
               <span>Duplicar</span>
             </button>
-
             {/* Eliminar */}
-            <button 
+            <button
               disabled={selectedTimelineClipIds.length === 0}
               onClick={() => handleDeleteClips(selectedTimelineClipIds)}
               className={`flex items-center space-x-1 transition-all active:scale-95 ${
-                selectedTimelineClipIds.length > 0 
-                  ? 'text-rose-450 hover:text-rose-400 cursor-pointer' 
+                selectedTimelineClipIds.length > 0
+                  ? 'text-rose-450 hover:text-rose-400 cursor-pointer'
                   : 'text-slate-600 cursor-not-allowed'
               }`}
               title="Eliminar clip seleccionado (Delete)"
@@ -6559,11 +6530,10 @@ ${res.filePath}`);
               <Trash2 className="h-3.5 w-3.5" />
               <span>Eliminar</span>
             </button>
-
             {/* Zoom Slider Control */}
             <div className="flex items-center space-x-2 text-slate-400 pl-4 border-l border-[#3a3a3c]">
               <span className="text-[10px] font-semibold text-slate-500 uppercase select-none">Zoom Preview:</span>
-              <input 
+              <input
                 type="range"
                 min="1"
                 max="4"
@@ -6579,7 +6549,7 @@ ${res.filePath}`);
                 {Math.round(zoom * 100)}%
               </span>
               {zoom > 1 && (
-                <button 
+                <button
                   onClick={() => setZoom(1)}
                   className="text-[9px] bg-[#3a3a3c] hover:bg-slate-750 text-indigo-400 px-1.5 py-0.5 rounded font-bold border border-slate-700 transition-all active:scale-95 cursor-pointer"
                   title="Restablecer zoom a 100%"
@@ -6591,18 +6561,17 @@ ${res.filePath}`);
           </div>
           <div className="flex items-center space-x-4">
             <span className="font-mono text-[10px] text-slate-500">Escala de Tiempo: 1s</span>
-            
             {/* Timeline Zoom Slider Control (Regla 6) */}
             <div className="flex items-center space-x-2 pl-4 border-l border-[#3a3a3c] text-slate-400">
               <span className="text-[10px] font-semibold text-slate-500 uppercase select-none">Zoom Timeline:</span>
-              <button 
-                onClick={() => setTimelineZoom(prev => Math.max(1200, prev - 300))} 
+              <button
+                onClick={() => setTimelineZoom(prev => Math.max(1200, prev - 300))}
                 className="text-xs text-slate-400 hover:text-white px-1.5 py-0.5 hover:bg-[#3a3a3c] rounded select-none cursor-pointer font-bold transition-colors"
                 title="Alejar"
               >
                 -
               </button>
-              <input 
+              <input
                 type="range"
                 min="1200"
                 max="6000"
@@ -6614,8 +6583,8 @@ ${res.filePath}`);
                   background: `linear-gradient(to right, rgb(99, 102, 241) ${Math.round(((timelineZoom - 1200) / 4800) * 100)}%, rgb(51, 65, 85) 0%)`
                 }}
               />
-              <button 
-                onClick={() => setTimelineZoom(prev => Math.min(6000, prev + 300))} 
+              <button
+                onClick={() => setTimelineZoom(prev => Math.min(6000, prev + 300))}
                 className="text-xs text-slate-400 hover:text-white px-1.5 py-0.5 hover:bg-[#3a3a3c] rounded select-none cursor-pointer font-bold transition-colors"
                 title="Acercar"
               >
@@ -6627,9 +6596,8 @@ ${res.filePath}`);
             </div>
           </div>
         </div>
-
         {/* Tracks area */}
-        <div 
+        <div
           ref={timelineTracksRef}
           className="flex-1 overflow-x-auto overflow-y-auto p-4 bg-[#0D0D0F]/40 relative scrollbar-timeline"
         >
@@ -6637,7 +6605,7 @@ ${res.filePath}`);
             {/* Timeline Ruler */}
             <div className="flex items-center space-x-3 mb-2 select-none">
               <div className="w-28 flex-shrink-0" />
-              <div 
+              <div
                 ref={trackRef}
                 onMouseDown={handleTimelineScrubMouseDown}
                 className="flex-1 h-6 relative cursor-col-resize border-b border-[#3a3a3c]"
@@ -6650,9 +6618,9 @@ ${res.filePath}`);
                     ticks.push(i * 10);
                   }
                   return ticks.map(tick => (
-                    <div 
-                      key={tick} 
-                      style={{ left: `${(tick / totalDuration) * 100}%` }} 
+                    <div
+                      key={tick}
+                      style={{ left: `${(tick / totalDuration) * 100}%` }}
                       className="absolute top-0 bottom-0 flex flex-col justify-between"
                     >
                       <div className="w-[1px] h-1.5 bg-slate-700" />
@@ -6664,11 +6632,10 @@ ${res.filePath}`);
                 })()}
               </div>
             </div>
-
             {/* Tracks wrapper */}
             <div className="relative space-y-3">
               {/* Playhead Overlay Area (aligned with the tracks, starts after the header - Corrección 5) */}
-              <div 
+              <div
                 className="absolute top-0 bottom-0 z-30 pointer-events-none"
                 style={{
                   left: 'calc(7rem + 12px)',
@@ -6679,9 +6646,9 @@ ${res.filePath}`);
                 {(() => {
                   const playheadPercent = totalDuration > 0 ? (currentTimeForUI / totalDuration) * 100 : 0;
                   return (
-                    <div 
+                    <div
                       id="cipher-playhead"
-                      style={{ left: `${playheadPercent}%` }} 
+                      style={{ left: `${playheadPercent}%` }}
                       className="absolute top-0 bottom-0 w-[2px] bg-indigo-500 pointer-events-none shadow-[0_0_10px_#6366f1]"
                     >
                       <div className="w-3 h-3 bg-indigo-500 rounded-full -ml-[5px] -mt-[4px] border border-white shadow-lg" />
@@ -6689,7 +6656,6 @@ ${res.filePath}`);
                   );
                 })()}
               </div>
-
               {/* Track 1: Video Track */}
               <div className="flex items-center space-x-3">
                 <div className="w-28 text-[11px] font-bold text-slate-400 flex flex-col justify-center space-y-1.5 flex-shrink-0 pr-2">
@@ -6701,8 +6667,8 @@ ${res.filePath}`);
                         <button
                           onClick={() => setShowVideoV2Track(!showVideoV2Track)}
                           className={`ml-2 text-[13px] transition-all px-2 py-1 rounded-lg font-bold ${
-                            showVideoV2Track 
-                              ? 'text-sky-400 bg-sky-500/20 border border-sky-500/40 shadow-sm shadow-sky-500/20' 
+                            showVideoV2Track
+                              ? 'text-sky-400 bg-sky-500/20 border border-sky-500/40 shadow-sm shadow-sky-500/20'
                               : 'text-slate-400 hover:text-sky-400 bg-[#3a3a3c]/60 border border-slate-700/50'
                           }`}
                           title={showVideoV2Track ? 'Cerrar pista v2' : 'Abrir pista v2 overlay'}
@@ -6711,7 +6677,7 @@ ${res.filePath}`);
                         </button>
                       )}
                     </div>
-                    <button 
+                    <button
                       onClick={() => setIsVideoTrackMuted(!isVideoTrackMuted)}
                       className="p-1 hover:bg-[#3a3a3c] rounded text-slate-400 hover:text-white cursor-pointer"
                       title={isVideoTrackMuted ? "Desmutear pista" : "Mutear pista"}
@@ -6724,7 +6690,7 @@ ${res.filePath}`);
                     </button>
                   </div>
                   <div className="flex items-center space-x-1.5">
-                    <input 
+                    <input
                       type="range"
                       min="0"
                       max="1"
@@ -6753,7 +6719,6 @@ ${res.filePath}`);
                     .map((tClip, index) => {
                       const leftPercent = (tClip.startSeconds / totalDuration) * 100;
                       const widthPercent = (tClip.durationSeconds / totalDuration) * 100;
-                      
                       const cat = tClip.category ? tClip.category.toLowerCase() : '';
                       let bgClass = 'bg-slate-500/20 border-slate-400/50 text-slate-300 hover:bg-slate-500/30';
                       if (cat === 'original' || cat === 'originales') {
@@ -6772,14 +6737,14 @@ ${res.filePath}`);
                         // significa nada, asi que la linea de tiempo mentia sobre el reparto.
                         bgClass = 'bg-zinc-400/25 border-zinc-400/50 text-zinc-300 hover:bg-zinc-400/35';
                       } else {
-                        bgClass = index % 2 === 0 
-                          ? 'bg-sky-500/20 border-sky-400/50 text-sky-300 hover:bg-sky-500/30' 
+                        bgClass = index % 2 === 0
+                          ? 'bg-sky-500/20 border-sky-400/50 text-sky-300 hover:bg-sky-500/30'
                           : 'bg-violet-500/20 border-violet-400/50 text-violet-300 hover:bg-violet-500/30';
                       }
-                      
                       return (
-                        <div 
+                        <div
                           key={tClip.id}
+                          data-timeline-clip-id={tClip.id}
                           style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
                           onMouseDown={(e) => {
                             if (perfectSyncMode && !showVideoV2Track) return;
@@ -6813,24 +6778,21 @@ ${res.filePath}`);
                           >
                             <div className="w-[1.5px] h-3 bg-white/60" />
                           </div>
-
                           <div className="flex items-center min-w-0 flex-1 select-none pointer-events-none">
                             {tClip.thumbnailUrl && (
-                              <img 
-                                src={tClip.thumbnailUrl} 
-                                alt="" 
-                                className="h-8 w-12 object-cover rounded mr-2 flex-shrink-0" 
+                              <img
+                                src={tClip.thumbnailUrl}
+                                alt=""
+                                className="h-8 w-12 object-cover rounded mr-2 flex-shrink-0"
                               />
                             )}
                             <span className="text-[10px] truncate font-medium pr-1" title={tClip.name}>
                               {tClip.name}
                             </span>
                           </div>
-                          
                           <span className="text-[9px] font-mono px-1 rounded flex-shrink-0 select-none pointer-events-none bg-[#0D0D0F]/60 text-slate-350 z-10">
                             {tClip.durationSeconds.toFixed(1)}s
                           </span>
-
                           {/* Right Trim Handle */}
                           <div
                             onMouseDown={(e) => handleClipMouseDown(e, tClip.id, 'trim-right')}
@@ -6846,7 +6808,6 @@ ${res.filePath}`);
                         </div>
                       );
                     })}
-
                     {sortedVideoClips.length > 1 && sortedVideoClips.map((clip, idx) => {
                       if (idx === 0) return null;
                       const prevClip = sortedVideoClips[idx - 1];
@@ -6891,7 +6852,7 @@ ${res.filePath}`);
                         </div>
                       );
                     })}
-                  {perfectSyncMode && !showVideoV2Track && 
+                  {perfectSyncMode && !showVideoV2Track &&
                     timelineVideoClips
                       .filter(c => c.category === 'v2_overlay')
                       .map(clip => {
@@ -6911,7 +6872,6 @@ ${res.filePath}`);
                   }
                 </div>
               </div>
-
               {perfectSyncMode && showVideoV2Track && (
                 <div className='flex items-center space-x-3'>
                   <div className='w-28 text-[10px] text-slate-400 flex-shrink-0 pr-2 flex items-center space-x-1'>
@@ -6943,8 +6903,8 @@ ${res.filePath}`);
                               const initialStart = clip.startSeconds;
                               const handleMove = (me: MouseEvent) => {
                                 const delta = ((me.clientX - startX) / trackWidth) * totalDuration;
-                                setTimelineVideoClips(prev => prev.map(c => 
-                                  c.id === clip.id 
+                                setTimelineVideoClips(prev => prev.map(c =>
+                                  c.id === clip.id
                                     ? {...c, startSeconds: Math.max(0, initialStart + delta)}
                                     : c
                                 ));
@@ -6961,7 +6921,7 @@ ${res.filePath}`);
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setTimelineVideoClips(prev => 
+                                setTimelineVideoClips(prev =>
                                   prev.filter(c => c.id !== clip.id));
                               }}
                               className='text-[8px] opacity-0 group-hover/v2clip:opacity-100 hover:text-red-400 ml-1 flex-shrink-0'
@@ -6973,7 +6933,6 @@ ${res.filePath}`);
                   </div>
                 </div>
               )}
-
               {/* Track 1.5: Gráficos Track */}
               <div className="flex items-center space-x-3">
                 <div className="w-28 text-[11px] font-bold text-slate-400 flex flex-col justify-center space-y-1.5 flex-shrink-0 pr-2">
@@ -6997,16 +6956,16 @@ ${res.filePath}`);
                       const widthPercent = (tClip.durationSeconds / totalDuration) * 100;
                       const emoji = tClip.graphicData?.emoji || '📊';
                       const label = tClip.graphicData?.label || tClip.graphicData?.type || tClip.name;
-                      
                       return (
-                        <div 
+                        <div
                           key={tClip.id}
+                          data-timeline-clip-id={tClip.id}
                           style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
                           onMouseDown={(e) => handleClipMouseDown(e, tClip.id, 'move')}
                           className={`absolute h-full border border-cyan-500/35 bg-cyan-950/15 text-cyan-300 rounded-lg flex items-center px-2 justify-between group/tclip cursor-move transition-shadow z-10 hover:bg-cyan-950/25`}
                         >
                           {/* Left Trim Handle */}
-                          <div 
+                          <div
                             onMouseDown={(e) => {
                               e.stopPropagation();
                               handleClipMouseDown(e, tClip.id, 'trim-left');
@@ -7015,20 +6974,17 @@ ${res.filePath}`);
                           >
                             <div className="w-[1px] h-3 bg-white/60" />
                           </div>
-
                           <div className="flex items-center min-w-0 flex-1 select-none pointer-events-none">
                             <span className="text-xs mr-1">{emoji}</span>
                             <span className="text-[10px] truncate font-medium pr-1" title={label}>
                               {label}
                             </span>
                           </div>
-                          
                           {tClip.durationSeconds >= 2.0 && (
                             <span className="text-[9px] font-mono px-1 rounded flex-shrink-0 select-none pointer-events-none bg-[#0D0D0F]/60 text-slate-350 z-10 mr-1.5">
                               {tClip.durationSeconds.toFixed(1)}s
                             </span>
                           )}
-
                           {/* Delete button (X) */}
                           <button
                             onClick={(e) => {
@@ -7041,9 +6997,8 @@ ${res.filePath}`);
                           >
                             ×
                           </button>
-
                           {/* Right Trim Handle */}
-                          <div 
+                          <div
                             onMouseDown={(e) => {
                               e.stopPropagation();
                               handleClipMouseDown(e, tClip.id, 'trim-right');
@@ -7057,7 +7012,6 @@ ${res.filePath}`);
                     })}
                 </div>
               </div>
-
               {/* Track 2: Audio Track */}
               <div className="flex items-center space-x-3">
                 <div className="w-28 text-[11px] font-bold text-slate-400 flex flex-col justify-center space-y-1.5 flex-shrink-0 pr-2">
@@ -7066,7 +7020,7 @@ ${res.filePath}`);
                       <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
                       <span>Audio a1</span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setIsAudioTrackMuted(!isAudioTrackMuted)}
                       className="p-1 hover:bg-[#3a3a3c] rounded text-slate-400 hover:text-white cursor-pointer"
                       title={isAudioTrackMuted ? "Desmutear pista" : "Mutear pista"}
@@ -7079,7 +7033,7 @@ ${res.filePath}`);
                     </button>
                   </div>
                   <div className="flex items-center space-x-1.5">
-                    <input 
+                    <input
                       type="range"
                       min="0"
                       max="1"
@@ -7109,36 +7063,34 @@ ${res.filePath}`);
                       const leftPercent = (tClip.startSeconds / totalDuration) * 100;
                       const widthPercent = (tClip.durationSeconds / totalDuration) * 100;
                       const bgClass = 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/30';
-                      
                       return (
-                        <div 
+                        <div
                           key={tClip.id}
+                          data-timeline-clip-id={tClip.id}
                           style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
                           onMouseDown={(e) => handleClipMouseDown(e, tClip.id, 'move')}
                           onContextMenu={(e) => handleClipContextMenu(e, tClip.id)}
                           className={`absolute h-full border rounded-lg flex items-center px-3 justify-between group/tclip cursor-move transition-shadow ${
-                            selectedTimelineClipIds.includes(tClip.id) 
-                              ? 'ring-2 ring-indigo-500 border-indigo-400 z-20 shadow-[0_0_12px_rgba(99,102,241,0.25)]' 
+                            selectedTimelineClipIds.includes(tClip.id)
+                              ? 'ring-2 ring-indigo-500 border-indigo-400 z-20 shadow-[0_0_12px_rgba(99,102,241,0.25)]'
                               : 'border-[#3a3a3c]'
                           } ${bgClass}`}
                         >
                           {/* Left Trim Handle */}
-                          <div 
+                          <div
                             onMouseDown={(e) => handleClipMouseDown(e, tClip.id, 'trim-left')}
                             className="absolute left-0 top-0 bottom-0 w-2.5 bg-indigo-500/85 cursor-ew-resize opacity-0 group-hover/tclip:opacity-100 transition-opacity rounded-l-lg flex items-center justify-center hover:bg-indigo-400 z-10"
                           >
                             <div className="w-[1.5px] h-3 bg-white/60" />
                           </div>
-
                           <span className="text-[10px] truncate font-medium pr-1 select-none pointer-events-none" title={tClip.name}>
                             {tClip.name}
                           </span>
                           <span className="text-[9px] font-mono px-1 rounded flex-shrink-0 select-none pointer-events-none bg-[#0D0D0F]/60 text-slate-350">
                             {tClip.durationSeconds.toFixed(1)}s
                           </span>
-
                           {/* Right Trim Handle */}
-                          <div 
+                          <div
                             onMouseDown={(e) => handleClipMouseDown(e, tClip.id, 'trim-right')}
                             className="absolute right-0 top-0 bottom-0 w-2.5 bg-indigo-500/85 cursor-ew-resize opacity-0 group-hover/tclip:opacity-100 transition-opacity rounded-r-lg flex items-center justify-center hover:bg-indigo-400 z-10"
                           >
@@ -7149,7 +7101,6 @@ ${res.filePath}`);
                     })}
                 </div>
               </div>
-
               {/* Track 3: AI Effects Track */}
               <div className="flex items-center space-x-3">
                 <div className="w-28 text-[11px] font-bold text-slate-400 flex items-center space-x-1 flex-shrink-0 pr-2">
@@ -7168,14 +7119,13 @@ ${res.filePath}`);
             </div>
           </div>
         </div>
-
         {/* Floating Context Menu */}
         {contextMenu && (
-          <div 
+          <div
             style={{ top: contextMenu.y, left: contextMenu.x }}
             className="fixed bg-[#1C1C1E] border border-[#3a3a3c] rounded-xl shadow-2xl p-1 z-50 flex flex-col space-y-0.5 min-w-[120px] backdrop-blur-md"
           >
-            <button 
+            <button
               onClick={() => {
                 duplicateTimelineClip(contextMenu.clipId);
                 setContextMenu(null);
@@ -7184,7 +7134,7 @@ ${res.filePath}`);
             >
               Duplicar
             </button>
-            <button 
+            <button
               onClick={() => {
                 handleDeleteClips([contextMenu.clipId]);
                 setContextMenu(null);
@@ -7199,7 +7149,6 @@ ${res.filePath}`);
           Créditos de iconos: Solar Icons · CC BY 4.0
         </div>
       </footer>
-
       {/* Export Settings Modal */}
       {showExportModal && (
         <div className="fixed inset-0 bg-[#0D0D0F]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -7208,7 +7157,6 @@ ${res.filePath}`);
               <Download className="h-4 w-4 text-[#6366f1]" />
               <span>Ajustes de Exportación Avanzados</span>
             </h3>
-            
             <div className="space-y-4">
               {/* Resolution Selector */}
               <div className="space-y-2">
@@ -7229,7 +7177,6 @@ ${res.filePath}`);
                   ))}
                 </div>
               </div>
-
               {/* Format Selector */}
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-[#6366f1] uppercase tracking-wider">Formato</label>
@@ -7249,7 +7196,6 @@ ${res.filePath}`);
                   ))}
                 </div>
               </div>
-
               {/* Quality Selector */}
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-[#6366f1] uppercase tracking-wider">Calidad (H.264 Rate)</label>
@@ -7270,15 +7216,14 @@ ${res.filePath}`);
                 </div>
               </div>
             </div>
-
             <div className="flex items-center justify-end space-x-3 pt-2">
-              <button 
+              <button
                 onClick={() => setShowExportModal(false)}
                 className="text-xs font-semibold text-slate-400 hover:text-white px-4 py-2 rounded-xl hover:bg-[#1C1C1E] transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 onClick={handleExportClick}
                 className="bg-white text-black font-bold text-xs px-5 py-2.5 rounded-xl transition-all cursor-pointer hover:bg-slate-200 active:scale-95"
               >
@@ -7288,22 +7233,19 @@ ${res.filePath}`);
           </div>
         </div>
       )}
-
       {(isExporting || exportProgress) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="bg-[#1C1C1E] border border-[#3a3a3c] rounded-2xl p-8 w-[480px] shadow-2xl">
             <h3 className="text-white text-lg font-bold mb-6 flex items-center gap-2">
-              {exportProgress?.step === 'done' ? '✅' : '🎬'} 
+              {exportProgress?.step === 'done' ? '✅' : '🎬'}
               {exportProgress?.step === 'done' ? 'Exportación Completada' : 'Exportando Video...'}
             </h3>
-
             <div className="w-full bg-[#3a3a3c] rounded-full h-3 mb-4 overflow-hidden">
-              <div 
+              <div
                 className={`h-3 rounded-full transition-all duration-500 ${exportProgress?.step === 'done' ? 'bg-emerald-500' : 'bg-white'}`}
                 style={{ width: `${exportProgress ? Math.round((exportProgress.current / exportProgress.total) * 100) : 0}%` }}
               />
             </div>
-
             <div className="flex justify-between items-center mb-6">
               <p className="text-slate-300 text-sm">
                 {exportProgress?.message || 'Preparando exportación...'}
@@ -7312,7 +7254,6 @@ ${res.filePath}`);
                 {exportProgress ? `${Math.round((exportProgress.current / exportProgress.total) * 100)}%` : '0%'}
               </span>
             </div>
-
             {exportProgress?.step !== 'done' && (
               <div className="bg-[#141416] border border-[#3a3a3c] rounded-xl p-4 space-y-2">
                 <div className="flex justify-between text-xs">
@@ -7325,7 +7266,6 @@ ${res.filePath}`);
                 </div>
               </div>
             )}
-
             {exportProgress?.step === 'done' && (
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-center">
                 <p className="text-emerald-400 text-sm font-medium">Video exportado exitosamente</p>
@@ -7334,12 +7274,21 @@ ${res.filePath}`);
           </div>
         </div>
       )}
-
-      <TrendsPanel isOpen={showTrendsPanel} onClose={() => setShowTrendsPanel(false)} />
+      <TrendsPanel isOpen={showTrendsPanel} onClose={() => setShowTrendsPanel(false)} onOpenProject={handleLoadProject} />
+      {showVibesWorkspace && <VibesWorkspace
+        projectPath={activeProjectPath}
+        audioClip={timelineVideoClips.find(clip => clip.type === 'audio') || null}
+        transcriptSegments={vibesSourceTranscriptSegments.length ? vibesSourceTranscriptSegments : transcriptSegments}
+        sourceStartDefault={vibesSourceStartSeconds}
+        sourceMediaDurationSeconds={vibesSourceMediaDurationSeconds}
+        onClose={() => setShowVibesWorkspace(false)}
+        onSlotsAssigned={handleVibesSlotsAssigned}
+        onImagesImported={handleVibesImagesImported}
+        onVideoImported={handleVibesVideoImported}
+      />}
     </div>
   )
 }
-
 const root = ReactDOM.createRoot(document.getElementById('root')!)
 root.render(
   <React.StrictMode>

@@ -1,0 +1,1907 @@
+{
+  "schemaVersion": 1,
+  "packId": "modern-pack-100-v1",
+  "revision": "2026-09-v1",
+  "assets": [
+    {
+      "assetId": "modern-fluent-camera-v1",
+      "canonicalConcept": "camera",
+      "aliasesEs": [
+        "cámara"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "d11a0099285986ed3737a4e6389d4afc229749482cd9f22bfd2d2d35cf79e02c",
+      "localRelativePath": "assets/modern-fluent-camera-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-phone-v1",
+      "canonicalConcept": "phone",
+      "aliasesEs": [
+        "teléfono"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "46d491e10b70419637c10823d55a5af38f504a8e0e1d0f6ac4ff44de80b12e05",
+      "localRelativePath": "assets/modern-fluent-phone-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-laptop-v1",
+      "canonicalConcept": "laptop",
+      "aliasesEs": [
+        "portátil"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "c8fa307ed2c3e7e9e4267cff317caff6f0789a0601dabebde8380a0f0a7671b5",
+      "localRelativePath": "assets/modern-fluent-laptop-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-computer-v1",
+      "canonicalConcept": "computer",
+      "aliasesEs": [
+        "computador"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "85c27f4de051ce1cac4f19cb73d673b1f9728f6901c7616540e582f82cb68d67",
+      "localRelativePath": "assets/modern-fluent-computer-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-microphone-v1",
+      "canonicalConcept": "microphone",
+      "aliasesEs": [
+        "micrófono"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "fc26fde67149e368178c4e5db7cc66ce0311942ada5a0d4315149e03393f6e01",
+      "localRelativePath": "assets/modern-fluent-microphone-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-robot-v1",
+      "canonicalConcept": "robot",
+      "aliasesEs": [
+        "robot"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "5bf295c5a8c7c4197c8deb639c13b93359ad009585c1ff6b3fd0fbdcf6f8da20",
+      "localRelativePath": "assets/modern-fluent-robot-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-rocket-v1",
+      "canonicalConcept": "rocket",
+      "aliasesEs": [
+        "cohete"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "ea9423e32494b81bbdccc8970987d9fe2a85462610cd4b8ddd0b9e1a03fb2ebf",
+      "localRelativePath": "assets/modern-fluent-rocket-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-airplane-v1",
+      "canonicalConcept": "airplane",
+      "aliasesEs": [
+        "avión"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "712be925e9ba02fa9dfa86d2b8e53a0a7205b5dfb5bfd9322a53ed2a99fe9013",
+      "localRelativePath": "assets/modern-fluent-airplane-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-book-v1",
+      "canonicalConcept": "book",
+      "aliasesEs": [
+        "libro"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "84809f80ba9252021198ee4f015f1e16ac76020727625c3ee611712c017108b4",
+      "localRelativePath": "assets/modern-fluent-book-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-calendar-v1",
+      "canonicalConcept": "calendar",
+      "aliasesEs": [
+        "calendario"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "a3840f324bdf1ddcb7001d2f238f438760934d24ce368129184f1f1e7ff915c9",
+      "localRelativePath": "assets/modern-fluent-calendar-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-alarm-clock-v1",
+      "canonicalConcept": "alarm clock",
+      "aliasesEs": [
+        "despertador"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "e5356b8830074a3ca21fff8bb74807003ce996645341d46c25e26e06f0385d3b",
+      "localRelativePath": "assets/modern-fluent-alarm-clock-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-money-bag-v1",
+      "canonicalConcept": "money bag",
+      "aliasesEs": [
+        "bolsa de dinero"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "4da969956b28cb2075af99deaa14f0861dc2cfd919628fe3c71739476b836444",
+      "localRelativePath": "assets/modern-fluent-money-bag-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-factory-v1",
+      "canonicalConcept": "factory",
+      "aliasesEs": [
+        "fábrica"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "3ca282ee30aaf864ea677e1de20a66271b4b5f44c050e971a56e063c7140a056",
+      "localRelativePath": "assets/modern-fluent-factory-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-house-v1",
+      "canonicalConcept": "house",
+      "aliasesEs": [
+        "casa"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "9fe2c5d0c32e5414252b6bf919cb53f65849094431e4305660ace13549e7f4a7",
+      "localRelativePath": "assets/modern-fluent-house-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-city-v1",
+      "canonicalConcept": "city",
+      "aliasesEs": [
+        "ciudad"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "447aef56dbdb2bf9de67d2512ce0a7442514ba6c097e40429b734c920cac4098",
+      "localRelativePath": "assets/modern-fluent-city-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-school-v1",
+      "canonicalConcept": "school",
+      "aliasesEs": [
+        "escuela"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "03febeb59b9c13ee792874a87cd04aea413e7c6ef23b1e7752837dc5d6cbe34d",
+      "localRelativePath": "assets/modern-fluent-school-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-hospital-v1",
+      "canonicalConcept": "hospital",
+      "aliasesEs": [
+        "hospital"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "919d0a79cfdc122317f342f5f7cbd80f87f41d1757e7c6283c297e5e3d327e00",
+      "localRelativePath": "assets/modern-fluent-hospital-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-stadium-v1",
+      "canonicalConcept": "stadium",
+      "aliasesEs": [
+        "estadio"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "fd4a84b01acd66df7e0cbb8e631bb1c952cfd13a74efe655b78e307fa27c67f1",
+      "localRelativePath": "assets/modern-fluent-stadium-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-football-v1",
+      "canonicalConcept": "football",
+      "aliasesEs": [
+        "fútbol"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "ca792d91995ac20dc37be0c1bd1f9f46d2f7ea4aea3bd4d0c69df1083bd641c9",
+      "localRelativePath": "assets/modern-fluent-football-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-tree-v1",
+      "canonicalConcept": "tree",
+      "aliasesEs": [
+        "árbol"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "0dd734acc351486d31824d85d7aec4004e3392a00a44ca2f3129603f1d6a0040",
+      "localRelativePath": "assets/modern-fluent-tree-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-seedling-v1",
+      "canonicalConcept": "seedling",
+      "aliasesEs": [
+        "plántula"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "69afa13809bd8192cb4599db991f7cedd3cea054efb5eb68f6f93d8bb19b3652",
+      "localRelativePath": "assets/modern-fluent-seedling-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-fire-v1",
+      "canonicalConcept": "fire",
+      "aliasesEs": [
+        "fuego"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "00184d516421223782fc5efd67af64641ee8044af9613a3674ce5899cd38583d",
+      "localRelativePath": "assets/modern-fluent-fire-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-water-drop-v1",
+      "canonicalConcept": "water drop",
+      "aliasesEs": [
+        "gota de agua"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "91bbffebc864f286b0684817b797f8ce1e1c4cc7dd0d9e1af1bd58afef2d09f0",
+      "localRelativePath": "assets/modern-fluent-water-drop-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-brain-v1",
+      "canonicalConcept": "brain",
+      "aliasesEs": [
+        "cerebro"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "6265573ae0b28db8fc53ba15f886ec9dca72c6345d4c304852db5f4d36876d46",
+      "localRelativePath": "assets/modern-fluent-brain-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-anatomical-heart-v1",
+      "canonicalConcept": "anatomical heart",
+      "aliasesEs": [
+        "corazón anatómico"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "b1751514fbe7b237c55f7efd5bd7f106434e7e65b5e5a6b148cd5ce35d12c864",
+      "localRelativePath": "assets/modern-fluent-anatomical-heart-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-planet-v1",
+      "canonicalConcept": "planet",
+      "aliasesEs": [
+        "planeta"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "2019d33a8cba00234e4f124fd6578401835f405ec065008444755088b922c28b",
+      "localRelativePath": "assets/modern-fluent-planet-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-microscope-v1",
+      "canonicalConcept": "microscope",
+      "aliasesEs": [
+        "microscopio"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "600554164fd9b06b59670ba169c368ab2ab56b87e3fc2de7ff820aab9e985ff5",
+      "localRelativePath": "assets/modern-fluent-microscope-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-telescope-v1",
+      "canonicalConcept": "telescope",
+      "aliasesEs": [
+        "telescopio"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "e43e1a8ced1b03e69e213f6a791f52c1b46b82350f8b4490b82d42bbb655f600",
+      "localRelativePath": "assets/modern-fluent-telescope-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-hammer-v1",
+      "canonicalConcept": "hammer",
+      "aliasesEs": [
+        "martillo"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "86c017f059dfa32320ee390cd0fcabc67e92ca30edb65d5b260a3bc9796d248e",
+      "localRelativePath": "assets/modern-fluent-hammer-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-wrench-v1",
+      "canonicalConcept": "wrench",
+      "aliasesEs": [
+        "llave inglesa"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "bf72f7cd17e82492ea669cdf9d23f06e6009afb391c4dad55b3c493fcae4f840",
+      "localRelativePath": "assets/modern-fluent-wrench-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-gear-v1",
+      "canonicalConcept": "gear",
+      "aliasesEs": [
+        "engranaje"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "373aa26b6d217bd2db4418e2b883ebf15640ebaa3f942a47723a37ab0f774495",
+      "localRelativePath": "assets/modern-fluent-gear-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-satellite-v1",
+      "canonicalConcept": "satellite",
+      "aliasesEs": [
+        "satélite"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "276ba3adbb20b9f28e927c45d1dad2f2cd9a5d0edd5727fe385ffc91810138b0",
+      "localRelativePath": "assets/modern-fluent-satellite-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-newspaper-v1",
+      "canonicalConcept": "newspaper",
+      "aliasesEs": [
+        "periódico"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "728edd4f361f60a358ab045da6f6c669ad6043219c5a82d449dd180230dbcb1e",
+      "localRelativePath": "assets/modern-fluent-newspaper-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-folder-v1",
+      "canonicalConcept": "folder",
+      "aliasesEs": [
+        "carpeta"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "870727aa9758f76359181c035456aba47e87d622a619a0ee80fb60b40070fbd1",
+      "localRelativePath": "assets/modern-fluent-folder-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-fluent-lightbulb-v1",
+      "canonicalConcept": "lightbulb",
+      "aliasesEs": [
+        "bombilla"
+      ],
+      "aliasesEn": [],
+      "source": "fluent",
+      "collection": "fluent-flat",
+      "license": "MIT",
+      "originalColor": true,
+      "styleFamily": "modern-color",
+      "heroAllowed": true,
+      "priority": 100,
+      "format": "svg",
+      "sha256": "3e746a9b94051287b263e518e1f156cbfbffb45b5e0a6db6570b99d4c8c56484",
+      "localRelativePath": "assets/modern-fluent-lightbulb-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/fluent.txt"
+    },
+    {
+      "assetId": "modern-lucide-computer-v1",
+      "canonicalConcept": "computer",
+      "aliasesEs": [
+        "computador"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "lucide",
+      "license": "ISC",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "f1de6ab0867283fcee4cf29a9078897e2af85fa38ac3bc2335604b55f21362a5",
+      "localRelativePath": "assets/modern-lucide-computer-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/lucide.txt"
+    },
+    {
+      "assetId": "modern-mingcute-computer-fill-v1",
+      "canonicalConcept": "computer",
+      "aliasesEs": [
+        "computador"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "a70deed68db24eac5e38831f0aaea0eadfb0837348be7764648efdcf2b4d647a",
+      "localRelativePath": "assets/modern-mingcute-computer-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-mingcute-chip-fill-v1",
+      "canonicalConcept": "chip",
+      "aliasesEs": [
+        "chip"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "c006d1b3a2bd843e4f9911a096a0e70a67556ef2940f874bc8d4f51261fffedd",
+      "localRelativePath": "assets/modern-mingcute-chip-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-mingcute-robot-fill-v1",
+      "canonicalConcept": "robot",
+      "aliasesEs": [
+        "robot"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "d6263e44469b8e72b58dd2cc053d4b07c362daf2e4cf90c2ac8c77859c804276",
+      "localRelativePath": "assets/modern-mingcute-robot-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-ph-drone-v1",
+      "canonicalConcept": "drone",
+      "aliasesEs": [
+        "dron"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "ph",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "0bd2afc380d2c4324cfd1cc41dc2fba0466a721649f8e0ec76e5a93c3daa5309",
+      "localRelativePath": "assets/modern-ph-drone-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/ph.txt"
+    },
+    {
+      "assetId": "modern-lucide-percent-v1",
+      "canonicalConcept": "percent",
+      "aliasesEs": [
+        "porcentaje"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "lucide",
+      "license": "ISC",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "f0a9aaee09ccc7740f07945d6d5639866f95d53e77afe3711489cc89f0e6dc44",
+      "localRelativePath": "assets/modern-lucide-percent-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/lucide.txt"
+    },
+    {
+      "assetId": "modern-lucide-newspaper-v1",
+      "canonicalConcept": "newspaper",
+      "aliasesEs": [
+        "periódico"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "lucide",
+      "license": "ISC",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "3b4873af64d69e94c647470d762dfbf213222a6a61acc1f756b5f5a3b61defb7",
+      "localRelativePath": "assets/modern-lucide-newspaper-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/lucide.txt"
+    },
+    {
+      "assetId": "modern-lucide-clock-v1",
+      "canonicalConcept": "clock",
+      "aliasesEs": [
+        "reloj"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "lucide",
+      "license": "ISC",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "eae71c61b63fccf2bd0672b33921816e05fdc4d684c8c086371a7f9fc41e0964",
+      "localRelativePath": "assets/modern-lucide-clock-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/lucide.txt"
+    },
+    {
+      "assetId": "modern-mingcute-clock-fill-v1",
+      "canonicalConcept": "clock",
+      "aliasesEs": [
+        "reloj"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "65970dbe1296d4d93704595c7517bdfa869f5eb974f37130ad12c219aeeeae0d",
+      "localRelativePath": "assets/modern-mingcute-clock-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-mingcute-bank-fill-v1",
+      "canonicalConcept": "bank",
+      "aliasesEs": [
+        "banco"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "0265355896ece6ffe83beefba6ef1794a3eee79f396cc6d91031d29acec61b8b",
+      "localRelativePath": "assets/modern-mingcute-bank-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-ph-coin-v1",
+      "canonicalConcept": "coin",
+      "aliasesEs": [
+        "moneda"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "ph",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "912b75ec42ae5150c4fff36040ffaafe49ef9cd5914b12ba42452a0d3dc018cb",
+      "localRelativePath": "assets/modern-ph-coin-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/ph.txt"
+    },
+    {
+      "assetId": "modern-ph-detective-v1",
+      "canonicalConcept": "detective",
+      "aliasesEs": [
+        "detective"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "ph",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "e5b87dad9fe5e526a1edcb2d23bc00afebdacf319b47af9fd34128a146b59a26",
+      "localRelativePath": "assets/modern-ph-detective-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/ph.txt"
+    },
+    {
+      "assetId": "modern-mingcute-run-fill-v1",
+      "canonicalConcept": "run",
+      "aliasesEs": [
+        "correr"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "dc4d3bd953dd5263dd11568b8e023977d57da7a8a53e6dc3aa526d2f2973f08d",
+      "localRelativePath": "assets/modern-mingcute-run-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-mingcute-walk-fill-v1",
+      "canonicalConcept": "walk",
+      "aliasesEs": [
+        "caminar"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "b4f6341bae40264214e2f25a94e7257f37335d9091c70ee059e517df72b23662",
+      "localRelativePath": "assets/modern-mingcute-walk-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-mingcute-search-fill-v1",
+      "canonicalConcept": "search",
+      "aliasesEs": [
+        "buscar"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "44793346464bf43c271e6755a15908a10d87eee88cd1ada1e8786e85976a69b0",
+      "localRelativePath": "assets/modern-mingcute-search-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-mingcute-store-fill-v1",
+      "canonicalConcept": "store",
+      "aliasesEs": [
+        "tienda"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "d1c58e3e05fe7638d992715af53547303c3ff7aa578c9782962d49e6a27ef426",
+      "localRelativePath": "assets/modern-mingcute-store-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-ph-student-v1",
+      "canonicalConcept": "student",
+      "aliasesEs": [
+        "estudiante"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "ph",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "7b1293ed00fe0b8eb5c30b109510e5c0528d24a75706fc5bfb4f53641570196b",
+      "localRelativePath": "assets/modern-ph-student-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/ph.txt"
+    },
+    {
+      "assetId": "modern-ph-engine-v1",
+      "canonicalConcept": "engine",
+      "aliasesEs": [
+        "motor"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "ph",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "3e144bb4363a9798765125ae6591d8b519ad09250c1b2eed5dace123418604f6",
+      "localRelativePath": "assets/modern-ph-engine-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/ph.txt"
+    },
+    {
+      "assetId": "modern-ph-factory-v1",
+      "canonicalConcept": "factory",
+      "aliasesEs": [
+        "fábrica"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "ph",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "c1efff4e587ffc595ee73225181acf2ba03b85e69a2adf14cc68ff6715796ed5",
+      "localRelativePath": "assets/modern-ph-factory-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/ph.txt"
+    },
+    {
+      "assetId": "modern-ph-gear-v1",
+      "canonicalConcept": "gear",
+      "aliasesEs": [
+        "engranaje"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "ph",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "bd3f36d00d7cf615fff83b4ebf7a0cd361aa9f771f7fa56f2d4d25155e75a1df",
+      "localRelativePath": "assets/modern-ph-gear-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/ph.txt"
+    },
+    {
+      "assetId": "modern-mingcute-tool-fill-v1",
+      "canonicalConcept": "tool",
+      "aliasesEs": [
+        "herramienta"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "f3a075acd357132e002f8112975634cee6606a0afe2c52b5809c49d4b3e92d9e",
+      "localRelativePath": "assets/modern-mingcute-tool-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-lucide-hammer-v1",
+      "canonicalConcept": "hammer",
+      "aliasesEs": [
+        "martillo"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "lucide",
+      "license": "ISC",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "7eebe1e296de958ef38aaf1b8af3e20f4b18ba11fffded8ad8cce2b7a09947ef",
+      "localRelativePath": "assets/modern-lucide-hammer-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/lucide.txt"
+    },
+    {
+      "assetId": "modern-mingcute-hammer-fill-v1",
+      "canonicalConcept": "hammer",
+      "aliasesEs": [
+        "martillo"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "b4f74d0c732db567dedc30d9ca0b11485193ca97096af60902f0c7c252fd64f1",
+      "localRelativePath": "assets/modern-mingcute-hammer-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-lucide-wrench-v1",
+      "canonicalConcept": "wrench",
+      "aliasesEs": [
+        "llave"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "lucide",
+      "license": "ISC",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "889e06cf672413c6f87be392bb748c060808c302e3b0a96436d9205bc96c0fe2",
+      "localRelativePath": "assets/modern-lucide-wrench-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/lucide.txt"
+    },
+    {
+      "assetId": "modern-ph-crane-v1",
+      "canonicalConcept": "crane",
+      "aliasesEs": [
+        "grúa"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "ph",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "8d4002d2c9592b6761ad8c359cfdc5d7b0cdfd08b3a38611052d62a9d9b51f64",
+      "localRelativePath": "assets/modern-ph-crane-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/ph.txt"
+    },
+    {
+      "assetId": "modern-ph-tractor-v1",
+      "canonicalConcept": "tractor",
+      "aliasesEs": [
+        "tractor"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "ph",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "6e9aa9d9fc0211da70f84ab0d2b8cda89860a6de00f2ab08af674fd2ff4ff437",
+      "localRelativePath": "assets/modern-ph-tractor-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/ph.txt"
+    },
+    {
+      "assetId": "modern-lucide-microscope-v1",
+      "canonicalConcept": "microscope",
+      "aliasesEs": [
+        "microscopio"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "lucide",
+      "license": "ISC",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "e0a6c7dc9736fd06d4bf2e024c5d40507e2b9ee527d5d1f5cbdda6ab8150ffdc",
+      "localRelativePath": "assets/modern-lucide-microscope-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/lucide.txt"
+    },
+    {
+      "assetId": "modern-mingcute-microscope-fill-v1",
+      "canonicalConcept": "microscope",
+      "aliasesEs": [
+        "microscopio"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "3e3c4f8aa26266c23922bea36f8f0ac1e243724984d897360385649371f77fb3",
+      "localRelativePath": "assets/modern-mingcute-microscope-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-lucide-school-v1",
+      "canonicalConcept": "school",
+      "aliasesEs": [
+        "escuela"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "lucide",
+      "license": "ISC",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "3642d8d3ccba980eb71b4ca33c906c5e91a6d22708bc5664533cb1b5e22c7b48",
+      "localRelativePath": "assets/modern-lucide-school-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/lucide.txt"
+    },
+    {
+      "assetId": "modern-mingcute-school-fill-v1",
+      "canonicalConcept": "school",
+      "aliasesEs": [
+        "escuela"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "66adcb2c8589015fe2636168c26c695b0d764241d73a16add5e061bb4e03ed5d",
+      "localRelativePath": "assets/modern-mingcute-school-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-lucide-mountain-v1",
+      "canonicalConcept": "mountain",
+      "aliasesEs": [
+        "montaña"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "lucide",
+      "license": "ISC",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "27a76a8a708a0de1bfca767927805ae99218d355931c3a1c4bd3d0e126244855",
+      "localRelativePath": "assets/modern-lucide-mountain-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/lucide.txt"
+    },
+    {
+      "assetId": "modern-mingcute-mountain-fill-v1",
+      "canonicalConcept": "mountain",
+      "aliasesEs": [
+        "montaña"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "b9be1fbfc5262641ef59b4d01320641d2e9accdc8467611dcf45817a3778f32e",
+      "localRelativePath": "assets/modern-mingcute-mountain-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-mingcute-tree-fill-v1",
+      "canonicalConcept": "tree",
+      "aliasesEs": [
+        "árbol"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "389f32bfeda8896d590eab28cdd69f39a09cbc7b8cad50fc6b01f79d0376dceb",
+      "localRelativePath": "assets/modern-mingcute-tree-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-lucide-flower-v1",
+      "canonicalConcept": "flower",
+      "aliasesEs": [
+        "flor"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "lucide",
+      "license": "ISC",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "1e6e73471de9609567222964ccf9b3f984726710b102e9dafe6d9dd5916b0fe4",
+      "localRelativePath": "assets/modern-lucide-flower-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/lucide.txt"
+    },
+    {
+      "assetId": "modern-mingcute-flower-fill-v1",
+      "canonicalConcept": "flower",
+      "aliasesEs": [
+        "flor"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "mingcute",
+      "license": "Apache-2.0",
+      "originalColor": false,
+      "styleFamily": "modern-solid",
+      "heroAllowed": true,
+      "priority": 80,
+      "format": "svg",
+      "sha256": "452b0644e3d8514a675a576b4fe399a813f4b9c5676fd5d66a6cd0bc3d8ec9e4",
+      "localRelativePath": "assets/modern-mingcute-flower-fill-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/mingcute.txt"
+    },
+    {
+      "assetId": "modern-ph-bird-v1",
+      "canonicalConcept": "bird",
+      "aliasesEs": [
+        "pájaro"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "ph",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "4e5c4e84879d6bca85c884106626f46819e95b01f586f943aa6853f01320ddd3",
+      "localRelativePath": "assets/modern-ph-bird-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/ph.txt"
+    },
+    {
+      "assetId": "modern-ph-fish-v1",
+      "canonicalConcept": "fish",
+      "aliasesEs": [
+        "pez"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "ph",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "ce1d2d054b3d3723952fb9f44b1b43e33dcfaf8b40c24100c61e30ab1e099248",
+      "localRelativePath": "assets/modern-ph-fish-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/ph.txt"
+    },
+    {
+      "assetId": "modern-lucide-fish-v1",
+      "canonicalConcept": "fish",
+      "aliasesEs": [
+        "pez"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "lucide",
+      "license": "ISC",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "2855fc6e7ca709c2a9f03329d35b32f3bb788aede436519696c7c47f8604b31f",
+      "localRelativePath": "assets/modern-lucide-fish-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/lucide.txt"
+    },
+    {
+      "assetId": "modern-ph-alien-v1",
+      "canonicalConcept": "alien",
+      "aliasesEs": [
+        "extraterrestre"
+      ],
+      "aliasesEn": [],
+      "source": "iconify",
+      "collection": "ph",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 65,
+      "format": "svg",
+      "sha256": "10ffcdef261cda0bf5e4e737349a4f04e53c84353163e3b6fe6fda6ac45db4c4",
+      "localRelativePath": "assets/modern-ph-alien-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/ph.txt"
+    },
+    {
+      "assetId": "modern-tabler-robot-v1",
+      "canonicalConcept": "robot",
+      "aliasesEs": [
+        "robot"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "ed8423bc2077a177813ecc2b6123471bd736e388fc6f241c7c3d01fbc5b926ef",
+      "localRelativePath": "assets/modern-tabler-robot-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-drone-v1",
+      "canonicalConcept": "drone",
+      "aliasesEs": [
+        "dron"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "46cb3cef9b3c750d850c7afe8873419f18953b8747bb04b83d6bbabd9ebaca9b",
+      "localRelativePath": "assets/modern-tabler-drone-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-satellite-v1",
+      "canonicalConcept": "satellite",
+      "aliasesEs": [
+        "satélite"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "15ea9827e1879cba6b21bf589a79f7f7091e832836e961cade62128676c9894b",
+      "localRelativePath": "assets/modern-tabler-satellite-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-camera-v1",
+      "canonicalConcept": "camera",
+      "aliasesEs": [
+        "cámara"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "06fc6190b43b8cd51cb1e03514b7b03e9d4482491e3691198e0fa19ee728166a",
+      "localRelativePath": "assets/modern-tabler-camera-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-phone-v1",
+      "canonicalConcept": "phone",
+      "aliasesEs": [
+        "teléfono"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "92701c3eda869355cba6ec62430dd6264ebdfbb29de7bb97016ad798011a73c9",
+      "localRelativePath": "assets/modern-tabler-phone-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-chart-line-v1",
+      "canonicalConcept": "chart",
+      "aliasesEs": [
+        "gráfico"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "e5d4cf63e19e0260e0f36885410609dd6263740d2127065d2824feec60d6417c",
+      "localRelativePath": "assets/modern-tabler-chart-line-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-clipboard-data-v1",
+      "canonicalConcept": "data",
+      "aliasesEs": [
+        "datos"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "d437916f3d1a39a5e38e198bbfdfb7cea31942dd555ccf9ec2ae813c21234d16",
+      "localRelativePath": "assets/modern-tabler-clipboard-data-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-pig-money-v1",
+      "canonicalConcept": "money",
+      "aliasesEs": [
+        "dinero"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "298919c32115f9a2378c8fa11cd0f7f1841022cf371f1f9db1047c29dae2ec7f",
+      "localRelativePath": "assets/modern-tabler-pig-money-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-wallet-v1",
+      "canonicalConcept": "wallet",
+      "aliasesEs": [
+        "billetera"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "fc5bb2e0d3f7795f81815908f19f6b45b923f8d90900b0fb2525fdff4be8b16f",
+      "localRelativePath": "assets/modern-tabler-wallet-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-building-bank-v1",
+      "canonicalConcept": "bank",
+      "aliasesEs": [
+        "banco"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "8901bcb89ee1c9ca92536ba1f81dad40e9dc92b4746c0e3c033cbc5c4db15c0c",
+      "localRelativePath": "assets/modern-tabler-building-bank-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-chalkboard-teacher-v1",
+      "canonicalConcept": "teacher",
+      "aliasesEs": [
+        "profesor"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "9485e53d338dc8fd78c4a782ee7fe62232090e21ef4f2a5547489116f84dbf66",
+      "localRelativePath": "assets/modern-tabler-chalkboard-teacher-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-run-v1",
+      "canonicalConcept": "run",
+      "aliasesEs": [
+        "correr"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "20251b7d2e5fbd1614558374845ac14ff25ec6d767d8a323e7aee08320e6e7f5",
+      "localRelativePath": "assets/modern-tabler-run-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-walk-v1",
+      "canonicalConcept": "walk",
+      "aliasesEs": [
+        "caminar"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "84ad1bd313aff01e2470c46168a0b1e19afb0ee3d0d7118c277467cd07e28a4a",
+      "localRelativePath": "assets/modern-tabler-walk-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-engine-v1",
+      "canonicalConcept": "engine",
+      "aliasesEs": [
+        "motor"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "18854e348df807e29bff0c2e2ff3235757a5472084da82e7b1b0643d279dbf30",
+      "localRelativePath": "assets/modern-tabler-engine-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-building-factory-v1",
+      "canonicalConcept": "factory",
+      "aliasesEs": [
+        "fábrica"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "4b186b996bca6a9816eb427a70b304992ebeda817743f089c3fd5d3d87f9802a",
+      "localRelativePath": "assets/modern-tabler-building-factory-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-school-v1",
+      "canonicalConcept": "school",
+      "aliasesEs": [
+        "escuela"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "eb30a416ec188911f6bc659b8d97d2950b50b2f70f88eb362e445a3b46be8d05",
+      "localRelativePath": "assets/modern-tabler-school-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-tree-v1",
+      "canonicalConcept": "tree",
+      "aliasesEs": [
+        "árbol"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "69f8005dc6c1f5db21bbf1830999515a97ca00e8f657c2094b86890151c5ac25",
+      "localRelativePath": "assets/modern-tabler-tree-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-flower-v1",
+      "canonicalConcept": "flower",
+      "aliasesEs": [
+        "flor"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "2b57205923b6ba80e039df2a73813c4a2489e26ef469a5a4387191fcd197c906",
+      "localRelativePath": "assets/modern-tabler-flower-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-brain-v1",
+      "canonicalConcept": "brain",
+      "aliasesEs": [
+        "cerebro"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "415145a5266d96bca0385159de5bf094d3eb61e4030b6a0bc1274ee8da3631fd",
+      "localRelativePath": "assets/modern-tabler-brain-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-heart-v1",
+      "canonicalConcept": "heart",
+      "aliasesEs": [
+        "corazón"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "37f851da5fae0e68339b322ae348163645833374d3f1f588bae84cd186bcefc1",
+      "localRelativePath": "assets/modern-tabler-heart-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    },
+    {
+      "assetId": "modern-tabler-dna-v1",
+      "canonicalConcept": "dna",
+      "aliasesEs": [
+        "adn"
+      ],
+      "aliasesEn": [],
+      "source": "tabler",
+      "collection": "tabler",
+      "license": "MIT",
+      "originalColor": false,
+      "styleFamily": "modern-line",
+      "heroAllowed": false,
+      "priority": 60,
+      "format": "svg",
+      "sha256": "79773fa1e23a024f5b0a550420023aafcebfc1c19676c448b731fba00a49b82e",
+      "localRelativePath": "assets/modern-tabler-dna-v1.svg",
+      "supportAllowed": true,
+      "licenseNotice": "notices/tabler.txt"
+    }
+  ]
+}

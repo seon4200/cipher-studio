@@ -11,3 +11,9 @@ scratch/
 .commit-temp/
 temp-*.mp4
 hyperframes-project/compositions/
+# Bytecode created by the isolated local photo-cutout worker remains external.
+tools/photo-cutout-spike/__pycache__/
+vibes_clips/__pycache__/
+tests/vibes_clips/__pycache__/
+.venv-vibes/
+.claude/settings.local.json

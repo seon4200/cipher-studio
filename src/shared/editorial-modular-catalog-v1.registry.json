@@ -1,0 +1,2007 @@
+{
+  "id": "editorial-modular-catalog-v1-250",
+  "revision": "editorial-modular-catalog-2026-09-v1",
+  "manifestSha256": "ab3957a29d0a18540770afbfc2eb9f9565e00e4fdf3cc24c249cf07c7994ff79",
+  "assets": [
+    {
+      "assetId": "idea-support-personas-v1",
+      "code": "S001",
+      "role": "support",
+      "primaryWordEs": "Personas",
+      "sha256": "c08045a69c674111850fde5002e51abbf44cae25bdc36b43c400639900fc6ca2",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "idea-support-datos-v1",
+      "code": "S002",
+      "role": "support",
+      "primaryWordEs": "Datos",
+      "sha256": "30d12fccc09efa73b72922bf0c4deadb0daf7b6c57e4ff546726bdf0d127db13",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "idea-support-soluciones-v1",
+      "code": "S003",
+      "role": "support",
+      "primaryWordEs": "Soluciones",
+      "sha256": "dd672b9f82bbf418b4d499c240ea942bbb4da48daaff36c6d97ecef306b4d227",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "idea-support-impacto-v1",
+      "code": "S004",
+      "role": "support",
+      "primaryWordEs": "Impacto",
+      "sha256": "da8a6b755facffc73df096b42b73b03e30471bc21318fe10542169fdd7636152",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "idea-support-camera-v1",
+      "code": "S005",
+      "role": "support",
+      "primaryWordEs": "Cámara",
+      "sha256": "006a5e0be174c2e33762915cc77d285fcb7298a015eea68c2d6d279966b49d58",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "idea-support-network-v1",
+      "code": "S006",
+      "role": "support",
+      "primaryWordEs": "Red",
+      "sha256": "5253a242efe17a171df4e43236032f0131ffe91c70dcd286a1f25998c275b209",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "idea-support-time-v1",
+      "code": "S007",
+      "role": "support",
+      "primaryWordEs": "Tiempo",
+      "sha256": "e6fbab323900a808246df126968c6962a38297933c5ecc294db5c0cea9e507c8",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "idea-support-target-v1",
+      "code": "S008",
+      "role": "support",
+      "primaryWordEs": "Objetivo",
+      "sha256": "6174308f3e6c0ec080a545380383a2e71e64a454e9f3c37b9258397c70ceda46",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "idea-support-connection-v1",
+      "code": "S009",
+      "role": "support",
+      "primaryWordEs": "Conexión",
+      "sha256": "e80068f280fa3b3c91692e8bfb3ec1d7e9b3a2bf376953cf074713e15fdc2c6f",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "idea-support-flow-v1",
+      "code": "S010",
+      "role": "support",
+      "primaryWordEs": "Flujo",
+      "sha256": "cd800fcedb71a9ef0f8484834909e166d80a22bc200d50bbe053d3089abf7f93",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s011-v1",
+      "code": "S011",
+      "role": "support",
+      "primaryWordEs": "Idea",
+      "sha256": "d2593231f90298f387dd6811f390b63bddc7d3e4749399a2496a73df9aec75c0",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s012-v1",
+      "code": "S012",
+      "role": "support",
+      "primaryWordEs": "Aprendizaje",
+      "sha256": "001c3d97cc399c5ae2035521bdf05bb00f7d9007fd7a44c94d60661c3d3ee51b",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s013-v1",
+      "code": "S013",
+      "role": "support",
+      "primaryWordEs": "Investigación",
+      "sha256": "39252e6a44cecbd3bc1274aa330ca3f22b2d346794aec2e1d4b86316e88124e8",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s014-v1",
+      "code": "S014",
+      "role": "support",
+      "primaryWordEs": "Memoria",
+      "sha256": "f2205bb9d1acb520d5f2476696abb333b0f3dbf9fd50735326c75ef0446a5daa",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s015-v1",
+      "code": "S015",
+      "role": "support",
+      "primaryWordEs": "Creatividad",
+      "sha256": "0fbc397f29a16d67d11a44620fda45c861145936d9764617c076155c8edb2785",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s016-v1",
+      "code": "S016",
+      "role": "support",
+      "primaryWordEs": "Planificación",
+      "sha256": "cf7119af0d869277e263a3c0763973d50f05cf944c406fec42bec47c5baaf249",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s017-v1",
+      "code": "S017",
+      "role": "support",
+      "primaryWordEs": "Decisión",
+      "sha256": "53f56a2783ebb929cd600c478f3ea5a00a97bcc3563414d4b6760f70624e80ce",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s018-v1",
+      "code": "S018",
+      "role": "support",
+      "primaryWordEs": "Prioridad",
+      "sha256": "91549cee95e4f8ed7769388194597cf3fe169c38779d4a2b4cc169cb6cfe69e9",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s019-v1",
+      "code": "S019",
+      "role": "support",
+      "primaryWordEs": "Validación",
+      "sha256": "2a9cad222e03f01e5d20b61a990942e9a7e1767c922648f8633772713919dc22",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s020-v1",
+      "code": "S020",
+      "role": "support",
+      "primaryWordEs": "Alerta",
+      "sha256": "7592ae3ff02abac136122293d7d77c4f20ba2e5eaa070ab2da986cbd81a434ab",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s021-v1",
+      "code": "S021",
+      "role": "support",
+      "primaryWordEs": "Seguridad",
+      "sha256": "57bb52dfd7b000a0b771a207d8fcda908f98e03af30e8c0a38567f7b3cd1f895",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s022-v1",
+      "code": "S022",
+      "role": "support",
+      "primaryWordEs": "Privacidad",
+      "sha256": "1d00e9c9bb243c0792516eb93cbf80448021d4b3be71f2c057ac22f8d4daf93b",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s023-v1",
+      "code": "S023",
+      "role": "support",
+      "primaryWordEs": "Identidad",
+      "sha256": "f80365e016ea75246d15b208d74fb37f2ff5bf78b4ee0249a062f3b492dd3fce",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s024-v1",
+      "code": "S024",
+      "role": "support",
+      "primaryWordEs": "Acceso",
+      "sha256": "0d698d3f2a83f066eba08c4a84e0196df4eae8fa903147155b634f3e0202173c",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s025-v1",
+      "code": "S025",
+      "role": "support",
+      "primaryWordEs": "Comunicación",
+      "sha256": "486dd0ba3e662a652efa6924690e3d4adfcfb2c3648c9688bbbd51f863150151",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s026-v1",
+      "code": "S026",
+      "role": "support",
+      "primaryWordEs": "Audio",
+      "sha256": "e2977babab4d4fe71139b6d625be5d7245f92ab0332d8d5c0ac3b0c1c3134f35",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s027-v1",
+      "code": "S027",
+      "role": "support",
+      "primaryWordEs": "Video",
+      "sha256": "b4e0c25a218a98be366d11548dc5c4854b30fe0beef6a35958be8a1aaca78565",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s028-v1",
+      "code": "S028",
+      "role": "support",
+      "primaryWordEs": "Ubicación",
+      "sha256": "2b7330a506d841fa18a86ed8958ac783b76c51681cd688d7ad2a052b7e9c07c6",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s029-v1",
+      "code": "S029",
+      "role": "support",
+      "primaryWordEs": "Ruta",
+      "sha256": "c2789a4d9bc9dcab4808f92a540c4c35182a6734a62031b5c497db56cf643227",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s030-v1",
+      "code": "S030",
+      "role": "support",
+      "primaryWordEs": "Transporte",
+      "sha256": "adf799f25f5f51594df5aa3bf9865a4a5e41cff660a7c86a6ee561d17974b60c",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s031-v1",
+      "code": "S031",
+      "role": "support",
+      "primaryWordEs": "Energía",
+      "sha256": "e5bc25447daa4fa1b306ee9e2230e8221afe6201ded89639f3ecc28c945741e4",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s032-v1",
+      "code": "S032",
+      "role": "support",
+      "primaryWordEs": "Batería",
+      "sha256": "d002de9dd8a18a45f14badc5612e4e0339b3a33994466b787d2e0a5d85de3831",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s033-v1",
+      "code": "S033",
+      "role": "support",
+      "primaryWordEs": "Agua",
+      "sha256": "0984d86b694739168012a543facb4638620a89a693c6ff4c31ce5fc650251be8",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s034-v1",
+      "code": "S034",
+      "role": "support",
+      "primaryWordEs": "Naturaleza",
+      "sha256": "6b030f7c16ee6d47e0f3e12e175b75649afce9d730ae5a2c0cd6882e62d174aa",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s035-v1",
+      "code": "S035",
+      "role": "support",
+      "primaryWordEs": "Reciclaje",
+      "sha256": "49530de744ff3389c58b95c1ab0bf4536b166a0d679a6951b620a12da742877a",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s036-v1",
+      "code": "S036",
+      "role": "support",
+      "primaryWordEs": "Clima",
+      "sha256": "15f9aa336ace193f86a3e0ae50c8dfdc013dcf9bbf002dcbe84dc9a30e742d1b",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s037-v1",
+      "code": "S037",
+      "role": "support",
+      "primaryWordEs": "Salud",
+      "sha256": "cd76e1045eeecf1c6b559083b8dc16eb92f952036e42fb3442e06adc351d9183",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s038-v1",
+      "code": "S038",
+      "role": "support",
+      "primaryWordEs": "Ciencia",
+      "sha256": "c8267b8bf14a28aa3717a91768872f79f12fab147bdaa4343d909a977a26db10",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s039-v1",
+      "code": "S039",
+      "role": "support",
+      "primaryWordEs": "Robótica",
+      "sha256": "e7dcd1f354c3d2597dc50fca51bfb7fd0efb8a38f03f4386d32d72068bbca416",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s040-v1",
+      "code": "S040",
+      "role": "support",
+      "primaryWordEs": "Computación",
+      "sha256": "2469806682180520d6538103a2fc52b348acf68b9357907195be80de76bfb8fa",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s041-v1",
+      "code": "S041",
+      "role": "support",
+      "primaryWordEs": "Almacenamiento",
+      "sha256": "fa7efd9d93079620b617d03233f9df625255d7bd6d50d47f883e44c25cdc354e",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s042-v1",
+      "code": "S042",
+      "role": "support",
+      "primaryWordEs": "Nube",
+      "sha256": "dc55c4f465c65c59e2e59a511bbaa6943f94a6e9a6f82a7f7599f0f7c22fdc06",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s043-v1",
+      "code": "S043",
+      "role": "support",
+      "primaryWordEs": "Economía",
+      "sha256": "589b18d6434defd706b01d4ea5b0cec9842734f40a1c04b09911e478d1eec0f1",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s044-v1",
+      "code": "S044",
+      "role": "support",
+      "primaryWordEs": "Ahorro",
+      "sha256": "8586093211b9d402244558d1e4f5d713e7a8865f49f13d5e4931f29432938c66",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s045-v1",
+      "code": "S045",
+      "role": "support",
+      "primaryWordEs": "Intercambio",
+      "sha256": "d9b2516eb98c46efc3b0051c731a914d8006e6b788ffc02a8bf180d24c43e6ab",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s046-v1",
+      "code": "S046",
+      "role": "support",
+      "primaryWordEs": "Colaboración",
+      "sha256": "34b6aff0540d55eb1245cd534ef8e22cdef85d10e633527f617d55de589269ec",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s047-v1",
+      "code": "S047",
+      "role": "support",
+      "primaryWordEs": "Equilibrio",
+      "sha256": "f54854d4f0114a10666601e9d31103eb46bb980bd124527e4ad957a0edea37d9",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s048-v1",
+      "code": "S048",
+      "role": "support",
+      "primaryWordEs": "Calidad",
+      "sha256": "5550777e1f32070fdd85c5d0946adb562a36105571f712568fb1dc3725f575a4",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s049-v1",
+      "code": "S049",
+      "role": "support",
+      "primaryWordEs": "Herramientas",
+      "sha256": "4bb8e68a9106e1e063f9432712d101a2d4cdae101ba22f8119c84e99f378a3d1",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-support-s050-v1",
+      "code": "S050",
+      "role": "support",
+      "primaryWordEs": "Construcción",
+      "sha256": "6e8bfec8c90eef7f1aac53dbbb5d63467ecc7ec9f737772340a1807dbc16afc4",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l001-v1",
+      "code": "L001",
+      "role": "rear-collage",
+      "primaryWordEs": "Halo marfil vertical",
+      "sha256": "f8ae5b45882fad9da381ca55b5f7ea0e1f6ba86d59f77a2f54bc51fab744249e",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l002-v1",
+      "code": "L002",
+      "role": "rear-collage",
+      "primaryWordEs": "Halo marfil ancho",
+      "sha256": "2c8923b34fc4e3ca12d5568ec7525548330030081983a3cfe609a6bab3d33e65",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l003-v1",
+      "code": "L003",
+      "role": "rear-collage",
+      "primaryWordEs": "Halo circular abierto",
+      "sha256": "5a278692fb660e1c0d0f6d7e5898467b4584e90348c833c62538951c7f6bc8ca",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l004-v1",
+      "code": "L004",
+      "role": "rear-collage",
+      "primaryWordEs": "Abanico de papeles",
+      "sha256": "4aa8379a178fa1723bdd50c0510bc5cc7124989242e2094cb24a20926e348f2e",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l005-v1",
+      "code": "L005",
+      "role": "rear-collage",
+      "primaryWordEs": "Diagonal ascendente",
+      "sha256": "730905642eedcea63bbd6ef5ac5e36bdbe5a079b2181a75cccff4c3ea3588cbc",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l006-v1",
+      "code": "L006",
+      "role": "rear-collage",
+      "primaryWordEs": "Periódico izquierdo",
+      "sha256": "760d78a244d0cba933835ec19c97661c727578c276ddd6a4926831e6ceceb793",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l007-v1",
+      "code": "L007",
+      "role": "rear-collage",
+      "primaryWordEs": "Periódico derecho",
+      "sha256": "8d76dd9eb21b684cb5b09050ebadb7e9fb4cd480cddc60ada5731c58dae2d090",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l008-v1",
+      "code": "L008",
+      "role": "rear-collage",
+      "primaryWordEs": "Periódico vertical",
+      "sha256": "93788861b77011809f7fd503b34383af95bc1389aa2ac831314fce97b5ae8f69",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l009-v1",
+      "code": "L009",
+      "role": "rear-collage",
+      "primaryWordEs": "Impresión carbón",
+      "sha256": "4d1bdcfe8d0f19d6a83596ade5d6040cf9169fec40f17065c57b60dc7bf65c9b",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l010-v1",
+      "code": "L010",
+      "role": "rear-collage",
+      "primaryWordEs": "Grabado arquitectónico",
+      "sha256": "865028903c7bb99573a2ad524e4a609ca5e918981e37f4de0db03f9100765b23",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l011-v1",
+      "code": "L011",
+      "role": "rear-collage",
+      "primaryWordEs": "Topografía neutra",
+      "sha256": "3a28b6b5a33d72f2fe4921c8e163872dac5305167ff0d87198a61c96b9662c7c",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l012-v1",
+      "code": "L012",
+      "role": "rear-collage",
+      "primaryWordEs": "Diagrama técnico",
+      "sha256": "eb395f9125ac82b42f8f7e70e519992cab2c3de5047d754828515efaba88ab8b",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l013-v1",
+      "code": "L013",
+      "role": "rear-collage",
+      "primaryWordEs": "Malla de circuitos",
+      "sha256": "d6dfa23433c4a95b6f39de97d3127b786a5af5009ed451e7220332d9dd4bed88",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l014-v1",
+      "code": "L014",
+      "role": "rear-collage",
+      "primaryWordEs": "Lámina botánica",
+      "sha256": "2aede5ee78ecc557d8a187ab154b1f9c88d91d9c46c2f6756d57019599fb71a0",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l015-v1",
+      "code": "L015",
+      "role": "rear-collage",
+      "primaryWordEs": "Estratos de papel",
+      "sha256": "f663ce3ca36d1174cb2a11a3c012d820a3e8175777574171794920110d51035f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l016-v1",
+      "code": "L016",
+      "role": "rear-collage",
+      "primaryWordEs": "Archivo doblado",
+      "sha256": "2158c2898dc744bab299b0388b3e8ff06aff1d82db441133f60c4570cb8cc732",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l017-v1",
+      "code": "L017",
+      "role": "rear-collage",
+      "primaryWordEs": "Collage pétreo",
+      "sha256": "9243c5a8e2cd3742a52cd028d94ea47965d6f6dce616ca1b6c05629ab229b4b6",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l018-v1",
+      "code": "L018",
+      "role": "rear-collage",
+      "primaryWordEs": "Fragmentos orbitales",
+      "sha256": "5a66a5e42bb314b9d314e22d1f8b30222c20b01a6382f936e8a58dd95b613c08",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l019-v1",
+      "code": "L019",
+      "role": "rear-collage",
+      "primaryWordEs": "Base de fibras",
+      "sha256": "f1e3bb8ed2f5cd9858434963d0d62482f1a690fea4006a48c69869072dbcca6a",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l020-v1",
+      "code": "L020",
+      "role": "rear-collage",
+      "primaryWordEs": "Ventana asimétrica",
+      "sha256": "2d19491caca93d5d1052530e992716951cde2343e456a95ca2bd65fbe2d94b0b",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l021-v1",
+      "code": "L021",
+      "role": "front-collage",
+      "primaryWordEs": "Faja inferior marfil",
+      "sha256": "715b8e61f9fd95f317493419dfdb2b35685b3cc3b23507b18707a70421c62cd5",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l022-v1",
+      "code": "L022",
+      "role": "front-collage",
+      "primaryWordEs": "Cuña inferior izquierda",
+      "sha256": "f21191d9e6e1fb234aafa6ef1c2440a2d8a506b8a03c71f3febb23509039edca",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l023-v1",
+      "code": "L023",
+      "role": "front-collage",
+      "primaryWordEs": "Cuña inferior derecha",
+      "sha256": "20d285342ca1024ea3d39c2e5fbdb98b581fdd0c2a54a4daddc4b2aa8afc9208",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l024-v1",
+      "code": "L024",
+      "role": "front-collage",
+      "primaryWordEs": "Escama de periódico",
+      "sha256": "fdc002d99f4dab91ab0b4ce2acc445c34d69f4aee4ab393d3b2abac238d6f3b7",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l025-v1",
+      "code": "L025",
+      "role": "front-collage",
+      "primaryWordEs": "Esquina doblada",
+      "sha256": "a704fcc8a4434e7974129288c5c87244d31978b698a729fa2b072634c6a97e1b",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l026-v1",
+      "code": "L026",
+      "role": "front-collage",
+      "primaryWordEs": "Lengüeta de papel",
+      "sha256": "6f6bfd31b0f56eae470113c007dd240797e965714ce8fb6a24e158ebc63cd24f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l027-v1",
+      "code": "L027",
+      "role": "front-collage",
+      "primaryWordEs": "Pie de piedra",
+      "sha256": "27dfa447b5fade5ba81a1b19f5ff4ad5a1a4f391ec110907661a9ed5ff621201",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l028-v1",
+      "code": "L028",
+      "role": "front-collage",
+      "primaryWordEs": "Borde dentado",
+      "sha256": "c6ad7fb65ae5c2e98973ebaccc98e7d8c5fe5c60bb5972eac8e4e336bf59b58e",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l029-v1",
+      "code": "L029",
+      "role": "front-collage",
+      "primaryWordEs": "Media luna de papel",
+      "sha256": "3d913027010906b587e7f255485eb1e8ee0e5d9a1bf39bb166873adb0279b1ee",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l030-v1",
+      "code": "L030",
+      "role": "front-collage",
+      "primaryWordEs": "Capas escalonadas",
+      "sha256": "2982bfa71469704c19f8847665cb10d86bbee9231fc8c6d0b51ccdbb561a8f1f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l031-v1",
+      "code": "L031",
+      "role": "front-collage",
+      "primaryWordEs": "Recorte carbón",
+      "sha256": "ec528626bc1ab95aa9cf57efaacf74fc34e6e9b84c58c0c40c4e022d27ed3dd0",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l032-v1",
+      "code": "L032",
+      "role": "front-collage",
+      "primaryWordEs": "Fibra suelta",
+      "sha256": "6b505b00f6c7e505d6b3ebd95f44ef5906c521e9ce6624b74de711ffd901eba7",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l033-v1",
+      "code": "L033",
+      "role": "front-collage",
+      "primaryWordEs": "Fragmento de plano",
+      "sha256": "09c28149485b83c39837c2e6095e18faee37de096e2dbe73981cc13a40684a4b",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l034-v1",
+      "code": "L034",
+      "role": "front-collage",
+      "primaryWordEs": "Rotura central baja",
+      "sha256": "36cf32d4d21dfa251582e8dbc3dcf82da437630ce75af0567b963a4a75492a9d",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l035-v1",
+      "code": "L035",
+      "role": "front-collage",
+      "primaryWordEs": "Banda lateral fina",
+      "sha256": "09a5a8ebfa31185646d8fcbb0da1cd133de8360e5c2366b574b921fb7f364350",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-layer-l036-v1",
+      "code": "L036",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento vertical",
+      "sha256": "b26ff70d2f7779e7f8f4d1178b95a33f8429819009b582571c6662f9e7f34a47",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l037-v1",
+      "code": "L037",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento horizontal",
+      "sha256": "95bbcf4a2d35addfda1e9efb185b5833756ef7ead3a6e2c5dac23c45ae0208fd",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l038-v1",
+      "code": "L038",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento circular",
+      "sha256": "66fbd3fa85dec5886cb719c8493e2c99ba4e1743811c1f11751c669cc86a3036",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l039-v1",
+      "code": "L039",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento diagonal",
+      "sha256": "6be3f2426cd94f34e0e855b6603638be66e258df945f96bb99301f751fcd64a3",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l040-v1",
+      "code": "L040",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento creciente",
+      "sha256": "8bb062c401b33582291798dbb445f99db39443af819465363b0bd4446dab0542",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l041-v1",
+      "code": "L041",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento esquina izquierda",
+      "sha256": "064936a8cf0a07311c4eb8cea1fc0e4cccdf5c31ff0ec3b89a9c8c2a5f306069",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l042-v1",
+      "code": "L042",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento esquina derecha",
+      "sha256": "18c712a12a705f2d51cd9a6ef237e1a2ee28d9d0e7e5424dfd0c28bc4fe06ea8",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l043-v1",
+      "code": "L043",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento doble lóbulo",
+      "sha256": "0e3683d2e2ea20ec01d7f498fe5a0ed28d5471067d87e74e25433e287625dee4",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l044-v1",
+      "code": "L044",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento dentado",
+      "sha256": "ae2861b5cbb8c32188801b3edfe92707921a91a5a706878c504e8524fa72544e",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l045-v1",
+      "code": "L045",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento escalonado",
+      "sha256": "a34685c7bc50dd7714cd7941848dfd11ffb70dbe76afdf086a9509e133a19ef7",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l046-v1",
+      "code": "L046",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento rombo roto",
+      "sha256": "a68ae940d9582fd78d338a9b000c8624ccb2540aa1e089b4cc17b381390c2f84",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l047-v1",
+      "code": "L047",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento abanico",
+      "sha256": "63dcbe643b96c0a48370201d95c15cba931863da1212dab4f069f1030225b711",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l048-v1",
+      "code": "L048",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento orgánico ramificado",
+      "sha256": "5d357e36ad8addc7c4812458d3fa1ddc4a48e67f799aef93a8dca7a8d89bad1b",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l049-v1",
+      "code": "L049",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento anillo incompleto",
+      "sha256": "0445b5707080903a8e1cedf2ea47c24bb7038cac27c2a99ef540c930b618c768",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-layer-l050-v1",
+      "code": "L050",
+      "role": "accent-mask",
+      "primaryWordEs": "Acento base ancha",
+      "sha256": "e9644b50a1c44b6cd8b827bef3d64e4eb94d1fb985a30cdbc82252f0b83686d1",
+      "colorCapability": "alpha-mask"
+    },
+    {
+      "assetId": "editorial-hero-h001-v1",
+      "code": "H001",
+      "role": "hero-core",
+      "primaryWordEs": "Idea",
+      "sha256": "10b63d12dbd163fd6e948f24d811dafc4d5345a9cbf3d400adbdf390738905c6",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h002-v1",
+      "code": "H002",
+      "role": "hero-core",
+      "primaryWordEs": "Conocimiento",
+      "sha256": "69544dc26455eaf95a5cbafedb44a5aa61740447d84b2b17feb1daf04de2f6b6",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h003-v1",
+      "code": "H003",
+      "role": "hero-core",
+      "primaryWordEs": "Aprendizaje",
+      "sha256": "d1c54e82c7a5ded77a6a148c7ad1e0050a9ad7618f38eae64237b53417d8d1b7",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h004-v1",
+      "code": "H004",
+      "role": "hero-core",
+      "primaryWordEs": "Memoria",
+      "sha256": "409cc45d2ecc26744b613fdfccf666f3d879d9c07e5238772ff74cfe25815338",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h005-v1",
+      "code": "H005",
+      "role": "hero-core",
+      "primaryWordEs": "Curiosidad",
+      "sha256": "0fdcf5bf2f4847b85544cf5808860ba1ebfb1116c24e4e4fca89e348a4284db2",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h006-v1",
+      "code": "H006",
+      "role": "hero-core",
+      "primaryWordEs": "Escritura",
+      "sha256": "88f3e54ccbb7607591cc1b2fdcd833b40f0ac541cfd693368fd446adcf8d1a91",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h007-v1",
+      "code": "H007",
+      "role": "hero-core",
+      "primaryWordEs": "Lectura",
+      "sha256": "dda89d78ac25f7cbbbeeb4d2230be3e244647fe3f58c0f8fe310af78571706a4",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h008-v1",
+      "code": "H008",
+      "role": "hero-core",
+      "primaryWordEs": "Enigma",
+      "sha256": "49551c228455256bdb33411f8b4ab37b2bbe55b2f8b130060ae5e205efb7ec85",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h009-v1",
+      "code": "H009",
+      "role": "hero-core",
+      "primaryWordEs": "Descubrimiento",
+      "sha256": "d8ed518587291e8f79c2b5876ff863f303eb3d3c3a82644561a027985ac7a867",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h010-v1",
+      "code": "H010",
+      "role": "hero-core",
+      "primaryWordEs": "Educación",
+      "sha256": "776701999625397581d6583c9abe95595f05bfd79e171773f246dc25dc3a448c",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h011-v1",
+      "code": "H011",
+      "role": "hero-core",
+      "primaryWordEs": "Señal",
+      "sha256": "d4ba0eee4ad3a210dd553f21d6f462875f01a792bd950fe51b435eccbd9b9f71",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h012-v1",
+      "code": "H012",
+      "role": "hero-core",
+      "primaryWordEs": "Voz",
+      "sha256": "2248962ccfaf68ebcd7c49b075625dc57bb66d28ff2c3cc1983608283635559f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h013-v1",
+      "code": "H013",
+      "role": "hero-core",
+      "primaryWordEs": "Escucha",
+      "sha256": "613a03d950fcd775a9b5c65dfa04143041a18290c48df5d899c28a3b9071b05d",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h014-v1",
+      "code": "H014",
+      "role": "hero-core",
+      "primaryWordEs": "Diálogo",
+      "sha256": "1e9130c26dd82c38fceaa61e735d3564823f5cabcb3c83a584d60797a9f5f5ba",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h015-v1",
+      "code": "H015",
+      "role": "hero-core",
+      "primaryWordEs": "Transmisión",
+      "sha256": "9916b61f225721c3dbb6b6e8e68f85398271ddd525fc665946fb0bb55e192ce2",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h016-v1",
+      "code": "H016",
+      "role": "hero-core",
+      "primaryWordEs": "Mensaje",
+      "sha256": "38d3b6b33d9dd300a8f7126165422284bd33086cbf1c50e27ea7fc60cb26d8b2",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h017-v1",
+      "code": "H017",
+      "role": "hero-core",
+      "primaryWordEs": "Imagen",
+      "sha256": "74ef63b431e9798523ff49f62db2f85d1836275a8a3e5b78ecce18d3fd4a10c1",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h018-v1",
+      "code": "H018",
+      "role": "hero-core",
+      "primaryWordEs": "Grabación",
+      "sha256": "5e2f93bc9ef2264409d6ad3ff2530ab55d4c0caf3dd925bf3f2e85597f4dcaeb",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h019-v1",
+      "code": "H019",
+      "role": "hero-core",
+      "primaryWordEs": "Impresión",
+      "sha256": "5ff6b622d217e1ff74737c09297df3cb98f67a36343a744c201173fc7d52a073",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h020-v1",
+      "code": "H020",
+      "role": "hero-core",
+      "primaryWordEs": "Proyección",
+      "sha256": "499e233643a49adba439d8de49c5bb3038fb97bdc4d15823d57c09e6d67dc3bd",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h021-v1",
+      "code": "H021",
+      "role": "hero-core",
+      "primaryWordEs": "Cómputo",
+      "sha256": "b321cad0c790dd2c7de9e18a05fff6bf7263bf7f3213804093ec046124a76881",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h022-v1",
+      "code": "H022",
+      "role": "hero-core",
+      "primaryWordEs": "Procesamiento",
+      "sha256": "a062636666fd816c9ac83476b4dae6eb5f01ff227d4a7419cbef14f60332323e",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h023-v1",
+      "code": "H023",
+      "role": "hero-core",
+      "primaryWordEs": "Almacenamiento",
+      "sha256": "dce058786e379975a2c352097fb45c1ffd1519eb388743d85284097afc5559a8",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h024-v1",
+      "code": "H024",
+      "role": "hero-core",
+      "primaryWordEs": "Servidor",
+      "sha256": "1a169e861f3cbfecaa4c9d15121174332efd4f50dfcfc798eafdeaefd7e91767",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h025-v1",
+      "code": "H025",
+      "role": "hero-core",
+      "primaryWordEs": "Red",
+      "sha256": "63451af18087e58ed5a0948eccc4ad1bae62f34119d274905a00426285aac03c",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h026-v1",
+      "code": "H026",
+      "role": "hero-core",
+      "primaryWordEs": "Robótica",
+      "sha256": "af1f60641cb4d8824a85961e7f6c9647ca4fda28e94d0a570485a55f378cb9c4",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h027-v1",
+      "code": "H027",
+      "role": "hero-core",
+      "primaryWordEs": "Automatización",
+      "sha256": "186aece26f11a66dfd58ca698cfb3d0bb269458059efed5fb55fc1e0e26ae017",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h028-v1",
+      "code": "H028",
+      "role": "hero-core",
+      "primaryWordEs": "Sensor",
+      "sha256": "9c91db680efce1bb6cb67102dc21ad671833e058246dbb861759575c793919b5",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h029-v1",
+      "code": "H029",
+      "role": "hero-core",
+      "primaryWordEs": "Seguridad",
+      "sha256": "fdbee8f46a4c91f3a327fe76eea3882bc5fbfb1a83e7b5cbef537f46303e042f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h030-v1",
+      "code": "H030",
+      "role": "hero-core",
+      "primaryWordEs": "Identidad",
+      "sha256": "3e4fd056b7e02c74b12c77781901344e3e1ede0740d6d67d116b79bd4fcb8a72",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h031-v1",
+      "code": "H031",
+      "role": "hero-core",
+      "primaryWordEs": "Tiempo",
+      "sha256": "a6cc95f89e536d843e7ea7d56d6960545728e990324f5b3a430e7cc9f3fcdf1a",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h032-v1",
+      "code": "H032",
+      "role": "hero-core",
+      "primaryWordEs": "Espera",
+      "sha256": "77ebe6de0fc2e8555332be11f8903b5b4edba282eecbb8ad9442a81a1a7c85ee",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h033-v1",
+      "code": "H033",
+      "role": "hero-core",
+      "primaryWordEs": "Ritmo",
+      "sha256": "2750aeacd0cc06a5ea902168f22428d74a6aaf3a6f1d2a7a8e529a53907b02b8",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h034-v1",
+      "code": "H034",
+      "role": "hero-core",
+      "primaryWordEs": "Duración",
+      "sha256": "9a2557510faa48989976fe2806c0c8d8700575262bb7a2670088c30eafd138ee",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h035-v1",
+      "code": "H035",
+      "role": "hero-core",
+      "primaryWordEs": "Ciclo",
+      "sha256": "1b1ca4b35c7cf52af846db65c860026353ee054d565c851b4b507c332b0449a4",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h036-v1",
+      "code": "H036",
+      "role": "hero-core",
+      "primaryWordEs": "Planificación",
+      "sha256": "7def7dd068c600d9a8f13ed2b1de087a64f54dadb6a0ee5934763d081eed8614",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h037-v1",
+      "code": "H037",
+      "role": "hero-core",
+      "primaryWordEs": "Dirección",
+      "sha256": "0f048b396e5d75b4a4ce471d6f601989c32a8fab148af0c3598ecd6cd2a0e14a",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h038-v1",
+      "code": "H038",
+      "role": "hero-core",
+      "primaryWordEs": "Navegación",
+      "sha256": "bef680d78edaa13ca607111235e0339b2d94cc0964b191f345b14873f58348b4",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h039-v1",
+      "code": "H039",
+      "role": "hero-core",
+      "primaryWordEs": "Coordenadas",
+      "sha256": "0238f03e6d784c1c9eeb55a90aa6395c972b87963aed17f505578594511c776f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h040-v1",
+      "code": "H040",
+      "role": "hero-core",
+      "primaryWordEs": "Equilibrio",
+      "sha256": "b4dc21eaf34b946025c1b7e5d2f4ce400c10fa057ca1736ca07c27ed406e6840",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h041-v1",
+      "code": "H041",
+      "role": "hero-core",
+      "primaryWordEs": "Colaboración",
+      "sha256": "2a49c3d48001ab3225423fadd8e402e5df8de2787985546919ed7c6c02d9a70e",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h042-v1",
+      "code": "H042",
+      "role": "hero-core",
+      "primaryWordEs": "Comunidad",
+      "sha256": "41671e95710db4fba7bc3fcca1b04b711f8e9c87751304a9f0065d8c0410ebd7",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h043-v1",
+      "code": "H043",
+      "role": "hero-core",
+      "primaryWordEs": "Liderazgo",
+      "sha256": "e0f87b780286fa0d9b9461cb44129ad47d564c2a167352696fcea1d1ee09027a",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h044-v1",
+      "code": "H044",
+      "role": "hero-core",
+      "primaryWordEs": "Cuidado",
+      "sha256": "22bbb9f34ede9099f16379ced88bfcc58cfd7f6fec491a4185fe2de879366425",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h045-v1",
+      "code": "H045",
+      "role": "hero-core",
+      "primaryWordEs": "Acuerdo",
+      "sha256": "6492b55d0db3a863fae15fd77d0be2ed8f9f9482266f4d43cff46bba48cfbf63",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h046-v1",
+      "code": "H046",
+      "role": "hero-core",
+      "primaryWordEs": "Accesibilidad",
+      "sha256": "d325cbc246d8dfac42171fe6619e452dcc93cc3f9d54f7eea7af9a7922c2190f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h047-v1",
+      "code": "H047",
+      "role": "hero-core",
+      "primaryWordEs": "Protección",
+      "sha256": "e32e8b5fb4a920b2451967cd69361d0a9896748ef9065b5523f5b2cd733f6c9b",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h048-v1",
+      "code": "H048",
+      "role": "hero-core",
+      "primaryWordEs": "Oficio",
+      "sha256": "de4c2bdcf1b652069ad0953bee0a01d07cb1798b866a66ca0343dadafbf927af",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h049-v1",
+      "code": "H049",
+      "role": "hero-core",
+      "primaryWordEs": "Vínculo",
+      "sha256": "38eb54b2c2806fee5ec75a7a9478ecdae922f1995600dab0b497112f636f042a",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h050-v1",
+      "code": "H050",
+      "role": "hero-core",
+      "primaryWordEs": "Coordinación",
+      "sha256": "a956948fcf1de1add26482c728fb7370c9607deb24f038e28104ed33020b7266",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h051-v1",
+      "code": "H051",
+      "role": "hero-core",
+      "primaryWordEs": "Corazón",
+      "sha256": "dd3e001ae709b7c5e359923e1c90ff5318c876f749792d4b9eb202b64f8fcb40",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h052-v1",
+      "code": "H052",
+      "role": "hero-core",
+      "primaryWordEs": "Cerebro",
+      "sha256": "86ef6a0cd1e28a5ef77aeaca6af797f8c7e18c704e251d1c887364471e5352ca",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h053-v1",
+      "code": "H053",
+      "role": "hero-core",
+      "primaryWordEs": "Respiración",
+      "sha256": "48445e416ad3061833381d4ad65b4b1945e88c3cf8fc39812a5ade306f9d513e",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h054-v1",
+      "code": "H054",
+      "role": "hero-core",
+      "primaryWordEs": "Genética",
+      "sha256": "5a735d353c761ce6e4ba0858711fdf9abed9222151ceb4f05e77058b009a5cb6",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h055-v1",
+      "code": "H055",
+      "role": "hero-core",
+      "primaryWordEs": "Célula",
+      "sha256": "8b138bd8178d9b5eadac02145778af53375844bda467fafc50dda037fa0d294a",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h056-v1",
+      "code": "H056",
+      "role": "hero-core",
+      "primaryWordEs": "Diagnóstico",
+      "sha256": "ad7012031dbd043793e38bd6b8b91e658a09df005d6866f17272c983e9121df4",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h057-v1",
+      "code": "H057",
+      "role": "hero-core",
+      "primaryWordEs": "Medicina",
+      "sha256": "782c23997010d9c7f8b9888e0f572308440fc95c56e8f3ee1acbb321cda82930",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h058-v1",
+      "code": "H058",
+      "role": "hero-core",
+      "primaryWordEs": "Vacuna",
+      "sha256": "b681378ba8fd5d316b99e3799561f4a6f2c958929feeaa592793207c9df98782",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h059-v1",
+      "code": "H059",
+      "role": "hero-core",
+      "primaryWordEs": "Investigación",
+      "sha256": "af656c9e42c9da96d56cc519ab1a3752acc01ddec7844192793b649b21f280ce",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h060-v1",
+      "code": "H060",
+      "role": "hero-core",
+      "primaryWordEs": "Movilidad",
+      "sha256": "3f77e9cfcede5e4f038979a1a693fbb109c4af49bdd18e07a2cb438bb89d3aea",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h061-v1",
+      "code": "H061",
+      "role": "hero-core",
+      "primaryWordEs": "Germinación",
+      "sha256": "a3cc49b98cd7b25d287bb228222a7666e3bf6b186cbc206e60361ba96c75a408",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h062-v1",
+      "code": "H062",
+      "role": "hero-core",
+      "primaryWordEs": "Raíces",
+      "sha256": "fa34ea4b32318fff1e53626e5b7befb32a5b265dcf46fd4c9fa7133d9975fa3b",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h063-v1",
+      "code": "H063",
+      "role": "hero-core",
+      "primaryWordEs": "Bosque",
+      "sha256": "dbb35ec8551ad2fe140149b506c8db50a6db183932d50f7d5c875681f3d460dc",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h064-v1",
+      "code": "H064",
+      "role": "hero-core",
+      "primaryWordEs": "Biodiversidad",
+      "sha256": "dd8f5c43299fb1a445429117915d337204537996532097e704d9012eb633e584",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h065-v1",
+      "code": "H065",
+      "role": "hero-core",
+      "primaryWordEs": "Polinización",
+      "sha256": "1d0607ef75dd08f50c47f488926cf22f80e982befd32127c3a1004143bddb27f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h066-v1",
+      "code": "H066",
+      "role": "hero-core",
+      "primaryWordEs": "Agua",
+      "sha256": "86a239f0a8c822f32aa776d54b5aeed9918904f03b6d252af495856e8138b5b6",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h067-v1",
+      "code": "H067",
+      "role": "hero-core",
+      "primaryWordEs": "Conservación",
+      "sha256": "e9564796d5a4d29465d1b305293aec245bd5c73ee20cd525edb466e5b6d6bf2f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h068-v1",
+      "code": "H068",
+      "role": "hero-core",
+      "primaryWordEs": "Reciclaje",
+      "sha256": "549126a4af0c96179daf4fb0269c335f211e6cf06052f64be86e27b25f152db8",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h069-v1",
+      "code": "H069",
+      "role": "hero-core",
+      "primaryWordEs": "Agricultura",
+      "sha256": "0630ddc3fdd0e8b820058548070f28b1084963cc5a34236dc0006b4da750f75a",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h070-v1",
+      "code": "H070",
+      "role": "hero-core",
+      "primaryWordEs": "Suelo",
+      "sha256": "7c7fd9b502fe4a31401e687b8cf0ef8f4edaa7c73faebed34c8057aedf742863",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h071-v1",
+      "code": "H071",
+      "role": "hero-core",
+      "primaryWordEs": "Electricidad",
+      "sha256": "baab14dd4c9a3ee3224150ee175944761f82bde0358b1207be01cf71a9d27a50",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h072-v1",
+      "code": "H072",
+      "role": "hero-core",
+      "primaryWordEs": "Batería",
+      "sha256": "c0dff4d8cb5005e9688406f5c5f9e4eec1691b2a242cfa39614d736cee60a42c",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h073-v1",
+      "code": "H073",
+      "role": "hero-core",
+      "primaryWordEs": "Energía solar",
+      "sha256": "8ecb9f9958cbb244e9dbd8f82c84ac6fa65f2fd43b716f81df2a7367dc1abffa",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h074-v1",
+      "code": "H074",
+      "role": "hero-core",
+      "primaryWordEs": "Energía eólica",
+      "sha256": "1001a6fc519f2e98ffaab93ad6d97ccf08a717844011b0b6324ece161aea34ab",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h075-v1",
+      "code": "H075",
+      "role": "hero-core",
+      "primaryWordEs": "Magnetismo",
+      "sha256": "ca1f3a846aab9677ea94541e4fffacbcd194eacb6d3f813d04d8af612579faab",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h076-v1",
+      "code": "H076",
+      "role": "hero-core",
+      "primaryWordEs": "Gravedad",
+      "sha256": "6804241efd2ce85880723e070859cf879769a1d2ed501bbead942d5523bafc86",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h077-v1",
+      "code": "H077",
+      "role": "hero-core",
+      "primaryWordEs": "Óptica",
+      "sha256": "c679d1cf0e187c03a0f2dc57fa8ba4eee3766d9211bf9f7390fdba4c00a633d5",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h078-v1",
+      "code": "H078",
+      "role": "hero-core",
+      "primaryWordEs": "Presión",
+      "sha256": "61a543de6e84727d015e4b5390079e63ed247bc91006fd165618f368b53b2d38",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h079-v1",
+      "code": "H079",
+      "role": "hero-core",
+      "primaryWordEs": "Calor",
+      "sha256": "b2d2daa42e21d1d653107f6c343ed7816ed34f71af22fd8c8bb4c9fb7502bacb",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h080-v1",
+      "code": "H080",
+      "role": "hero-core",
+      "primaryWordEs": "Ondas",
+      "sha256": "1c65a058303520b1a730ac6b42f9d57926b0ed2130b9079f06e36b869064087c",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h081-v1",
+      "code": "H081",
+      "role": "hero-core",
+      "primaryWordEs": "Satélite",
+      "sha256": "a8572ab5774d4357be11e038421d76e209f525c530b38de704df4d346184bb96",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h082-v1",
+      "code": "H082",
+      "role": "hero-core",
+      "primaryWordEs": "Cohete",
+      "sha256": "fd100ea10ea6c75435f32efa0b8d10fbb384af529043cfa2dfe926afff74f39a",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h083-v1",
+      "code": "H083",
+      "role": "hero-core",
+      "primaryWordEs": "Astronauta",
+      "sha256": "756acb346590c0d4551904afc8aaac1e1998b4ef1caa666e83cabd3799010f71",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h084-v1",
+      "code": "H084",
+      "role": "hero-core",
+      "primaryWordEs": "Telescopio",
+      "sha256": "9f74e517b497bacce0c6ad3d83b3463229f0c053237fccd294d3688e4dc6fe3e",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h085-v1",
+      "code": "H085",
+      "role": "hero-core",
+      "primaryWordEs": "Luna",
+      "sha256": "519318eb05ecc946ee46dadeaabbf9961908420fa39e7799f39f0e25cc60a92e",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h086-v1",
+      "code": "H086",
+      "role": "hero-core",
+      "primaryWordEs": "Marte",
+      "sha256": "a257f08a3568d34728fbba57c781d85403e69c0592716d58eddc9583826f9ee7",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h087-v1",
+      "code": "H087",
+      "role": "hero-core",
+      "primaryWordEs": "Cometa",
+      "sha256": "b719bc0c115af33bd168aa9d4b168710f52083088c8fe792811305dd70c5de70",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h088-v1",
+      "code": "H088",
+      "role": "hero-core",
+      "primaryWordEs": "Meteorito",
+      "sha256": "348ebe721d40bb18f962867b991da6c3338bec31d463a598bec097f7bb2a7966",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h089-v1",
+      "code": "H089",
+      "role": "hero-core",
+      "primaryWordEs": "Órbita",
+      "sha256": "3c1b0980f1b92bdfc9d4952debe7c74ec6778050b5973a205830ad967d7e43c2",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h090-v1",
+      "code": "H090",
+      "role": "hero-core",
+      "primaryWordEs": "Exploración espacial",
+      "sha256": "ce0f3264ea2cb85c985772b640da9fcde35cbf21370b9355b4300311d151465f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h091-v1",
+      "code": "H091",
+      "role": "hero-core",
+      "primaryWordEs": "Océano",
+      "sha256": "b656e7d8cf9ed8ff32bd31692ca6c93887a61bdbae74430ba11aca1246f97fd0",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h092-v1",
+      "code": "H092",
+      "role": "hero-core",
+      "primaryWordEs": "Profundidad",
+      "sha256": "512ee5072ed0d3f43513a01bdda4f25c65beedcbf8e1031a246d10d131094e54",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h093-v1",
+      "code": "H093",
+      "role": "hero-core",
+      "primaryWordEs": "Cartografía",
+      "sha256": "e51027fe351542d51038acc3b413f53a7face56b0e356ac2bae07c226adfeb24",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h094-v1",
+      "code": "H094",
+      "role": "hero-core",
+      "primaryWordEs": "Relieve",
+      "sha256": "30be8888d55e3450d933e3ed171b82908dd20ea25d069cb23c274a6d4cb42eda",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h095-v1",
+      "code": "H095",
+      "role": "hero-core",
+      "primaryWordEs": "Volcán",
+      "sha256": "16e6265c710139c198fa8e1e1821d507736ac1c76cdc6b42f8b9b90c0f891a99",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h096-v1",
+      "code": "H096",
+      "role": "hero-core",
+      "primaryWordEs": "Sismología",
+      "sha256": "a406dd66524135ad6df3703b6b31125c94628a90c6b9ec7e84e65d16f1e1d81d",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h097-v1",
+      "code": "H097",
+      "role": "hero-core",
+      "primaryWordEs": "Clima",
+      "sha256": "f7bde967c48f4f45a9c867e3f4e154cd7743bd12dce6dbcf424b147687223c59",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h098-v1",
+      "code": "H098",
+      "role": "hero-core",
+      "primaryWordEs": "Viento",
+      "sha256": "814ba272f9666607c522d974f306938b5b8dd96d8fa4360aacca4648539f83f0",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h099-v1",
+      "code": "H099",
+      "role": "hero-core",
+      "primaryWordEs": "Fósil",
+      "sha256": "16fc84ef8c2f79fc0e7a748d34e5666b5f181475632b53ea031f12b24ec32e58",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h100-v1",
+      "code": "H100",
+      "role": "hero-core",
+      "primaryWordEs": "Expedición",
+      "sha256": "dcacc51b68713e2ba461df0d35a226f3f2bac9a589883a234a24a3c07e39f65a",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h101-v1",
+      "code": "H101",
+      "role": "hero-core",
+      "primaryWordEs": "Piezas",
+      "sha256": "14899420d96a54b63b4d75ca318a536f439455bd419a51ff18181135a15ede83",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h102-v1",
+      "code": "H102",
+      "role": "hero-core",
+      "primaryWordEs": "Estructura",
+      "sha256": "aa41e399871bab2e9387a2610a525397c4f5af68e6a604cde9fab7dd906aa03f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h103-v1",
+      "code": "H103",
+      "role": "hero-core",
+      "primaryWordEs": "Cimientos",
+      "sha256": "acb3eb2f15de5bd1e264c952e215f2a32f9e0c298d51a5c7d0fd90922d33665f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h104-v1",
+      "code": "H104",
+      "role": "hero-core",
+      "primaryWordEs": "Puente",
+      "sha256": "dc408e0367a36ca131b374b6f44a23dcbecb42a35d2b166c352c6ef140da552e",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h105-v1",
+      "code": "H105",
+      "role": "hero-core",
+      "primaryWordEs": "Engranaje",
+      "sha256": "f830508a4345e75e6564aa065504313d9b64f350fca88ef28cc18bfbb08fdb9e",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h106-v1",
+      "code": "H106",
+      "role": "hero-core",
+      "primaryWordEs": "Motor",
+      "sha256": "8e9e98c73fb098bce8a7218cb0388f8fa015e15495846ef2cba2bd3f39cdd1b9",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h107-v1",
+      "code": "H107",
+      "role": "hero-core",
+      "primaryWordEs": "Fabricación",
+      "sha256": "148049185d9e64a6147374296ac52415c7ddf996f1e142d31e5757c1a08be772",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h108-v1",
+      "code": "H108",
+      "role": "hero-core",
+      "primaryWordEs": "Precisión",
+      "sha256": "88758e4d0d8b5e063649e7381ed9373ab669e425e5f3cd6d9dde087f48620099",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h109-v1",
+      "code": "H109",
+      "role": "hero-core",
+      "primaryWordEs": "Ensamblaje",
+      "sha256": "d8ac23bccc23a2baea3bc6dba533ad093da20a02850d8f82e9d06699f346023f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h110-v1",
+      "code": "H110",
+      "role": "hero-core",
+      "primaryWordEs": "Mantenimiento",
+      "sha256": "4c9421c6597e70570f23c702cb256c72fad215ccda14e82fec8c8102c85a834a",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h111-v1",
+      "code": "H111",
+      "role": "hero-core",
+      "primaryWordEs": "Movilidad urbana",
+      "sha256": "f25176b13f43a2514813776b97aa7d57996a89bc91d945d71a727c10ae33153f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h112-v1",
+      "code": "H112",
+      "role": "hero-core",
+      "primaryWordEs": "Ferrocarril",
+      "sha256": "23b3a13abd7bc31dd30c5f603c21cc45fb300c900edcda915832a9b19fdd4e1f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h113-v1",
+      "code": "H113",
+      "role": "hero-core",
+      "primaryWordEs": "Aviación",
+      "sha256": "74d71c59d436fab221886ed2aadd4d4a5e92a8217776ba44ecf8571b05c91204",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h114-v1",
+      "code": "H114",
+      "role": "hero-core",
+      "primaryWordEs": "Navegación marítima",
+      "sha256": "8a64be0682f96ff1527680fa956c3e7eceea3ddcd06fe2624d38babf5bc2e8ad",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h115-v1",
+      "code": "H115",
+      "role": "hero-core",
+      "primaryWordEs": "Entrega",
+      "sha256": "576b5ab95b4017b3f46e1362888eb7e181b2d3f40ec6962ae7b3d7ccc09acc40",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h116-v1",
+      "code": "H116",
+      "role": "hero-core",
+      "primaryWordEs": "Almacén",
+      "sha256": "ad3ec4b3d57e20bdcc05c4039daaa8702102c23fd2eaa0fde99b9c9ca5e8fc31",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h117-v1",
+      "code": "H117",
+      "role": "hero-core",
+      "primaryWordEs": "Distribución",
+      "sha256": "3369169ad58005ac1f9291cf1614316f51ff66752651cb75c8d8afa0deebbf29",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h118-v1",
+      "code": "H118",
+      "role": "hero-core",
+      "primaryWordEs": "Contenedor",
+      "sha256": "2009671994efe156f4482f9fa4019fbeb03a411330c007cd3a777ae8d2b9076d",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h119-v1",
+      "code": "H119",
+      "role": "hero-core",
+      "primaryWordEs": "Dron",
+      "sha256": "eb5bc0a893a71d4fb24bf04a942be0f589adea65c67fa27ccef239a5b94af259",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h120-v1",
+      "code": "H120",
+      "role": "hero-core",
+      "primaryWordEs": "Infraestructura",
+      "sha256": "a78c554771b5e0711e1c27a10c9a98b2156a77068d3a662a95d0ea94ee8a6d9c",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h121-v1",
+      "code": "H121",
+      "role": "hero-core",
+      "primaryWordEs": "Ahorro",
+      "sha256": "f9527e588df38571830f5e8e6b875b0c875e572878e284430ac8cac1adf725f8",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h122-v1",
+      "code": "H122",
+      "role": "hero-core",
+      "primaryWordEs": "Intercambio",
+      "sha256": "6748bc61f011fea413e3edbce0c8da77800c8f52c0309628d2b60265d250bfaa",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h123-v1",
+      "code": "H123",
+      "role": "hero-core",
+      "primaryWordEs": "Comercio",
+      "sha256": "30cdc10e8a8aa9ff6dfac10926af14cce95169a3528654378afeac09a2869a6f",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h124-v1",
+      "code": "H124",
+      "role": "hero-core",
+      "primaryWordEs": "Valor",
+      "sha256": "860d63859fb769841e079155a4e9bad6abab82729812191cc2127acc27981cd0",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h125-v1",
+      "code": "H125",
+      "role": "hero-core",
+      "primaryWordEs": "Cálculo",
+      "sha256": "ba71b59d344ffbb718ff36badc0669dbf550c7ef9be60601cb2baaf7f6c49df3",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h126-v1",
+      "code": "H126",
+      "role": "hero-core",
+      "primaryWordEs": "Presupuesto",
+      "sha256": "16991de5578546325cf97e3f3689d2360c513cc5128a9d5ad7c2dbdddfec5dec",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h127-v1",
+      "code": "H127",
+      "role": "hero-core",
+      "primaryWordEs": "Contrato",
+      "sha256": "c58baed7a98ca24360d50e055157ab991ff9690978e049c00ef115b76afe14be",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h128-v1",
+      "code": "H128",
+      "role": "hero-core",
+      "primaryWordEs": "Reserva",
+      "sha256": "8f53c839a6a99d8e7582e48c3fd9a942d6473030cfe7ad3c80a15068ac738c25",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h129-v1",
+      "code": "H129",
+      "role": "hero-core",
+      "primaryWordEs": "Producción",
+      "sha256": "dc38660d3bc5ff679ed47779cff0f4be95cc14a52ab70f4404504a5f26e79190",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h130-v1",
+      "code": "H130",
+      "role": "hero-core",
+      "primaryWordEs": "Empleo",
+      "sha256": "46be7567546a5efc8afd8f31acb0eb457a562cc84ae914b4e61b188401300be0",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h131-v1",
+      "code": "H131",
+      "role": "hero-core",
+      "primaryWordEs": "Civilización",
+      "sha256": "50adec68cb123a1253b5f67aa4ec743ff75d089e74bcf4dc43bde184f04e3e6c",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h132-v1",
+      "code": "H132",
+      "role": "hero-core",
+      "primaryWordEs": "Arqueología",
+      "sha256": "f45a1a286beb41738791d238c69fd46b21d7fbb5eb7c7e4208e2abaac2eb1c4c",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h133-v1",
+      "code": "H133",
+      "role": "hero-core",
+      "primaryWordEs": "Arcilla",
+      "sha256": "1b3b704ece66744d872d03531d0d0e00b6c154743659e17e5eb71800ebd6b773",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h134-v1",
+      "code": "H134",
+      "role": "hero-core",
+      "primaryWordEs": "Monumento",
+      "sha256": "cdeee4cc1ae9b0afb58a94f8fed91be00aaab5248bc9b9e596e4bedfda1a7700",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h135-v1",
+      "code": "H135",
+      "role": "hero-core",
+      "primaryWordEs": "Tiempo histórico",
+      "sha256": "61b4d86aba76f93d1e102671940fb5a5538f8ecd243174fb2f8ff87a95570298",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h136-v1",
+      "code": "H136",
+      "role": "hero-core",
+      "primaryWordEs": "Patrimonio",
+      "sha256": "42acc59c37979c170f0376fac58c8da438c44851f5e1e687e4c8617346df4433",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h137-v1",
+      "code": "H137",
+      "role": "hero-core",
+      "primaryWordEs": "Navegantes",
+      "sha256": "74c95dd9852f3dc391c703901ff0c8f88a759435cd37c627cddb25b6cb1e295d",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h138-v1",
+      "code": "H138",
+      "role": "hero-core",
+      "primaryWordEs": "Restauración",
+      "sha256": "df0d72d72f2616bd25999eba4bca09ec72288ad067e3c086b41bf0aa78736a81",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h139-v1",
+      "code": "H139",
+      "role": "hero-core",
+      "primaryWordEs": "Hallazgo",
+      "sha256": "82d95a527294f779e0aeff028f406609bf3d90e08ceca2ef1e696112b21f065a",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h140-v1",
+      "code": "H140",
+      "role": "hero-core",
+      "primaryWordEs": "Evolución",
+      "sha256": "abd9544146f31e4ec37c7ddb77c432b37d9e8f4f9867c8626feb3137d69fc655",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h141-v1",
+      "code": "H141",
+      "role": "hero-core",
+      "primaryWordEs": "Música",
+      "sha256": "68e88c3cbeb3639c4164589ed7ef56aa38e7ec5e8216a71a1896dfe3f634222b",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h142-v1",
+      "code": "H142",
+      "role": "hero-core",
+      "primaryWordEs": "Escultura",
+      "sha256": "399e651c778b784603d8510a57126984b2768ddb81bd2f4d71190d9775231ada",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h143-v1",
+      "code": "H143",
+      "role": "hero-core",
+      "primaryWordEs": "Pintura",
+      "sha256": "d112dafb46e20e04bc28f6076699bf3e785466428a4b6fd7741a3b84f1a37f92",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h144-v1",
+      "code": "H144",
+      "role": "hero-core",
+      "primaryWordEs": "Cine",
+      "sha256": "5d0e6b77bb5ca6fb234de7e47d3d7c4a8dfadd1de62c3a73b87f045627c64ed3",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h145-v1",
+      "code": "H145",
+      "role": "hero-core",
+      "primaryWordEs": "Teatro",
+      "sha256": "38b1f3863dc356a518f50a42fa5a770239354137c3eb83cb1bfda67a879494e5",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h146-v1",
+      "code": "H146",
+      "role": "hero-core",
+      "primaryWordEs": "Diseño",
+      "sha256": "c76407b878b65a01042c012b78c331cd27789a6edf1f57e590d70f777de5001a",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h147-v1",
+      "code": "H147",
+      "role": "hero-core",
+      "primaryWordEs": "Justicia",
+      "sha256": "8234b78121b1b0fb1768d49c8e6a1d178d46d347fd27559ed830fae050a30bfd",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h148-v1",
+      "code": "H148",
+      "role": "hero-core",
+      "primaryWordEs": "Democracia",
+      "sha256": "e9201280f6ade8d639ffa7690570930b7e6a7702ed1ba28016a02ecb940e662e",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h149-v1",
+      "code": "H149",
+      "role": "hero-core",
+      "primaryWordEs": "Vivienda",
+      "sha256": "764796a36f3a0500558aabd88e4fad108510e95e3d4bb4431a40351161f4fea2",
+      "colorCapability": "none"
+    },
+    {
+      "assetId": "editorial-hero-h150-v1",
+      "code": "H150",
+      "role": "hero-core",
+      "primaryWordEs": "Libertad",
+      "sha256": "01827cabbc39fed33d3f56270c6b10c24109e082dacbedae8bdabf0ecafa20fe",
+      "colorCapability": "none"
+    }
+  ]
+}

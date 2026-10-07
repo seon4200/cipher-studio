@@ -9,6 +9,15 @@
 > motion graphics con imágenes/recortes protagonistas. Evidencia: `docs/mvp-progreso.md`
 > y `tests/aceptacion/mvp-paso7/`.
 
+> **Preparación de Fase 9 (sin implementación de motor de assets).** OpenMoji será
+> fuente de ilustraciones SVG/PNG —inicio `food-drink/food-sweet`, CC-BY-SA-4.0 y
+> atribución conservada—; ByPeople, de recortes fotográficos descargados manualmente
+> de forma oficial, sin API, scraping ni redistribución cruda. Ambos convivirán con
+> `materiales/`, `project-state.json` y los almacenes actuales de stock; no se crea
+> `CipherData` ni un almacén paralelo. El contrato futuro, cuando existan los tres
+> assets manuales del spike, es `extra.hero` con SHA-256 del contenido para que un
+> archivo ausente no comparta hash con una imagen presente.
+
 Punto de partida verificado: **`v-paso9-mapa-sin-palabra`** (`757b6cc`).
 Estado y etiquetas al día: ver `avance.md` y `puntos-retorno.md`.
 
@@ -308,6 +317,10 @@ siguen abiertos y no se reclaman como cierre de calidad.
 
 - [x] 5.1 Cinco densidades, con adaptación declarada.
 - [x] 5.2 Densidad **derivada del contenido**, no de la semilla.
+- [x] 5.2a La carga usa frase, palabra y etiquetas: con el contrato fijo de tres
+      conceptos, contar solo conceptos colapsaba el eje en `alta`. Condición medida
+      en la traza `mvp-paso7`: 42 `alta` grabadas se recalculan como 2 `media`, 26
+      `alta` y 14 `saturada`; no es una cuota ni una garantía para otro guion.
 - [x] 5.3 Cinco ritmos que reparten instantes de entrada.
 - [x] 5.4 **Cada ritmo pasa por `ajustar()`**.
 

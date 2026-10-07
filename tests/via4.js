@@ -19,14 +19,17 @@
  */
 const { app, ipcMain } = require('electron')
 const fs = require('fs')
-const os = require('os')
 const path = require('path')
 const { execSync } = require('child_process')
+const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
 
 const RAIZ = path.resolve(__dirname, '..')
-const PROY = path.join(RAIZ, 'proyectos')
+const FIXTURE_ROOT = createTestFixture('via4')
+process.chdir(FIXTURE_ROOT)
+const PROY = path.join(FIXTURE_ROOT, 'cipher-studio', 'proyectos')
 const MARCA = 'zz-prueba-via4'
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-via4-'))
+const TMP = path.join(FIXTURE_ROOT, 'external')
+fs.mkdirSync(TMP, { recursive: true })
 
 const fallos = []
 const ok = (cond, titulo, detalle) => {
@@ -41,13 +44,12 @@ const llamar = (canal, arg) => {
   return h({ sender: { send: (c, d) => progreso.push({ canal: c, data: d }) } }, arg)
 }
 
-const limpiar = () => {
-  if (!fs.existsSync(PROY)) return
-  for (const d of fs.readdirSync(PROY)) {
-    if (d.toLowerCase().startsWith(MARCA)) {
-      fs.rmSync(path.join(PROY, d), { recursive: true, force: true })
-    }
-  }
+let fixtureCleaned = false
+const limpiarFixture = () => {
+  if (fixtureCleaned) return
+  process.chdir(path.dirname(FIXTURE_ROOT))
+  cleanupTestFixture(FIXTURE_ROOT)
+  fixtureCleaned = true
 }
 
 const dentro = (p, base) => {
@@ -58,8 +60,6 @@ const dentro = (p, base) => {
 async function main () {
   console.log('VIA 4 — el audioClip cae DENTRO del proyecto')
   console.log('Corre sobre el bundle compilado: ejecuta `npm run build` antes si has tocado el codigo.\n')
-
-  limpiar()
 
   // El video del usuario: FUERA del proyecto, como el importado de verdad.
   const videoExterno = path.join(TMP, 'video-del-usuario.mp4')
@@ -139,11 +139,7 @@ async function main () {
   ok(r3 && r3.success && dentro(r3.audioClip.path, proyecto),
     'el hermano se trata como FUERA y se extrae',
     'devolvio: ' + (r3 && r3.audioClip && r3.audioClip.path))
-  fs.rmSync(hermano, { recursive: true, force: true })
-
   await llamar('close-project', {})
-  limpiar()
-  fs.rmSync(TMP, { recursive: true, force: true })
 
   console.log('\n' + '─'.repeat(70))
   if (fallos.length) {
@@ -161,6 +157,6 @@ app.whenReady().then(async () => {
   // El handler sale antes si no hay clave, pero con transcriptSegments vacio no llega a usarla.
   if (!process.env.DEEPSEEK_API_KEY) process.env.DEEPSEEK_API_KEY = 'x-no-se-usa'
   let code = 1
-  try { code = await main() } catch (e) { console.log('EXCEPCION: ' + e.stack) }
+  try { code = await main() } catch (e) { console.log('EXCEPCION: ' + e.stack) } finally { limpiarFixture() }
   app.exit(code ? 1 : 0)
 })

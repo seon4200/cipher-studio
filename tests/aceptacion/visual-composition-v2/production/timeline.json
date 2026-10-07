@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "source": "forensic corpus resolved automatically plus explicit Solar/missing controls",
+  "clips": [
+    {
+      "index": 1,
+      "id": "v13-5-1",
+      "kind": "forensic-corpus",
+      "provider": "openmoji",
+      "treatment": "accent-mask",
+      "structure": "constelacion",
+      "camera": "contrapicado",
+      "density": "media",
+      "durationSeconds": 2.1499999999999986
+    },
+    {
+      "index": 2,
+      "id": "v13-0-0",
+      "kind": "forensic-corpus",
+      "provider": "openmoji",
+      "treatment": "duotone",
+      "structure": "marcoPoster",
+      "camera": "orbita",
+      "density": "media",
+      "durationSeconds": 2.033333
+    },
+    {
+      "index": 3,
+      "id": "v13-0-1",
+      "kind": "forensic-corpus",
+      "provider": "solar",
+      "treatment": "none",
+      "structure": "constelacion",
+      "camera": "travelling",
+      "density": "media",
+      "durationSeconds": 2.0333330000000003
+    },
+    {
+      "index": 4,
+      "id": "v13-0-2",
+      "kind": "forensic-corpus",
+      "provider": "editorial-text",
+      "treatment": "none",
+      "structure": "editorial",
+      "camera": "acercamiento",
+      "density": "alta",
+      "durationSeconds": 2.0200000000000005
+    },
+    {
+      "index": 5,
+      "id": "v13-13-0",
+      "kind": "forensic-corpus",
+      "provider": "editorial-text",
+      "treatment": "none",
+      "structure": "editorial",
+      "camera": "picado",
+      "density": "media",
+      "durationSeconds": 2.4
+    },
+    {
+      "index": 6,
+      "id": "v13-1-0",
+      "kind": "forensic-corpus",
+      "provider": "editorial-text",
+      "treatment": "none",
+      "structure": "editorial",
+      "camera": "travelling",
+      "density": "media",
+      "durationSeconds": 2.4
+    },
+    {
+      "index": 7,
+      "id": "v13-2-0",
+      "kind": "forensic-corpus",
+      "provider": "editorial-text",
+      "treatment": "none",
+      "structure": "editorial",
+      "camera": "acercamiento",
+      "density": "baja",
+      "durationSeconds": 2.33
+    },
+    {
+      "index": 8,
+      "id": "v13-2-1",
+      "kind": "forensic-corpus",
+      "provider": "editorial-text",
+      "treatment": "none",
+      "structure": "editorial",
+      "camera": "quieto",
+      "density": "media",
+      "durationSeconds": 2.259999999999998
+    },
+    {
+      "index": 9,
+      "id": "v13-1-1",
+      "kind": "forensic-corpus",
+      "provider": "openmoji",
+      "treatment": "duotone",
+      "structure": "marcoPoster",
+      "camera": "travelling",
+      "density": "media",
+      "durationSeconds": 2.4
+    },
+    {
+      "index": 10,
+      "id": "v13-3-1",
+      "kind": "forensic-corpus",
+      "provider": "openmoji",
+      "treatment": "duotone",
+      "structure": "marcoPoster",
+      "camera": "grua",
+      "density": "media",
+      "durationSeconds": 2.4
+    },
+    {
+      "index": 11,
+      "id": "solar-control",
+      "kind": "synthetic-solar-control",
+      "provider": "solar",
+      "treatment": "none",
+      "structure": "constelacion",
+      "camera": "deriva",
+      "density": "media",
+      "durationSeconds": 1.4
+    },
+    {
+      "index": 12,
+      "id": "missing-fallback",
+      "kind": "missing-fallback",
+      "provider": "editorial-text",
+      "treatment": "none",
+      "structure": "marcoPoster",
+      "camera": "orbita",
+      "density": "media",
+      "durationSeconds": 1.4
+    }
+  ],
+  "durationSeconds": 25.226665999999994
+}

@@ -459,7 +459,7 @@ Todo lo de gráficos va en cadena.
 
 ## 13. ESTADO DEL PROYECTO AL ESCRIBIR ESTO
 
-**Ruta:** `C:\Proyectos\mi-app\cipher-studio` (rama `master`). **NUNCA** `C:\Proyectos\mi-app`.
+**Ruta:** `%CIPHER_STUDIO_SOURCE%\cipher-studio` (rama `master`). **NUNCA** `%CIPHER_STUDIO_SOURCE%`.
 
 **El plan maestro completo está EN EL REPO:** `CIPHER_plan_maestro_transiciones_graficos_vibes.md` — sección "SESIÓN 3 AGOSTO 2026".
 
@@ -469,7 +469,7 @@ Todo lo de gráficos va en cadena.
 - Reestructura `temp/` → `materiales/` + `cache/`
 - Abrir un proyecto ya no borra sus clips (era el bug de origen)
 - Audio maestro extraído dentro del proyecto
-- Las 14 URLs `file://` con acentos — **sin esto ningún usuario con `C:\Users\José\` vería nada**
+- Las 14 URLs `file://` con acentos — **sin esto ningún usuario con `%USERPROFILE%\` vería nada**
 - Persistencia: 7 ajustes + constructor único + `npm run test:persistencia`
 - Crop/zoom aplicado en la normalización del export
 - Vía 4 (sincronía perfecta) + `npm run test:via4`
@@ -506,7 +506,7 @@ Todo lo de gráficos va en cadena.
 
 ```
 Proyecto: CIPHER Studio, editor de video Electron que voy a VENDER.
-Ruta: C:\Proyectos\mi-app\cipher-studio (rama master). NUNCA C:\Proyectos\mi-app.
+Ruta: %CIPHER_STUDIO_SOURCE%\cipher-studio (rama master). NUNCA %CIPHER_STUDIO_SOURCE%.
 
 Te adjunto el contexto completo de los graficos. Leelo entero antes de
 proponer nada — tiene los numeros ya medidos, las decisiones cerradas y

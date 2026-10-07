@@ -799,7 +799,7 @@ En el Visual de mapa conceptual de la palabra `imaginante`, el concepto `🇷�
 la bandera**: pinta las dos letras `RU` en gris oscuro, casi ilegibles sobre la caja negra.
 
 Prueba, en un frame renderizado por el camino real:
-`C:\Proyectos\paso4-visual-mapa\malla_imaginante_ciclo382_u400.png`
+[Ruta local omitida del informe de auditoría.]
 
 ## Por qué pasa
 
@@ -1135,7 +1135,7 @@ Ninguna de las nueve guardas lo detecta.
 | emoji **distintos** en el último guion | **118** |
 | puntos de código que suman | 138 |
 | de ellos, banderas (tofu seguro en Windows) | **3** — 🇷🇺 🇺🇸 🇲🇽 |
-| **y NO son solo las banderas** | 🏗️ tampoco renderiza: sale como un glifo suelto en vez del icono. Visto en `C:\Proyectos\paso55a-m24\cuatro.png`, en la caja "construcción" |
+| **y NO son solo las banderas** | 🏗️ tampoco renderiza: sale como un glifo suelto en vez del icono. Visto en un proyecto local, en la caja "construcción" |
 | **Noto Color Emoji**, los 10 subconjuntos woff2 de Google | **1.96 MB** |
 
 El «~10 MB» que se venía citando es el `.ttf` completo. **El woff2 pesa 1.96 MB**, y eso cambia la

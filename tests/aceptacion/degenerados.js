@@ -17,14 +17,18 @@
 const { app, ipcMain } = require('electron')
 const path = require('path')
 const fs = require('fs')
-const os = require('os')
 const { execSync } = require('child_process')
+const { createTestFixture } = require('../helpers/safe-fixture')
 
 const RAIZ = process.env.CIPHER_RAIZ || path.join(__dirname, '..', '..')
+const FIXTURE_ROOT = createTestFixture('aceptacion-degenerados')
+process.chdir(FIXTURE_ROOT)
+const INPUTS = path.join(FIXTURE_ROOT, 'inputs')
+fs.mkdirSync(INPUTS, { recursive: true })
 
 function videoDeEntrada () {
   if (process.env.CIPHER_VIDEO) return process.env.CIPHER_VIDEO
-  const destino = path.join(os.tmpdir(), 'cipher-aceptacion-original.mp4')
+  const destino = path.join(INPUTS, 'cipher-aceptacion-original.mp4')
   if (fs.existsSync(destino)) return destino
   console.log('  Generando el video de prueba (una vez): ' + destino)
   execSync('ffmpeg -y -v error -f lavfi -i testsrc=size=1080x1920:rate=30:duration=210 ' +

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "source": "tests/aceptacion/visual-composition-v2/corpus-50.json",
+  "corpusRows": 50,
+  "materializedOnly": true,
+  "metric": {
+    "version": 1,
+    "materializedVisuals": 50,
+    "distinctStructures": 3,
+    "dominantStructureShare": 60,
+    "distinctHeroPlacements": 2,
+    "distinctKeywordTypefaces": 1,
+    "structureDistribution": {
+      "constelacion": 14,
+      "editorial": 30,
+      "marcoPoster": 6
+    },
+    "effectiveStructureDistribution": {
+      "asset-led|constelacion|center=50.00,45.00|envelope=44x29|text=center": 14,
+      "asset-led|marcoPoster|center=44.00,42.00|envelope=42x29|text=center": 6,
+      "editorial-text|text=left": 30
+    },
+    "heroPlacementDistribution": {
+      "constelacion|center=50.00,45.00|envelope=44x29": 14,
+      "marcoPoster|center=44.00,42.00|envelope=42x29": 6
+    },
+    "keywordTypefaceDistribution": {
+      "Archivo Black": 50
+    },
+    "nonMaterializedStructureIds": []
+  },
+  "notes": [
+    "Diagnóstico puro: no participa en PixelIdentity, hash ni renderer.",
+    "Estructura efectiva combina modo visual, envelope Hero y región de texto; no cuenta IDs nominales sin materialización.",
+    "Keyword typeface cuenta la familia realmente usada por V13, no el número de fontPairId."
+  ]
+}

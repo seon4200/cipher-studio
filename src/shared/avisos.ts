@@ -109,6 +109,8 @@ export type FilaResumen = {
   objetivo: number;
   /** Lo que salio de verdad. */
   real: number;
+  /** Escenas asignadas al flujo de Animation, que aún esperan creación/aplicación. */
+  pendienteAnimation?: number;
 };
 
 export type MotivoRespaldo = { motivo: string; descripcion: string; veces: number };
@@ -156,7 +158,12 @@ export function armarResumen(
     // UNA GENERACION QUE NO TERMINO NUNCA CUADRA, aunque los numeros salgan a cero: cero
     // pedidos contra cero salidos empata en todas las filas, y decir "todo cuadra" ahi seria
     // exactamente el fallo que este modulo existe para impedir.
-    cuadra: completa && r.length === 0 && f.every(x => x.objetivo === x.real)
+    // Una cuota Visuales queda satisfecha por una escena materializada o por un slot
+    // planificado explícitamente para Animation. Siguen contando reemplazos y faltantes.
+    cuadra: completa && r.length === 0 && f.every(x => {
+      const pendiente = Number.isFinite(x.pendienteAnimation) ? Math.max(0, x.pendienteAnimation ?? 0) : 0;
+      return x.objetivo === x.real + pendiente;
+    })
   };
 }
 
@@ -176,18 +183,32 @@ export function textoResumen(r: Resumen): string[] {
     out.push('La generación NO llegó a terminar. Esto es lo que había hecho hasta que se cortó:');
   }
   out.push(`Resumen de la generación: ${r.total} clips.`);
-  for (const f of r.filas) {
+for (const f of r.filas) {
+    const pendiente = Number.isFinite(f.pendienteAnimation)
+      ? Math.max(0, f.pendienteAnimation ?? 0)
+      : 0;
+    if (pendiente > 0) {
+      const faltan = f.objetivo - f.real - pendiente;
+      const notaFaltan = faltan > 0 ? '; faltan ' + faltan + ' por planificar' : '';
+      out.push('  ' + f.origen + ': se pidieron ' + f.objetivo + ', se materializaron ' +
+        f.real + ' y ' + pendiente + ' quedaron planificados en Animation' + notaFaltan +
+        '; aún requieren crear y aplicar la escena.');
+      continue;
+    }
     const d = f.real - f.objetivo;
-    const marca = d === 0 ? '' : (d > 0 ? `  (+${d})` : `  (${d})`);
-    out.push(`  ${f.origen}: se pidieron ${f.objetivo} y salieron ${f.real}${marca}`);
+    const marca = d === 0 ? '' : (d > 0 ? '  (+' + d + ')' : '  (' + d + ')');
+    out.push('  ' + f.origen + ': se pidieron ' + f.objetivo + ' y salieron ' + f.real + marca);
   }
   const caidos = totalRespaldo(r);
   if (caidos > 0) {
     out.push(`${caidos} clips no salieron como se pidió y se rellenaron con otra cosa:`);
     for (const m of r.respaldo) out.push(`  ${m.veces} — ${m.descripcion}`);
   }
+  const hayPendientesAnimation = r.filas.some(f => (f.pendienteAnimation ?? 0) > 0);
   out.push(r.cuadra
-    ? 'Todo cuadra: no hubo ningún reemplazo y cada origen salió como se pidió.'
+    ? (hayPendientesAnimation
+        ? 'El reparto cuadra. Los Visuales planificados aún deben crearse y aplicarse en Animation.'
+        : 'Todo cuadra: no hubo ningún reemplazo y cada origen salió como se pidió.')
     : (r.completa
         ? 'El vídeo NO salió como se pidió. Revisa los avisos de arriba antes de exportar.'
         : 'El vídeo está incompleto. NO lo exportes: revisa los avisos de arriba.'));

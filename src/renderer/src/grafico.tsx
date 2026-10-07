@@ -115,7 +115,7 @@ function pintar(t?: number) {
   ))
 }
 
-;(window as any).__montar = (graphicData: any, op: Partial<Opciones> = {}) => {
+function montarGraphicData(graphicData: any, op: Partial<Opciones>) {
   opciones = { ...opciones, ...op }
   sonda.style.cssText = `height:${SONDA_ALTO}px;width:100%;background:#000;opacity:1`
   // El margen se calcula en PIXELES desde el alto. Ojo con la tentacion de volver a una clase
@@ -131,6 +131,20 @@ function pintar(t?: number) {
     ? 'flex'
     : 'flex items-end justify-center'
   datos = graphicData
+
+  // A fresh root per clip is the existing invariant documented below.
+  raiz = createRoot(lienzo)
+  ;(window as any).__setT(0)
+}
+
+;(window as any).__montar = (
+  graphicData: any,
+  op: Partial<Opciones> = {},
+) => {
+  if (raiz) {
+    raiz.unmount()
+    raiz = null
+  }
 
   // ── SE DESMONTA Y SE VUELVE A MONTAR EN CADA CLIP ────────────────────────────────────
   //
@@ -161,9 +175,7 @@ function pintar(t?: number) {
   // Y basta con esto: esta medido que desmontar el subarbol arregla el frame. No hace falta
   // recargar la pagina ni tirar la ventana, que es lo caro —~150 ms de arranque— y es
   // justamente lo que la ventana reutilizada existe para evitar.
-  if (raiz) raiz.unmount()
-  raiz = createRoot(lienzo)
-  ;(window as any).__setT(0)
+  montarGraphicData(graphicData, op)
 }
 
 ;(window as any).__setT = (t: number) => {

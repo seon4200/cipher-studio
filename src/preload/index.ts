@@ -28,7 +28,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generateVoice: (params: any) => ipcRenderer.invoke('generate-voice', params),
   generateMinimaxVideo: (params: { prompt: string }) => ipcRenderer.invoke('generate-minimax-video', params),
   loadBankClips: (params: { category: string }) => ipcRenderer.invoke('load-bank-clips', params),
-  generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; graphicsPercent?: number; hasVideoV2?: boolean }) => ipcRenderer.invoke('generate-timeline-assets', params),
+  generateTimelineAssets: (params: any) => ipcRenderer.invoke('generate-timeline-assets', params),
+  animationConnectionStatus: () => ipcRenderer.invoke('animation:connection-status'),
+  animationLoadProject: () => ipcRenderer.invoke('animation:load-project'),
+  animationLoadDraft: (draftId: string) => ipcRenderer.invoke('animation:load-draft', draftId),
+  animationListDrafts: (timelineClipId: string) => ipcRenderer.invoke('animation:list-drafts', timelineClipId),
+  animationSaveProject: (state: any) => ipcRenderer.invoke('animation:save-project', state),
+  animationAddReference: (filePath: string) => ipcRenderer.invoke('animation:add-reference', filePath),
+  animationGenerateDraft: (params: any) => ipcRenderer.invoke('animation:generate-draft', params),
+  animationAdjustDraftStyle: (params: { draftId: string; jobId: string; patch: Record<string, unknown>; instruction?: string }) => ipcRenderer.invoke('animation:adjust-style', params),
+  animationReviewDraft: (params: { draftId: string; jobId: string; threadId?: string | null; userMessage: string }) => ipcRenderer.invoke('animation:review-draft', params),
+  animationReplayDraft: (params: { draftId: string; jobId: string; parameters?: Record<string, unknown> }) => ipcRenderer.invoke('animation:replay-draft', params),
+  animationSaveTemplate: (params: { draftId: string; title: string; kind: 'component' | 'recipe' | 'sequence'; componentId?: string }) => ipcRenderer.invoke('animation:save-template', params),
+  animationListTemplates: () => ipcRenderer.invoke('animation:list-templates'),
+  animationCancel: (jobId: string) => ipcRenderer.invoke('animation:cancel', jobId),
+  onAnimationProgress: (callback: (data: any) => void) => {
+    const listener = (_event: any, value: any) => callback(value)
+    ipcRenderer.on('animation:progress', listener)
+    return () => ipcRenderer.removeListener('animation:progress', listener)
+  },
   generatePerfectSync: (params: any) => ipcRenderer.invoke('generate-perfect-sync', params),
   renderGraphicsBatch: (params: any) => ipcRenderer.invoke('render-graphics-batch', params),
   // CANAL PROPIO, no un campo mas en `generation-progress`. La barra de progreso es lo unico
@@ -58,10 +76,39 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cutVideoClips: (params: { videoPath: string, timestamps?: number[], aspectRatio?: string }) => ipcRenderer.invoke('cut-video-clips', params),
   saveProjectState: (state: any) => ipcRenderer.invoke('save-project-state', state),
   loadProjectState: () => ipcRenderer.invoke('load-project-state'),
+  vibesLoad: () => ipcRenderer.invoke('vibes:load'),
+  vibesCreateSlots: (input: any) => ipcRenderer.invoke('vibes:create-slots', input),
+  vibesPlan: () => ipcRenderer.invoke('vibes:plan'),
+  vibesReviewPlan: (input: { notes?: string }) => ipcRenderer.invoke('vibes:review-plan', input),
+  vibesRunImages: () => ipcRenderer.invoke('vibes:run-images'),
+  vibesResumeImages: () => ipcRenderer.invoke('vibes:resume-images'),
+  vibesImportImages: () => ipcRenderer.invoke('vibes:import-images'),
+  vibesAnimateImage: (input: { sceneId: string }) => ipcRenderer.invoke('vibes:animate-image', input),
+  vibesResumeAnimation: (input: { sceneId: string }) => ipcRenderer.invoke('vibes:resume-animation', input),
+  vibesImportVideo: (input: { sceneId: string }) => ipcRenderer.invoke('vibes:import-video', input),
+  onVibesProgress: (callback: (data: any) => void) => {
+    const listener = (_event: any, value: any) => callback(value)
+    ipcRenderer.on('vibes-progress', listener)
+    return () => ipcRenderer.removeListener('vibes-progress', listener)
+  },
   saveProjectAs: (state: any) => ipcRenderer.invoke('save-project-as', state),
   openProject: () => ipcRenderer.invoke('open-project'),
   deleteBankClip: (params: { category: string, file: string }) => ipcRenderer.invoke('delete-bank-clip', params),
   exportVideo: (params: any) => ipcRenderer.invoke('export-video', params),
+  getControlAdapterJob: () => ipcRenderer.invoke('control-adapter:get-job'),
+  reportControlProgress: (params: any) => ipcRenderer.invoke('control-adapter:progress', params),
+  completeControlAdapter: (params: any) => ipcRenderer.invoke('control-adapter:complete', params),
+  startCipherLocalDownload: (params: { idempotencyKey: string; sourceUrl: string; name: string; qualityProfile: 'fhd' | 'best' }) =>
+    ipcRenderer.invoke('cipher-control:start-local-download', params),
+  getCipherLocalDownload: (params: { projectId: string; attemptId: string }) =>
+    ipcRenderer.invoke('cipher-control:get-local-download', params),
+  listCipherLocalDownloads: () => ipcRenderer.invoke('cipher-control:list-local-downloads'),
+  openCipherLocalDownloadProject: (params: { projectId: string; attemptId: string }) =>
+    ipcRenderer.invoke('cipher-control:open-local-download-project', params),
+  cancelCipherLocalDownload: (params: { projectId: string; attemptId: string }) =>
+    ipcRenderer.invoke('cipher-control:cancel-local-download', params),
+  retryCipherLocalDownload: (params: { projectId: string; attemptId: string }) =>
+    ipcRenderer.invoke('cipher-control:retry-local-download', params),
   getElevenLabsVoices: () => ipcRenderer.invoke('get-elevenlabs-voices'),
   listProjects: () => ipcRenderer.invoke('list-projects'),
   createProject: (params: { name: string }) => ipcRenderer.invoke('create-project', params),

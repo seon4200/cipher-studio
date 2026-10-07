@@ -1,0 +1,51 @@
+{
+  "schema": "cipher-animation-style-profile-v1",
+  "id": "cipher-editorial-sapphire-v1",
+  "version": 1,
+  "title": "Editorial de volumen · zafiro",
+  "reference": {
+    "kind": "project-local-private-reference"
+  },
+  "direction": {
+    "palette": {
+      "paper": "#F0F3F6",
+      "ink": "#111827",
+      "accent": "#0284C7",
+      "deepBlue": "#0369A1",
+      "surface": "#F8FAFC",
+      "dark": "#0F172A"
+    },
+    "typography": {
+      "titleFontFamily": "Instrument Serif",
+      "bodyFontFamily": "DM Sans",
+      "labelFontFamily": "DM Sans",
+      "titleScale": 1.08,
+      "labelScale": 1.06,
+      "hierarchy": "Titular serif grande, con pocas líneas; etiquetas sans breves y de alto contraste; el objeto principal conserva tamaño dominante."
+    },
+    "background": "Superficie fría de papel, degradado radial, retícula tenue y grano determinista dibujados una vez en una capa Canvas cacheada por paleta, geometría y semilla.",
+    "linework": "Trazos limpios y curvos, extremos redondeados y ancho legible; azul vivo marca activación y llegada, azul profundo reserva contraste y volumen.",
+    "composition": "El centro vertical queda disponible para objetos grandes, grupos, comparaciones o redes. El titular se mantiene en zona segura; la relación entre texto y objeto cambia según la explicación.",
+    "motion": "Entradas breves que se asientan sin rebote fuerte; trazo progresivo y viajero sólo cuando explican relación; transformaciones finitas; cámara suave únicamente para reenfocar algo identificable.",
+    "finish": "Superficies con degradado, bisel sutil y sombra corta; medallones con anillo interior; profundidad dibujada, sin filtros raster ni paneles translúcidos detrás del texto.",
+    "mobile": "Titular de aproximadamente 30 px o mayor a 360 px; iconos y rutas conservan masa y contraste al reducir el lienzo a un tercio.",
+    "forbidden": [
+      "No insertar píxeles de la referencia.",
+      "No heredar bancos, monedas, teléfonos ni afirmaciones del contenido de ejemplo.",
+      "No añadir conexiones, viajeros, textura o cámara si no ayudan a entender la narración."
+    ]
+  },
+  "parameters": {
+    "paletteId": "sapphire",
+    "titleFontFamily": "Instrument Serif",
+    "bodyFontFamily": "DM Sans",
+    "titleScale": 1.08,
+    "labelScale": 1.06,
+    "gridOpacity": 0.075,
+    "textureStrength": 0.045,
+    "surfaceDepth": 1,
+    "shadowStrength": 0.85,
+    "cameraDrift": 0.025,
+    "movementIntensity": "restrained"
+  }
+}
