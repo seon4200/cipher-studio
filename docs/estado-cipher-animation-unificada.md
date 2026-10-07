@@ -1,60 +1,59 @@
 # Estado de Cipher Studio unificado
 
-## Publicación
-- Remoto confirmado: https://github.com/seon4200/cipher-studio.git; rama oficial `master`.
-- Rama de integración local: `integration/cipher-animation-publish-20261007`.
-- SHA remoto de `master` previo: `2e1b3f13dbe04463771ad166a689f39691416729`.
-- Etiqueta de la base común: `cipher-animation-unified-v1`; se fija al commit final y se verifica contra el remoto. No declarar `master` actualizado antes del merge protegido.
-- Checkout principal: worktree `cipher-studio-publish-20261007`, rama `integration/cipher-animation-publish-20261007`. Próximos chats parten del tag en worktrees propios.
+## Base de publicación
+- Repositorio confirmado: https://github.com/seon4200/cipher-studio.git; rama oficial protegida: `master`.
+- Base común: etiqueta `cipher-animation-unified-v1` sobre la rama de integración `integration/cipher-animation-publish-20261007`. La PR de Studio [#1](https://github.com/seon4200/cipher-studio/pull/1) está abierta contra `master`; la etiqueta se fijará al commit final y se comprobará en el remoto. `master` continúa en `2e1b3f13dbe04463771ad166a689f39691416729` hasta completar el merge protegido.
+- Punto público previo a la integración: `checkpoint/cipher-studio-public-base-20261007`, sobre `2e1b3f13dbe04463771ad166a689f39691416729`.
+- Checkout principal de esta consolidación: `C:\graphify\cipher-studio-publish-20261007`. Los chats siguientes deben crear ramas/worktrees propios desde la etiqueta común; no editar esta carpeta compartida.
 
-## Comandos
+## Instalar, verificar y abrir
+Desde la raíz del repositorio, en PowerShell:
 ```powershell
 npm ci
 npm run build
 npm test
 npx electron .
 ```
-`npm run dev` solo inicia Vite. FFmpeg y ffprobe por `PATH`; Animation acepta `FFMPEG_PATH`.
-
-Vibes en Python aislado:
+Para el bot de Vibes:
 ```powershell
 python -m venv .venv-vibes
 .\.venv-vibes\Scripts\python.exe -m pip install -r requirements-vibes.txt
 $env:CIPHER_VIBES_PYTHON = "$PWD\.venv-vibes\Scripts\python.exe"
 ```
+`npm run dev` inicia Vite; para el escritorio se requiere build y `npx electron .`. FFmpeg/ffprobe se buscan en `PATH`; Animation acepta `FFMPEG_PATH`. El bot permite configurar el intérprete con `CIPHER_VIBES_PYTHON`.
 
 ## Funciones y rutas
-- Reparto inicial `[24, 18, 18, 40]`: Original, Stock, IA, Visuales. Visuales conserva su cuota.
-- Construir asigna slots pendientes Animation sin catalogación/render heredado y abre Animation en el primer slot. El resumen diferencia planificados de materializados; exportación bloquea placeholders.
-- Único motor de Visuales nuevos: Animation; perfil `cipher-editorial-sapphire-v1`; Canvas `public/animation-canvas/`; biblioteca procedural guardada por proyecto en `materiales/animation/library/`.
-- Vibes sigue dentro de IA: bot/servicio/IPC/panel, dependencias en `requirements-vibes.txt`, perfil independiente `vibes-editorial-photographic-paper@2.0.0`. Conserva creación de imágenes, animación de imagen existente, recuperación, descarga, timeline y persistencia.
-- Movimiento Vibes: sujeto completo, fondo y cámara quietos; solo apoyos especificados.
-- Se conserva audio, transcripción, timeline, Original, Stock, gráficos, transiciones, exportación y proyectos históricos.
-- No se halló un eliminador de fondos autónomo activo. El código `photo-cutout` está en el resolver heredado desconectado; FFmpeg y procesamiento común de imágenes siguen.
+- Reparto con cuatro categorías funcionales: Original, Stock, IA y Visuales. El valor inicial es `[24, 18, 18, 40]`; Visuales conserva su cuota, sin redistribuirla ni fijarla en cero.
+- Una cuota Visuales positiva en Construir prepara ventanas de Animation, pasa el peso al planificador normal, crea slots pendientes `category: visual`/`animationPending`, los excluye de la cola heredada y abre Animation en el primer slot. El resumen los cuenta como pendientes, y exportar un slot vacío se bloquea.
+- Animation es la única ruta de creación de Visuales nuevos. Perfil `cipher-editorial-sapphire-v1` en `src/shared/animation-style-profile-sapphire-v1.json` y `src/shared/animation-style-profile-v1.ts`; Canvas y fuentes en `public/animation-canvas/`; biblioteca procedural y módulos reutilizables por proyecto en `materiales/animation/library/`. Los planes guardados permiten regeneración offline sin proveedor.
+- Vibes permanece en IA: panel, servicio, IPC y bot Python en `vibes_clips/`, con dependencias declaradas en `requirements-vibes.txt`. El perfil `vibes-editorial-photographic-paper@2.0.0` es independiente del perfil Animation. Se conservan preparación de prompts DeepSeek, creación de imágenes, animación explícita de una imagen seleccionada, recuperación/descarga/importación al timeline y estado/IDs persistidos.
+- Movimiento Vibes acordado: protagonista completo; fondo y cámara inmóviles; se animan solo los apoyos indicados.
+- Se conservan proyectos y clips materializados, audio, transcripción, timeline, Original, Stock, gráficos, transiciones, exportación y conexiones de Studio con Cipher Control. La carpeta `round-d` y su sidecar privado permanecen intactos; no se repitió su lote.
+- Los archivos del motor/catálogo anterior rechazados para borrado permanecen en el checkout. La lista de 476 rutas preservadas está en `docs/retired-visual-files-preserved-20261007.md`; las 26 suites históricas siguen en disco y están declaradas inactivas. La inspección de imports no encontró entradas desde los entrypoints activos al catálogo/resolver/render heredados. `visual-render.ts` rechaza SceneSpec/`visual_*`; el publicador OpenMoji retenido falla cerrando. El renderer genérico de gráficos, fuentes y recursos compartidos se conserva.
+- No se encontró un eliminador de fondos autónomo activo: `photo-cutout` sigue en el resolver heredado desconectado. FFmpeg y procesamiento común de imágenes continúan disponibles para Vibes, Stock y exportación.
 
-## Código heredado y retorno
-- Se restauraron 476 rutas que estaban en el índice pero ausentes del árbol de trabajo; lista exacta: `docs/retired-visual-files-preserved-20261007.md`.
-- 26 suites históricas siguen en disco y `tests/todas.js` las declara inactivas, no cobertura actual.
-- Los puntos de entrada antiguos no son importados por `src/main/index.ts`. `visual-render.ts` rechaza `visual_*` y SceneSpec; la publicación OpenMoji retenida falla cerrando. @xmldom/xmldom y @iconify-json/solar quedaron solo en devDependencies para compilar fuentes preservadas, no en el runtime de producción.
-- Punto de retorno público preintegración: `checkpoint/cipher-studio-public-base-20261007` sobre el HEAD remoto previo; no contiene cambios sin commit. El respaldo privado `cipher-before-animation-cleanup-20261007.bundle` conserva refs e historial (132 refs); verifica con `git bundle verify <bundle>` y clónalo en una carpeta nueva. Los diffs sin commit están en sidecars privados: el WIP Vibes actual `cipher-studio-round-d-prepublication-20261007-140450` conserva `staged.patch`, `working-tree.patch` y los 21 archivos no rastreados; aplica ambos parches, en ese orden, al HEAD `e73dc272` de `vibes-images-only-ui-v1`, después copia `untracked/`. El sidecar anterior `vibes-animation-return-20261007` preserva el proyecto previo y sus hashes. No apliques estos parches sobre la base unificada. El `.env` y el proyecto privado permanecen en sus checkouts originales y no se publican.
-- No incluir proyectos, `.env`, referencias privadas, credenciales, trazas ni medios privados.
+## Retorno y privacidad
+- `cipher-before-animation-cleanup-20261007.bundle` conserva refs e historial (132 refs), verificable con `git bundle verify <bundle>`. Los cambios sin commit se respaldaron por separado antes de integrar; los sidecars privados `cipher-studio-round-d-prepublication-20261007-140450` y `vibes-animation-return-20261007` guardan parches, hashes e inventario de archivos sin seguimiento para restaurar cada estado en su checkout original.
+- El sidecar de round-d se aplica únicamente sobre HEAD `e73dc272` de `vibes-images-only-ui-v1`: parches staged y working tree, luego copia de `untracked/`. No aplicarlo sobre la base unificada.
+- Proyectos, audios/videos privados, `.env`, referencias privadas, credenciales y evidencias/trazas locales no se publican. Los JSON de evidencia sueltos del checkout siguen sin seguimiento y excluidos de los commits.
 
 ## Verificación
-- `npm run build`: correcto; renderer, main, preload y `control-adapter.html`; advertencia de Vite sobre CommonJS.
-- `npm test`: 13/13 suites declaradas verdes; `test:ventana` se excluye por fallo conocido.
-- Servicio Animation en copia: escena de 90 frames y perfil activo, guardada; se eliminó solo su MP4 de caché y regeneró offline desde plan. Guardado/reapertura comprobados por servicio, no UI.
-- Servicios Vibes en copia: resultados existentes con imágenes, voz, manifiestos/perfil; una única imagen existente se animó, descargó, incorporó y reabrió. No se repitió lote ni se emitió otra solicitud.
-- Cuota Visuales positiva: `timelineWeights[3]` activa slots; Construir selecciona el primero y abre Animation; el backend los excluye de la cola heredada. Las suites cubren el reparto, pero el recorrido Construir→chat→aplicar→reabrir no se ha verificado con clics.
-- Suites verifican reparto, persistencia, gráficos, ciclo, Animation y Vibes. No equivalen a prueba UI de Original/Stock/transiciones/exportación.
-- Control separado: repo `cipher-control-web`, rama oficial remota `main` en `fcd9c19`; configuración inspeccionada desde `feat/connected-download-auth` en `9d3c142`. El fallback del launcher apunta al checkout `cipher-studio-control-adapter-visual-20261005` (HEAD `502293e`), pero `CIPHER_STUDIO_EXPECTED_COMMIT` espera `b93a6aa`; el checkout `cipher-control-adapter-current-20261005` sí está en `b93a6aa`. No se encontró override de `CIPHER_STUDIO_PATH` en proceso/usuario/máquina ni proceso Electron/Node/Python visible. No se cambió el enlace y la apertura real de Control no se probó. La validación temporal de mix quedó corregida en la PR separada #1, pendiente de merge a `feat/connected-download-auth`.
+### Clon limpio y servicios
+- Clon limpio del commit de código `80c5cd54da2e900b060df4825ca5107b7a49fbc6`: `npm ci`, `npm run build` y `npm test` completados; 13/13 suites declaradas pasan. `test:ventana` sigue excluida por su fallo conocido documentado.
+- Se retiraron del manifiesto raíz `@iconify-json/solar` y la dependencia directa `@xmldom/xmldom`; las fuentes heredadas se conservan. Solar tiene una declaración solo de tipos para que las fuentes preservadas sigan compilándose y conserva atribución CC-BY-4.0 en `src/shared/solar-nombres.ts`. `@xmldom/xmldom` aún aparece transitivamente bajo herramientas de empaquetado de desarrollo (`electron-builder` → `app-builder-lib` → `@electron/osx-sign` → `plist`); no se importa desde rutas activas. `npm audit --omit=dev` reportó 4 moderadas, 0 altas y 0 críticas; la auditoría completa reportó 9 moderadas, 20 altas y 1 crítica, principalmente en dependencias de desarrollo, pendiente actualizar sin cambios mayores automáticos.
+- En el clon limpio y venv Python 3.11: `pip install -r requirements-vibes.txt` correcto, `python -m unittest discover -s tests/vibes_clips -v` 17/17 y `python -m vibes_clips --help` correcto; no se usaron credenciales ni proveedores.
+- Servicio Animation sobre una copia de proyecto: una escena de 90 frames con el perfil guardado se creó, aplicó, persistió y reabrió por servicio; tras retirar únicamente su MP4 de caché se regeneró offline desde el plan. No se creó un lote.
+- Servicio Vibes sobre copia: se revisaron imágenes, voz, manifiestos/perfil y controles existentes; una sola imagen existente se animó, descargó, incorporó al timeline, guardó y reabrió. No se volvió a enviar el lote.
+- La ruta de Construir→Animation se confirmó por inspección de los entrypoints activos y las pruebas de reparto: `weights[3] > 0` activa ventanas; `repartoObjetivos` consume ese peso; el backend crea placeholders de Animation y excluye `visual` de la cola común; el renderer selecciona el slot y el callback de Animation permite aplicarlo al timeline. Esto es revisión de código/servicios, no una comprobación mediante clics en la UI.
 
-## Pendientes
-- Clon limpio con `npm ci`, `npm run build`, `npm test`.
-- UI: probar un único slot Visual positivo, crear/aplicar una escena corta y guardar/reabrir; no crear otro lote.
-- UI: abrir proyectos históricos y resultados Vibes; verificar Original, Stock, gráficos, transiciones y exportación.
-- Cambiar el launcher de Control en su rama y verificar desde UI.
-- Confirmar PR/merge y SHA/tag remotos antes de declarar `master` actualizado.
+### Interfaz y funciones pendientes de interfaz
+- No se ejecutó la aplicación ni se hicieron clics en esta sesión; la automatización nativa de UI no estuvo disponible. Quedan por comprobar en UI: Construir con una cuota positiva, crear/aplicar/guardar/reabrir un slot, y abrir resultados Vibes existentes.
+- También quedan por comprobar desde UI proyectos históricos, Original, Stock, gráficos, transiciones y exportación. Las suites y servicios cubren contratos afectados, pero no sustituyen esos recorridos visuales.
+- Cipher Control, repo separado: la configuración inspeccionada en `feat/connected-download-auth` (HEAD `9d3c142`) usa como fallback `C:\graphify\_cipher-studio-control-adapter-visual-20261005` (HEAD `502293e`) aunque espera `b93a6aa`; el checkout separado `cipher-control-adapter-current-20261005` está en `b93a6aa`. No se encontró override de `CIPHER_STUDIO_PATH` ni proceso Electron/Node/Python visible, así que la configuración se inspeccionó pero su apertura real no se probó. La corrección de validación del mix está en [PR #1 de Cipher Control](https://github.com/seon4200/cipher-control-web/pull/1), pendiente de merge; no se modificó el enlace activo durante esta consolidación.
 
-## Trabajo paralelo conservado
-
-El checkout cipher-studio-round-d permanece intacto en ibes-images-only-ui-v1, HEAD 73dc272, con 38 entradas locales (17 rastreadas y 21 no rastreadas) del trabajo de Vibes imágenes-only; su chat relacionado está inactivo. Esa copia no contiene el IPC/UI imagen→video; la rama unificada sí incorpora la ruta explícita desde imagen seleccionada, reanudación, reconciliación e importación con IDs persistidos. No se copió el WIP completo ni se repitió la generación. Su estado exacto queda en el sidecar privado indicado arriba.
+## Pendientes de cierre
+- PR de Studio [#1](https://github.com/seon4200/cipher-studio/pull/1) abierta contra `master`; revisar sus checks y completar el merge protegido. `master` aún no está actualizado.
+- Verificar SHA remoto de rama y etiqueta final contra el commit entregado.
+- Hacer el recorrido acotado de UI indicado arriba cuando haya una sesión de aplicación disponible; no generar otro lote.
+- Coordinar en la rama/PR de Cipher Control la corrección de ruta y build esperado, y probar su apertura real.
+- Resolver las vulnerabilidades restantes de dependencias de desarrollo en una actualización separada revisada.
