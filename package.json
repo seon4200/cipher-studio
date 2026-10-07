@@ -41,13 +41,11 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "@iconify-json/solar": "^1.2.10",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^20.11.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
-    "@xmldom/xmldom": "^0.9.10",
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3",
     "playwright-core": "^1.62.1",
