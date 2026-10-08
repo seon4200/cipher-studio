@@ -5,6 +5,9 @@ import { CIPHER_ANIMATION_STYLE_PROFILE_DEFAULT_V1, CIPHER_ANIMATION_STYLE_PROFI
 type ChatMessage = { id: string; role: 'user' | 'assistant' | 'system'; text: string; createdAt: string }
 type Props = {
   projectPath: string | null
+  flowMode?: 'style' | 'scene'
+  onBackToAudio?: () => void
+  onContinueWithStyle?: () => void
   selectedClip: any | null
   selectedClipCount: number
   transcriptSegments: any[]
@@ -76,9 +79,10 @@ const connectionText = (conn: any) => {
   return 'Sesión Codex detectada · se comprobará con una solicitud real.'
 }
 
-export default function AnimationWorkspace({ projectPath, selectedClip, selectedClipCount, transcriptSegments, currentTimeSeconds,
-  projectDurationSeconds, projectFps, projectFormat, timelineWeights, timelineVideoClips, selectedTimelineClipIds,
-  canApplyNewVisualAt, onSelectVisualSlot, onApply, onUndo, onRestore }: Props) {
+export default function AnimationWorkspace({ projectPath, flowMode = 'scene', onBackToAudio, onContinueWithStyle,
+  selectedClip, selectedClipCount, transcriptSegments, currentTimeSeconds, projectDurationSeconds, projectFps,
+  projectFormat, timelineWeights, timelineVideoClips, selectedTimelineClipIds, canApplyNewVisualAt,
+  onSelectVisualSlot, onApply, onUndo, onRestore }: Props) {
   const [connection, setConnection] = useState<any>(null)
   const [statusLabel, setStatusLabel] = useState('Comprobando la sesión local…')
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -282,11 +286,33 @@ export default function AnimationWorkspace({ projectPath, selectedClip, selected
       titleFont: styleProfile?.parameters?.titleFontFamily === 'DM Sans' ? 'dmSans' : 'instrumentSerif',
       bodyFont: styleProfile?.parameters?.bodyFontFamily === 'Instrument Serif' ? 'instrumentSerif' : 'dmSans',
       titleScale: styleProfile?.parameters?.titleScale || 1, labelScale: styleProfile?.parameters?.labelScale || 1 }
-    const styleBase = currentDraft?.config?.style || currentDraft?.scenePlan?.style || projectStyle
+    const styleBase = flowMode === 'style' ? projectStyle
+      : currentDraft?.config?.style || currentDraft?.scenePlan?.style || projectStyle
     const stylePatch = parseStyleRequest(request, styleBase)
+    if (flowMode === 'style') {
+      if (!stylePatch) {
+        setError('Indica un ajuste de paleta, tipografía o tamaño para actualizar el estilo general del proyecto.')
+        return
+      }
+      const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', text: request, createdAt: new Date().toISOString() }
+      const nextStyleProfile = { ...styleProfile, parameters: { ...styleProfile.parameters,
+        ...(stylePatch.paletteId ? { paletteId: stylePatch.paletteId } : {}),
+        ...(stylePatch.titleFont ? { titleFontFamily: stylePatch.titleFont === 'dmSans' ? 'DM Sans' : 'Instrument Serif' } : {}),
+        ...(stylePatch.bodyFont ? { bodyFontFamily: stylePatch.bodyFont === 'dmSans' ? 'DM Sans' : 'Instrument Serif' } : {}),
+        ...(stylePatch.titleScale ? { titleScale: stylePatch.titleScale } : {}),
+        ...(stylePatch.labelScale ? { labelScale: stylePatch.labelScale } : {}) } }
+      const assistant: ChatMessage = { id: crypto.randomUUID(), role: 'assistant',
+        text: 'Estilo general del proyecto actualizado. Animation usará estos parámetros en las siguientes escenas; no se generó ni modificó ningún Visual.',
+        createdAt: new Date().toISOString() }
+      setStyleProfile(nextStyleProfile)
+      persistConversation([...messages, userMessage, assistant], threadId, {
+        styleProfile: nextStyleProfile, activeStyle: { ...projectStyle, ...stylePatch } })
+      setStatusLabel('Estilo del proyecto guardado para las siguientes escenas.')
+      setError('')
+      setInput('')
+      return
+    }
     if (stylePatch && (currentDraft?.draftId || styleScope === 'project')) {
-      const jobId = crypto.randomUUID()
-      beginAnimationJob(jobId, currentDraft?.selectedTimelineBinding?.clipId || selectedClip?.id || null)
       const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', text: request, createdAt: new Date().toISOString() }
       const withUser = [...messages, userMessage]
       const nextStyleProfile = styleScope === 'project' ? { ...styleProfile, parameters: { ...styleProfile.parameters,
@@ -304,6 +330,8 @@ export default function AnimationWorkspace({ projectPath, selectedClip, selected
         setInput('')
         return
       }
+      const jobId = crypto.randomUUID()
+      beginAnimationJob(jobId, currentDraft?.selectedTimelineBinding?.clipId || selectedClip?.id || null)
       pendingSourceId.current = currentDraft.targetMode === 'new-visual-draft' ? null : currentDraft.selectedTimelineBinding?.clipId || null
       setLastJobId(jobId); setProgress({ phase: 'style', message: 'Ajustando paleta y tipografía localmente…' }); setError(''); setBusy(true); setInput('')
       persistConversation(withUser, threadId, { styleProfile: nextStyleProfile })
@@ -385,6 +413,25 @@ export default function AnimationWorkspace({ projectPath, selectedClip, selected
       persistConversation([...withUser, assistant])
       setError(errorText(code)); setProgress(null)
     } finally { finishAnimationJob(jobId); setBusy(false); setLastJobId(null) }
+  }
+
+  const continueWithStyle = async () => {
+    if (!projectPath || busy) return
+    setError('')
+    try {
+      const loaded = await window.electronAPI.animationLoadProject()
+      if (!loaded.success) throw new Error(errorText(loaded.error || 'ANIMATION_PROJECT_LOAD_FAILED'))
+      const profileStyle = { paletteId: styleProfile?.parameters?.paletteId || 'paper',
+        titleFont: styleProfile?.parameters?.titleFontFamily === 'DM Sans' ? 'dmSans' : 'instrumentSerif',
+        bodyFont: styleProfile?.parameters?.bodyFontFamily === 'Instrument Serif' ? 'instrumentSerif' : 'dmSans',
+        titleScale: styleProfile?.parameters?.titleScale || 1, labelScale: styleProfile?.parameters?.labelScale || 1 }
+      const saved = await window.electronAPI.animationSaveProject({ ...(loaded.state || {}),
+        schema: 'cipher-animation-project-v1', conversation: messages, threadId, references, library: templates,
+        activeDraftId: currentDraft?.draftId || null, activeStyle: profileStyle, styleProfile })
+      if (!saved?.success) throw new Error(errorText(saved?.error || 'ANIMATION_PROJECT_SAVE_FAILED'))
+      setStatusLabel('Estilo del proyecto guardado. Continúa con la construcción del timeline.')
+      onContinueWithStyle?.()
+    } catch (e: any) { setError(errorText(String(e?.message || e))) }
   }
 
   const cancel = async () => {
@@ -554,7 +601,9 @@ export default function AnimationWorkspace({ projectPath, selectedClip, selected
     selectedClip.type !== 'graphic' && Math.abs(Number(currentDraft.clip.durationSeconds) - Number(selectedClip.durationSeconds)) <= 1 / (Number(projectFps) || 30) &&
     (currentDraft.targetMode === 'new-visual-draft' || currentDraft.clip.id === selectedClip.id)
   const durationLabel = selectedClip ? `${Number(selectedClip.durationSeconds).toFixed(2)} s` : 'sin selección'
+  const styleOnly = flowMode === 'style'
   const activeStyle = currentDraft?.config?.style || currentDraft?.scenePlan?.style || {}
+  const activePalette = PALETTE_LABELS[styleProfile?.parameters?.paletteId] || styleProfile?.parameters?.paletteId || 'activa'
   const visualSlots = timelineVideoClips.filter((clip: any) => clip.type === 'video' && clip.category === 'visual')
     .sort((a: any, b: any) => Number(a.startSeconds || 0) - Number(b.startSeconds || 0))
   const pendingVisualSlots = visualSlots.filter((clip: any) => !clip.animationV1)
@@ -564,7 +613,18 @@ export default function AnimationWorkspace({ projectPath, selectedClip, selected
   const timeLabel = (value: number) => `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`
 
   return <div className="flex h-full min-h-0 flex-col overflow-y-auto pr-1 text-slate-100">
-    <div className="mb-3 rounded-xl border border-indigo-500/25 bg-indigo-950/25 p-3">
+    {styleOnly ? <div className="mb-3 rounded-xl border border-indigo-500/25 bg-indigo-950/25 p-3">
+      <div className="mb-2 flex items-center gap-2"><Sparkles className="h-4 w-4 text-indigo-300"/><strong className="text-xs">Animation · estilo del proyecto</strong></div>
+      <label className="flex items-center gap-2 text-[9px] text-slate-400">
+        Estilo activo · {activePalette}
+        <select aria-label="Perfil de estilo Animation" value={styleProfile?.id || CIPHER_ANIMATION_STYLE_PROFILE_DEFAULT_V1.id}
+          onChange={e => chooseStyleProfile(e.target.value)} disabled={busy}
+          className="min-w-0 flex-1 rounded border border-[#45454a] bg-[#111113] px-1.5 py-1 text-[9px] text-slate-200">
+          {CIPHER_ANIMATION_STYLE_PROFILES_V1.map(profile => <option key={profile.id} value={profile.id}>{profile.title} · v{profile.version}</option>)}
+        </select>
+      </label>
+      <p className="mt-2 text-[9px] leading-relaxed text-slate-500">Animation dibuja las escenas con código. Las referencias orientan color y trazo; no se copian como imágenes.</p>
+    </div> : <div className="mb-3 rounded-xl border border-indigo-500/25 bg-indigo-950/25 p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-indigo-300"/><strong className="text-xs">Animation · Canvas</strong></div>
         <span className={`rounded-full px-2 py-0.5 text-[9px] ${providerVerified ? 'bg-emerald-900/60 text-emerald-200' : connection?.authenticated ? 'bg-amber-900/60 text-amber-200' : 'bg-slate-700 text-slate-300'}`}>
@@ -589,9 +649,9 @@ export default function AnimationWorkspace({ projectPath, selectedClip, selected
         </select>
       </div>
       {selectedClipCount > 1 && <p className="mt-1 text-[9px] text-amber-300">La primera versión modifica un Visual por operación; el resto queda intacto.</p>}
-    </div>
+    </div>}
 
-    {visualSlots.length > 0 && <div className="mb-2 rounded-xl border border-[#3a3a3c] bg-[#171719] p-2">
+    {!styleOnly && visualSlots.length > 0 && <div className="mb-2 rounded-xl border border-[#3a3a3c] bg-[#171719] p-2">
       <div className="mb-1 flex items-center justify-between text-[9px] font-semibold uppercase tracking-wide text-slate-400">
         <span>Slots Animation</span><span>{visualSlots.length - pendingVisualSlots.length}/{visualSlots.length} listos</span>
       </div>
@@ -605,7 +665,7 @@ export default function AnimationWorkspace({ projectPath, selectedClip, selected
       {pendingVisualSlots.length > 0 && <p className="mt-1 text-[8px] text-slate-500">Selecciona un slot para crear o reanudarlo; los ya aplicados permanecen guardados.</p>}
     </div>}
 
-    {templates.length > 0 && <label className="mb-2 block text-[10px] text-slate-400">Reutilizar receta o secuencia
+    {!styleOnly && templates.length > 0 && <label className="mb-2 block text-[10px] text-slate-400">Reutilizar receta o secuencia
       <select value={selectedTemplate?.templateId || ''} onChange={e => setSelectedTemplate(templates.find(t => t.templateId === e.target.value) || null)}
         className="mt-1 w-full rounded-lg border border-[#3a3a3c] bg-[#111113] p-2 text-xs text-slate-100">
         <option value="">Resolver según el contenido</option>
@@ -614,7 +674,7 @@ export default function AnimationWorkspace({ projectPath, selectedClip, selected
     </label>}
 
     <div className="mb-2 flex items-center justify-between">
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400"><MessageSquare className="mr-1 inline h-3 w-3"/>Chat del proyecto</span>
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400"><MessageSquare className="mr-1 inline h-3 w-3"/>{styleOnly ? 'Estilo del proyecto' : 'Chat del proyecto'}</span>
       <button type="button" onClick={() => fileInput.current?.click()} disabled={!projectPath || busy}
         className="rounded-md border border-[#3a3a3c] px-2 py-1 text-[10px] text-slate-300 hover:border-indigo-400 disabled:opacity-40">
         <Paperclip className="mr-1 inline h-3 w-3"/>Referencia
@@ -626,9 +686,14 @@ export default function AnimationWorkspace({ projectPath, selectedClip, selected
 
     <div className={`flex-1 min-h-[130px] space-y-3 overflow-y-auto rounded-xl border border-[#3a3a3c] bg-[#111113] p-3 ${currentDraft ? 'max-h-[155px]' : ''}`}>
       {messages.length === 0 && <div className="rounded-lg border border-dashed border-[#45454a] p-3 text-[10px] leading-relaxed text-slate-400">
-        <p className="mb-1 text-slate-200">Indica qué debe entenderse en la escena.</p>
-        <p>Ejemplos: «organiza las dos causas y muestra su resultado», «cambia la paleta a jardín y usa sans serif», «reordena la entrada sin cambiar el resto».</p>
-        <p className="mt-2">Con un Visual seleccionado se usa ese intervalo. Sin selección, el borrador parte del cursor por 3 s y sólo se inserta si todo el intervalo está libre; si está ocupado, se conserva Original, Stock y gráficos y puedes elegir un Visual compatible.</p>
+        {styleOnly ? <>
+          <p className="mb-1 text-slate-200">Describe el estilo general de las escenas.</p>
+          <p>Por ejemplo: «cambia la paleta a jardín», «usa sans serif» o «aumenta las etiquetas».</p>
+        </> : <>
+          <p className="mb-1 text-slate-200">Indica qué debe entenderse en la escena.</p>
+          <p>Ejemplos: «organiza las dos causas y muestra su resultado», «cambia la paleta a jardín y usa sans serif», «reordena la entrada sin cambiar el resto».</p>
+          <p className="mt-2">Con un Visual seleccionado se usa ese intervalo. Sin selección, el borrador parte del cursor por 3 s y sólo se inserta si todo el intervalo está libre; si está ocupado, se conserva Original, Stock y gráficos y puedes elegir un Visual compatible.</p>
+        </>}
       </div>}
       {messages.map(msg => <div key={msg.id} className={`max-w-[95%] rounded-lg p-2 text-[11px] leading-relaxed ${msg.role === 'user' ? 'ml-auto bg-indigo-700/50 text-white' : 'bg-[#242426] text-slate-200'}`}>
         <div className="mb-1 text-[8px] font-bold uppercase tracking-wider text-slate-400">{msg.role === 'user' ? 'Tú' : 'Animation'}</div>{msg.text}
@@ -638,7 +703,7 @@ export default function AnimationWorkspace({ projectPath, selectedClip, selected
     </div>
 
     {error && <div role="alert" className="mt-2 rounded-lg border border-red-700/50 bg-red-950/30 p-2 text-[10px] text-red-200">{error}</div>}
-    {savedDrafts.length > 0 && <div className="mt-3 rounded-xl border border-indigo-500/25 bg-indigo-950/10 p-2">
+    {!styleOnly && savedDrafts.length > 0 && <div className="mt-3 rounded-xl border border-indigo-500/25 bg-indigo-950/10 p-2">
       <div className="mb-1 text-[9px] font-semibold uppercase text-slate-400">Borradores guardados para este Visual</div>
       <div className="space-y-1">
         {savedDrafts.map(draft => <button key={draft.draftId} type="button" data-animation-draft-id={draft.draftId}
@@ -650,7 +715,7 @@ export default function AnimationWorkspace({ projectPath, selectedClip, selected
         </button>)}
       </div>
     </div>}
-    {currentDraft && <div className="mt-3 rounded-xl border border-emerald-500/25 bg-emerald-950/10 p-2">
+    {!styleOnly && currentDraft && <div className="mt-3 rounded-xl border border-emerald-500/25 bg-emerald-950/10 p-2">
       <div className="flex items-center justify-between gap-2">
         <strong className="truncate text-[10px] text-emerald-100">Borrador · {currentDraft.config?.recipeId}</strong>
         <span className="shrink-0 text-[9px] text-slate-400">{currentDraft.scenePlan?.clock?.durationSec?.toFixed(2)} s · {currentDraft.generationMetrics?.frames || currentDraft.render?.frameCount} frames</span>
@@ -699,16 +764,22 @@ export default function AnimationWorkspace({ projectPath, selectedClip, selected
 
     <form onSubmit={send} className="mt-3 flex flex-col gap-2">
       <textarea value={input} onChange={e => setInput(e.target.value)} maxLength={4000} rows={3} disabled={!projectPath || busy}
-          placeholder={selectedClip ? 'Describe la escena o el cambio visual…' : `Crea desde ${Number(currentTimeSeconds || 0).toFixed(2)} s o pregunta por el estilo…`}
+          placeholder={styleOnly ? 'Describe un ajuste del estilo general…' : selectedClip ? 'Describe la escena o el cambio visual…' : `Crea desde ${Number(currentTimeSeconds || 0).toFixed(2)} s o pregunta por el estilo…`}
         className="w-full resize-y rounded-xl border border-[#45454a] bg-[#111113] p-2.5 text-[11px] text-slate-100 outline-none focus:border-indigo-500 disabled:opacity-50" />
       <div className="flex gap-2">
         {busy ? <button type="button" onClick={() => void cancel()} className="flex-1 rounded-lg border border-red-500/50 px-3 py-2 text-[10px] text-red-200">
-          <Square className="mr-1 inline h-3 w-3"/>Cancelar</button> : <button type="submit" disabled={!input.trim() || !connection?.authenticated || !projectPath || (selectedClipCount > 0 && !selectedClip)}
+          <Square className="mr-1 inline h-3 w-3"/>Cancelar</button> : <button type="submit" disabled={!input.trim() || (!styleOnly && !connection?.authenticated) || !projectPath || (!styleOnly && selectedClipCount > 0 && !selectedClip)}
           className="flex-1 rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40">
-          <Play className="mr-1 inline h-3 w-3"/>Crear / consultar</button>}
-        {progress && <span className="max-w-[42%] self-center truncate text-[9px] text-slate-400">{progress.phase}</span>}
+          <Play className="mr-1 inline h-3 w-3"/>{styleOnly ? 'Enviar' : 'Crear / consultar'}</button>}
+        {!styleOnly && progress && <span className="max-w-[42%] self-center truncate text-[9px] text-slate-400">{progress.phase}</span>}
       </div>
     </form>
-    <p className="mt-2 text-[8px] leading-relaxed text-slate-500">Proveedor local: Codex app-server stdio {providerVerified ? '· inferencia comprobada durante esta sesión' : connection?.authenticated ? '· inicio de sesión detectado; la inferencia se comprobará al enviar' : ''}. App-server es experimental; las escenas se guardan y reproducen offline con el contrato Animation.</p>
+    {styleOnly && <div className="mt-3 grid grid-cols-2 gap-2">
+      <button type="button" onClick={() => void continueWithStyle()} disabled={busy || !projectPath}
+        className="rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40">Continuar con este estilo</button>
+      <button type="button" onClick={() => onBackToAudio?.()} disabled={busy}
+        className="rounded-lg border border-[#45454a] px-3 py-2 text-[10px] font-semibold text-slate-200 disabled:opacity-40">Volver al audio</button>
+    </div>}
+    {!styleOnly && <p className="mt-2 text-[8px] leading-relaxed text-slate-500">Proveedor local: Codex app-server stdio {providerVerified ? '· inferencia comprobada durante esta sesión' : connection?.authenticated ? '· inicio de sesión detectado; la inferencia se comprobará al enviar' : ''}. App-server es experimental; las escenas se guardan y reproducen offline con el contrato Animation.</p>}
   </div>
 }

@@ -4,6 +4,7 @@ import { excluirSobreVisuales, colocarYFiltrarTarjetas, avisoDeExclusion } from 
 import { textoResumen, type Aviso, type Resumen } from '../../shared/avisos'
 import { hayTiemposPorPalabra } from '../../shared/palabra'
 import { repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../../shared/reparto'
+import { resolveAnimationPanelFlowV1 } from '../../shared/animation-panel-flow-v1'
 import ReactDOM from 'react-dom/client'
 import {
   Play, Pause, FastForward, Rewind, Video, Volume2, VolumeX, Sparkles,
@@ -63,6 +64,8 @@ interface TimelineClip {
   durationSeconds: number;
   /** Tipo de clip, incluye 'graphic' para gráficos animados */
   type?: 'video' | 'audio' | 'graphic';
+  /** True only when the user explicitly selected this clip as narration audio. */
+  narration?: boolean;
   mediaKind?: 'image' | 'video';
   vibesPlaceholder?: boolean;
   vibesSampleDurationLock?: number;
@@ -137,6 +140,16 @@ function App() {
   const [newProjectName, setNewProjectName] = useState('')
   const [mainProcessTime, setMainProcessTime] = useState<string>('Esperando...')
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
+  const [animationPanelMode, setAnimationPanelMode] = useState<'style' | 'scene'>('scene')
+  const openAnimationPanel = (mode: 'style' | 'scene') => {
+    setAnimationPanelMode(mode)
+    setSelectedTool('animation')
+  }
+  const restoreProjectPanel = (projectTimeline: TimelineClip[], projectTranscript: any[]) => {
+    const target = resolveAnimationPanelFlowV1(projectTimeline, projectTranscript)
+    setAnimationPanelMode(target.mode)
+    setSelectedTool(target.tool)
+  }
   // State for imported files/clips
   const [clips, setClips] = useState<Clip[]>([])
   const [timelineVideoClips, setTimelineVideoClips] = useState<TimelineClip[]>([])
@@ -937,6 +950,7 @@ function App() {
         startSeconds: 0,
         durationSeconds: res.durationSeconds || video.durationSeconds || 30,
         type: 'audio' as const,
+        narration: true,
         url: res.url,     // file:///, dentro del proyecto: sobrevive al cierre
         path: res.path,
         newAudioSegments: transcriptSegments,
@@ -944,6 +958,7 @@ function App() {
       const updated = [...timelineVideoClips, nuevo]
       setTimelineVideoClips(updated)
       pushHistory(updated)
+      openAnimationPanel('style')
     } catch (e: any) {
       alert('No se pudo extraer el audio: ' + (e?.message || e))
     } finally {
@@ -1577,7 +1592,7 @@ function App() {
             setTranscriptSegments(data.result.segments);
             const compiled = data.result.segments.map((s: any) => s.text).join(' ');
             setOriginalTranscriptText(compiled);
-            setSelectedTool('animation');
+            setSelectedTool('subtitles');
             pushMilestone('Transcripción lista', {
               transcriptionStatus: 'Transcripción completada con éxito.',
               transcriptSegments: data.result.segments,
@@ -1951,7 +1966,7 @@ function App() {
         setActiveVideoUrl(primerVideo?.mediaKind === 'image' ? null : primerUrl);
         setTranscriptionStatus(loadedData.transcriptionStatus || '');
         setTranscriptSegments(loadedData.transcriptSegments || []);
-        if ((loadedData.transcriptSegments || []).length > 0) setSelectedTool('animation');
+        restoreProjectPanel(clipsDelTimeline, loadedData.transcriptSegments || []);
         setNewAudioSegments(loadedData.newAudioSegments || []);
         setAiScript(loadedData.aiScript || '');
         const loadedOriginalText = loadedData.originalTranscriptText || (loadedData.transcriptSegments || []).map((s: any) => s.text).join(' ') || '';
@@ -2215,7 +2230,7 @@ function App() {
         setActiveVideoUrl(primerVideo?.mediaKind === 'image' ? null : primerUrl);
         setTranscriptionStatus(loadedData.transcriptionStatus || '');
         setTranscriptSegments(loadedData.transcriptSegments || []);
-        if ((loadedData.transcriptSegments || []).length > 0) setSelectedTool('animation');
+        restoreProjectPanel(clipsDelTimeline, loadedData.transcriptSegments || []);
         setNewAudioSegments(loadedData.newAudioSegments || []);
         setAiScript(loadedData.aiScript || '');
         const loadedOriginalText = loadedData.originalTranscriptText || (loadedData.transcriptSegments || []).map((s: any) => s.text).join(' ') || '';
@@ -2346,7 +2361,7 @@ function App() {
       clip.type === 'video' && clip.category === 'visual' && (clip.animationPending || !clip.path));
     if (pendingAnimation) {
       setSelectedTimelineClipIds([pendingAnimation.id]);
-      setSelectedTool('animation');
+      openAnimationPanel('scene');
       alert('El timeline contiene Visuales pendientes de Animation. Selecciona cada slot en el panel IA, crea y aplica su escena, y vuelve a exportar.');
       return;
     }
@@ -2709,7 +2724,7 @@ ${res.filePath}`);
             clip.type === 'video' && clip.category === 'visual' && clip.animationPending === true);
           if (firstPending) {
             setSelectedTimelineClipIds([firstPending.id]);
-            setSelectedTool('animation');
+            openAnimationPanel('scene');
           }
         }
         // FASE 2: Gráficos
@@ -3084,12 +3099,14 @@ ${res.filePath}`);
       startSeconds: currentTimeRef.current,
       durationSeconds: durationSecs,
       type: 'audio',
+      narration: true,
       url: voice.audioUrl,
       path: voice.filePath
     }
     const updated = [...timelineVideoClips, newTimelineClip]
     setTimelineVideoClips(updated)
     pushHistory(updated)
+    openAnimationPanel('style')
   }
   // Panel drag-resize handlers
   const handleLibraryResizeMouseDown = (e: React.MouseEvent) => {
@@ -4045,8 +4062,8 @@ ${res.filePath}`);
             <div className="mt-2 rounded-lg border border-indigo-500/30 bg-indigo-950/20 p-2 text-[10px] text-slate-200 space-y-2">
               <p>Animation crea y modifica Visuales con geometría, texto y movimiento dibujados por código. Los clips históricos se conservan con sus medios y revisiones originales.</p>
               {visualRegenerationStatus&&<p role="status" className="text-amber-200">{visualRegenerationStatus}</p>}
-              <p>El chat abre al terminar la transcripción. Sin Visual seleccionado, puedes crear un borrador de 3 s desde el cursor y aplicarlo después a un intervalo Visual compatible.</p>
-              <button type="button" onClick={()=>setSelectedTool('animation')} className="rounded bg-indigo-700 px-2 py-1 font-semibold text-white">Abrir director Animation</button>
+              <p>El panel de estilo se abre después de incorporar la narración al timeline. Construir con una cuota Visuales positiva crea los slots para Animation.</p>
+              <button type="button" onClick={()=>openAnimationPanel('scene')} className="rounded bg-indigo-700 px-2 py-1 font-semibold text-white">Abrir director Animation</button>
             </div>
             {isGeneratingAssets ? (
               <div className="w-full mt-3 p-3 bg-[#1C1C1E]/60 border border-[#3a3a3c] rounded-xl space-y-2 select-none">
@@ -5688,7 +5705,7 @@ ${res.filePath}`);
                 </div>
                 {/* Animation workspace */}
                 <div
-                  onClick={() => setSelectedTool('animation')}
+                  onClick={() => openAnimationPanel('scene')}
                   className="p-3 rounded-xl border bg-[#1C1C1E] border-indigo-500/30 hover:border-indigo-400 transition-all cursor-pointer flex flex-col space-y-2"
                 >
                   <div className="flex items-center justify-between">
@@ -6294,6 +6311,9 @@ ${res.filePath}`);
                 )}
                 {selectedTool === 'animation' && <AnimationWorkspace
                   projectPath={activeProjectPath}
+                  flowMode={animationPanelMode}
+                  onBackToAudio={() => setSelectedTool('voice')}
+                  onContinueWithStyle={() => setSelectedTool(null)}
                   selectedClip={selectedAnimationClip}
                   selectedClipCount={selectedTimelineClipIds.length}
                   transcriptSegments={animationTranscriptSegments}
@@ -6309,7 +6329,7 @@ ${res.filePath}`);
                   canApplyNewVisualAt={canApplyNewAnimationVisualAt}
                   onSelectVisualSlot={(clipId) => {
                     setSelectedTimelineClipIds([clipId]);
-                    setSelectedTool('animation');
+                    openAnimationPanel('scene');
                   }}
                   onApply={applyAnimationClip}
                   onUndo={handleUndo}
