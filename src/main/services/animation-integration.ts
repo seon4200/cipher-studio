@@ -271,7 +271,8 @@ function makeDirectorPrompt(input: any) {
     'Al llamar animation_create_scene_module, scene.id DEBE ser un slug estable en minúsculas que coincida con ^[a-z][a-z0-9-]{2,63}$ y version debe ser 1. parameterSchema DEBE tener esta forma completa: {"type":"object","properties":{"quoteText":{"type":"string","maxLength":200},"scale":{"type":"number","minimum":0.5,"maximum":1.5}},"additionalProperties":false,"required":["quoteText","scale"]}. parameterValues contiene valores para esas mismas claves. No envíes parameterSchema como un mapa abreviado de parámetros: el validador lo rechaza. El entorno de ejecución sólo expone ctx, t, durationSec, width, height, palette, style, params y lib, además de Canvas 2D; no uses APIs del navegador/Node, red, disco, imports, evaluación dinámica, fechas, temporizadores ni azar. La validación analiza sintaxis ejecutable: comentarios, cadenas y expresiones regulares no se confunden con llamadas, pero referencias reales a capacidades no disponibles se bloquean.\n\n' +
     'En ambas rutas conserva el sentido literal, negaciones, atribuciones y cifras del clip. Contexto vecino sólo ayuda a resolver referencias y no demuestra contenido del intervalo. No inventes cantidades, causalidad, comparaciones ni relaciones. Sigue los parámetros del perfil de estilo; usa su paleta, tipografía, jerarquía y fondo procedural sin convertirlo en una composición fija. Una acción debe leerse visualmente y producir un estado final distinto; no uses por defecto un titular con una forma abstracta que sólo crece. En módulos de código, calcula todo desde width/height y timeSec; mantén figuras y etiquetas dentro de una zona segura del 8% del lienzo durante TODO el movimiento, limita los textos por medida real y reserva al menos el 24% final para lectura. Los cambios de modo cualitativo no deben parecer una escala cuantitativa. Si el momento requiere seis segundos, coordina dos slots contiguos de tres segundos con continuidad; para esta solicitud prefiere una acción completa de tres segundos si resulta legible. Si hay una configuración activa del mismo clip y la instrucción pide ajustar sólo estilo, parámetros u orden temporal, vuelve a compilarla preservando literalmente todo el contenido y las relaciones que se te proporcionan; no la rechaces por no haber seleccionado una plantilla.\n\n' +
     'Recetas conocidas: ' + JSON.stringify(RECIPE_META) + '\nComponentes registrados: ' + JSON.stringify(COMPONENT_META) + '\n' +
-    'Clip: ' + JSON.stringify(input.clip) + '\nInstrucción: ' + input.userMessage + '\n' +
+    'Clip: ' + JSON.stringify(input.clip) + '\nFormato del proyecto: ' + String(input.projectFormat || input.format || 'no especificado') +
+    '\nInstrucción: ' + input.userMessage + '\n' +
     'Cita literal temporizada:\n' + (transcript || input.fallbackQuote) + '\nContexto vecino:\n' + (adjacent || 'ninguno') + '\n' +
     'Configuración actual: ' + style + '\nPlantilla elegida: ' + templates + '\nReferencias disponibles: ' + refs + '\n' +
     'La duración del clip seleccionado es normativa: ' + input.clip.durationSeconds.toFixed(6) + ' segundos a ' + Number(input.fps || 30) + ' fps. Copia esa duración exactamente al artefacto. No la redondees, no alargues el slot y no aceleres la explicación; el compilador volverá a fijar el reloj al intervalo de timeline y guardará cualquier resolución de redondeo. ' +
@@ -589,7 +590,7 @@ export async function generateAnimationDraft(projectRoot: string, input: any, op
   const framePaths = refs.flatMap((r: any) => r.frames.map((f: any) => path.resolve(root, f.relativePath)))
   const selectedTemplate = input.template ? resolveAnimationTemplate(root, input.template) : null
   const prompt = makeDirectorPrompt({ ...input, template: selectedTemplate, clip: { id: clip.id, startSeconds: clip.startSeconds,
-    durationSeconds: clipDuration }, transcript: selected.transcript, adjacentContext: selected.adjacentContext,
+    durationSeconds: clipDuration, format: input.projectFormat || input.format || null }, transcript: selected.transcript, adjacentContext: selected.adjacentContext,
     fallbackQuote: selected.fallbackQuote, references: refs, styleProfile })
   options.onProgress?.({ phase: 'direction', current: 0, total: 4, message: 'Consultando al agente conectado de Animation.' })
   const aiStart = performance.now()
@@ -682,6 +683,7 @@ export async function generateAnimationDraft(projectRoot: string, input: any, op
   const baseRecord = { schema: 'cipher-animation-draft-v1', revision: 1, draftId, route: decision.route,
     createdAt: new Date().toISOString(), provider: { id: ai.provider, model: ai.model, threadId: ai.threadId },
     userInstruction: input.userMessage,
+    styleProfile: { id: styleProfile.id, version: styleProfile.version },
     targetMode: input.targetMode === 'new-visual-draft' ? 'new-visual-draft' : 'selected-visual',
     selectedTimelineBinding: { clipId: clip.id, startSeconds: Number(clip.startSeconds) || 0, durationSeconds: clipDuration },
     config, scenePlan: plan, planHash, renderIdentity, response: decision.response,

@@ -5,6 +5,8 @@ import { textoResumen, type Aviso, type Resumen } from '../../shared/avisos'
 import { hayTiemposPorPalabra } from '../../shared/palabra'
 import { repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../../shared/reparto'
 import { resolveAnimationPanelFlowV1 } from '../../shared/animation-panel-flow-v1'
+import { clipAnimationTranscript } from '../../shared/animation-transcript-window'
+import { isPendingAnimationSlot, runAnimationBuildQueue, type AnimationBuildClip } from '../../shared/animation-build-queue'
 import ReactDOM from 'react-dom/client'
 import {
   Play, Pause, FastForward, Rewind, Video, Volume2, VolumeX, Sparkles,
@@ -96,6 +98,7 @@ interface TimelineClip {
   transcriptText?: string;
   requestedSource?: string;
   materialized?: boolean;
+  animationBuild?: Record<string, any>;
   stockDecision?: any;
 }
 interface GeneratedVoiceVersion {
@@ -153,6 +156,12 @@ function App() {
   // State for imported files/clips
   const [clips, setClips] = useState<Clip[]>([])
   const [timelineVideoClips, setTimelineVideoClips] = useState<TimelineClip[]>([])
+  const timelineVideoClipsRef = React.useRef(timelineVideoClips)
+  useEffect(() => { timelineVideoClipsRef.current = timelineVideoClips }, [timelineVideoClips])
+  const pendingAnimationSlots = timelineVideoClips.filter(isPendingAnimationSlot)
+  const hasPendingAnimationSlots = pendingAnimationSlots.length > 0
+  const animationBuildInFlightRef = React.useRef(false)
+  const [animationBuildSummary, setAnimationBuildSummary] = useState('')
   const [timelineVersions, setTimelineVersions] = useState<TimelineVersion[]>([])
   const [activeVersionId, setActiveVersionId] = useState<string>('')
   const handleSelectTimelineVersion = (versionId: string) => {
@@ -1329,6 +1338,10 @@ function App() {
   const [isCopied, setIsCopied] = useState(false)
   // AI Asset Generation States
   const [isGeneratingAssets, setIsGeneratingAssets] = useState(false)
+  const [isBuildingAnimationQueue, setIsBuildingAnimationQueue] = useState(false)
+  const animationBuildCancellationRef = React.useRef<{ cancelRequested: boolean; activeJobId: string | null }>({
+    cancelRequested: false, activeJobId: null,
+  })
   const [visualRegenerationStatus,setVisualRegenerationStatus]=useState('')
   const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number; paragraph: string; type: string } | null>(null)
   const [generationError, setGenerationError] = useState<string>('')
@@ -1457,8 +1470,13 @@ function App() {
     : null
   const animationTranscriptSegments = timelineVideoClips.find(clip => clip.type === 'audio')?.name === 'Voz - Audio Original'
     ? transcriptSegments : newAudioSegments
-  const applyAnimationClip = (generatedClip: any, selectedClipId: string) => {
-    const source = timelineVideoClips.find(clip => clip.id === selectedClipId)
+  const applyAnimationClip = (generatedClip: any, selectedClipId: string, options?: {
+    timeline?: TimelineClip[]; allowUnselectedSlot?: boolean; projectPath?: string; onApplied?: (clips: TimelineClip[]) => void
+  }) => {
+    if (options?.projectPath && String(activeProjectPathRef.current || '').replace(/[\\/]+/g, '/').toLowerCase() !==
+        String(options.projectPath).replace(/[\\/]+/g, '/').toLowerCase()) return false
+    const sourceTimeline = options?.timeline || timelineVideoClips
+    const source = sourceTimeline.find(clip => clip.id === selectedClipId)
     if (!source) {
       const startSeconds = Number(generatedClip?.startSeconds)
       const durationSeconds = Number(generatedClip?.durationSeconds)
@@ -1468,16 +1486,20 @@ function App() {
       if (!isNewDraft || !generatedClip?.path) return false
       const inserted: TimelineClip = { id: generatedClip.id, name: String(generatedClip.name || 'Animation'), type: 'video',
         category: 'visual', startSeconds, durationSeconds, path: generatedClip.path, url: generatedClip.url,
-        animationV1: generatedClip.animationV1 }
-      const next = [...timelineVideoClips, inserted].sort((a, b) => a.startSeconds - b.startSeconds)
-      pushHistory(next); setTimelineVideoClips(next); setSelectedTimelineClipIds([inserted.id]); setIsDirty(true)
+        animationV1: generatedClip.animationV1, animationBuild: generatedClip.animationBuild, materialized: true }
+      const next = [...sourceTimeline, inserted].sort((a, b) => a.startSeconds - b.startSeconds)
+      pushHistory(next); timelineVideoClipsRef.current = next; setTimelineVideoClips(next); setSelectedTimelineClipIds([inserted.id]); setIsDirty(true)
+      options?.onApplied?.(next)
       return true
     }
-    if (selectedTimelineClipIds.length !== 1 || selectedTimelineClipIds[0] !== selectedClipId) return false
+    const isSelected = selectedTimelineClipIds.length === 1 && selectedTimelineClipIds[0] === selectedClipId
+    if (!isSelected && !options?.allowUnselectedSlot) return false
+    if (options?.allowUnselectedSlot && !isPendingAnimationSlot(source)) return false
     if (!source || source.category !== 'visual' || source.type === 'graphic' ||
-        Math.abs(source.durationSeconds - Number(generatedClip?.durationSeconds)) > 1 / 30) return false
+        Math.abs(source.durationSeconds - Number(generatedClip?.durationSeconds)) > 1 / 30 ||
+        Math.abs(Number(source.startSeconds) - Number(generatedClip?.startSeconds)) > 1 / 30) return false
     const targetStart = Number(source.startSeconds || 0), targetEnd = targetStart + Number(source.durationSeconds || 0)
-    const next = timelineVideoClips.filter(clip => !(clip.type === 'graphic' &&
+    const next = sourceTimeline.filter(clip => !(clip.type === 'graphic' &&
       targetStart < Number(clip.startSeconds || 0) + Number(clip.durationSeconds || 0) - 1 / 30 &&
       targetEnd > Number(clip.startSeconds || 0) + 1 / 30))
     const { canvasV4: _canvasV4, visualRegeneration: _visualRegeneration, graphicData: _graphicData,
@@ -1486,11 +1508,14 @@ function App() {
       ...stableSource } = source
     const replaced = next.map(clip => clip.id === selectedClipId ? {
       ...stableSource, name: String(generatedClip.name || source.name), path: generatedClip.path, url: generatedClip.url,
-      animationV1: generatedClip.animationV1,
+      animationV1: generatedClip.animationV1, animationBuild: generatedClip.animationBuild || source.animationBuild,
+      materialized: true,
     } : clip)
     pushHistory(replaced)
+    timelineVideoClipsRef.current = replaced
     setTimelineVideoClips(replaced)
     setIsDirty(true)
+    options?.onApplied?.(replaced)
     return true
   }
   const restoreAnimationSnapshot = (snapshot: any) => {
@@ -1748,6 +1773,8 @@ function App() {
     // ventana a otro tamano. Es la misma forma que ya consume el export.
     ajustesVideo: construirAjustesVideo(),
   })
+  const construirEstadoAGuardarRef = React.useRef(construirEstadoAGuardar)
+  construirEstadoAGuardarRef.current = construirEstadoAGuardar
   // Save-on-close handler
   useEffect(() => {
     if (window.electronAPI && typeof window.electronAPI.onSaveBeforeClose === 'function') {
@@ -2490,7 +2517,166 @@ ${res.filePath}`);
       return { ...c, graphicMovHash: ruta.replace(/\\/g, '/').split('/').pop()!.replace(/\.mov$/, '') };
     });
   };
+  const cancelAnimationBuild = async () => {
+    const cancellation = animationBuildCancellationRef.current
+    if (!isBuildingAnimationQueue || cancellation.cancelRequested) return
+    cancellation.cancelRequested = true
+    setAnimationBuildSummary('Cancelando Animation; el slot activo conserva su plan y los demás siguen pendientes.')
+    const jobId = cancellation.activeJobId
+    if (jobId) await window.electronAPI.animationCancel(jobId)
+  }
+
+  const continuePendingAnimationBuild = async (initialTimeline: TimelineClip[], versionsForBuild = timelineVersions,
+      activeVersionForBuild = activeVersionId) => {
+    const projectPath = activeProjectPathRef.current
+    if (!projectPath) throw new Error('Abre un proyecto antes de continuar Visuales con Animation.')
+    animationBuildCancellationRef.current = { cancelRequested: false, activeJobId: null }
+    setIsBuildingAnimationQueue(true)
+    const currentPath = () => String(activeProjectPathRef.current || '').replace(/[\\/]+/g, '/').toLowerCase()
+    const sameProject = () => currentPath() === String(projectPath).replace(/[\\/]+/g, '/').toLowerCase()
+    const mergeQueueTimeline = (latest: TimelineClip[], queued: AnimationBuildClip[]): TimelineClip[] => {
+      const byId = new Map(queued.map(clip => [clip.id, clip]))
+      return latest.map((current): TimelineClip => {
+        const next = byId.get(current.id)
+        if (!next || current.category !== 'visual' || current.type !== 'video' ||
+            !isPendingAnimationSlot(current) || Math.abs(Number(current.startSeconds) - Number(next.startSeconds)) > 1 / 30 ||
+            Math.abs(Number(current.durationSeconds) - Number(next.durationSeconds)) > 1 / 30) return current
+        if (next.materialized === true && next.animationV1 && next.path)
+          return { ...current, ...(next as TimelineClip), animationPending: undefined, materialized: true }
+        return { ...current, animationBuild: next.animationBuild }
+      })
+    }
+    const connection = await window.electronAPI.animationConnectionStatus()
+    if (!sameProject()) throw new Error('ANIMATION_PROJECT_CHANGED')
+    if (!connection?.available || !connection?.authenticated)
+      throw new Error(`Animation no está conectado a Codex (${connection?.status || 'sin autenticación'}).`)
+    const loaded = await window.electronAPI.animationLoadProject()
+    if (!sameProject()) throw new Error('ANIMATION_PROJECT_CHANGED')
+    if (!loaded.success || !loaded.state) throw new Error(loaded.error || 'ANIMATION_PROJECT_STATE_LOAD_FAILED')
+    const animationState = loaded.state
+    const styleProfile = animationState.styleProfile
+    if (!styleProfile?.id || styleProfile.version === undefined)
+      throw new Error('ANIMATION_STYLE_PROFILE_MISSING')
+    let versionState = [...versionsForBuild]
+    const versionId = activeVersionForBuild
+    const queue = await runAnimationBuildQueue({
+      clips: initialTimeline as AnimationBuildClip[], projectPath, styleProfile, animationState,
+      transcriptSegments: animationTranscriptSegments, projectFormat: aspectRatio, fps: 30,
+      referenceIds: Array.isArray(animationState.references) ? animationState.references.map((item: any) => item?.id).filter(Boolean) : [],
+      threadId: animationState.threadId || null,
+      makeJobId: () => crypto.randomUUID(),
+      isProjectCurrent: sameProject,
+      isCancelled: () => animationBuildCancellationRef.current.cancelRequested,
+      onJobStarted: jobId => { animationBuildCancellationRef.current.activeJobId = jobId },
+      onJobSettled: jobId => {
+        if (animationBuildCancellationRef.current.activeJobId === jobId) animationBuildCancellationRef.current.activeJobId = null
+      },
+      getActiveJobs: () => window.electronAPI.animationProjectJobs(),
+      wait: ms => new Promise(resolve => setTimeout(resolve, ms)),
+      loadDrafts: clipId => window.electronAPI.animationListDrafts(clipId),
+      loadDraft: draftId => window.electronAPI.animationLoadDraft(draftId),
+      replayDraft: (draftId, jobId, clipId, targetProjectPath) => window.electronAPI.animationReplayDraft({
+        draftId, jobId, clipId, projectPath: targetProjectPath }),
+      generateDraft: async (input, onProgress) => {
+        const unsubscribe = window.electronAPI.onAnimationProgress(event => {
+          if (event?.jobId === input.jobId) onProgress(event)
+        })
+        try { return await window.electronAPI.animationGenerateDraft(input) }
+        finally { unsubscribe() }
+      },
+      persist: async (clips, nextAnimationState) => {
+        if (!sameProject()) throw new Error('ANIMATION_PROJECT_CHANGED')
+        const latestState = construirEstadoAGuardarRef.current()
+        const safeTimeline = mergeQueueTimeline(timelineVideoClipsRef.current, clips)
+        const latestVersions = Array.isArray(latestState.timelineVersions) &&
+          latestState.timelineVersions.some((version: TimelineVersion) => version.id === versionId)
+          ? latestState.timelineVersions as TimelineVersion[] : versionState
+        const latestVersionId = latestState.activeVersionId || versionId
+        versionState = latestVersions.map(version => version.id === latestVersionId
+          ? { ...version, timelineVideoClips: safeTimeline } : version)
+        const projectState = { ...latestState, timelineVideoClips: safeTimeline,
+          timelineVersions: versionState, activeVersionId: latestVersionId }
+        const result = await window.electronAPI.animationSaveBuildState({ projectPath, projectState,
+          animationState: nextAnimationState })
+        if (!result.success) throw new Error(result.error || 'ANIMATION_BUILD_STATE_SAVE_FAILED')
+      },
+      apply: (clip, slotId, queueClips) => {
+        if (!sameProject()) return { success: false }
+        const latest = timelineVideoClipsRef.current
+        const latestSlot = latest.find(item => item.id === slotId)
+        const queueSlot = queueClips.find(item => item.id === slotId)
+        if (!latestSlot || !queueSlot || !isPendingAnimationSlot(latestSlot) ||
+            Math.abs(Number(latestSlot.startSeconds) - Number(queueSlot.startSeconds)) > 1 / 30 ||
+            Math.abs(Number(latestSlot.durationSeconds) - Number(queueSlot.durationSeconds)) > 1 / 30)
+          return { success: false }
+        const liveTimeline = latest.map(item => item.id === slotId
+          ? { ...item, animationBuild: queueSlot.animationBuild } : item)
+        let appliedTimeline: TimelineClip[] | null = null
+        const success = applyAnimationClip(clip, slotId, { timeline: liveTimeline,
+          allowUnselectedSlot: true, projectPath, onApplied: value => { appliedTimeline = value } })
+        return { success, ...(appliedTimeline ? { clips: appliedTimeline as AnimationBuildClip[] } : {}) }
+      },
+      onClips: clips => {
+        const next = mergeQueueTimeline(timelineVideoClipsRef.current, clips)
+        timelineVideoClipsRef.current = next
+        setTimelineVideoClips(next)
+        setIsDirty(true)
+      },
+      onProgress: progress => {
+        const counts = progress.counts
+        setGenerationProgress({ current: progress.current, total: Math.max(1, progress.total),
+          type: `Animation · ${progress.phase}`,
+          paragraph: `${progress.message} Pendientes ${counts.pending} · generación ${counts.generating} · render ${counts.rendering} · aplicación ${counts.applying} · aplicados ${counts.applied} · errores ${counts.errors}.` })
+      },
+      quoteForSlot: slot => clipAnimationTranscript(animationTranscriptSegments, {
+        startSeconds: Number(slot.startSeconds), durationSeconds: Number(slot.durationSeconds), text: slot.transcriptText
+      }).fallbackQuote,
+    })
+    if (!sameProject()) return queue
+    const mergedQueue = { ...queue, clips: mergeQueueTimeline(timelineVideoClipsRef.current, queue.clips) as AnimationBuildClip[] }
+    setTimelineVideoClips(mergedQueue.clips as TimelineClip[])
+    timelineVideoClipsRef.current = mergedQueue.clips as TimelineClip[]
+    setIsDirty(true)
+    if (mergedQueue.cancelled) {
+      setAnimationBuildSummary(`Cola Animation cancelada. ${mergedQueue.applied} Visuales ya aplicados; los slots restantes conservan sus planes y siguen pendientes.`)
+    } else if (mergedQueue.errors > 0) {
+      const failed = mergedQueue.clips.filter(clip => clip.animationBuild?.status === 'error')
+        .map(clip => `${clip.id}: ${clip.animationBuild?.error || 'error'}`)
+      setAnimationBuildSummary(`Animation aplicó ${mergedQueue.applied} Visuales; ${mergedQueue.errors} requieren reintento. ${failed.join(' · ')}`)
+    } else {
+      setAnimationBuildSummary(`Animation aplicó ${mergedQueue.applied} Visuales. Guardado por slot; no se enviaron solicitudes para los slots ya aplicados.`)
+    }
+    return mergedQueue
+  }
+
   const handleBuildIATimeline = async () => {
+    if (animationBuildInFlightRef.current || isGeneratingAssets) return
+    const existingPendingAnimationSlots = timelineVideoClips.filter(isPendingAnimationSlot)
+    if (existingPendingAnimationSlots.length > 0) {
+      animationBuildInFlightRef.current = true
+      setAnimationBuildSummary('')
+      setGenerationError('')
+      setIsGeneratingAssets(true)
+      setGenerationProgress({ current: 0, total: existingPendingAnimationSlots.length,
+        paragraph: 'Reanudando únicamente los Visuales pendientes del timeline existente.', type: 'Animation' })
+      try {
+        await continuePendingAnimationBuild(timelineVideoClips)
+      } catch (error: any) {
+        if (error?.message !== 'ANIMATION_PROJECT_CHANGED') setAnimationBuildSummary(`No se inició Animation: ${String(error?.message || error)}`)
+      } finally {
+        setIsGeneratingAssets(false)
+        setIsBuildingAnimationQueue(false)
+        setGenerationProgress(null)
+        animationBuildInFlightRef.current = false
+      }
+      return
+    }
+    const completedAnimationCount = timelineVideoClips.filter(clip => clip.type === 'video' && clip.category === 'visual' &&
+      clip.animationBuild?.status === 'applied' && clip.materialized === true && !!clip.animationV1 && !!clip.path).length
+    if (completedAnimationCount > 0) {
+      setAnimationBuildSummary(`Animation ya tiene ${completedAnimationCount} Visuales aplicados y no hay pendientes; no se vuelve a generar ni se reconstruye este timeline.`)
+      return
+    }
     const buildAnimationSlots = (timelineWeights[3] ?? 0) > 0;
     const scriptForTimeline = aiScript.trim() || originalTranscriptText.trim();
     if (!scriptForTimeline) return;
@@ -2583,6 +2769,8 @@ ${res.filePath}`);
           return result;
         })()
       : effectiveAudioSegments;
+    animationBuildInFlightRef.current = true
+    setAnimationBuildSummary('')
     setIsGeneratingAssets(true);
     setGenerationError('');
     // SE LIMPIAN AL EMPEZAR. Un aviso viejo colgado de una generacion previa miente igual que
@@ -2706,7 +2894,7 @@ ${res.filePath}`);
           descartadas as any[]);
         // Keep all existing audio clips completely intact and untouched!
         const existingAudioClips = timelineVideoClips.filter(c => c.type === 'audio');
-        const finalTimelineClips = [...newVideoClips, ...graficosQueQuedan, ...existingAudioClips];
+        let finalTimelineClips = [...newVideoClips, ...graficosQueQuedan, ...existingAudioClips];
         const nextVersionNumber = timelineVersions.filter(v => v.id.startsWith('v-ai-')).length + 1;
         const newVersionId = `v-ai-${Date.now()}`;
         const newVersionName = `Versión IA ${nextVersionNumber}`;
@@ -2716,8 +2904,11 @@ ${res.filePath}`);
           timestamp: Date.now(),
           timelineVideoClips: finalTimelineClips
         };
-        setTimelineVersions(prev => [...prev, newVersion]);
+        let versionsForAnimation: TimelineVersion[] = [...timelineVersions, newVersion]
+        let versionIdForAnimation = newVersionId
+        setTimelineVersions(versionsForAnimation);
         setActiveVersionId(newVersionId);
+        timelineVideoClipsRef.current = finalTimelineClips
         setTimelineVideoClips(finalTimelineClips);
         if (buildAnimationSlots) {
           const firstPending = finalTimelineClips.find((clip: any) =>
@@ -2767,7 +2958,11 @@ ${res.filePath}`);
               // valido, asi que solo se deja de añadir los graficos.
               const sellados = await renderizarYSellar(
                 newGClips, aspectRatio, exportResolution, proyectoAlEmpezar);
-              if (sellados) setTimelineVideoClips(prev => [...prev, ...sellados]);
+              if (sellados) {
+                finalTimelineClips = [...finalTimelineClips, ...sellados]
+                timelineVideoClipsRef.current = finalTimelineClips
+                setTimelineVideoClips(finalTimelineClips)
+              }
             }
           } catch (gErr) {
             console.error('Error generando gráficos:', gErr);
@@ -2816,6 +3011,12 @@ ${res.filePath}`);
           timelineVideoClips: finalTimelineClips
         });
         pushHistory(finalTimelineClips);
+        versionsForAnimation = versionsForAnimation.map(version => version.id === versionIdForAnimation
+          ? { ...version, timelineVideoClips: finalTimelineClips } : version)
+        setTimelineVersions(versionsForAnimation)
+        if (buildAnimationSlots && finalTimelineClips.some(isPendingAnimationSlot)) {
+          await continuePendingAnimationBuild(finalTimelineClips, versionsForAnimation, versionIdForAnimation)
+        }
       } else {
         const errorMsg = res?.error || 'Error al generar los clips de la IA.';
         setGenerationError(errorMsg);
@@ -2827,7 +3028,9 @@ ${res.filePath}`);
       console.error('Excepción en Timeline IA:', errorMsg);
     } finally {
       setIsGeneratingAssets(false);
+      setIsBuildingAnimationQueue(false)
       setGenerationProgress(null);
+      animationBuildInFlightRef.current = false
     }
   };
   const handleClearGraphics = () => {
@@ -4070,6 +4273,8 @@ ${res.filePath}`);
                 <div className="flex items-center space-x-2">
                   <div className="w-3.5 h-3.5 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
                   <span className="text-[10px] font-semibold text-indigo-300">Generando clips...</span>
+                    {isBuildingAnimationQueue && <button type="button" onClick={() => void cancelAnimationBuild()}
+                      className="ml-auto text-[9px] font-semibold text-amber-200 border border-amber-500/30 rounded px-2 py-1 hover:bg-amber-500/10">Cancelar Animation</button>}
                 </div>
                 {generationProgress && (
                   <div className="space-y-1">
@@ -4090,12 +4295,13 @@ ${res.filePath}`);
               <>
                 <button
                   onClick={() => void handleBuildIATimeline()}
-                  disabled={!aiScript.trim()}
+                  disabled={!aiScript.trim() && !hasPendingAnimationSlots}
                   className="w-full mt-3 bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
                   <span>Construir timeline</span>
                 </button>
+                {animationBuildSummary && <div role="status" className="w-full mt-2 p-2 rounded-lg border border-indigo-500/20 bg-indigo-950/10 text-[9px] text-indigo-200 select-text">{animationBuildSummary}</div>}
                 {/* ----- Transiciones GL ----- */}
                 <div className='mt-4'>
                   <button
@@ -6258,6 +6464,8 @@ ${res.filePath}`);
                       {isGeneratingAssets ? (
                         <div className="flex flex-col items-center justify-center text-center p-6 space-y-4 bg-[#1C1C1E]/90 border border-[#3a3a3c] rounded-xl shadow-xl select-none">
                           <div className="w-8 h-8 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin flex items-center justify-center shadow-lg shadow-indigo-500/20" />
+                          {isBuildingAnimationQueue && <button type="button" onClick={() => void cancelAnimationBuild()}
+                            className="text-[10px] font-semibold text-amber-200 border border-amber-500/30 rounded px-2 py-1 hover:bg-amber-500/10">Cancelar Animation</button>}
                           <div className="space-y-2 w-full">
                             <p className="text-xs font-semibold text-indigo-300">Generando clips con IA local...</p>
                             {generationProgress ? (
@@ -6284,14 +6492,14 @@ ${res.filePath}`);
                       ) : (
                         <button
                           onClick={() => void handleBuildIATimeline()}
-                          disabled={!aiScript.trim()}
+                          disabled={!aiScript.trim() && !hasPendingAnimationSlots}
                           className="w-full bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2.5 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
                   <span>Construir timeline</span>
                         </button>
                       )}
-                      {!aiScript.trim() && (
+                      {!aiScript.trim() && !hasPendingAnimationSlots && (
                         <div className="text-center py-2 text-[10px] text-slate-500 italic leading-relaxed">
                           * Genera o reescribe un guión en el panel de transcripción antes de construir el Timeline IA.
                         </div>
@@ -6306,6 +6514,7 @@ ${res.filePath}`);
                           Error de generación: {generationError}
                         </div>
                       )}
+                      {animationBuildSummary && <div role="status" className="text-center py-2 px-3 text-[10px] text-indigo-200 bg-indigo-950/20 border border-indigo-900/50 rounded-xl mt-2 select-text">{animationBuildSummary}</div>}
                     </div>
                   </div>
                 )}

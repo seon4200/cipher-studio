@@ -875,9 +875,10 @@ ipcMain.on('start-transcription', async (event, filePath) => {
 let activeProjectPath: string | null = null;
 // Keeps unknown persisted fields even when open-project selected a non-default JSON name.
 let activeProjectStateFile: string | null = null;
-type AnimationJob = { controller: AbortController; projectRoot: string; settled: Promise<void>; resolveSettled: () => void }
+type AnimationJob = { controller: AbortController; projectRoot: string; settled: Promise<void>; resolveSettled: () => void;
+  kind?: string; clipId?: string; phase?: string }
 const animationJobs = new Map<string, AnimationJob>()
-function registerAnimationJob(jobId: string, projectRoot: string) {
+function registerAnimationJob(jobId: string, projectRoot: string, metadata: { kind?: string; clipId?: string } = {}) {
   if (animationJobs.has(jobId)) throw new Error('ANIMATION_JOB_ID_DUPLICATE')
   const target = path.resolve(projectRoot).toLowerCase()
   if (animationJobs.size > 0) {
@@ -887,7 +888,7 @@ function registerAnimationJob(jobId: string, projectRoot: string) {
   const controller = new AbortController()
   let resolveSettled!: () => void
   const settled = new Promise<void>(resolve => { resolveSettled = resolve })
-  const job = { controller, projectRoot, settled, resolveSettled }
+  const job = { controller, projectRoot, settled, resolveSettled, ...metadata, phase: 'starting' }
   animationJobs.set(jobId, job)
   return job
 }
@@ -4505,6 +4506,29 @@ ipcMain.handle('animation:save-project', async (_event, state) => {
     return saveAnimationProject(activeProjectPath, state)
   } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
 })
+ipcMain.handle('animation:save-build-state', async (_event, input: any) => {
+  try {
+    if (!activeProjectPath || typeof input?.projectPath !== 'string' ||
+        path.resolve(input.projectPath).toLowerCase() !== path.resolve(activeProjectPath).toLowerCase())
+      throw new Error('ANIMATION_PROJECT_CHANGED')
+    const projectRoot = activeProjectPath
+    if (input.projectState && typeof input.projectState === 'object') {
+      const filePath = path.join(projectRoot, 'project-state.json')
+      saveProjectFile(filePath, input.projectState, activeProjectStateFile || filePath)
+      activeProjectStateFile = filePath
+    }
+    if (input.animationState && typeof input.animationState === 'object')
+      saveAnimationProject(projectRoot, input.animationState)
+    return { success: true }
+  } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+})
+ipcMain.handle('animation:project-jobs', async () => {
+  if (!activeProjectPath) return { success: false, error: 'ANIMATION_ACTIVE_PROJECT_REQUIRED' }
+  const projectRoot = path.resolve(activeProjectPath).toLowerCase()
+  return { success: true, jobs: [...animationJobs.entries()]
+    .filter(([, job]) => path.resolve(job.projectRoot).toLowerCase() === projectRoot)
+    .map(([jobId, job]) => ({ jobId, kind: job.kind || 'animation', clipId: job.clipId || null, phase: job.phase || 'starting' })) }
+})
 ipcMain.handle('animation:add-reference', async (_event, sourcePath: string) => {
   try {
     if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
@@ -4516,13 +4540,17 @@ ipcMain.handle('animation:generate-draft', async (event, input: any) => {
   let registeredJob: AnimationJob | null = null
   try {
     if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
+    if (typeof input?.projectPath === 'string' &&
+        path.resolve(input.projectPath).toLowerCase() !== path.resolve(activeProjectPath).toLowerCase())
+      throw new Error('ANIMATION_PROJECT_CHANGED')
     if (!/^[\w-]{8,100}$/.test(jobId)) throw new Error('ANIMATION_JOB_ID_INVALID')
     const projectRoot = activeProjectPath
-    const job = registerAnimationJob(jobId, projectRoot)
+    const job = registerAnimationJob(jobId, projectRoot, { kind: 'generate-draft', clipId: String(input?.clip?.id || '') })
     registeredJob = job
     const controller = job.controller
     const onProgress = (progress: any) => {
       if (activeProjectPath !== projectRoot || event.sender.isDestroyed()) return
+      job.phase = String(progress?.phase || job.phase || 'generating')
       event.sender.send('animation:progress', { jobId, ...progress })
     }
     const result = await generateAnimationDraft(projectRoot, input, { signal: controller.signal, onProgress })
@@ -4581,20 +4609,27 @@ ipcMain.handle('animation:cancel', async (_event, jobId: string) => {
   const settled = await waitForAnimationJob(job)
   return { success: true, cancelled: true, settled }
 })
-ipcMain.handle('animation:replay-draft', async (event, params: { draftId: string; jobId: string; parameters?: Record<string, unknown> }) => {
+ipcMain.handle('animation:replay-draft', async (event, params: { draftId: string; jobId: string; projectPath?: string;
+    clipId?: string; parameters?: Record<string, unknown> }) => {
   const jobId = String(params?.jobId || '')
   let projectRoot: string | null = null
   let registeredJob: AnimationJob | null = null
   try {
     if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
+    if (typeof params?.projectPath === 'string' &&
+        path.resolve(params.projectPath).toLowerCase() !== path.resolve(activeProjectPath).toLowerCase())
+      throw new Error('ANIMATION_PROJECT_CHANGED')
     if (!/^[\w-]{8,100}$/.test(jobId)) throw new Error('ANIMATION_JOB_ID_INVALID')
     projectRoot = activeProjectPath
-    const job = registerAnimationJob(jobId, projectRoot)
+    const job = registerAnimationJob(jobId, projectRoot, { kind: 'replay-draft', clipId: String(params?.clipId || '') })
     registeredJob = job
     const controller = job.controller
     event.sender.send('animation:progress', { jobId, phase: 'replay', message: 'Regenerando ScenePlan guardado localmente.' })
     const result = await replayAnimationDraft(projectRoot, params.draftId, { signal: controller.signal, parameters: params.parameters,
-      onProgress: (progress: any) => { if (activeProjectPath === projectRoot && !event.sender.isDestroyed()) event.sender.send('animation:progress', { jobId, ...progress }) } })
+      onProgress: (progress: any) => { if (activeProjectPath === projectRoot && !event.sender.isDestroyed()) {
+        job.phase = String(progress?.phase || 'replay')
+        event.sender.send('animation:progress', { jobId, ...progress })
+      } } })
     if (activeProjectPath !== projectRoot) throw new Error('ANIMATION_PROJECT_CHANGED')
     return result
   } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) }

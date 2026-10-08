@@ -27,7 +27,9 @@ FFmpeg y ffprobe requieren `PATH`; Animation admite `FFMPEG_PATH`. Para el bot V
 ## Visuales y Animation
 - Mantén Original, Stock, IA y Visuales como cuatro cuotas funcionales. Visuales no se redistribuye ni se pone en cero.
 - Una cuota Visuales positiva fluye desde Construir al planificador Animation. Animation es la única ruta de creación de Visuales nuevos; nunca volver al catálogo/render heredado como fallback.
-- Construir selecciona el primer slot pendiente y abre Animation. No es un MP4 hasta crear y aplicar una escena; el slot vacío no se exporta.
+- Después de planificar slots, Construir genera y aplica en serie cada Visual pendiente mediante Animation, por su ID estable. Si el proyecto ya tiene mezcla y slots, reanuda solo esos pendientes y no vuelve a cortar ni seleccionar medios.
+- Antes de despachar, la cola espera trabajos Animation activos y recupera borradores compatibles; puede regenerar el MP4 desde el plan/código guardado sin volver a llamar al modelo. Un fallo conserva el diagnóstico y deja el slot reintentable, sin sustituirlo por Original, Stock ni una pantalla vacía.
+- Cada plan conserva el perfil vigente, la cita literal temporizada, el contexto vecino separado, el intervalo, la duración, el formato y referencias privadas del proyecto. El slot solo cuenta aplicado cuando tiene render y vínculo Animation persistidos.
 - Perfil activo: `cipher-editorial-sapphire-v1` en `src/shared/animation-style-profile-sapphire-v1.json` y `src/shared/animation-style-profile-v1.ts`.
 - Canvas/fuentes: `public/animation-canvas/`; planes y módulos reutilizables por proyecto: `materiales/animation/library/`; admite regeneración offline desde el plan persistido.
 - Los motores/catálogos antiguos permanecen en disco por ahora; consulta el inventario. No borrar por coincidencia de nombre ni reactivar sus conexiones. Conserva geometría, gráficos, fuentes, paletas, cámara y movimiento compartidos que se usan.
@@ -40,3 +42,7 @@ FFmpeg y ffprobe requieren `PATH`; Animation admite `FFMPEG_PATH`. Para el bot V
 - Movimiento Vibes: protagonista completo, fondo y cámara inmóviles; solo se animan los apoyos indicados.
 - Cipher Control tiene repo separado. Studio conserva `control-adapter.html`; coordina los cambios del enlace/build esperado en el repo y PR propios de Control. Ver estado para la configuración inspeccionada y sus pendientes de interfaz.
 - `photo-cutout` sigue en un resolver heredado desconectado; no retires procesamiento general de imagen, FFmpeg, audio ni exportación.
+
+## Estado de la continuación Construir → Animation
+- La rama `work/animation-auto-visuals-20261007` parte de la corrección de navegación `3ddbf01c948dfc138a2217e7178cd3061f5c6432`; retorno: etiqueta local `checkpoint/animation-auto-before-20261007`.
+- El resumen y las verificaciones de esta continuación están en `docs/animation-build-auto-20261007.md`. La prueba de aceptación desde la interfaz Electron sigue pendiente cuando Computer Use no expone la ventana.

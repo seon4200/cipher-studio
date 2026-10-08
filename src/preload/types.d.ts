@@ -19,12 +19,14 @@ export interface IElectronAPI {
   animationLoadDraft: (draftId: string) => Promise<{ success: boolean; draft?: any; error?: string }>;
   animationListDrafts: (timelineClipId: string) => Promise<{ success: boolean; drafts?: Array<{ draftId: string; createdAt?: string | null; route?: string; quote?: string; purpose?: string; previewAvailable?: boolean; applied?: boolean; planHash?: string }>; invalidDraftCount?: number; error?: string }>;
   animationSaveProject: (state: any) => Promise<{ success: boolean; state?: any; error?: string }>;
+  animationSaveBuildState: (params: { projectPath: string; projectState: any; animationState: any }) => Promise<{ success: boolean; error?: string }>;
+  animationProjectJobs: () => Promise<{ success: boolean; jobs?: Array<{ jobId: string; kind?: string; clipId?: string | null; phase?: string }>; error?: string }>;
   animationAddReference: (filePath: string) => Promise<{ success: boolean; reference?: any; framePaths?: string[]; error?: string }>;
   animationGenerateDraft: (params: any) => Promise<{ success: boolean; kind?: 'answer'|'draft'; response?: string; threadId?: string;
     draft?: any; clip?: any; draftFile?: string; metrics?: any; error?: string }>;
   animationAdjustDraftStyle: (params: { draftId: string; jobId: string; patch: Record<string, unknown>; instruction?: string }) => Promise<{ success: boolean; draft?: any; clip?: any; metrics?: any; error?: string }>;
   animationReviewDraft: (params: { draftId: string; jobId: string; threadId?: string | null; userMessage: string }) => Promise<{ success: boolean; response?: string; threadId?: string; provider?: string; model?: string; phases?: string[]; metrics?: any; error?: string }>;
-  animationReplayDraft: (params: { draftId: string; jobId: string; parameters?: Record<string, unknown> }) => Promise<{ success: boolean; draftId?: string; rendered?: any; planHash?: string; parameterHash?: string | null; parameters?: Record<string, unknown>; route?: string; error?: string }>;
+  animationReplayDraft: (params: { draftId: string; jobId: string; clipId?: string; projectPath?: string; parameters?: Record<string, unknown> }) => Promise<{ success: boolean; draftId?: string; rendered?: any; planHash?: string; parameterHash?: string | null; parameters?: Record<string, unknown>; route?: string; error?: string }>;
   animationSaveTemplate: (params: { draftId: string; title: string; kind: 'component'|'recipe'|'sequence'; componentId?: string }) => Promise<{ success: boolean; template?: any; error?: string }>;
   animationListTemplates: () => Promise<{ success: boolean; templates?: any[]; error?: string }>;
   animationCancel: (jobId: string) => Promise<{ success: boolean; cancelled?: boolean; settled?: boolean; error?: string }>;
