@@ -5,7 +5,8 @@
 - Repositorio: `https://github.com/seon4200/cipher-studio.git`; rama oficial: `master`.
 - Rama aislada de esta continuación: `work/animation-auto-visuals-20261007`.
 - Base local: commit `3ddbf01c948dfc138a2217e7178cd3061f5c6432`, con la corrección de navegación transcripción → guion → audio → estilo.
-- Retorno completo previo a los cambios: etiqueta `checkpoint/animation-auto-before-20261007`, apuntando a esa misma base. Esta etiqueta conserva HEAD; el worktree queda separado y los proyectos de aceptación están fuera de Git.
+- Retorno completo previo a los cambios: etiqueta remota `checkpoint/animation-auto-before-20261007`, apuntando a esa misma base y conservando la corrección de navegación. Los proyectos de aceptación están fuera de Git.
+- Código de esta continuación: commit `3d4c25df1c30b711393f6e9066e8a0001f0a08cb`, checkpoint remoto `checkpoint/animation-build-code-20261007`. Esta etiqueta preserva el código verificado; la aceptación Electron sigue pendiente y no es una etiqueta de release.
 - Los próximos chats deben crear una rama/worktree propios desde la versión acordada; no compartir una carpeta activa.
 
 ## Comportamiento implementado
@@ -39,4 +40,4 @@ El build deja `dist/` y `dist-electron/` dentro de esta misma carpeta. Para abri
 - La aceptación real en Electron está pendiente: Computer Use devolvió `apps: []`, por lo que no fue posible confirmar ni controlar una ventana. El build y los contratos no demuestran una generación desde la interfaz.
 - No se enviaron solicitudes a Codex ni a proveedores de medios durante estas pruebas; generación/render/aplicación reales son 0/0/0. Vibes, IA, Stock y MiniMax quedaron fuera de esta continuación.
 - Pendiente de interfaz: desde Construir, completar los cinco slots del proyecto de aceptación; comprobar cinco MP4 reproducibles en sus intervalos, guardado/reapertura, segunda ejecución sin nuevas llamadas y conservación de los demás medios. No declarar esos Visuales completados antes de esa prueba.
-- No se declara aceptación ni publicación en `master` hasta completar la prueba de interfaz. La etiqueta de retorno local conserva exactamente el HEAD previo a esta implementación; cualquier rama de revisión debe indicar que la aceptación Electron sigue pendiente.
+- La rama y ambos checkpoints están publicados; `master` no se actualizó. La PR de continuación queda pendiente: el conector GitHub rechazó su creación con `403 Resource not accessible by integration`. No declarar aceptación Electron hasta completar la prueba de interfaz.
