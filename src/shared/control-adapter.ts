@@ -13,7 +13,7 @@ export type ControlAdapterSettings = {
   graphicsPercent?: 0 | 50 | 100;
   transitionsPercent?: 0 | 50 | 100;
   voice?: {
-    mode: "original" | "elevenlabs";
+    mode: "original" | "elevenlabs" | "none";
     voiceId?: string;
     voiceName?: string;
     model?: "Eleven Multilingual v2" | "Eleven English v1" | "Eleven Turbo v2";
@@ -23,6 +23,7 @@ export type ControlAdapterSettings = {
   };
   sourceHasAudio?: boolean;
   sourceDurationSeconds?: number;
+  buildDurationSeconds?: number;
   voiceName?: string;
 };
 
@@ -86,10 +87,10 @@ export function validateControlAdapterJob(raw: unknown): ControlAdapterJob {
         job.sourceRelativePath !== `projects/${job.projectId}/source/attempts/${job.sourceAttemptId}/${filename}`)
       throw new Error('CONTROL_SOURCE_PATH_INVALID');
   }
-  if (['register-source','transcribe','build'].includes(job.kind) && !job.sourceRelativePath)
+  if (['register-source','transcribe'].includes(job.kind) && !job.sourceRelativePath)
     throw new Error('CONTROL_SOURCE_REQUIRED');
   if (job.settings !== undefined) {
-    if (!ownRecord(job.settings) || !onlyKeys(job.settings, ['scriptText','weights','graphicsPercent','transitionsPercent','voice','sourceHasAudio','sourceDurationSeconds','voiceName']))
+    if (!ownRecord(job.settings) || !onlyKeys(job.settings, ['scriptText','weights','graphicsPercent','transitionsPercent','voice','sourceHasAudio','sourceDurationSeconds','buildDurationSeconds','voiceName']))
       throw new Error('CONTROL_SETTINGS_INVALID');
     const settings = job.settings as unknown as ControlAdapterSettings;
     if (settings.scriptText !== undefined && !boundedText(settings.scriptText, 4000)) throw new Error('CONTROL_SCRIPT_INVALID');
@@ -97,6 +98,8 @@ export function validateControlAdapterJob(raw: unknown): ControlAdapterJob {
     if (settings.sourceHasAudio !== undefined && typeof settings.sourceHasAudio !== 'boolean') throw new Error('CONTROL_SOURCE_AUDIO_INVALID');
     if (settings.sourceDurationSeconds !== undefined && (!Number.isFinite(settings.sourceDurationSeconds) || settings.sourceDurationSeconds <= 0 || settings.sourceDurationSeconds > 86400))
       throw new Error('CONTROL_SOURCE_DURATION_INVALID');
+    if (settings.buildDurationSeconds !== undefined && (!Number.isFinite(settings.buildDurationSeconds) || settings.buildDurationSeconds <= 0 || settings.buildDurationSeconds > 86400))
+      throw new Error('CONTROL_BUILD_DURATION_INVALID');
     if (settings.weights !== undefined && (!Array.isArray(settings.weights) || settings.weights.length !== 4 ||
         settings.weights.some(value => !Number.isInteger(value) || value < 0 || value > 100) || settings.weights.reduce((a, b) => a + b, 0) !== 100))
       throw new Error('CONTROL_MIX_INVALID');
@@ -104,7 +107,7 @@ export function validateControlAdapterJob(raw: unknown): ControlAdapterJob {
     if (settings.transitionsPercent !== undefined && ![0,50,100].includes(settings.transitionsPercent)) throw new Error('CONTROL_TRANSITIONS_INVALID');
     if (settings.voice !== undefined) {
       if (!ownRecord(settings.voice) || !onlyKeys(settings.voice, ['mode','voiceId','voiceName','model','speed','stability','approvedAudioAttemptId']) ||
-          !['original','elevenlabs'].includes(String(settings.voice.mode))) throw new Error('CONTROL_VOICE_INVALID');
+          !['original','elevenlabs','none'].includes(String(settings.voice.mode))) throw new Error('CONTROL_VOICE_INVALID');
       if (settings.voice.approvedAudioAttemptId !== undefined && !isUuid(settings.voice.approvedAudioAttemptId)) throw new Error('CONTROL_AUDIO_VERSION_INVALID');
       if (settings.voice.mode === 'elevenlabs' &&
           (typeof settings.voice.voiceId !== 'string' || !/^[A-Za-z0-9_-]{5,64}$/.test(settings.voice.voiceId) ||
@@ -123,5 +126,11 @@ export function validateControlAdapterJob(raw: unknown): ControlAdapterJob {
     throw new Error('CONTROL_BUILD_SETTINGS_REQUIRED');
   if (job.kind === 'build' && job.settings?.voice?.mode === 'original' && job.settings.sourceHasAudio !== true)
     throw new Error('SOURCE_AUDIO_UNAVAILABLE');
+  if (job.kind === 'build' && ((job.settings?.weights?.[0] ?? 0) > 0 || job.settings?.voice?.mode === 'original') && !job.sourceRelativePath)
+    throw new Error('CONTROL_SOURCE_REQUIRED');
+  if (job.kind === 'build' && job.settings?.voice?.mode === 'none' && !(Number(job.settings.buildDurationSeconds) > 0))
+    throw new Error('CONTROL_BUILD_DURATION_REQUIRED');
+  if (job.kind === 'build' && job.settings?.voice?.mode === 'none' && (job.settings?.weights?.[3] ?? 0) > 0 && Number(job.settings.buildDurationSeconds) < 3)
+    throw new Error('CONTROL_ANIMATION_DURATION_TOO_SHORT');
   return job;
 }

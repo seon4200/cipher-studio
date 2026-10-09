@@ -19,6 +19,29 @@ function configuredModelInfo() {
   } catch { return { model: null, reasoningEffort: null } }
 }
 
+function parseMcpServerNames(configText = '') {
+  const names = new Set(['cipher_animation', 'node_repl', 'cua_repl'])
+  for (const line of String(configText).split(/\r?\n/)) {
+    const match = line.match(/^\s*\[mcp_servers\.([^.\]]+)(?:\.[^\]]+)?\]\s*$/)
+    const name = match?.[1]?.trim().replace(/^["']|["']$/g, '')
+    if (name && /^[A-Za-z0-9_-]{1,80}$/.test(name)) names.add(name)
+  }
+  return [...names].sort()
+}
+
+function buildPlannerMcpOverrides(configText = '') {
+  return parseMcpServerNames(configText).flatMap(name => [
+    [`mcp_servers.${name}.enabled`, 'false'],
+    [`mcp_servers.${name}.required`, 'false'],
+  ])
+}
+
+function configuredMcpServerNames() {
+  const codexHome = process.env.CODEX_HOME || path.join(os.homedir(), '.codex')
+  try { return parseMcpServerNames(fs.readFileSync(path.join(codexHome, 'config.toml'), 'utf8')) }
+  catch { return parseMcpServerNames('') }
+}
+
 function terminateChildTree(child) {
   if (!child || child.exitCode !== null) return Promise.resolve()
   if (process.platform !== 'win32' || !Number.isInteger(child.pid)) {
@@ -130,9 +153,9 @@ function isThreadResumeWriterConflict(error) {
     /thread [0-9a-f-]{36} already has an active writer/i.test(message)
 }
 
-async function openCodexThread(request, threadId, cwd) {
+async function openCodexThread(request, threadId, cwd, serviceName = 'cipher-animation') {
   if (!threadId) {
-    return { result: await request('thread/start', { cwd, serviceName: 'cipher-animation', personality: 'friendly' }),
+    return { result: await request('thread/start', { cwd, serviceName, personality: 'friendly' }),
       recovery: null }
   }
   try {
@@ -144,7 +167,7 @@ async function openCodexThread(request, threadId, cwd) {
     // and saved drafts remain the source of continuity.
     if (!isThreadResumeWriterConflict(error)) throw error
     return {
-      result: await request('thread/start', { cwd, serviceName: 'cipher-animation', personality: 'friendly' }),
+      result: await request('thread/start', { cwd, serviceName, personality: 'friendly' }),
       recovery: 'active-writer-conflict-before-turn-start',
     }
   }
@@ -165,7 +188,9 @@ class CodexAppServerProvider {
   constructor({ timeoutMs = 600_000 } = {}) { this.timeoutMs = timeoutMs }
 
   async complete({ prompt, cwd, threadId, signal, onProgress, referencePaths = [], outputSchema,
-    reusableSceneTemplate = null, failureEvidenceDirectory = null }) {
+    reusableSceneTemplate = null, failureEvidenceDirectory = null, purpose = 'animation' }) {
+    const isBuildPlanner = purpose === 'build-planner'
+    if (!['animation', 'build-planner'].includes(purpose)) throw new Error('CODEX_PURPOSE_UNSUPPORTED')
     const providerStartedAt = performance.now()
     const phaseTimings = {}
     const toolCallSpans = []
@@ -175,7 +200,7 @@ class CodexAppServerProvider {
     let validationFailures = 0
     let lastValidationCode = null
     const modelInfo = configuredModelInfo()
-    const requestMetadata = { promptChars: typeof prompt === 'string' ? prompt.length : 0,
+    const requestMetadata = { purpose, promptChars: typeof prompt === 'string' ? prompt.length : 0,
       referenceCount: Array.isArray(referencePaths) ? referencePaths.length : 0, resumedThread: Boolean(threadId) }
     let threadRecovery = null
     const timingSnapshot = () => ({ schema: 'cipher-animation-provider-timing-v1', provider: 'codex-app-server',
@@ -190,38 +215,45 @@ class CodexAppServerProvider {
     let phaseStarted = performance.now()
     const executable = resolveCodexExecutable()
     phaseTimings.resolveCodexExecutableMs = Math.round(performance.now() - phaseStarted)
-    if (!executable) throw new Error('ANIMATION_CODEX_CLI_NOT_INSTALLED')
-    phaseStarted = performance.now()
-    const nodeExecutable = resolveNodeExecutable()
-    phaseTimings.resolveNodeExecutableMs = Math.round(performance.now() - phaseStarted)
-    if (!nodeExecutable) throw new Error('ANIMATION_NODE_RUNTIME_NOT_INSTALLED')
+    if (!executable) throw new Error(isBuildPlanner ? 'BUILD_CODEX_CLI_NOT_INSTALLED' : 'ANIMATION_CODEX_CLI_NOT_INSTALLED')
+    let nodeExecutable = null
+    if (!isBuildPlanner) {
+      phaseStarted = performance.now()
+      nodeExecutable = resolveNodeExecutable()
+      phaseTimings.resolveNodeExecutableMs = Math.round(performance.now() - phaseStarted)
+      if (!nodeExecutable) throw new Error('ANIMATION_NODE_RUNTIME_NOT_INSTALLED')
+    }
     phaseStarted = performance.now()
     const status = await codexConnectionStatus()
     phaseTimings.connectionAndLoginCheckMs = Math.round(performance.now() - phaseStarted)
     if (status.status === 'unsupported-version' || status.status === 'version-unknown')
-      throw new Error(`ANIMATION_CODEX_VERSION_UNSUPPORTED:expected=${status.expectedVersion || SUPPORTED_CODEX_CLI_VERSION},detected=${status.version || 'unknown'}`)
-    if (!status.authenticated) throw new Error('ANIMATION_CODEX_LOGIN_REQUIRED')
-    if (typeof prompt !== 'string' || !prompt.trim()) throw new Error('ANIMATION_PROMPT_EMPTY')
-    if (signal?.aborted) throw new Error('ANIMATION_CANCELLED')
+      throw new Error(`${isBuildPlanner ? 'BUILD' : 'ANIMATION'}_CODEX_VERSION_UNSUPPORTED:expected=${status.expectedVersion || SUPPORTED_CODEX_CLI_VERSION},detected=${status.version || 'unknown'}`)
+    if (!status.authenticated) throw new Error(isBuildPlanner ? 'BUILD_CODEX_LOGIN_REQUIRED' : 'ANIMATION_CODEX_LOGIN_REQUIRED')
+    if (typeof prompt !== 'string' || !prompt.trim()) throw new Error(isBuildPlanner ? 'BUILD_CODEX_PROMPT_EMPTY' : 'ANIMATION_PROMPT_EMPTY')
+    if (signal?.aborted) throw new Error(isBuildPlanner ? 'BUILD_CODEX_CANCELLED' : 'ANIMATION_CANCELLED')
     // The chat agent receives no project path. It gets only transcript/scene data from the
     // caller, and the optional exact reference folders below are the only readable roots.
     const safeCwd = os.tmpdir()
-    const toolSessionDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-animation-agent-'))
+    const toolSessionDir = isBuildPlanner ? null : fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-animation-agent-'))
     let selectedTemplateFile = ''
     if (reusableSceneTemplate) {
       selectedTemplateFile = path.join(toolSessionDir, 'selected-scene-template.json')
       fs.writeFileSync(selectedTemplateFile, JSON.stringify(reusableSceneTemplate), { encoding: 'utf8', mode: 0o600 })
     }
-    const toolServerFile = [path.join(__dirname, 'cipher-animation-tools-server.cjs'),
+    const toolServerFile = isBuildPlanner ? null : [path.join(__dirname, 'cipher-animation-tools-server.cjs'),
       path.join(__dirname, 'animation', 'cipher-animation-tools-server.cjs')].find(file => fs.existsSync(file))
-    if (!toolServerFile) { try { fs.rmSync(toolSessionDir, { recursive: true, force: true }) } catch {}; throw new Error('ANIMATION_TOOLS_SERVER_NOT_INSTALLED') }
+    if (!isBuildPlanner && !toolServerFile) { try { fs.rmSync(toolSessionDir, { recursive: true, force: true }) } catch {}; throw new Error('ANIMATION_TOOLS_SERVER_NOT_INSTALLED') }
     const childEnv = { ...process.env }
     delete childEnv.OPENAI_API_KEY
     delete childEnv.CODEX_API_KEY
-    childEnv.CIPHER_ANIMATION_TOOL_SESSION_DIR = toolSessionDir
+    if (toolSessionDir) childEnv.CIPHER_ANIMATION_TOOL_SESSION_DIR = toolSessionDir
     const privateRejectedSourceDir = typeof failureEvidenceDirectory === 'string' && path.isAbsolute(failureEvidenceDirectory)
       ? path.resolve(failureEvidenceDirectory) : ''
     const config = [
+      ...(isBuildPlanner ? configuredMcpServerNames().flatMap(name => [
+        [`mcp_servers.${name}.enabled`, 'false'],
+        [`mcp_servers.${name}.required`, 'false'],
+      ]) : [
       ['mcp_servers.cipher_animation.command', JSON.stringify(nodeExecutable)],
       ['mcp_servers.cipher_animation.args', JSON.stringify([toolServerFile])],
       ['mcp_servers.cipher_animation.env', '{CIPHER_ANIMATION_TOOL_SESSION_DIR=' + JSON.stringify(toolSessionDir) +
@@ -230,9 +262,9 @@ class CodexAppServerProvider {
       ['mcp_servers.cipher_animation.required', 'true'],
       ['mcp_servers.node_repl.enabled', 'false'],
       ['mcp_servers.cua_repl', '{enabled=false,command=' + JSON.stringify(nodeExecutable) + ',args=["disabled-placeholder"]}'],
-      // The embedded Windows session needs only local MCP tools, so shell snapshots stay disabled.
-      // Animation only needs its local MCP tools, so disable the optional snapshot
-      // optimization for this embedded session without changing the user's config.
+      ]),
+      // These one-shot sessions do not need shell snapshot optimization. This override is
+      // scoped to the child process and never edits the user's Codex config.
       ['features.shell_snapshot', 'false'],
     ].flatMap(([key, value]) => ['-c', key + '=' + value])
     const child = spawn(executable, [...config, 'app-server', '--stdio'], { cwd: safeCwd,
@@ -310,7 +342,7 @@ class CodexAppServerProvider {
         // Surface coarse, content-free progress so a long code-authoring turn does not look
         // stalled. Never forward prompt text, tool arguments, or generated source here.
         if (String(item.type || '').toLowerCase().includes('mcp') || String(item.type || '').toLowerCase().includes('tool'))
-          onProgress?.({ phase: 'tool', message: 'El agente completó una operación de Animation.' })
+          onProgress?.({ phase: 'tool', message: isBuildPlanner ? 'Codex está preparando el plan.' : 'El agente completó una operación de Animation.' })
       }
       if (msg.method === 'item/agentMessage/delta') finalMessage += String(msg.params?.delta ?? '')
       if (msg.method === 'item/started') {
@@ -321,14 +353,14 @@ class CodexAppServerProvider {
           openToolCalls.set(item.id, { tool: String(item.tool || item.name || item.server || 'unknown'),
             startedMs: performance.now(), startedAtUtc: new Date().toISOString() })
         if (String(item.type || '').toLowerCase().includes('mcp') || String(item.type || '').toLowerCase().includes('tool'))
-          onProgress?.({ phase: 'tool', message: 'El agente está usando una herramienta de Animation.' })
+          onProgress?.({ phase: 'tool', message: isBuildPlanner ? 'Codex está preparando el plan.' : 'El agente está usando una herramienta de Animation.' })
       }
       if (msg.method === 'item/agentMessage/delta' && firstTextDeltaMs === null && String(msg.params?.delta || '').length)
         firstTextDeltaMs = Math.round(performance.now() - providerStartedAt)
       if (msg.method === 'turn/started') {
         turnId = msg.params?.turn?.id || turnId
         if (firstTurnStartedMs === null) firstTurnStartedMs = Math.round(performance.now() - providerStartedAt)
-        onProgress?.({ phase: 'thinking', message: 'Animation está preparando la dirección.' })
+        onProgress?.({ phase: 'thinking', message: isBuildPlanner ? 'Codex está planificando Construir.' : 'Animation está preparando la dirección.' })
       }
       if (msg.method === 'turn/completed') {
         const turn = msg.params?.turn
@@ -344,7 +376,7 @@ class CodexAppServerProvider {
       }
     }
     rl.on('line', onLine)
-    const onAbort = () => rejectWithTiming(new Error('ANIMATION_CANCELLED'))
+    const onAbort = () => rejectWithTiming(new Error(isBuildPlanner ? 'BUILD_CODEX_CANCELLED' : 'ANIMATION_CANCELLED'))
     signal?.addEventListener('abort', onAbort, { once: true })
     const deadline = setTimeout(() => rejectWithTiming(new Error('ANIMATION_CODEX_TIMEOUT')), this.timeoutMs)
     child.once('error', () => rejectWithTiming(new Error('ANIMATION_CODEX_SPAWN_FAILED')))
@@ -362,20 +394,24 @@ class CodexAppServerProvider {
         { clientInfo: { name: 'cipher-animation', title: 'Cipher Animation', version: '1.0.0' } })
       child.stdin.write(JSON.stringify({ method: 'initialized', params: {} }) + '\n')
       phaseStarted = performance.now()
-      const threadOpen = await openCodexThread(request, threadId, safeCwd)
+      const serviceName = isBuildPlanner ? 'cipher-build-planner' : 'cipher-animation'
+      const threadOpen = await openCodexThread(request, threadId, safeCwd, serviceName)
       const threadResult = threadOpen.result
       threadRecovery = threadOpen.recovery
       phaseTimings.threadResumeOrStartRpcMs = Math.round(performance.now() - phaseStarted)
       activeThreadId = threadResult?.thread?.id || threadResult?.id || activeThreadId
       if (!activeThreadId) throw new Error('ANIMATION_CODEX_THREAD_ID_MISSING')
-      const mcpStatus = await measuredRequest('toolServerReadinessRpcMs', 'mcpServerStatus/list', { threadId: activeThreadId,
-        serverName: 'cipher_animation', detail: 'toolsAndAuthOnly', limit: 10 })
-      const mcpServer = (mcpStatus?.data || []).find(server => server.name === 'cipher_animation')
-      const mcpToolNames = Object.keys(mcpServer?.tools || {})
-      if (!mcpServer || !mcpToolNames.includes('animation_get_capabilities') || !mcpToolNames.includes('animation_configure_recipe') ||
-          !mcpToolNames.includes('animation_create_scene_module'))
-        throw new Error(`ANIMATION_TOOLS_SERVER_UNAVAILABLE:${mcpServer?.runtimeStatus?.status || mcpServer?.toolsError || 'not-registered'}`)
-      onProgress?.({ phase: 'request', message: 'Enviando el contexto seleccionado al agente local.' })
+      let mcpToolNames = []
+      if (!isBuildPlanner) {
+        const mcpStatus = await measuredRequest('toolServerReadinessRpcMs', 'mcpServerStatus/list', { threadId: activeThreadId,
+          serverName: 'cipher_animation', detail: 'toolsAndAuthOnly', limit: 10 })
+        const mcpServer = (mcpStatus?.data || []).find(server => server.name === 'cipher_animation')
+        mcpToolNames = Object.keys(mcpServer?.tools || {})
+        if (!mcpServer || !mcpToolNames.includes('animation_get_capabilities') || !mcpToolNames.includes('animation_configure_recipe') ||
+            !mcpToolNames.includes('animation_create_scene_module'))
+          throw new Error(`ANIMATION_TOOLS_SERVER_UNAVAILABLE:${mcpServer?.runtimeStatus?.status || mcpServer?.toolsError || 'not-registered'}`)
+      }
+      onProgress?.({ phase: 'request', message: isBuildPlanner ? 'Enviando el guion al planificador Codex.' : 'Enviando el contexto seleccionado al agente local.' })
       const roots = [...new Set(referencePaths.filter(x => typeof x === 'string' && path.isAbsolute(x)).map(x => path.dirname(x)))]
       const input = [{ type: 'text', text: prompt }, ...referencePaths.filter(x => typeof x === 'string' && path.isAbsolute(x))
         .map(imagePath => ({ type: 'localImage', path: imagePath }))]
@@ -396,10 +432,10 @@ class CodexAppServerProvider {
       turnFinished = true
       phaseTimings.providerTotalMs = Math.round(performance.now() - providerStartedAt)
       if (!finalMessage.trim()) throw new Error('ANIMATION_CODEX_EMPTY_RESPONSE')
-      const artifactPath = path.join(toolSessionDir, 'agent-artifact.json')
-      const tracePath = path.join(toolSessionDir, 'animation-tool-trace.jsonl')
-      const artifact = fs.existsSync(artifactPath) ? JSON.parse(fs.readFileSync(artifactPath, 'utf8')) : null
-      const toolTrace = fs.existsSync(tracePath) ? fs.readFileSync(tracePath, 'utf8').split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line)) : []
+      const artifactPath = toolSessionDir && path.join(toolSessionDir, 'agent-artifact.json')
+      const tracePath = toolSessionDir && path.join(toolSessionDir, 'animation-tool-trace.jsonl')
+      const artifact = artifactPath && fs.existsSync(artifactPath) ? JSON.parse(fs.readFileSync(artifactPath, 'utf8')) : null
+      const toolTrace = tracePath && fs.existsSync(tracePath) ? fs.readFileSync(tracePath, 'utf8').split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line)) : []
       return { text: finalMessage.trim(), threadId: activeThreadId, provider: 'codex-app-server',
         model: modelInfo.model || 'Codex configured model', reasoningEffort: modelInfo.reasoningEffort,
         artifact, toolTrace, mcpToolNames, providerTiming: timingSnapshot() }
@@ -418,7 +454,7 @@ class CodexAppServerProvider {
         const exited = await waitForClose(child, 1200)
         if (!exited) await terminate()
       }
-      try { fs.rmSync(toolSessionDir, { recursive: true, force: true }) } catch {}
+      if (toolSessionDir) try { fs.rmSync(toolSessionDir, { recursive: true, force: true }) } catch {}
       phaseTimings.providerTotalMs = Math.round(performance.now() - providerStartedAt)
       if (operationError && typeof operationError === 'object') operationError.providerTiming = timingSnapshot()
     }
@@ -426,4 +462,4 @@ class CodexAppServerProvider {
 }
 
 module.exports = { CodexAppServerProvider, codexConnectionStatus, resolveCodexExecutable, resolveNodeExecutable,
-  isThreadResumeWriterConflict, openCodexThread, SUPPORTED_CODEX_CLI_VERSION }
+  isThreadResumeWriterConflict, openCodexThread, parseMcpServerNames, buildPlannerMcpOverrides, SUPPORTED_CODEX_CLI_VERSION }

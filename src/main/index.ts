@@ -1,4 +1,6 @@
 import { allocateBuildSources, pendingBuildSlot, requiredMediaPending, sameBuildSlot, isPendingCommonSlot } from '../shared/build-integrity'
+import { createTimedScriptSegments, createAnimationSlotsFromSegments, buildPlannerPhraseCount } from '../shared/build-planning'
+import { planBuildWithCodex } from './services/build-planner'
 import { app, BrowserWindow, ipcMain, dialog, screen } from 'electron'
 import path from 'path'
 import os from 'os'
@@ -80,7 +82,7 @@ export const {
 // poder probarlo entero, que es lo que hace utiles a reparto.ts, exclusion.ts y ciclo.ts.
 import {
   coleccionDeAvisos, armarResumen, textoResumen, describirMotivo, totalRespaldo, MOTIVOS,
-  type Aviso, type Resumen, type FilaResumen, type MotivoRespaldo
+  type Resumen, type FilaResumen
 } from '../shared/avisos'
 export { coleccionDeAvisos, armarResumen, textoResumen, describirMotivo, totalRespaldo, MOTIVOS }
 export { repartoObjetivos, repartirPesos, normalizarPesos, PESOS_POR_DEFECTO }
@@ -5101,506 +5103,155 @@ ipcMain.handle('retry-timeline-asset', async (event, input: any) => {
   } catch (error: any) { return { success: false, error: String(error?.message || error) } }
 });
 
-handleProcessing('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments, audioProvenance, segmentProvenance }) => {
-  // The fourth quota creates Animation slots. No legacy icon, catalogue, or raster renderer is called.
-  if (!['original', 'generated'].includes(audioProvenance?.origin) ||
-      segmentProvenance?.source !== 'source-transcript' || segmentProvenance?.narration !== audioProvenance.origin)
-    return { success: false, error: 'BUILD_AUDIO_PROVENANCE_REQUIRED' };
-  const isOriginalAudio = audioProvenance.origin === 'original';
+const activeBuildPlannerJobs = new Map<number, AbortController>()
+ipcMain.handle('build:cancel-planning', (event) => {
+  const controller = activeBuildPlannerJobs.get(event.sender.id)
+  if (!controller) return { success: true, cancelled: false }
+  controller.abort()
+  return { success: true, cancelled: true }
+})
 
-  // Fusionar segmentos cortos (<2.0s) para que los clips duren 2-3s
-  // Se hace DESPUÉS de calcular isOriginalAudio y ANTES de usar los segmentos
-  if (isOriginalAudio && newAudioSegments && Array.isArray(newAudioSegments) && newAudioSegments.length > 0) {
-    const merged: any[] = [];
-    let i = 0;
-    while (i < newAudioSegments.length) {
-      const seg = { ...newAudioSegments[i] };
-      while (
-        i + 1 < newAudioSegments.length &&
-        (seg.end - seg.start) < 2.0
-      ) {
-        i++;
-        seg.end = newAudioSegments[i].end;
-        seg.text = (seg.text || '') + ' ' + (newAudioSegments[i].text || '');
-      }
-      merged.push(seg);
-      i++;
-    }
-    if (merged.length < newAudioSegments.length) {
-      console.log(`[MERGE] Segmentos: ${newAudioSegments.length} → ${merged.length}`);
-    }
-    newAudioSegments = merged;
-  }
-
-  // LOS AVISOS DE ESTA GENERACION. Se crean AQUI, o sea que se vacian al empezar cada una: un
-  // aviso viejo colgado de una generacion previa miente igual que no avisar. Es el mismo
-  // razonamiento que ya justifica `anunciarExclusion` en el renderer, y no se reinventa.
-  const avisos = coleccionDeAvisos();
-  // Ver el comentario de `decisiones = clipsDecision`: existe para que el resumen del `finally`
-  // pueda contar aunque la generacion no llegue al final.
-  let decisiones: any[] = [];
-  // Keep the real media outputs visible to the finally-summary. Decisions alone
-  // are only a plan: they are not proof that an MP4 was materialized.
-  let resultadosMaterializados: any[] = [];
-  let completa = false;
-
-  /**
-   * Anade un aviso y lo emite. SINCRONO a proposito: no espera al log.
-   *
-   * `writeDebugLog` es asincrono y va en cola -- medido: leyendo el log justo despues de un
-   * lote se recogian 2 de 3 tiradas porque la ultima no habia bajado a disco. Si el aviso
-   * esperara a esa cola, un log atascado se llevaria el aviso por delante, que es exactamente
-   * el fallo que esta fase existe para impedir.
-   *
-   * SOLO EMITE CUANDO EL CODIGO ES NUEVO. Eso ES la agregacion: el mismo codigo 200 veces es
-   * UNA linea con contador, no 200 mensajes. El contador definitivo viaja en el resumen final.
-   */
-  const avisar = (a: Omit<Aviso, 'veces'>): void => {
-    if (avisos.anadir(a)) enviarAviso(event, { tipo: 'avisos', lista: avisos.lista() });
-    writeDebugLog(`[AVISO] ${a.severidad} ${a.origen}/${a.codigo}: ${a.mensaje}` +
-      (a.detalle ? ` | ${a.detalle}` : '')).catch(() => {});
-  };
-
-  const logMessage = async (msg: string) => {
-    console.log(msg);
-    await writeDebugLog(msg);
-  };
-
+handleProcessing('generate-timeline-assets', async (event, { scriptText, audioDuration, buildDurationSeconds, videoPath, weights, iaStyle, aspectRatio, newAudioSegments, audioProvenance, segmentProvenance }) => {
+  const controller = new AbortController()
+  activeBuildPlannerJobs.set(event.sender.id, controller)
+  const avisos = coleccionDeAvisos()
+  let decisiones: any[] = []
+  let resultadosMaterializados: any[] = []
+  let completa = false
+  const logMessage = async (msg: string) => { console.log(msg); await writeDebugLog(msg) }
   try {
-    await logMessage(`[generate-timeline-assets] Iniciando... Guión a procesar: "${scriptText ? scriptText.substring(0, 60) + '...' : ''}"`);
-
-    // FASE 1: Calcular clips necesarios
-    let totalClips = 0;
-    if (newAudioSegments && Array.isArray(newAudioSegments) && newAudioSegments.length > 0) {
-      totalClips = newAudioSegments.length;
-      await logMessage(`[FASE 1] Usando newAudioSegments con timestamps reales. Total clips: ${totalClips}`);
+    const script = String(scriptText || '').trim()
+    if (!script || script.length > 60000) throw new Error('BUILD_SCRIPT_REQUIRED')
+    if (!Array.isArray(weights) || weights.length !== 4 || weights.some((value: any) => !Number.isInteger(value) || value < 0 || value > 100) ||
+        weights.reduce((sum: number, value: number) => sum + value, 0) !== 100) throw new Error('BUILD_WEIGHTS_INVALID')
+    repartoObjetivos(weights, 1)
+    const origin = audioProvenance?.origin
+    const hasNarration = origin === 'original' || origin === 'generated'
+    if (!hasNarration && origin !== 'none') throw new Error('BUILD_AUDIO_PROVENANCE_REQUIRED')
+    let timelineDuration = 0
+    let segments: any[]
+    if (origin === 'none') {
+      timelineDuration = Number(buildDurationSeconds)
+      segments = createTimedScriptSegments(script, timelineDuration)
+      if (weights[3] > 0) segments = createAnimationSlotsFromSegments(segments, timelineDuration, script)
+      audioProvenance = { origin: 'none' }
     } else {
-      const errMsg = 'No se encontraron los segmentos de audio transcritos de ElevenLabs (newAudioSegments). Por favor, genera la voz primero.';
-      await logMessage(`[FASE 1] Error: ${errMsg}`);
-      return { success: false, error: errMsg };
-    }
-
-    if (!videoPath || !(await exists(videoPath))) {
-      return { success: false, error: `No se encontró el video original: ${videoPath}` };
-    }
-
-    // FASE 2: DeepSeek → timestamps & tipos de clip
-    await logMessage('[FASE 2] Solicitando timestamps y tipos de clip a DeepSeek...');
-    loadEnv(true);
-    const apiKey = process.env.DEEPSEEK_API_KEY;
-    if (!apiKey) return { success: false, error: 'No se configuró DEEPSEEK_API_KEY en el archivo .env' };
-
-    // Asegurar que FAL_KEY y PEXELS_API_KEY estén en el entorno
-    const falApiKey = process.env.FAL_KEY;
-    if (falApiKey) {
-      process.env.FAL_KEY = falApiKey;
-    }
-    let clipsDecision: any[] = [];
-
-    event.sender.send('generation-progress', {
-      index: 0, total: totalClips,
-      paragraph: 'Consultando DeepSeek para seleccionar fragmentos e IA...',
-      type: 'DeepSeek'
-    });
-
-    const maxTsVal = transcriptSegments?.length > 0
-      ? (transcriptSegments[transcriptSegments.length - 1]?.end ?? audioDuration)
-      : audioDuration;
-
-    // Calcular cuántos sub-clips totales se requieren
-    let totalVisualClipsCount = 0;
-    if (newAudioSegments && Array.isArray(newAudioSegments)) {
-      newAudioSegments.forEach((seg: any) => {
-        const duration = seg.end - seg.start;
-        totalVisualClipsCount += seg.animationSlot === true ? 1 : duration > 4.0 ? Math.ceil(duration / 3.0) : 1;
-      });
-    }
-
-    // pesoIa se conserva porque TRES sitios preguntan `pesoIa > 0` para decidir si se respeta
-    // un 'ia' que venga del modelo y si se le piden cuotas de IA en el prompt: eso es una
-    // condicion sobre el PESO, no sobre el conteo. stockWeight desaparece: solo servia para la
-    // aritmetica que ahora vive en repartoObjetivos.
-    const pesoIa = weights ? (weights[2] ?? 0) : 0;
-
-    // La aritmetica vive en shared/reparto.ts, en UNA funcion. Estaba duplicada aqui y en la
-    // cuota de mas abajo, y añadir un origen en uno solo era el error facil de cometer y
-    // dificil de ver: el reparto salia distinto segun el sitio y nada lo decia.
-    const obj1 = repartoObjetivos(weights, totalVisualClipsCount);
-    const targetIaClips = obj1.ia;
-    const targetStockClips = obj1.stock;
-    const targetVisualClips = obj1.visual;
-    const targetOriginalClips = obj1.original;
-
-
-    await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ` +
-      `ia=${targetIaClips}, visual=${targetVisualClips}/${totalVisualClipsCount}`);
-
-    let flattenedClips: any[] = [];
-
-    let sanitizedPhrases: any[] = [];
-
-    try {
-
-
-
-      // Seis frases por lote limita el impacto de una respuesta truncada.
-      //
-      // Y un lote truncado NO se degrada: se pierde ENTERO. El propio codigo lo dice mas abajo:
-      // "AVISO: respuesta truncada (finish_reason=length). El lote se perdera y esas frases
-      // quedarán pendientes". Con 25 se perderian 25 frases de golpe; con seis, seis.
-      // El precio es mas llamadas, que a este tamaño es ruido frente a perder un lote.
-      const BATCH_SIZE = 6;
-      let phrasesDecision: any[] = [];
-
-      for (let batchStart = 0; batchStart < newAudioSegments.length; batchStart += BATCH_SIZE) {
-        const batchEnd = Math.min(batchStart + BATCH_SIZE, newAudioSegments.length);
-        const batchSegs = newAudioSegments.slice(batchStart, batchEnd);
-
-        const batchFragmentos = batchSegs.map((seg: any, idx: number) => {
-          const phraseNum = batchStart + idx + 1;
-          const duration = seg.end - seg.start;
-          const count = seg.animationSlot === true ? 1 : duration > 4.0 ? Math.ceil(duration / 3.0) : 1;
-          return '[Frase ' + phraseNum + '] \"' + seg.text + '\" (' +
-            Number(seg.start).toFixed(1) + 's - ' + Number(seg.start+duration).toFixed(1) +
-            's, duración: ' + duration.toFixed(2) + 's). Requiere exactamente ' +
-            count + ' sub-clip(s) visual(es) de aprox ' +
-            (duration / count).toFixed(2) + 's cada uno.';
-        }).join('\n');
-
-        const batchVisualCount = batchSegs.reduce((acc: number, seg: any) => {
-          const duration = seg.end - seg.start;
-          return acc + (seg.animationSlot === true ? 1 : duration > 4.0 ? Math.ceil(duration / 3.0) : 1);
-        }, 0);
-
-        // Ya no se piden cuotas de tipo: los tipos se asignan en codigo, por posicion, para
-        // garantizar los conteos y el intercalado. Pedirlas aqui era lo que limitaba el
-        // reparto: DeepSeek solo daba keyword a los que el marcaba como stock (66% de los
-        // clips), y el 34% restante quedaba como original forzado, creando rachas de hasta
-        // 16 clips seguidos que ningun algoritmo podia romper.
-        // La unica excepcion es la IA: generar un clip de IA cuesta dinero y no se puede
-        // inventar desde el codigo, asi que su cuota se sigue pidiendo, pero solo cuando el
-        // usuario la ha pedido de verdad.
-        const batchIa = pesoIa > 0
-          ? Math.round((targetIaClips / totalVisualClipsCount) * batchVisualCount)
-          : 0;
-        const lineaTipos = pesoIa > 0
-          ? 'De ' + batchVisualCount + ' sub-clips marca exactamente ' + batchIa +
-            ' con "type":"ia" y dales ademas un prompt descriptivo en ingles. El resto NO lleva campo type.\n'
-          : 'NO asignes tipos de clip. Eso se decide despues; tu unica tarea es describir cada sub-clip.\n';
-
-        const batchPrompt = 'Eres un editor de video experto.\n' +
-          'Para cada frase describe exactamente la cantidad de sub-clips indicada. Respeta el orden temporal y no asignes la misma proposición a todos.\n' +
-          'Para cada sub-clip responde únicamente con estos campos:\n' +
-          '- keyword: en ingles, corta y concreta, algo filmable que ilustre ESE trozo. Nunca abstracta: evita palabras como "consequences", "awareness" o "meaning".\n' +
-          '- timestamp: el segundo del video original (0-' + Number(maxTsVal).toFixed(1) + ') que mejor acompana ese trozo.\n' +
-          lineaTipos +
-          'FRASES:\n' + batchFragmentos + '\n' +
-          'Responde SOLO JSON:\n' +
-          '{"phrases":[{"phraseIndex":' + (batchStart+1) + ',"visualClips":[{"keyword":"protest march","timestamp":12.3,"duration":2.5}]}]}';
-
-        try {
-          await logMessage('[FASE 2] Lote ' + Math.ceil((batchStart+1)/BATCH_SIZE) +
-            ' frases ' + (batchStart+1) + '-' + batchEnd);
-          const dsResp = await fetch('https://api.deepseek.com/chat/completions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-            body: JSON.stringify({
-              model: 'deepseek-v4-pro',
-              messages: [
-                { role: 'system', content: 'Responde UNICAMENTE con JSON valido.' },
-                { role: 'user', content: batchPrompt }
-              ],
-              temperature: 0.2,
-              max_tokens: 8000,
-              thinking: { type: 'disabled' }
-            })
-          });
-          if (dsResp.ok) {
-            const dsData = (await dsResp.json()) as any;
-            const finishReason = dsData?.choices?.[0]?.finish_reason;
-            if (finishReason === 'length') {
-              await logMessage(`[FASE 2] AVISO: respuesta truncada (finish_reason=length). El lote se perdera y esas frases conservarán su origen y quedarán pendientes si les falta información.`);
-            }
-            let content = (dsData?.choices?.[0]?.message?.content || '').trim();
-            if (content.includes('{')) {
-              content = content.substring(content.indexOf('{'), content.lastIndexOf('}')+1);
-            }
-            const parsed = JSON.parse(content);
-            if (Array.isArray(parsed.phrases)) phrasesDecision.push(...parsed.phrases);
-          } else {
-            const errBody = await dsResp.text().catch(() => '');
-            await logMessage(`[FASE 2] DeepSeek HTTP ${dsResp.status}: ${errBody.slice(0, 300)}`);
-            // EL 402 DEL 25/8 TENIA QUE HABERSE VISTO A LA PRIMERA. El log lo dijo cinco veces
-            // y nadie lo vio: `logMessage` solo escribe a disco. El codigo lleva el HTTP dentro
-            // para que 402 -- saldo -- y 401 -- clave rechazada -- no se confundan: son dos
-            // problemas con dos arreglos distintos.
-            avisar({
-              severidad: 'error',
-              codigo: `http-${dsResp.status}`,
-              origen: 'deepseek',
-              mensaje: dsResp.status === 402
-                ? 'DeepSeek rechazó la petición por saldo agotado. Los espacios sin información quedan pendientes en su origen; Visuales conserva la ruta Animation.'
-                : `DeepSeek respondió con error ${dsResp.status}. Los espacios sin información quedan pendientes en su origen; Visuales conserva la ruta Animation.`,
-              detalle: errBody.slice(0, 200)
-            });
+      if (segmentProvenance?.source !== 'source-transcript' || segmentProvenance?.narration !== origin)
+        throw new Error('BUILD_AUDIO_PROVENANCE_REQUIRED')
+      if (!Array.isArray(newAudioSegments) || newAudioSegments.length === 0) throw new Error('BUILD_AUDIO_TIMESTAMPS_REQUIRED')
+      timelineDuration = Number(audioDuration)
+      if (!Number.isFinite(timelineDuration) || timelineDuration <= 0 || timelineDuration > 86400)
+        timelineDuration = Number(newAudioSegments[newAudioSegments.length - 1]?.end) || 0
+      segments = newAudioSegments
+      if (origin === 'original') {
+        const merged: any[] = []
+        let i = 0
+        while (i < segments.length) {
+          const segment = { ...segments[i] }
+          while (i + 1 < segments.length && segment.end - segment.start < 2.0) {
+            i++
+            segment.end = segments[i].end
+            segment.text = (segment.text || '') + ' ' + (segments[i].text || '')
           }
-        } catch (err: any) {
-          await logMessage('[FASE 2] Error lote: ' + err.message);
+          merged.push(segment)
+          i++
         }
+        segments = merged
       }
-
-      // Proyectar sólo decisiones de medios comunes. Este flujo no selecciona iconos,
-      // escenas ni recursos gráficos; los Visuales se crean desde el chat de Animation.
-      for (let idx = 0; idx < newAudioSegments.length; idx++) {
-        const seg = newAudioSegments[idx];
-        const nextSegStart = newAudioSegments[idx + 1]?.start;
-        const phraseDuration = (typeof nextSegStart === 'number' && nextSegStart > seg.start)
-          ? nextSegStart - seg.start
-          : seg.end - seg.start;
-        const numClipsExpected = seg.animationSlot === true ? 1 : phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
-        const matchClips = phrasesDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
-        let visualClips = matchClips?.visualClips || matchClips?.clips;
-        if (!Array.isArray(visualClips)) visualClips = [];
-
-        visualClips = visualClips.slice(0, numClipsExpected);
-        while (visualClips.length < numClipsExpected) {
-          visualClips.push({
-            type: 'original',
-            timestamp: isOriginalAudio ? seg.start : NaN,
-            keyword: 'broll',
-            prompt: 'cinematic video clip',
-            duration: phraseDuration / numClipsExpected
-          });
-        }
-
-        visualClips = visualClips.map((raw: any) => {
-          const c = raw && typeof raw === 'object' ? raw : {};
-          const type = ['original', 'stock', 'ia'].includes(c.type) ? c.type : 'original';
-          const fallbackTimestamp = isOriginalAudio ? seg.start : NaN;
-          const timestamp = isOriginalAudio && type === 'original'
-            ? seg.start
-            : Number.isFinite(Number(c.timestamp)) ? Number(c.timestamp) : fallbackTimestamp;
-          const duration = Number(c.duration);
-          return {
-            type,
-            timestamp,
-            keyword: typeof c.keyword === 'string' && c.keyword.trim() ? c.keyword.trim() : 'broll',
-            prompt: typeof c.prompt === 'string' && c.prompt.trim() ? c.prompt.trim() : 'cinematic video clip',
-            duration: Number.isFinite(duration) && duration > 0 ? duration : phraseDuration / numClipsExpected
-          };
-        });
-
-        // Normalizar duraciones para que cada grupo cubra la frase sin huecos ni solapes.
-        const sumProposed = visualClips.reduce((sum: number, clip: any) => sum + clip.duration, 0);
-        let runningSum = 0;
-        for (let i = 0; i < visualClips.length; i++) {
-          if (i === visualClips.length - 1) {
-            visualClips[i].duration = parseFloat((phraseDuration - runningSum).toFixed(2));
-          } else {
-            const scaled = (visualClips[i].duration / sumProposed) * phraseDuration;
-            visualClips[i].duration = parseFloat(scaled.toFixed(2));
-            runningSum += visualClips[i].duration;
-          }
-        }
-
-        sanitizedPhrases.push({ phraseIndex: idx + 1, visualClips, graphic: null });
-      }
-    } catch (e: any) {
-      await logMessage(`[FASE 2] DeepSeek error: ${e.message}. Usando fallback.`);
+      if (weights[3] > 0 && (!segments.every((segment: any) => segment.animationSlot === true) || !hayTiemposPorPalabra(segments)))
+        throw new Error('BUILD_ANIMATION_WORD_TIMINGS_REQUIRED')
     }
+    if (!Number.isFinite(timelineDuration) || timelineDuration <= 0 || timelineDuration > 86400)
+      throw new Error(origin === 'none' ? 'BUILD_DURATION_INVALID' : 'BUILD_AUDIO_DURATION_INVALID')
+    if (!segments.length || segments.some((segment: any) => !Number.isFinite(Number(segment.start)) ||
+        !Number.isFinite(Number(segment.end)) || Number(segment.start) < 0 || Number(segment.end) <= Number(segment.start) ||
+        Number(segment.end) > timelineDuration + 1 / 30 || typeof segment.text !== 'string' || !segment.text.trim()))
+      throw new Error('BUILD_SEGMENTS_INVALID')
 
-    if (sanitizedPhrases.length === 0) {
-      for (let idx = 0; idx < newAudioSegments.length; idx++) {
-        const seg = newAudioSegments[idx];
-        const phraseDuration = seg.end - seg.start;
-        const numClipsExpected = seg.animationSlot === true ? 1 : phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
-        const visualClips: any[] = [];
-        let runningSum = 0;
-        for (let c = 0; c < numClipsExpected; c++) {
-          let dur = 0;
-          if (c === numClipsExpected - 1) {
-            dur = parseFloat((phraseDuration - runningSum).toFixed(2));
-          } else {
-            dur = parseFloat((phraseDuration / numClipsExpected).toFixed(2));
-            runningSum += dur;
-          }
-          visualClips.push({
-            type: 'original',
-            timestamp: isOriginalAudio ? Number(newAudioSegments[idx]?.start) : NaN,
-            keyword: 'broll',
-            prompt: 'cinematic video clip',
-            duration: dur
-          });
-        }
-        sanitizedPhrases.push({
-          phraseIndex: idx + 1,
-          visualClips,
-          graphic: null
-        });
-      }
-      await logMessage(`[FASE 2] Fallback: ${newAudioSegments.length} frases procesadas uniformemente.`);
+    const needsSource = weights[0] > 0 || origin === 'original'
+    if (needsSource && (!videoPath || !(await exists(videoPath)))) throw new Error('BUILD_ORIGINAL_SOURCE_REQUIRED')
+    let sourceDuration = timelineDuration
+    if (weights[0] > 0) {
+      sourceDuration = await getVideoDuration(videoPath)
+      if (!Number.isFinite(sourceDuration) || sourceDuration <= 0) throw new Error('BUILD_ORIGINAL_SOURCE_INVALID')
     }
-
-    // Filtro anti-repetición y relleno uniforme a nivel de frases
-    let consecutiveType = '';
-    let consecutiveCount = 0;
-    for (let i = 0; i < sanitizedPhrases.length; i++) {
-      const g = sanitizedPhrases[i].graphic;
-      if (g && g.type) {
-        if (g.type === consecutiveType) {
-          consecutiveCount++;
-          if (consecutiveCount >= 3) {
-            g.type = 'decorativo_emoji';
-            g.value = g.emoji || '📊';
-            consecutiveType = 'decorativo_emoji';
-            consecutiveCount = 1;
-          }
-        } else {
-          consecutiveType = g.type;
-          consecutiveCount = 1;
-        }
-      } else {
-        consecutiveType = '';
-        consecutiveCount = 0;
-      }
+    const totalSlots = segments.reduce((total: number, segment: any) => total + buildPlannerPhraseCount(segment), 0)
+    const targets = repartoObjetivos(weights, totalSlots)
+    await logMessage(`[generate-timeline-assets] Planificando ${segments.length} segmentos y ${totalSlots} espacios con Codex; cuotas Original=${targets.original}, Stock=${targets.stock}, IA=${targets.ia}, Visuales=${targets.visual}.`)
+    const onProgress = (progress: any) => {
+      if (event.sender.isDestroyed()) return
+      event.sender.send('generation-progress', { index: progress.index || 0, total: Math.max(1, progress.total || segments.length),
+        paragraph: progress.message || 'Codex está planificando Construir.', type: 'Codex' })
     }
+    const planResult = await planBuildWithCodex({ scriptText: script, segments, durationSeconds: timelineDuration,
+      sourceDurationSeconds: sourceDuration, weights, signal: controller.signal, onProgress })
+    if (controller.signal.aborted) throw new Error('BUILD_CODEX_CANCELLED')
+    const phraseDecisions = planResult.phrases
+    if (!Array.isArray(phraseDecisions) || phraseDecisions.length !== segments.length) throw new Error('BUILD_CODEX_PLAN_PHRASES_INCOMPLETE')
+    const allVisuals = segments.flatMap((segment: any, phraseIndex: number) => {
+      const decision = phraseDecisions[phraseIndex]
+      if (!decision || decision.phraseIndex !== phraseIndex + 1 || !Array.isArray(decision.visualClips) ||
+          decision.visualClips.length !== buildPlannerPhraseCount(segment)) throw new Error(`BUILD_CODEX_PLAN_PHRASE_INVALID:${phraseIndex + 1}`)
+      const phraseDuration = Number(segment.end) - Number(segment.start)
+      return decision.visualClips.map((clip: any, clipIndex: number) => ({ ...clip, phraseIndex, clipIndex,
+        type: 'planned', duration: phraseDuration / decision.visualClips.length }))
+    })
+    const sources = allocateBuildSources(weights, allVisuals.length)
+    allVisuals.forEach((clip: any, index: number) => { clip.type = sources[index] })
 
-
-
-    // Integer quotas are authoritative; missing content remains pending in its own source.
-    const quotaClips = sanitizedPhrases.flatMap((phrase: any) => phrase.visualClips);
-    const sources = allocateBuildSources(weights, quotaClips.length);
-    quotaClips.forEach((clip: any, index: number) => { clip.type = sources[index]; });
-
-    // ═══ TIMESTAMPS ESCALONADOS PARA LOS CLIPS 'original' ═══
-    // Hasta ahora todos los sub-clips de una frase recibian el mismo timestamp (el inicio
-    // de la frase), asi que una frase partida en 3 mostraba el mismo trozo del video fuente
-    // 3 veces seguidas, y con los labios desincronizados en el 2o y el 3o.
-    // Se recalcula aqui, ya con las duraciones definitivas (se ajustan en el bucle de
-    // sanitizado), avanzando el timestamp por la duracion de los sub-clips anteriores.
-    if (isOriginalAudio) {
-      let escalonados = 0;
-      for (let p = 0; p < sanitizedPhrases.length; p++) {
-        const base = newAudioSegments[p]?.start;
-        if (base === undefined) continue;
-        let offset = 0;
-        for (const c of sanitizedPhrases[p].visualClips) {
-          if (c.type === 'original') {
-            if (offset > 0) escalonados++;
-            c.timestamp = parseFloat(Math.min(base + offset, maxTsVal).toFixed(2));
-          }
-          // El offset avanza con TODOS los sub-clips, no solo los 'original': la posicion
-          // dentro de la frase progresa sea cual sea el tipo del sub-clip anterior.
-          offset += c.duration || 0;
-        }
-      }
-      await logMessage(`[FASE 2] Timestamps escalonados: ${escalonados} sub-clips 'original' movidos dentro de su frase`);
-    }
-
-    // Aplanar la lista de sub-clips para alimentar la cola de trabajadores
-    flattenedClips = [];
-    let globalIdx = 1;
-    for (let phraseIdx = 0; phraseIdx < sanitizedPhrases.length; phraseIdx++) {
-      const phrase = sanitizedPhrases[phraseIdx];
-      for (let clipIdx = 0; clipIdx < phrase.visualClips.length; clipIdx++) {
-        const subClip = phrase.visualClips[clipIdx];
-        flattenedClips.push({
-          index: globalIdx,
-          phraseIndex: phraseIdx,
-          clipIndexInPhrase: clipIdx,
-          type: subClip.type,
-          animationSlotIndex: subClip.type === 'visual' ? globalIdx - 1 : undefined,
-          transcriptText: String(newAudioSegments[phraseIdx]?.text || '').trim(),
-          timestamp: subClip.timestamp,
-          keyword: subClip.keyword,
-          prompt: subClip.prompt,
-          duration: subClip.duration,
-          // Conserva el origen pedido aunque Stock o IA terminen usando un medio común.
-          origenPedido: subClip.origenPedido,
-          motivoRespaldo: subClip.motivoRespaldo,
-          graphic: null
-        });
-        globalIdx++;
-      }
-    }
-
-    clipsDecision = flattenedClips;
-    // La MISMA referencia, expuesta al `finally` del resumen: `clipsDecision` se declara dentro
-    // del `try` y el resumen tiene que salir tambien cuando la generacion aborta. Si aborta
-    // antes de esta linea, `decisiones` sigue vacio y el resumen dice 0 clips, que es la verdad.
-    decisiones = clipsDecision;
-    totalClips = flattenedClips.length;
-
-    await logMessage(`[FASE 2] Decisiones de clips listas. Sub-clips totales: ${clipsDecision.length}. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}.`);
-
-    // Return the plan before any provider dispatch. Renderer persists this exact timeline,
-    // then uses the same per-slot worker for first generation and recovery.
-    const buildId = randomUUID();
-    const offsets = new Map<number, number>();
-    const planned = flattenedClips.map((item: any) => {
-      const offset = offsets.get(item.phraseIndex) || 0;
-      const startSeconds = Number(newAudioSegments[item.phraseIndex].start) + offset;
-      offsets.set(item.phraseIndex, offset + item.duration);
-      const durationSeconds = Math.min(item.duration, audioDuration - startSeconds);
-      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) throw new Error('BUILD_INTERVAL_INVALID');
+    let globalIdx = 1
+    const flattenedClips: any[] = []
+    const buildId = randomUUID()
+    const offsets = new Map<number, number>()
+    for (let index = 0; index < allVisuals.length; index++) {
+      const raw = allVisuals[index]
+      const phraseIdx = raw.phraseIndex
+      const segment = segments[phraseIdx]
+      const type = sources[index]
+      const offset = offsets.get(phraseIdx) || 0
+      const startSeconds = Number(segment.start) + offset
+      offsets.set(phraseIdx, offset + raw.duration)
+      const durationSeconds = Math.min(raw.duration, timelineDuration - startSeconds)
+      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) throw new Error('BUILD_INTERVAL_INVALID')
+      const timestamp = origin === 'original' && type === 'original'
+        ? Math.min(Number(segment.start) + offset, Math.max(0, sourceDuration - durationSeconds))
+        : Number(raw.timestamp)
       const plan = { schema: 'cipher-build-slot-v1', id: 'build-' + randomUUID(), buildId,
-        index: item.index, total: totalClips, source: item.type, startSeconds, durationSeconds,
-        transcriptText: item.transcriptText, timestamp: item.timestamp, keyword: item.keyword,
-        prompt: item.prompt, videoPath, aspectRatio, iaStyle, audioProvenance };
-      return pendingBuildSlot(plan);
-    });
-    resultadosMaterializados = planned;
-    return { success: true, status: 'planned', clips: planned };
-
-  } catch (err: any) {
-    const errMsg = `[generate-timeline-assets] Error: ${err.message || err}`;
-    console.error(errMsg, err);
-    await writeDebugLog(errMsg);
-    return { success: false, error: err.message || 'Error interno' };
+        index: globalIdx, total: totalSlots, source: type, startSeconds, durationSeconds,
+        transcriptText: String(segment.text).trim(), timestamp, keyword: raw.keyword, prompt: raw.prompt,
+        videoPath: needsSource ? videoPath : undefined, aspectRatio, iaStyle, audioProvenance,
+        planner: { provider: 'codex-app-server', model: planResult.model || 'Codex configured model' } }
+      flattenedClips.push(pendingBuildSlot(plan))
+      globalIdx++
+    }
+    decisiones = flattenedClips
+    resultadosMaterializados = flattenedClips
+    event.sender.send('generation-progress', { index: totalSlots, total: totalSlots, paragraph: 'Plan validado; guardando el montaje preliminar.', type: 'Planificado' })
+    return { success: true, status: 'planned', clips: flattenedClips }
+  } catch (error: any) {
+    const message = String(error?.message || error || 'BUILD_CODEX_FAILED')
+    console.error('[generate-timeline-assets]', message)
+    await writeDebugLog(`[generate-timeline-assets] ${message}`)
+    return { success: false, error: message }
   } finally {
-    // ═══ EL RESUMEN SALE SIEMPRE, TAMBIEN SI LA GENERACION ABORTA O LANZA ═══════════════
-    //
-    // Va en `finally` a proposito: EL CAMINO FELIZ ES JUSTO EL QUE MINTIO EL 25/8. La app dijo
-    // "exito, 78 de 78" y era verdad -- salieron 78 clips; lo que no dijo es que 31 se habian
-    // degradado por el camino. Un resumen que solo apareciera en el camino feliz no serviria.
-    //
-    // NADA DE AQUI PUEDE LANZAR: una excepcion en un `finally` se comeria el return o el error
-    // original, y el usuario se quedaria sin las dos cosas.
+    if (activeBuildPlannerJobs.get(event.sender.id) === controller) activeBuildPlannerJobs.delete(event.sender.id)
     try {
-      const objetivo = repartoObjetivos(weights, decisiones.length);
-      // EL `real` DE CADA ORIGEN. Un clip que cayo NO cuenta para el origen al que cayo: un
-      // Visual que acabo en "original" es un Visual perdido, no un original legitimo.
-      const legitimos = (t: string) =>
-        resultadosMaterializados.filter((c: any) => c?.materialized === true &&
-          c.category === t && (c.requestedSource ?? c.category) === t).length;
+      const targets = repartoObjetivos(Array.isArray(weights) ? weights : [25, 25, 25, 25], decisiones.length)
+      const legitimate = (source: string) => resultadosMaterializados.filter((clip: any) => clip?.materialized === true &&
+        clip.category === source && (clip.requestedSource ?? clip.category) === source).length
       const filas: FilaResumen[] = [
-        { origen: 'original', objetivo: objetivo.original, real: legitimos('original') },
-        { origen: 'stock',    objetivo: objetivo.stock,    real: legitimos('stock') },
-        { origen: 'IA',       objetivo: objetivo.ia,       real: legitimos('ia') },
-        { origen: 'Visual',   objetivo: objetivo.visual,   real: legitimos('visual'), pendienteAnimation: decisiones.filter((c: any) => c.type === 'visual').length }
-      ];
-      const porMotivo = new Map<string, number>();
-      for (const c of decisiones as any[]) {
-        if (!c.motivoRespaldo) continue;
-        porMotivo.set(c.motivoRespaldo, (porMotivo.get(c.motivoRespaldo) ?? 0) + 1);
-      }
-      const respaldo: MotivoRespaldo[] = [...porMotivo.entries()].map(([motivo, veces]) => ({
-        motivo, descripcion: describirMotivo(motivo), veces
-      })).sort((a, b) => b.veces - a.veces);
-
-      const resumen: Resumen = { ...armarResumen(filas, respaldo, decisiones.length, completa),
-        ...(decisiones.length ? { etapa: 'planificado' as const, filas: filas.map(f => ({ ...f, pendienteMedio: f.objetivo - f.real })) } : {}) };
-
-      // A LA INTERFAZ **Y** AL FICHERO. Lo primero para verlo ahora; lo segundo para poder
-      // recuperarlo despues de cerrar la app, que es cuando uno se pregunta que paso.
-      enviarAviso(event, { tipo: 'resumen', resumen, lista: avisos.lista() });
-      for (const linea of textoResumen(resumen)) {
-        writeDebugLog('[RESUMEN] ' + linea).catch(() => {});
-      }
-    } catch (e) { /* el resumen nunca puede tumbar la generacion */ }
+        { origen: 'original', objetivo: targets.original, real: legitimate('original') },
+        { origen: 'stock', objetivo: targets.stock, real: legitimate('stock') },
+        { origen: 'IA', objetivo: targets.ia, real: legitimate('ia') },
+        { origen: 'Visual', objetivo: targets.visual, real: legitimate('visual'), pendienteAnimation: decisiones.filter((clip: any) => clip.type === 'visual').length }
+      ]
+      const resumen: Resumen = { ...armarResumen(filas, [], decisiones.length, completa),
+        ...(decisiones.length ? { etapa: 'planificado' as const, filas: filas.map(fila => ({ ...fila, pendienteMedio: fila.objetivo - fila.real })) } : {}) }
+      enviarAviso(event, { tipo: 'resumen', resumen, lista: avisos.lista() })
+      for (const linea of textoResumen(resumen)) writeDebugLog('[RESUMEN] ' + linea).catch(() => {})
+    } catch { /* The summary must never replace the planning result. */ }
   }
-});
-
+})
 handleProcessing('regenerate-graphics', async (_event, params: any) => {
   if (params?.mode === 'modern-visual' || (Array.isArray(params?.modernVisuals) && params.modernVisuals.length > 0))
     return { success: false, error: 'LEGACY_VISUAL_GENERATOR_DISABLED', diagnostics: { engine: 'animation', fallbackUsed: false } }

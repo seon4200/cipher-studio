@@ -9,6 +9,10 @@ require.extensions['.ts'] = (mod, file) => mod._compile(ts.transpileModule(fs.re
   { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText, file)
 const integrity = require('../src/shared/build-integrity.ts')
 const { repartoObjetivos, repartirPesos } = require('../src/shared/reparto.ts')
+const { hayTiemposPorPalabra } = require('../src/shared/palabra.ts')
+const buildPlanning = require('../src/shared/build-planning.ts')
+const { validateControlAdapterJob } = require('../src/shared/control-adapter.ts')
+const { createBuildPlanner } = require('../src/main/services/build-planner.ts')
 const persistence = require('../src/main/services/project-persistence.ts')
 const ffmpeg = require('../src/main/services/ffmpeg.ts')
 const source = fs.readFileSync(path.join(root, 'src/main/index.ts'), 'utf8')
@@ -60,6 +64,39 @@ async function run() {
     }
   assert.deepEqual(repartoObjetivos([0, 0, 50, 50], 3), { original: 0, stock: 0, ia: 2, visual: 1 })
   assert.throws(() => repartoObjetivos([0, 0, 0, 0], 3), /WEIGHTS_EMPTY/)
+  const timedScript = buildPlanning.createTimedScriptSegments('A forest grows. Birds return.', 6)
+  assert.equal(timedScript[0].start, 0); assert.equal(timedScript.at(-1).end, 6)
+  assert.ok(timedScript.every(segment => segment.words?.length && segment.words.every(word => word.end > word.start)))
+  const timedVisuals = buildPlanning.createAnimationSlotsFromSegments(timedScript, 6)
+  assert.equal(timedVisuals.length, 2); assert.ok(timedVisuals.every(slot => slot.animationSlot && slot.words.length))
+  const noNarrationJob = { schemaVersion: 1, operationId: randomUUID(), attemptId: randomUUID(), projectId: randomUUID(), kind: 'build',
+    settings: { scriptText: 'A script.', weights: [0,100,0,0], graphicsPercent: 0, transitionsPercent: 0,
+      voice: { mode: 'none' }, buildDurationSeconds: 30 } }
+  assert.equal(validateControlAdapterJob(noNarrationJob).settings.voice.mode, 'none')
+  assert.throws(() => validateControlAdapterJob({ ...noNarrationJob, settings: { ...noNarrationJob.settings, buildDurationSeconds: undefined } }), /BUILD_DURATION_REQUIRED/)
+  assert.throws(() => validateControlAdapterJob({ ...noNarrationJob, sourceRelativePath: undefined,
+    settings: { ...noNarrationJob.settings, voice: { mode: 'original' }, buildDurationSeconds: undefined } }), /SOURCE_AUDIO_UNAVAILABLE|CONTROL_SOURCE_REQUIRED/)
+  console.log('PASS script-only duration, word timing, Animation windows and Control no-source contract')
+  const codexCalls = []
+  const batchedPlanner = createBuildPlanner({ complete: async request => {
+    codexCalls.push(request)
+    request.onProgress?.({ phase: 'thinking', message: 'mock Codex' })
+    const segments = request.prompt.match(/\[Frase \d+\]/g) || []
+    return { text: JSON.stringify({ phrases: segments.map((_segment, index) => ({ phraseIndex: index + 1,
+      visualClips: [{ keyword: 'forest birds', prompt: 'Birds returning to a forest', timestamp: 0 }] })) }), model: 'mock Codex' }
+  } })
+  const batchedSegments = Array.from({ length: 7 }, (_value, index) => ({ start: index, end: index + 1, text: `segment ${index + 1}` }))
+  const codexPlan = await batchedPlanner({ scriptText: 'forest', segments: batchedSegments, durationSeconds: 7,
+    sourceDurationSeconds: 7, weights: [0,100,0,0] })
+  assert.deepEqual(codexCalls.map(call => (call.prompt.match(/\[Frase \d+\]/g) || []).length), [6,1])
+  assert.ok(codexCalls.every(call => call.purpose === 'build-planner' && call.outputSchema === buildPlanning.BUILD_PLANNER_OUTPUT_SCHEMA))
+  assert.deepEqual(codexPlan.phrases.map(phrase => phrase.phraseIndex), [1,2,3,4,5,6,7])
+  assert.equal(codexPlan.provider, 'codex-app-server'); assert.equal(codexPlan.model, 'mock Codex')
+  let codexFailures = 0
+  await assert.rejects(createBuildPlanner({ complete: async () => { codexFailures++; throw new Error('ANIMATION_CODEX_LOGIN_REQUIRED') } })(
+    { scriptText: 'forest', segments: batchedSegments.slice(0,1), durationSeconds: 1, sourceDurationSeconds: 1, weights: [0,100,0,0] }), /BUILD_CODEX_FAILED/)
+  assert.equal(codexFailures, 1)
+  console.log('PASS Codex planner batches, strict schema, ordered output and fail-closed provider errors')
   for (let i = 0; i < 4; i++) for (let v = 0; v <= 100; v++)
     assert.equal(repartirPesos([0, 0, 50, 50], i, v).reduce((a, b) => a + b, 0), 100)
   console.log(`PASS allocation: ${combinations} plans, pure modes, zeros, exact count and deterministic dispatch`)
@@ -177,17 +214,28 @@ async function run() {
 
     // Exercise the actual planner callback with identical segment arrays for both audio origins.
     const warnings = require('../src/shared/avisos.ts')
-    const context = { ...integrity, ...warnings, repartoObjetivos, randomUUID,
-      process: { env: { DEEPSEEK_API_KEY: 'synthetic' } }, console: { log() {}, error() {} },
-      writeDebugLog: async () => {}, enviarAviso() {}, loadEnv() {}, exists: async () => true,
-      fetch: async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ phrases: [
-        { phraseIndex: 1, visualClips: [{ type: 'original', timestamp: 23, duration: 3, keyword: 'forest', prompt: 'A forest' }] }
-      ] }) } }] }) }) }
+    let deepSeekRequests = 0, failPlanning = false, waitForPlannerCancel = false
+    const activeBuildPlannerJobs = new Map()
+    const context = { ...integrity, ...warnings, ...buildPlanning, repartoObjetivos, randomUUID, hayTiemposPorPalabra,
+      AbortController, activeBuildPlannerJobs, process: { env: {} }, console: { log() {}, error() {} },
+      writeDebugLog: async () => {}, enviarAviso() {}, loadEnv() {}, exists: async () => true, getVideoDuration: async () => 60,
+      fetch: async () => { deepSeekRequests++; throw new Error('DEEPSEEK_MUST_NOT_BE_CALLED') },
+      planBuildWithCodex: async input => {
+        if (failPlanning) throw new Error('BUILD_CODEX_OFFLINE')
+        input.onProgress?.({ index: 0, total: input.segments.length, message: 'mock plan' })
+        if (waitForPlannerCancel) await new Promise((_resolve, reject) => input.signal.addEventListener('abort',
+          () => reject(new Error('BUILD_CODEX_CANCELLED')), { once: true }))
+        return { provider: 'codex-app-server', model: 'mock Codex', phrases: input.segments.map((segment, index) => ({
+          phraseIndex: index + 1, visualClips: Array.from({ length: buildPlanning.buildPlannerPhraseCount(segment) }, () => ({
+            keyword: 'forest wildlife', prompt: 'A close view of birds returning to a green forest', timestamp: 23,
+          }))
+        })) }
+      } }
     const planner = productionHandler('generate-timeline-assets', context)
-    const segments = [{ start: 0, end: 3, text: 'forest', animationSlot: true }]
+    const segments = [{ start: 0, end: 3, text: 'forest', words: [{ word: ' forest', start: 0, end: 3 }], animationSlot: true }]
     const input = { scriptText: 'forest', audioDuration: 3, transcriptSegments: segments, newAudioSegments: segments,
       videoPath: '/synthetic', weights: [100,0,0,0], segmentProvenance: { source: 'source-transcript', narration: 'generated' }, audioProvenance: { origin: 'generated' } }
-    const event = { sender: { send() {} } }
+    const event = { sender: { id: 7, send() {}, isDestroyed: () => false } }
     const generated = await planner(event, input)
     assert.equal(generated.success, true, generated.error); assert.equal(generated.clips[0].buildPlan.timestamp, 23)
     const original = await planner(event, { ...input, audioProvenance: { origin: 'original' }, segmentProvenance: { ...input.segmentProvenance, narration: 'original' } })
@@ -195,7 +243,35 @@ async function run() {
     assert.equal((await planner(event, { ...input, audioProvenance: undefined })).success, false)
     const visualPlan = await planner(event, { ...input, weights: [0,0,0,100] })
     assert.equal(visualPlan.clips[0].category, 'visual'); assert.equal(visualPlan.clips[0].animationPending, true)
-    console.log('PASS actual planner: matching lists do not identify audio; original/generated timestamps differ explicitly')
+    const noVoice = await planner(event, { scriptText: 'A forest grows. Birds return.', buildDurationSeconds: 6,
+      weights: [0,100,0,0], audioProvenance: { origin: 'none' } })
+    assert.equal(noVoice.success, true, noVoice.error); assert.equal(noVoice.clips.length, 2)
+    assert.ok(noVoice.clips.every(clip => clip.category === 'stock' && clip.buildPlan.audioProvenance.origin === 'none' && !clip.buildPlan.videoPath))
+    const noVoiceIA = await planner(event, { scriptText: 'A forest grows. Birds return.', buildDurationSeconds: 6,
+      weights: [0,0,100,0], audioProvenance: { origin: 'none' } })
+    assert.equal(noVoiceIA.success, true, noVoiceIA.error)
+    assert.ok(noVoiceIA.clips.every(clip => clip.category === 'ia' && !clip.buildPlan.videoPath))
+    const noVoiceOriginal = await planner(event, { scriptText: 'A forest grows. Birds return.', buildDurationSeconds: 6,
+      videoPath: '/synthetic-source.mp4', weights: [100,0,0,0], audioProvenance: { origin: 'none' } })
+    assert.equal(noVoiceOriginal.success, true, noVoiceOriginal.error)
+    assert.ok(noVoiceOriginal.clips.every(clip => clip.category === 'original' && clip.buildPlan.videoPath === '/synthetic-source.mp4'))
+    const noVoiceVisuals = await planner(event, { scriptText: 'A forest grows. Birds return.', buildDurationSeconds: 6,
+      weights: [0,0,0,100], audioProvenance: { origin: 'none' } })
+    assert.equal(noVoiceVisuals.success, true, noVoiceVisuals.error); assert.equal(noVoiceVisuals.clips.length, 2)
+    assert.ok(noVoiceVisuals.clips.every(clip => clip.category === 'visual' && clip.animationPending))
+    assert.equal((await planner(event, { ...input, videoPath: undefined })).error, 'BUILD_ORIGINAL_SOURCE_REQUIRED')
+    failPlanning = true
+    const failedPlanner = await planner(event, { ...input, weights: [0,100,0,0], videoPath: undefined })
+    assert.equal(failedPlanner.success, false); assert.match(failedPlanner.error, /BUILD_CODEX_OFFLINE/)
+    failPlanning = false; waitForPlannerCancel = true
+    const cancellation = planner(event, { ...input, weights: [0,100,0,0], videoPath: undefined })
+    await new Promise(resolve => setImmediate(resolve))
+    activeBuildPlannerJobs.get(event.sender.id).abort()
+    const cancelledPlanner = await cancellation
+    assert.equal(cancelledPlanner.success, false); assert.equal(cancelledPlanner.error, 'BUILD_CODEX_CANCELLED')
+    waitForPlannerCancel = false
+    assert.equal(deepSeekRequests, 0, 'Build never falls back to DeepSeek')
+    console.log('PASS actual planner: explicit audio provenance, script-only timing/Animation, source gates and no DeepSeek fallback')
 
     // Exercise the extracted real worker: provider failures never enter Original/FFmpeg.
     let originalCommands = 0, stockRequests = 0
@@ -243,16 +319,20 @@ async function run() {
     const oldVersion = { id: 'old', timelineVideoClips: [done] }
     let controlState = { clips: [{ type: 'video', path: sourcePath, durationSeconds: 6 }],
       transcriptSegments: [{ start: 0, end: 6, text: 'forest' }], timelineVersions: [oldVersion], activeVersionId: 'old' }
-    let planned = 0, cut = 0, attempts = []
+    let planned = 0, cut = 0, attempts = [], controlPlans = []
     let failSecond = true
     const controlApi = { loadProjectState: async () => ({ success: true, data: structuredClone(controlState) }),
       animationSaveBuildState: async input => { controlState = structuredClone(input.projectState); return { success: true } },
-      generateTimelineAssets: async input => { assert.equal(input.audioProvenance.origin, 'original'); planned++; return { success: true, clips: controlSlots } },
+      generateTimelineAssets: async input => {
+        controlPlans.push(input); planned++
+        if (input.audioProvenance.origin === 'none') return { success: true, clips: [makeSlot('stock')] }
+        assert.equal(input.audioProvenance.origin, 'original'); return { success: true, clips: controlSlots }
+      },
       cutVideoClips: async () => { cut++; return { success: true } },
       retryTimelineAsset: async input => { attempts.push(input.clip.id); return failSecond && input.clip.id === controlSlots[1].id
         ? { success: false, error: 'OFFLINE' } : { success: true, clip: success(input.clip) } },
       inspectBuildMedia: async () => ({ success: true, invalidIds: [] }) }
-    const controlContext = { ...integrity, api: controlApi, emit() {}, assignCipherTransitions: () => ({}), CIPHER_DEFAULT_TRANSITIONS: [] }
+    const controlContext = { ...integrity, ...buildPlanning, api: controlApi, emit() {}, assignCipherTransitions: () => ({}), CIPHER_DEFAULT_TRANSITIONS: [] }
     controlContext.audioClip = productionFunction('audioClip', controlContext, controlAst)
     const runControl = productionFunction('run', controlContext, controlAst)
     const job = { kind: 'build', operationId: 'op', attemptId: 'attempt1', projectId: 'project', settings: {
@@ -269,6 +349,15 @@ async function run() {
     assert.equal(controlState.timelineVersions.length, 2)
     await runControl({ ...job, attemptId: 'attempt3' }, sourcePath, fixture)
     assert.equal(attempts.length, 3); assert.deepEqual(controlState.timelineVersions[0], oldVersion)
+    controlState = { clips: [], transcriptSegments: [], timelineVersions: [], activeVersionId: 'v-empty' }
+    const noVoiceJob = { ...job, operationId: 'op-no-voice', attemptId: 'attempt-no-voice', settings: { ...job.settings,
+      weights: [0,100,0,0], voice: { mode: 'none' }, sourceHasAudio: false, buildDurationSeconds: 6 } }
+    const noVoiceResult = await runControl(noVoiceJob, '', fixture)
+    const noVoicePlan = controlPlans.at(-1)
+    assert.equal(noVoiceResult.clipCount, 1); assert.equal(noVoicePlan.audioProvenance.origin, 'none')
+    assert.equal(noVoicePlan.buildDurationSeconds, 6); assert.equal(noVoicePlan.videoPath, undefined)
+    assert.equal(controlState.buildDurationSeconds, 6)
+    assert.ok(controlState.timelineVideoClips.every(clip => clip.type !== 'audio'))
     console.log('PASS actual Control adapter: persisted version, no zero-source cut, retry only pending and completed operation reuse')
 
 

@@ -8,6 +8,7 @@ import { repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../../shared/
 import { resolveAnimationPanelFlowV1 } from '../../shared/animation-panel-flow-v1'
 import { clipAnimationTranscript } from '../../shared/animation-transcript-window'
 import { isPendingAnimationSlot, runAnimationBuildQueue, type AnimationBuildClip } from '../../shared/animation-build-queue'
+import { createAnimationSlotsFromSegments } from '../../shared/build-planning'
 import ReactDOM from 'react-dom/client'
 import {
   Play, Pause, FastForward, Rewind, Video, Volume2, VolumeX, Sparkles,
@@ -1350,7 +1351,6 @@ function App() {
   const [isCopied, setIsCopied] = useState(false)
   // AI Asset Generation States
   const [isGeneratingAssets, setIsGeneratingAssets] = useState(false)
-  const [isBuildingAnimationQueue, setIsBuildingAnimationQueue] = useState(false)
   const animationBuildCancellationRef = React.useRef<{ cancelRequested: boolean; activeJobId: string | null }>({
     cancelRequested: false, activeJobId: null,
   })
@@ -1472,6 +1472,7 @@ function App() {
   const [exportProgress, setExportProgress] = useState<{ step: string; current: number; total: number; message: string } | null>(null);
   // [Original, Stock, IA, Visuales]. Visuales uses the Animation service inside Build.
   const [timelineWeights, setTimelineWeights] = useState<number[]>([...PESOS_POR_DEFECTO])
+  const [buildDurationSeconds, setBuildDurationSeconds] = useState(30)
   const restoreTimelineWeights = (stored: unknown) => {
     setTimelineWeights(normalizarPesos(stored))
     setVisualRegenerationStatus('')
@@ -1481,6 +1482,7 @@ function App() {
     ? timelineVideoClips.find(clip => clip.id === selectedTimelineClipIds[0] && clip.category === 'visual' && clip.type !== 'graphic') || null
     : null
   const narrationClip = timelineVideoClips.find(clip => clip.type === 'audio' && clip.narration) || timelineVideoClips.find(clip => clip.type === 'audio')
+  const hasBuildNarration = !!narrationClip && narrationClip.narration !== false
   const narrationOrigin = resolveAudioProvenance(narrationClip, generatedVoices)
   const animationTranscriptSegments = narrationClip?.narrationSegments || (narrationOrigin.origin === 'original'
     ? transcriptSegments : [])
@@ -1751,7 +1753,7 @@ function App() {
       if (!animationBuildInFlightRef.current && activeProjectPathRef.current === projectForSave) handleSaveProjectDirectly();
     }, 2000);
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, vibesSourceTranscriptSegments, newAudioSegments, activeProjectId, activeProjectName, vibesSourceStartSeconds, vibesSourceMediaDurationSeconds, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, vibesSourceTranscriptSegments, newAudioSegments, activeProjectId, activeProjectName, vibesSourceStartSeconds, vibesSourceMediaDurationSeconds, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, buildDurationSeconds, graphicsPercent, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
   // UN solo sitio construye lo que se guarda. Estaba copiado en TRES (guardar al cerrar,
   // guardar, y guardar como), y por eso cada funcion nueva nacia sin persistencia en dos de
   // los tres caminos aunque alguien se acordara del primero.
@@ -1775,7 +1777,7 @@ function App() {
     aiScript, originalTranscriptText,
     libraryWidth, toolsWidth, timelineHeight,
     voiceModel, voiceSpeaker, voiceSpeed, voiceStability,
-    generatedVoices, graphicsPercent, timelineWeights,
+    generatedVoices, graphicsPercent, timelineWeights, buildDurationSeconds,
     // ─── Lo que decide COMO sale el video exportado ───
     // aspectRatio es el mas peligroso de los siete: NO aparece en el modal de exportacion,
     // asi que un proyecto vertical reabria en horizontal y se exportaba mal sin que nada lo
@@ -1804,7 +1806,7 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, vibesSourceTranscriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, activeProjectId, activeProjectName, vibesSourceStartSeconds, vibesSourceMediaDurationSeconds, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, vibesSourceTranscriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, activeProjectId, activeProjectName, vibesSourceStartSeconds, vibesSourceMediaDurationSeconds, timelineWeights, buildDurationSeconds, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
     try {
@@ -2011,6 +2013,7 @@ function App() {
         restoreProjectPanel(clipsDelTimeline, loadedData.transcriptSegments || []);
         setNewAudioSegments(loadedData.newAudioSegments || []);
         setAiScript(loadedData.aiScript || '');
+        setBuildDurationSeconds(Number(loadedData.buildDurationSeconds) > 0 ? Number(loadedData.buildDurationSeconds) : 30);
         const loadedOriginalText = loadedData.originalTranscriptText || (loadedData.transcriptSegments || []).map((s: any) => s.text).join(' ') || '';
         setOriginalTranscriptText(loadedOriginalText);
         if (loadedData.libraryWidth) setLibraryWidth(loadedData.libraryWidth);
@@ -2097,6 +2100,7 @@ function App() {
         setGeneratedVoices([]);
         // Keep the four active shares: Original, Stock, IA and Visuales.
         setTimelineWeights([...PESOS_POR_DEFECTO]);
+        setBuildDurationSeconds(30);
         setVisualRegenerationStatus('');
         setGraphicsPercent(50);
         // New Visuals are authored only through Animation. Existing timeline
@@ -2158,6 +2162,7 @@ function App() {
       setTranscriptSegments([]);
       setNewAudioSegments([]);
       setAiScript('');
+      setBuildDurationSeconds(30);
       setOriginalTranscriptText('');
       setGeneratedVoices([]);
       refreshProjectsList();
@@ -2275,6 +2280,7 @@ function App() {
         restoreProjectPanel(clipsDelTimeline, loadedData.transcriptSegments || []);
         setNewAudioSegments(loadedData.newAudioSegments || []);
         setAiScript(loadedData.aiScript || '');
+        setBuildDurationSeconds(Number(loadedData.buildDurationSeconds) > 0 ? Number(loadedData.buildDurationSeconds) : 30);
         const loadedOriginalText = loadedData.originalTranscriptText || (loadedData.transcriptSegments || []).map((s: any) => s.text).join(' ') || '';
         setOriginalTranscriptText(loadedOriginalText);
         if (loadedData.libraryWidth) setLibraryWidth(loadedData.libraryWidth);
@@ -2534,9 +2540,10 @@ ${res.filePath}`);
   };
   const cancelAnimationBuild = async () => {
     const cancellation = animationBuildCancellationRef.current
-    if (!isBuildingAnimationQueue || cancellation.cancelRequested) return
+    if (!isGeneratingAssets || cancellation.cancelRequested) return
     cancellation.cancelRequested = true
     setAnimationBuildSummary('Cancelando construcción: las solicitudes en curso terminan y se guardan; no se despachan más espacios.')
+    try { await window.electronAPI.cancelBuildPlanning() } catch { /* The planner may already have returned. */ }
     const jobId = cancellation.activeJobId
     if (jobId) await window.electronAPI.animationCancel(jobId)
   }
@@ -2545,7 +2552,6 @@ ${res.filePath}`);
       activeVersionForBuild = activeVersionId) => {
     const projectPath = activeProjectPathRef.current
     if (!projectPath) throw new Error('Abre un proyecto antes de continuar Visuales con Animation.')
-    setIsBuildingAnimationQueue(true)
     const currentPath = () => String(activeProjectPathRef.current || '').replace(/[\\/]+/g, '/').toLowerCase()
     const sameProject = () => currentPath() === String(projectPath).replace(/[\\/]+/g, '/').toLowerCase() && activeVersionIdRef.current === activeVersionForBuild
     const mergeQueueTimeline = (latest: TimelineClip[], queued: AnimationBuildClip[]): TimelineClip[] => {
@@ -2676,7 +2682,6 @@ ${res.filePath}`);
   }
 
   const continueCommonBuild = async (projectPath: string, versions = timelineVersions, versionId = activeVersionId) => {
-    setIsBuildingAnimationQueue(true)
     return runCommonMediaQueue({
       getClips: () => timelineVideoClipsRef.current,
       persist: next => persistBuildTimeline(next, projectPath, versions, versionId),
@@ -2761,7 +2766,7 @@ ${res.filePath}`);
       } catch (error: any) {
         if (activeProjectPathRef.current === projectPath) setGenerationError(String(error?.message || error))
       } finally {
-        setIsGeneratingAssets(false); setIsBuildingAnimationQueue(false); setGenerationProgress(null)
+        setIsGeneratingAssets(false); setGenerationProgress(null)
         animationBuildInFlightRef.current = false
       }
       return
@@ -2773,27 +2778,24 @@ ${res.filePath}`);
     const buildAnimationSlots = (timelineWeights[3] ?? 0) > 0;
     const scriptForTimeline = aiScript.trim() || originalTranscriptText.trim();
     if (!scriptForTimeline) return;
-    // Se captura al EMPEZAR y por el REF: esta funcion tarda MINUTOS —cortar clips, DeepSeek,
+    // Se captura al EMPEZAR y por el REF: esta función puede tardar MINUTOS —planificar con Codex,
     // descargar stock, generar IA— y toda esa ventana es tiempo en el que el usuario puede
     // abrir otro proyecto. Leerlo de la clausura daria el valor de cuando arranco y la
     // comparacion nunca se cumpliria.
     const proyectoAlEmpezar = activeProjectPathRef.current;
     if (!proyectoAlEmpezar) { setGenerationError('Abre un proyecto antes de construir.'); return; }
-    const voiceClip = narrationClip;
-    const audioProvenance = resolveAudioProvenance(voiceClip, generatedVoices);
+    const voiceClip = hasBuildNarration ? narrationClip : null;
+    const audioProvenance = voiceClip ? resolveAudioProvenance(voiceClip, generatedVoices) : { origin: 'none' as const };
     const isUsingOriginalAudio = audioProvenance.origin === 'original';
-    if (!voiceClip) {
-      setGenerationError('Debes agregar un audio al timeline primero.');
-      return;
-    }
-    if (audioProvenance.origin === 'unknown') {
+    if (voiceClip && audioProvenance.origin === 'unknown') {
       setGenerationError('Indica la procedencia del audio antes de construir.'); return;
     }
-    if (!isUsingOriginalAudio && !voiceClip.narrationSegments?.length) {
+    if (voiceClip && !isUsingOriginalAudio && !voiceClip.narrationSegments?.length) {
       setGenerationError('Confirma la transcripción de esta voz en el selector de procedencia antes de construir.');
       return;
     }
-    const effectiveAudioSegments = voiceClip.narrationSegments || (isUsingOriginalAudio ? transcriptSegments : []);
+    const effectiveAudioSegments = voiceClip
+      ? voiceClip.narrationSegments || (isUsingOriginalAudio ? transcriptSegments : []) : [];
     // Guarda: la transcripcion tiene que cubrir el audio del timeline. Si no, FASE 5
     // estira el ultimo clip para tapar el hueco y esa parte sale congelada.
     // Medido: un desfase de 645s convirtio un clip de 2.5s en uno de 648s (11 minutos).
@@ -2809,8 +2811,8 @@ ${res.filePath}`);
     const finSegmentos = effectiveAudioSegments.length > 0
       ? Number(effectiveAudioSegments[effectiveAudioSegments.length - 1]?.end) || 0
       : 0;
-    const duracionAudio = voiceClip.durationSeconds || 0;
-    if (duracionAudio > 0 && (duracionAudio - finSegmentos) > DESFASE_MAX) {
+    const duracionAudio = voiceClip ? Number(voiceClip.durationSeconds) || 0 : Number(buildDurationSeconds) || 0;
+    if (voiceClip && duracionAudio > 0 && (duracionAudio - finSegmentos) > DESFASE_MAX) {
       const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
       setGenerationError(
         finSegmentos === 0
@@ -2824,7 +2826,7 @@ ${res.filePath}`);
     // con --word_timestamps. Uno transcrito ANTES de ese cambio no los tiene, asi que TODOS sus
     // Visuales no podrían recibir una cita literal temporizada para Animation:
     // parece roto. Se le dice POR QUE y como arreglarlo, en vez de dejarlo solo en el log.
-    if (buildAnimationSlots && !hayTiemposPorPalabra(effectiveAudioSegments)) {
+    if (buildAnimationSlots && voiceClip && !hayTiemposPorPalabra(effectiveAudioSegments)) {
       setGenerationError(
         'Este proyecto se transcribió sin tiempos por palabra, y los Visuales los necesitan ' +
         'para elegir la palabra que suena en cada momento. Vuelve a transcribir el vídeo para ' +
@@ -2833,39 +2835,18 @@ ${res.filePath}`);
       return;
     }
     if (buildAnimationSlots && duracionAudio < 3) {
-      setGenerationError('Animation necesita un intervalo de al menos 3 segundos. Amplía el audio o pon Visuales a 0 para construir sólo Original, Stock e IA.');
+      setGenerationError('Animation necesita una duración de al menos 3 segundos. Amplía la duración del montaje o el audio, o pon Visuales a 0.');
+      return;
+    }
+    if (!voiceClip && (!Number.isFinite(duracionAudio) || duracionAudio <= 0 || duracionAudio > 86400)) {
+      setGenerationError('Define una duración válida del montaje (mayor que 0 y hasta 24 horas).');
       return;
     }
     // Animation slots are exact, frame-based three-second windows over the already prepared
     // voice. Their transcript is rebased to the clip-local clock and retains only words that
     // actually overlap each slot; the normal planner then assigns Original/Stock/Visual.
-    const animationInputSegments = buildAnimationSlots
-      ? (() => {
-          const fps = 30;
-          const slotFrames = 3 * fps;
-          const totalFrames = Math.round(duracionAudio * fps);
-          const words = (effectiveAudioSegments || []).flatMap((segment: any) =>
-            Array.isArray(segment?.words) ? segment.words : []);
-          const result: any[] = [];
-          const fullSlots = Math.floor(totalFrames / slotFrames);
-          for (let slotIndex = 0; slotIndex < fullSlots; slotIndex++) {
-            const firstFrame = slotIndex * slotFrames;
-            // Fold a short audio tail into the final Animation slot so every slot remains
-            // at least three seconds and the final clip still covers the full narration.
-            const lastFrame = slotIndex === fullSlots - 1 ? totalFrames : firstFrame + slotFrames;
-            const start = firstFrame / fps;
-            const end = lastFrame / fps;
-            const overlappingWords = words.filter((word: any) =>
-              Number(word?.start) < end && Number(word?.end) > start);
-            result.push({
-              start, end,
-              text: overlappingWords.map((word: any) => String(word?.word ?? word?.text ?? '')).join(' ').replace(/\s+/g, ' ').trim(),
-              words: overlappingWords,
-              animationSlot: true,
-            });
-          }
-          return result;
-        })()
+    const animationInputSegments = buildAnimationSlots && voiceClip
+      ? createAnimationSlotsFromSegments(effectiveAudioSegments, duracionAudio, scriptForTimeline)
       : effectiveAudioSegments;
     animationBuildInFlightRef.current = true
     setAnimationBuildSummary('')
@@ -2877,10 +2858,14 @@ ${res.filePath}`);
     setResumen(null);
     setGenerationProgress(null);
     try {
-      // 1. Slicing original video first if one is imported (Regla 1)
-      const firstVideoInLibrary = (isUsingOriginalAudio && audioProvenance.sourcePath
-        ? clips.find(c => c.path === audioProvenance.sourcePath) || { path: audioProvenance.sourcePath }
-        : clips.find(c => c.type === 'video')) || clips.find(c => c.type === 'audio') || clips[0];
+      // Original media is required only for an Original quota or original-source narration.
+      const audioSourcePath = isUsingOriginalAudio ? audioProvenance.sourcePath || voiceClip?.path : undefined;
+      const firstVideoInLibrary = (audioSourcePath
+        ? clips.find(c => c.path === audioSourcePath) || { path: audioSourcePath }
+        : undefined) || (timelineWeights[0] > 0 ? clips.find(c => c.type === 'video') : undefined);
+      if ((timelineWeights[0] > 0 || isUsingOriginalAudio) && !firstVideoInLibrary?.path) {
+        throw new Error('BUILD_ORIGINAL_SOURCE_REQUIRED');
+      }
       if (firstVideoInLibrary && timelineWeights[0] > 0) {
         console.log('[handleBuildIATimeline] Cortando video original en clips de 3 segundos...');
         setGenerationProgress({ current: 0, total: 3, paragraph: 'Cortando video original en clips de 3s...', type: 'FFmpeg' });
@@ -2903,9 +2888,10 @@ ${res.filePath}`);
         weights: timelineWeights,
         aspectRatio,
         audioDuration,
+        buildDurationSeconds: voiceClip ? undefined : duracionAudio,
         transcriptSegments,
         audioProvenance,
-        segmentProvenance: { source: 'source-transcript', narration: audioProvenance.origin },
+        segmentProvenance: voiceClip ? { source: 'source-transcript', narration: audioProvenance.origin } : undefined,
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
         // CERO A PROPOSITO, NO ES UN OLVIDO. El commit e145119 partio la construccion en tres
@@ -2918,7 +2904,7 @@ ${res.filePath}`);
         // el unico camino que quedaria si este cero se reconecta, pero no se ejecuta hoy.
         // Anotado en docs/deuda-graficos.md.
         graphicsPercent: 0,
-        newAudioSegments: buildAnimationSlots ? animationInputSegments : effectiveAudioSegments
+        newAudioSegments: voiceClip ? (buildAnimationSlots ? animationInputSegments : effectiveAudioSegments) : undefined
       });
       if (activeProjectPathRef.current !== proyectoAlEmpezar) return;
       if (res && res.success && res.clips) {
@@ -3142,11 +3128,15 @@ ${res.filePath}`);
       }
     } catch (err: any) {
       const errorMsg = err.message || 'Excepción al generar assets.';
-      setGenerationError(errorMsg);
+      if (animationBuildCancellationRef.current.cancelRequested) {
+        setGenerationError('');
+        setAnimationBuildSummary(errorMsg === 'BUILD_CODEX_CANCELLED'
+          ? 'Construcción cancelada durante la planificación; todavía no se guardaron espacios ni se solicitaron medios.'
+          : 'Construcción cancelada. Los espacios guardados permanecen disponibles para continuar.');
+      } else setGenerationError(errorMsg);
       console.error('Excepción en Timeline IA:', errorMsg);
     } finally {
       setIsGeneratingAssets(false);
-      setIsBuildingAnimationQueue(false)
       setGenerationProgress(null);
       animationBuildInFlightRef.current = false
     }
@@ -4288,6 +4278,13 @@ ${res.filePath}`);
               <Sliders className="h-3.5 w-3.5 text-indigo-400" />
               <span>Mix del montaje</span>
             </div>
+            {!hasBuildNarration && <label className="flex items-center justify-between gap-3 text-[10px] text-slate-300">
+              <span>Duración del montaje (segundos)</span>
+              <input aria-label="Duración del montaje en segundos" type="number" min={timelineWeights[3] > 0 ? 3 : 1}
+                max={86400} step="1" value={buildDurationSeconds}
+                onChange={event => setBuildDurationSeconds(Math.max(1, Math.min(86400, Number(event.target.value) || 1)))}
+                className="w-20 rounded border border-[#3a3a3c] bg-[#1C1C1E] px-2 py-1 text-right font-mono text-slate-100" />
+            </label>}
             <div className="space-y-2.5">
               {/* Slider 1: Original */}
               <div className="flex items-center space-x-2.5">
@@ -4362,7 +4359,7 @@ ${res.filePath}`);
             <div className="h-1.5 w-full rounded-full overflow-hidden flex bg-[#3a3a3c] mt-2">
               <div style={{ width: `${timelineWeights[0]}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Original: ${timelineWeights[0]}%`} />
               <div style={{ width: `${timelineWeights[1]}%` }} className="h-full bg-sky-500 transition-all duration-300" title={`Stock: ${timelineWeights[1]}%`} />
-              <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`MiniMax: ${timelineWeights[2]}%`} />
+      <div style={{ width: `${timelineWeights[2]}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`IA: ${timelineWeights[2]}%`} />
               <div style={{ width: `${timelineWeights[3]}%` }} className="h-full bg-zinc-400 transition-all duration-300" title={`Visuales Animation: ${timelineWeights[3]}%`} />
             </div>
             {/* Selector de Estilo IA */}
@@ -4394,7 +4391,7 @@ ${res.filePath}`);
                 <div className="flex items-center space-x-2">
                   <div className="w-3.5 h-3.5 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
                   <span className="text-[10px] font-semibold text-indigo-300">Generando clips...</span>
-                    {isBuildingAnimationQueue && <button type="button" onClick={() => void cancelAnimationBuild()}
+                    {isGeneratingAssets && <button type="button" onClick={() => void cancelAnimationBuild()}
                       className="ml-auto text-[9px] font-semibold text-amber-200 border border-amber-500/30 rounded px-2 py-1 hover:bg-amber-500/10">Cancelar construcción</button>}
                 </div>
                 {generationProgress && (
@@ -4422,7 +4419,7 @@ ${res.filePath}`);
                   <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
                   <span>Construir timeline</span>
                 </button>
-                {audioOriginControls}
+                {hasBuildNarration && audioOriginControls}
                 {animationBuildSummary && <div role="status" className="w-full mt-2 p-2 rounded-lg border border-indigo-500/20 bg-indigo-950/10 text-[9px] text-indigo-200 select-text">{animationBuildSummary}</div>}
                 {/* ----- Transiciones GL ----- */}
                 <div className='mt-4'>
@@ -4441,7 +4438,7 @@ ${res.filePath}`);
                     <div className='mt-2 grid grid-cols-3 gap-1 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]'>
                       {[0,50,100].map((val) => (
                         <button key={val} onClick={() => setTransitionsPercent(prev => prev === val ? -1 : val)}
-                          disabled={!timelineVideoClips.find(c => c.type === 'audio')}
+                          disabled={!timelineVideoClips.some(c => c.type !== 'audio' && c.type !== 'graphic')}
                           className={`py-1.5 text-xs font-bold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
                             transitionsPercent===val
                               ? 'bg-violet-600 text-white shadow-md'
@@ -4498,7 +4495,7 @@ ${res.filePath}`);
                           key={val}
                           type="button"
                           onClick={() => setGraphicsPercent(prev => prev === val ? -1 : val)}
-                          disabled={!timelineVideoClips.find(c => c.type === 'audio')}
+                          disabled={timelineVideoClips.filter(c => c.type !== 'audio' && c.type !== 'graphic').length < 2}
                           className={`py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
                             active
                               ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 ring-2 ring-indigo-400/60'
@@ -6586,7 +6583,7 @@ ${res.filePath}`);
                       {isGeneratingAssets ? (
                         <div className="flex flex-col items-center justify-center text-center p-6 space-y-4 bg-[#1C1C1E]/90 border border-[#3a3a3c] rounded-xl shadow-xl select-none">
                           <div className="w-8 h-8 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin flex items-center justify-center shadow-lg shadow-indigo-500/20" />
-                          {isBuildingAnimationQueue && <button type="button" onClick={() => void cancelAnimationBuild()}
+                          {isGeneratingAssets && <button type="button" onClick={() => void cancelAnimationBuild()}
                             className="text-[10px] font-semibold text-amber-200 border border-amber-500/30 rounded px-2 py-1 hover:bg-amber-500/10">Cancelar construcción</button>}
                           <div className="space-y-2 w-full">
                             <p className="text-xs font-semibold text-indigo-300">Generando clips con IA local...</p>

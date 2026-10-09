@@ -167,6 +167,7 @@ const MUESTRA = {
   modularRecipe: 'wide',
   modularHeadline: { connector: 'LA', keyword: 'SEÑAL', closing: 'conecta conceptos' },
   timelineWeights: [11, 22, 67],
+  buildDurationSeconds: 47,
   aspectRatio: 'vertical',
   exportResolution: '4K', exportFormat: 'mov', exportQuality: 'high',
   assignedTransitions: { 'a->b': 'circlecrop' },
