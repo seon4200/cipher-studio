@@ -28,6 +28,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generateVoice: (params: any) => ipcRenderer.invoke('generate-voice', params),
   generateMinimaxVideo: (params: { prompt: string }) => ipcRenderer.invoke('generate-minimax-video', params),
   loadBankClips: (params: { category: string }) => ipcRenderer.invoke('load-bank-clips', params),
+  inspectBuildMedia: (params: any) => ipcRenderer.invoke('inspect-build-media', params),
+  retryTimelineAsset: (params: any) => ipcRenderer.invoke('retry-timeline-asset', params),
   generateTimelineAssets: (params: any) => ipcRenderer.invoke('generate-timeline-assets', params),
   animationConnectionStatus: () => ipcRenderer.invoke('animation:connection-status'),
   animationLoadProject: () => ipcRenderer.invoke('animation:load-project'),

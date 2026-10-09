@@ -46,3 +46,16 @@ FFmpeg y ffprobe requieren `PATH`; Animation admite `FFMPEG_PATH`. Para el bot V
 ## Estado de la continuación Construir → Animation
 - La rama `work/animation-auto-visuals-20261007` parte de la corrección de navegación `3ddbf01c948dfc138a2217e7178cd3061f5c6432`; retorno: etiqueta local `checkpoint/animation-auto-before-20261007`.
 - El resumen y las verificaciones de esta continuación están en `docs/animation-build-auto-20261007.md`. La prueba de aceptación desde la interfaz Electron sigue pendiente cuando Computer Use no expone la ventana.
+
+## Continuación fase 1: integridad de Construir
+- Estado y límites: `docs/fase-1-construir-integridad.md`. Esta rama continúa `98521eb`;
+  no volver a la etiqueta común anterior sin integrar la continuación pertinente.
+- Cuotas nuevas: restos mayores entre cuatro fuentes; un cero no recibe espacios ni despachos.
+  No cambiar de origen automáticamente ante un fallo, aunque la alternativa tenga peso positivo.
+- Construir guarda el plan antes de preparar medios. La cola común reintenta por ID/intervalo/plan,
+  conserva resultados terminados y guarda recibos del mismo trabajo. Después continúa Animation.
+- El audio usa procedencia explícita y segmentos vinculados; no nombres visibles ni igualdad de listas.
+- «Listo» requiere medios y guardado; exportación es una acción distinta. Preservar errores pendientes.
+- Añadir `npm run test:build-integrity` a las verificaciones afectadas. La aceptación visible y seis
+  suites Electron no están verificadas en el entorno de esta entrega; consultar el documento.
+- Las migraciones OpenAI/DeepSeek, Vibes/MiniMax, Estilos y retirada de motores son fases posteriores.

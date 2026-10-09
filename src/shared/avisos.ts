@@ -111,11 +111,13 @@ export type FilaResumen = {
   real: number;
   /** Escenas asignadas al flujo de Animation, que aún esperan creación/aplicación. */
   pendienteAnimation?: number;
+  pendienteMedio?: number;
 };
 
 export type MotivoRespaldo = { motivo: string; descripcion: string; veces: number };
 
 export type Resumen = {
+  etapa?: 'planificado' | 'pendientes' | 'listo';
   total: number;
   filas: FilaResumen[];
   /** Los clips que cayeron a otro origen, desglosados POR MOTIVO. */
@@ -179,6 +181,12 @@ export function armarResumen(
  */
 export function textoResumen(r: Resumen): string[] {
   const out: string[] = [];
+  if (r.etapa) {
+    out.push(r.etapa === 'listo' ? 'Timeline listo y guardado. Exportar es una acción separada.' :
+      r.etapa === 'planificado' ? 'Plan guardable: falta preparar los medios.' : 'Montaje preliminar: quedan medios pendientes.');
+    for (const f of r.filas) out.push(`${f.origen}: ${f.real}/${f.objetivo} medios realizados/solicitados; ${f.pendienteMedio || 0} pendientes.`);
+    return out;
+  }
   if (!r.completa) {
     out.push('La generación NO llegó a terminar. Esto es lo que había hecho hasta que se cortó:');
   }

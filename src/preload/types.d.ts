@@ -13,13 +13,15 @@ export interface IElectronAPI {
   generateVoice: (params: { text: string; model: string; voiceId: string; speed: number; stability: number }) => Promise<{ success: boolean; filePath?: string; audioUrl?: string; durationSeconds?: number; newAudioSegments?: any[]; error?: string }>;
   generateMinimaxVideo: (params: { prompt: string }) => Promise<{ success: boolean; filePath?: string; durationSeconds?: number; thumbnailUrl?: string; name?: string; error?: string }>;
   loadBankClips: (params: { category: string }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
-  generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; graphicsPercent?: number; newAudioSegments?: any[]; hasVideoV2?: boolean }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
+  inspectBuildMedia: (params: { projectPath: string; clips: any[] }) => Promise<{ success: boolean; invalidIds?: string[]; error?: string }>;
+  retryTimelineAsset: (params: { projectPath: string; clip: any }) => Promise<{ success: boolean; clip?: any; error?: string }>;
+  generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; graphicsPercent?: number; newAudioSegments?: any[]; hasVideoV2?: boolean; audioProvenance?: any; segmentProvenance?: any }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
   animationConnectionStatus: () => Promise<{ available: boolean; authenticated: boolean; status: string; provider: string }>;
   animationLoadProject: () => Promise<{ success: boolean; state?: any; recipes?: any[]; components?: any[]; error?: string }>;
   animationLoadDraft: (draftId: string) => Promise<{ success: boolean; draft?: any; error?: string }>;
   animationListDrafts: (timelineClipId: string) => Promise<{ success: boolean; drafts?: Array<{ draftId: string; createdAt?: string | null; route?: string; quote?: string; purpose?: string; previewAvailable?: boolean; applied?: boolean; planHash?: string }>; invalidDraftCount?: number; error?: string }>;
   animationSaveProject: (state: any) => Promise<{ success: boolean; state?: any; error?: string }>;
-  animationSaveBuildState: (params: { projectPath: string; projectState: any; animationState: any }) => Promise<{ success: boolean; error?: string }>;
+  animationSaveBuildState: (params: { projectPath: string; projectState: any; animationState?: any }) => Promise<{ success: boolean; error?: string }>;
   animationProjectJobs: () => Promise<{ success: boolean; jobs?: Array<{ jobId: string; kind?: string; clipId?: string | null; phase?: string }>; error?: string }>;
   animationAddReference: (filePath: string) => Promise<{ success: boolean; reference?: any; framePaths?: string[]; error?: string }>;
   animationGenerateDraft: (params: any) => Promise<{ success: boolean; kind?: 'answer'|'draft'; response?: string; threadId?: string;

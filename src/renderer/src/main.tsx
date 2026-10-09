@@ -1,7 +1,8 @@
+import { resolveAudioProvenance, runCommonMediaQueue, isPendingCommonSlot, requiredMediaPending, buildSummary, type AudioProvenance } from '../../shared/build-integrity'
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { normalizeProjectAspectRatioV1 } from '../../shared/aspect-ratio-v1'
 import { excluirSobreVisuales, colocarYFiltrarTarjetas, avisoDeExclusion } from '../../shared/exclusion'
-import { textoResumen, type Aviso, type Resumen } from '../../shared/avisos'
+import { armarResumen, textoResumen, type Aviso, type Resumen } from '../../shared/avisos'
 import { hayTiemposPorPalabra } from '../../shared/palabra'
 import { repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../../shared/reparto'
 import { resolveAnimationPanelFlowV1 } from '../../shared/animation-panel-flow-v1'
@@ -68,6 +69,11 @@ interface TimelineClip {
   type?: 'video' | 'audio' | 'graphic';
   /** True only when the user explicitly selected this clip as narration audio. */
   narration?: boolean;
+  audioProvenance?: AudioProvenance;
+  narrationSegments?: any[];
+  buildPlan?: any;
+  mediaBuild?: any;
+  mediaDurationSeconds?: number;
   mediaKind?: 'image' | 'video';
   vibesPlaceholder?: boolean;
   vibesSampleDurationLock?: number;
@@ -102,6 +108,7 @@ interface TimelineClip {
   stockDecision?: any;
 }
 interface GeneratedVoiceVersion {
+  narrationSegments?: any[];
   id: string;
   timestamp: number;
   speaker: string;
@@ -159,12 +166,15 @@ function App() {
   const timelineVideoClipsRef = React.useRef(timelineVideoClips)
   useEffect(() => { timelineVideoClipsRef.current = timelineVideoClips }, [timelineVideoClips])
   const pendingAnimationSlots = timelineVideoClips.filter(isPendingAnimationSlot)
-  const hasPendingAnimationSlots = pendingAnimationSlots.length > 0
+  const hasPendingAnimationSlots = pendingAnimationSlots.length > 0 || timelineVideoClips.some(isPendingCommonSlot)
   const animationBuildInFlightRef = React.useRef(false)
   const [animationBuildSummary, setAnimationBuildSummary] = useState('')
   const [timelineVersions, setTimelineVersions] = useState<TimelineVersion[]>([])
   const [activeVersionId, setActiveVersionId] = useState<string>('')
+  const activeVersionIdRef = React.useRef(activeVersionId)
+  useEffect(() => { activeVersionIdRef.current = activeVersionId }, [activeVersionId])
   const handleSelectTimelineVersion = (versionId: string) => {
+    activeVersionIdRef.current = versionId;
     setActiveVersionId(versionId);
     const targetVersion = timelineVersions.find(v => v.id === versionId);
     if (targetVersion) {
@@ -956,6 +966,8 @@ function App() {
       const nuevo = {
         id: `timeline-voice-original-${Date.now()}`,
         name: 'Voz - Audio Original',
+        audioProvenance: { origin: 'original' as const, sourcePath: video.path },
+        narrationSegments: transcriptSegments,
         startSeconds: 0,
         durationSeconds: res.durationSeconds || video.durationSeconds || 30,
         type: 'audio' as const,
@@ -1468,8 +1480,10 @@ function App() {
   const selectedAnimationClip = selectedTimelineClipIds.length === 1
     ? timelineVideoClips.find(clip => clip.id === selectedTimelineClipIds[0] && clip.category === 'visual' && clip.type !== 'graphic') || null
     : null
-  const animationTranscriptSegments = timelineVideoClips.find(clip => clip.type === 'audio')?.name === 'Voz - Audio Original'
-    ? transcriptSegments : newAudioSegments
+  const narrationClip = timelineVideoClips.find(clip => clip.type === 'audio' && clip.narration) || timelineVideoClips.find(clip => clip.type === 'audio')
+  const narrationOrigin = resolveAudioProvenance(narrationClip, generatedVoices)
+  const animationTranscriptSegments = narrationClip?.narrationSegments || (narrationOrigin.origin === 'original'
+    ? transcriptSegments : [])
   const applyAnimationClip = (generatedClip: any, selectedClipId: string, options?: {
     timeline?: TimelineClip[]; allowUnselectedSlot?: boolean; projectPath?: string; onApplied?: (clips: TimelineClip[]) => void
   }) => {
@@ -1504,7 +1518,7 @@ function App() {
       targetEnd > Number(clip.startSeconds || 0) + 1 / 30))
     const { canvasV4: _canvasV4, visualRegeneration: _visualRegeneration, graphicData: _graphicData,
       animationPending: _animationPending, animationSlotIndex: _animationSlotIndex,
-      transcriptText: _transcriptText, requestedSource: _requestedSource, materialized: _materialized,
+      materialized: _materialized,
       ...stableSource } = source
     const replaced = next.map(clip => clip.id === selectedClipId ? {
       ...stableSource, name: String(generatedClip.name || source.name), path: generatedClip.path, url: generatedClip.url,
@@ -1732,8 +1746,9 @@ function App() {
   useEffect(() => {
     if (!hasLoaded.current) return;
     setIsDirty(true);
+    const projectForSave = activeProjectPathRef.current;
     const timer = setTimeout(() => {
-      handleSaveProjectDirectly();
+      if (!animationBuildInFlightRef.current && activeProjectPathRef.current === projectForSave) handleSaveProjectDirectly();
     }, 2000);
     return () => clearTimeout(timer);
   }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, vibesSourceTranscriptSegments, newAudioSegments, activeProjectId, activeProjectName, vibesSourceStartSeconds, vibesSourceMediaDurationSeconds, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
@@ -2385,11 +2400,11 @@ function App() {
       return;
     }
     const pendingAnimation = timelineVideoClips.find((clip: TimelineClip) =>
-      clip.type === 'video' && clip.category === 'visual' && (clip.animationPending || !clip.path));
+      requiredMediaPending(clip));
     if (pendingAnimation) {
       setSelectedTimelineClipIds([pendingAnimation.id]);
       openAnimationPanel('scene');
-      alert('El timeline contiene Visuales pendientes de Animation. Selecciona cada slot en el panel IA, crea y aplica su escena, y vuelve a exportar.');
+      alert('El timeline contiene medios pendientes. Pulsa Construir para continuarlos y vuelve a exportar cuando estén listos.');
       return;
     }
     setIsExporting(true);
@@ -2521,7 +2536,7 @@ ${res.filePath}`);
     const cancellation = animationBuildCancellationRef.current
     if (!isBuildingAnimationQueue || cancellation.cancelRequested) return
     cancellation.cancelRequested = true
-    setAnimationBuildSummary('Cancelando Animation; el slot activo conserva su plan y los demás siguen pendientes.')
+    setAnimationBuildSummary('Cancelando construcción: las solicitudes en curso terminan y se guardan; no se despachan más espacios.')
     const jobId = cancellation.activeJobId
     if (jobId) await window.electronAPI.animationCancel(jobId)
   }
@@ -2530,10 +2545,9 @@ ${res.filePath}`);
       activeVersionForBuild = activeVersionId) => {
     const projectPath = activeProjectPathRef.current
     if (!projectPath) throw new Error('Abre un proyecto antes de continuar Visuales con Animation.')
-    animationBuildCancellationRef.current = { cancelRequested: false, activeJobId: null }
     setIsBuildingAnimationQueue(true)
     const currentPath = () => String(activeProjectPathRef.current || '').replace(/[\\/]+/g, '/').toLowerCase()
-    const sameProject = () => currentPath() === String(projectPath).replace(/[\\/]+/g, '/').toLowerCase()
+    const sameProject = () => currentPath() === String(projectPath).replace(/[\\/]+/g, '/').toLowerCase() && activeVersionIdRef.current === activeVersionForBuild
     const mergeQueueTimeline = (latest: TimelineClip[], queued: AnimationBuildClip[]): TimelineClip[] => {
       const byId = new Map(queued.map(clip => [clip.id, clip]))
       return latest.map((current): TimelineClip => {
@@ -2649,32 +2663,108 @@ ${res.filePath}`);
     return mergedQueue
   }
 
+  const persistBuildTimeline = async (next: TimelineClip[], projectPath: string,
+      versions = timelineVersions, versionId = activeVersionId) => {
+    if (activeProjectPathRef.current !== projectPath || activeVersionIdRef.current !== versionId) throw new Error('BUILD_PROJECT_CHANGED')
+    const current = construirEstadoAGuardarRef.current()
+    const nextVersions = versions.map(v => v.id === versionId ? { ...v, timelineVideoClips: next } : v)
+    const result = await window.electronAPI.animationSaveBuildState({ projectPath,
+      projectState: { ...current, timelineVideoClips: next, timelineVersions: nextVersions, activeVersionId: versionId } })
+    if (!result.success) throw new Error(result.error || 'BUILD_SAVE_FAILED')
+    if (activeProjectPathRef.current !== projectPath || activeVersionIdRef.current !== versionId) throw new Error('BUILD_PROJECT_CHANGED')
+    setTimelineVersions(nextVersions)
+  }
+
+  const continueCommonBuild = async (projectPath: string, versions = timelineVersions, versionId = activeVersionId) => {
+    setIsBuildingAnimationQueue(true)
+    return runCommonMediaQueue({
+      getClips: () => timelineVideoClipsRef.current,
+      persist: next => persistBuildTimeline(next, projectPath, versions, versionId),
+      onClips: next => { timelineVideoClipsRef.current = next; setTimelineVideoClips(next); setIsDirty(true) },
+      isCurrent: () => activeProjectPathRef.current === projectPath && activeVersionIdRef.current === versionId,
+      isCancelled: () => animationBuildCancellationRef.current.cancelRequested,
+      dispatch: async slot => {
+        setGenerationProgress({ current: slot.buildPlan.index, total: slot.buildPlan.total,
+          type: 'Medios en preparación', paragraph: `${slot.category}: ${slot.transcriptText || slot.id}` })
+        const result = await window.electronAPI.retryTimelineAsset({ projectPath, clip: slot })
+        if (!result.success) throw new Error(result.error || 'BUILD_MEDIA_FAILED')
+        return result.clip
+      }
+    })
+  }
+
+  const finishBuild = async (projectPath: string, versions = timelineVersions, versionId = activeVersionId) => {
+    if (activeProjectPathRef.current !== projectPath || activeVersionIdRef.current !== versionId) throw new Error('BUILD_PROJECT_CHANGED')
+    const next = timelineVideoClipsRef.current
+    await persistBuildTimeline(next, projectPath, versions, versionId)
+    const checked = await window.electronAPI.inspectBuildMedia({ projectPath, clips: next })
+    if (!checked.success || checked.invalidIds?.length) throw new Error('Hay medios ausentes o inválidos; pulsa Construir para recuperar sus espacios.')
+    const summary = buildSummary(next)
+    setResumen({ ...armarResumen(summary.sources.map(x => ({ origen: x.source, objetivo: x.requested, real: x.ready, pendienteMedio: x.requested - x.ready })), [], summary.sources.reduce((n, x) => n + x.requested, 0), summary.ready), etapa: summary.ready ? 'listo' : 'pendientes' })
+    const detail = summary.sources.map(x => `${x.source}: ${x.ready}/${x.requested}`).join(' · ')
+    const errors = next.filter(c => c.mediaBuild?.error).map(c => `${c.id}: ${c.mediaBuild.error}`).join(' · ')
+    setAnimationBuildSummary(`${summary.ready ? 'Timeline listo y guardado.' : `Montaje preliminar: ${summary.pending} medios pendientes.`} Realizados/solicitados: ${detail}. ${errors}`)
+    pushMilestone(summary.ready ? 'Timeline listo' : 'Montaje preliminar · pendientes', { timelineVideoClips: next })
+  }
+
+  const resolveNarrationOrigin = (origin: 'original' | 'generated') => {
+    if (!narrationClip) return
+    const next = timelineVideoClipsRef.current.map(c => c.id === narrationClip.id
+      ? { ...c, audioProvenance: { origin }, narrationSegments: origin === 'original' ? transcriptSegments : newAudioSegments } : c)
+    timelineVideoClipsRef.current = next; setTimelineVideoClips(next); setIsDirty(true)
+    setGenerationError('')
+  }
+  const audioOriginControls = narrationClip && (narrationOrigin.origin === 'unknown' || (narrationOrigin.origin === 'generated' && !narrationClip.narrationSegments?.length)) ? (
+    <div className="p-2 text-xs text-amber-200 border border-amber-600 rounded-lg">
+      <p>Confirma la procedencia y que su transcripción corresponde al audio seleccionado:</p>
+      <button className="mr-3 underline" onClick={() => resolveNarrationOrigin('original')}>Audio de la fuente original</button>
+      <button className="underline" onClick={() => resolveNarrationOrigin('generated')}>Voz generada</button>
+    </div>
+  ) : null
+
   const handleBuildIATimeline = async () => {
     if (animationBuildInFlightRef.current || isGeneratingAssets) return
-    const existingPendingAnimationSlots = timelineVideoClips.filter(isPendingAnimationSlot)
-    if (existingPendingAnimationSlots.length > 0) {
+    animationBuildCancellationRef.current = { cancelRequested: false, activeJobId: null }
+    const inspectProject = activeProjectPathRef.current
+    if (inspectProject && timelineVideoClips.some(c => c.buildPlan || c.animationV1)) {
       animationBuildInFlightRef.current = true
-      setAnimationBuildSummary('')
-      setGenerationError('')
-      setIsGeneratingAssets(true)
-      setGenerationProgress({ current: 0, total: existingPendingAnimationSlots.length,
-        paragraph: 'Reanudando únicamente los Visuales pendientes del timeline existente.', type: 'Animation' })
       try {
-        await continuePendingAnimationBuild(timelineVideoClips)
+        const checked = await window.electronAPI.inspectBuildMedia({ projectPath: inspectProject, clips: timelineVideoClips })
+        if (activeProjectPathRef.current !== inspectProject || activeVersionIdRef.current !== activeVersionId) return
+        if (!checked.success) { setGenerationError(checked.error || 'BUILD_INSPECT_FAILED'); return }
+        if (checked.invalidIds?.length) {
+          const next = timelineVideoClips.map(c => checked.invalidIds!.includes(c.id)
+            ? { ...c, materialized: false, ...(c.category === 'visual' ? { animationPending: true } : {}),
+                mediaBuild: { status: 'error', error: 'BUILD_MEDIA_MISSING_OR_INVALID' } } : c)
+          await persistBuildTimeline(next, inspectProject)
+          timelineVideoClipsRef.current = next; setTimelineVideoClips(next)
+        }
+      } catch (error: any) { setGenerationError(String(error?.message || error)); return }
+      finally { animationBuildInFlightRef.current = false }
+    }
+    const currentBuildTimeline = timelineVideoClipsRef.current
+    const existingPending = currentBuildTimeline.some(c => isPendingCommonSlot(c) || isPendingAnimationSlot(c))
+    if (existingPending) {
+      const projectPath = activeProjectPathRef.current
+      if (!projectPath) { setGenerationError('Abre un proyecto antes de continuar.'); return }
+      animationBuildInFlightRef.current = true
+      setAnimationBuildSummary('Reanudando únicamente espacios pendientes del montaje guardado.')
+      setGenerationError(''); setIsGeneratingAssets(true)
+      try {
+        await continueCommonBuild(projectPath)
+        if (!animationBuildCancellationRef.current.cancelRequested && timelineVideoClipsRef.current.some(isPendingAnimationSlot))
+          await continuePendingAnimationBuild(timelineVideoClipsRef.current)
+        await finishBuild(projectPath)
       } catch (error: any) {
-        if (error?.message !== 'ANIMATION_PROJECT_CHANGED') setAnimationBuildSummary(`No se inició Animation: ${String(error?.message || error)}`)
+        if (activeProjectPathRef.current === projectPath) setGenerationError(String(error?.message || error))
       } finally {
-        setIsGeneratingAssets(false)
-        setIsBuildingAnimationQueue(false)
-        setGenerationProgress(null)
+        setIsGeneratingAssets(false); setIsBuildingAnimationQueue(false); setGenerationProgress(null)
         animationBuildInFlightRef.current = false
       }
       return
     }
-    const completedAnimationCount = timelineVideoClips.filter(clip => clip.type === 'video' && clip.category === 'visual' &&
-      clip.animationBuild?.status === 'applied' && clip.materialized === true && !!clip.animationV1 && !!clip.path).length
-    if (completedAnimationCount > 0) {
-      setAnimationBuildSummary(`Animation ya tiene ${completedAnimationCount} Visuales aplicados y no hay pendientes; no se vuelve a generar ni se reconstruye este timeline.`)
+    if (currentBuildTimeline.some(c => c.buildPlan || c.animationBuild?.status === 'applied')) {
+      setAnimationBuildSummary(buildSummary(currentBuildTimeline).ready ? 'El montaje ya está construido. Se conservan los medios terminados sin volver a planificar.' : 'Faltan medios sin plan recuperable. Restaura sus archivos antes de continuar o exportar.')
       return
     }
     const buildAnimationSlots = (timelineWeights[3] ?? 0) > 0;
@@ -2685,17 +2775,22 @@ ${res.filePath}`);
     // abrir otro proyecto. Leerlo de la clausura daria el valor de cuando arranco y la
     // comparacion nunca se cumpliria.
     const proyectoAlEmpezar = activeProjectPathRef.current;
-    const voiceClip = timelineVideoClips.find(c => c.type === 'audio');
-    const isUsingOriginalAudio = voiceClip?.name === 'Voz - Audio Original';
+    if (!proyectoAlEmpezar) { setGenerationError('Abre un proyecto antes de construir.'); return; }
+    const voiceClip = narrationClip;
+    const audioProvenance = resolveAudioProvenance(voiceClip, generatedVoices);
+    const isUsingOriginalAudio = audioProvenance.origin === 'original';
     if (!voiceClip) {
       setGenerationError('Debes agregar un audio al timeline primero.');
       return;
     }
-    if (!isUsingOriginalAudio && (!newAudioSegments || newAudioSegments.length === 0)) {
-      setGenerationError('Debes generar la voz primero antes de construir el timeline.');
+    if (audioProvenance.origin === 'unknown') {
+      setGenerationError('Indica la procedencia del audio antes de construir.'); return;
+    }
+    if (!isUsingOriginalAudio && !voiceClip.narrationSegments?.length) {
+      setGenerationError('Confirma la transcripción de esta voz en el selector de procedencia antes de construir.');
       return;
     }
-    const effectiveAudioSegments = isUsingOriginalAudio ? transcriptSegments : newAudioSegments;
+    const effectiveAudioSegments = voiceClip.narrationSegments || (isUsingOriginalAudio ? transcriptSegments : []);
     // Guarda: la transcripcion tiene que cubrir el audio del timeline. Si no, FASE 5
     // estira el ultimo clip para tapar el hueco y esa parte sale congelada.
     // Medido: un desfase de 645s convirtio un clip de 2.5s en uno de 648s (11 minutos).
@@ -2724,7 +2819,7 @@ ${res.filePath}`);
     }
     // LOS VISUALES NECESITAN TIEMPOS POR PALABRA, y solo los hay si el proyecto se transcribio
     // con --word_timestamps. Uno transcrito ANTES de ese cambio no los tiene, asi que TODOS sus
-    // Visuales caerian a 'original' y el usuario veria el slider moverse sin que pasara nada:
+    // Visuales no podrían recibir una cita literal temporizada para Animation:
     // parece roto. Se le dice POR QUE y como arreglarlo, en vez de dejarlo solo en el log.
     if (buildAnimationSlots && !hayTiemposPorPalabra(effectiveAudioSegments)) {
       setGenerationError(
@@ -2780,8 +2875,10 @@ ${res.filePath}`);
     setGenerationProgress(null);
     try {
       // 1. Slicing original video first if one is imported (Regla 1)
-      const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
-      if (firstVideoInLibrary) {
+      const firstVideoInLibrary = (isUsingOriginalAudio && audioProvenance.sourcePath
+        ? clips.find(c => c.path === audioProvenance.sourcePath) || { path: audioProvenance.sourcePath }
+        : clips.find(c => c.type === 'video')) || clips.find(c => c.type === 'audio') || clips[0];
+      if (firstVideoInLibrary && timelineWeights[0] > 0) {
         console.log('[handleBuildIATimeline] Cortando video original en clips de 3 segundos...');
         setGenerationProgress({ current: 0, total: 3, paragraph: 'Cortando video original en clips de 3s...', type: 'FFmpeg' });
         const cutRes = await window.electronAPI.cutVideoClips({
@@ -2803,7 +2900,9 @@ ${res.filePath}`);
         weights: timelineWeights,
         aspectRatio,
         audioDuration,
-        transcriptSegments: buildAnimationSlots ? animationInputSegments : transcriptSegments,
+        transcriptSegments,
+        audioProvenance,
+        segmentProvenance: { source: 'source-transcript', narration: audioProvenance.origin },
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
         // CERO A PROPOSITO, NO ES UN OLVIDO. El commit e145119 partio la construccion en tres
@@ -2818,6 +2917,7 @@ ${res.filePath}`);
         graphicsPercent: 0,
         newAudioSegments: buildAnimationSlots ? animationInputSegments : effectiveAudioSegments
       });
+      if (activeProjectPathRef.current !== proyectoAlEmpezar) return;
       if (res && res.success && res.clips) {
         console.log('[handleBuildIATimeline] Generación completada con éxito. Clips recibidos:', res.clips.length);
         // Refresh library bank folders so generated clips appear in their tabs
@@ -2851,6 +2951,10 @@ ${res.filePath}`);
                 url: clipInfo.url,
                 path: clipInfo.path,
                 category: clipInfo.category || item.type,
+                buildPlan: clipInfo.buildPlan,
+                mediaBuild: clipInfo.mediaBuild,
+                requestedSource: clipInfo.requestedSource,
+                materialized: clipInfo.materialized,
                 visualRegeneration: clipInfo.visualRegeneration,
                 stockDecision: clipInfo.stockDecision,
                 animationPending: clipInfo.animationPending === true,
@@ -2907,6 +3011,7 @@ ${res.filePath}`);
         let versionsForAnimation: TimelineVersion[] = [...timelineVersions, newVersion]
         let versionIdForAnimation = newVersionId
         setTimelineVersions(versionsForAnimation);
+        activeVersionIdRef.current = newVersionId;
         setActiveVersionId(newVersionId);
         timelineVideoClipsRef.current = finalTimelineClips
         setTimelineVideoClips(finalTimelineClips);
@@ -2918,8 +3023,13 @@ ${res.filePath}`);
             openAnimationPanel('scene');
           }
         }
+        if (!proyectoAlEmpezar) throw new Error('BUILD_PROJECT_REQUIRED');
+        setGenerationProgress({ current: 0, total: newVideoClips.length, type: 'Planificado', paragraph: 'Guardando espacios antes de crear medios.' });
+        await persistBuildTimeline(finalTimelineClips, proyectoAlEmpezar, versionsForAnimation, versionIdForAnimation);
+        await continueCommonBuild(proyectoAlEmpezar, versionsForAnimation, versionIdForAnimation);
+        finalTimelineClips = timelineVideoClipsRef.current;
         // FASE 2: Gráficos
-        if (graphicsPercent > 0) {
+        if (graphicsPercent > 0 && !animationBuildCancellationRef.current.cancelRequested) {
           setGenerationProgress({ current: 0, total: 1, paragraph: 'Generando gráficos...', type: 'Gráficos' });
           try {
             const textToUse = aiScript.trim() || originalTranscriptText.trim();
@@ -2929,7 +3039,7 @@ ${res.filePath}`);
             // one of the procedural Visuals.
             const timelineVideosForGraphicExclusion = finalTimelineClips.filter(c =>
               c.type !== 'audio' && c.type !== 'graphic');
-            const videoClips = finalTimelineClips.filter(c => c.type !== 'audio' && c.type !== 'graphic' &&
+            const videoClips = finalTimelineClips.filter(c => !requiredMediaPending(c) && c.type !== 'audio' && c.type !== 'graphic' &&
               (c.category === 'original' || c.category === 'stock'));
             const gRes = await window.electronAPI.regenerateGraphics({
               scriptText: textToUse,
@@ -3007,16 +3117,17 @@ ${res.filePath}`);
           }
           setAssignedTransitions(newAssigned);
         }
-        pushMilestone('Timeline construido', {
+        pushMilestone('Montaje preliminar', {
           timelineVideoClips: finalTimelineClips
         });
         pushHistory(finalTimelineClips);
         versionsForAnimation = versionsForAnimation.map(version => version.id === versionIdForAnimation
           ? { ...version, timelineVideoClips: finalTimelineClips } : version)
         setTimelineVersions(versionsForAnimation)
-        if (buildAnimationSlots && finalTimelineClips.some(isPendingAnimationSlot)) {
+        if (!animationBuildCancellationRef.current.cancelRequested && buildAnimationSlots && finalTimelineClips.some(isPendingAnimationSlot)) {
           await continuePendingAnimationBuild(finalTimelineClips, versionsForAnimation, versionIdForAnimation)
         }
+        await finishBuild(proyectoAlEmpezar, versionsForAnimation, versionIdForAnimation)
       } else {
         const errorMsg = res?.error || 'Error al generar los clips de la IA.';
         setGenerationError(errorMsg);
@@ -3257,7 +3368,8 @@ ${res.filePath}`);
           text: aiScript,
           filePath: res.filePath,
           audioUrl: res.audioUrl,
-          durationSeconds: durationSecs
+          durationSeconds: durationSecs,
+          narrationSegments: res.newAudioSegments || []
         }
         const libraryClip: Clip = {
           id: newVersion.id,
@@ -3304,7 +3416,9 @@ ${res.filePath}`);
       type: 'audio',
       narration: true,
       url: voice.audioUrl,
-      path: voice.filePath
+      path: voice.filePath,
+      audioProvenance: { origin: 'generated', voiceId: voice.id },
+      narrationSegments: voice.narrationSegments || []
     }
     const updated = [...timelineVideoClips, newTimelineClip]
     setTimelineVideoClips(updated)
@@ -4274,7 +4388,7 @@ ${res.filePath}`);
                   <div className="w-3.5 h-3.5 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
                   <span className="text-[10px] font-semibold text-indigo-300">Generando clips...</span>
                     {isBuildingAnimationQueue && <button type="button" onClick={() => void cancelAnimationBuild()}
-                      className="ml-auto text-[9px] font-semibold text-amber-200 border border-amber-500/30 rounded px-2 py-1 hover:bg-amber-500/10">Cancelar Animation</button>}
+                      className="ml-auto text-[9px] font-semibold text-amber-200 border border-amber-500/30 rounded px-2 py-1 hover:bg-amber-500/10">Cancelar construcción</button>}
                 </div>
                 {generationProgress && (
                   <div className="space-y-1">
@@ -4295,12 +4409,13 @@ ${res.filePath}`);
               <>
                 <button
                   onClick={() => void handleBuildIATimeline()}
-                  disabled={!aiScript.trim() && !hasPendingAnimationSlots}
+                  disabled={!aiScript.trim() && !originalTranscriptText.trim() && !hasPendingAnimationSlots}
                   className="w-full mt-3 bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
                   <span>Construir timeline</span>
                 </button>
+                {audioOriginControls}
                 {animationBuildSummary && <div role="status" className="w-full mt-2 p-2 rounded-lg border border-indigo-500/20 bg-indigo-950/10 text-[9px] text-indigo-200 select-text">{animationBuildSummary}</div>}
                 {/* ----- Transiciones GL ----- */}
                 <div className='mt-4'>
@@ -6465,7 +6580,7 @@ ${res.filePath}`);
                         <div className="flex flex-col items-center justify-center text-center p-6 space-y-4 bg-[#1C1C1E]/90 border border-[#3a3a3c] rounded-xl shadow-xl select-none">
                           <div className="w-8 h-8 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin flex items-center justify-center shadow-lg shadow-indigo-500/20" />
                           {isBuildingAnimationQueue && <button type="button" onClick={() => void cancelAnimationBuild()}
-                            className="text-[10px] font-semibold text-amber-200 border border-amber-500/30 rounded px-2 py-1 hover:bg-amber-500/10">Cancelar Animation</button>}
+                            className="text-[10px] font-semibold text-amber-200 border border-amber-500/30 rounded px-2 py-1 hover:bg-amber-500/10">Cancelar construcción</button>}
                           <div className="space-y-2 w-full">
                             <p className="text-xs font-semibold text-indigo-300">Generando clips con IA local...</p>
                             {generationProgress ? (
@@ -6492,7 +6607,7 @@ ${res.filePath}`);
                       ) : (
                         <button
                           onClick={() => void handleBuildIATimeline()}
-                          disabled={!aiScript.trim() && !hasPendingAnimationSlots}
+                          disabled={!aiScript.trim() && !originalTranscriptText.trim() && !hasPendingAnimationSlots}
                           className="w-full bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2.5 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
@@ -6514,6 +6629,7 @@ ${res.filePath}`);
                           Error de generación: {generationError}
                         </div>
                       )}
+                      {audioOriginControls}
                       {animationBuildSummary && <div role="status" className="text-center py-2 px-3 text-[10px] text-indigo-200 bg-indigo-950/20 border border-indigo-900/50 rounded-xl mt-2 select-text">{animationBuildSummary}</div>}
                     </div>
                   </div>

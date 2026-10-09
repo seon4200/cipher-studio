@@ -16,40 +16,23 @@ const leer = (pesos: number[] | null | undefined, i: number): number => {
   return typeof v === 'number' && Number.isFinite(v) ? v : 0;
 };
 
-/**
- * Cuantos clips de cada origen para un total dado.
- *
- * TRES pesos explicitos —stock, IA, Visuales— y `original` como RESIDUO. No es un descuido:
- * el algoritmo de rachas que corre despues gasta sus cortes hasta agotarlos y su comentario
- * dice "los conteos son exactos". Con cuatro Math.round independientes la suma podria salir
- * total±2 y ese reparto fallaria en silencio. Un residuo garantiza el cuadre por construccion.
- *
- * `original` puede ser 0 y puede ser todo: el usuario elige. Lo que NO puede es ser negativo.
+/** Largest remainders over enabled sources. Ties: Original, Stock, IA, Visuales.
+ * Only new plans use this allocation; saved timelines are never redistributed.
+ * No positive weight is an invalid request, not permission to select Original.
  */
 export function repartoObjetivos(pesos: number[] | null | undefined, total: number): Objetivos {
   const t = Number.isFinite(total) && total > 0 ? Math.floor(total) : 0;
+  const values = [0, 1, 2, 3].map(i => Math.max(0, leer(pesos, i)));
+  const sum = values.reduce((a, b) => a + b, 0);
   if (t === 0) return { original: 0, stock: 0, ia: 0, visual: 0 };
-
-  let ia = Math.round((leer(pesos, 2) / 100) * t);
-  let stock = Math.round((leer(pesos, 1) / 100) * t);
-  let visual = Math.round((leer(pesos, 3) / 100) * t);
-
-  // Reescalado a TRES terminos. El anterior solo contemplaba dos, asi que con un tercero
-  // `original` podia salir NEGATIVO — y eso no lanza nada: produce un reparto imposible que se
-  // descubre mucho despues, o no se descubre.
-  //
-  // El ORDEN importa y no es arbitrario: se truncan `ia` y `visual`, y `stock` se lleva el
-  // resto. Asi, con visual = 0, esto da EXACTAMENTE lo mismo que la formula de antes, que
-  // truncaba ia y daba el resto a stock. Repartir el resto de otra forma cambiaria el montaje
-  // de los proyectos que no usan Visuales.
-  const suma = ia + stock + visual;
-  if (suma > t) {
-    ia = Math.floor((ia / suma) * t);
-    visual = Math.floor((visual / suma) * t);
-    stock = t - ia - visual;
-  }
-
-  return { original: t - ia - stock - visual, stock, ia, visual };
+  if (sum === 0) throw new Error('BUILD_WEIGHTS_EMPTY');
+  const quotas = values.map(v => v / sum * t);
+  const counts = quotas.map(Math.floor);
+  const order = values.map((_, i) => i).filter(i => values[i] > 0)
+    .sort((a, b) => (quotas[b] - counts[b]) - (quotas[a] - counts[a]) || a - b);
+  const remainder = t - counts.reduce((a, b) => a + b, 0);
+  for (let n = 0; n < remainder; n++) counts[order[n % order.length]]++;
+  return { original: counts[0], stock: counts[1], ia: counts[2], visual: counts[3] };
 }
 
 /**

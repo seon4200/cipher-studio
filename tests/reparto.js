@@ -20,21 +20,6 @@ const ok = (cond, titulo, detalle) => {
   else { fallos.push(titulo); console.log(`  FALLO ${titulo}${detalle ? '\n          ' + detalle : ''}`) }
 }
 
-// LA FORMULA VIEJA, copiada tal cual estaba antes de los Visuales. Existe para UNA sola cosa:
-// demostrar que con visual = 0 el reparto nuevo da EXACTAMENTE lo mismo. Sin este control no
-// se sabria si al añadir el cuarto origen se ha roto original/stock/IA, que es lo unico que
-// hoy funciona de verdad.
-function repartoViejo (stock, ia, total) {
-  let nIa = Math.round((ia / 100) * total)
-  let nStock = Math.round((stock / 100) * total)
-  if (nIa + nStock > total) {
-    const sum = nIa + nStock
-    nIa = Math.floor((nIa / sum) * total)
-    nStock = total - nIa
-  }
-  return { original: total - nIa - nStock, stock: nStock, ia: nIa, visual: 0 }
-}
-
 const TOTALES = [1, 2, 7, 13, 39, 78, 220, 388]
 
 function main (bundle) {
@@ -43,25 +28,21 @@ function main (bundle) {
   ok(typeof repartirPesos === 'function', 'repartirPesos se exporta del bundle')
   if (typeof repartoObjetivos !== 'function' || typeof repartirPesos !== 'function') return
 
-  // ── A) EL CONTROL: con visual = 0, IDENTICO a antes ────────────────────────────────
-  console.log('\n=== A) CON visual = 0, EL REPARTO ES EL DE ANTES ===')
+  // New plans use largest remainders, not the historic Original residual.
   let casos = 0, malos = []
   for (let stock = 0; stock <= 100; stock++) {
     for (let ia = 0; ia + stock <= 100; ia++) {
       for (const total of TOTALES) {
-        const v = repartoViejo(stock, ia, total)
-        const n = repartoObjetivos([100 - stock - ia, stock, ia, 0], total)
+        const weights = [100 - stock - ia, stock, ia, 0]
+        const values = Object.values(repartoObjetivos(weights, total))
         casos++
-        if (v.original !== n.original || v.stock !== n.stock || v.ia !== n.ia || n.visual !== 0) {
-          if (malos.length < 4) malos.push(
-            `stock=${stock} ia=${ia} total=${total}: viejo ${JSON.stringify(v)} nuevo ${JSON.stringify(n)}`)
-        }
+        if (values.reduce((a, b) => a + b, 0) !== total || values.some((v, i) =>
+          !Number.isInteger(v) || v < 0 || (weights[i] === 0 && v !== 0) || Math.abs(v - weights[i] / 100 * total) >= 1.0000001))
+          malos.push({ weights, total, values })
       }
     }
   }
-  ok(malos.length === 0,
-    `los ${casos} casos con visual=0 dan lo mismo que la formula anterior`,
-    malos.length ? malos.join('\n          ') : 'barrido stock 0..100 x ia 0..100-stock x 8 totales')
+  ok(malos.length === 0, `${casos} repartos conservan el total, ceros y redondeo proporcional`)
 
   // ── B) CON LOS CUATRO: la suma cuadra y nadie sale negativo ───────────────────────
   console.log('\n=== B) CON LOS CUATRO, LOS CONTEOS CUADRAN ===')
@@ -96,16 +77,10 @@ function main (bundle) {
   ok(soloVisual.visual === 40 && soloVisual.original === 0 && soloVisual.stock === 0 && soloVisual.ia === 0,
     'con weights=[0,0,0,100] TODO va a visual', JSON.stringify(soloVisual))
 
-  // Quien absorbe los Visuales es `original`, que es el residuo — NO stock, que sigue con su
-  // 40% intacto. Es la propiedad que define el diseño: los tres pesos explicitos se respetan y
-  // el residuo se ajusta.
   const sin = repartoObjetivos([60, 40, 0, 0], 100)
-  const con = repartoObjetivos([60, 40, 0, 25], 100)
-  ok(sin.visual === 0 && con.visual === 25,
-    'mover SOLO el indice 3 cambia lo que va a visual', `${sin.visual} -> ${con.visual}`)
-  ok(con.original === sin.original - 25 && con.stock === sin.stock,
-    'y lo absorbe original, el residuo, sin tocar stock',
-    `original ${sin.original} -> ${con.original}   stock ${sin.stock} -> ${con.stock}`)
+  const con = repartoObjetivos([35, 40, 0, 25], 100)
+  ok(sin.visual === 0 && con.visual === 25 && con.original === 35 && con.stock === 40,
+    'cuatro pesos explícitos conservan la mezcla solicitada')
 
   // Un array de tres, que es lo que llegaria si el frontend no mandara el cuarto: no debe
   // producir NaN. Es defensa, no compatibilidad.
@@ -208,7 +183,7 @@ app.whenReady().then(() => {
     console.log('FALLOS: ' + fallos.length)
     fallos.forEach(f => console.log('  - ' + f))
   } else {
-    console.log('TODO CORRECTO — el reparto cuadra con cuatro origenes y con visual=0 es el de antes.')
+    console.log('TODO CORRECTO — el reparto cuadra con cuatro origenes y las categorías a cero permanecen excluidas.')
   }
   const exitCode = fallos.length ? 1 : 0
   process.chdir(path.dirname(FIXTURE_ROOT))

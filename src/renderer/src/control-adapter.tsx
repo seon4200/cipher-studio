@@ -1,4 +1,5 @@
-﻿import { useEffect, useRef } from 'react';
+import { runCommonMediaQueue, requiredMediaPending } from '../../shared/build-integrity';
+import { useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import { colocarYFiltrarTarjetas } from '../../shared/exclusion';
 import { assignCipherTransitions, CIPHER_DEFAULT_TRANSITIONS } from '../../shared/transitions';
@@ -31,6 +32,7 @@ function audioClip(job: ControlAdapterJob, state: any, sourcePath: string) {
     return {
       id: `control-audio-${job.projectId}`,
       name: 'Voz - Audio Original',
+      narration: true, audioProvenance: { origin: 'original', sourcePath }, narrationSegments: state.transcriptSegments,
       startSeconds: 0,
       durationSeconds: Number(source?.durationSeconds) || 0,
       type: 'audio',
@@ -48,6 +50,7 @@ function audioClip(job: ControlAdapterJob, state: any, sourcePath: string) {
     durationSeconds: Number(voiceVersion?.durationSeconds) || 0,
     type: 'audio',
     path: audioPath,
+    narration: true, audioProvenance: { origin: 'generated', voiceId: voiceVersion?.id }, narrationSegments: voiceVersion?.segments || [],
     segments: voiceVersion?.segments || [],
   };
 }
@@ -159,17 +162,26 @@ async function run(job: ControlAdapterJob, sourcePath: string, projectPath: stri
     if (weights[0] + weights[1] + weights[2] + weights[3] !== 100) throw new Error('INVALID_MIX_WEIGHTS');
     if (weights[0] > 0 && !sourcePath) throw new Error('ORIGINAL_WEIGHT_REQUIRES_SOURCE');
 
-    emit(job, 'Preparando segmentos del original');
-    const sliced = await api.cutVideoClips({ videoPath: sourcePath, aspectRatio: 'vertical' });
+    const recovering = state.controlBuild?.operationId === job.operationId && state.timelineVideoClips?.some((c: any) => c.buildPlan);
+    if (recovering && state.controlBuild?.status === 'ready' && state.controlBuild?.result) {
+      const checked = await api.inspectBuildMedia({ projectPath, clips: state.timelineVideoClips });
+      if (checked.success && !checked.invalidIds?.length && !state.timelineVideoClips.some(requiredMediaPending)) return state.controlBuild.result;
+      throw new Error('BUILD_MEDIA_MISSING_CONTINUE_IN_STUDIO');
+    }
+    const preliminaryVersionId = recovering && state.controlBuild?.timelineVersionId
+      ? state.controlBuild.timelineVersionId : `control-${job.attemptId}`;
+    if (!recovering) emit(job, 'Preparando segmentos del original');
+    const sliced = !recovering && weights[0] > 0 ? await api.cutVideoClips({ videoPath: sourcePath, aspectRatio: 'vertical' }) : { success: true };
     if (!sliced?.success) throw new Error('SOURCE_SLICING_FAILED');
     emit(job, 'Construyendo montaje con el reparto de Cipher');
-    const built = await api.generateTimelineAssets({ scriptText, weights, aspectRatio: 'vertical',
+    const built = recovering ? { success: true, clips: state.timelineVideoClips.filter((c: any) => c.type !== 'audio') } : await api.generateTimelineAssets({ scriptText, weights, aspectRatio: 'vertical',
       audioDuration: Number(effectiveAudio.durationSeconds) || undefined,
       transcriptSegments: state.transcriptSegments, videoPath: sourcePath, iaStyle: 'normal',
-      graphicsPercent: 0, newAudioSegments: sourceSegments });
+      graphicsPercent: 0, newAudioSegments: sourceSegments, audioProvenance: effectiveAudio.audioProvenance,
+      segmentProvenance: { source: 'source-transcript', narration: effectiveAudio.audioProvenance.origin } });
     if (!built?.success || !Array.isArray(built.clips) || !built.clips.length)
       throw new Error('TIMELINE_BUILD_FAILED');
-    const videos = built.clips.map((item: any, index: number) => {
+    let videos = built.clips.map((item: any, index: number) => {
       const clip = item?.clip || item;
       if (!clip) throw new Error('INVALID_TIMELINE_CLIP');
       if (clip.type === 'graphic') return { id: clip.id || `control-graphic-${index}`,
@@ -177,14 +189,39 @@ async function run(job: ControlAdapterJob, sourcePath: string, projectPath: stri
         graphicStartRelative: Number(clip.graphicStartRelative) || 0,
         phraseIdx: Number(clip.phraseIdx) || -1, durationSeconds: Number(clip.durationSeconds) || 2,
         type: 'graphic', graphicData: clip.graphicData };
-      if (!clip.path || !Number.isFinite(Number(clip.startSeconds)) || !(Number(clip.durationSeconds) > 0))
+      if ((!clip.path && !clip.buildPlan) || !Number.isFinite(Number(clip.startSeconds)) || !(Number(clip.durationSeconds) > 0))
         throw new Error('INVALID_TIMELINE_CLIP');
-      return { id: clip.id || `control-video-${index}`, name: clip.name || `Clip ${index + 1}`,
+      return { ...clip, id: clip.id || `control-video-${index}`, name: clip.name || `Clip ${index + 1}`,
         startSeconds: Number(clip.startSeconds) || 0, phraseIdx: Number(clip.phraseIdx) || -1,
         durationSeconds: Number(clip.durationSeconds), type: 'video', url: clip.url, path: clip.path,
         category: clip.category || item.type, visualRegeneration: clip.visualRegeneration,
         stockDecision: clip.stockDecision, thumbnailUrl: clip.thumbnailUrl || '' };
     });
+    let mediaTimeline = [...videos, effectiveAudio];
+    const persistMedia = async (next: any[]) => {
+      const previousVersions = state.timelineVersions || [];
+      const version = { id: preliminaryVersionId, name: 'Montaje preliminar', timestamp: Date.now(), timelineVideoClips: next };
+      const timelineVersions = previousVersions.some((v: any) => v.id === preliminaryVersionId)
+        ? previousVersions.map((v: any) => v.id === preliminaryVersionId ? { ...v, timelineVideoClips: next } : v)
+        : [...previousVersions, version];
+      const nextState = { ...state, aiScript: scriptText, timelineWeights: [...weights], timelineVideoClips: next,
+        activeVersionId: preliminaryVersionId, timelineVersions,
+        controlBuild: { ...state.controlBuild, operationId: job.operationId, attemptId: job.attemptId,
+          timelineVersionId: preliminaryVersionId, status: 'preliminary' } };
+      const saved = await api.animationSaveBuildState({ projectPath, projectState: nextState });
+      if (!saved.success) throw new Error(saved.error || 'PROJECT_STATE_SAVE_FAILED');
+      state = nextState;
+    };
+    await persistMedia(mediaTimeline);
+    await runCommonMediaQueue({ getClips: () => mediaTimeline, onClips: next => { mediaTimeline = next },
+      persist: persistMedia, isCurrent: () => true, isCancelled: () => false,
+      dispatch: async clip => {
+        const result = await api.retryTimelineAsset({ projectPath, clip });
+        if (!result.success) throw new Error(result.error || 'BUILD_MEDIA_FAILED');
+        return result.clip;
+      } });
+    if (mediaTimeline.some(requiredMediaPending)) throw new Error('BUILD_MEDIA_PENDING_CONTINUE_IN_STUDIO');
+    videos = mediaTimeline.filter((clip: any) => clip.type !== 'audio');
     const videoOnly = videos.filter((clip: any) => clip.type !== 'graphic');
     const graphicsPercent = settings.graphicsPercent as 0 | 50 | 100;
     let overlays: any[] = [];
@@ -212,15 +249,18 @@ async function run(job: ControlAdapterJob, sourcePath: string, projectPath: stri
     const transitionsPercent = settings.transitionsPercent as 0 | 50 | 100;
     const assignedTransitions = assignCipherTransitions([...videos, ...overlays, effectiveAudio], transitionsPercent, [...CIPHER_DEFAULT_TRANSITIONS]);
     const timeline = [...videos, ...overlays, effectiveAudio];
-    const versionId = `control-${job.attemptId}`;
+    const versionId = preliminaryVersionId;
     const version = { id: versionId, name: 'Montaje ' + new Date().toISOString(), timestamp: Date.now(), timelineVideoClips: timeline };
-    state = { ...state, aiScript: scriptText, timelineWeights: [...weights], timelineVersions: [...(state.timelineVersions || []), version],
+    state = { ...state, aiScript: scriptText, timelineWeights: [...weights], timelineVersions: (state.timelineVersions || []).map((v: any) => v.id === versionId ? version : v),
       activeVersionId: versionId, timelineVideoClips: timeline, assignedTransitions, graphicsPercent,
       controlBuild: { operationId: job.operationId, attemptId: job.attemptId, timelineVersionId: versionId, weights: [...weights], graphicsPercent,
         transitionsPercent, assignedTransitions, localProjectPath: projectPath } };
-    await save(state);
-    return { timelineVersionId: versionId, clipCount: videos.length, graphicCount: overlays.length,
+    const result = { timelineVersionId: versionId, clipCount: videos.length, graphicCount: overlays.length,
       transitionCount: Object.keys(assignedTransitions).length, weights: [...weights], graphicsPercent, transitionsPercent };
+    state.controlBuild = { ...state.controlBuild, status: 'ready', result };
+    const saved = await api.animationSaveBuildState({ projectPath, projectState: state });
+    if (!saved.success) throw new Error(saved.error || 'PROJECT_STATE_SAVE_FAILED');
+    return result;
   }
   if (job.kind === 'export') {
     const clips = state.timelineVideoClips;

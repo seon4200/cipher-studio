@@ -88,7 +88,7 @@ const INACTIVAS_VISUALES = new Set([
 // conjunto que ya no es el conjunto. Con el, el numero no cuadra y salta.
 //
 // SUBIRLO A MANO ES EL PUNTO. Es la linea que obliga a pararse a pensar "¿la he enganchado?".
-const ESPERADAS = 14;
+const ESPERADAS = 16;
 
 const rojo = s => '\x1b[31m' + s + '\x1b[0m';
 const verde = s => '\x1b[32m' + s + '\x1b[0m';
@@ -121,8 +121,8 @@ for (const s of enScripts) {
     // Validate the declared entry instead of inventing an unused tests/<name>.js wrapper.
     const command = pkg.scripts['test:' + s] || '';
     const directEntry = /^electron\s+(tests\/aceptacion\/[^\s]+\.cjs)(?:\s|$)/.exec(command);
-    const nodeEntries = [...command.matchAll(/\bnode\s+(tests\/aceptacion\/animation-chat\/[^\s&]+\.cjs)/g)].map(match => match[1]);
-    const animationEntriesValid = s.startsWith('animation-chat') && nodeEntries.length > 0 &&
+    const nodeEntries = [...command.matchAll(/\bnode\s+(tests\/aceptacion\/(?:animation-chat|animation-panel-flow)\/[^\s&]+\.cjs)/g)].map(match => match[1]);
+    const animationEntriesValid = (s.startsWith('animation-chat') || s === 'animation-panel-flow') && nodeEntries.length > 0 &&
       nodeEntries.every(entry => fs.existsSync(path.join(RAIZ, entry)));
     const vibesEntryValid = s === 'vibes' && command === 'python -m unittest discover -s tests/vibes_clips -v' &&
       fs.existsSync(path.join(RAIZ, 'tests/vibes_clips/test_core.py'));
@@ -172,7 +172,14 @@ for (const s of aCorrer) {
   // test process; never change the user's TV scale or the production shell.
   const command = pkg.scripts['test:' + s] || '';
   const args = ['run', 'test:' + s];
-  if (/^\s*electron\b/.test(command)) args.push('--', '--force-device-scale-factor=1');
+  if (/^\s*electron\b/.test(command)) {
+    args.push('--', '--force-device-scale-factor=1');
+    // Opt-in for isolated Linux CI containers, never production application startup.
+    if (process.env.CIPHER_TEST_HEADLESS === '1') {
+      args.push('--ozone-platform=headless', '--disable-gpu');
+      if (process.platform === 'linux' && process.getuid?.() === 0) args.push('--no-sandbox');
+    }
+  }
   const r = spawnSync('npm', args, {
     cwd: RAIZ, shell: true, encoding: 'utf8', maxBuffer: 1024 * 1024 * 64
   });

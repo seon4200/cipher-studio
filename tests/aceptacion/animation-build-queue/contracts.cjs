@@ -102,9 +102,9 @@ async function run() {
     'a positive Visuales quota enables the Animation-slot planning path')
   assert.ok(buildHandler.includes('buildAnimationSlots ? animationInputSegments : effectiveAudioSegments'),
     'the Animation path passes timed narration slots to the existing timeline planner')
-  assert.ok(buildHandler.indexOf('existingPendingAnimationSlots.length > 0') < buildHandler.indexOf('generateTimelineAssets('),
+  assert.ok(buildHandler.indexOf('if (existingPending)') < buildHandler.indexOf('generateTimelineAssets('),
     'existing slots resume before planning, media selection, or other providers')
-  assert.ok(buildHandler.includes('continuePendingAnimationBuild(timelineVideoClips)'), 'Build wires existing pending slots to Animation')
+  assert.ok(buildHandler.includes('continuePendingAnimationBuild(timelineVideoClipsRef.current)'), 'Build wires existing pending slots to Animation')
   assert.ok(buildHandler.includes('continuePendingAnimationBuild(finalTimelineClips'), 'newly planned Animation slots run automatically after planning')
   assert.ok(rendererSource.includes('window.electronAPI.animationGenerateDraft(input)'), 'automatic queue uses the existing Animation IPC')
   assert.ok(rendererSource.includes('allowUnselectedSlot: true'), 'automatic application binds by stable slot ID, not UI selection')

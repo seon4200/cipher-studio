@@ -604,12 +604,13 @@ export async function generateAnimationDraft(projectRoot: string, input: any, op
     if (error?.providerTiming) atomicJson(path.join(animationDir(root), 'diagnostics', `provider-failure-${Date.now()}.json`), error.providerTiming)
     throw error
   }
+  const directionMs = Math.round(performance.now() - aiStart)
   if (options.signal?.aborted) fail('ANIMATION_CANCELLED')
   const decision = parseDirectorReply(ai.text, ai.artifact)
   const toolTrace = Array.isArray(ai.toolTrace) ? ai.toolTrace : []
   if (decision.kind === 'answer') return { success: true, kind: 'answer', response: decision.response,
     threadId: ai.threadId, provider: ai.provider, model: ai.model, toolTrace,
-    metrics: { directionMs: Math.round(performance.now() - aiStart) } }
+    metrics: { directionMs } }
 
   let config: any, plan: any, modulesManifest: any, sceneModule: any = null
   const compileStart = performance.now()
@@ -704,7 +705,7 @@ export async function generateAnimationDraft(projectRoot: string, input: any, op
     render: { path: output, url: pathToFileURL(output).href, frameCount: expectedFrames,
       encodedDurationSec: expectedFrames / plan.viewport.fps, cacheHit: false, mediaAvailable: false,
       cacheMissing: true, pending: true },
-    metrics: { directionMs: Math.round(performance.now() - aiStart), compileMs, renderMs: null,
+    metrics: { directionMs, compileMs, renderMs: null,
       totalMs: Math.round(performance.now() - started), frames: expectedFrames, cacheHit: false,
       providerTiming: ai.providerTiming || null } }
   // Persist the reproducible plan and code before rendering. If preview/export
@@ -732,7 +733,7 @@ export async function generateAnimationDraft(projectRoot: string, input: any, op
     throw error
   }
   const record = { ...baseRecord, render: rendered,
-    metrics: { directionMs: Math.round(performance.now() - aiStart), compileMs, renderMs: rendered.renderMs,
+    metrics: { directionMs, compileMs, renderMs: rendered.renderMs,
       totalMs: Math.round(performance.now() - started), frames: rendered.frameCount, cacheHit: rendered.cacheHit === true,
       providerTiming: ai.providerTiming || null } }
   atomicJson(path.join(draftDir, 'draft.json'), record)
