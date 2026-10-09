@@ -2,14 +2,17 @@
 
 ## Base y alcance
 
-Rama: `work/construir-integridad-20261008`.
+Rama local: `work/construir-integridad-20261008` (publicación remota bloqueada).
 Base comprobada en GitHub: `work/animation-auto-visuals-20261007`, commit
 `98521ebbd140fbbd5a87efac9b29e2eca8b155d3`.
 Se creó un worktree propio desde `cipher-animation-unified-v1` (`0b706109`) y se integró
 esa continuación mediante fast-forward antes de editar.
-Puntos de control publicados como ramas: `checkpoint/construir-integridad-before-20261008`,
-sobre `98521eb`, y `checkpoint/construir-integridad-code-20261008`, sobre esta entrega.
-Las etiquetas locales de trabajo no son necesarias para recuperar la versión publicada.
+Checkpoints locales: `checkpoint/construir-integridad-before-20261008`, sobre `98521eb`,
+y `checkpoint/construir-integridad-code-20261008`, sobre el commit de código `aa23b78`.
+La rama contiene además correcciones de documentación. No hay checkpoints nuevos publicados en GitHub.
+Git directo no dispone de credenciales y el conector rechaza escritura de blobs con
+`403 Resource not accessible by integration`. El árbol intentado no se encontró en GitHub.
+Se entrega `cipher-fase1.bundle` con la rama y el checkpoint de código, además del parche de la fase.
 No se actualiza `master`, no se despliega ni se cambia la instalación del usuario.
 
 Esta fase corrige el contrato de construcción. No migra proveedores ni introduce Estilos.
@@ -172,8 +175,25 @@ Conservar la copia de aceptación separada. Para revisar la versión anterior si
 
 ```powershell
 git fetch origin
-git worktree add ..\cipher-retorno-fase1 origin/checkpoint/construir-integridad-before-20261008
+git worktree add ..\cipher-retorno-fase1 98521ebbd140fbbd5a87efac9b29e2eca8b155d3
 ```
 
 No usar `reset --hard` sobre carpetas compartidas ni restaurar proyectos de usuario desde Git.
 Los archivos nuevos de recuperación quedan dentro de la copia de proyecto, fuera del repositorio.
+
+## Recuperar la entrega sin publicación remota
+
+El bundle es incremental: necesita el commit base público `98521eb`. Desde un clon del
+repositorio, sin cambiar de rama ni tocar el directorio activo:
+
+```powershell
+git fetch origin work/animation-auto-visuals-20261007
+git bundle verify C:\ruta\cipher-fase1.bundle
+git fetch C:\ruta\cipher-fase1.bundle refs/heads/work/construir-integridad-20261008:refs/heads/work/construir-integridad-20261008
+git worktree add ..\cipher-fase1-aceptacion work/construir-integridad-20261008
+```
+
+Si ya existe una rama con ese nombre, elige otro nombre local como destino del fetch;
+no uses force. El parche es una alternativa para revisión/aplicación sobre la base, no
+se debe aplicar encima de la rama importada. La entrega sigue pendiente de publicación
+con una conexión que tenga permisos de escritura y de la aceptación descrita arriba.
