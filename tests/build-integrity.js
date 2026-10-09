@@ -31,6 +31,16 @@ function productionHandler(channel, context) {
   return vm.runInNewContext(ts.transpileModule('(' + callback.getText(ast) + ')',
     { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText, context)
 }
+function productionBinding(name, context, tree) {
+  let expression
+  function visit(node) {
+    if (ts.isVariableDeclaration(node) && node.name.getText(tree) === name) expression = node.initializer
+    ts.forEachChild(node, visit)
+  }
+  visit(tree); assert.ok(expression, name)
+  return vm.runInNewContext(ts.transpileModule('(' + expression.getText(tree) + ')',
+    { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText, context)
+}
 const makeSlot = (source, index = 0) => integrity.pendingBuildSlot({ id: 'build-' + randomUUID(),
   buildId: 'test', index: index + 1, total: 3, source, startSeconds: index * 3, durationSeconds: 3,
   transcriptText: `text ${index}`, keyword: 'forest', prompt: 'A forest moving in the wind', timestamp: 20 })
@@ -103,12 +113,67 @@ async function run() {
     await assert.rejects(integrity.runCommonMediaQueue({ ...options, persist: async () => { throw new Error('DISK_FULL') },
       dispatch: async slot => { dispatched = true; return success(slot) } }), /DISK_FULL/)
     assert.equal(dispatched, false)
+    // A failed save must not release the build lock while sibling providers still run.
+    clips = Array.from({ length: 5 }, (_, i) => makeSlot('stock', i))
+    const releases = []
+    let settled = false
+    const draining = integrity.runCommonMediaQueue({ ...options,
+      persist: async next => {
+        if (next.some(c => c.mediaBuild?.status === 'ready')) throw new Error('DISK_FULL_AFTER_PROVIDER')
+      },
+      dispatch: slot => new Promise(resolve => releases.push(() => resolve(success(slot))))
+    }).then(() => { settled = true }, error => { settled = true; return error })
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(releases.length, 3)
+    releases[0]()
+    await new Promise(resolve => setImmediate(resolve))
+    const releasedTooEarly = settled
+    releases[1](); releases[2]()
+    const drainError = await draining
+    assert.equal(releasedTooEarly, false, 'wait for all active providers before releasing the build')
+    assert.match(drainError.message, /DISK_FULL_AFTER_PROVIDER/)
+    assert.equal(releases.length, 3, 'failed save stops dispatch of remaining slots')
+    assert.ok(clips.every(integrity.isPendingCommonSlot))
+    console.log('PASS failed save drains active providers before a new build may start')
     clips = [makeSlot('stock')]
     await integrity.runCommonMediaQueue({ ...options, dispatch: async slot => {
       clips = [{ ...clips[0], startSeconds: 99 }]; return success(slot)
     } })
     assert.equal(clips[0].startSeconds, 99); assert.equal(clips[0].materialized, false)
     console.log('PASS zero-source provider mocks, bounded concurrency, cancellation, project/slot changes and failed save')
+
+    const rendererAst = ts.createSourceFile('main.tsx', fs.readFileSync(path.join(root, 'src/renderer/src/main.tsx'), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+    for (const change of ['project', 'version']) {
+      let animationCalls = 0, finishCalls = 0
+      const projectRef = { current: fixture }, versionRef = { current: 'v1' }
+      const timeline = [makeSlot('visual')]
+      const rendererContext = { ...integrity,
+        animationBuildInFlightRef: { current: false }, animationBuildCancellationRef: { current: {} },
+        activeProjectPathRef: projectRef, activeVersionIdRef: versionRef, activeVersionId: 'v1',
+        isGeneratingAssets: false, timelineVideoClips: timeline, timelineVideoClipsRef: { current: timeline },
+        window: { electronAPI: { inspectBuildMedia: async () => ({ success: true, invalidIds: [] }) } },
+        isPendingAnimationSlot: c => c.animationPending === true,
+        setAnimationBuildSummary() {}, setGenerationError() {}, setIsGeneratingAssets() {},
+        setIsBuildingAnimationQueue() {}, setGenerationProgress() {},
+        continueCommonBuild: async () => { if (change === 'project') projectRef.current = '/other'; else versionRef.current = 'v2' },
+        continuePendingAnimationBuild: async () => { animationCalls++ }, finishBuild: async () => { finishCalls++ }
+      }
+      await productionBinding('handleBuildIATimeline', rendererContext, rendererAst)()
+      assert.equal(animationCalls, 0, `do not start Animation after changing ${change}`)
+      assert.equal(finishCalls, 0)
+      let presented = false
+      projectRef.current = fixture; versionRef.current = 'v1'
+      const finishContext = { ...rendererContext, timelineVersions: [], persistBuildTimeline: async () => {},
+        window: { electronAPI: { inspectBuildMedia: async () => {
+          if (change === 'project') projectRef.current = '/other'; else versionRef.current = 'v2'
+          return { success: true, invalidIds: [] }
+        } } },
+        setResumen: () => { presented = true }, pushMilestone: () => { presented = true }
+      }
+      await assert.rejects(productionBinding('finishBuild', finishContext, rendererAst)(fixture), /BUILD_PROJECT_CHANGED/)
+      assert.equal(presented, false)
+    }
+    console.log('PASS actual Studio flow: project/version changes stop Animation and stale completion summaries')
 
     // Exercise the actual planner callback with identical segment arrays for both audio origins.
     const warnings = require('../src/shared/avisos.ts')

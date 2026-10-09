@@ -83,22 +83,31 @@ export async function runCommonMediaQueue(options: {
     writeTail = task.then(() => {}, () => {})
     return task
   }
-  await Promise.all(Array.from({ length: Math.min(3, queue.length) }, async () => {
-    while (queue.length && options.isCurrent() && !options.isCancelled() && !saveFailed) {
-      const slot = queue.shift()!
-      if (!await update(slot, { ...slot, mediaBuild: { status: 'preparing' } })) continue
-      if (!options.isCurrent() || options.isCancelled() || saveFailed) break
-      let result: any
-      try {
-        result = await options.dispatch(slot)
-        if (!sameBuildSlot(slot, result) || !result.path || result.materialized !== true ||
-            result.requestedSource !== slot.requestedSource) throw new Error('BUILD_RESULT_INVALID')
-        result = { ...result, mediaBuild: { status: 'ready' } }
-      } catch (error: any) {
-        result = { ...slot, materialized: false, mediaBuild: { status: 'error', error: String(error?.message || error) } }
+  let firstFailure: { error: unknown } | undefined
+  await Promise.allSettled(Array.from({ length: Math.min(3, queue.length) }, async () => {
+    try {
+      while (queue.length && options.isCurrent() && !options.isCancelled() && !saveFailed) {
+        const slot = queue.shift()!
+        if (!await update(slot, { ...slot, mediaBuild: { status: 'preparing' } })) continue
+        if (!options.isCurrent() || options.isCancelled() || saveFailed) break
+        let result: any
+        try {
+          result = await options.dispatch(slot)
+          if (!sameBuildSlot(slot, result) || !result.path || result.materialized !== true ||
+              result.requestedSource !== slot.requestedSource) throw new Error('BUILD_RESULT_INVALID')
+          result = { ...result, mediaBuild: { status: 'ready' } }
+        } catch (error: any) {
+          result = { ...slot, materialized: false, mediaBuild: { status: 'error', error: String(error?.message || error) } }
+        }
+        await update(slot, result)
       }
-      await update(slot, result)
+    } catch (error) {
+      // Keep the caller's build lock until every dispatched provider has settled.
+      // Their receipts can then be recovered safely by the next attempt.
+      firstFailure ??= { error }
+      throw error
     }
   }))
+  if (firstFailure) throw firstFailure.error
   return buildSummary(options.getClips())
 }

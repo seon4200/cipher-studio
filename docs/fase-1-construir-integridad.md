@@ -9,6 +9,7 @@ Se creó un worktree propio desde `cipher-animation-unified-v1` (`0b706109`) y s
 esa continuación mediante fast-forward antes de editar.
 Checkpoints locales: `checkpoint/construir-integridad-before-20261008`, sobre `98521eb`,
 y `checkpoint/construir-integridad-code-20261008`, sobre el commit de código `aa23b78`.
+La revisión del 9 de octubre añade `checkpoint/construir-integridad-recovery-20261009`.
 La rama contiene además correcciones de documentación. No hay checkpoints nuevos publicados en GitHub.
 Git directo no dispone de credenciales y el conector rechaza escritura de blobs con
 `403 Resource not accessible by integration`. El árbol intentado no se encontró en GitHub.
@@ -125,6 +126,30 @@ credenciales, referencias o medios privados.
 **Pendiente de aceptación:** recorrido visible en Electron/Windows con una copia de proyecto,
 proveedores reales y reproducción/exportación final. El equipo del usuario estaba desconectado.
 Los contratos y el recorte sintético no acreditan calidad visual, velocidad real ni esa aceptación.
+
+## Continuación del 9 de octubre: cierre de tareas y cambio de montaje
+
+Se mantuvo el alcance de fase 1 y se corrigieron dos límites de la recuperación:
+
+- Si un guardado falla cuando ya hay tres proveedores trabajando, la cola espera a que
+  terminen todos antes de devolver el error y liberar el bloqueo de Construir. Detiene
+  nuevos despachos y conserva el primer error. Los recibos ya guardados siguen disponibles
+  para recuperar resultados en el siguiente intento. La prueba nueva reprodujo la salida
+  prematura antes del cambio y pasa después de corregirla.
+- Después de esperar a la cola común se comprueban de nuevo proyecto y versión antes de
+  continuar Animation o preparar gráficos/transiciones. También se comprueban después
+  de generar/renderizar gráficos y de inspeccionar medios antes de mostrar el resumen.
+  Las pruebas ejecutan las funciones reales de Studio con IPC controlado: cambiar de
+  proyecto o versión impide iniciar Animation y publicar un resumen de otro montaje.
+
+Verificación de esta revisión: `npm run build`, `test:build-integrity`,
+`test:animation-build-queue`, `test:animation-panel-flow` y `test:animation-chat-bundle`
+aprobados. No se repitió el conjunto completo sin resolver primero su bloqueo gráfico.
+Se intentó preparar Xvfb, pero la actualización de paquetes fue rechazada por permisos
+del contenedor (`setgroups`/`seteuid`). Las seis suites Electron anteriores permanecen
+sin verificar; no se modificó el arranque de producción ni se omitieron sus pruebas.
+La publicación remota y la aceptación visible siguen pendientes. El bundle y el parche
+de entrega incluyen esta continuación.
 
 ## Prueba manual sobre una copia
 

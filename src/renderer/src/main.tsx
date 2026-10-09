@@ -2698,6 +2698,7 @@ ${res.filePath}`);
     const next = timelineVideoClipsRef.current
     await persistBuildTimeline(next, projectPath, versions, versionId)
     const checked = await window.electronAPI.inspectBuildMedia({ projectPath, clips: next })
+    if (activeProjectPathRef.current !== projectPath || activeVersionIdRef.current !== versionId) throw new Error('BUILD_PROJECT_CHANGED')
     if (!checked.success || checked.invalidIds?.length) throw new Error('Hay medios ausentes o inválidos; pulsa Construir para recuperar sus espacios.')
     const summary = buildSummary(next)
     setResumen({ ...armarResumen(summary.sources.map(x => ({ origen: x.source, objetivo: x.requested, real: x.ready, pendienteMedio: x.requested - x.ready })), [], summary.sources.reduce((n, x) => n + x.requested, 0), summary.ready), etapa: summary.ready ? 'listo' : 'pendientes' })
@@ -2746,12 +2747,14 @@ ${res.filePath}`);
     const existingPending = currentBuildTimeline.some(c => isPendingCommonSlot(c) || isPendingAnimationSlot(c))
     if (existingPending) {
       const projectPath = activeProjectPathRef.current
+      const versionId = activeVersionId
       if (!projectPath) { setGenerationError('Abre un proyecto antes de continuar.'); return }
       animationBuildInFlightRef.current = true
       setAnimationBuildSummary('Reanudando únicamente espacios pendientes del montaje guardado.')
       setGenerationError(''); setIsGeneratingAssets(true)
       try {
         await continueCommonBuild(projectPath)
+        if (activeProjectPathRef.current !== projectPath || activeVersionIdRef.current !== versionId) throw new Error('BUILD_PROJECT_CHANGED')
         if (!animationBuildCancellationRef.current.cancelRequested && timelineVideoClipsRef.current.some(isPendingAnimationSlot))
           await continuePendingAnimationBuild(timelineVideoClipsRef.current)
         await finishBuild(projectPath)
@@ -3027,6 +3030,7 @@ ${res.filePath}`);
         setGenerationProgress({ current: 0, total: newVideoClips.length, type: 'Planificado', paragraph: 'Guardando espacios antes de crear medios.' });
         await persistBuildTimeline(finalTimelineClips, proyectoAlEmpezar, versionsForAnimation, versionIdForAnimation);
         await continueCommonBuild(proyectoAlEmpezar, versionsForAnimation, versionIdForAnimation);
+        if (activeProjectPathRef.current !== proyectoAlEmpezar || activeVersionIdRef.current !== versionIdForAnimation) throw new Error('BUILD_PROJECT_CHANGED');
         finalTimelineClips = timelineVideoClipsRef.current;
         // FASE 2: Gráficos
         if (graphicsPercent > 0 && !animationBuildCancellationRef.current.cancelRequested) {
@@ -3048,6 +3052,7 @@ ${res.filePath}`);
               graphicsPercent,
               audioSegments: effectiveAudioSegments.length > 0 ? effectiveAudioSegments : transcriptSegments
             });
+            if (activeProjectPathRef.current !== proyectoAlEmpezar || activeVersionIdRef.current !== versionIdForAnimation) throw new Error('BUILD_PROJECT_CHANGED');
             if (gRes && gRes.success && gRes.clips) {
               // The generator sees only eligible Original/Stock slots. Placement checks the
               // complete video timeline, including the newly planned Visuals.
@@ -3068,6 +3073,7 @@ ${res.filePath}`);
               // valido, asi que solo se deja de añadir los graficos.
               const sellados = await renderizarYSellar(
                 newGClips, aspectRatio, exportResolution, proyectoAlEmpezar);
+              if (activeProjectPathRef.current !== proyectoAlEmpezar || activeVersionIdRef.current !== versionIdForAnimation) throw new Error('BUILD_PROJECT_CHANGED');
               if (sellados) {
                 finalTimelineClips = [...finalTimelineClips, ...sellados]
                 timelineVideoClipsRef.current = finalTimelineClips
@@ -3079,6 +3085,7 @@ ${res.filePath}`);
           }
         }
         // FASE 3: Transiciones
+        if (activeProjectPathRef.current !== proyectoAlEmpezar || activeVersionIdRef.current !== versionIdForAnimation) throw new Error('BUILD_PROJECT_CHANGED');
         if (transitionsPercent > 0 && selectedTransitions.length > 0) {
           setGenerationProgress({ current: 0, total: 1, paragraph: 'Asignando transiciones...', type: 'Transiciones' });
           const videoOnly = finalTimelineClips
