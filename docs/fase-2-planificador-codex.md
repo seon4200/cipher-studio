@@ -69,23 +69,25 @@ rutas previas y no se activan como fallback de Construir.
   salida `graphicData`, colocación temporal, exclusión de Visuales, ausencia de llamadas en un
   montaje 100 % Visual, respuesta incompleta, fallo en lotes posteriores y cancelación sin
   resultado parcial.
+- Las pruebas simuladas de las rutas Studio/Control cubren también fallo y cancelación de
+  Gráficos: no aceptan clips parciales, no invocan el generador heredado ni hacen peticiones a
+  DeepSeek. No prueban una llamada real al proveedor.
 - La prueba enfocada comprueba ventanas de Animation sin huecos ni solapamientos para un guion
   de 20 s y que Cipher Control persiste sin voz, usa Codex para Gráficos y deja Visuales
   pendientes para Studio.
-- `npm test`: **16/16 suites configuradas verdes** en el commit anterior `b88e1bc`, incluidas
-  las seis suites Electron que antes estaban pendientes: `assets-persistencia`, `avisos`,
-  `graficos`, `materiales`, `persistencia` y `via4`. No se repitió el conjunto completo tras
-  esta migración; los cambios actuales pasan las pruebas enfocadas indicadas arriba. Ese
-  conjunto sigue excluyendo `test:ventana` por su fallo conocido y deja inactivas las suites
-  heredadas que ya estaban desconectadas.
+- `tests/todas.js` reconoce el alias `test:build-graphics` → `tests/build-graphics-planner.js`
+  y espera 17 suites activas. En esta versión, `npm test` terminó **17/17 verdes**, incluidas
+  las suites Electron `assets-persistencia`, `avisos`, `graficos`, `materiales`, `persistencia`
+  y `via4`. No se excluyó ninguna de las 17 suites ni se debilitó una comprobación. Se mantiene
+  la exclusión previa y documentada de `test:ventana`; las suites heredadas desconectadas siguen
+  marcadas como inactivas.
 - La comprobación de `codexConnectionStatus()` —el mismo chequeo del proveedor que usa Studio—
   encontró Codex CLI `0.160.1`, disponible pero no autenticado (`authenticated: false`). Se
   inició el flujo oficial `codex login`, que espera el callback del navegador. No se envió una
   solicitud real al modelo ni se usaron DeepSeek, MiniMax, Vibes o proveedores de vídeo.
-- Para la prueba real de 20 s, las llamadas al modelo, Animation, exportación y revisión visual
-  quedan en cero/no ejecutadas mientras el login no complete: no hay latencias reales que
-  reportar. Los logs de proveedor guardan por etapa las llamadas y milisegundos de Codex;
-  Animation/export registran sus propias etapas cuando se ejecutan.
+- Las llamadas reales a Codex para el plan de 20 s y Gráficos están en cero; planificación real,
+  Animation/render, exportación y revisión visual no se ejecutaron, por lo que sus latencias son
+  N/A. Los mocks y las ventanas sintéticas no se presentan como respuesta real del modelo.
 
 Las pruebas de flujo ejecutan funciones reales y callbacks IPC extraídos del código con
 proveedores simulados; no reproducen la interfaz visual ni acreditan la calidad de una
@@ -93,20 +95,21 @@ respuesta del modelo.
 
 ## Pendiente
 
-- Completar el inicio de sesión ChatGPT en el navegador del flujo oficial ya iniciado y ejecutar
-  un Build real con un proyecto temporal: 20 s, sin narración ni Original, 100 % Visuales. La
-  persistencia real del plan, la respuesta del proveedor y su latencia siguen sin verificarse.
-- Probar Gráficos aparte con escenas Original/Stock elegibles; una prueba 100 % Visuales no
-  cubre esa ruta.
-- Hacer la aceptación visible en Studio: construir, guardar/reabrir, abrir Animation, cancelar
-  y continuar, y exportar una copia con medios listos. La aceptación visual pendiente de fase 1
-  también sigue pendiente.
-- Recoger en la prueba real las llamadas y duración de planificación, Animation/render,
-  exportación y revisión visual; los mocks no acreditan esos resultados.
+- Completar el inicio de sesión ChatGPT en el navegador del flujo oficial ya iniciado. Luego
+  ejecutar en un proyecto temporal el plan real de 20 s, sin narración ni Original, 100 % Visuales;
+  revisar coherencia, cuotas, intervalos, IDs y reapertura del plan persistido. Detener el ensayo
+  antes de generar Animation.
+- Probar Gráficos por separado con escenas Original/Stock elegibles: respuesta real, tiempos,
+  colocación y exclusión frente a Visuales. Ambos ensayos están bloqueados por la autenticación.
+- La aceptación visual de la interfaz pendiente desde fase 1 sigue documentada. Crear/renderizar
+  Visuales exclusivamente con Animation/Canvas, seguir estilo, producir en paralelo u optimizar
+  velocidad pertenecen a fase 4; exportar no es requisito para cerrar esta fase.
+- Recoger llamadas y duración reales de los dos planificadores cuando se ejecuten. Animation,
+  exportación y revisión visual quedan fuera del ensayo de fase 2 y no tienen mediciones nuevas.
 - Validar disponibilidad, coste, calidad y tiempos reales de los proveedores Original/Stock/IA.
 - El generador heredado de la acción independiente de Gráficos y las acciones independientes de
   DeepSeek conservan su estado anterior; esta fase no migra esos motores ni proveedores.
 
-El avance inicial de fase 2 quedó guardado en `b88e1bc`; la migración de Gráficos y sus pruebas
-se incluyen en el commit de continuación de esta rama. La aceptación visual de fase 1 y la prueba
-real de esta fase siguen pendientes.
+El avance inicial de fase 2 quedó guardado en `b88e1bc`; el cierre de registro de pruebas se incluye
+en el commit de continuación de esta rama. La aceptación visual de fase 1 y la aceptación real de
+planificación/Gráficos de fase 2 siguen pendientes de completar el login del proveedor.

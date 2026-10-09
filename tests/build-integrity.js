@@ -293,24 +293,40 @@ async function run() {
     assert.equal(invalidPlanner.success, false); assert.equal(invalidPlanner.clips, undefined)
     assert.equal(invalidPlanner.error, 'BUILD_CODEX_PLAN_PHRASES_INCOMPLETE')
     invalidPlanning = false
-    let graphicsPlannerCalls = 0
+    let graphicsPlannerCalls = 0, graphicsPlannerMode = 'success'
     const graphicsHandler = productionHandler('plan-build-graphics', { AbortController, activeBuildPlannerJobs,
       performance, createTimedScriptSegments: buildPlanning.createTimedScriptSegments, writeDebugLog: async () => {},
       planBuildGraphicsWithCodex: async input => {
         graphicsPlannerCalls++
+        if (graphicsPlannerMode === 'failure') throw new Error('BUILD_GRAPHICS_CODEX_FAILED:OFFLINE')
+        if (graphicsPlannerMode === 'cancel') await new Promise((_resolve, reject) => input.signal.addEventListener('abort',
+          () => reject(new Error('BUILD_GRAPHICS_CODEX_CANCELLED')), { once: true }))
         assert.equal(input.graphicsPercent, 100); assert.equal(input.audioSegments[0].start, 0)
         return { provider: 'codex-app-server', model: 'mock Codex', calls: 1, targetCount: 1, clips: input.clips }
       } })
-    const graphicsPlanned = await graphicsHandler(event, { scriptText: 'A forest grows.', durationSeconds: 20,
-      graphicsPercent: 100, audioSegments: [], clips: [{ id: 'stock-slot', category: 'stock', phraseIdx: 0, startSeconds: 0 }] })
+    const graphicsInput = { scriptText: 'A forest grows.', durationSeconds: 20,
+      graphicsPercent: 100, audioSegments: [], clips: [{ id: 'stock-slot', category: 'stock', phraseIdx: 0, startSeconds: 0 }] }
+    const graphicsPlanned = await graphicsHandler(event, graphicsInput)
     assert.equal(graphicsPlanned.success, true); assert.equal(graphicsPlannerCalls, 1)
     assert.equal(graphicsPlanned.provider, 'codex-app-server'); assert.equal(deepSeekRequests, 0)
+    graphicsPlannerMode = 'failure'
+    const graphicsFailed = await graphicsHandler(event, graphicsInput)
+    assert.equal(graphicsFailed.success, false); assert.equal(graphicsFailed.clips, undefined)
+    assert.match(graphicsFailed.error, /BUILD_GRAPHICS_CODEX_FAILED:OFFLINE/)
+    graphicsPlannerMode = 'cancel'
+    const graphicsCancellation = graphicsHandler(event, graphicsInput)
+    await new Promise(resolve => setImmediate(resolve))
+    activeBuildPlannerJobs.get(event.sender.id).abort()
+    const graphicsCancelled = await graphicsCancellation
+    assert.equal(graphicsCancelled.success, false); assert.equal(graphicsCancelled.clips, undefined)
+    assert.equal(graphicsCancelled.error, 'BUILD_GRAPHICS_CODEX_CANCELLED'); assert.equal(deepSeekRequests, 0)
     const studioSource = fs.readFileSync(path.join(root, 'src/renderer/src/main.tsx'), 'utf8')
     const buildGraphicsFlow = studioSource.slice(studioSource.indexOf('// FASE 2: Gráficos'), studioSource.indexOf('// FASE 3: Transiciones'))
     assert.match(buildGraphicsFlow, /planBuildGraphics/); assert.match(buildGraphicsFlow, /throw gErr/)
     assert.doesNotMatch(buildGraphicsFlow, /regenerateGraphics/)
     const controlSource = fs.readFileSync(path.join(root, 'src/renderer/src/control-adapter.tsx'), 'utf8')
     assert.match(controlSource, /api\.planBuildGraphics/)
+    assert.doesNotMatch(controlSource, /api\.regenerateGraphics/)
     assert.equal(deepSeekRequests, 0, 'Build never falls back to DeepSeek')
     console.log('PASS actual planner IPC and Build UI route: explicit audio provenance, script-only timing/Animation, source gates, Codex graphics and no DeepSeek fallback')
 
@@ -361,7 +377,7 @@ async function run() {
     let controlState = { clips: [{ type: 'video', path: sourcePath, durationSeconds: 6 }],
       transcriptSegments: [{ start: 0, end: 6, text: 'forest' }], timelineVersions: [oldVersion], activeVersionId: 'old' }
     let planned = 0, cut = 0, attempts = [], controlPlans = [], controlGraphicsCalls = 0, legacyGraphicsCalls = 0
-    let failSecond = true
+    let failSecond = true, controlGraphicsOutcome = ''
     const controlApi = { loadProjectState: async () => ({ success: true, data: structuredClone(controlState) }),
       animationSaveBuildState: async input => { controlState = structuredClone(input.projectState); return { success: true } },
       generateTimelineAssets: async input => {
@@ -383,6 +399,7 @@ async function run() {
         ? { success: false, error: 'OFFLINE' } : { success: true, clip: success(input.clip) } },
       planBuildGraphics: async input => {
         controlGraphicsCalls++
+        if (controlGraphicsOutcome) throw new Error(controlGraphicsOutcome)
         assert.ok(input.clips.every(clip => clip.category === 'original' || clip.category === 'stock'))
         assert.equal(input.graphicsPercent, 100); assert.equal(input.audioSegments[0].end, 6)
         return { success: true, clips: input.clips.map(clip => ({ ...clip,
@@ -428,6 +445,14 @@ async function run() {
     /BUILD_MEDIA_PENDING_CONTINUE_IN_STUDIO/)
     assert.equal(controlGraphicsCalls, graphicsCallsBeforeVisuals)
     assert.equal(controlPlans.at(-1).audioProvenance.origin, 'none')
+    controlState = { clips: [], transcriptSegments: [], timelineVersions: [], activeVersionId: 'v-empty' }
+    controlGraphicsOutcome = 'BUILD_GRAPHICS_CODEX_FAILED:OFFLINE'
+    await assert.rejects(runControl({ ...noVoiceJob, operationId: 'op-control-graphics-failed', attemptId: 'attempt-control-graphics-failed',
+      settings: { ...noVoiceJob.settings, graphicsPercent: 100 } }, '', fixture), /BUILD_GRAPHICS_CODEX_FAILED:OFFLINE/)
+    controlGraphicsOutcome = 'BUILD_GRAPHICS_CODEX_CANCELLED'
+    await assert.rejects(runControl({ ...noVoiceJob, operationId: 'op-control-graphics-cancelled', attemptId: 'attempt-control-graphics-cancelled',
+      settings: { ...noVoiceJob.settings, graphicsPercent: 100 } }, '', fixture), /BUILD_GRAPHICS_CODEX_CANCELLED/)
+    assert.equal(legacyGraphicsCalls, 0, 'Control graphics failures and cancellations never invoke DeepSeek')
     console.log('PASS actual Control adapter: persisted no-voice graphics plan/render, Visual continuation gate, Codex route and no DeepSeek')
 
 

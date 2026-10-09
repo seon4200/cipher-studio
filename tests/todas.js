@@ -88,7 +88,15 @@ const INACTIVAS_VISUALES = new Set([
 // conjunto que ya no es el conjunto. Con el, el numero no cuadra y salta.
 //
 // SUBIRLO A MANO ES EL PUNTO. Es la linea que obliga a pararse a pensar "¿la he enganchado?".
-const ESPERADAS = 16;
+const ESPERADAS = 17;
+
+// Scripts cuyo nombre público no coincide con el archivo de suite. Mantener ambos lados
+// explícitos evita contar un alias correcto como suite huérfana o aceptar cualquier ruta.
+const ARCHIVO_POR_SCRIPT = {
+  'build-graphics': 'build-graphics-planner'
+};
+const SCRIPT_POR_ARCHIVO = Object.fromEntries(Object.entries(ARCHIVO_POR_SCRIPT)
+  .map(([script, archivo]) => [archivo, script]));
 
 const rojo = s => '\x1b[31m' + s + '\x1b[0m';
 const verde = s => '\x1b[32m' + s + '\x1b[0m';
@@ -111,12 +119,32 @@ const enScripts = Object.keys(pkg.scripts)
 
 const problemas = [];
 for (const s of enDisco) {
-  if (!enScripts.includes(s) && !INACTIVAS_VISUALES.has(s)) {
-    problemas.push(`tests/${s}.js existe pero NO tiene script "test:${s}": nadie la corre.`);
+  const script = SCRIPT_POR_ARCHIVO[s] || s;
+  if (!enScripts.includes(script) && !INACTIVAS_VISUALES.has(s)) {
+    problemas.push(`tests/${s}.js existe pero NO tiene script "test:${script}": nadie la corre.`);
+  } else if (SCRIPT_POR_ARCHIVO[s]) {
+    const command = pkg.scripts['test:' + script] || '';
+    const nodeEntry = /^node\s+(tests\/[^\s&]+\.js)(?:\s|$)/.exec(command);
+    const expectedEntry = `tests/${s}.js`;
+    if (!nodeEntry || path.normalize(nodeEntry[1]) !== path.normalize(expectedEntry) ||
+        !fs.existsSync(path.join(RAIZ, expectedEntry))) {
+      problemas.push(`el alias "test:${script}" debe ejecutar exactamente ${expectedEntry}.`);
+    }
   }
 }
 for (const s of enScripts) {
   if (!enDisco.includes(s)) {
+    const aliasEntry = ARCHIVO_POR_SCRIPT[s];
+    if (aliasEntry) {
+      const command = pkg.scripts['test:' + s] || '';
+      const nodeEntry = /^node\s+(tests\/[^\s&]+\.js)(?:\s|$)/.exec(command);
+      const expectedEntry = `tests/${aliasEntry}.js`;
+      if (!nodeEntry || path.normalize(nodeEntry[1]) !== path.normalize(expectedEntry) ||
+          !fs.existsSync(path.join(RAIZ, expectedEntry))) {
+        problemas.push(`el script "test:${s}" debe apuntar a ${expectedEntry}.`);
+      }
+      continue;
+    }
     // Some acceptance suites run their Electron entry directly under tests/aceptacion.
     // Validate the declared entry instead of inventing an unused tests/<name>.js wrapper.
     const command = pkg.scripts['test:' + s] || '';
