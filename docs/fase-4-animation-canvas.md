@@ -102,3 +102,47 @@ En esta sesión las pruebas con fixtures necesitaron ejecutarse fuera del sandbo
 ## Fases posteriores
 
 Fase 5: Vibes. Fase 6: Estilos ampliados. Fase 7: limpieza e integración final. Esta entrega no las implementa.
+
+## Complemento de aceptación — 9 de octubre de 2026
+
+Este complemento registra un nuevo intento de cierre. No cambia ni reemplaza los resultados anteriores ni declara completa la aceptación visual.
+
+### Rama y ventana de Cipher
+
+- Rama: `work/fase4-animation-canvas-20261009`; HEAD comprobado antes de comenzar: `42a2065194d1dc13c767be5b540d0aa770085593`. El árbol rastreado estaba limpio.
+- `npm run build` pasó desde ese worktree. La primera ejecución dentro del sandbox se detuvo por `EPERM` al resolver `src/main/index.ts`; al ejecutar la misma compilación con acceso al worktree, TypeScript, renderer, main y preload compilaron correctamente.
+- Se inició el ejecutable Electron ubicado en el worktree recién compilado, con perfil aislado de aceptación. La ventana del proceso se tituló `CIPHER Studio`, pero no pude leer su pantalla ni confirmar la página cargada: el runtime Computer Use de esta sesión enumera solo navegadores y no expone `getApp`/`listWindows`; el puerto DevTools local 9229 escucha, pero sus endpoints HTTP y WebSocket expiran incluso desde el proceso de diagnóstico. No se hizo clic ni se modificó un proyecto. Cerré el proceso de prueba y liberé el puerto; no quedó activo un puerto DevTools.
+- En este entorno Electron solo arrancó con `--no-sandbox`; esa sesión aislada se cerró al comprobar que no podía controlarla. No se cambió la instalación normal de Cipher.
+
+### Diagnóstico de Codex y Animation
+
+- La copia de aceptación ya conserva errores reales anteriores `ANIMATION_CODEX_RECONNECT_EXHAUSTED:2/2` y `ANIMATION_TOOLS_SERVER_UNAVAILABLE:not-registered`. Los diagnósticos de proveedor permiten ver las etapas, pero no guardan el código terminal ni la respuesta de `mcpServerStatus/list`; por ello no identifican por sí solos la causa del registro ausente.
+- En `provider-failure-1791527855563.json`, una petición acabó en 929 ms: `threadResumeOrStartRpcMs=488`, `toolServerReadinessRpcMs=39`, sin inicio del turno, texto del modelo ni llamadas de herramientas. Es evidencia de que el error de herramientas ocurrió antes de la generación, pero no distingue si el servidor seguía iniciándose, no se registró o falló su proceso.
+- Los registros conservados de Codex app-server también contienen fallos al solicitar catálogos remotos de plugins de `chatgpt.com`, además de reconexiones posteriores. La coincidencia es evidencia de errores de red del proceso; no demuestra que ese endpoint causara cada `RECONNECT_EXHAUSTED`. No se atribuye el fallo únicamente al servicio externo ni se aumentó el número de reintentos.
+- La documentación pública del app-server indica que `mcpServerStatus/list` con `threadId` reutiliza la conexión del hilo tras cualquier actualización de runtime pendiente, y que un nombre desconocido produce una página vacía ([Codex app-server README](https://github.com/openai/codex/blob/main/codex-rs/app-server/README.md#mcp-server-capabilities)). La respuesta local no quedó capturada en los diagnósticos existentes; hace falta una sesión de UI controlable para observarla antes de corregir la configuración.
+- No hice una nueva llamada de modelo desde un script o servicio interno: la regla de aceptación exige que Construir y el chat de Animation invoquen Codex desde Cipher. No pude ejecutar esa ruta sin control de la ventana, así que los errores anteriores siguen sin corregirse ni revalidarse en la aplicación.
+
+### Estado de aceptación de este intento
+
+| Comprobación | Estado | Resultado |
+| --- | --- | --- |
+| Rama, HEAD y árbol inicial | Aprobado | `42a2065`, rama solicitada, limpio al inicio. |
+| Build de Windows de la rama | Aprobado | `npm run build` terminó correctamente. |
+| Contratos `test:animation-chat` | Aprobado | Suite completa, incluida biblioteca de estilos y RGBA. |
+| `test:animation-build-queue` | Aprobado | IDs, recuperación, reintento y guarda de proyecto. |
+| `test:animation-panel-flow` | Aprobado | Flujo de panel bajo IPC controlado. |
+| `test:animation-chat-bundle` | Aprobado | Bundle anuncia y arranca las cuatro herramientas. |
+| Recuperar y terminar los Visuales pendientes del ensayo 20 s desde Cipher | No ejecutado | Sin control nativo de la ventana. El proyecto conserva el primer resultado previo y dos espacios pendientes. |
+| Crear un proyecto nuevo 100 % Visuales desde guion y duración | No ejecutado | Requiere Construir en la interfaz. |
+| Edición real de escena por el chat, versiones, estilos y cancelar/continuar desde Cipher | No ejecutado | Requiere la interfaz y una sesión Codex funcional. |
+| Guardar, cerrar, reabrir y reproducir ambos proyectos dentro de Cipher | No ejecutado | No se hicieron nuevas modificaciones ni reproducción en esta sesión. |
+| Proyecto mixto `Aceptación fase 4 — mezcla 20-30-50` | No ejecutado | No se creó desde la interfaz. El archivo autorizado `1598402911716960.mp4` no está en `C:\Users\John Benites\Downloads` ni en el workspace, incluida la búsqueda recursiva en esas ubicaciones. Pedí al usuario que lo adjunte de nuevo o dé una ruta local accesible. |
+| No solicitar IA en la mezcla / no redistribuir categorías fallidas | No ejecutado | No se inició ese Construir. |
+| Exportación | No ejecutado | Esta aceptación no debe exportar ni adjuntar video. La exportación previa del ensayo incompleto fue bloqueada correctamente por pendientes. |
+| Aceptación visual total de fase 4 | Pendiente | No se puede inferir de mocks, del fragmento previo de una escena ni de las suites aprobadas. |
+
+Los tiempos reales disponibles siguen siendo los del ensayo anterior, no una medición nueva: planificación Codex 6,119 ms; generación/dirección de la primera escena 152,952 ms en dos llamadas de herramienta; validación/compilación 80 ms; render PNG 14,353 ms; total de esa generación 167,421 ms. No se midió una producción completa ni se comprobó una reducción del tiempo total en este intento.
+
+### Siguiente desbloqueo
+
+Hace falta continuar esta rama en una sesión de Windows donde Computer Use pueda enlazar y operar la ventana nativa de Cipher, para capturar el estado real de `mcpServerStatus/list`, corregir y revalidar generación/edición por la UI. Para el proyecto mixto también hace falta que `1598402911716960.mp4` esté disponible en una ruta legible o vuelva a adjuntarse. Hasta entonces quedan pendientes ambos recorridos de aceptación; no se modifica el proyecto de ensayo existente ni se presenta esta fase como aceptada.
