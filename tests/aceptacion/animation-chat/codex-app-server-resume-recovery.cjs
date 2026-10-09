@@ -103,7 +103,7 @@ async function main() {
     return { id: 'build-planner-thread' }
   }, null, 'C:\\Users\\test\\AppData\\Local\\Temp', 'cipher-build-planner')
   assert.equal(buildThread.result.id, 'build-planner-thread')
-  process.stdout.write('Animation app-server protocol retry semantics, MCP readiness diagnostics, output redaction, and thread recovery passed.\n')
+  process.stdout.write('Animation app-server protocol retry semantics, MCP readiness diagnostics, safe process-output summaries, and thread recovery passed.\n')
 }
 
 main().catch(error => { process.stderr.write(`${error.stack || error}\n`); process.exitCode = 1 })
