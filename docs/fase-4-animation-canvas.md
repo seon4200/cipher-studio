@@ -74,6 +74,8 @@ Se reprodujo el mismo borrador guardado, código, plan, recursos, 218 fotogramas
 
 La variante RGBA redujo el render de esta escena un 47.4 % y la métrica de captura un 54.9 %. La comparación de los MP4 completos dio PSNR promedio de 49.45 dB; las hojas de contacto en los mismos cuatro tiempos se ven iguales. Es una medición de una escena y un equipo, no una promesa para otros videos ni el tiempo total de Construir. No incluye planificación, llamadas de Codex ni generación del código. La generación real de esta escena duró 167.421 s contando esos pasos; no respalda una promesa de cuatro minutos.
 
+Después se repitió el replay sin `CIPHER_ANIMATION_CAPTURE_MODE`; el modo predeterminado produjo los mismos 218 fotogramas y el mismo tamaño de archivo en 8,146 ms. Esa repetición confirma la configuración por defecto, no es una segunda comparación A/B.
+
 ### Guardado y exportación
 
 Se reabrió el proyecto y se conservaron el plan, el estilo y la escena aplicada. La exportación se detuvo en la comprobación previa con el mensaje de que había medios pendientes; no se creó un MP4 final. Por tanto, no se verificaron audio, continuidad visual de los 20 s, gráficos, transiciones ni exportación completa.
