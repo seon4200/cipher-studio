@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   inspectBuildMedia: (params: any) => ipcRenderer.invoke('inspect-build-media', params),
   retryTimelineAsset: (params: any) => ipcRenderer.invoke('retry-timeline-asset', params),
   generateTimelineAssets: (params: any) => ipcRenderer.invoke('generate-timeline-assets', params),
+  planBuildGraphics: (params: any) => ipcRenderer.invoke('plan-build-graphics', params),
   cancelBuildPlanning: () => ipcRenderer.invoke('build:cancel-planning'),
   animationConnectionStatus: () => ipcRenderer.invoke('animation:connection-status'),
   animationLoadProject: () => ipcRenderer.invoke('animation:load-project'),

@@ -16,6 +16,7 @@ export interface IElectronAPI {
   inspectBuildMedia: (params: { projectPath: string; clips: any[] }) => Promise<{ success: boolean; invalidIds?: string[]; error?: string }>;
   retryTimelineAsset: (params: { projectPath: string; clip: any }) => Promise<{ success: boolean; clip?: any; error?: string }>;
   generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; buildDurationSeconds?: number; sourceDurationSeconds?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; graphicsPercent?: number; newAudioSegments?: any[]; hasVideoV2?: boolean; audioProvenance?: any; segmentProvenance?: any }) => Promise<{ success: boolean; clips?: any[]; error?: string }>;
+  planBuildGraphics: (params: { scriptText: string; clips: any[]; graphicsPercent: number; audioSegments?: any[]; durationSeconds: number }) => Promise<{ success: boolean; clips?: any[]; error?: string; provider?: string; model?: string; calls?: number; providerMs?: number; targetCount?: number; elapsedMs?: number }>;
   cancelBuildPlanning: () => Promise<{ success: boolean; cancelled?: boolean }>;
   animationConnectionStatus: () => Promise<{ available: boolean; authenticated: boolean; status: string; provider: string }>;
   animationLoadProject: () => Promise<{ success: boolean; state?: any; recipes?: any[]; components?: any[]; error?: string }>;

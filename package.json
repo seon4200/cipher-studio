@@ -12,6 +12,7 @@
     "test:animation-build-queue": "node tests/animation-build-queue.js",
     "test:animation-chat": "node tests/aceptacion/animation-chat/contracts.cjs && node tests/aceptacion/animation-chat/graphics-placement.cjs && node tests/aceptacion/animation-chat/transcript-window.cjs && node tests/aceptacion/animation-chat/scene-module-contract.cjs && node tests/aceptacion/animation-chat/tool-schema-contract.cjs && node tests/aceptacion/animation-chat/codex-app-server-resume-recovery.cjs && node tests/aceptacion/animation-chat/scene-template-source-edits.cjs",
     "test:animation-chat-bundle": "node tests/aceptacion/animation-chat/runtime-bundle.cjs",
+    "test:build-graphics": "node tests/build-graphics-planner.js",
     "smoke:animation-codex": "node tests/aceptacion/animation-chat/codex-app-server-smoke.cjs",
     "preview": "vite preview",
     "test": "node tests/todas.js",

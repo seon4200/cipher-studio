@@ -3,8 +3,8 @@
 ## Base y alcance
 
 La fase parte del commit `121c39da` de fase 1, que quedó en la rama publicada
-`work/construir-integridad-20261008`. Esta continuación está aislada en
-`work/fase2-openai-planificador-20261008`.
+`work/construir-integridad-20261008`. El primer avance de fase 2 quedó guardado en
+`b88e1bc`; la continuación permanece aislada en `work/fase2-openai-planificador-20261008`.
 
 Esta fase activa Codex como planificador de Construir y admite proyectos sin narración
 cuando se indica una duración. Conserva Original, Stock, IA y Visuales, el plan de fase 1,
@@ -36,15 +36,26 @@ incompleta. No cambia proveedores de vídeo, estilos, Vibes ni motores heredados
 - Cancelar durante la planificación aborta la petición Codex activa. Después del plan,
   permanece el contrato de fase 1: detener nuevos despachos, guardar resultados que ya
   terminaron y permitir continuar solo los pendientes.
+- Los **Gráficos dentro de Construir** usan `plan-build-graphics`, un planificador Codex con
+  esquema y validación estrictos, compartiendo la misma instancia app-server y autenticación.
+  Solo recibe clips Original/Stock elegibles; la colocación sigue usando el timeline completo
+  para descartar gráficos que se solapen con Visuales. Conserva `graphicData`,
+  `graphicAbsoluteStart`, duración y render sellado. Un lote inválido, fallido o cancelado
+  falla completo y se muestra como error.
+- Cipher Control usa la misma ruta Codex para Gráficos y las mismas ventanas sintéticas/
+  Animation; conserva el guardado preliminar y devuelve pendientes Visuales a Studio. La acción
+  independiente de regenerar Gráficos mantiene su ruta anterior.
+- Los registros de Construir separan proveedor, llamadas y tiempo de planificación y de
+  Gráficos, incluso cuando Codex falla o se cancela. Animation informa dirección,
+  compilación y render por separado; exportación mantiene sus etapas en el log de exportación.
+  La comprobación visual requiere la aceptación real y no se estima desde mocks.
 - El campo `buildDurationSeconds` queda incluido en el contrato de persistencia y en la
   muestra de round-trip de Windows.
 
-El paso heredado de **Gráficos** permanece separado del plan de las cuatro cuotas y no se
-migró en esta fase. Cuando `graphicsPercent` es positivo, el paso posterior de Construir aún
-invoca ese generador por su ruta anterior, que puede requerir DeepSeek. Esto no es un fallback
-del planificador: si Codex falla, esa fase no empieza. Las acciones independientes de
-reescritura, Vibes y optimización de prompts también permanecen intactas. Por tanto, esta fase
-quita DeepSeek del plan obligatorio de medios, pero no retira todas sus llamadas del producto.
+La ruta de Gráficos dentro de Construir no invoca DeepSeek ni recurre a esa integración si
+Codex falla. La integración antigua permanece para la acción independiente de regenerar
+Gráficos. Reescritura, Vibes, optimización de prompts y `generate-perfect-sync` conservan sus
+rutas previas y no se activan como fallback de Construir.
 
 ## Verificación ejecutada
 
@@ -53,15 +64,28 @@ quita DeepSeek del plan obligatorio de medios, pero no retira todas sus llamadas
 - `npm run test:build-integrity`: aprobado. Incluye 7.084 repartos, conservación de cuotas,
   plan con y sin narración, ventanas Visuales sintéticas, gates de fuente, cancelación del
   planificador, fallo cerrado sin solicitud a DeepSeek, worker de medios con MP4 sintético,
-  recibos/reintentos, gate de exportación y adaptación Control.
-- `npm test`: **16/16 suites configuradas verdes**, incluidas las seis suites Electron que
-  antes estaban pendientes: `assets-persistencia`, `avisos`, `graficos`, `materiales`,
-  `persistencia` y `via4`. Se actualizó `tests/persistencia.js` para que su muestra cubra la
-  nueva duración. El conjunto sigue excluyendo `test:ventana` por su fallo conocido y deja
-  inactivas las suites heredadas que ya estaban desconectadas.
-- El chequeo local de conexión encontró Codex CLI `0.160.1`, pero no autenticado
-  (`available: true`, `authenticated: false`, `status: not-authenticated`). No se envió una
-  solicitud al modelo, ni se usaron DeepSeek, MiniMax, Vibes o proveedores de vídeo reales.
+  recibos/reintentos, gate de exportación, IPC de Gráficos y adaptación Control con gráficos.
+- `npm run test:build-graphics`: aprobado. Verifica distribución entre escenas Original/Stock,
+  salida `graphicData`, colocación temporal, exclusión de Visuales, ausencia de llamadas en un
+  montaje 100 % Visual, respuesta incompleta, fallo en lotes posteriores y cancelación sin
+  resultado parcial.
+- La prueba enfocada comprueba ventanas de Animation sin huecos ni solapamientos para un guion
+  de 20 s y que Cipher Control persiste sin voz, usa Codex para Gráficos y deja Visuales
+  pendientes para Studio.
+- `npm test`: **16/16 suites configuradas verdes** en el commit anterior `b88e1bc`, incluidas
+  las seis suites Electron que antes estaban pendientes: `assets-persistencia`, `avisos`,
+  `graficos`, `materiales`, `persistencia` y `via4`. No se repitió el conjunto completo tras
+  esta migración; los cambios actuales pasan las pruebas enfocadas indicadas arriba. Ese
+  conjunto sigue excluyendo `test:ventana` por su fallo conocido y deja inactivas las suites
+  heredadas que ya estaban desconectadas.
+- La comprobación de `codexConnectionStatus()` —el mismo chequeo del proveedor que usa Studio—
+  encontró Codex CLI `0.160.1`, disponible pero no autenticado (`authenticated: false`). Se
+  inició el flujo oficial `codex login`, que espera el callback del navegador. No se envió una
+  solicitud real al modelo ni se usaron DeepSeek, MiniMax, Vibes o proveedores de vídeo.
+- Para la prueba real de 20 s, las llamadas al modelo, Animation, exportación y revisión visual
+  quedan en cero/no ejecutadas mientras el login no complete: no hay latencias reales que
+  reportar. Los logs de proveedor guardan por etapa las llamadas y milisegundos de Codex;
+  Animation/export registran sus propias etapas cuando se ejecutan.
 
 Las pruebas de flujo ejecutan funciones reales y callbacks IPC extraídos del código con
 proveedores simulados; no reproducen la interfaz visual ni acreditan la calidad de una
@@ -69,14 +93,20 @@ respuesta del modelo.
 
 ## Pendiente
 
-- Autenticar la conexión Codex existente y ejecutar un Build real con un proyecto temporal,
-  incluido el guion sin narración y la cuota Visuales. La respuesta del proveedor, su calidad
-  editorial y su latencia aún no están verificadas.
+- Completar el inicio de sesión ChatGPT en el navegador del flujo oficial ya iniciado y ejecutar
+  un Build real con un proyecto temporal: 20 s, sin narración ni Original, 100 % Visuales. La
+  persistencia real del plan, la respuesta del proveedor y su latencia siguen sin verificarse.
+- Probar Gráficos aparte con escenas Original/Stock elegibles; una prueba 100 % Visuales no
+  cubre esa ruta.
 - Hacer la aceptación visible en Studio: construir, guardar/reabrir, abrir Animation, cancelar
   y continuar, y exportar una copia con medios listos. La aceptación visual pendiente de fase 1
   también sigue pendiente.
+- Recoger en la prueba real las llamadas y duración de planificación, Animation/render,
+  exportación y revisión visual; los mocks no acreditan esos resultados.
 - Validar disponibilidad, coste, calidad y tiempos reales de los proveedores Original/Stock/IA.
-- El generador heredado de Gráficos y las acciones independientes de DeepSeek conservan su
-  estado anterior; esta fase no migra esos motores ni proveedores.
+- El generador heredado de la acción independiente de Gráficos y las acciones independientes de
+  DeepSeek conservan su estado anterior; esta fase no migra esos motores ni proveedores.
 
-No se publicó ni se creó un commit para esta rama de fase 2.
+El avance inicial de fase 2 quedó guardado en `b88e1bc`; la migración de Gráficos y sus pruebas
+se incluyen en el commit de continuación de esta rama. La aceptación visual de fase 1 y la prueba
+real de esta fase siguen pendientes.

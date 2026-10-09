@@ -8,7 +8,7 @@ import { repartirPesos, normalizarPesos, PESOS_POR_DEFECTO } from '../../shared/
 import { resolveAnimationPanelFlowV1 } from '../../shared/animation-panel-flow-v1'
 import { clipAnimationTranscript } from '../../shared/animation-transcript-window'
 import { isPendingAnimationSlot, runAnimationBuildQueue, type AnimationBuildClip } from '../../shared/animation-build-queue'
-import { createAnimationSlotsFromSegments } from '../../shared/build-planning'
+import { createAnimationSlotsFromSegments, createTimedScriptSegments } from '../../shared/build-planning'
 import ReactDOM from 'react-dom/client'
 import {
   Play, Pause, FastForward, Rewind, Video, Volume2, VolumeX, Sparkles,
@@ -2848,6 +2848,11 @@ ${res.filePath}`);
     const animationInputSegments = buildAnimationSlots && voiceClip
       ? createAnimationSlotsFromSegments(effectiveAudioSegments, duracionAudio, scriptForTimeline)
       : effectiveAudioSegments;
+    const graphicsInputSegments = voiceClip
+      ? (buildAnimationSlots ? animationInputSegments : effectiveAudioSegments)
+      : (buildAnimationSlots
+        ? createAnimationSlotsFromSegments(createTimedScriptSegments(scriptForTimeline, duracionAudio), duracionAudio, scriptForTimeline)
+        : createTimedScriptSegments(scriptForTimeline, duracionAudio));
     animationBuildInFlightRef.current = true
     setAnimationBuildSummary('')
     setIsGeneratingAssets(true);
@@ -3023,7 +3028,6 @@ ${res.filePath}`);
           setGenerationProgress({ current: 0, total: 1, paragraph: 'Generando gráficos...', type: 'Gráficos' });
           try {
             const textToUse = aiScript.trim() || originalTranscriptText.trim();
-            const voiceClip = finalTimelineClips.find(c => c.type === 'audio');
             // The provider receives only Original/Stock targets during Animation planning.
             // Placement still needs the full timeline so an absolute timestamp cannot cover
             // one of the procedural Visuals.
@@ -3031,15 +3035,16 @@ ${res.filePath}`);
               c.type !== 'audio' && c.type !== 'graphic');
             const videoClips = finalTimelineClips.filter(c => !requiredMediaPending(c) && c.type !== 'audio' && c.type !== 'graphic' &&
               (c.category === 'original' || c.category === 'stock'));
-            const gRes = await window.electronAPI.regenerateGraphics({
+            const gRes = await window.electronAPI.planBuildGraphics({
               scriptText: textToUse,
-              audioPath: voiceClip?.path || '',
-              clips: videoClips.map(c => ({ id: c.id, name: c.name, startSeconds: c.startSeconds, phraseIdx: (c as any).phraseIdx ?? -1 })),
+              durationSeconds: duracionAudio,
+              clips: videoClips.map(c => ({ id: c.id, name: c.name, category: c.category, startSeconds: c.startSeconds, phraseIdx: (c as any).phraseIdx ?? -1 })),
               graphicsPercent,
-              audioSegments: effectiveAudioSegments.length > 0 ? effectiveAudioSegments : transcriptSegments
+              audioSegments: graphicsInputSegments
             });
             if (activeProjectPathRef.current !== proyectoAlEmpezar || activeVersionIdRef.current !== versionIdForAnimation) throw new Error('BUILD_PROJECT_CHANGED');
-            if (gRes && gRes.success && gRes.clips) {
+            if (!gRes?.success || !Array.isArray(gRes.clips)) throw new Error(gRes?.error || 'BUILD_GRAPHICS_CODEX_FAILED');
+            {
               // The generator sees only eligible Original/Stock slots. Placement checks the
               // complete video timeline, including the newly planned Visuals.
               const { quedan, descartadas, aviso, total, conRespaldo } =
@@ -3068,6 +3073,7 @@ ${res.filePath}`);
             }
           } catch (gErr) {
             console.error('Error generando gráficos:', gErr);
+            throw gErr;
           }
         }
         // FASE 3: Transiciones

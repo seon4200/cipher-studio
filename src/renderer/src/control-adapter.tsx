@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import { colocarYFiltrarTarjetas } from '../../shared/exclusion';
 import { assignCipherTransitions, CIPHER_DEFAULT_TRANSITIONS } from '../../shared/transitions';
-import { createTimedScriptSegments } from '../../shared/build-planning';
+import { createTimedScriptSegments, createAnimationSlotsFromSegments } from '../../shared/build-planning';
 import type { ControlAdapterJob, ControlAdapterProgress } from '../../shared/control-adapter';
 
 const api = (window as any).electronAPI;
@@ -164,6 +164,9 @@ async function run(job: ControlAdapterJob, sourcePath: string, projectPath: stri
     const sourceSegments = mode === 'none' ? createTimedScriptSegments(scriptText, buildDurationSeconds)
       : mode === 'original' ? state.transcriptSegments : (effectiveAudio?.segments || state.newAudioSegments);
     if (mode !== 'none' && (!Array.isArray(sourceSegments) || sourceSegments.length === 0)) throw new Error('AUDIO_TIMESTAMPS_REQUIRED');
+    const buildSegments = weights[3] > 0
+      ? createAnimationSlotsFromSegments(sourceSegments, buildDurationSeconds, scriptText)
+      : sourceSegments;
 
     const recovering = state.controlBuild?.operationId === job.operationId && state.timelineVideoClips?.some((c: any) => c.buildPlan);
     if (recovering && state.controlBuild?.status === 'ready' && state.controlBuild?.result) {
@@ -182,7 +185,7 @@ async function run(job: ControlAdapterJob, sourcePath: string, projectPath: stri
       buildDurationSeconds: mode === 'none' ? buildDurationSeconds : undefined,
       sourceDurationSeconds: source ? Number(source.durationSeconds) : undefined,
       transcriptSegments: state.transcriptSegments, videoPath: needsSource ? sourcePath : undefined, iaStyle: 'normal',
-      graphicsPercent: 0, newAudioSegments: mode === 'none' ? undefined : sourceSegments,
+      graphicsPercent: 0, newAudioSegments: mode === 'none' ? undefined : buildSegments,
       audioProvenance: effectiveAudio?.audioProvenance || { origin: 'none' },
       segmentProvenance: effectiveAudio ? { source: 'source-transcript', narration: effectiveAudio.audioProvenance.origin } : undefined });
     if (!built?.success || !Array.isArray(built.clips) || !built.clips.length)
@@ -234,12 +237,12 @@ async function run(job: ControlAdapterJob, sourcePath: string, projectPath: stri
     let overlays: any[] = [];
     if (graphicsPercent > 0) {
       emit(job, 'Generando gráficos superpuestos');
-      const generated = await api.regenerateGraphics({ strict: true, scriptText,
-        audioPath: effectiveAudio?.path || '', clips: videoOnly.map((clip: any) => ({ id: clip.id,
-          name: clip.name, startSeconds: clip.startSeconds, phraseIdx: clip.phraseIdx })),
-        graphicsPercent, audioSegments: sourceSegments });
+      const eligibleGraphicsVideos = videoOnly.filter((clip: any) => clip.category === 'original' || clip.category === 'stock');
+      const generated = await api.planBuildGraphics({ scriptText, durationSeconds: Number(settings.buildDurationSeconds) || Number(state.buildDurationSeconds) || 0,
+        clips: eligibleGraphicsVideos.map((clip: any) => ({ id: clip.id, name: clip.name, category: clip.category, startSeconds: clip.startSeconds, phraseIdx: clip.phraseIdx })),
+        graphicsPercent, audioSegments: buildSegments });
       if (!generated?.success || !Array.isArray(generated.clips)) throw new Error('GRAPHICS_GENERATION_FAILED');
-      const placed = colocarYFiltrarTarjetas(generated.clips, videoOnly);
+      const placed = colocarYFiltrarTarjetas(generated.clips, videos);
       const raw = placed.quedan.map((item, index) => ({ id: `control-graphic-${job.attemptId}-${index}`,
         name: `Gráfico: ${item.cruda.graphicData?.label || item.cruda.graphicData?.type || 'Superposición'}`,
         startSeconds: item.startSeconds, durationSeconds: item.durationSeconds,

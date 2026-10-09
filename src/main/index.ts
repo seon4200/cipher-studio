@@ -1,6 +1,7 @@
 import { allocateBuildSources, pendingBuildSlot, requiredMediaPending, sameBuildSlot, isPendingCommonSlot } from '../shared/build-integrity'
 import { createTimedScriptSegments, createAnimationSlotsFromSegments, buildPlannerPhraseCount } from '../shared/build-planning'
 import { planBuildWithCodex } from './services/build-planner'
+import { planBuildGraphicsWithCodex } from './services/build-graphics-planner'
 import { app, BrowserWindow, ipcMain, dialog, screen } from 'electron'
 import path from 'path'
 import os from 'os'
@@ -5183,8 +5184,10 @@ handleProcessing('generate-timeline-assets', async (event, { scriptText, audioDu
       event.sender.send('generation-progress', { index: progress.index || 0, total: Math.max(1, progress.total || segments.length),
         paragraph: progress.message || 'Codex está planificando Construir.', type: 'Codex' })
     }
+    const planningStartedAt = performance.now()
     const planResult = await planBuildWithCodex({ scriptText: script, segments, durationSeconds: timelineDuration,
       sourceDurationSeconds: sourceDuration, weights, signal: controller.signal, onProgress })
+    await logMessage(`[generate-timeline-assets] Codex calls=${planResult.calls || 0} providerMs=${planResult.providerMs || 0} planningMs=${Math.round(performance.now() - planningStartedAt)} model=${planResult.model || 'Codex configured model'}`)
     if (controller.signal.aborted) throw new Error('BUILD_CODEX_CANCELLED')
     const phraseDecisions = planResult.phrases
     if (!Array.isArray(phraseDecisions) || phraseDecisions.length !== segments.length) throw new Error('BUILD_CODEX_PLAN_PHRASES_INCOMPLETE')
@@ -5231,7 +5234,8 @@ handleProcessing('generate-timeline-assets', async (event, { scriptText, audioDu
   } catch (error: any) {
     const message = String(error?.message || error || 'BUILD_CODEX_FAILED')
     console.error('[generate-timeline-assets]', message)
-    await writeDebugLog(`[generate-timeline-assets] ${message}`)
+    const metrics = error?.buildPlannerMetrics || {}
+    await writeDebugLog(`[generate-timeline-assets] Codex calls=${metrics.calls || 0} providerMs=${metrics.providerMs || 0} planningMs=${metrics.planningMs || 0} failed error=${message}`)
     return { success: false, error: message }
   } finally {
     if (activeBuildPlannerJobs.get(event.sender.id) === controller) activeBuildPlannerJobs.delete(event.sender.id)
@@ -5250,6 +5254,42 @@ handleProcessing('generate-timeline-assets', async (event, { scriptText, audioDu
       enviarAviso(event, { tipo: 'resumen', resumen, lista: avisos.lista() })
       for (const linea of textoResumen(resumen)) writeDebugLog('[RESUMEN] ' + linea).catch(() => {})
     } catch { /* The summary must never replace the planning result. */ }
+  }
+})
+handleProcessing('plan-build-graphics', async (event, params: any) => {
+  const controller = new AbortController()
+  activeBuildPlannerJobs.set(event.sender.id, controller)
+  const startedAt = performance.now()
+  try {
+    const scriptText = String(params?.scriptText || '').trim()
+    const graphicsPercent = Number(params?.graphicsPercent)
+    const durationSeconds = Number(params?.durationSeconds)
+    if (!scriptText || scriptText.length > 60000) throw new Error('BUILD_GRAPHICS_SCRIPT_REQUIRED')
+    if (![0, 50, 100].includes(graphicsPercent)) throw new Error('BUILD_GRAPHICS_PERCENT_INVALID')
+    const audioSegments = Array.isArray(params?.audioSegments) ? params.audioSegments : []
+    const segments = audioSegments.length ? audioSegments : createTimedScriptSegments(scriptText, durationSeconds)
+    if (!Array.isArray(params?.clips)) throw new Error('BUILD_GRAPHICS_CLIPS_REQUIRED')
+    const clips = params.clips.map((clip: any) => ({ ...clip }))
+    if (clips.some((clip: any) => String(clip?.category || clip?.type || '').toLowerCase() === 'visual' ||
+        clip?.buildPlan?.source === 'visual')) throw new Error('BUILD_GRAPHICS_VISUAL_TARGET_FORBIDDEN')
+    const result = await planBuildGraphicsWithCodex({ scriptText, clips, audioSegments: segments,
+      graphicsPercent, durationSeconds, signal: controller.signal,
+      onProgress: (progress: any) => {
+        if (!event.sender.isDestroyed()) event.sender.send('generation-progress', { index: progress.index || 0,
+          total: Math.max(1, progress.total || clips.length), paragraph: progress.message || 'Codex está diseñando los gráficos.', type: 'Gráficos Codex' })
+      } })
+    if (controller.signal.aborted) throw new Error('BUILD_GRAPHICS_CODEX_CANCELLED')
+    const elapsedMs = Math.round(performance.now() - startedAt)
+    await writeDebugLog(`[plan-build-graphics] provider=${result.provider} model=${result.model} calls=${result.calls} providerMs=${result.providerMs || 0} planningMs=${elapsedMs} planned=${result.targetCount}`)
+    return { success: true, clips: result.clips, provider: result.provider, model: result.model,
+      calls: result.calls, providerMs: result.providerMs || 0, targetCount: result.targetCount, elapsedMs }
+  } catch (error: any) {
+    const message = String(error?.message || error || 'BUILD_GRAPHICS_CODEX_FAILED')
+    const metrics = error?.buildGraphicsMetrics || {}
+    await writeDebugLog(`[plan-build-graphics] provider=codex-app-server calls=${metrics.calls || 0} providerMs=${metrics.providerMs || 0} planningMs=${metrics.planningMs || Math.round(performance.now() - startedAt)} planned=0 failed error=${message}`)
+    return { success: false, error: message }
+  } finally {
+    if (activeBuildPlannerJobs.get(event.sender.id) === controller) activeBuildPlannerJobs.delete(event.sender.id)
   }
 })
 handleProcessing('regenerate-graphics', async (_event, params: any) => {

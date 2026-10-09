@@ -4,7 +4,7 @@ import {
   type BuildTimedSegment,
 } from '../../shared/build-planning'
 
-const provider = new CodexAppServerProvider({ timeoutMs: 600_000 })
+export const buildCodexProvider = new CodexAppServerProvider({ timeoutMs: 600_000 })
 
 /** Use the existing Codex app-server login for Build direction, in small validated batches. */
 export function createBuildPlanner(codexProvider: { complete: (request: any) => Promise<any> }) {
@@ -19,35 +19,50 @@ export function createBuildPlanner(codexProvider: { complete: (request: any) => 
 }) {
   const planned: any[] = []
   let model = 'Codex configured model'
-  for (let offset = 0; offset < input.segments.length; offset += 6) {
-    if (input.signal?.aborted) throw new Error('BUILD_CODEX_CANCELLED')
-    const batch = input.segments.slice(offset, offset + 6)
-    input.onProgress?.({ phase: 'planning', message: `Codex está planificando el bloque ${Math.floor(offset / 6) + 1}.`, index: offset,
-      total: input.segments.length })
-    let result: any
-    try {
-      result = await codexProvider.complete({ purpose: 'build-planner', prompt: buildPlannerPrompt({
-        scriptText: input.scriptText,
-        segments: batch,
-        durationSeconds: input.durationSeconds,
-        sourceDurationSeconds: input.sourceDurationSeconds,
-        weights: input.weights,
-      }), signal: input.signal, outputSchema: BUILD_PLANNER_OUTPUT_SCHEMA,
-      onProgress: input.onProgress })
-    } catch (error: any) {
-      const message = String(error?.message || error || 'BUILD_CODEX_FAILED')
-      throw new Error(message.startsWith('BUILD_CODEX_') ? message : `BUILD_CODEX_FAILED:${message}`)
+  let calls = 0
+  let providerMs = 0
+  const startedAt = performance.now()
+  try {
+    for (let offset = 0; offset < input.segments.length; offset += 6) {
+      if (input.signal?.aborted) throw new Error('BUILD_CODEX_CANCELLED')
+      const batch = input.segments.slice(offset, offset + 6)
+      input.onProgress?.({ phase: 'planning', message: `Codex está planificando el bloque ${Math.floor(offset / 6) + 1}.`, index: offset,
+        total: input.segments.length })
+      let result: any
+      try {
+        calls++
+        result = await codexProvider.complete({ purpose: 'build-planner', prompt: buildPlannerPrompt({
+          scriptText: input.scriptText,
+          segments: batch,
+          durationSeconds: input.durationSeconds,
+          sourceDurationSeconds: input.sourceDurationSeconds,
+          weights: input.weights,
+        }), signal: input.signal, outputSchema: BUILD_PLANNER_OUTPUT_SCHEMA,
+        onProgress: input.onProgress })
+      } catch (error: any) {
+        providerMs += Number(error?.providerTiming?.elapsedMs) || 0
+        const message = String(error?.message || error || 'BUILD_CODEX_FAILED')
+        const wrapped: any = new Error(message.startsWith('BUILD_CODEX_') ? message : `BUILD_CODEX_FAILED:${message}`)
+        if (error?.providerTiming) wrapped.providerTiming = error.providerTiming
+        throw wrapped
+      }
+      providerMs += Number(result?.providerTiming?.elapsedMs) || 0
+      if (typeof result?.model === 'string' && result.model.trim()) model = result.model
+      const decisions = parseBuildPlannerReply(result.text, batch, input.sourceDurationSeconds)
+      for (const decision of decisions) decision.phraseIndex += offset
+      planned.push(...decisions)
+      input.onProgress?.({ phase: 'planning', message: `Codex terminó el bloque ${Math.floor(offset / 6) + 1}.`,
+        index: offset + batch.length - 1, total: input.segments.length })
     }
-    if (typeof result?.model === 'string' && result.model.trim()) model = result.model
-    const decisions = parseBuildPlannerReply(result.text, batch, input.sourceDurationSeconds)
-    for (const decision of decisions) decision.phraseIndex += offset
-    planned.push(...decisions)
-    input.onProgress?.({ phase: 'planning', message: `Codex terminó el bloque ${Math.floor(offset / 6) + 1}.`,
-      index: offset + batch.length - 1, total: input.segments.length })
+    if (planned.length !== input.segments.length) throw new Error('BUILD_CODEX_PLAN_PHRASES_INCOMPLETE')
+    return { phrases: planned, provider: 'codex-app-server', model, calls, providerMs,
+      elapsedMs: Math.round(performance.now() - startedAt) }
+  } catch (error: any) {
+    const failure: any = error instanceof Error ? error : new Error(String(error || 'BUILD_CODEX_FAILED'))
+    failure.buildPlannerMetrics = { calls, providerMs, planningMs: Math.round(performance.now() - startedAt) }
+    throw failure
   }
-  if (planned.length !== input.segments.length) throw new Error('BUILD_CODEX_PLAN_PHRASES_INCOMPLETE')
-  return { phrases: planned, provider: 'codex-app-server', model }
   }
 }
 
-export const planBuildWithCodex = createBuildPlanner(provider)
+export const planBuildWithCodex = createBuildPlanner(buildCodexProvider)
