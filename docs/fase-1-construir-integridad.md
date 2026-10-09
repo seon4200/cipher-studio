@@ -7,8 +7,9 @@ Base comprobada en GitHub: `work/animation-auto-visuals-20261007`, commit
 `98521ebbd140fbbd5a87efac9b29e2eca8b155d3`.
 Se creó un worktree propio desde `cipher-animation-unified-v1` (`0b706109`) y se integró
 esa continuación mediante fast-forward antes de editar.
-Punto de retorno: `checkpoint/construir-integridad-before-20261008`, sobre `98521eb`.
-La entrega se identifica por `checkpoint/construir-integridad-code-20261008`.
+Puntos de control publicados como ramas: `checkpoint/construir-integridad-before-20261008`,
+sobre `98521eb`, y `checkpoint/construir-integridad-code-20261008`, sobre esta entrega.
+Las etiquetas locales de trabajo no son necesarias para recuperar la versión publicada.
 No se actualiza `master`, no se despliega ni se cambia la instalación del usuario.
 
 Esta fase corrige el contrato de construcción. No migra proveedores ni introduce Estilos.
@@ -170,8 +171,8 @@ Nada de esa migración se presenta como implementado en esta fase.
 Conservar la copia de aceptación separada. Para revisar la versión anterior sin borrar cambios:
 
 ```powershell
-git fetch origin --tags
-git worktree add ..\cipher-retorno-fase1 checkpoint/construir-integridad-before-20261008
+git fetch origin
+git worktree add ..\cipher-retorno-fase1 origin/checkpoint/construir-integridad-before-20261008
 ```
 
 No usar `reset --hard` sobre carpetas compartidas ni restaurar proyectos de usuario desde Git.
