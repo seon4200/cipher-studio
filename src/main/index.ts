@@ -1003,6 +1003,7 @@ const origenDe = (p: string, projPath: string | null) => {
 async function auditarClips(clips: any[], projPath: string | null) {
   const faltan: any[] = [], fuera: any[] = [], sinRuta: any[] = [], categorias: any[] = [];
   const graficos: any[] = [];
+  const clipsConRuta: Array<{ clip: any; ficha: any }> = [];
 
   for (const c of clips || []) {
     // G0: los clips 'graphic' NO son material de video y se resuelven ANTES que nada. No
@@ -1033,9 +1034,16 @@ async function auditarClips(clips: any[], projPath: string | null) {
     // Un clip de timeline sin ruta se descarta en el export sin decir nada: el DIAG de A1 ya
     // los contaba como "sin path excluidos". Cuenta como ausencia, no como caso aparte.
     if (!c || !c.path) { sinRuta.push(ficha); continue; }
-    if (!(await exists(c.path))) faltan.push(ficha);
-    else if (projPath && !dentroDelProyecto(c.path, projPath)) fuera.push(ficha);
+    clipsConRuta.push({ clip: c, ficha });
   }
+
+  // Las comprobaciones de existencia son independientes. Esperarlas una por una hacía que
+  // abrir o exportar un timeline grande pagara una latencia de disco por clip.
+  const existentes = await Promise.all(clipsConRuta.map(({ clip }) => exists(clip.path)));
+  clipsConRuta.forEach(({ clip, ficha }, index) => {
+    if (!existentes[index]) faltan.push(ficha);
+    else if (projPath && !dentroDelProyecto(clip.path, projPath)) fuera.push(ficha);
+  });
 
   const porOrigen: Record<string, { faltan: number; fuera: number }> = {};
   const anotar = (o: string, campo: 'faltan' | 'fuera') => {

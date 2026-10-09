@@ -56,6 +56,6 @@ FFmpeg y ffprobe requieren `PATH`; Animation admite `FFMPEG_PATH`. Para el bot V
   conserva resultados terminados y guarda recibos del mismo trabajo. Después continúa Animation.
 - El audio usa procedencia explícita y segmentos vinculados; no nombres visibles ni igualdad de listas.
 - «Listo» requiere medios y guardado; exportación es una acción distinta. Preservar errores pendientes.
-- Añadir `npm run test:build-integrity` a las verificaciones afectadas. La aceptación visible y seis
-  suites Electron no están verificadas en el entorno de esta entrega; consultar el documento.
+- Añadir `npm run test:build-integrity` a las verificaciones afectadas. La aceptación visible de
+  la interfaz sigue pendiente; el estado de las suites Electron está en el documento de fase.
 - Las migraciones OpenAI/DeepSeek, Vibes/MiniMax, Estilos y retirada de motores son fases posteriores.

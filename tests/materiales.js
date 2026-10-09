@@ -12,13 +12,13 @@
  *   CATEGORIA     una categoria que el codigo no conoce. Es el mas silencioso de los cuatro:
  *                 no falla nada, el clip simplemente deja de aparecer donde deberia.
  *
- * Y la guarda del export, que va ANTES del dialogo de guardar: preguntar donde guardar y
- * despues decir que el video saldra incompleto es peor que no avisar.
+ * Y la guarda del export: los medios pendientes o ausentes bloquean ANTES de abrir dialogos.
  *
- * La parte C mide el coste con 623 clips —el proyecto real de 28 minutos de John— porque
- * la auditoria hace un exists() por clip en CADA carga y CADA export.
+ * La parte C mide el coste con un fixture sintetico de 623 clips y 28 minutos porque la
+ * auditoria hace un exists() por clip en CADA carga y CADA export.
  */
 const { app, ipcMain, dialog } = require('electron')
+const { execFileSync } = require('child_process')
 const fs = require('fs')
 const path = require('path')
 const { createTestFixture, cleanupTestFixture } = require('./helpers/safe-fixture')
@@ -157,7 +157,6 @@ async function partesAyB () {
   console.log('\n=== B) LA GUARDA DEL EXPORT ===')
   const originalMsg = dialog.showMessageBox
   const originalSave = dialog.showSaveDialog
-  let vistoMensaje = null
   let ordenLlamadas = []
 
   dialog.showSaveDialog = async () => {
@@ -166,39 +165,28 @@ async function partesAyB () {
   }
 
   try {
-    // B1 — con material ausente y el usuario cancelando
+    // B1 — un clip sin ruta sigue pendiente y bloquea antes de cualquier dialogo.
     ordenLlamadas = []
-    dialog.showMessageBox = async (_w, opciones) => {
-      ordenLlamadas.push('aviso')
-      vistoMensaje = opciones
-      return { response: 0 }   // Cancelar
-    }
-    const r1 = await llamar('export-video', { clips, aspectRatio: '16:9', resolution: '1080p',
+    dialog.showMessageBox = async () => { ordenLlamadas.push('aviso'); return { response: 0 } }
+    const rPendiente = await llamar('export-video', { clips, aspectRatio: '16:9', resolution: '1080p',
       format: 'mp4', quality: 'alta', assignedTransitions: {}, transitionDuration: 0.5 })
 
-    ok(r1 && r1.success === false && /faltan materiales/i.test(r1.error || ''),
-      'cancelar en el aviso aborta el export', 'error: ' + (r1 && r1.error))
-    ok(ordenLlamadas[0] === 'aviso' && !ordenLlamadas.includes('guardar'),
-      'el aviso sale ANTES del dialogo de guardar',
+    ok(rPendiente && rPendiente.success === false && /medios pendientes/i.test(rPendiente.error || ''),
+      'un clip sin ruta bloquea la exportacion como medio pendiente', 'error: ' + (rPendiente && rPendiente.error))
+    ok(ordenLlamadas.length === 0,
+      'un medio pendiente se bloquea antes de abrir dialogos',
       'orden: ' + (ordenLlamadas.join(' -> ') || '(ninguna)'))
-    ok(vistoMensaje && /3 de 6/.test(vistoMensaje.message || ''),
-      'cuenta los ausentes: 3 de 6 (dos que faltan + uno sin ruta)',
-      vistoMensaje && vistoMensaje.message)
-    ok(vistoMensaje && vistoMensaje.defaultId === 0 && vistoMensaje.cancelId === 0,
-      'el boton por defecto es Cancelar')
-    ok(vistoMensaje && /originales\/ia\/pista-v2/.test(vistoMensaje.detail || ''),
-      'avisa de que hay material que no se regenera solo')
 
-    // B2 — el usuario decide exportar igualmente: pasa la guarda
+    // B2 — con ruta pero fichero ausente, el IPC también bloquea antes de los diálogos.
     ordenLlamadas = []
-    dialog.showMessageBox = async () => { ordenLlamadas.push('aviso'); return { response: 1 } }
-    const r2 = await llamar('export-video', { clips, aspectRatio: '16:9', resolution: '1080p',
+    const clipsConRuta = clips.filter(c => c.id !== 'c5')
+    const rAusente = await llamar('export-video', { clips: clipsConRuta, aspectRatio: '16:9', resolution: '1080p',
       format: 'mp4', quality: 'alta', assignedTransitions: {}, transitionDuration: 0.5 })
-    ok(ordenLlamadas.join(' -> ') === 'aviso -> guardar',
-      '"Exportar de todas formas" deja pasar al dialogo de guardar',
-      'orden: ' + ordenLlamadas.join(' -> '))
-    ok(r2 && r2.success === false && /cancelada por el usuario/i.test(r2.error || ''),
-      'y a partir de ahi el export sigue su curso normal')
+    ok(rAusente && rAusente.success === false && /BUILD_MEDIA_MISSING:c3/.test(rAusente.error || ''),
+      'un fichero ausente bloquea la exportacion con su ID', 'error: ' + (rAusente && rAusente.error))
+    ok(ordenLlamadas.length === 0,
+      'un fichero ausente se bloquea antes de abrir dialogos',
+      'orden: ' + (ordenLlamadas.join(' -> ') || '(ninguna)'))
 
     // B3 — un proyecto sano no molesta
     ordenLlamadas = []
@@ -230,6 +218,36 @@ async function partesAyB () {
       '   (antes de G0 esto decia "faltan 2 de 3 clips")')
     ok(rG && /cancelada por el usuario/i.test(rG.error || ''),
       'llega al dialogo de guardar con normalidad')
+
+    // B6 — export real de un MP4 sintético con video y audio; salida dentro del fixture.
+    const entradaExport = tocar(path.join(proyecto, 'materiales', 'stock', 'export-smoke.mp4'))
+    const salidaExport = path.join(FIXTURE_ROOT, 'export-smoke-final.mp4')
+    execFileSync('ffmpeg', [
+      '-hide_banner', '-loglevel', 'error', '-y',
+      '-f', 'lavfi', '-i', 'color=c=blue:s=320x180:r=30:d=3',
+      '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=44100:duration=3',
+      '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', entradaExport,
+    ], { stdio: 'ignore' })
+    dialog.showSaveDialog = async () => ({ canceled: false, filePath: salidaExport })
+    const rExport = await llamar('export-video', { clips: [{ id: 'export-smoke',
+      name: 'Video sintetico', type: 'video', category: 'stock', path: entradaExport,
+      startSeconds: 0, durationSeconds: 3 }], aspectRatio: '16:9', resolution: '720p',
+      format: 'mp4', quality: 'high', assignedTransitions: {}, transitionDuration: 0.5 })
+    ok(rExport && rExport.success === true, 'export real del fixture termina',
+      rExport && rExport.error ? rExport.error : '')
+    ok(fs.existsSync(salidaExport) && fs.statSync(salidaExport).size > 0,
+      'export escribe un MP4 no vacio')
+    const exportProbe = JSON.parse(execFileSync('ffprobe', [
+      '-v', 'error', '-show_entries', 'format=duration:stream=codec_type,duration',
+      '-of', 'json', salidaExport,
+    ], { encoding: 'utf8' }))
+    const videoExportado = exportProbe.streams.find(s => s.codec_type === 'video')
+    const audioExportado = exportProbe.streams.find(s => s.codec_type === 'audio')
+    const duracionExportada = Number(videoExportado && videoExportado.duration || exportProbe.format.duration)
+    ok(!!videoExportado && !!audioExportado,
+      'el MP4 final conserva video y audio', JSON.stringify(exportProbe.streams.map(s => s.codec_type)))
+    ok(duracionExportada >= 2.9 && duracionExportada <= 3.1,
+      'la duracion exportada coincide con el clip sintetico', `${duracionExportada}s`)
   } finally {
     dialog.showMessageBox = originalMsg
     dialog.showSaveDialog = originalSave
@@ -240,7 +258,7 @@ async function partesAyB () {
 
 // ── C) el coste con el proyecto real de 623 clips ───────────────────────────────────
 async function parteC (proyecto) {
-  console.log('\n=== C) COSTE CON 623 CLIPS (el proyecto de 28 minutos) ===')
+  console.log('\n=== C) COSTE CON 623 CLIPS (fixture sintetico de 28 minutos) ===')
   const N = 623
   const dir = path.join(proyecto, 'materiales', 'stock')
   fs.mkdirSync(dir, { recursive: true })
@@ -283,32 +301,41 @@ async function parteC (proyecto) {
   // El numero de arriba es load-project ENTERO: leer el json, parsearlo, crear carpetas y
   // auditar. Para saber que parte es la auditoria se acota por los dos lados.
   //   - suelo: el exists() pelado sobre las mismas 623 rutas, que es su trabajo real.
-  //   - techo: export-video cancelando EN la guarda, que ejecuta auditarClips y poco mas.
+  //   - techo: export-video con todos los ficheros presentes, cancelado en el dialogo de guardar;
+  //     ejecuta auditarClips y poco mas sin abrir un dialogo real.
   const tSuelo = process.hrtime.bigint()
   for (const c of muchos) fs.existsSync(c.path)
   const suelo = Number(process.hrtime.bigint() - tSuelo) / 1e6
 
   const originalMsg = dialog.showMessageBox
+  const originalSave = dialog.showSaveDialog
   dialog.showMessageBox = async () => ({ response: 0 })
-  const conFalta = [...muchos, { id: 'roto', name: 'roto', type: 'video', category: 'stock',
-    path: path.join(dir, 'no-existe.mp4') }]
-  await llamar('export-video', { clips: conFalta, aspectRatio: '16:9', resolution: '1080p',
+  dialog.showSaveDialog = async () => ({ canceled: true, filePath: undefined })
+  await llamar('export-video', { clips: muchos, aspectRatio: '16:9', resolution: '1080p',
     format: 'mp4', quality: 'alta', assignedTransitions: {}, transitionDuration: 0.5 })
-  const tTecho = process.hrtime.bigint()
-  await llamar('export-video', { clips: conFalta, aspectRatio: '16:9', resolution: '1080p',
-    format: 'mp4', quality: 'alta', assignedTransitions: {}, transitionDuration: 0.5 })
-  const techo = Number(process.hrtime.bigint() - tTecho) / 1e6
+  const tiemposExport = []
+  for (let i = 0; i < 5; i++) {
+    const t = process.hrtime.bigint()
+    await llamar('export-video', { clips: muchos, aspectRatio: '16:9', resolution: '1080p',
+      format: 'mp4', quality: 'alta', assignedTransitions: {}, transitionDuration: 0.5 })
+    tiemposExport.push(Number(process.hrtime.bigint() - t) / 1e6)
+  }
+  tiemposExport.sort((a, b) => a - b)
+  const medianaExport = tiemposExport[2]
   dialog.showMessageBox = originalMsg
+  dialog.showSaveDialog = originalSave
 
   console.log(`          load-project entero:      ${mediana.toFixed(1)} ms  ` +
     `(min ${tiempos[0].toFixed(1)} / max ${tiempos[4].toFixed(1)})`)
-  console.log(`          la auditoria, entre:      ${suelo.toFixed(1)} ms (exists pelado)  y  ` +
-    `${techo.toFixed(1)} ms (export hasta la guarda)`)
-  console.log(`          por clip:                 ${(techo / N).toFixed(3)} ms`)
+  console.log(`          export + auditoria:       ${medianaExport.toFixed(1)} ms mediana ` +
+    `(min ${tiemposExport[0].toFixed(1)} / max ${tiemposExport[4].toFixed(1)}; ` +
+    `exists pelado ${suelo.toFixed(1)} ms)`)
+  console.log(`          por clip (mediana):       ${(medianaExport / N).toFixed(3)} ms`)
 
-  ok(techo < 250, 'la auditoria de 623 clips es imperceptible al abrir',
-    techo < 250 ? `${techo.toFixed(1)} ms, muy por debajo de los "cientos de ms" que se notarian`
-                : `${techo.toFixed(1)} ms: SE NOTA, hay que paralelizar o cachear`)
+  ok(medianaExport < 250, 'la auditoria de 623 clips es imperceptible al abrir',
+    medianaExport < 250 ? `${medianaExport.toFixed(1)} ms mediana; maximo observado ` +
+      `${tiemposExport[4].toFixed(1)} ms`
+      : `${medianaExport.toFixed(1)} ms mediana: supera los 250 ms`)
 }
 
 async function main () {

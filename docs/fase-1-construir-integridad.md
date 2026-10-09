@@ -151,6 +151,51 @@ sin verificar; no se modificó el arranque de producción ni se omitieron sus pr
 La publicación remota y la aceptación visible siguen pendientes. El bundle y el parche
 de entrega incluyen esta continuación.
 
+## Verificación automatizada en Windows — 8 de octubre de 2026
+
+Se verificó `C:\Users\John Benites\Downloads\cipher-fase1.bundle` y se importó en
+`C:\graphify\_worktrees\cipher-fase1-acceptance`. La rama local
+`work/construir-integridad-20261008` avanzó mediante fast-forward desde `98521eb`; no se
+usó `reset` ni se sobrescribieron cambios. `HEAD` es
+`e8cc91a409858a6c00558060729e1d21763653af`.
+
+- `npm ci`: correcto; instaló 411 paquetes. El informe de npm registra 30 avisos en las
+  dependencias (9 moderados, 20 altos y 1 crítico).
+- `npm run build`: correcto en Windows; TypeScript y los bundles de main, preload y
+  renderer compilaron.
+- `npm test`: **16/16 suites configuradas aprobadas**. Pasaron también las seis suites
+  que antes estaban pendientes: `test:assets-persistencia`, `test:avisos`,
+  `test:graficos`, `test:materiales`, `test:persistencia` y `test:via4`. El ejecutor
+  mantiene `test:ventana` fuera del conjunto porque está documentada como una prueba roja
+  que se corre a mano; las suites de motores visuales heredados siguen preservadas e
+  inactivas según su documentación.
+- `test:build-integrity` aprobada dentro del conjunto. En funciones reales de Studio e
+  IPC controlado comprobó guardado y reapertura, fallo de un espacio junto a Animation,
+  reintento exclusivo de pendientes, cancelación, espera de proveedores tras un fallo de
+  guardado, cambio de proyecto/versión y rechazo de resultados tardíos. También pasaron
+  las pruebas de cola de Animation y del flujo del panel.
+- `test:materiales` comprobó los estados pendiente y archivo ausente antes de abrir el
+  diálogo de exportación, y exportó un fixture temporal real con FFmpeg. `ffprobe`
+  confirmó audio, video y duración de 3 segundos. La auditoría de un fixture sintético
+  de 623 clips y 2 gráficos midió `load-project` en 17,6 ms y exportación más auditoría
+  en 56,7 ms de mediana (mín. 55,5; máx. 57,8 ms). Estas cifras describen ese fixture,
+  no un proyecto de usuario.
+
+La ejecución usó un proyecto temporal autocontenido, medios sintéticos y diálogos/IPCs
+controlados; no llamó a proveedores ni abrió proyectos, credenciales o medios privados.
+El conjunto valida los contratos de Construir, cancelar/reanudar, cambios de proyecto o
+versión, persistencia y exportación en procesos Electron de Windows. **La aceptación
+visual del recorrido completo dentro de una ventana de Studio sigue pendiente**: el
+control de escritorio no pudo inicializarse en esta sesión, así que no se afirma una
+prueba manual de la interfaz ni una revisión visual de Animation.
+
+Los cambios locales de esta aceptación, sobre `e8cc91a`, ajustan la auditoría de archivos
+para comprobar en paralelo los medios del montaje y amplían `test:materiales` con una
+exportación MP4 real de fixture. Se mantienen las cuatro cuotas y el alcance de fase 1;
+no se migraron proveedores ni se cambiaron estilos. La medición quedó ligada a este árbol
+local: SHA-256 de `src/main/index.ts` `D9DA60F8D6C083E04A5DBF457BD0B1C652A4FEE9021A2B431D62DB5768DAC2A5`
+y de `tests/materiales.js` `1F72DEDC67A901011A3AEFE981F24A9088B6AC792CE5D0BCB830DB2D73D37892`.
+
 ## Prueba manual sobre una copia
 
 1. Crear una copia autocontenida de un proyecto y abrirla desde esta rama, sin sustituir la instalación activa.
