@@ -167,7 +167,15 @@ function scenePlan(moduleRecord, paletteId = 'paper', styleOverrides = {}) {
   const module = validateSceneModule(moduleRecord)
   if (!['paper', 'night', 'garden', 'sapphire'].includes(paletteId)) fail('ANIMATION_PALETTE_NOT_REGISTERED', String(paletteId))
   const { ANIMATION_PALETTES_V1, ANIMATION_FONTS_V1 } = require('./contract-v1.cjs')
-  const palette = ANIMATION_PALETTES_V1[paletteId]
+  const palette = { ...ANIMATION_PALETTES_V1[paletteId] }
+  if (styleOverrides?.palette !== undefined) {
+    const overrides = styleOverrides.palette
+    if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides) ||
+        Object.keys(overrides).length > 16 || Object.entries(overrides).some(([key, color]) =>
+          !/^[A-Za-z][A-Za-z0-9]{0,31}$/.test(key) || typeof color !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(color)))
+      fail('ANIMATION_STYLE_PALETTE_INVALID')
+    Object.assign(palette, overrides)
+  }
   const baseStyle = { paletteId, palette, titleFontFamily: 'Instrument Serif', bodyFontFamily: 'DM Sans', titleScale: 1,
     labelScale: 1, gridOpacity: .075, textureStrength: .045, surfaceDepth: 1, shadowStrength: .85, cameraDrift: .025,
     profileId: 'cipher-editorial-sapphire-v1', profileVersion: 1 }
@@ -180,6 +188,7 @@ function scenePlan(moduleRecord, paletteId = 'paper', styleOverrides = {}) {
     surfaceDepth: styleOverrides?.surfaceDepth ?? baseStyle.surfaceDepth,
     shadowStrength: styleOverrides?.shadowStrength ?? baseStyle.shadowStrength,
     cameraDrift: styleOverrides?.cameraDrift ?? baseStyle.cameraDrift,
+    movementIntensity: styleOverrides?.movementIntensity ?? 'balanced',
     profileId: styleOverrides?.profileId ?? baseStyle.profileId,
     profileVersion: styleOverrides?.profileVersion ?? baseStyle.profileVersion, paletteId, palette }
   if (!Object.values(ANIMATION_FONTS_V1).includes(style.titleFontFamily) || !Object.values(ANIMATION_FONTS_V1).includes(style.bodyFontFamily))

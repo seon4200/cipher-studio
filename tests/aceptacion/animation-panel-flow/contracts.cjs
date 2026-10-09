@@ -24,18 +24,21 @@ const workspaceSource = fs.readFileSync(path.join(root, 'src/renderer/src/compon
 const transcriptionSuccess = mainSource.match(/if \(data\.status === 'success'\)[\s\S]*?\n\s*}\s*else if \(data\.status === 'error'\)/)?.[0] || ''
 assert.match(transcriptionSuccess, /setSelectedTool\('subtitles'\)/)
 assert.doesNotMatch(transcriptionSuccess, /setSelectedTool\('animation'\)/)
-assert.equal((mainSource.match(/openAnimationPanel\('style'\)/g) || []).length, 2,
-  'both existing narration actions should open the style step after adding audio')
+assert.equal((mainSource.match(/openAnimationPanel\('style'\)/g) || []).length, 3,
+  'the two narration actions and the Visuales tool entry should expose the style step')
+assert.match(mainSource, /Estilos/)
 assert.match(mainSource, /restoreProjectPanel\(clipsDelTimeline, loadedData\.transcriptSegments \|\| \[\]\)/)
 assert.match(mainSource, /flowMode=\{animationPanelMode\}/)
 assert.match(mainSource, /onBackToAudio=\{\(\) => setSelectedTool\('voice'\)\}/)
-const styleOnlyHandlerStart = workspaceSource.indexOf("if (flowMode === 'style') {")
+const styleOnlyHandlerStart = workspaceSource.indexOf("if (flowMode === 'style' || styleScope === 'project') {")
 const styleOnlyHandlerEnd = workspaceSource.indexOf('if (stylePatch &&', styleOnlyHandlerStart)
 assert.ok(styleOnlyHandlerStart >= 0 && styleOnlyHandlerEnd > styleOnlyHandlerStart,
   'style-only updates should be handled before scene generation')
-assert.match(workspaceSource.slice(styleOnlyHandlerStart, styleOnlyHandlerEnd), /return/)
+assert.match(workspaceSource.slice(styleOnlyHandlerStart, styleOnlyHandlerEnd), /proposeProjectStyle\(request\)[\s\S]*?return/)
 assert.doesNotMatch(workspaceSource.slice(styleOnlyHandlerStart, styleOnlyHandlerEnd), /animationGenerateDraft/)
-assert.match(workspaceSource, /Continuar con este estilo/)
+assert.match(workspaceSource, /Usar estilo activo/)
+assert.match(workspaceSource, /Propuesta Codex/)
+assert.doesNotMatch(workspaceSource, /Reutilizar receta o secuencia|Biblioteca reusable/)
 assert.match(workspaceSource, /Volver al audio/)
 assert.match(workspaceSource, /disabled=\{!input\.trim\(\) \|\| \(!styleOnly && !connection\?\.authenticated\)/)
 assert.match(workspaceSource, /!styleOnly && currentDraft &&/)

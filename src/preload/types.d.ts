@@ -20,12 +20,18 @@ export interface IElectronAPI {
   cancelBuildPlanning: () => Promise<{ success: boolean; cancelled?: boolean }>;
   animationConnectionStatus: () => Promise<{ available: boolean; authenticated: boolean; status: string; provider: string }>;
   animationLoadProject: () => Promise<{ success: boolean; state?: any; recipes?: any[]; components?: any[]; error?: string }>;
+  animationListStyles: () => Promise<{ success: boolean; styles?: any[]; error?: string }>;
+  animationSaveStyle: (params: any) => Promise<{ success: boolean; profile?: any; active?: boolean; error?: string }>;
+  animationSnapshotStyle: (params: { projectPath: string; profile: any }) => Promise<{ success: boolean; profile?: any; error?: string }>;
+  animationRenameStyle: (params: { styleId: string; title: string }) => Promise<{ success: boolean; profile?: any; error?: string }>;
+  animationDeleteStyle: (styleId: string) => Promise<{ success: boolean; error?: string }>;
   animationLoadDraft: (draftId: string) => Promise<{ success: boolean; draft?: any; error?: string }>;
   animationListDrafts: (timelineClipId: string) => Promise<{ success: boolean; drafts?: Array<{ draftId: string; createdAt?: string | null; route?: string; quote?: string; purpose?: string; previewAvailable?: boolean; applied?: boolean; planHash?: string }>; invalidDraftCount?: number; error?: string }>;
   animationSaveProject: (state: any) => Promise<{ success: boolean; state?: any; error?: string }>;
   animationSaveBuildState: (params: { projectPath: string; projectState: any; animationState?: any }) => Promise<{ success: boolean; error?: string }>;
   animationProjectJobs: () => Promise<{ success: boolean; jobs?: Array<{ jobId: string; kind?: string; clipId?: string | null; phase?: string }>; error?: string }>;
   animationAddReference: (filePath: string) => Promise<{ success: boolean; reference?: any; framePaths?: string[]; error?: string }>;
+  animationProposeStyle: (params: any) => Promise<{ success: boolean; proposal?: any; response?: string; threadId?: string; metrics?: any; error?: string }>;
   animationGenerateDraft: (params: any) => Promise<{ success: boolean; kind?: 'answer'|'draft'; response?: string; threadId?: string;
     draft?: any; clip?: any; draftFile?: string; metrics?: any; error?: string }>;
   animationAdjustDraftStyle: (params: { draftId: string; jobId: string; patch: Record<string, unknown>; instruction?: string }) => Promise<{ success: boolean; draft?: any; clip?: any; metrics?: any; error?: string }>;

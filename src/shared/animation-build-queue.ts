@@ -266,6 +266,7 @@ export async function runAnimationBuildQueue(options: {
         try { result = await options.generateDraft({ jobId, projectPath: options.projectPath,
           clip: { ...currentSlot, text: currentSlot.transcriptText || quote },
           userMessage, transcriptSegments: options.transcriptSegments, styleProfile: options.styleProfile,
+          freshCodeOnly: true,
           referenceIds: options.referenceIds || [], threadId: animationState.threadId || options.threadId || undefined,
           fps: options.fps || 30, projectFormat: options.projectFormat }, progress => {
           if (!active()) return
@@ -298,8 +299,9 @@ export async function runAnimationBuildQueue(options: {
       const attempts = Number(clips.find(clip => clip.id === currentSlot.id)?.animationBuild?.attempts ?? baseBuild.attempts)
       const completedBuild = { ...baseBuild, status: 'applied', jobId: null, draftId: draft.draftId,
         attempts, updatedAt: completedAt, completedAt,
-        metrics: metrics ? { directionMs: metrics.directionMs, renderMs: metrics.renderMs, totalMs: metrics.totalMs,
-          cacheHit: metrics.cacheHit === true } : null }
+        metrics: metrics ? { directionMs: metrics.directionMs, codegenCalls: metrics.codegenCalls, codegenMs: metrics.codegenMs,
+          validationFailures: metrics.validationFailures, compileMs: metrics.compileMs, renderMs: metrics.renderMs,
+          renderStages: metrics.renderStages || null, totalMs: metrics.totalMs, cacheHit: metrics.cacheHit === true } : null }
       const applyingClip = { ...clip, id: currentSlot.id, startSeconds: Number(currentSlot.startSeconds),
         durationSeconds: Number(currentSlot.durationSeconds), animationBuild: completedBuild, materialized: true }
       updateSlot(currentSlot.id, { ...completedBuild, status: 'applying', updatedAt: now() })

@@ -1,9 +1,20 @@
 'use strict'
 
 const assert = require('node:assert/strict')
-const { isThreadResumeWriterConflict, openCodexThread, parseMcpServerNames, buildPlannerMcpOverrides } = require('../../../src/main/animation/codex-app-server-provider.cjs')
+const { isThreadResumeWriterConflict, isToollessPlannerPurpose, isTransientCodexReconnectMessage, openCodexThread,
+  parseMcpServerNames, buildPlannerMcpOverrides } = require('../../../src/main/animation/codex-app-server-provider.cjs')
 
 async function main() {
+  assert.equal(isToollessPlannerPurpose('build-planner'), true)
+  assert.equal(isToollessPlannerPurpose('style-planner'), true,
+    'Style proposals attach reference images but do not require the Animation tool server')
+  assert.equal(isToollessPlannerPurpose('animation'), false,
+    'Scene generation continues to require the Animation tool server')
+  assert.equal(isTransientCodexReconnectMessage('Reconnecting... 2/5'), true,
+    'a bounded Codex reconnect notice is progress, not an immediate terminal stream failure')
+  assert.equal(isTransientCodexReconnectMessage('Reconnecting… 5/5'), true)
+  assert.equal(isTransientCodexReconnectMessage('connection permanently closed'), false,
+    'unclassified stream failures continue to fail closed')
   const conflict = new Error('ANIMATION_CODEX_RPC_ERROR_-32600:thread 01a10f21-9d60-7ee3-b8ec-b884fbe59f2d already has an active writer')
   assert.equal(isThreadResumeWriterConflict(conflict), true)
   assert.equal(isThreadResumeWriterConflict(new Error('ANIMATION_CODEX_RPC_ERROR_-32600:thread not found')), false)

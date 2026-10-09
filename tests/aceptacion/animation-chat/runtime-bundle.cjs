@@ -11,6 +11,8 @@ const runtime = path.join(root, 'dist-electron', 'main', 'animation')
 const server = path.join(runtime, 'cipher-animation-tools-server.cjs')
 for (const file of [server, path.join(runtime, 'scene-module-contract.cjs'), path.join(runtime, 'scene-template-source-edits.cjs'), path.join(runtime, 'contract-v1.cjs')])
   assert(fs.existsSync(file), `ANIMATION_BUNDLE_DEPENDENCY_MISSING:${path.basename(file)}`)
+assert(fs.existsSync(path.join(root, 'dist-electron', 'main', 'animation-style-library.cjs')),
+  'ANIMATION_STYLE_LIBRARY_BUNDLE_DEPENDENCY_MISSING')
 
 const sessionDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-animation-bundle-check-'))
 const input = [

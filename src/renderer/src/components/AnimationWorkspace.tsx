@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { LoaderCircle, MessageSquare, Paperclip, Play, RefreshCw, Save, Sparkles, Square, Undo2 } from 'lucide-react'
-import { CIPHER_ANIMATION_STYLE_PROFILE_DEFAULT_V1, CIPHER_ANIMATION_STYLE_PROFILES_V1, getCipherAnimationStyleProfileV1 } from '../../../shared/animation-style-profile-v1'
+import { LoaderCircle, MessageSquare, Paperclip, Play, RefreshCw, Save, Sparkles, Square, Undo2, Trash2, Pencil } from 'lucide-react'
+import { CIPHER_ANIMATION_STYLE_PROFILE_DEFAULT_V1 } from '../../../shared/animation-style-profile-v1'
 
 type ChatMessage = { id: string; role: 'user' | 'assistant' | 'system'; text: string; createdAt: string }
 type Props = {
@@ -89,10 +89,13 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
   const [threadId, setThreadId] = useState<string | null>(null)
   const [references, setReferences] = useState<any[]>([])
   const [styleProfile, setStyleProfile] = useState<any>(CIPHER_ANIMATION_STYLE_PROFILE_DEFAULT_V1)
+  const [styles, setStyles] = useState<any[]>([])
+  const [styleProposal, setStyleProposal] = useState<any>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [renameEditing, setRenameEditing] = useState(false)
   const [styleScope, setStyleScope] = useState<'clip' | 'project'>('clip')
   const [templates, setTemplates] = useState<any[]>([])
   const [savedDrafts, setSavedDrafts] = useState<any[]>([])
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
   const [currentDraft, setCurrentDraft] = useState<any>(null)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -100,10 +103,6 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
   const [lastJobId, setLastJobId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [providerVerified, setProviderVerified] = useState(false)
-  const [templateTitle, setTemplateTitle] = useState('')
-  const [templateKind, setTemplateKind] = useState<'component' | 'recipe' | 'sequence'>('recipe')
-  const [templateComponentId, setTemplateComponentId] = useState('')
-  const [savingTemplate, setSavingTemplate] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
   const conversationEnd = useRef<HTMLDivElement>(null)
   const pendingSourceId = useRef<string | null>(null)
@@ -142,11 +141,12 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
   useEffect(() => {
     let active = true
     pendingSourceId.current = null
-    setMessages([]); setReferences([]); setTemplates([]); setCurrentDraft(null); setThreadId(null); setError('')
+    setMessages([]); setReferences([]); setTemplates([]); setStyles([]); setStyleProposal(null); setCurrentDraft(null); setThreadId(null); setError('')
     setProviderVerified(false)
     if (!projectPath) { setStatusLabel('Abre un proyecto para iniciar Animation.'); return }
-    void Promise.all([window.electronAPI.animationConnectionStatus(), window.electronAPI.animationLoadProject(), window.electronAPI.animationListTemplates()])
-      .then(([conn, project, library]) => {
+    void Promise.all([window.electronAPI.animationConnectionStatus(), window.electronAPI.animationLoadProject(),
+      window.electronAPI.animationListTemplates(), window.electronAPI.animationListStyles()])
+      .then(([conn, project, library, styleLibrary]) => {
         if (!active) return
         setConnection(conn)
         setStatusLabel(connectionText(conn))
@@ -156,6 +156,7 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
         setThreadId(state.threadId || null)
         setReferences(Array.isArray(state.references) ? state.references : [])
         setStyleProfile(state.styleProfile || CIPHER_ANIMATION_STYLE_PROFILE_DEFAULT_V1)
+        setStyles(styleLibrary.success ? styleLibrary.styles || [] : [])
         if (state.activeDraft) {
           pendingSourceId.current = state.activeDraft.targetMode === 'new-visual-draft' ? null : state.activeDraft.selectedTimelineBinding?.clipId || null
           setCurrentDraft({ ...state.activeDraft,
@@ -226,12 +227,94 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
       activeStyle: extra.activeStyle ?? currentDraft?.config?.style ?? {}, styleProfile: extra.styleProfile ?? styleProfile })
   }
 
-  const chooseStyleProfile = (profileId: string) => {
-    const next = getCipherAnimationStyleProfileV1(profileId)
+  const chooseStyleProfile = async (profileId: string) => {
+    const next = styles.find(profile => profile.id === profileId)
     if (!next) return
-    setStyleProfile(next)
-    persistConversation(messages, threadId, { styleProfile: next })
-    setStatusLabel(`Perfil ${next.title} · v${next.version} guardado para este proyecto y nuevas creaciones.`)
+    if (!projectPath) return
+    const result = await window.electronAPI.animationSnapshotStyle({ projectPath, profile: next })
+    if (!result?.success || !result.profile) { setError(errorText(result?.error || 'ANIMATION_STYLE_SNAPSHOT_FAILED')); return }
+    setStyleProfile(result.profile)
+    persistConversation(messages, threadId, { styleProfile: result.profile })
+    setStatusLabel(`Perfil ${result.profile.title} · v${result.profile.version} copiado en el proyecto y activo para nuevas creaciones.`)
+  }
+
+  const proposeProjectStyle = async (request: string) => {
+    if (!connection?.authenticated) { setError('La sesión Codex no está disponible. Comprueba el inicio de sesión desde Codex y vuelve a intentar.'); return }
+    const sourceClipId = selectedClip?.id || null
+    const jobId = crypto.randomUUID()
+    beginAnimationJob(jobId, sourceClipId)
+    const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', text: request, createdAt: new Date().toISOString() }
+    const withUser = [...messages, userMessage]
+    setLastJobId(jobId); setProgress({ phase: 'style-analysis', message: 'Analizando dirección visual y referencias…' });
+    setError(''); setBusy(true); setInput(''); setStyleProposal(null)
+    persistConversation(withUser)
+    try {
+      const result = await window.electronAPI.animationProposeStyle({ jobId, projectPath, instruction: request,
+        referenceIds: references.map(ref => ref.id), currentProfile: styleProfile, threadId })
+      if (!animationJobIsCurrent(jobId)) return
+      if (!result?.success || !result.proposal) throw new Error(errorText(String(result?.error || 'ANIMATION_STYLE_PROPOSAL_FAILED')))
+      setStyleProposal({ ...result.proposal, response: result.response, metrics: result.metrics })
+      const assistant: ChatMessage = { id: crypto.randomUUID(), role: 'assistant',
+        text: `${result.response || 'Perfil propuesto.'}\n\nAlcance antes de guardar: se aplicará a los Visuales nuevos del proyecto. Los Visuales existentes conservan su código y versión.`,
+        createdAt: new Date().toISOString() }
+      persistConversation([...withUser, assistant], result.threadId || threadId)
+      setProviderVerified(true)
+      setStatusLabel(`Propuesta real de Codex · ${result.metrics?.calls || 1} llamada · ${result.metrics?.directionMs ?? '—'} ms. Revisa el alcance antes de guardar.`)
+    } catch (e: any) {
+      if (cancelledJobIdsRef.current.has(jobId) || !animationJobIsCurrent(jobId)) {
+        setStatusLabel('Propuesta cancelada; no se guardó ningún cambio global.')
+        return
+      }
+      const message = errorText(String(e?.message || 'ANIMATION_STYLE_PROPOSAL_FAILED'))
+      persistConversation([...withUser, { id: crypto.randomUUID(), role: 'assistant', text: message, createdAt: new Date().toISOString() }])
+      setError(message)
+    } finally { finishAnimationJob(jobId); setBusy(false); setProgress(null); setLastJobId(null) }
+  }
+
+  const saveStyleProposal = async (mode: 'new' | 'update') => {
+    if (!styleProposal || !projectPath || busy) return
+    const canUpdate = mode !== 'update' || (styleProfile?.id?.startsWith('style-') && styles.some(item => item.id === styleProfile.id && item.deletable))
+    if (!canUpdate) { setError('El estilo inicial se conserva como base; guarda la propuesta como un estilo nuevo.'); return }
+    setBusy(true); setError('')
+    try {
+      const result = await window.electronAPI.animationSaveStyle({ projectPath, mode,
+        profile: styleProposal, referenceIds: references.map(ref => ref.id), activate: true })
+      if (!result?.success || !result.profile) throw new Error(errorText(String(result?.error || 'ANIMATION_STYLE_SAVE_FAILED')))
+      const library = await window.electronAPI.animationListStyles()
+      setStyles(library.success ? library.styles || [] : styles)
+      setStyleProfile(result.profile)
+      setStyleProposal(null)
+      persistConversation(messages, threadId, { styleProfile: result.profile })
+      setStatusLabel(`Estilo ${result.profile.title} · v${result.profile.version} guardado y activo para nuevos Visuales.`)
+    } catch (e: any) { setError(errorText(String(e?.message || 'ANIMATION_STYLE_SAVE_FAILED'))) }
+    finally { setBusy(false) }
+  }
+
+  const renameSelectedStyle = async () => {
+    if (!projectPath || !styleProfile?.id?.startsWith('style-') || !renameValue.trim()) return
+    const result = await window.electronAPI.animationRenameStyle({ styleId: styleProfile.id, title: renameValue.trim() })
+    if (!result?.success || !result.profile) { setError(errorText(result?.error || 'ANIMATION_STYLE_RENAME_FAILED')); return }
+    const snapshot = await window.electronAPI.animationSnapshotStyle({ projectPath, profile: result.profile })
+    if (!snapshot?.success || !snapshot.profile) { setError(errorText(snapshot?.error || 'ANIMATION_STYLE_SNAPSHOT_FAILED')); return }
+    const library = await window.electronAPI.animationListStyles()
+    setStyles(library.success ? library.styles || [] : styles)
+    setStyleProfile(snapshot.profile)
+    setRenameEditing(false)
+    persistConversation(messages, threadId, { styleProfile: snapshot.profile })
+    setStatusLabel(`Estilo renombrado · nueva versión v${snapshot.profile.version} copiada al proyecto.`)
+  }
+
+  const deleteSelectedStyle = async () => {
+    const selected = styles.find(item => item.id === styleProfile?.id)
+    if (!selected?.deletable || !window.confirm(`Eliminar “${selected.title}” de la biblioteca de estilos? Los proyectos ya guardados conservarán su copia.`)) return
+    const result = await window.electronAPI.animationDeleteStyle(selected.id)
+    if (!result?.success) { setError(errorText(result?.error || 'ANIMATION_STYLE_DELETE_FAILED')); return }
+    const library = await window.electronAPI.animationListStyles()
+    const nextStyles = library.success ? library.styles || [] : []
+    setStyles(nextStyles)
+    const nextProfile = nextStyles.find((item: any) => item.id === CIPHER_ANIMATION_STYLE_PROFILE_DEFAULT_V1.id) || nextStyles[0]
+    if (nextProfile) void chooseStyleProfile(nextProfile.id)
+    setStatusLabel('Estilo eliminado de la biblioteca administrada. Las copias guardadas en proyectos siguen disponibles.')
   }
 
   const openSavedDraft = async (draftId: string) => {
@@ -286,50 +369,16 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
       titleFont: styleProfile?.parameters?.titleFontFamily === 'DM Sans' ? 'dmSans' : 'instrumentSerif',
       bodyFont: styleProfile?.parameters?.bodyFontFamily === 'Instrument Serif' ? 'instrumentSerif' : 'dmSans',
       titleScale: styleProfile?.parameters?.titleScale || 1, labelScale: styleProfile?.parameters?.labelScale || 1 }
-    const styleBase = flowMode === 'style' ? projectStyle
-      : currentDraft?.config?.style || currentDraft?.scenePlan?.style || projectStyle
-    const stylePatch = parseStyleRequest(request, styleBase)
-    if (flowMode === 'style') {
-      if (!stylePatch) {
-        setError('Indica un ajuste de paleta, tipografía o tamaño para actualizar el estilo general del proyecto.')
-        return
-      }
-      const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', text: request, createdAt: new Date().toISOString() }
-      const nextStyleProfile = { ...styleProfile, parameters: { ...styleProfile.parameters,
-        ...(stylePatch.paletteId ? { paletteId: stylePatch.paletteId } : {}),
-        ...(stylePatch.titleFont ? { titleFontFamily: stylePatch.titleFont === 'dmSans' ? 'DM Sans' : 'Instrument Serif' } : {}),
-        ...(stylePatch.bodyFont ? { bodyFontFamily: stylePatch.bodyFont === 'dmSans' ? 'DM Sans' : 'Instrument Serif' } : {}),
-        ...(stylePatch.titleScale ? { titleScale: stylePatch.titleScale } : {}),
-        ...(stylePatch.labelScale ? { labelScale: stylePatch.labelScale } : {}) } }
-      const assistant: ChatMessage = { id: crypto.randomUUID(), role: 'assistant',
-        text: 'Estilo general del proyecto actualizado. Animation usará estos parámetros en las siguientes escenas; no se generó ni modificó ningún Visual.',
-        createdAt: new Date().toISOString() }
-      setStyleProfile(nextStyleProfile)
-      persistConversation([...messages, userMessage, assistant], threadId, {
-        styleProfile: nextStyleProfile, activeStyle: { ...projectStyle, ...stylePatch } })
-      setStatusLabel('Estilo del proyecto guardado para las siguientes escenas.')
-      setError('')
-      setInput('')
+    if (flowMode === 'style' || styleScope === 'project') {
+      await proposeProjectStyle(request)
       return
     }
-    if (stylePatch && (currentDraft?.draftId || styleScope === 'project')) {
+    const styleBase = currentDraft?.config?.style || currentDraft?.scenePlan?.style || projectStyle
+    const stylePatch = parseStyleRequest(request, styleBase)
+    if (stylePatch && currentDraft?.draftId) {
       const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', text: request, createdAt: new Date().toISOString() }
       const withUser = [...messages, userMessage]
-      const nextStyleProfile = styleScope === 'project' ? { ...styleProfile, parameters: { ...styleProfile.parameters,
-        ...(stylePatch.paletteId ? { paletteId: stylePatch.paletteId } : {}),
-        ...(stylePatch.titleFont ? { titleFontFamily: stylePatch.titleFont === 'dmSans' ? 'DM Sans' : 'Instrument Serif' } : {}),
-        ...(stylePatch.bodyFont ? { bodyFontFamily: stylePatch.bodyFont === 'dmSans' ? 'DM Sans' : 'Instrument Serif' } : {}),
-        ...(stylePatch.titleScale ? { titleScale: stylePatch.titleScale } : {}),
-        ...(stylePatch.labelScale ? { labelScale: stylePatch.labelScale } : {}) } } : styleProfile
-      if (styleScope === 'project') setStyleProfile(nextStyleProfile)
-      if (!currentDraft?.draftId) {
-        const assistant: ChatMessage = { id: crypto.randomUUID(), role: 'assistant',
-          text: 'Perfil de estilo del proyecto actualizado. Las escenas nuevas usarán estos parámetros; no se reescribió código ni se modificó ningún Visual existente.', createdAt: new Date().toISOString() }
-        persistConversation([...withUser, assistant], threadId, { styleProfile: nextStyleProfile })
-        setStatusLabel('Perfil del proyecto actualizado sin modelo; las escenas previas conservan su versión.')
-        setInput('')
-        return
-      }
+      const nextStyleProfile = styleProfile
       const jobId = crypto.randomUUID()
       beginAnimationJob(jobId, currentDraft?.selectedTimelineBinding?.clipId || selectedClip?.id || null)
       pendingSourceId.current = currentDraft.targetMode === 'new-visual-draft' ? null : currentDraft.selectedTimelineBinding?.clipId || null
@@ -343,9 +392,7 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
         setCurrentDraft({ ...result.draft, applied: false, generationMetrics: result.metrics })
         persistConversation([...withUser, assistant], threadId, { activeDraftId: result.draft.draftId,
           activeStyle: result.draft.config?.style || result.draft.scenePlan?.style, styleProfile: nextStyleProfile })
-        setStatusLabel(styleScope === 'project'
-          ? 'Estilo del proyecto guardado y aplicado a este borrador; las otras escenas conservan sus versiones.'
-          : 'Paleta y tipografía cambiadas sólo para este Visual; su geometría se conserva.')
+        setStatusLabel('Paleta y tipografía cambiadas sólo para este Visual; su geometría se conserva.')
       } catch (e: any) {
         if (cancelledJobIdsRef.current.has(jobId) || !animationJobIsCurrent(jobId)) {
           setStatusLabel('Ajuste cancelado; no se incorporó una versión tardía.')
@@ -384,7 +431,7 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
           text: targetClip.transcriptText || targetClip.text },
         transcriptSegments, threadId, projectContext: { durationSeconds: projectDurationSeconds, fps, format: projectFormat, timelineWeights },
         activeConfig: selectedClip && currentDraft?.selectedTimelineBinding?.clipId === selectedClip.id ? currentDraft.config : undefined,
-        template: selectedTemplate, referenceIds: references.map(ref => ref.id), styleProfile, fps })
+        template: undefined, freshCodeOnly: true, referenceIds: references.map(ref => ref.id), styleProfile, fps })
       if (!animationJobIsCurrent(jobId)) return
       if (!result?.success) throw new Error(errorText(String(result?.error || 'ANIMATION_GENERATION_FAILED')))
       if (result.kind === 'answer') {
@@ -546,24 +593,6 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
     finally { finishAnimationJob(jobId); setBusy(false); setLastJobId(null); setProgress(null) }
   }
 
-  const saveTemplate = async () => {
-    if (!currentDraft?.draftId || !templateTitle.trim()) return
-    setSavingTemplate(true); setError('')
-    try {
-      const componentId = templateKind === 'component' ? templateComponentId || currentDraft.scenePlan?.components?.[0]?.id : undefined
-      const result = await window.electronAPI.animationSaveTemplate({ draftId: currentDraft.draftId,
-        title: templateTitle.trim(), kind: templateKind, componentId })
-      if (!result.success || !result.template) throw new Error(result.error || 'ANIMATION_TEMPLATE_SAVE_FAILED')
-      const next = [...templates.filter(x => x.templateId !== result.template.templateId), result.template]
-      setTemplates(next); setSelectedTemplate(result.template); setTemplateTitle('')
-      const state = await window.electronAPI.animationLoadProject()
-      await window.electronAPI.animationSaveProject({ ...(state.state || {}), conversation: messages, threadId,
-        references, library: next, activeDraftId: currentDraft.draftId, activeStyle: currentDraft.config?.style, styleProfile })
-      setStatusLabel(`${templateKind === 'component' ? 'Componente' : templateKind === 'recipe' ? 'Receta' : 'Secuencia'} guardada en la biblioteca y el proyecto.`)
-    } catch (e: any) { setError(errorText(String(e?.message || e))) }
-    finally { setSavingTemplate(false) }
-  }
-
   const undoAnimation = async () => {
     if (!projectPath) return
     try {
@@ -620,10 +649,15 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
         <select aria-label="Perfil de estilo Animation" value={styleProfile?.id || CIPHER_ANIMATION_STYLE_PROFILE_DEFAULT_V1.id}
           onChange={e => chooseStyleProfile(e.target.value)} disabled={busy}
           className="min-w-0 flex-1 rounded border border-[#45454a] bg-[#111113] px-1.5 py-1 text-[9px] text-slate-200">
-          {CIPHER_ANIMATION_STYLE_PROFILES_V1.map(profile => <option key={profile.id} value={profile.id}>{profile.title} · v{profile.version}</option>)}
+          {styles.map(profile => <option key={profile.id} value={profile.id}>{profile.title} · v{profile.version}</option>)}
         </select>
       </label>
-      <p className="mt-2 text-[9px] leading-relaxed text-slate-500">Animation dibuja las escenas con código. Las referencias orientan color y trazo; no se copian como imágenes.</p>
+      <div className="mt-2 flex gap-1">
+        {styleProfile?.id?.startsWith('style-') && <button type="button" onClick={() => { setRenameValue(styleProfile.title); setRenameEditing(value => !value) }} className="rounded border border-[#45454a] px-2 py-1 text-[9px] text-slate-300"><Pencil className="mr-1 inline h-3 w-3"/>Renombrar</button>}
+        {styleProfile?.id?.startsWith('style-') && <button type="button" onClick={() => void deleteSelectedStyle()} className="rounded border border-red-700/50 px-2 py-1 text-[9px] text-red-200"><Trash2 className="mr-1 inline h-3 w-3"/>Eliminar de biblioteca</button>}
+      </div>
+      {renameEditing && <div className="mt-2 flex gap-1"><input value={renameValue} maxLength={80} onChange={event => setRenameValue(event.target.value)} aria-label="Nuevo nombre del estilo" className="min-w-0 flex-1 rounded border border-[#45454a] bg-[#111113] px-2 py-1 text-[10px] text-slate-100"/><button type="button" onClick={() => void renameSelectedStyle()} disabled={busy || !renameValue.trim()} className="rounded bg-indigo-700 px-2 py-1 text-[9px] text-white disabled:opacity-40">Guardar nombre</button></div>}
+      <p className="mt-2 text-[9px] leading-relaxed text-slate-500">La copia del proyecto conserva la versión usada. Las escenas existentes mantienen su código; el perfil activo dirige los Visuales nuevos.</p>
     </div> : <div className="mb-3 rounded-xl border border-indigo-500/25 bg-indigo-950/25 p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-indigo-300"/><strong className="text-xs">Animation · Canvas</strong></div>
@@ -640,12 +674,12 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
           <select aria-label="Perfil de estilo Animation" value={styleProfile?.id || CIPHER_ANIMATION_STYLE_PROFILE_DEFAULT_V1.id}
             onChange={e => chooseStyleProfile(e.target.value)} disabled={busy}
             className="ml-1 max-w-[145px] rounded border border-[#45454a] bg-[#111113] px-1.5 py-1 text-[9px] text-slate-200">
-            {CIPHER_ANIMATION_STYLE_PROFILES_V1.map(profile => <option key={profile.id} value={profile.id}>{profile.title} · v{profile.version}</option>)}
+            {styles.map(profile => <option key={profile.id} value={profile.id}>{profile.title} · v{profile.version}</option>)}
           </select>
         </label>
         <select aria-label="Alcance de los cambios de estilo" value={styleScope} onChange={e => setStyleScope(e.target.value as 'clip'|'project')}
           className="shrink-0 rounded border border-[#45454a] bg-[#111113] px-1.5 py-1 text-[9px] text-slate-200">
-          <option value="clip">Sólo este Visual</option><option value="project">Estilo del proyecto</option>
+          <option value="clip">Sólo este Visual</option><option value="project">Proponer estilo para Visuales nuevos</option>
         </select>
       </div>
       {selectedClipCount > 1 && <p className="mt-1 text-[9px] text-amber-300">La primera versión modifica un Visual por operación; el resto queda intacto.</p>}
@@ -665,14 +699,6 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
       {pendingVisualSlots.length > 0 && <p className="mt-1 text-[8px] text-slate-500">Selecciona un slot para crear o reanudarlo; los ya aplicados permanecen guardados.</p>}
     </div>}
 
-    {!styleOnly && templates.length > 0 && <label className="mb-2 block text-[10px] text-slate-400">Reutilizar receta o secuencia
-      <select value={selectedTemplate?.templateId || ''} onChange={e => setSelectedTemplate(templates.find(t => t.templateId === e.target.value) || null)}
-        className="mt-1 w-full rounded-lg border border-[#3a3a3c] bg-[#111113] p-2 text-xs text-slate-100">
-        <option value="">Resolver según el contenido</option>
-        {templates.map(t => <option key={t.templateId} value={t.templateId}>{t.title} · {t.kind}</option>)}
-      </select>
-    </label>}
-
     <div className="mb-2 flex items-center justify-between">
       <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400"><MessageSquare className="mr-1 inline h-3 w-3"/>{styleOnly ? 'Estilo del proyecto' : 'Chat del proyecto'}</span>
       <button type="button" onClick={() => fileInput.current?.click()} disabled={!projectPath || busy}
@@ -687,8 +713,8 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
     <div className={`flex-1 min-h-[130px] space-y-3 overflow-y-auto rounded-xl border border-[#3a3a3c] bg-[#111113] p-3 ${currentDraft ? 'max-h-[155px]' : ''}`}>
       {messages.length === 0 && <div className="rounded-lg border border-dashed border-[#45454a] p-3 text-[10px] leading-relaxed text-slate-400">
         {styleOnly ? <>
-          <p className="mb-1 text-slate-200">Describe el estilo general de las escenas.</p>
-          <p>Por ejemplo: «cambia la paleta a jardín», «usa sans serif» o «aumenta las etiquetas».</p>
+          <p className="mb-1 text-slate-200">Describe una dirección visual o adjunta referencias.</p>
+          <p>Codex propone un perfil editable; revisa su alcance antes de guardarlo.</p>
         </> : <>
           <p className="mb-1 text-slate-200">Indica qué debe entenderse en la escena.</p>
           <p>Ejemplos: «organiza las dos causas y muestra su resultado», «cambia la paleta a jardín y usa sans serif», «reordena la entrada sin cambiar el resto».</p>
@@ -740,31 +766,23 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
           <RefreshCw className="mr-1 inline h-3 w-3"/>Regenerar offline</button>
         <span className="rounded-lg border border-[#303034] px-2 py-2 text-center text-[9px] text-slate-400">{currentDraft.applied ? 'Aplicado al timeline' : 'Pendiente de revisión'}</span>
       </div>
-      <div className="mt-3 border-t border-[#3a3a3c] pt-2">
-        <div className="mb-2 text-[9px] font-semibold uppercase text-slate-400">Biblioteca reusable</div>
-        <div className="grid grid-cols-[1fr_auto] gap-2">
-          <input value={templateTitle} onChange={e => setTemplateTitle(e.target.value)} placeholder="Nombre de receta o secuencia"
-            className="min-w-0 rounded-lg border border-[#3a3a3c] bg-[#111113] px-2 py-1.5 text-[10px] text-slate-100" />
-          <button onClick={() => void saveTemplate()} disabled={savingTemplate || !templateTitle.trim()}
-            className="rounded-lg border border-indigo-500/50 px-2 text-[10px] text-indigo-200 disabled:opacity-40"><Save className="mr-1 inline h-3 w-3"/>Guardar borrador</button>
-        </div>
-        <select value={templateKind} onChange={e => setTemplateKind(e.target.value as 'component'|'recipe'|'sequence')}
-          className="mt-2 w-full rounded-lg border border-[#3a3a3c] bg-[#111113] px-2 py-1.5 text-[10px] text-slate-200">
-          {currentDraft?.scenePlan?.schema !== 'cipher-animation-code-scene-plan-v1' &&
-            <option value="component">Componente: pieza registrada con parámetros transferibles</option>}
-          <option value="recipe">Receta: mecanismo + coreografía parametrizada</option>
-          <option value="sequence">Secuencia: configuración transferible, sin contenido factual</option>
-        </select>
-        {templateKind === 'component' && <select value={templateComponentId || currentDraft.scenePlan?.components?.[0]?.id || ''} onChange={e => setTemplateComponentId(e.target.value)}
-          className="mt-2 w-full rounded-lg border border-[#3a3a3c] bg-[#111113] px-2 py-1.5 text-[10px] text-slate-200">
-          {(currentDraft.scenePlan?.components || []).map((component: any) => <option key={component.id} value={component.id}>{component.id} · v{component.version}</option>)}
-        </select>}
+    </div>}
+
+    {styleOnly && styleProposal && <div className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3">
+      <div className="flex items-center justify-between gap-2"><strong className="text-[10px] text-emerald-100">Propuesta Codex · {styleProposal.title} · v{styleProposal.version}</strong>
+        <span className="text-[8px] text-slate-400">{styleProposal.metrics?.calls || 1} llamada · {styleProposal.metrics?.directionMs ?? '—'} ms</span></div>
+      <p className="mt-1 text-[9px] text-slate-300">{styleProposal.description}</p>
+      {styleProposal.reference?.referenceAnalysis && <p className="mt-1 text-[9px] text-slate-400">Lectura de referencia: {styleProposal.reference.referenceAnalysis}</p>}
+      <p className="mt-2 rounded bg-amber-950/40 p-2 text-[9px] text-amber-100">Alcance: al activar, este perfil queda copiado en el proyecto y se usa para Visuales nuevos. Las escenas existentes mantienen código y versión.</p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <button type="button" onClick={() => void saveStyleProposal('new')} disabled={busy} className="rounded bg-indigo-700 px-2 py-2 text-[9px] text-white disabled:opacity-40"><Save className="mr-1 inline h-3 w-3"/>Guardar como estilo nuevo</button>
+        <button type="button" onClick={() => void saveStyleProposal('update')} disabled={busy || !styleProfile?.id?.startsWith('style-')} className="rounded border border-indigo-500/50 px-2 py-2 text-[9px] text-indigo-100 disabled:opacity-40">Guardar como actualización</button>
       </div>
     </div>}
 
     <form onSubmit={send} className="mt-3 flex flex-col gap-2">
       <textarea value={input} onChange={e => setInput(e.target.value)} maxLength={4000} rows={3} disabled={!projectPath || busy}
-          placeholder={styleOnly ? 'Describe un ajuste del estilo general…' : selectedClip ? 'Describe la escena o el cambio visual…' : `Crea desde ${Number(currentTimeSeconds || 0).toFixed(2)} s o pregunta por el estilo…`}
+          placeholder={styleOnly ? 'Describe estilo, composición, color o movimiento…' : selectedClip ? 'Describe la escena o el cambio visual…' : `Crea desde ${Number(currentTimeSeconds || 0).toFixed(2)} s o pregunta por el estilo…`}
         className="w-full resize-y rounded-xl border border-[#45454a] bg-[#111113] p-2.5 text-[11px] text-slate-100 outline-none focus:border-indigo-500 disabled:opacity-50" />
       <div className="flex gap-2">
         {busy ? <button type="button" onClick={() => void cancel()} className="flex-1 rounded-lg border border-red-500/50 px-3 py-2 text-[10px] text-red-200">
@@ -776,7 +794,7 @@ export default function AnimationWorkspace({ projectPath, flowMode = 'scene', on
     </form>
     {styleOnly && <div className="mt-3 grid grid-cols-2 gap-2">
       <button type="button" onClick={() => void continueWithStyle()} disabled={busy || !projectPath}
-        className="rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40">Continuar con este estilo</button>
+        className="rounded-lg bg-indigo-600 px-3 py-2 text-[10px] font-bold text-white disabled:opacity-40">Usar estilo activo</button>
       <button type="button" onClick={() => onBackToAudio?.()} disabled={busy}
         className="rounded-lg border border-[#45454a] px-3 py-2 text-[10px] font-semibold text-slate-200 disabled:opacity-40">Volver al audio</button>
     </div>}

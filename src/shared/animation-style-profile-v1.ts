@@ -58,10 +58,29 @@ export function validateCipherAnimationStyleProfileV1(value: unknown): CipherAni
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('ANIMATION_STYLE_PROFILE_INVALID')
   const candidate = value as any
   const registered = getCipherAnimationStyleProfileV1(candidate.id)
-  const referenceMatches = !!registered && (!candidate.reference || typeof candidate.reference === 'object')
+  const custom = !registered && /^style-[a-f0-9]{20}$/.test(String(candidate.id || ''))
+  const referenceMatches = (!!registered || custom) && (!candidate.reference || typeof candidate.reference === 'object')
   const defaults = { ...CIPHER_ANIMATION_STYLE_PROFILE_DEFAULT_V1.parameters, ...(registered?.parameters || {}) }
   const parameters = { ...defaults, ...(candidate.parameters || {}) }
-  if (!registered || candidate.schema !== registered.schema || candidate.version !== registered.version || !referenceMatches ||
+  const direction = candidate.direction
+  const directionFields = ['background', 'linework', 'composition', 'motion', 'finish', 'mobile']
+  const directionValid = direction && typeof direction === 'object' && direction.palette &&
+    typeof direction.palette === 'object' && !Array.isArray(direction.palette) &&
+    directionFields.every(key => typeof direction[key] === 'string' && direction[key].length > 0 && direction[key].length <= 700) &&
+    directionFields.slice(0, 1).every(key => typeof direction[key] === 'string') &&
+    direction.typography && typeof direction.typography === 'object' &&
+    typeof direction.typography.hierarchy === 'string' && direction.typography.hierarchy.length <= 500 &&
+    (direction.forbidden === undefined || (Array.isArray(direction.forbidden) && direction.forbidden.length <= 20 &&
+      direction.forbidden.every((item: unknown) => typeof item === 'string' && item.length <= 240))) &&
+    Object.entries(direction.palette).length >= 2 && Object.entries(direction.palette).length <= 16 &&
+    Object.entries(direction.palette).every(([key, color]) => /^[A-Za-z][A-Za-z0-9]{0,31}$/.test(key) &&
+      typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.test(color))
+  const customMetadataValid = !custom || (candidate.schema === 'cipher-animation-style-profile-v1' &&
+    Number.isInteger(candidate.version) && candidate.version >= 1 && candidate.version <= 10000 &&
+    typeof candidate.title === 'string' && candidate.title.trim().length > 0 && candidate.title.length <= 80 &&
+    typeof candidate.description === 'string' && candidate.description.length <= 1200 && directionValid)
+  if ((!registered && !custom) || (registered && (candidate.schema !== registered.schema || candidate.version !== registered.version)) ||
+      !customMetadataValid || !referenceMatches ||
       !candidate.direction || !candidate.parameters ||
       !['paper', 'night', 'garden', 'sapphire'].includes(parameters.paletteId) ||
       !['Instrument Serif', 'DM Sans'].includes(parameters.titleFontFamily) ||
@@ -72,7 +91,10 @@ export function validateCipherAnimationStyleProfileV1(value: unknown): CipherAni
       !Number.isFinite(parameters.textureStrength) || parameters.textureStrength < 0 || parameters.textureStrength > .2 ||
       !Number.isFinite(parameters.surfaceDepth) || parameters.surfaceDepth < .5 || parameters.surfaceDepth > 1.5 ||
       !Number.isFinite(parameters.shadowStrength) || parameters.shadowStrength < 0 || parameters.shadowStrength > 1 ||
-      !Number.isFinite(parameters.cameraDrift) || parameters.cameraDrift < 0 || parameters.cameraDrift > .08)
+      !Number.isFinite(parameters.cameraDrift) || parameters.cameraDrift < 0 || parameters.cameraDrift > .08 ||
+      (parameters.accentColor !== undefined && (typeof parameters.accentColor !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(parameters.accentColor))) ||
+      (parameters.secondaryColor !== undefined && (typeof parameters.secondaryColor !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(parameters.secondaryColor))) ||
+      (parameters.movementIntensity !== undefined && !['restrained', 'balanced', 'dynamic'].includes(parameters.movementIntensity)))
     throw new Error('ANIMATION_STYLE_PROFILE_INVALID')
-  return { ...registered, ...candidate, parameters } as CipherAnimationStyleProfileV1
+  return { ...(registered || {}), ...candidate, direction: { ...direction }, parameters } as CipherAnimationStyleProfileV1
 }

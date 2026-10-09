@@ -70,11 +70,23 @@ async function run() {
   assert.equal(timedScript[0].start, 0); assert.equal(timedScript.at(-1).end, 6)
   assert.ok(timedScript.every(segment => segment.words?.length && segment.words.every(word => word.end > word.start)))
   const timedVisuals = buildPlanning.createAnimationSlotsFromSegments(timedScript, 6)
-  assert.equal(timedVisuals.length, 2); assert.ok(timedVisuals.every(slot => slot.animationSlot && slot.words.length))
+  assert.equal(timedVisuals.length, 1); assert.ok(timedVisuals.every(slot => slot.animationSlot && slot.words.length))
+  assert.equal(timedVisuals[0].end - timedVisuals[0].start, 6)
   const twentySecondScript = buildPlanning.createTimedScriptSegments('Forest growth matters. Birds return.', 20)
   const twentySecondVisuals = buildPlanning.createAnimationSlotsFromSegments(twentySecondScript, 20, 'Forest growth matters. Birds return.')
   assert.equal(twentySecondVisuals[0].start, 0); assert.equal(twentySecondVisuals.at(-1).end, 20)
   assert.ok(twentySecondVisuals.every((slot, index) => index === 0 || twentySecondVisuals[index - 1].end === slot.start))
+  assert.ok(twentySecondVisuals.every(slot => slot.end - slot.start >= 3 && slot.end - slot.start <= 10))
+  const solarScriptText = 'Al mediodía, los paneles solares producen más electricidad de la que usamos. Las baterías guardan ese excedente. Cuando cae el sol, lo liberan y ayudan a equilibrar la red durante todo el día.'
+  const solarScript = buildPlanning.createTimedScriptSegments(solarScriptText, 20)
+  const solarVisuals = buildPlanning.createAnimationSlotsFromSegments(solarScript, 20, solarScriptText)
+  assert.deepEqual(solarVisuals.flatMap(slot => slot.words.map(word => word.word.trim())),
+    solarScript.flatMap(segment => segment.words.map(word => word.word.trim())),
+    'frame-aligned scene cuts assign every script word once without duplicating a boundary word')
+  const variedScript = buildPlanning.createTimedScriptSegments('A small idea arrives. Several related facts connect across the scene. A longer explanation unfolds and then resolves into a clear conclusion.', 20)
+  const variedVisuals = buildPlanning.createAnimationSlotsFromSegments(variedScript, 20)
+  assert.ok(new Set(variedVisuals.map(slot => Math.round((slot.end - slot.start) * 30))).size > 1,
+    'Animation preserves editorially varied scene lengths instead of forcing equal three-second clips')
   const noNarrationJob = { schemaVersion: 1, operationId: randomUUID(), attemptId: randomUUID(), projectId: randomUUID(), kind: 'build',
     settings: { scriptText: 'A script.', weights: [0,100,0,0], graphicsPercent: 0, transitionsPercent: 0,
       voice: { mode: 'none' }, buildDurationSeconds: 30 } }
@@ -210,7 +222,10 @@ async function run() {
         setAnimationBuildSummary() {}, setGenerationError() {}, setIsGeneratingAssets() {},
         setIsBuildingAnimationQueue() {}, setGenerationProgress() {},
         continueCommonBuild: async () => { if (change === 'project') projectRef.current = '/other'; else versionRef.current = 'v2' },
-        continuePendingAnimationBuild: async () => { animationCalls++ }, finishBuild: async () => { finishCalls++ }
+        continuePendingAnimationBuild: async () => {
+          if (projectRef.current !== fixture || versionRef.current !== 'v1') throw new Error('ANIMATION_PROJECT_CHANGED')
+          animationCalls++
+        }, finishBuild: async () => { finishCalls++ }
       }
       await productionBinding('handleBuildIATimeline', rendererContext, rendererAst)()
       assert.equal(animationCalls, 0, `do not start Animation after changing ${change}`)
@@ -275,7 +290,7 @@ async function run() {
     assert.ok(noVoiceOriginal.clips.every(clip => clip.category === 'original' && clip.buildPlan.videoPath === '/synthetic-source.mp4'))
     const noVoiceVisuals = await planner(event, { scriptText: 'A forest grows. Birds return.', buildDurationSeconds: 6,
       weights: [0,0,0,100], audioProvenance: { origin: 'none' } })
-    assert.equal(noVoiceVisuals.success, true, noVoiceVisuals.error); assert.equal(noVoiceVisuals.clips.length, 2)
+    assert.equal(noVoiceVisuals.success, true, noVoiceVisuals.error); assert.equal(noVoiceVisuals.clips.length, 1)
     assert.ok(noVoiceVisuals.clips.every(clip => clip.category === 'visual' && clip.animationPending))
     assert.equal((await planner(event, { ...input, videoPath: undefined })).error, 'BUILD_ORIGINAL_SOURCE_REQUIRED')
     failPlanning = true
@@ -476,7 +491,8 @@ async function run() {
     const metricContext = { path, randomUUID, performance: { now: () => clock },
       assertProjectRoot: x => x, fail: code => { throw new Error(code) },
       clipAnimationTranscript: () => ({ transcript: [], adjacentContext: [], fallbackQuote: 'test' }),
-      readProjectState: () => ({ references: [], styleProfile: { id: 'profile', version: 1, parameters: {} } }),
+      readProjectState: () => ({ references: [], styleProfile: { id: 'profile', version: 1,
+        parameters: { paletteId: 'paper' }, direction: { palette: { paper: '#ffffff', ink: '#000000' } } } }),
       validateCipherAnimationStyleProfileV1: x => x, makeDirectorPrompt: () => 'test',
       provider: { complete: async () => { clock += 100; return { text: 'test', provider: 'mock', model: 'mock' } } },
       osSafeTemp: () => fixture, PLAN_OUTPUT_SCHEMA: {}, animationDir: x => x,

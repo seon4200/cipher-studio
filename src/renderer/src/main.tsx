@@ -1,4 +1,4 @@
-import { resolveAudioProvenance, runCommonMediaQueue, isPendingCommonSlot, requiredMediaPending, buildSummary, type AudioProvenance } from '../../shared/build-integrity'
+import { resolveAudioProvenance, runCommonMediaQueue, isPendingCommonSlot, requiredMediaPending, buildSummary, sameBuildSlot, type AudioProvenance } from '../../shared/build-integrity'
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { normalizeProjectAspectRatioV1 } from '../../shared/aspect-ratio-v1'
 import { excluirSobreVisuales, colocarYFiltrarTarjetas, avisoDeExclusion } from '../../shared/exclusion'
@@ -165,6 +165,7 @@ function App() {
   const [clips, setClips] = useState<Clip[]>([])
   const [timelineVideoClips, setTimelineVideoClips] = useState<TimelineClip[]>([])
   const timelineVideoClipsRef = React.useRef(timelineVideoClips)
+  const buildPersistChainRef = React.useRef<Promise<unknown>>(Promise.resolve())
   useEffect(() => { timelineVideoClipsRef.current = timelineVideoClips }, [timelineVideoClips])
   const pendingAnimationSlots = timelineVideoClips.filter(isPendingAnimationSlot)
   const hasPendingAnimationSlots = pendingAnimationSlots.length > 0 || timelineVideoClips.some(isPendingCommonSlot)
@@ -2606,19 +2607,7 @@ ${res.filePath}`);
       },
       persist: async (clips, nextAnimationState) => {
         if (!sameProject()) throw new Error('ANIMATION_PROJECT_CHANGED')
-        const latestState = construirEstadoAGuardarRef.current()
-        const safeTimeline = mergeQueueTimeline(timelineVideoClipsRef.current, clips)
-        const latestVersions = Array.isArray(latestState.timelineVersions) &&
-          latestState.timelineVersions.some((version: TimelineVersion) => version.id === versionId)
-          ? latestState.timelineVersions as TimelineVersion[] : versionState
-        const latestVersionId = latestState.activeVersionId || versionId
-        versionState = latestVersions.map(version => version.id === latestVersionId
-          ? { ...version, timelineVideoClips: safeTimeline } : version)
-        const projectState = { ...latestState, timelineVideoClips: safeTimeline,
-          timelineVersions: versionState, activeVersionId: latestVersionId }
-        const result = await window.electronAPI.animationSaveBuildState({ projectPath, projectState,
-          animationState: nextAnimationState })
-        if (!result.success) throw new Error(result.error || 'ANIMATION_BUILD_STATE_SAVE_FAILED')
+        await persistBuildLaneTimeline('animation', clips as TimelineClip[], projectPath, versionState, versionId, nextAnimationState)
       },
       apply: (clip, slotId, queueClips) => {
         if (!sameProject()) return { success: false }
@@ -2681,11 +2670,55 @@ ${res.filePath}`);
     setTimelineVersions(nextVersions)
   }
 
+  const mergeBuildLaneTimeline = (latest: TimelineClip[], laneClips: TimelineClip[], lane: 'common' | 'animation') => {
+    const byId = new Map(laneClips.map(clip => [clip.id, clip]))
+    return latest.map(current => {
+      const candidate = byId.get(current.id)
+      if (!candidate || !sameBuildSlot(current, candidate)) return current
+      if (lane === 'common' && current.type === 'video' && current.category !== 'visual' && isPendingCommonSlot(current))
+        return { ...current, ...candidate }
+      if (lane === 'animation' && current.type === 'video' && current.category === 'visual')
+        return { ...current, ...candidate }
+      return current
+    })
+  }
+
+  const persistBuildLaneTimeline = (lane: 'common' | 'animation', laneClips: TimelineClip[], projectPath: string,
+      versions: TimelineVersion[], versionId: string, animationState?: any) => {
+    const write = async () => {
+      if (activeProjectPathRef.current !== projectPath || activeVersionIdRef.current !== versionId)
+        throw new Error('BUILD_PROJECT_CHANGED')
+      const safeTimeline = mergeBuildLaneTimeline(timelineVideoClipsRef.current, laneClips, lane)
+      const latestState = construirEstadoAGuardarRef.current()
+      const latestVersions = Array.isArray(latestState.timelineVersions) &&
+        latestState.timelineVersions.some((version: TimelineVersion) => version.id === versionId)
+        ? latestState.timelineVersions as TimelineVersion[] : versions
+      const nextVersions = latestVersions.map(version => version.id === versionId
+        ? { ...version, timelineVideoClips: safeTimeline } : version)
+      const result = await window.electronAPI.animationSaveBuildState({ projectPath,
+        projectState: { ...latestState, timelineVideoClips: safeTimeline, timelineVersions: nextVersions, activeVersionId: versionId },
+        ...(animationState ? { animationState } : {}) })
+      if (!result.success) throw new Error(result.error || 'BUILD_LANE_SAVE_FAILED')
+      if (activeProjectPathRef.current !== projectPath || activeVersionIdRef.current !== versionId)
+        throw new Error('BUILD_PROJECT_CHANGED')
+      timelineVideoClipsRef.current = safeTimeline
+      setTimelineVideoClips(safeTimeline)
+      setTimelineVersions(nextVersions)
+      setIsDirty(true)
+    }
+    const task = buildPersistChainRef.current.then(write)
+    buildPersistChainRef.current = task.then(() => undefined, () => undefined)
+    return task
+  }
+
   const continueCommonBuild = async (projectPath: string, versions = timelineVersions, versionId = activeVersionId) => {
     return runCommonMediaQueue({
       getClips: () => timelineVideoClipsRef.current,
-      persist: next => persistBuildTimeline(next, projectPath, versions, versionId),
-      onClips: next => { timelineVideoClipsRef.current = next; setTimelineVideoClips(next); setIsDirty(true) },
+      persist: next => persistBuildLaneTimeline('common', next, projectPath, versions, versionId),
+      onClips: next => {
+        const merged = mergeBuildLaneTimeline(timelineVideoClipsRef.current, next, 'common')
+        timelineVideoClipsRef.current = merged; setTimelineVideoClips(merged); setIsDirty(true)
+      },
       isCurrent: () => activeProjectPathRef.current === projectPath && activeVersionIdRef.current === versionId,
       isCancelled: () => animationBuildCancellationRef.current.cancelRequested,
       dispatch: async slot => {
@@ -2762,10 +2795,12 @@ ${res.filePath}`);
       setAnimationBuildSummary('Reanudando únicamente espacios pendientes del montaje guardado.')
       setGenerationError(''); setIsGeneratingAssets(true)
       try {
-        await continueCommonBuild(projectPath)
+        const commonLane = continueCommonBuild(projectPath)
+        const animationLane = timelineVideoClipsRef.current.some(isPendingAnimationSlot) && !animationBuildCancellationRef.current.cancelRequested
+          ? continuePendingAnimationBuild(timelineVideoClipsRef.current)
+          : Promise.resolve(null)
+        await Promise.all([commonLane, animationLane])
         if (activeProjectPathRef.current !== projectPath || activeVersionIdRef.current !== versionId) throw new Error('BUILD_PROJECT_CHANGED')
-        if (!animationBuildCancellationRef.current.cancelRequested && timelineVideoClipsRef.current.some(isPendingAnimationSlot))
-          await continuePendingAnimationBuild(timelineVideoClipsRef.current)
         await finishBuild(projectPath)
       } catch (error: any) {
         if (activeProjectPathRef.current === projectPath) setGenerationError(String(error?.message || error))
@@ -2846,9 +2881,9 @@ ${res.filePath}`);
       setGenerationError('Define una duración válida del montaje (mayor que 0 y hasta 24 horas).');
       return;
     }
-    // Animation slots are exact, frame-based three-second windows over the already prepared
-    // voice. Their transcript is rebased to the clip-local clock and retains only words that
-    // actually overlap each slot; the normal planner then assigns Original/Stock/Visual.
+    // Animation slots preserve prepared sentence boundaries and split only when the Canvas
+    // renderer's supported scene duration (3–10 s) requires it. Word timings stay on the same
+    // clock; the normal planner then assigns Original/Stock/Visual.
     const animationInputSegments = buildAnimationSlots && voiceClip
       ? createAnimationSlotsFromSegments(effectiveAudioSegments, duracionAudio, scriptForTimeline)
       : effectiveAudioSegments;
@@ -2866,6 +2901,7 @@ ${res.filePath}`);
     setAvisos([]);
     setResumen(null);
     setGenerationProgress(null);
+    let animationLaneResult: Promise<{ error?: any }> | null = null
     try {
       // Original media is required only for an Original quota or original-source narration.
       const audioSourcePath = isUsingOriginalAudio ? audioProvenance.sourcePath || voiceClip?.path : undefined;
@@ -3024,6 +3060,10 @@ ${res.filePath}`);
         if (!proyectoAlEmpezar) throw new Error('BUILD_PROJECT_REQUIRED');
         setGenerationProgress({ current: 0, total: newVideoClips.length, type: 'Planificado', paragraph: 'Guardando espacios antes de crear medios.' });
         await persistBuildTimeline(finalTimelineClips, proyectoAlEmpezar, versionsForAnimation, versionIdForAnimation);
+        if (buildAnimationSlots && finalTimelineClips.some(isPendingAnimationSlot)) {
+          animationLaneResult = continuePendingAnimationBuild(finalTimelineClips, versionsForAnimation, versionIdForAnimation)
+            .then(() => ({}), error => ({ error }))
+        }
         await continueCommonBuild(proyectoAlEmpezar, versionsForAnimation, versionIdForAnimation);
         if (activeProjectPathRef.current !== proyectoAlEmpezar || activeVersionIdRef.current !== versionIdForAnimation) throw new Error('BUILD_PROJECT_CHANGED');
         finalTimelineClips = timelineVideoClipsRef.current;
@@ -3127,7 +3167,11 @@ ${res.filePath}`);
         versionsForAnimation = versionsForAnimation.map(version => version.id === versionIdForAnimation
           ? { ...version, timelineVideoClips: finalTimelineClips } : version)
         setTimelineVersions(versionsForAnimation)
-        if (!animationBuildCancellationRef.current.cancelRequested && buildAnimationSlots && finalTimelineClips.some(isPendingAnimationSlot)) {
+        if (animationLaneResult) {
+          const laneResult = await animationLaneResult
+          animationLaneResult = null
+          if (laneResult.error) throw laneResult.error
+        } else if (!animationBuildCancellationRef.current.cancelRequested && buildAnimationSlots && finalTimelineClips.some(isPendingAnimationSlot)) {
           await continuePendingAnimationBuild(finalTimelineClips, versionsForAnimation, versionIdForAnimation)
         }
         await finishBuild(proyectoAlEmpezar, versionsForAnimation, versionIdForAnimation)
@@ -3137,6 +3181,10 @@ ${res.filePath}`);
         console.error('Error en Timeline IA:', errorMsg);
       }
     } catch (err: any) {
+      if (animationLaneResult) {
+        await animationLaneResult
+        animationLaneResult = null
+      }
       const errorMsg = err.message || 'Excepción al generar assets.';
       if (animationBuildCancellationRef.current.cancelRequested) {
         setGenerationError('');
@@ -6048,9 +6096,11 @@ ${res.filePath}`);
                       <Sparkles className="h-4 w-4 text-indigo-300" />
                       <span className="text-xs font-bold">Animation · Canvas procedural</span>
                     </div>
-                    <span className="text-[9px] bg-indigo-500/20 text-indigo-200 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Preview</span>
+                    <div className="flex items-center gap-1"><button type="button" onClick={event => { event.stopPropagation(); openAnimationPanel('style') }}
+                      className="rounded border border-indigo-500/40 px-2 py-1 text-[9px] font-semibold text-indigo-100 hover:bg-indigo-900/40">Estilos</button>
+                      <span className="text-[9px] bg-indigo-500/20 text-indigo-200 px-1.5 py-0.5 rounded-full font-semibold uppercase font-sans">Preview</span></div>
                   </div>
-                  <p className="text-[11px] text-slate-400">Dirige Visuales por chat, conserva recetas y componentes, y aplica borradores reversibles al clip seleccionado.</p>
+                  <p className="text-[11px] text-slate-400">Crea código Canvas nuevo para cada Visual, edita escenas por chat y reanuda borradores guardados.</p>
                 </div>
               </div>
              ) : (

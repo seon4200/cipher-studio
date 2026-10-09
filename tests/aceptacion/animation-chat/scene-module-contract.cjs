@@ -46,6 +46,11 @@ const gardenStylePlan = scenePlan(validated, 'garden', { titleFontFamily: 'DM Sa
 assert.equal(gardenStylePlan.style.titleFontFamily, 'DM Sans', 'A saved template can retain its typography at compile time')
 assert.equal(gardenStylePlan.style.labelScale, 1.25, 'Style remains a plan parameter, independent of code')
 assert.equal(gardenStylePlan.style.paletteId, 'garden')
+const customStylePlan = scenePlan(validated, 'paper', { palette: { paper: '#EAE7E1', cyan: '#38BDF8' }, movementIntensity: 'dynamic' })
+assert.equal(customStylePlan.style.palette.paper, '#EAE7E1')
+assert.equal(customStylePlan.style.palette.cyan, '#38BDF8')
+assert.equal(customStylePlan.style.movementIntensity, 'dynamic')
+rejects(() => scenePlan(validated, 'paper', { palette: { paper: 'url(https://example.com)' } }), 'ANIMATION_STYLE_PALETTE_INVALID')
 rejects(() => scenePlan(validated, 'garden', { titleFontFamily: 'Unregistered', bodyFontFamily: 'DM Sans', titleScale: 1, labelScale: 1 }),
   'ANIMATION_FONT_NOT_REGISTERED')
 rejects(() => scenePlan(validated, 'garden', { titleFontFamily: 'DM Sans', bodyFontFamily: 'DM Sans', titleScale: 1, labelScale: 1.7 }),

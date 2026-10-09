@@ -63,7 +63,7 @@ export function createTimedScriptSegments(scriptText: string, durationSeconds: n
   })
 }
 
-/** Create the fixed three-second Animation windows used by Studio and Control. */
+/** Preserve sentence timing where possible; split only to keep generated scenes in Canvas' supported 3–10 s range. */
 export function createAnimationSlotsFromSegments(
   segments: readonly BuildTimedSegment[], durationSeconds: number, fallbackText = '', fps = 30,
 ): BuildTimedSegment[] {
@@ -71,23 +71,51 @@ export function createAnimationSlotsFromSegments(
   if (!Number.isFinite(duration) || duration < 3 || duration > 86400) throw new Error('BUILD_ANIMATION_DURATION_INVALID')
   if (!Number.isInteger(fps) || fps < 1 || fps > 120) throw new Error('BUILD_ANIMATION_FPS_INVALID')
   const totalFrames = Math.round(duration * fps)
-  const slotFrames = 3 * fps
-  const fullSlots = Math.floor(totalFrames / slotFrames)
-  if (fullSlots < 1) throw new Error('BUILD_ANIMATION_DURATION_INVALID')
-
   const words = (segments || []).flatMap(segment => Array.isArray(segment.words) ? segment.words : [])
   const orderedSegments = [...(segments || [])].sort((a, b) => a.start - b.start)
+  const sentenceEnds = [...new Set(orderedSegments.map(segment => Math.round(Number(segment.end) * fps)))]
+    .filter(frame => Number.isInteger(frame) && frame > 0 && frame < totalFrames).sort((a, b) => a - b)
+  const wordEnds = [...new Set(words.map(word => Math.round(Number(word.end) * fps)))]
+    .filter(frame => Number.isInteger(frame) && frame > 0 && frame < totalFrames).sort((a, b) => a - b)
+  const minFrames = 3 * fps
+  const maxFrames = 10 * fps
   const slots: BuildTimedSegment[] = []
-  for (let slotIndex = 0; slotIndex < fullSlots; slotIndex++) {
-    const firstFrame = slotIndex * slotFrames
-    const lastFrame = slotIndex === fullSlots - 1 ? totalFrames : firstFrame + slotFrames
+  let firstFrame = 0
+  while (firstFrame < totalFrames) {
+    const remaining = totalFrames - firstFrame
+    if (remaining < minFrames) {
+      const previousDuration = slots.length ? Math.round((slots[slots.length - 1].end - slots[slots.length - 1].start) * fps) : 0
+      if (!slots.length || previousDuration + remaining > maxFrames)
+        throw new Error('BUILD_ANIMATION_DURATION_INVALID')
+      const previous = slots.pop()!
+      firstFrame = Math.round(previous.start * fps)
+    }
+    const available = totalFrames - firstFrame
+    let lastFrame = totalFrames
+    if (available > maxFrames) {
+      const remainingAfter = Math.max(minFrames, available - maxFrames)
+      const maximum = Math.min(firstFrame + maxFrames, totalFrames - minFrames)
+      const minimum = firstFrame + minFrames
+      const pieces = Math.ceil(available / (7 * fps))
+      const target = firstFrame + Math.round(available / pieces)
+      const eligible = (values: number[]) => values.filter(frame => frame >= minimum && frame <= maximum)
+      const choose = (values: number[]) => values.sort((a, b) => Math.abs(a - target) - Math.abs(b - target) || a - b)[0]
+      lastFrame = choose(eligible(sentenceEnds)) ?? choose(eligible(wordEnds)) ?? Math.min(maximum, Math.max(minimum, target))
+      if (available - lastFrame + firstFrame < remainingAfter) lastFrame = maximum
+    }
     const start = firstFrame / fps
     const end = lastFrame / fps
-    const overlappingWords = words.filter(word => Number(word.start) < end && Number(word.end) > start)
+    // Assign a timed word to exactly one frame-aligned scene. Comparing raw
+    // seconds here duplicates words whose end falls just after a rounded cut.
+    const overlappingWords = words.filter(word => {
+      const midpointFrame = Math.floor(((Number(word.start) + Number(word.end)) / 2) * fps)
+      return midpointFrame >= firstFrame && midpointFrame < lastFrame
+    })
     const quote = overlappingWords.map(word => String(word.word || '').trim()).filter(Boolean).join(' ')
     const overlappingSegment = orderedSegments.find(segment => Number(segment.start) < end && Number(segment.end) > start)
     slots.push({ start, end, text: quote || overlappingSegment?.text || String(fallbackText || '').trim(),
       words: overlappingWords, animationSlot: true })
+    firstFrame = lastFrame
   }
   return slots
 }

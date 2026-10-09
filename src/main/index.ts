@@ -19,7 +19,8 @@ export * from './services/original-clip-segmentation'
 export * from './assets/visual-render'
 export { editorialPhraseWindow, editorialSlotWindow, editorialHeadlineForScene, stockCoverFilter } from '../shared/editorial-scene-input'
 import { getAnimationConnectionStatus, loadAnimationProject, loadAnimationDraft, listAnimationDrafts, saveAnimationProject, addAnimationReference,
-  generateAnimationDraft, adjustAnimationDraftStyle, reviewAnimationDraft, replayAnimationDraft, saveAnimationTemplate, listAnimationTemplates } from './services/animation-integration'
+  generateAnimationDraft, adjustAnimationDraftStyle, reviewAnimationDraft, replayAnimationDraft, saveAnimationTemplate, listAnimationTemplates,
+  listAnimationStyles, saveAnimationStyle, snapshotProjectAnimationStyle, renameAnimationStyle, deleteAnimationStyle, proposeAnimationStyle } from './services/animation-integration'
 import { prepareOriginalClipSegmentation } from './services/original-clip-segmentation'
 import { prepareGraphicForVisualRender } from './assets/visual-render'
 import { classifyGraphicsCapture, requireExactGraphicsCapture } from './graphics-capture-diagnostics'
@@ -4494,6 +4495,34 @@ ipcMain.handle('animation:load-project', async () => {
     return loadAnimationProject(activeProjectPath)
   } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
 })
+ipcMain.handle('animation:list-styles', async () => {
+  try { return listAnimationStyles() }
+  catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+})
+ipcMain.handle('animation:save-style', async (_event, input: any) => {
+  try {
+    if (!activeProjectPath || typeof input?.projectPath !== 'string' ||
+        path.resolve(input.projectPath).toLowerCase() !== path.resolve(activeProjectPath).toLowerCase())
+      throw new Error('ANIMATION_PROJECT_CHANGED')
+    return saveAnimationStyle(activeProjectPath, input)
+  } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+})
+ipcMain.handle('animation:snapshot-style', async (_event, input: any) => {
+  try {
+    if (!activeProjectPath || typeof input?.projectPath !== 'string' ||
+        path.resolve(input.projectPath).toLowerCase() !== path.resolve(activeProjectPath).toLowerCase())
+      throw new Error('ANIMATION_PROJECT_CHANGED')
+    return snapshotProjectAnimationStyle(activeProjectPath, input.profile)
+  } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+})
+ipcMain.handle('animation:rename-style', async (_event, input: any) => {
+  try { return renameAnimationStyle(String(input?.styleId || ''), String(input?.title || '')) }
+  catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+})
+ipcMain.handle('animation:delete-style', async (_event, styleId: string) => {
+  try { return deleteAnimationStyle(String(styleId || '')) }
+  catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+})
 ipcMain.handle('animation:load-draft', async (_event, draftId: string) => {
   try {
     if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
@@ -4540,6 +4569,29 @@ ipcMain.handle('animation:add-reference', async (_event, sourcePath: string) => 
     if (!activeProjectPath) throw new Error('ANIMATION_ACTIVE_PROJECT_REQUIRED')
     return await addAnimationReference(activeProjectPath, sourcePath)
   } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+})
+ipcMain.handle('animation:propose-style', async (event, input: any) => {
+  const jobId = String(input?.jobId || '')
+  let registeredJob: AnimationJob | null = null
+  try {
+    if (!activeProjectPath || typeof input?.projectPath !== 'string' ||
+        path.resolve(input.projectPath).toLowerCase() !== path.resolve(activeProjectPath).toLowerCase())
+      throw new Error('ANIMATION_PROJECT_CHANGED')
+    if (!/^[\w-]{8,100}$/.test(jobId)) throw new Error('ANIMATION_JOB_ID_INVALID')
+    const projectRoot = activeProjectPath
+    const job = registerAnimationJob(jobId, projectRoot, { kind: 'style-proposal' })
+    registeredJob = job
+    const controller = job.controller
+    const onProgress = (progress: any) => {
+      if (activeProjectPath !== projectRoot || event.sender.isDestroyed()) return
+      job.phase = String(progress?.phase || job.phase || 'style-analysis')
+      event.sender.send('animation:progress', { jobId, ...progress })
+    }
+    const result = await proposeAnimationStyle(projectRoot, input, { signal: controller.signal, onProgress })
+    if (activeProjectPath !== projectRoot) throw new Error('ANIMATION_PROJECT_CHANGED')
+    return result
+  } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+  finally { finishAnimationJob(jobId, registeredJob) }
 })
 ipcMain.handle('animation:generate-draft', async (event, input: any) => {
   const jobId = String(input?.jobId || '')

@@ -36,6 +36,10 @@ export default defineConfig(({ mode }) => {
               fs.mkdirSync(targetDir, { recursive: true })
               for (const file of ['cipher-animation-tools-server.cjs', 'scene-module-contract.cjs', 'scene-template-source-edits.cjs', 'contract-v1.cjs'])
                 fs.copyFileSync(path.join(sourceDir, file), path.join(targetDir, file))
+              const serviceSourceDir = path.join(__dirname, 'src/main/services')
+              const serviceTargetDir = path.join(__dirname, 'dist-electron/main')
+              fs.copyFileSync(path.join(serviceSourceDir, 'animation-style-library.cjs'),
+                path.join(serviceTargetDir, 'animation-style-library.cjs'))
             },
           }],
         },

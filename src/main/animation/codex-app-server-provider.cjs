@@ -153,6 +153,14 @@ function isThreadResumeWriterConflict(error) {
     /thread [0-9a-f-]{36} already has an active writer/i.test(message)
 }
 
+function isToollessPlannerPurpose(purpose) {
+  return purpose === 'build-planner' || purpose === 'style-planner'
+}
+
+function isTransientCodexReconnectMessage(value) {
+  return /^Reconnecting(?:\.{3}|…)?\s*\d+\s*\/\s*\d+$/i.test(String(value || '').trim())
+}
+
 async function openCodexThread(request, threadId, cwd, serviceName = 'cipher-animation') {
   if (!threadId) {
     return { result: await request('thread/start', { cwd, serviceName, personality: 'friendly' }),
@@ -190,7 +198,10 @@ class CodexAppServerProvider {
   async complete({ prompt, cwd, threadId, signal, onProgress, referencePaths = [], outputSchema,
     reusableSceneTemplate = null, failureEvidenceDirectory = null, purpose = 'animation' }) {
     const isBuildPlanner = purpose === 'build-planner'
-    if (!['animation', 'build-planner'].includes(purpose)) throw new Error('CODEX_PURPOSE_UNSUPPORTED')
+    const isStylePlanner = purpose === 'style-planner'
+    const isToollessPlanner = isToollessPlannerPurpose(purpose)
+    const purposePrefix = isBuildPlanner ? 'BUILD' : isStylePlanner ? 'ANIMATION_STYLE' : 'ANIMATION'
+    if (!['animation', 'build-planner', 'style-planner'].includes(purpose)) throw new Error('CODEX_PURPOSE_UNSUPPORTED')
     const providerStartedAt = performance.now()
     const phaseTimings = {}
     const toolCallSpans = []
@@ -199,6 +210,9 @@ class CodexAppServerProvider {
     let firstTextDeltaMs = null
     let validationFailures = 0
     let lastValidationCode = null
+    let reconnectNotices = 0
+    let lastReconnectNotice = null
+    let reconnectTimer = null
     const modelInfo = configuredModelInfo()
     const requestMetadata = { purpose, promptChars: typeof prompt === 'string' ? prompt.length : 0,
       referenceCount: Array.isArray(referencePaths) ? referencePaths.length : 0, resumedThread: Boolean(threadId) }
@@ -207,7 +221,7 @@ class CodexAppServerProvider {
       model: modelInfo.model || 'Codex configured model', reasoningEffort: modelInfo.reasoningEffort,
       timeoutMs: this.timeoutMs, elapsedMs: Math.round(performance.now() - providerStartedAt),
       request: { ...requestMetadata }, phases: { ...phaseTimings }, threadRecovery, firstTurnStartedMs, firstTextDeltaMs,
-      validationFailures, lastValidationCode,
+      validationFailures, lastValidationCode, reconnectNotices, lastReconnectNotice,
       toolCalls: [...toolCallSpans.map(call => ({ ...call })), ...[...openToolCalls.entries()].map(([id, call]) => ({
         tool: call.tool, startedAtUtc: call.startedAtUtc, completedAtUtc: null,
         durationMs: Math.round(performance.now() - call.startedMs), result: 'in-progress-at-stop', itemId: id,
@@ -215,7 +229,7 @@ class CodexAppServerProvider {
     let phaseStarted = performance.now()
     const executable = resolveCodexExecutable()
     phaseTimings.resolveCodexExecutableMs = Math.round(performance.now() - phaseStarted)
-    if (!executable) throw new Error(isBuildPlanner ? 'BUILD_CODEX_CLI_NOT_INSTALLED' : 'ANIMATION_CODEX_CLI_NOT_INSTALLED')
+    if (!executable) throw new Error(`${purposePrefix}_CODEX_CLI_NOT_INSTALLED`)
     let nodeExecutable = null
     if (!isBuildPlanner) {
       phaseStarted = performance.now()
@@ -227,22 +241,22 @@ class CodexAppServerProvider {
     const status = await codexConnectionStatus()
     phaseTimings.connectionAndLoginCheckMs = Math.round(performance.now() - phaseStarted)
     if (status.status === 'unsupported-version' || status.status === 'version-unknown')
-      throw new Error(`${isBuildPlanner ? 'BUILD' : 'ANIMATION'}_CODEX_VERSION_UNSUPPORTED:expected=${status.expectedVersion || SUPPORTED_CODEX_CLI_VERSION},detected=${status.version || 'unknown'}`)
-    if (!status.authenticated) throw new Error(isBuildPlanner ? 'BUILD_CODEX_LOGIN_REQUIRED' : 'ANIMATION_CODEX_LOGIN_REQUIRED')
-    if (typeof prompt !== 'string' || !prompt.trim()) throw new Error(isBuildPlanner ? 'BUILD_CODEX_PROMPT_EMPTY' : 'ANIMATION_PROMPT_EMPTY')
-    if (signal?.aborted) throw new Error(isBuildPlanner ? 'BUILD_CODEX_CANCELLED' : 'ANIMATION_CANCELLED')
+      throw new Error(`${purposePrefix}_CODEX_VERSION_UNSUPPORTED:expected=${status.expectedVersion || SUPPORTED_CODEX_CLI_VERSION},detected=${status.version || 'unknown'}`)
+    if (!status.authenticated) throw new Error(`${purposePrefix}_CODEX_LOGIN_REQUIRED`)
+    if (typeof prompt !== 'string' || !prompt.trim()) throw new Error(`${purposePrefix}_CODEX_PROMPT_EMPTY`)
+    if (signal?.aborted) throw new Error(`${purposePrefix}_CODEX_CANCELLED`)
     // The chat agent receives no project path. It gets only transcript/scene data from the
     // caller, and the optional exact reference folders below are the only readable roots.
     const safeCwd = os.tmpdir()
-    const toolSessionDir = isBuildPlanner ? null : fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-animation-agent-'))
+    const toolSessionDir = isToollessPlanner ? null : fs.mkdtempSync(path.join(os.tmpdir(), 'cipher-animation-agent-'))
     let selectedTemplateFile = ''
     if (reusableSceneTemplate) {
       selectedTemplateFile = path.join(toolSessionDir, 'selected-scene-template.json')
       fs.writeFileSync(selectedTemplateFile, JSON.stringify(reusableSceneTemplate), { encoding: 'utf8', mode: 0o600 })
     }
-    const toolServerFile = isBuildPlanner ? null : [path.join(__dirname, 'cipher-animation-tools-server.cjs'),
+    const toolServerFile = isToollessPlanner ? null : [path.join(__dirname, 'cipher-animation-tools-server.cjs'),
       path.join(__dirname, 'animation', 'cipher-animation-tools-server.cjs')].find(file => fs.existsSync(file))
-    if (!isBuildPlanner && !toolServerFile) { try { fs.rmSync(toolSessionDir, { recursive: true, force: true }) } catch {}; throw new Error('ANIMATION_TOOLS_SERVER_NOT_INSTALLED') }
+    if (!isToollessPlanner && !toolServerFile) { try { fs.rmSync(toolSessionDir, { recursive: true, force: true }) } catch {}; throw new Error('ANIMATION_TOOLS_SERVER_NOT_INSTALLED') }
     const childEnv = { ...process.env }
     delete childEnv.OPENAI_API_KEY
     delete childEnv.CODEX_API_KEY
@@ -250,7 +264,7 @@ class CodexAppServerProvider {
     const privateRejectedSourceDir = typeof failureEvidenceDirectory === 'string' && path.isAbsolute(failureEvidenceDirectory)
       ? path.resolve(failureEvidenceDirectory) : ''
     const config = [
-      ...(isBuildPlanner ? configuredMcpServerNames().flatMap(name => [
+      ...(isToollessPlanner ? configuredMcpServerNames().flatMap(name => [
         [`mcp_servers.${name}.enabled`, 'false'],
         [`mcp_servers.${name}.required`, 'false'],
       ]) : [
@@ -283,6 +297,10 @@ class CodexAppServerProvider {
     let turnTimeoutHandle
     let terminationPromise = null
     const turnDone = new Promise((resolve, reject) => { resolveTurn = resolve; rejectTurn = reject })
+    // A startup/RPC failure can close the child before turn/start begins, when no code
+    // awaits turnDone yet. Keep that deferred rejection observed; callers still receive
+    // the original error from the request that failed.
+    turnDone.catch(() => {})
     let turnId = ''
     let closed = false
     const terminate = () => terminationPromise || (terminationPromise = terminateChildTree(child))
@@ -363,6 +381,7 @@ class CodexAppServerProvider {
         onProgress?.({ phase: 'thinking', message: isBuildPlanner ? 'Codex está planificando Construir.' : 'Animation está preparando la dirección.' })
       }
       if (msg.method === 'turn/completed') {
+        if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null }
         const turn = msg.params?.turn
         if (turnId && turn?.id && turn.id !== turnId) return
         const status = turn?.status
@@ -372,7 +391,24 @@ class CodexAppServerProvider {
       }
       if (msg.method === 'error') {
         const detail = msg.params?.error || msg.params || {}
-        rejectWithTiming(new Error(`ANIMATION_CODEX_STREAM_ERROR:${publicErrorDetail(detail.message || detail.code || '')}`))
+        const message = String(detail.message || detail.code || '')
+        if (isTransientCodexReconnectMessage(message)) {
+          const attempt = message.match(/(\d+)\s*\/\s*(\d+)$/)
+          const current = Number(attempt?.[1]) || reconnectNotices + 1
+          const total = Number(attempt?.[2]) || 5
+          reconnectNotices++
+          lastReconnectNotice = message
+          onProgress?.({ phase: 'reconnecting', current, total,
+            message: 'Codex está restableciendo la conexión; la solicitud sigue activa.' })
+          if (current >= total) {
+            rejectWithTiming(new Error(`ANIMATION_CODEX_RECONNECT_EXHAUSTED:${current}/${total}`))
+            return
+          }
+          if (!reconnectTimer)
+            reconnectTimer = setTimeout(() => rejectWithTiming(new Error('ANIMATION_CODEX_RECONNECT_TIMEOUT')), 120_000)
+          return
+        }
+        rejectWithTiming(new Error(`ANIMATION_CODEX_STREAM_ERROR:${publicErrorDetail(message)}`))
       }
     }
     rl.on('line', onLine)
@@ -402,7 +438,7 @@ class CodexAppServerProvider {
       activeThreadId = threadResult?.thread?.id || threadResult?.id || activeThreadId
       if (!activeThreadId) throw new Error('ANIMATION_CODEX_THREAD_ID_MISSING')
       let mcpToolNames = []
-      if (!isBuildPlanner) {
+      if (!isToollessPlanner) {
         const mcpStatus = await measuredRequest('toolServerReadinessRpcMs', 'mcpServerStatus/list', { threadId: activeThreadId,
           serverName: 'cipher_animation', detail: 'toolsAndAuthOnly', limit: 10 })
         const mcpServer = (mcpStatus?.data || []).find(server => server.name === 'cipher_animation')
@@ -447,6 +483,7 @@ class CodexAppServerProvider {
     } finally {
       clearTimeout(deadline)
       if (turnTimeoutHandle) clearTimeout(turnTimeoutHandle)
+      if (reconnectTimer) clearTimeout(reconnectTimer)
       signal?.removeEventListener('abort', onAbort)
       rl.close()
       if (!closed) {
@@ -462,4 +499,6 @@ class CodexAppServerProvider {
 }
 
 module.exports = { CodexAppServerProvider, codexConnectionStatus, resolveCodexExecutable, resolveNodeExecutable,
-  isThreadResumeWriterConflict, openCodexThread, parseMcpServerNames, buildPlannerMcpOverrides, SUPPORTED_CODEX_CLI_VERSION }
+  isThreadResumeWriterConflict, isToollessPlannerPurpose, isTransientCodexReconnectMessage, openCodexThread,
+  parseMcpServerNames, buildPlannerMcpOverrides,
+  SUPPORTED_CODEX_CLI_VERSION }
