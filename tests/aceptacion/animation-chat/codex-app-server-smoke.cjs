@@ -22,8 +22,14 @@ async function main() {
   assert.equal(output.response, 'Animation tool connection verified')
   assert(result.toolTrace.some(call => call.tool === 'animation_get_capabilities'), 'The connected app-server agent must call the real Animation MCP tool')
   assert(result.toolTrace.some(call => call.summary?.codeRoute?.renderer === 'Animation Canvas'), 'The tool response must expose the drawing library capabilities')
+  const timing = result.providerTiming || {}
   process.stdout.write(JSON.stringify({ success: true, provider: result.provider,
-    model: result.model, threadIdReceived: Boolean(result.threadId), toolCalls: result.toolTrace.map(call => call.tool), elapsedMs }) + '\n')
+    model: result.model, threadIdReceived: Boolean(result.threadId), toolCalls: result.toolTrace.map(call => call.tool), elapsedMs,
+    diagnostic: { phases: timing.phases, failureCode: timing.failureCode, preflight: timing.preflight,
+      effectiveMcpConfig: timing.effectiveMcpConfig, mcpServerStatusList: timing.mcpServerStatusList,
+      mcpServer: timing.mcpServer,
+      mcpStartupEvents: timing.mcpStartupEvents, lastErrorNotification: timing.lastErrorNotification,
+      process: timing.process } }) + '\n')
 }
 
 main().catch(error => {

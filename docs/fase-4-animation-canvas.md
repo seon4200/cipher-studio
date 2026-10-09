@@ -146,3 +146,45 @@ Los tiempos reales disponibles siguen siendo los del ensayo anterior, no una med
 ### Siguiente desbloqueo
 
 Hace falta continuar esta rama en una sesión de Windows donde Computer Use pueda enlazar y operar la ventana nativa de Cipher, para capturar el estado real de `mcpServerStatus/list`, corregir y revalidar generación/edición por la UI. Para el proyecto mixto también hace falta que `1598402911716960.mp4` esté disponible en una ruta legible o vuelva a adjuntarse. Hasta entonces quedan pendientes ambos recorridos de aceptación; no se modifica el proyecto de ensayo existente ni se presenta esta fase como aceptada.
+
+## Complemento de reparación Codex/app-server — 9 de octubre de 2026
+
+Este complemento separa el diagnóstico del proveedor de la aceptación en Studio. El diagnóstico no creó proyectos, borradores ni escenas y no modifica los resultados del ensayo anterior. Actualiza la conclusión del intento anterior: la persona autorizó expresamente llamadas diagnósticas al proveedor y uso de terminal/pruebas para investigar; esas llamadas siguen sin contar como aceptación.
+
+### Causa verificada: versión y semántica de reconexión
+
+- El proceso de Windows instalado reporta `codex-cli 0.162.0-alpha.2`; `codex login status`, ejecutado desde el mismo usuario/entorno que usa el proceso de Studio, reconoce una sesión ChatGPT/Codex activa. No se leyó ni se registró ninguna credencial.
+- El proveedor de la rama exigía exactamente `0.160.1`. Por eso las llamadas de esa instalación se detenían en preflight como `unsupported-version`, antes de iniciar app-server. Se alineó el pin con la versión instalada; no se introdujo otro método de autenticación ni de facturación.
+- Se generaron los bindings del protocolo directamente desde ese ejecutable (`codex app-server generate-ts --experimental`). El `ErrorNotification` v2 declara `willRetry`, `threadId` y `turnId`; el contador textual `Reconnecting n/m` no es el campo terminal del protocolo. El proveedor ahora respeta `willRetry`: `true` conserva el turno activo incluso si el aviso dice `2/2`; solo `false`, fin del turno/proceso, cancelación o los límites existentes lo terminan. Se mantienen el límite global y los 120 s de espera de reconexión.
+- El mensaje terminal anterior `ANIMATION_CODEX_RECONNECT_EXHAUSTED:2/2` fue causado por tratar el contador del texto como terminal, sin leer `willRetry`. No se aumentaron los reintentos. La prueba focalizada comprueba el aviso `2/2` con y sin flag, el terminal explícito, el ámbito de hilo/turno y el límite de error.
+
+### MCP y diagnósticos seguros
+
+- `mcpServerStatus/list` se consulta con el `threadId` del proceso. El resumen distingue `disabled`, `registration-absent`, `startup-failed`, `starting`, `startup-cancelled`, `authentication-required`, `tools-incomplete` y `ready`; conserva nombres de herramientas, herramientas ausentes, runtime/auth status enumerados y transiciones `starting/ready/failed/cancelled`.
+- El resumen de configuración efectiva conserva solo el nombre lógico `cipher_animation`, enabled/required, nombres base del ejecutable Node/servidor, existencia del archivo, nombres de claves de entorno, presencia de entrada homónima en config de usuario, modelo/esfuerzo y cantidad de servidores personalizados desactivados para el planificador sin herramientas. No guarda valores del entorno, argumentos privados, rutas, prompts ni contenido generado.
+- Los fallos de preflight también guardan su código y versión/auth status. stdout se resume por nombre de método y conteo; stderr por código de salida, señal, código de spawn, clases de salida y señales conocidas. No se persisten líneas arbitrarias de stdout/stderr. La prueba verifica que tokens, rutas privadas y campos arbitrarios de JSON no aparecen en el resumen.
+- Cuando la operación falla, Studio escribe `materiales/animation/diagnostics/provider-failure-<unix-ms>.json`. Si una escena se completa, su `providerTiming` queda dentro de `materiales/animation/drafts/<animation-id>/trace.json`. La prueba de smoke imprime el subconjunto seguro de diagnóstico para poder contrastar el proceso real.
+
+### Reproducción real limitada del proveedor (no es aceptación de UI)
+
+- Se ejecutó `npm run smoke:animation-codex` con el CLI y el proceso app-server instalados. El prompt fijo solo solicitó `animation_get_capabilities`; no llamó creación ni modificación de escenas, no abrió un proyecto y no usó medios.
+- Resultado: autenticación `ready-to-test`, versión detectada/esperada `0.162.0-alpha.2`; `mcpServerStatus/list` recibió una entrada y encontró `cipher_animation`; `runtimeStatus=connected`, estado startup `ready`, `toolsErrorPresent=false` y cuatro herramientas anunciadas (`animation_configure_recipe`, `animation_create_scene_module`, `animation_get_capabilities`, `animation_reuse_scene_template`). El `authStatus=unsupported` del registro MCP solo indica que ese servidor local no usa autenticación MCP propia; no es el estado de la sesión Codex. No hubo herramientas faltantes ni `method=error` en esa ejecución. Proceso cerró con código 0, sin errores de spawn, líneas inválidas ni señales de stderr; hubo cuatro advertencias de ruta de iconos de plugins, registradas solo como clase `plugin-icon-path-warning`.
+- Tiempo real de esa llamada diagnóstica: 9,860 ms en proveedor; `turn/start` 18 ms, espera de turno 9,234 ms, preparación/lectura de estado MCP alrededor de 1 ms. No mide dirección visual, generación de código, render ni aceptación dentro de Cipher.
+- El sondeo de protocolo previo, sin modelo, también vio `starting → ready` y el mismo catálogo. Esto verifica que la versión instalada puede arrancar el servidor de herramientas fuera de una acción de proyecto; no demuestra el recorrido Construir ni edición de una escena. El error de registro histórico no se reprodujo en la sesión nueva. La próxima acción real de UI y su JSON de diagnóstico hacen falta para determinar si persiste una diferencia específica del proyecto/proceso de Cipher.
+
+### Validación y estado de UI
+
+- Pasan `npm run build`, `npm run test:animation-chat` y la prueba directa `codex-app-server-resume-recovery.cjs`. La suite añade clasificación de notificaciones conforme al protocolo, estados MCP, lista incompleta/ready y redacción de diagnósticos.
+- El primer intento dentro del sandbox fue rechazado al resolver el `realpath` del worktree y de los fixtures temporales (`EPERM`); al ejecutar las mismas tareas en el entorno normal de Windows, build y pruebas terminaron correctamente. No es un error de compilación o de fixture reproducido por la aplicación.
+- Computer Use devolvió `apps=[]` y solo navegadores sin pestañas. La sesión actual no puede leer ni operar la ventana Electron. `npm run build` ya dejó la aplicación actualizada en este worktree, pero no se declaró acción de UI.
+
+Para que el siguiente registro pertenezca a una acción real de Cipher, desde PowerShell abre el build de esta rama:
+
+```powershell
+Set-Location 'C:\graphify\_worktrees\cipher-fase4-animation-canvas'
+npx electron .
+```
+
+Abre el proyecto existente **Fase 4 ensayo Visuales 20s 20261009** (carpeta `cipher-studio\proyectos\fase-4-ensayo-visuales-20s-20261009-1791524858480`) y pulsa **Construir/Continuar** para recuperar los dos Visuales pendientes; Original no es prerrequisito para su cuota 100 % Visuales. Si la cola termina, selecciona un Visual y envía la instrucción por el chat Animation integrado. Si Cipher muestra un error, anota la hora y comparte únicamente el JSON nuevo de `materiales\animation\diagnostics\provider-failure-*.json`; para una escena completada, comparte `materiales\animation\drafts\<animation-id>\trace.json` generado en esa acción. No adjuntes proyectos, medios ni carpetas completas. Analizaré ese registro y continuaré la reparación.
+
+El proyecto mixto sigue dependiendo del video Original autorizado; su falta no bloquea el ensayo Visuales. La aceptación completa sigue pendiente: estos resultados diagnósticos no sustituyen construir, editar, guardar/reabrir y reproducir ambos proyectos dentro de Cipher, ni la revisión visual en movimiento.

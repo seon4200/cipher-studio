@@ -6,7 +6,10 @@ const os = require('node:os')
 const fs = require('node:fs')
 const readline = require('node:readline')
 const { performance } = require('node:perf_hooks')
-const SUPPORTED_CODEX_CLI_VERSION = '0.160.1'
+const SUPPORTED_CODEX_CLI_VERSION = '0.162.0-alpha.2'
+const REQUIRED_ANIMATION_TOOLS = Object.freeze([
+  'animation_get_capabilities', 'animation_configure_recipe', 'animation_create_scene_module',
+])
 
 function configuredModelInfo() {
   const codexHome = process.env.CODEX_HOME || path.join(os.homedir(), '.codex')
@@ -161,6 +164,106 @@ function isTransientCodexReconnectMessage(value) {
   return /^Reconnecting(?:\.{3}|…)?\s*\d+\s*\/\s*\d+$/i.test(String(value || '').trim())
 }
 
+function classifyCodexErrorNotification(notification, { threadId = '', turnId = '' } = {}) {
+  const params = notification && typeof notification === 'object' ? notification : {}
+  const message = String(params.error?.message || params.message || '')
+  const attempt = message.match(/^(?:Reconnecting(?:\.{3}|…)?\s*)(\d+)\s*\/\s*(\d+)$/i)
+  const threadMatches = !threadId || !params.threadId || params.threadId === threadId
+  const turnMatches = !turnId || !params.turnId || params.turnId === turnId
+  if (!threadMatches || !turnMatches)
+    return { action: 'ignore', reason: !threadMatches ? 'different-thread' : 'different-turn', threadMatches, turnMatches }
+  const willRetry = typeof params.willRetry === 'boolean' ? params.willRetry : null
+  // In app-server v2, ErrorNotification.willRetry carries the terminality contract.
+  // Older versions exposed Reconnecting n/m as progress; even n === m is not a
+  // terminal signal unless the protocol says willRetry=false or the turn/process ends.
+  if (willRetry === true || (willRetry === null && isTransientCodexReconnectMessage(message)))
+    return { action: 'progress', reason: willRetry === true ? 'protocol-will-retry' : 'legacy-reconnect-progress',
+      willRetry, attempt: attempt ? { current: Number(attempt[1]), total: Number(attempt[2]) } : null,
+      threadMatches, turnMatches }
+  return { action: 'fail', reason: willRetry === false ? 'protocol-terminal-error' : 'unclassified-error',
+    willRetry, attempt: attempt ? { current: Number(attempt[1]), total: Number(attempt[2]) } : null,
+    threadMatches, turnMatches }
+}
+
+function classifyMcpServerStatus({ server, startupEvents = [], enabled = true,
+  requiredTools = REQUIRED_ANIMATION_TOOLS } = {}) {
+  const runtimeStatus = server?.runtimeStatus || null
+  const toolNames = Object.keys(server?.tools || {}).sort()
+  const missingTools = requiredTools.filter(name => !toolNames.includes(name))
+  const latestStartup = [...startupEvents].reverse()[0] || null
+  const failedStartup = latestStartup?.status === 'failed' ? latestStartup : null
+  let state = 'ready'
+  if (!enabled || runtimeStatus === 'disabled') state = 'disabled'
+  else if (runtimeStatus === 'authenticationRequired' || server?.authStatus === 'notLoggedIn') state = 'authentication-required'
+  else if (runtimeStatus === 'failed' || failedStartup) state = 'startup-failed'
+  else if (!server && latestStartup?.status === 'starting') state = 'starting'
+  else if (!server) state = failedStartup ? 'startup-failed' : 'registration-absent'
+  else if (runtimeStatus === 'starting' || runtimeStatus === 'notStarted') state = 'starting'
+  else if (runtimeStatus === 'cancelled') state = 'startup-cancelled'
+  else if (server.toolsError || missingTools.length) state = 'tools-incomplete'
+  return {
+    state,
+    serverPresent: Boolean(server),
+    runtimeStatus,
+    startupStatus: latestStartup?.status || null,
+    failureReason: failedStartup?.failureReason || null,
+    startupErrorClass: failedStartup?.errorClass || null,
+    toolsErrorPresent: Boolean(server?.toolsError),
+    authStatus: server?.authStatus || null,
+    tools: toolNames,
+    missingTools,
+  }
+}
+
+function summarizeCodexProcessOutput(stderr = '') {
+  const lines = String(stderr || '').split(/\r?\n/).map(line => line.trim()).filter(Boolean)
+  const signals = []
+  const outputClasses = []
+  for (const line of lines) {
+    if (/failed to send remote .* request|error sending request/i.test(line)) signals.push('remote-request-failed')
+    else if (/access is denied|permission denied/i.test(line)) signals.push('permission-denied')
+    else if (/failed to start|spawn.*failed|no such file|not found/i.test(line)) signals.push('process-start-failed')
+    else if (/invalid config|failed to parse config/i.test(line)) signals.push('configuration-error')
+    else if (/mcp.*(failed|error)|failed.*mcp/i.test(line)) signals.push('mcp-error')
+    else if (/\b(error|fatal)\b/i.test(line)) signals.push('process-error')
+    let structured = null
+    try { structured = JSON.parse(line) } catch {}
+    const message = String(structured?.fields?.message || structured?.message || '')
+    const level = typeof structured?.level === 'string' && /^(TRACE|DEBUG|INFO|WARN|ERROR)$/i.test(structured.level)
+      ? structured.level.toLowerCase() : null
+    if (/ignoring interface\.icon_(?:small|large).*icon path/i.test(message)) outputClasses.push('plugin-icon-path-warning')
+    else if (structured) outputClasses.push(`${level || 'structured'}-${classifySafeErrorText(message)}`)
+    else if (/warning/i.test(line)) outputClasses.push('warning-output')
+    else if (/\b(error|fatal)\b/i.test(line)) outputClasses.push('error-output')
+    else outputClasses.push('unclassified-output')
+  }
+  return {
+    stderrLineCount: lines.length,
+    stderrSignals: [...new Set(signals)],
+    stderrOutputClasses: outputClasses.slice(-8),
+  }
+}
+
+function failureCodeFromError(error) {
+  const message = String(error?.message || error || '')
+  return message.match(/^([A-Z][A-Z0-9_]+)/)?.[1] || 'ANIMATION_PROVIDER_ERROR'
+}
+
+function classifySafeErrorText(value) {
+  const text = String(value || '')
+  if (/rate.?limit|too many requests|429/i.test(text)) return 'rate-limited'
+  if (/auth|login|unauthori[sz]ed|forbidden|401|403/i.test(text)) return 'authentication-or-permission'
+  if (/timeout|timed out|deadline/i.test(text)) return 'timeout'
+  if (/connect|network|dns|socket|remote request|transport/i.test(text)) return 'connection'
+  if (/config|parse/i.test(text)) return 'configuration'
+  if (/mcp|tool server|spawn|process/i.test(text)) return 'mcp-or-process'
+  return text ? 'provider-error' : 'empty'
+}
+
+function safeStartupFailureReason(value) {
+  return value === 'reauthenticationRequired' ? value : null
+}
+
 async function openCodexThread(request, threadId, cwd, serviceName = 'cipher-animation') {
   if (!threadId) {
     return { result: await request('thread/start', { cwd, serviceName, personality: 'friendly' }),
@@ -213,7 +316,18 @@ class CodexAppServerProvider {
     let reconnectNotices = 0
     let lastReconnectNotice = null
     let reconnectTimer = null
+    let childStderr = ''
     const modelInfo = configuredModelInfo()
+    let connectionDiagnostic = { status: 'not-checked', available: false, authenticated: false,
+      version: null, expectedVersion: SUPPORTED_CODEX_CLI_VERSION }
+    let effectiveMcpConfig = null
+    let mcpServerDiagnostic = null
+    let mcpServerStatusListDiagnostic = { state: 'not-requested' }
+    const startupEvents = []
+    let lastErrorNotification = null
+    let failureCode = null
+    const processDiagnostic = { exitCode: null, signalCode: null, spawnErrorCode: null,
+      stdoutProtocolMethods: {}, malformedProtocolLines: 0 }
     const requestMetadata = { purpose, promptChars: typeof prompt === 'string' ? prompt.length : 0,
       referenceCount: Array.isArray(referencePaths) ? referencePaths.length : 0, resumedThread: Boolean(threadId) }
     let threadRecovery = null
@@ -222,29 +336,52 @@ class CodexAppServerProvider {
       timeoutMs: this.timeoutMs, elapsedMs: Math.round(performance.now() - providerStartedAt),
       request: { ...requestMetadata }, phases: { ...phaseTimings }, threadRecovery, firstTurnStartedMs, firstTextDeltaMs,
       validationFailures, lastValidationCode, reconnectNotices, lastReconnectNotice,
+      failureCode,
+      preflight: { ...connectionDiagnostic }, effectiveMcpConfig: effectiveMcpConfig && { ...effectiveMcpConfig },
+      mcpServerStatusList: { ...mcpServerStatusListDiagnostic },
+      mcpServer: mcpServerDiagnostic && { ...mcpServerDiagnostic,
+        tools: [...(mcpServerDiagnostic.tools || [])], missingTools: [...(mcpServerDiagnostic.missingTools || [])] },
+      mcpStartupEvents: startupEvents.map(event => ({ ...event })),
+      lastErrorNotification: lastErrorNotification && { ...lastErrorNotification },
+      process: { ...processDiagnostic, stdoutProtocolMethods: { ...processDiagnostic.stdoutProtocolMethods },
+        ...summarizeCodexProcessOutput(childStderr) },
       toolCalls: [...toolCallSpans.map(call => ({ ...call })), ...[...openToolCalls.entries()].map(([id, call]) => ({
         tool: call.tool, startedAtUtc: call.startedAtUtc, completedAtUtc: null,
         durationMs: Math.round(performance.now() - call.startedMs), result: 'in-progress-at-stop', itemId: id,
       }))] })
+    const preflightError = code => {
+      const error = new Error(code)
+      failureCode = failureCodeFromError(error)
+      error.providerTiming = timingSnapshot()
+      throw error
+    }
     let phaseStarted = performance.now()
     const executable = resolveCodexExecutable()
     phaseTimings.resolveCodexExecutableMs = Math.round(performance.now() - phaseStarted)
-    if (!executable) throw new Error(`${purposePrefix}_CODEX_CLI_NOT_INSTALLED`)
+    if (!executable) preflightError(`${purposePrefix}_CODEX_CLI_NOT_INSTALLED`)
     let nodeExecutable = null
     if (!isBuildPlanner) {
       phaseStarted = performance.now()
       nodeExecutable = resolveNodeExecutable()
       phaseTimings.resolveNodeExecutableMs = Math.round(performance.now() - phaseStarted)
-      if (!nodeExecutable) throw new Error('ANIMATION_NODE_RUNTIME_NOT_INSTALLED')
+      if (!nodeExecutable) preflightError('ANIMATION_NODE_RUNTIME_NOT_INSTALLED')
     }
     phaseStarted = performance.now()
-    const status = await codexConnectionStatus()
+    let status
+    try { status = await codexConnectionStatus() }
+    catch (error) {
+      connectionDiagnostic = { status: 'check-failed', available: true, authenticated: false,
+        version: null, expectedVersion: SUPPORTED_CODEX_CLI_VERSION, errorClass: classifySafeErrorText(error?.message) }
+      preflightError(`${purposePrefix}_CODEX_STATUS_CHECK_FAILED`)
+    }
     phaseTimings.connectionAndLoginCheckMs = Math.round(performance.now() - phaseStarted)
+    connectionDiagnostic = { status: status.status, available: Boolean(status.available), authenticated: Boolean(status.authenticated),
+      version: status.version || null, expectedVersion: status.expectedVersion || SUPPORTED_CODEX_CLI_VERSION }
     if (status.status === 'unsupported-version' || status.status === 'version-unknown')
-      throw new Error(`${purposePrefix}_CODEX_VERSION_UNSUPPORTED:expected=${status.expectedVersion || SUPPORTED_CODEX_CLI_VERSION},detected=${status.version || 'unknown'}`)
-    if (!status.authenticated) throw new Error(`${purposePrefix}_CODEX_LOGIN_REQUIRED`)
-    if (typeof prompt !== 'string' || !prompt.trim()) throw new Error(`${purposePrefix}_CODEX_PROMPT_EMPTY`)
-    if (signal?.aborted) throw new Error(`${purposePrefix}_CODEX_CANCELLED`)
+      preflightError(`${purposePrefix}_CODEX_VERSION_UNSUPPORTED:expected=${status.expectedVersion || SUPPORTED_CODEX_CLI_VERSION},detected=${status.version || 'unknown'}`)
+    if (!status.authenticated) preflightError(`${purposePrefix}_CODEX_LOGIN_REQUIRED`)
+    if (typeof prompt !== 'string' || !prompt.trim()) preflightError(`${purposePrefix}_CODEX_PROMPT_EMPTY`)
+    if (signal?.aborted) preflightError(`${purposePrefix}_CODEX_CANCELLED`)
     // The chat agent receives no project path. It gets only transcript/scene data from the
     // caller, and the optional exact reference folders below are the only readable roots.
     const safeCwd = os.tmpdir()
@@ -256,7 +393,7 @@ class CodexAppServerProvider {
     }
     const toolServerFile = isToollessPlanner ? null : [path.join(__dirname, 'cipher-animation-tools-server.cjs'),
       path.join(__dirname, 'animation', 'cipher-animation-tools-server.cjs')].find(file => fs.existsSync(file))
-    if (!isToollessPlanner && !toolServerFile) { try { fs.rmSync(toolSessionDir, { recursive: true, force: true }) } catch {}; throw new Error('ANIMATION_TOOLS_SERVER_NOT_INSTALLED') }
+    if (!isToollessPlanner && !toolServerFile) { try { fs.rmSync(toolSessionDir, { recursive: true, force: true }) } catch {}; preflightError('ANIMATION_TOOLS_SERVER_NOT_INSTALLED') }
     const childEnv = { ...process.env }
     delete childEnv.OPENAI_API_KEY
     delete childEnv.CODEX_API_KEY
@@ -274,6 +411,7 @@ class CodexAppServerProvider {
         (selectedTemplateFile ? ',CIPHER_ANIMATION_SELECTED_TEMPLATE_FILE=' + JSON.stringify(selectedTemplateFile) : '') +
         (privateRejectedSourceDir ? ',CIPHER_ANIMATION_REJECTED_SOURCE_DIR=' + JSON.stringify(privateRejectedSourceDir) : '') + '}'],
       ['mcp_servers.cipher_animation.required', 'true'],
+      ['mcp_servers.cipher_animation.enabled', 'true'],
       ['mcp_servers.node_repl.enabled', 'false'],
       ['mcp_servers.cua_repl', '{enabled=false,command=' + JSON.stringify(nodeExecutable) + ',args=["disabled-placeholder"]}'],
       ]),
@@ -281,9 +419,21 @@ class CodexAppServerProvider {
       // scoped to the child process and never edits the user's Codex config.
       ['features.shell_snapshot', 'false'],
     ].flatMap(([key, value]) => ['-c', key + '=' + value])
+    const configuredNames = configuredMcpServerNames()
+    effectiveMcpConfig = isToollessPlanner ? {
+      mode: 'tool-less-planner', customServersDisabled: configuredNames.length,
+      model: modelInfo.model || null, reasoningEffort: modelInfo.reasoningEffort,
+    } : {
+      mode: 'animation-tools', serverName: 'cipher_animation', enabled: true, required: true,
+      command: path.basename(nodeExecutable), toolServer: path.basename(toolServerFile),
+      toolServerPresent: fs.existsSync(toolServerFile),
+      envKeyNames: ['CIPHER_ANIMATION_TOOL_SESSION_DIR', ...(selectedTemplateFile ? ['CIPHER_ANIMATION_SELECTED_TEMPLATE_FILE'] : []),
+        ...(privateRejectedSourceDir ? ['CIPHER_ANIMATION_REJECTED_SOURCE_DIR'] : [])],
+      userConfigEntryPresent: configuredNames.includes('cipher_animation'),
+      model: modelInfo.model || null, reasoningEffort: modelInfo.reasoningEffort,
+    }
     const child = spawn(executable, [...config, 'app-server', '--stdio'], { cwd: safeCwd,
       windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env: childEnv })
-    let childStderr = ''
     child.stderr.setEncoding('utf8')
     child.stderr.on('data', chunk => { childStderr = (childStderr + chunk).slice(-3000) })
     const rl = readline.createInterface({ input: child.stdout })
@@ -306,6 +456,7 @@ class CodexAppServerProvider {
     const terminate = () => terminationPromise || (terminationPromise = terminateChildTree(child))
     const rejectWithTiming = error => {
       const value = error instanceof Error ? error : new Error(String(error))
+      if (!failureCode) failureCode = failureCodeFromError(value)
       value.providerTiming = timingSnapshot()
       void terminate()
       rejectTurn(value)
@@ -330,7 +481,19 @@ class CodexAppServerProvider {
     }
     const onLine = raw => {
       let msg
-      try { msg = JSON.parse(raw) } catch { return }
+      try { msg = JSON.parse(raw) } catch { processDiagnostic.malformedProtocolLines++; return }
+      if (typeof msg.method === 'string') {
+        const method = /^[A-Za-z0-9/_-]{1,80}$/.test(msg.method) ? msg.method : '<other>'
+        processDiagnostic.stdoutProtocolMethods[method] = (processDiagnostic.stdoutProtocolMethods[method] || 0) + 1
+      }
+      if (msg.method === 'mcpServer/startupStatus/updated' && msg.params?.name === 'cipher_animation') {
+        const params = msg.params
+        startupEvents.push({ status: ['starting', 'ready', 'failed', 'cancelled'].includes(params.status) ? params.status : 'unknown',
+          failureReason: safeStartupFailureReason(params.failureReason),
+          errorClass: params.error ? classifySafeErrorText(params.error) : null,
+          threadScoped: Boolean(params.threadId) })
+        if (startupEvents.length > 16) startupEvents.shift()
+      }
       if (msg.id !== undefined && pending.has(msg.id)) {
         const waiter = pending.get(msg.id); pending.delete(msg.id)
         if (msg.error) waiter.reject(new Error('ANIMATION_CODEX_RPC_ERROR_' + String(msg.error.code ?? 'unknown') + ':' + String(msg.error.message || '')))
@@ -392,39 +555,45 @@ class CodexAppServerProvider {
       if (msg.method === 'error') {
         const detail = msg.params?.error || msg.params || {}
         const message = String(detail.message || detail.code || '')
-        if (isTransientCodexReconnectMessage(message)) {
-          const attempt = message.match(/(\d+)\s*\/\s*(\d+)$/)
-          const current = Number(attempt?.[1]) || reconnectNotices + 1
-          const total = Number(attempt?.[2]) || 5
+        const classification = classifyCodexErrorNotification(msg.params, { threadId: activeThreadId, turnId })
+        lastErrorNotification = { action: classification.action, reason: classification.reason,
+          willRetry: classification.willRetry, attempt: classification.attempt,
+          threadMatches: classification.threadMatches, turnMatches: classification.turnMatches,
+          errorClass: classifySafeErrorText(message) }
+        if (classification.action === 'ignore') return
+        if (classification.action === 'progress') {
+          const current = classification.attempt?.current || reconnectNotices + 1
+          const total = classification.attempt?.total || 5
           reconnectNotices++
-          lastReconnectNotice = message
+          lastReconnectNotice = isTransientCodexReconnectMessage(message) ? message : 'retry-notification'
           onProgress?.({ phase: 'reconnecting', current, total,
             message: 'Codex está restableciendo la conexión; la solicitud sigue activa.' })
-          if (current >= total) {
-            rejectWithTiming(new Error(`ANIMATION_CODEX_RECONNECT_EXHAUSTED:${current}/${total}`))
-            return
-          }
           if (!reconnectTimer)
             reconnectTimer = setTimeout(() => rejectWithTiming(new Error('ANIMATION_CODEX_RECONNECT_TIMEOUT')), 120_000)
           return
         }
-        rejectWithTiming(new Error(`ANIMATION_CODEX_STREAM_ERROR:${publicErrorDetail(message)}`))
+        rejectWithTiming(new Error(`ANIMATION_CODEX_STREAM_ERROR:${classification.reason}:${classifySafeErrorText(message)}`))
       }
     }
     rl.on('line', onLine)
     const onAbort = () => rejectWithTiming(new Error(isBuildPlanner ? 'BUILD_CODEX_CANCELLED' : 'ANIMATION_CANCELLED'))
     signal?.addEventListener('abort', onAbort, { once: true })
     const deadline = setTimeout(() => rejectWithTiming(new Error('ANIMATION_CODEX_TIMEOUT')), this.timeoutMs)
-    child.once('error', () => rejectWithTiming(new Error('ANIMATION_CODEX_SPAWN_FAILED')))
-    child.once('close', () => {
+    child.once('error', error => {
+      processDiagnostic.spawnErrorCode = typeof error?.code === 'string' ? error.code.slice(0, 48) : 'unknown'
+      rejectWithTiming(new Error('ANIMATION_CODEX_SPAWN_FAILED'))
+    })
+    child.once('close', (exitCode, signalCode) => {
       closed = true
-      const detail = publicErrorDetail(childStderr)
-      const closedError = new Error(`ANIMATION_CODEX_SERVER_CLOSED${detail && detail !== 'unknown' ? ':' + detail : ''}`)
+      processDiagnostic.exitCode = Number.isInteger(exitCode) ? exitCode : null
+      processDiagnostic.signalCode = typeof signalCode === 'string' ? signalCode : null
+      const closedError = new Error('ANIMATION_CODEX_SERVER_CLOSED')
       for (const waiter of pending.values()) waiter.reject(closedError)
       pending.clear()
       if (!turnFinished) rejectWithTiming(closedError)
     })
     let operationError = null
+    let providerResult = null
     try {
       await measuredRequest('initializeRpcMs', 'initialize',
         { clientInfo: { name: 'cipher-animation', title: 'Cipher Animation', version: '1.0.0' } })
@@ -439,13 +608,24 @@ class CodexAppServerProvider {
       if (!activeThreadId) throw new Error('ANIMATION_CODEX_THREAD_ID_MISSING')
       let mcpToolNames = []
       if (!isToollessPlanner) {
-        const mcpStatus = await measuredRequest('toolServerReadinessRpcMs', 'mcpServerStatus/list', { threadId: activeThreadId,
-          serverName: 'cipher_animation', detail: 'toolsAndAuthOnly', limit: 10 })
+        const mcpStatusStarted = performance.now()
+        let mcpStatus
+        try {
+          mcpStatus = await measuredRequest('toolServerReadinessRpcMs', 'mcpServerStatus/list', { threadId: activeThreadId,
+            serverName: 'cipher_animation', detail: 'toolsAndAuthOnly', limit: 10 })
+        } catch (error) {
+          mcpServerStatusListDiagnostic = { state: 'request-failed', errorClass: classifySafeErrorText(error?.message),
+            elapsedMs: Math.round(performance.now() - mcpStatusStarted) }
+          throw error
+        }
         const mcpServer = (mcpStatus?.data || []).find(server => server.name === 'cipher_animation')
-        mcpToolNames = Object.keys(mcpServer?.tools || {})
-        if (!mcpServer || !mcpToolNames.includes('animation_get_capabilities') || !mcpToolNames.includes('animation_configure_recipe') ||
-            !mcpToolNames.includes('animation_create_scene_module'))
-          throw new Error(`ANIMATION_TOOLS_SERVER_UNAVAILABLE:${mcpServer?.runtimeStatus?.status || mcpServer?.toolsError || 'not-registered'}`)
+        mcpServerStatusListDiagnostic = { state: 'received', entryCount: Array.isArray(mcpStatus?.data) ? mcpStatus.data.length : 0,
+          serverFound: Boolean(mcpServer), elapsedMs: Math.round(performance.now() - mcpStatusStarted) }
+        mcpServerDiagnostic = classifyMcpServerStatus({ server: mcpServer, startupEvents,
+          enabled: effectiveMcpConfig?.enabled === true, requiredTools: REQUIRED_ANIMATION_TOOLS })
+        mcpToolNames = [...mcpServerDiagnostic.tools]
+        if (mcpServerDiagnostic.state !== 'ready')
+          throw new Error(`ANIMATION_TOOLS_SERVER_UNAVAILABLE:${mcpServerDiagnostic.state}`)
       }
       onProgress?.({ phase: 'request', message: isBuildPlanner ? 'Enviando el guion al planificador Codex.' : 'Enviando el contexto seleccionado al agente local.' })
       const roots = [...new Set(referencePaths.filter(x => typeof x === 'string' && path.isAbsolute(x)).map(x => path.dirname(x)))]
@@ -472,9 +652,10 @@ class CodexAppServerProvider {
       const tracePath = toolSessionDir && path.join(toolSessionDir, 'animation-tool-trace.jsonl')
       const artifact = artifactPath && fs.existsSync(artifactPath) ? JSON.parse(fs.readFileSync(artifactPath, 'utf8')) : null
       const toolTrace = tracePath && fs.existsSync(tracePath) ? fs.readFileSync(tracePath, 'utf8').split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line)) : []
-      return { text: finalMessage.trim(), threadId: activeThreadId, provider: 'codex-app-server',
+      providerResult = { text: finalMessage.trim(), threadId: activeThreadId, provider: 'codex-app-server',
         model: modelInfo.model || 'Codex configured model', reasoningEffort: modelInfo.reasoningEffort,
-        artifact, toolTrace, mcpToolNames, providerTiming: timingSnapshot() }
+        artifact, toolTrace, mcpToolNames, providerTiming: null }
+      return providerResult
     } catch (error) {
       // The inner turn-wait catch runs before its finally block records the wait duration.
       // Reattach the complete snapshot after cleanup, while keeping the original error.
@@ -494,11 +675,13 @@ class CodexAppServerProvider {
       if (toolSessionDir) try { fs.rmSync(toolSessionDir, { recursive: true, force: true }) } catch {}
       phaseTimings.providerTotalMs = Math.round(performance.now() - providerStartedAt)
       if (operationError && typeof operationError === 'object') operationError.providerTiming = timingSnapshot()
+      else if (providerResult) providerResult.providerTiming = timingSnapshot()
     }
   }
 }
 
 module.exports = { CodexAppServerProvider, codexConnectionStatus, resolveCodexExecutable, resolveNodeExecutable,
   isThreadResumeWriterConflict, isToollessPlannerPurpose, isTransientCodexReconnectMessage, openCodexThread,
+  classifyCodexErrorNotification, classifyMcpServerStatus, summarizeCodexProcessOutput,
   parseMcpServerNames, buildPlannerMcpOverrides,
-  SUPPORTED_CODEX_CLI_VERSION }
+  REQUIRED_ANIMATION_TOOLS, SUPPORTED_CODEX_CLI_VERSION }
