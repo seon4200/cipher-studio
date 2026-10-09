@@ -97,7 +97,8 @@ export async function runCommonMediaQueue(options: {
               result.requestedSource !== slot.requestedSource) throw new Error('BUILD_RESULT_INVALID')
           result = { ...result, mediaBuild: { status: 'ready' } }
         } catch (error: any) {
-          result = { ...slot, materialized: false, mediaBuild: { status: 'error', error: String(error?.message || error) } }
+          result = { ...slot, ...(error?.stockDecision ? { stockDecision: error.stockDecision } : {}),
+            materialized: false, mediaBuild: { status: 'error', error: String(error?.message || error) } }
         }
         await update(slot, result)
       }

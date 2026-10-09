@@ -2,6 +2,7 @@ import { allocateBuildSources, pendingBuildSlot, requiredMediaPending, sameBuild
 import { createTimedScriptSegments, createAnimationSlotsFromSegments, buildPlannerPhraseCount } from '../shared/build-planning'
 import { planBuildWithCodex } from './services/build-planner'
 import { planBuildGraphicsWithCodex } from './services/build-graphics-planner'
+import { materializeBuildStockSlot } from './services/build-stock'
 import { app, BrowserWindow, ipcMain, dialog, screen } from 'electron'
 import path from 'path'
 import os from 'os'
@@ -16,7 +17,6 @@ import { registerVibesIntegration } from './services/vibes-integration'
 export * from './services/project-persistence'
 export * from './services/original-clip-segmentation'
 export * from './assets/visual-render'
-import { stockCoverFilter } from '../shared/editorial-scene-input'
 export { editorialPhraseWindow, editorialSlotWindow, editorialHeadlineForScene, stockCoverFilter } from '../shared/editorial-scene-input'
 import { getAnimationConnectionStatus, loadAnimationProject, loadAnimationDraft, listAnimationDrafts, saveAnimationProject, addAnimationReference,
   generateAnimationDraft, adjustAnimationDraftStyle, reviewAnimationDraft, replayAnimationDraft, saveAnimationTemplate, listAnimationTemplates } from './services/animation-integration'
@@ -4657,7 +4657,6 @@ ipcMain.handle('animation:list-templates', async () => {
 // One worker for initial materialization and retry. The captured root never follows
 // a later project switch; each stable slot owns its output and recovery receipt.
 const buildMediaJobs = new Map<string, Promise<any>>();
-const buildStockUsage = new Map<string, Map<string, number>>();
 async function materializeBuildSlot(event: any, slot: any, projectRoot: string): Promise<any> {
   const item = { ...slot.buildPlan, type: slot.category, duration: slot.durationSeconds };
   const { aspectRatio, iaStyle, videoPath } = item;
@@ -4667,11 +4666,6 @@ async function materializeBuildSlot(event: any, slot: any, projectRoot: string):
   await fs.promises.mkdir(outDir, { recursive: true });
   await fs.promises.mkdir(thumbDir, { recursive: true });
   const logMessage = async (message: string) => { await writeDebugLog(message); };
-  const usageKey = projectRoot + ':' + item.buildId;
-  if (!buildStockUsage.has(usageKey)) buildStockUsage.set(usageKey, new Map());
-  const usosPorFuente = buildStockUsage.get(usageKey)!;
-  const vdc = (n: number) => { let r = 0, denom = 1;
-    while (n > 0) { denom *= 2; r += (n % 2) / denom; n = Math.floor(n / 2); } return r; };
   const escapedVideo = String(videoPath || '').replace(/"/g, '\\"');
         const clipNum = item.id;
         const clipPath = path.join(outDir, `clip_${clipNum}.mp4`);
@@ -4727,283 +4721,28 @@ async function materializeBuildSlot(event: any, slot: any, projectRoot: string):
 
         if (item.type === 'stock') {
           try {
-            // ═══ BÚSQUEDA PARALELA EN MÚLTIPLES PROVEEDORES ═══
-            const pexelsApiKey = process.env.PEXELS_API_KEY;
-            const pixabayApiKey = process.env.PIXABAY_API_KEY || '';
-            const coverrApiKey = process.env.COVERR_API_KEY || '';
-            const isVertical = isVerticalAspectRatioV1(aspectRatio);
-            const targetOrientation = isVertical ? 'portrait' : 'landscape';
-            const stockDir = path.join(getBancoClipsPath(), 'stock');
-            if (!(await exists(stockDir))) {
-              await fs.promises.mkdir(stockDir, { recursive: true });
-            }
-
-            type StockResult = { provider: string; id: string; downloadUrl: string; width: number; height: number; duration?: number };
-            const stockResults: StockResult[] = [];
-            if (!item.keyword || item.keyword === 'broll') throw new Error('STOCK_KEYWORD_MISSING');
-            const keyword = item.keyword;
-
-            // Buscar en Pexels
-            if (pexelsApiKey) {
-              try {
-                const pexelsUrl = `https://api.pexels.com/videos/search?query=${encodeURIComponent(keyword)}&per_page=5&orientation=${targetOrientation}`;
-                await logMessage(`[FASE 3] Buscando stock en Pexels para: "${keyword}"`);
-                const pexelsRes = await fetch(pexelsUrl, { headers: { 'Authorization': pexelsApiKey } });
-                if (pexelsRes.ok) {
-                  const pexelsData = await pexelsRes.json() as any;
-                  const videos = pexelsData?.videos || [];
-                  for (const video of videos.slice(0, 3)) {
-                    const videoFiles = video.video_files || [];
-                    let bestFile = videoFiles.find((f: any) => f.quality === 'hd' || f.width >= 720);
-                    if (!bestFile) bestFile = videoFiles[0];
-                    if (bestFile?.link) {
-                      stockResults.push({
-                        provider: 'pexels',
-                        id: String(video.id),
-                        downloadUrl: bestFile.link,
-                        width: bestFile.width || 0,
-                        height: bestFile.height || 0,
-                        duration: video.duration
-                      });
-                    }
-                  }
-                  await logMessage(`[FASE 3] Pexels devolvió ${stockResults.length} resultados para: "${keyword}"`);
-                }
-              } catch (pexErr) {
-                await logMessage(`[FASE 3] Error en Pexels: ${pexErr}`);
-              }
-            }
-
-            // Buscar en Pixabay
-            if (pixabayApiKey) {
-              try {
-                const pixabayUrl = `https://pixabay.com/api/videos/?key=${pixabayApiKey}&q=${encodeURIComponent(keyword)}&per_page=5&safesearch=true`;
-                await logMessage(`[FASE 3] Buscando stock en Pixabay para: "${keyword}"`);
-                const pixRes = await fetch(pixabayUrl);
-                if (pixRes.ok) {
-                  const pixData = await pixRes.json() as any;
-                  const hits = pixData?.hits || [];
-                  const prevCount = stockResults.length;
-                  for (const hit of hits.slice(0, 3)) {
-                    const videoUrl = hit.videos?.large?.url || hit.videos?.medium?.url;
-                    if (videoUrl) {
-                      stockResults.push({
-                        provider: 'pixabay',
-                        id: String(hit.id),
-                        downloadUrl: videoUrl,
-                        width: hit.videos?.large?.width || hit.videos?.medium?.width || 0,
-                        height: hit.videos?.large?.height || hit.videos?.medium?.height || 0,
-                        duration: hit.duration
-                      });
-                    }
-                  }
-                  await logMessage(`[FASE 3] Pixabay devolvió ${stockResults.length - prevCount} resultados para: "${keyword}"`);
-                }
-              } catch (pixErr) {
-                await logMessage(`[FASE 3] Error en Pixabay: ${pixErr}`);
-              }
-            }
-
-            // Buscar en Coverr
-            if (coverrApiKey) {
-              try {
-                const coverrUrl = `https://api.coverr.co/videos?query=${encodeURIComponent(keyword)}&page_size=5`;
-                await logMessage(`[FASE 3] Buscando stock en Coverr para: "${keyword}"`);
-                const coverrRes = await fetch(coverrUrl, { headers: { 'Authorization': `Bearer ${coverrApiKey}` } });
-                if (coverrRes.ok) {
-                  const coverrData = await coverrRes.json() as any;
-                  const hits = coverrData?.hits || [];
-                  const prevCount = stockResults.length;
-                  for (const hit of hits.slice(0, 3)) {
-                    const mp4 = hit?.urls?.mp4_download || hit?.urls?.mp4 || '';
-                    if (mp4) {
-                      stockResults.push({
-                        provider: 'coverr',
-                        id: String(hit.id || hit.slug || Math.random()),
-                        downloadUrl: mp4,
-                        width: hit.width || 1920,
-                        height: hit.height || 1080,
-                        duration: hit.duration || undefined
-                      });
-                    }
-                  }
-                  await logMessage(`[FASE 3] Coverr devolvió ${stockResults.length - prevCount} resultados para: "${keyword}"`);
-                }
-              } catch (coverrErr) {
-                await logMessage(`[FASE 3] Error en Coverr: ${coverrErr}`);
-              }
-            }
-
-            // Buscar en NASA Images (sin API key, público)
-            try {
-              const nasaUrl = `https://images-api.nasa.gov/search?q=${encodeURIComponent(keyword)}&media_type=video&page_size=3`;
-              await logMessage(`[FASE 3] Buscando stock en NASA para: "${keyword}"`);
-              const nasaRes = await fetch(nasaUrl);
-              if (nasaRes.ok) {
-                const nasaData = await nasaRes.json() as any;
-                const nasaItems = nasaData?.collection?.items || [];
-                // Filtrar solo videos cortos (menos de 120 segundos)
-                const shortNasaItems = nasaItems.filter((item: any) => {
-                  const desc = item?.data?.[0]?.description || '';
-                  // Excluir conferencias de prensa, webinars, y videos muy largos
-                  const isLong = desc.toLowerCase().includes('conference') || 
-                                 desc.toLowerCase().includes('briefing') || 
-                                 desc.toLowerCase().includes('webinar') ||
-                                 desc.toLowerCase().includes('full length');
-                  return !isLong;
-                });
-                const prevCount = stockResults.length;
-                for (const item of shortNasaItems.slice(0, 2)) {
-                  const nasaId = item?.data?.[0]?.nasa_id;
-                  if (!nasaId) continue;
-                  try {
-                    const assetRes = await fetch(`https://images-api.nasa.gov/asset/${nasaId}`);
-                    if (assetRes.ok) {
-                      const assetData = await assetRes.json() as any;
-                      const mp4Files = (assetData?.collection?.items || [])
-                        .filter((f: any) => f.href && f.href.endsWith('.mp4'))
-                        .sort((a: any, b: any) => (b.href.includes('large') ? 1 : 0) - (a.href.includes('large') ? 1 : 0));
-                      if (mp4Files.length > 0) {
-                        stockResults.push({
-                          provider: 'nasa',
-                          id: nasaId,
-                          downloadUrl: mp4Files[0].href,
-                          width: 1920,
-                          height: 1080,
-                          duration: undefined
-                        });
-                      }
-                    }
-                  } catch (assetErr) {
-                    await logMessage(`[FASE 3] Error obteniendo asset NASA ${nasaId}: ${assetErr}`);
-                  }
-                }
-                await logMessage(`[FASE 3] NASA devolvió ${stockResults.length - prevCount} resultados para: "${keyword}"`);
-              }
-            } catch (nasaErr) {
-              await logMessage(`[FASE 3] Error en NASA: ${nasaErr}`);
-            }
-
-            // TODO: Agregar más proveedores aquí
-
-            await logMessage(`[FASE 3] Pool total: ${stockResults.length} clips de stock para: "${keyword}"`);
-
-            // Seleccionar el mejor clip del pool
-            let stockClipPath = '';
-            let stockOffset = 0; // segundo de inicio del recorte; varia si la fuente se reutiliza
-            if (stockResults.length > 0) {
-              // Rankear: preferir orientación correcta, resolución HD, duración 3-10s
-              const ranked = stockResults.sort((a, b) => {
-                let scoreA = 0, scoreB = 0;
-                // Orientación correcta
-                const aVertical = a.height > a.width;
-                const bVertical = b.height > b.width;
-                if (aVertical === isVertical) scoreA += 3;
-                if (bVertical === isVertical) scoreB += 3;
-                // Resolución HD
-                if (a.width >= 1280 || a.height >= 1280) scoreA += 2;
-                if (b.width >= 1280 || b.height >= 1280) scoreB += 2;
-                // Duración ideal 3-10s
-                if (a.duration && a.duration >= 3 && a.duration <= 10) scoreA += 1;
-                if (b.duration && b.duration >= 3 && b.duration <= 10) scoreB += 1;
-                // Diversidad: alternar proveedores (aleatorio leve)
-                scoreA += Math.random() * 0.5;
-                scoreB += Math.random() * 0.5;
-                return scoreB - scoreA;
-              });
-
-              // Preferir la mejor candidata que no se haya usado ya en este video.
-              let best = ranked.find((r: any) => !usosPorFuente.has(`${r.provider}_${r.id}`));
-              let repetido = false;
-              if (!best) { best = ranked[0]; repetido = true; } // pool agotado: mejor repetir que no tener clip
-              const claveFuente = `${best.provider}_${best.id}`;
-              item.stockDecision={query:keyword,ranking:'orientation-resolution-duration-reuse-v1',
-                contextualInspection:'not-performed',candidates:ranked.map((candidate:any)=>({
-                  provider:candidate.provider,id:candidate.id,width:candidate.width,height:candidate.height,
-                  duration:candidate.duration??null})),selected:{provider:best.provider,id:best.id},
-                offset:0,filter:'',reason:repetido?'CANDIDATE_POOL_EXHAUSTED':'HIGHEST_TECHNICAL_SCORE_UNUSED'};
-              const usosPrevios = usosPorFuente.get(claveFuente) ?? 0;
-              // Se marca ANTES de cualquier await: con 3 workers en paralelo, marcarlo
-              // despues de la descarga dejaria que dos frases eligieran la misma fuente.
-              usosPorFuente.set(claveFuente, usosPrevios + 1);
-
-              // Al reutilizar una fuente se corta desde otro segundo, para que no se vea el
-              // mismo fragmento exacto. El filtro aplica setpts=0.8*PTS, asi que cada clip
-              // consume duracion/0.8 de metraje. vdc(0)=0, asi que el primer uso arranca en 0
-              // sin necesidad de caso especial. No garantiza que no se solapen (haria falta
-              // (usos-1)*consumo de margen), pero si que el arranque sea siempre distinto.
-              const consumo = item.duration / 0.8;
-              const margen = Math.max(0, (Number(best.duration) || 0) - consumo);
-              if (margen > 0.2) {
-                stockOffset = Math.round(margen * vdc(usosPrevios) * 100) / 100;
-              }
-              item.stockDecision.offset=stockOffset;
-
-              const rawStockFilename = `${claveFuente}_raw.mp4`;
-              const rawStockPath = path.join(stockDir, rawStockFilename);
-
-              if (!(await exists(rawStockPath))) {
-                await logMessage(`[FASE 3] Descargando de ${best.provider}: ${best.downloadUrl.substring(0, 80)}...`);
-                try {
-                  const dlRes = await fetch(best.downloadUrl);
-                  if (dlRes.ok) {
-                    const buffer = await dlRes.arrayBuffer();
-                    await fs.promises.writeFile(rawStockPath, Buffer.from(buffer));
-                  }
-                } catch (dlErr) {
-                  await logMessage(`[FASE 3] Error descargando de ${best.provider}: ${dlErr}`);
-                }
-              } else {
-                await logMessage(`[FASE 3] Usando caché de ${best.provider}: ${rawStockFilename}`);
-              }
-
-              if (await exists(rawStockPath)) {
-                stockClipPath = rawStockPath;
-                await logMessage(`[FASE 3] ✓ Stock seleccionado de ${best.provider} (${best.width}x${best.height}) para: "${keyword}"` +
-                  (repetido ? ` [REPETIDO uso #${usosPrevios + 1}, corte desde ${stockOffset}s]` : ''));
-              }
-            }
-
-            // Sin resultados el mismo espacio queda pendiente: no cambiar de origen.
-            if (!stockClipPath) {
-              throw new Error('STOCK_NO_RESULTS');
-            } else {
-              let filter = '';
-              try {
-                const dimensions = await getVideoDimensions(stockClipPath);
-                if(dimensions.width<=0||dimensions.height<=0)throw Error('STOCK_DIMENSIONS_INVALID');
-                filter=stockCoverFilter(aspectRatio);
-                if(item.stockDecision)item.stockDecision.sourceDimensions=dimensions;
-              } catch (dimErr) {
-                const isVertical = isVerticalAspectRatioV1(aspectRatio);
-                filter = isVertical
-                  ? 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,setpts=0.8*PTS'
-                  : 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setpts=0.8*PTS';
-              }
-
-              const escapedRawStock = stockClipPath.replace(/"/g, '\\"');
-              if(item.stockDecision)item.stockDecision.filter=filter;
-              await new Promise<void>((resolve, reject) => {
-                const cmd = `ffmpeg -y -ss ${stockOffset} -i "${escapedRawStock}" -vf "${filter}" -t ${item.duration} -an "${escapedClip}"`;
-                exec(cmd, (err) => { if (err) reject(err); else resolve(); });
-              });
-
-              if (projectRoot) {
-                const localStockDir = dirMat(projectRoot, 'stock');
-                if (!(await exists(localStockDir))) {
-                  await fs.promises.mkdir(localStockDir, { recursive: true });
-                }
-                const localStockPath = path.join(localStockDir, path.basename(stockClipPath).replace('_raw', ''));
-                await fs.promises.copyFile(clipPath, localStockPath);
-              }
-
-              success = true;
-            }
+            const persisted = loadProjectFile(path.join(projectRoot, 'project-state.json')).state as any
+            const priorDecisions = (persisted.timelineVideoClips || [])
+              .filter((clip: any) => clip.id !== slot.id && clip.buildPlan?.buildId === item.buildId && clip.stockDecision)
+              .map((clip: any) => clip.stockDecision)
+            const stock = await materializeBuildStockSlot({
+              buildId: String(item.buildId), slotId: String(item.id), keyword: String(item.keyword || ''),
+              phrase: String(item.transcriptText || slot.transcriptText || ''),
+              contextBefore: String(item.contextBefore || ''), contextAfter: String(item.contextAfter || ''),
+              durationSeconds: Number(item.duration), aspectRatio: String(aspectRatio || '16:9'),
+              stockCacheDirectory: path.join(getBancoClipsPath(), 'stock', 'build-v1'),
+              outputPath: clipPath, projectStockDirectory: dirMat(projectRoot, 'stock'),
+              priorDecisions, previousDecision: slot.stockDecision || null,
+            })
+            item.stockDecision = stock.decision
+            success = true
           } catch (stockErr: any) {
-            throw new Error('STOCK_FAILED: ' + String(stockErr.message || stockErr));
+            if (stockErr?.stockDecision) item.stockDecision = stockErr.stockDecision
+            const failure: any = new Error('STOCK_FAILED: ' + String(stockErr?.message || stockErr))
+            if (item.stockDecision) failure.stockDecision = item.stockDecision
+            throw failure
           }
         }
-
         if (item.type === 'original') {
           if (!Number.isFinite(item.timestamp) || item.timestamp < 0) throw new Error('ORIGINAL_TIMESTAMP_MISSING');
           const ts = item.timestamp ?? 0;
@@ -5101,7 +4840,8 @@ ipcMain.handle('retry-timeline-asset', async (event, input: any) => {
     })();
     buildMediaJobs.set(key, task);
     try { return await task } finally { buildMediaJobs.delete(key) }
-  } catch (error: any) { return { success: false, error: String(error?.message || error) } }
+  } catch (error: any) { return { success: false, error: String(error?.message || error),
+    ...(error?.stockDecision ? { stockDecision: error.stockDecision } : {}) } }
 });
 
 const activeBuildPlannerJobs = new Map<number, AbortController>()
@@ -5222,6 +4962,8 @@ handleProcessing('generate-timeline-assets', async (event, { scriptText, audioDu
       const plan = { schema: 'cipher-build-slot-v1', id: 'build-' + randomUUID(), buildId,
         index: globalIdx, total: totalSlots, source: type, startSeconds, durationSeconds,
         transcriptText: String(segment.text).trim(), timestamp, keyword: raw.keyword, prompt: raw.prompt,
+        contextBefore: phraseIdx > 0 ? String(segments[phraseIdx - 1]?.text || '').trim() : '',
+        contextAfter: phraseIdx + 1 < segments.length ? String(segments[phraseIdx + 1]?.text || '').trim() : '',
         videoPath: needsSource ? videoPath : undefined, aspectRatio, iaStyle, audioProvenance,
         planner: { provider: 'codex-app-server', model: planResult.model || 'Codex configured model' } }
       flattenedClips.push(pendingBuildSlot(plan))

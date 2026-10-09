@@ -88,7 +88,7 @@ const INACTIVAS_VISUALES = new Set([
 // conjunto que ya no es el conjunto. Con el, el numero no cuadra y salta.
 //
 // SUBIRLO A MANO ES EL PUNTO. Es la linea que obliga a pararse a pensar "¿la he enganchado?".
-const ESPERADAS = 17;
+const ESPERADAS = 18;
 
 // Scripts cuyo nombre público no coincide con el archivo de suite. Mantener ambos lados
 // explícitos evita contar un alias correcto como suite huérfana o aceptar cualquier ruta.

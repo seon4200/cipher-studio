@@ -20,7 +20,7 @@ function configuredModelInfo() {
 }
 
 function parseMcpServerNames(configText = '') {
-  const names = new Set(['cipher_animation', 'node_repl', 'cua_repl'])
+  const names = new Set()
   for (const line of String(configText).split(/\r?\n/)) {
     const match = line.match(/^\s*\[mcp_servers\.([^.\]]+)(?:\.[^\]]+)?\]\s*$/)
     const name = match?.[1]?.trim().replace(/^["']|["']$/g, '')
@@ -39,7 +39,7 @@ function buildPlannerMcpOverrides(configText = '') {
 function configuredMcpServerNames() {
   const codexHome = process.env.CODEX_HOME || path.join(os.homedir(), '.codex')
   try { return parseMcpServerNames(fs.readFileSync(path.join(codexHome, 'config.toml'), 'utf8')) }
-  catch { return parseMcpServerNames('') }
+  catch { return [] }
 }
 
 function terminateChildTree(child) {

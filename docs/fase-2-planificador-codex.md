@@ -18,9 +18,9 @@ incompleta. No cambia proveedores de vídeo, estilos, Vibes ni motores heredados
   solicita JSON con esquema estricto y valida cantidad, texto, keyword y timestamp antes
   de crear el plan.
 - El perfil `build-planner` abre una sesión app-server con el servicio `cipher-build-planner`
-  y deshabilita en ese proceso los servidores MCP enumerados en la configuración local
-  (incluidos Animation, `node_repl` y `cua_repl`). La sesión usa sandbox de solo lectura,
-  sin acceso de red, y un directorio temporal como cwd. No escribe la configuración del
+  y deshabilita en ese proceso las secciones de servidor MCP existentes en la configuración
+  local. La sesión usa sandbox de solo lectura, sin acceso de red, y un directorio temporal como
+  cwd. No escribe la configuración del
   usuario. Si Codex falla, Construir devuelve el error y no recurre a DeepSeek ni inventa
   slots Original.
 - La asignación conserva las cuatro cuotas enteras y sus extremos. Solo exige archivo fuente
@@ -81,10 +81,9 @@ rutas previas y no se activan como fallback de Construir.
   y `via4`. No se excluyó ninguna de las 17 suites ni se debilitó una comprobación. Se mantiene
   la exclusión previa y documentada de `test:ventana`; las suites heredadas desconectadas siguen
   marcadas como inactivas.
-- La comprobación de `codexConnectionStatus()` —el mismo chequeo del proveedor que usa Studio—
-  encontró Codex CLI `0.160.1`, disponible pero no autenticado (`authenticated: false`). Se
-  inició el flujo oficial `codex login`, que espera el callback del navegador. No se envió una
-  solicitud real al modelo ni se usaron DeepSeek, MiniMax, Vibes o proveedores de vídeo.
+- En el cierre de fase 2, `codexConnectionStatus()` encontró Codex CLI `0.160.1`, disponible
+  pero sin sesión (`authenticated: false`); quedó pendiente terminar el flujo oficial `codex login`.
+  Esa constatación es histórica y no acredita una llamada al modelo.
 - Las llamadas reales a Codex para el plan de 20 s y Gráficos están en cero; planificación real,
   Animation/render, exportación y revisión visual no se ejecutaron, por lo que sus latencias son
   N/A. Los mocks y las ventanas sintéticas no se presentan como respuesta real del modelo.
@@ -95,12 +94,12 @@ respuesta del modelo.
 
 ## Pendiente
 
-- Completar el inicio de sesión ChatGPT en el navegador del flujo oficial ya iniciado. Luego
-  ejecutar en un proyecto temporal el plan real de 20 s, sin narración ni Original, 100 % Visuales;
+- Ejecutar en un proyecto temporal el plan real de 20 s, sin narración ni Original, 100 % Visuales;
   revisar coherencia, cuotas, intervalos, IDs y reapertura del plan persistido. Detener el ensayo
-  antes de generar Animation.
+  antes de generar Animation. El estado de autenticación posterior no sustituye esta llamada.
 - Probar Gráficos por separado con escenas Original/Stock elegibles: respuesta real, tiempos,
-  colocación y exclusión frente a Visuales. Ambos ensayos están bloqueados por la autenticación.
+  colocación y exclusión frente a Visuales. Las llamadas reales de ambos planificadores siguen
+  pendientes aunque el proveedor ya indique sesión autenticada.
 - La aceptación visual de la interfaz pendiente desde fase 1 sigue documentada. Crear/renderizar
   Visuales exclusivamente con Animation/Canvas, seguir estilo, producir en paralelo u optimizar
   velocidad pertenecen a fase 4; exportar no es requisito para cerrar esta fase.
@@ -110,6 +109,16 @@ respuesta del modelo.
 - El generador heredado de la acción independiente de Gráficos y las acciones independientes de
   DeepSeek conservan su estado anterior; esta fase no migra esos motores ni proveedores.
 
+## Actualización de autenticación durante fase 3
+
+En el entorno del worktree de fase 3, el mismo `codexConnectionStatus()` de Studio devolvió
+`available: true`, `authenticated: true`, `status: ready-to-test`, CLI `0.160.1`. También se
+completó una llamada real de revisión visual Stock con imágenes locales. Esa llamada solo valida
+la entrada de fotogramas del recorrido Stock; no valida la planificación de Construir ni Gráficos
+de fase 2. Ambas llamadas reales siguen pendientes y no se cuentan como aprobadas por haber iniciado
+sesión o por la llamada Stock.
+
 El avance inicial de fase 2 quedó guardado en `b88e1bc`; el cierre de registro de pruebas se incluye
 en el commit de continuación de esta rama. La aceptación visual de fase 1 y la aceptación real de
-planificación/Gráficos de fase 2 siguen pendientes de completar el login del proveedor.
+planificación/Gráficos de fase 2 siguen pendientes de ejecutar sus llamadas reales en un proyecto
+temporal.

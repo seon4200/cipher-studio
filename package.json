@@ -29,7 +29,8 @@
     "bench:graficos": "electron tests/rendimiento/graficos.js",
     "test:ventana": "electron tests/ventana.js",
     "test:vibes": "python -m unittest discover -s tests/vibes_clips -v",
-    "test:build-integrity": "node tests/build-integrity.js"
+    "test:build-integrity": "node tests/build-integrity.js",
+    "test:build-stock": "node tests/build-stock.js"
   },
   "dependencies": {
     "@babel/helper-string-parser": "7.29.7",

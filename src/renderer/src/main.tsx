@@ -2692,7 +2692,11 @@ ${res.filePath}`);
         setGenerationProgress({ current: slot.buildPlan.index, total: slot.buildPlan.total,
           type: 'Medios en preparación', paragraph: `${slot.category}: ${slot.transcriptText || slot.id}` })
         const result = await window.electronAPI.retryTimelineAsset({ projectPath, clip: slot })
-        if (!result.success) throw new Error(result.error || 'BUILD_MEDIA_FAILED')
+        if (!result.success) {
+          const failure: any = new Error(result.error || 'BUILD_MEDIA_FAILED')
+          if (result.stockDecision) failure.stockDecision = result.stockDecision
+          throw failure
+        }
         return result.clip
       }
     })

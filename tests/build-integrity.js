@@ -332,17 +332,26 @@ async function run() {
 
     // Exercise the extracted real worker: provider failures never enter Original/FFmpeg.
     let originalCommands = 0, stockRequests = 0
-    const workerContext = { fs, path, Buffer, ...ffmpeg, buildStockUsage: new Map(),
+    let stockInput
+    const workerContext = { fs, path, Buffer, ...ffmpeg,
       dirMat: (r, d) => path.join(r, 'materiales', d), dirCache: (r, d) => path.join(r, 'cache', d),
       getBancoClipsPath: () => path.join(fixture, 'bank'), writeDebugLog: async () => {}, process: { env: {} },
+      loadProjectFile: () => ({ state: { timelineVideoClips: [] } }),
+      materializeBuildStockSlot: async input => { stockRequests++; stockInput = input
+        const error = new Error('STOCK_NO_RESULTS'); error.stockDecision = { reason: 'STOCK_NO_RESULTS' }; throw error },
       isVerticalAspectRatioV1: () => false, stockCoverFilter: () => '', urlDeRuta: x => require('node:url').pathToFileURL(x).href,
       exists: async p => fs.existsSync(p), exec: () => { originalCommands++; throw new Error('UNEXPECTED_ORIGINAL') },
       fal: { subscribe: async () => { throw new Error('IA_OFFLINE') } },
       fetch: async () => { stockRequests++; return { ok: true, json: async () => ({ collection: { items: [] } }) } } }
     const worker = productionFunction('materializeBuildSlot', workerContext)
     await assert.rejects(worker(event, makeSlot('ia'), fixture), /IA_FAILED/)
-    await assert.rejects(worker(event, makeSlot('stock'), fixture), /STOCK_FAILED/)
-    assert.equal(originalCommands, 0); assert.ok(stockRequests > 0)
+    const failedStockSlot = makeSlot('stock')
+    failedStockSlot.buildPlan.contextBefore = 'nearby context'
+    await assert.rejects(worker(event, failedStockSlot, fixture), error => {
+      assert.match(error.message, /STOCK_FAILED/); assert.equal(error.stockDecision.reason, 'STOCK_NO_RESULTS'); return true
+    })
+    assert.equal(originalCommands, 0); assert.equal(stockRequests, 1)
+    assert.equal(stockInput.phrase, failedStockSlot.transcriptText); assert.equal(stockInput.contextBefore, 'nearby context')
     // A small synthetic source verifies the same worker with real FFmpeg/ffprobe, no user media.
     const cp = require('node:child_process'), sourcePath = path.join(fixture, 'source.mp4')
     cp.execFileSync('ffmpeg', ['-v','error','-y','-f','lavfi','-i','color=c=blue:s=160x90:r=30','-t','4','-c:v','libx264',sourcePath])
