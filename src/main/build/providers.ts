@@ -99,10 +99,10 @@ async function searchStock(keyword: string, aspectRatio: string, signal: AbortSi
     }
   });
   if (process.env.COVERR_API_KEY) await collect('Coverr', async () => {
-    const r: any = await (await request(`https://api.coverr.co/videos?query=${encodeURIComponent(keyword)}&page_size=5`, signal,
+    const r: any = await (await request(`https://api.coverr.co/videos?query=${encodeURIComponent(keyword)}&page_size=5&urls=true`, signal,
       { headers: { Authorization: `Bearer ${process.env.COVERR_API_KEY}` } })).json();
     for (const video of (r.hits || r.videos || []).slice(0, 3)) {
-      const url = video.urls?.mp4 || video.urls?.mp4_download || video.download_url;
+      const url = video.urls?.mp4_download || video.urls?.mp4 || video.download_url;
       if (url) candidates.push({ id: String(video.id || video.slug), provider: 'coverr', url,
         width: video.width || 1920, height: video.height || 1080, duration: video.duration });
     }
