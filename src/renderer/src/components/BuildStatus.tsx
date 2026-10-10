@@ -5,12 +5,13 @@ export function BuildStatus({ summary, busy, canContinue, reason, error, onConti
   onContinue: () => void; onCancel: () => void;
 }) {
   return <div className="mt-3 rounded-xl border border-slate-700 p-3 text-xs text-slate-300 space-y-2" aria-live="polite">
-    <p>Mezcla por tiempo de pantalla · clips de hasta 3 s · IA en 0 % durante esta entrega.</p>
+    <p>Mezcla por tiempo de pantalla · clips de 2–3 s · IA en 0 % durante esta entrega.</p>
     {summary && <>
       <p>{summary.completed}/{summary.total} clips guardados · {
         { ready: 'Plan preparado', running: 'En ejecución', paused: 'Pausado', incomplete: 'Pendiente', complete: 'Medios completos' }[summary.status]}</p>
       <p>Plan: Stock {summary.stockSeconds.toFixed(2)} s / Original {summary.originalSeconds.toFixed(2)} s.
         Stock obtenido: {summary.obtainedStockSeconds.toFixed(2)} s.</p>
+      {summary.allocationMessage && <p className="text-amber-300">{summary.allocationMessage}</p>}
       {summary.pending.some(s => s.error) && <details>
         <summary className="cursor-pointer text-amber-300">Escenas que necesitan atención</summary>
         <ul className="space-y-1 mt-2">{summary.pending.filter(s => s.error).map(s =>

@@ -2,7 +2,7 @@ import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import type { BuildInput, BuildIssue, BuildPlan, SceneResult } from '../../shared/build-plan';
-import { createPlan, summarize, validateInput, validatePlan } from '../../shared/build-plan';
+import { createPlan, MIN_CLIP_FRAMES, summarize, validateInput, validatePlan } from '../../shared/build-plan';
 import { atomicJson, loadPlan, savePlan, claimProject, projectBusy } from './storage';
 import { BuildFailure, command, sha256, validateMedia, withTimeout, probe } from './media';
 import { directScenes, prepareScene } from './providers';
@@ -101,6 +101,8 @@ export class BuildRunner {
         if (!plan) throw new BuildFailure('NO_PLAN', 'No hay un plan guardado para continuar.');
         if (plan.inputHash !== inputHash)
           throw new BuildFailure('INPUT_CHANGED', 'Cambió el guion, audio, fuente, formato o mezcla. Recupera esos ajustes o pulsa Nuevo plan.');
+        if (plan.schemaVersion === 1 && plan.status !== 'complete')
+          throw new BuildFailure('LEGACY_DURATION_RULE', 'Este plan incompleto usa la regla anterior de duración. Conserva sus archivos y crea un plan nuevo de 2–3 s.');
       } else {
         if (plan) await atomicJson(path.join(project, 'build', 'history', `${plan.id}.json`), plan);
         const revision = (plan?.revision || 0) + 1;
@@ -119,7 +121,8 @@ export class BuildRunner {
       for (const scene of current.scenes) {
         check();
         if (scene.status === 'complete' && scene.result) {
-          try { await this.deps.validate(scene.result.path, scene.frames, signal, scene.result.sha256); }
+          try { await this.deps.validate(scene.result.path, scene.frames, signal, scene.result.sha256,
+            current.schemaVersion === 1 ? 1 : MIN_CLIP_FRAMES); }
           catch (e) { check(); scene.status = 'pending'; scene.error = issue(e); delete scene.result; }
         } else if (scene.status === 'running') {
           scene.status = 'pending';
@@ -128,6 +131,8 @@ export class BuildRunner {
         }
       }
       await persist();
+      if (current.schemaVersion === 1 && current.scenes.some(scene => scene.status !== 'complete'))
+        throw new BuildFailure('LEGACY_DURATION_RULE', 'El plan anterior tiene medios pendientes o inválidos. Se conservaron los archivos; crea un plan nuevo de 2–3 s.');
       const needsDirection = current.scenes.filter(s => s.status !== 'complete' &&
         (s.category === 'stock' || !input.originalAudio) && !s.keyword);
       for (let offset = 0; offset < needsDirection.length; offset += 20) {
@@ -269,7 +274,8 @@ export class BuildRunner {
           (clip.segmentStartOffset || 0) !== 0 ||
           Math.abs(clip.durationSeconds - scene.frames / plan.fps) > 0.000001)
         throw new Error('El montaje fue modificado y ya no coincide con el plan. Reconstruye o restaura su versión antes de exportar.');
-      await this.deps.validate(scene.result!.path, scene.frames, undefined, scene.result!.sha256);
+      await this.deps.validate(scene.result!.path, scene.frames, undefined, scene.result!.sha256,
+        plan.schemaVersion === 1 ? 1 : MIN_CLIP_FRAMES);
     }
   }
 }

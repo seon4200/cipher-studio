@@ -42,32 +42,50 @@ async function prepare(scene, spec, output, signal) {
   return { ...result, path: output, sourcePath: source, provider: scene.category };
 }
 
-test('frame quotas cover silence and phrases of 3–4 s without stretching clips', async () => {
+test('the allocator redistributes complete 2–3 s clips and previews the nearest feasible mix', async () => {
   const spec = await input('quotas');
-  for (const duration of [1/30, 0.7, 3, 3.01, 3.7, 4, 6.2, 20.017, 121.4]) {
+  for (const duration of [2, 3, 4, 5, 6, 6.2, 20, 121.4]) {
     for (let stock = 0; stock <= 100; stock++) {
       const p = model.createPlan({ ...spec, audioDuration: duration, weights: [100-stock, stock, 0],
         segments: [{ start: 0, end: duration, text: 'Prueba' }] }, 'test-plan', 'hash', 1);
       model.validatePlan(p);
       assert.equal(p.scenes.reduce((n,s) => n+s.frames,0), Math.round(duration*30));
-      assert.equal(p.scenes.filter(s=>s.category==='stock').reduce((n,s)=>n+s.frames,0), Math.round(Math.round(duration*30)*stock/100));
-      assert.ok(p.scenes.every(s=>s.frames>0 && s.frames<=90));
+      assert.equal(p.stockFrames, model.previewAllocation(duration, [100-stock, stock, 0]).stockFrames);
+      assert.ok(p.scenes.every(s=>s.frames>=60 && s.frames<=90));
     }
   }
+  for (const duration of [1/30, 1.98, 3.02, 3.5, 119/30]) {
+    const allocation = model.previewAllocation(duration, [30,70,0]);
+    assert.equal(allocation.feasible, false, `duration ${duration} should not leave a sub-2 s residual`);
+    assert.throws(() => model.validateInput({ ...spec, audioDuration: duration,
+      segments: [{ start: 0, end: duration, text: 'Prueba' }] }), /No se puede cubrir|no hay reparto completo/);
+  }
+  const fiveSeconds = model.previewAllocation(5, [30,70,0]);
+  assert.equal(fiveSeconds.feasible, true);
+  assert.equal(fiveSeconds.stockFrames, 90);
+  assert.equal(fiveSeconds.originalFrames, 60);
+  assert.equal(fiveSeconds.stockClipCount, 1);
+  assert.equal(fiveSeconds.originalClipCount, 1);
+  assert.match(fiveSeconds.adjustmentMessage, /Stock 3\.00 s \/ Original 2\.00 s/);
+  const fiveSecondPlan = model.createPlan({ ...spec, audioDuration: 5, weights: [30,70,0],
+    segments: [{ start: 0, end: 5, text: 'Prueba' }] }, 'five-seconds', 'hash', 1);
+  assert.deepEqual(fiveSecondPlan.scenes.map(s => [s.category, s.frames]), [['stock',90],['original',60]]);
+  assert.ok(fiveSecondPlan.allocationMessage);
+
   const p = model.createPlan(spec, 'test-plan', 'hash', 1);
-  assert.ok(p.scenes.some(s=>s.startFrame===111)); // explicit gap after the first phrase
   assert.equal(p.scenes.at(-1).startFrame+p.scenes.at(-1).frames,186);
 });
 
 test('real FFmpeg cuts align to frames, clamp source offsets and preserve the audio', async () => {
   const digest = await media.sha256(audio);
-  for (const frames of [1, 21, 90]) {
+  for (const frames of [60, 90]) {
     const file = path.join(temp, `cut-${frames}.mp4`);
     const result = await media.cutMedia(source, file, 9999, frames, '16:9', undefined, 160);
     assert.equal(result.duration, frames/30);
     assert.ok(result.sourceStart+result.duration<=8.000001);
     await media.validateMedia(file,frames,undefined,result.sha256);
   }
+  await assert.rejects(media.validateMedia(path.join(temp,'cut-60.mp4'),60,undefined,undefined,61), /fotogramas/);
   await assert.rejects(media.cutMedia(source,path.join(temp,'invalid.mp4'),0,91,'16:9'), /recorte válido/);
   assert.equal(await media.sha256(audio),digest);
   for (const aspect of ['horizontal','vertical','square']) {
@@ -79,6 +97,62 @@ test('real FFmpeg cuts align to frames, clamp source offsets and preserve the au
     assert.equal(meta.width,160);
     assert.equal(meta.height,aspect==='square'?160:aspect==='vertical'?284:90);
   }
+  const redSource=path.join(temp,'red-landscape.mp4');
+  await media.command('ffmpeg',['-v','error','-f','lavfi','-i','color=c=red:s=160x90:r=30','-t','2',
+    '-c:v','libx264','-pix_fmt','yuv420p',redSource]);
+  const redPortrait=path.join(temp,'red-portrait.mp4');
+  await media.cutMedia(redSource,redPortrait,0,60,'vertical',undefined,160,60);
+  const raw=path.join(temp,'red-portrait.rgb');
+  await media.command('ffmpeg',['-v','error','-i',redPortrait,'-frames:v','1','-f','rawvideo','-pix_fmt','rgb24',raw]);
+  const pixels=await fs.readFile(raw);const width=160,height=284;
+  for (const [x,y] of [[0,0],[width-1,0],[0,height-1],[width-1,height-1],[width/2,height/2]]) {
+    const offset=(y*width+x)*3;
+    assert.ok(pixels[offset]>200 && pixels[offset+1]<40 && pixels[offset+2]<40,
+      `vertical crop has a black bar or unexpected distortion at ${x},${y}`);
+  }
+});
+
+test('completed legacy plans with short scenes remain exportable without becoming new-plan defaults', async () => {
+  const spec=await input('legacy-export',[30,70,0]);
+  const plan=model.createPlan(spec,'legacy-short-plan','legacy-hash',1);
+  plan.schemaVersion=1;plan.stockFrames=Math.round(plan.totalFrames*.7);plan.status='complete';
+  const definitions=[['stock',90],['stock',40],['original',45],['original',11]];
+  let cursor=0;
+  plan.scenes=[];
+  for(let index=0;index<definitions.length;index++){
+    const [category,frames]=definitions[index];
+    const id=`${plan.id}-s${String(index+1).padStart(5,'0')}`;
+    const file=path.join(spec.projectPath,'materiales','builds',plan.id,`${id}.mp4`);
+    const clip=await media.cutMedia(source,file,cursor/30,frames,spec.aspectRatio);
+    plan.scenes.push({id,phraseIndex:0,text:'Prueba',startFrame:cursor,frames,category,
+      sourceStart:cursor/30,status:'complete',attempts:[],rejectedCandidates:[],
+      result:{...clip,path:file,sourcePath:source,provider:category}});
+    cursor+=frames;
+  }
+  await storage.savePlan(plan);
+  const runner=new BuildRunner();
+  const clips=runner.clips(plan);
+  assert.ok(clips.some(clip=>clip.durationSeconds<2));
+  await runner.validateExport(spec.projectPath,clips);
+});
+
+test('incomplete legacy plans cannot resume with sub-2 s scenes', async () => {
+  const spec=await input('legacy-resume',[30,70,0]);
+  const plan=model.createPlan(spec,'legacy-incomplete-plan','legacy-hash',1);
+  plan.schemaVersion=1;plan.stockFrames=Math.round(plan.totalFrames*.7);plan.status='paused';
+  const definitions=[['stock',90],['stock',40],['original',45],['original',11]];let cursor=0;
+  plan.scenes=definitions.map(([category,frames],index)=>{
+    const scene={id:`${plan.id}-s${String(index+1).padStart(5,'0')}`,phraseIndex:0,text:'Primera frase.',
+      startFrame:cursor,frames,category,sourceStart:cursor/30,status:'pending',attempts:[],rejectedCandidates:[]};
+    cursor+=frames;return scene;
+  });
+  const preserved=path.join(spec.projectPath,'materiales','builds',plan.id,'preserved.txt');
+  await fs.mkdir(path.dirname(preserved),{recursive:true});await fs.writeFile(preserved,'KEEP');
+  await storage.savePlan(plan);
+  const runner=new BuildRunner({fingerprint:async()=>plan.inputHash});
+  await assert.rejects(runner.run(spec,'continue',plan.id,noop),/regla anterior de duración/);
+  assert.equal((await storage.loadPlan(spec.projectPath)).status,'paused');
+  assert.equal(await fs.readFile(preserved,'utf8'),'KEEP');
 });
 
 test('Stock failure persists its category; a fresh runner resumes only unfinished scenes', async () => {
@@ -105,7 +179,9 @@ test('Stock failure persists its category; a fresh runner resumes only unfinishe
   for (const item of kept) assert.equal(after.scenes.find(s=>s.id===item.id).result.sha256,item.hash);
   assert.deepEqual(after.scenes.map(s=>s.id),before.scenes.map(s=>s.id));
   assert.equal(await fs.readFile(preserved,'utf8'),'DO NOT DELETE');
-  assert.equal(after.scenes.filter(s=>s.category==='stock').reduce((n,s)=>n+s.frames,0),Math.round(186*.7));
+  const expected=model.previewAllocation(spec.audioDuration,spec.weights);
+  assert.equal(after.scenes.filter(s=>s.category==='stock').reduce((n,s)=>n+s.frames,0),expected.stockFrames);
+  assert.ok(after.scenes.every(s=>s.frames>=60 && s.frames<=90));
   calls=[];
   await runner.run(spec,'continue',after.id,noop);
   assert.equal(calls.length,0);

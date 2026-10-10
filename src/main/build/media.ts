@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
-import { BUILD_FPS } from '../../shared/build-plan';
+import { BUILD_FPS, MIN_CLIP_FRAMES } from '../../shared/build-plan';
 
 export class BuildFailure extends Error {
   code: string;
@@ -62,10 +62,11 @@ export async function sha256(file: string, signal?: AbortSignal): Promise<string
   return hash.digest('hex');
 }
 
-export async function validateMedia(file: string, frames: number, signal?: AbortSignal, expectedHash?: string) {
+export async function validateMedia(file: string, frames: number, signal?: AbortSignal, expectedHash?: string,
+  minimumFrames = MIN_CLIP_FRAMES) {
   const meta = await probe(file, signal);
   const duration = frames / BUILD_FPS;
-  if (frames <= 0 || frames > 3 * BUILD_FPS || meta.frames !== frames ||
+  if (frames < minimumFrames || frames > 3 * BUILD_FPS || meta.frames !== frames ||
       meta.duration > 3.000001 || Math.abs(meta.duration - duration) > 0.001)
     throw new BuildFailure('DURATION_MISMATCH', 'El clip generado no coincide con los fotogramas del plan.', true);
   await command('ffmpeg', ['-v', 'error', '-xerror', '-i', file, '-map', '0:v:0', '-f', 'null', '-'], signal);
@@ -76,10 +77,10 @@ export async function validateMedia(file: string, frames: number, signal?: Abort
 }
 
 export async function cutMedia(source: string, output: string, requestedStart: number, frames: number,
-  aspectRatio: string, signal?: AbortSignal, outputWidth?: number) {
+  aspectRatio: string, signal?: AbortSignal, outputWidth?: number, minimumFrames = 1) {
   const meta = await probe(source, signal);
   const duration = frames / BUILD_FPS;
-  if (!Number.isInteger(frames) || frames < 1 || frames > 90 ||
+  if (!Number.isInteger(frames) || frames < minimumFrames || frames > 90 ||
       !Number.isFinite(requestedStart) || requestedStart < 0 || meta.duration + 0.000001 < duration)
     throw new BuildFailure('SOURCE_INTERVAL', 'El vídeo fuente no permite un recorte válido de esta duración.');
   const sourceStart = Math.max(0, Math.min(requestedStart, meta.duration - duration));
@@ -92,10 +93,10 @@ export async function cutMedia(source: string, output: string, requestedStart: n
   try {
     await command('ffmpeg', ['-v', 'error', '-nostdin', '-y', '-ss', String(sourceStart), '-i', source,
       '-map', '0:v:0', '-an', '-vf',
-      `fps=${BUILD_FPS},scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1`,
+      `fps=${BUILD_FPS},scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1`,
       '-frames:v', String(frames), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
       '-pix_fmt', 'yuv420p', '-movflags', '+faststart', partial], signal);
-    const verified = await validateMedia(partial, frames, signal);
+    const verified = await validateMedia(partial, frames, signal, undefined, minimumFrames);
     signal?.throwIfAborted();
     await fs.rename(partial, output);
     return { ...verified, sourceStart };

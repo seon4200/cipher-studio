@@ -5,7 +5,7 @@ import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import type { BuildInput, BuildScene, SceneResult } from '../../shared/build-plan';
-import { BUILD_FPS } from '../../shared/build-plan';
+import { BUILD_FPS, MIN_CLIP_FRAMES } from '../../shared/build-plan';
 import { BuildFailure, cutMedia, probe, withTimeout } from './media';
 
 type Candidate = { id: string; provider: string; url: string; width: number; height: number; duration?: number };
@@ -149,7 +149,8 @@ async function download(candidate: Candidate, directory: string, signal: AbortSi
 export async function prepareScene(scene: BuildScene, input: BuildInput, output: string, signal: AbortSignal,
   rejectCandidate: (id: string, reason: string) => Promise<void>): Promise<SceneResult> {
   if (scene.category === 'original') {
-    const clip = await cutMedia(input.videoPath, output, scene.sourceStart, scene.frames, input.aspectRatio, signal);
+    const clip = await cutMedia(input.videoPath, output, scene.sourceStart, scene.frames,
+      input.aspectRatio, signal, undefined, MIN_CLIP_FRAMES);
     return { ...clip, path: output, sourcePath: input.videoPath, provider: 'original' };
   }
   const pool = await searchStock(scene.keyword!, input.aspectRatio, signal);
@@ -160,7 +161,8 @@ export async function prepareScene(scene: BuildScene, input: BuildInput, output:
     if (++tried > 3) break;
     try {
       const source = await download(candidate, path.join(input.projectPath, 'build', 'stock-cache'), signal);
-      const clip = await cutMedia(source, output, 0, scene.frames, input.aspectRatio, signal);
+      const clip = await cutMedia(source, output, 0, scene.frames,
+        input.aspectRatio, signal, undefined, MIN_CLIP_FRAMES);
       return { ...clip, path: output, sourcePath: source, provider: candidate.provider, candidate: id };
     } catch (error) {
       signal.throwIfAborted();

@@ -10,7 +10,7 @@ import './styles/globals.css'
 import TrendsPanel from './TrendsPanel'
 import { AnimatedGraphic } from './AnimatedGraphic'
 import type { BuildSummary } from '../../shared/build-plan'
-import { validateInput } from '../../shared/build-plan'
+import { previewAllocation, validateInput } from '../../shared/build-plan'
 import { BuildStatus } from './components/BuildStatus'
 
 /* ------------------------------------------------------------------
@@ -160,10 +160,10 @@ function App() {
   const [isMirrored, setIsMirrored] = useState(false)
   const [copiedClip, setCopiedClip] = useState<TimelineClip | null>(null)
   // Porcentaje global de generación de gráficos (valor por defecto 50%)
-  const [graphicsPercent, setGraphicsPercent] = useState<number>(-1);
+  const [graphicsPercent, setGraphicsPercent] = useState<number>(0);
 
   // Estados para transiciones GL
-  const [transitionsPercent, setTransitionsPercent] = useState<number>(-1);
+  const [transitionsPercent, setTransitionsPercent] = useState<number>(0);
   const [showTransitionsPanel, setShowTransitionsPanel] = useState<boolean>(false);
   const [showImportPanel, setShowImportPanel] = useState<boolean>(false);
   const [showTrendsPanel, setShowTrendsPanel] = useState<boolean>(false);
@@ -1554,8 +1554,20 @@ function App() {
 
   const firstLibraryClip = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
   const firstLibraryClipId = firstLibraryClip ? firstLibraryClip.id : null;
+  const transcriptSourceRef = React.useRef<{ projectId: string | null; clipId: string | null }>({
+    projectId: null,
+    clipId: null
+  });
 
   useEffect(() => {
+    const previous = transcriptSourceRef.current;
+    const current = { projectId: activeProjectId, clipId: firstLibraryClipId };
+    transcriptSourceRef.current = current;
+
+    // Reabrir un proyecto cambia el proyecto y sus medios como parte de la restauración.
+    // Solo borrar el guion cuando cambia el medio dentro del mismo proyecto.
+    if (!current.projectId || previous.projectId !== current.projectId || previous.clipId === current.clipId) return;
+
     setIsTranscribing(false);
     setTranscriptionStatus('');
     setTranscriptSegments([]);
@@ -1563,7 +1575,7 @@ function App() {
     setAiScript('');
     setIsRewriting(false);
     setRewriteError('');
-  }, [firstLibraryClipId]);
+  }, [activeProjectId, firstLibraryClipId]);
 
   useEffect(() => {
     if (window.electronAPI && typeof window.electronAPI.onTranscriptionUpdate === 'function') {
@@ -1857,7 +1869,7 @@ function App() {
         if (loadedData.exportQuality) setExportQuality(loadedData.exportQuality);
         if (loadedData.assignedTransitions) setAssignedTransitions(loadedData.assignedTransitions);
         if (loadedData.transitionDuration !== undefined) setTransitionDuration(loadedData.transitionDuration);
-        setTransitionsPercent(loadedData.transitionsPercent ?? 0);
+        setTransitionsPercent(loadedData.transitionsPercent == null || loadedData.transitionsPercent < 0 ? 0 : loadedData.transitionsPercent);
         const aj = loadedData.ajustesVideo;
         if (aj) {
           setActiveCrop(aj.crop ?? null);
@@ -1865,7 +1877,7 @@ function App() {
           setIsMirrored(!!aj.isMirrored);
           setPanFraccionPendiente({ x: aj.panXFrac ?? 0, y: aj.panYFrac ?? 0 });
         }
-        if (loadedData.graphicsPercent !== undefined) setGraphicsPercent(loadedData.graphicsPercent);
+        setGraphicsPercent(loadedData.graphicsPercent == null || loadedData.graphicsPercent < 0 ? 0 : loadedData.graphicsPercent);
         
         setActiveProjectPath(projectPath);
         setActiveProjectId(loadedData.id || null);
@@ -1881,7 +1893,7 @@ function App() {
           aiScript: loadedData.aiScript || '',
           originalTranscriptText: loadedOriginalText,
           generatedVoices: loadedData.generatedVoices || [],
-          graphicsPercent: loadedData.graphicsPercent ?? 50
+          graphicsPercent: loadedData.graphicsPercent == null || loadedData.graphicsPercent < 0 ? 0 : loadedData.graphicsPercent
         };
         setMilestoneHistory([loadedMilestone]);
         setMilestoneIndex(0);
@@ -1932,7 +1944,7 @@ function App() {
         setTimelineWeights([30, 70, 0]);
         setTransitionsPercent(0);
         setNewAudioSegments([]);
-        setGraphicsPercent(50);
+        setGraphicsPercent(0);
 
         setActiveProjectPath(res.projectPath || null);
         setActiveProjectId(loadedData.id || null);
@@ -1947,7 +1959,7 @@ function App() {
           aiScript: '',
           originalTranscriptText: '',
           generatedVoices: [],
-          graphicsPercent: 50
+          graphicsPercent: 0
         };
         setMilestoneHistory([initialMilestone]);
         setMilestoneIndex(0);
@@ -2137,7 +2149,7 @@ function App() {
         if (loadedData.exportQuality) setExportQuality(loadedData.exportQuality);
         if (loadedData.assignedTransitions) setAssignedTransitions(loadedData.assignedTransitions);
         if (loadedData.transitionDuration !== undefined) setTransitionDuration(loadedData.transitionDuration);
-        setTransitionsPercent(loadedData.transitionsPercent ?? 0);
+        setTransitionsPercent(loadedData.transitionsPercent == null || loadedData.transitionsPercent < 0 ? 0 : loadedData.transitionsPercent);
         const aj = loadedData.ajustesVideo;
         if (aj) {
           setActiveCrop(aj.crop ?? null);
@@ -2145,7 +2157,7 @@ function App() {
           setIsMirrored(!!aj.isMirrored);
           setPanFraccionPendiente({ x: aj.panXFrac ?? 0, y: aj.panYFrac ?? 0 });
         }
-        if (loadedData.graphicsPercent !== undefined) setGraphicsPercent(loadedData.graphicsPercent);
+        setGraphicsPercent(loadedData.graphicsPercent == null || loadedData.graphicsPercent < 0 ? 0 : loadedData.graphicsPercent);
         
         setActiveProjectPath(res.projectPath);
         setActiveProjectId(loadedData.id || null);
@@ -2393,6 +2405,7 @@ function App() {
     audioPath: buildAudio?.path || '', audioDuration: buildAudio?.durationSeconds || 0,
     videoPath: clips.find(c => c.type === 'video')?.path || '', weights: timelineWeights,
     aspectRatio, segments: buildSegments, originalAudio: buildAudio?.name === 'Voz - Audio Original' };
+  const buildAllocation = previewAllocation(buildInput.audioDuration, buildInput.weights);
   try { validateInput(buildInput); } catch (e) { inputError = (e as Error).message; }
   const buildInputRef = React.useRef('');
   buildInputRef.current = JSON.stringify(buildInput);
@@ -2429,6 +2442,9 @@ function App() {
       return;
     }
     const effectiveAudioSegments = isUsingOriginalAudio ? transcriptSegments : newAudioSegments;
+
+    if (mode === 'new' && buildAllocation.adjustmentMessage &&
+        !window.confirm(buildAllocation.adjustmentMessage)) return;
 
     // Guarda: la transcripcion tiene que cubrir el audio del timeline. Si no, FASE 5
     // estira el ultimo clip para tapar el hueco y esa parte sale congelada.
@@ -3881,7 +3897,7 @@ function App() {
                   {!showTransitionsPanel && (
                     <div className='mt-2 grid grid-cols-3 gap-1 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]'>
                       {[0,50,100].map((val) => (
-                        <button key={val} onClick={() => setTransitionsPercent(prev => prev === val ? -1 : val)}
+                        <button key={val} onClick={() => setTransitionsPercent(val)}
                           disabled={!timelineVideoClips.find(c => c.type === 'audio')}
                           className={`py-1.5 text-xs font-bold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
                             transitionsPercent===val
@@ -3907,11 +3923,11 @@ function App() {
                           (!aiScript?.trim() && !originalTranscriptText?.trim()) ||
                           timelineVideoClips.filter(c => c.type !== 'audio' && c.type !== 'graphic').length === 0 ||
                           isGeneratingAssets ||
-                          (graphicsPercent === -1 && transitionsPercent === -1)
+                          (graphicsPercent <= 0 && transitionsPercent <= 0)
                         }
                         onClick={() => {
-                          if (graphicsPercent !== -1) handleRegenerateGraphics();
-                          if (transitionsPercent !== -1) handleBuildTransitions();
+                          if (graphicsPercent > 0) handleRegenerateGraphics();
+                          if (transitionsPercent > 0) handleBuildTransitions();
                         }}
                       >
                         {isGeneratingAssets ? '...' : '⟳ Generar'}
@@ -3919,12 +3935,12 @@ function App() {
                       <button
                         className="text-xs px-3 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 text-red-400 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1"
                         disabled={
-                          (graphicsPercent === -1 || timelineVideoClips.filter(c => c.type === 'graphic').length === 0) &&
-                          (transitionsPercent === -1 || Object.keys(assignedTransitions).length === 0)
+                          (graphicsPercent <= 0 || timelineVideoClips.filter(c => c.type === 'graphic').length === 0) &&
+                          (transitionsPercent <= 0 || Object.keys(assignedTransitions).length === 0)
                         }
                         onClick={() => {
-                          if (graphicsPercent !== -1) handleClearGraphics();
-                          if (transitionsPercent !== -1) handleClearTransitions();
+                          if (graphicsPercent > 0) handleClearGraphics();
+                          if (transitionsPercent > 0) handleClearTransitions();
                         }}
                       >
                         🗑 Limpiar
@@ -3938,7 +3954,7 @@ function App() {
                         <button
                           key={val}
                           type="button"
-                          onClick={() => setGraphicsPercent(prev => prev === val ? -1 : val)}
+                          onClick={() => setGraphicsPercent(val)}
                           disabled={!timelineVideoClips.find(c => c.type === 'audio')}
                           className={`py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
                             active
@@ -4120,7 +4136,7 @@ function App() {
                 {!showTransitionsPanel && (
                   <div className='mt-2 grid grid-cols-3 gap-1 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]'>
                     {[0,50,100].map((val) => (
-                      <button key={val} onClick={() => setTransitionsPercent(prev => prev === val ? -1 : val)}
+                      <button key={val} onClick={() => setTransitionsPercent(val)}
                         disabled={!timelineVideoClips.find(c => c.type === 'audio')}
                         className={`py-1.5 text-xs font-bold rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
                           transitionsPercent===val
@@ -4145,11 +4161,11 @@ function App() {
                         (!aiScript?.trim() && !originalTranscriptText?.trim()) ||
                         timelineVideoClips.filter(c => c.type !== 'audio' && c.type !== 'graphic').length === 0 ||
                         isGeneratingAssets ||
-                        (graphicsPercent === -1 && transitionsPercent === -1)
+                        (graphicsPercent <= 0 && transitionsPercent <= 0)
                       }
                       onClick={() => {
-                        if (graphicsPercent !== -1) handleRegenerateGraphics();
-                        if (transitionsPercent !== -1) handleBuildTransitions();
+                        if (graphicsPercent > 0) handleRegenerateGraphics();
+                        if (transitionsPercent > 0) handleBuildTransitions();
                       }}
                     >
                       {isGeneratingAssets ? '...' : '⟳ Generar'}
@@ -4157,12 +4173,12 @@ function App() {
                     <button
                       className="text-xs px-3 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 text-red-400 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1"
                       disabled={
-                        (graphicsPercent === -1 || timelineVideoClips.filter(c => c.type === 'graphic').length === 0) &&
-                        (transitionsPercent === -1 || Object.keys(assignedTransitions).length === 0)
+                        (graphicsPercent <= 0 || timelineVideoClips.filter(c => c.type === 'graphic').length === 0) &&
+                        (transitionsPercent <= 0 || Object.keys(assignedTransitions).length === 0)
                       }
                       onClick={() => {
-                        if (graphicsPercent !== -1) handleClearGraphics();
-                        if (transitionsPercent !== -1) handleClearTransitions();
+                        if (graphicsPercent > 0) handleClearGraphics();
+                        if (transitionsPercent > 0) handleClearTransitions();
                       }}
                     >
                       🗑 Limpiar
@@ -4171,7 +4187,7 @@ function App() {
                 </div>
                 <div className='grid grid-cols-3 gap-2 bg-[#1C1C1E]/60 p-1 rounded-xl border border-[#3a3a3c]'>
                   {[0,50,100].map((val) => (
-                    <button key={val} onClick={() => setGraphicsPercent(prev => prev === val ? -1 : val)}
+                    <button key={val} onClick={() => setGraphicsPercent(val)}
                       disabled={!timelineVideoClips.find(c => c.type === 'audio')}
                       className={`py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${graphicsPercent===val ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 ring-2 ring-indigo-400/60' : 'text-slate-400'}`}>
                       {val}%
