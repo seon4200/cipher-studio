@@ -5,8 +5,13 @@ import { once } from 'events'
 import { createHash } from 'crypto'
 import fs from 'fs'
 import { pathToFileURL } from 'url'
-import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds, getVideoDimensions } from './services/ffmpeg'
+import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds } from './services/ffmpeg'
 import { fal } from '@fal-ai/client'
+import { BuildRunner } from './build/runner'
+import { atomicJson, readJson, projectBusy, claimProject } from './build/storage'
+import { cutMedia, probe } from './build/media'
+import { randomUUID } from 'crypto'
+const buildRunner = new BuildRunner()
 
 // Construir "file:///" concatenando la ruta FALLA con espacios, acentos y '#'. Medido en un
 // Chromium real con webSecurity:false, cargando un video desde
@@ -481,15 +486,10 @@ async function auditarClips(clips: any[], projPath: string | null) {
 // Miniatura de un clip: mismo nombre base con extension .jpg, en cache/thumbnails.
 // Sustituye a los replace() de cadena, que asumian separador '/' y que el fragmento
 // aparecia exactamente una vez.
-const rutaMiniatura = (clipPath: string) => {
-  const nombre = path.basename(clipPath, path.extname(clipPath)) + '.jpg';
-  return activeProjectPath && clipPath.toLowerCase().startsWith(activeProjectPath.toLowerCase())
-    ? path.join(dirCache(activeProjectPath, 'thumbnails'), nombre)
-    : path.join(getBancoClipsPath(), 'thumbnails', nombre);
-};
 
 // Solo cache/. materiales/ no se toca aqui jamas.
 async function cleanupProjectTemp(projectPath: string) {
+  buildRunner.cancel(projectPath);
   const base = dirCache(projectPath);
   if (!(await exists(base))) return;
   let n = 0;
@@ -582,17 +582,18 @@ ipcMain.handle('create-project', async (_event, { name }) => {
       voiceSpeed: 1.0,
       voiceStability: 50,
       generatedVoices: [],
-      timelineWeights: [40, 30, 20, 10]
+      timelineWeights: [30, 70, 0],
+      transitionsPercent: 0
     };
     
     const stateFile = path.join(projectPath, 'project-state.json');
-    await fs.promises.writeFile(stateFile, JSON.stringify(initialState, null, 2), 'utf8');
+    await atomicJson(stateFile, initialState);
 
     // El anterior se limpia cuando el nuevo YA existe. Antes se limpiaba primero, asi que
     // si la creacion fallaba te quedabas sin el viejo y sin el nuevo.
     const anterior = activeProjectPath;
     activeProjectPath = projectPath;
-    if (anterior && anterior !== projectPath) await cleanupProjectTemp(anterior);
+    if (anterior && anterior !== projectPath) { buildRunner.cancel(anterior); await cleanupProjectTemp(anterior); }
 
     console.log(`[create-project] Proyecto creado en: ${projectPath}`);
     return { success: true, data: initialState, projectPath };
@@ -608,8 +609,7 @@ ipcMain.handle('load-project', async (_event, { projectPath }) => {
       return { success: false, error: 'No se encontró el estado del proyecto en la carpeta seleccionada.' };
     }
 
-    const raw = await fs.promises.readFile(stateFile, 'utf8');
-    const parsed = await sanitizeProjectState(JSON.parse(raw));
+    const parsed = await sanitizeProjectState(await readJson<any>(stateFile));
 
     // Se crean las carpetas que falten, pero NO se limpia el temp del proyecto que se
     // ABRE: ahi viven sus clips. Antes era initProjectDirs -> cleanup -> initProjectDirs,
@@ -621,7 +621,7 @@ ipcMain.handle('load-project', async (_event, { projectPath }) => {
     // primero, asi que una carga fallida destruia el viejo sin abrir el nuevo.
     const anterior = activeProjectPath;
     activeProjectPath = projectPath;
-    if (anterior && anterior !== projectPath) await cleanupProjectTemp(anterior);
+    if (anterior && anterior !== projectPath) { buildRunner.cancel(anterior); await cleanupProjectTemp(anterior); }
 
     // La auditoria se calcula AQUI, en el backend, y no en el frontend: hay dos caminos de
     // carga en main.tsx y es el patron que ya mordio una vez —arreglar uno y dejar el otro
@@ -1143,7 +1143,11 @@ ipcMain.handle('render-graphics-batch', async (event,
 });
 
 ipcMain.handle('delete-project', async (_event, { projectPath }) => {
+  let release: (() => Promise<void>) | undefined;
   try {
+    if (buildRunner.isRunning(projectPath) || await projectBusy(projectPath))
+      throw new Error('Cancela la construcción y espera a que se detenga antes de eliminar el proyecto.');
+    release = await claimProject(projectPath);
     if (activeProjectPath === projectPath) {
       activeProjectPath = null;
     }
@@ -1154,10 +1158,11 @@ ipcMain.handle('delete-project', async (_event, { projectPath }) => {
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
-  }
+  } finally { await release?.(); }
 });
 
 ipcMain.handle('delete-all-projects', async () => {
+  if (buildRunner.hasActiveRuns()) return { success: false, error: 'Hay una construcción activa. Cancélala antes de eliminar proyectos.' };
   const projectsDir = await getProjectsDir();
   let items: string[] = [];
   try {
@@ -1170,15 +1175,18 @@ ipcMain.handle('delete-all-projects', async () => {
   let borrados = 0;
   for (const item of items) {
     const projectPath = path.join(projectsDir, item);
+    let release: (() => Promise<void>) | undefined;
     try {
       if (!(await fs.promises.stat(projectPath)).isDirectory()) continue;
+      if (await projectBusy(projectPath)) throw new Error('Otra instancia está construyendo este proyecto.');
+      release = await claimProject(projectPath);
       await fs.promises.rm(projectPath, OPCIONES_BORRADO);
       borrados++;
     } catch (err: any) {
       // Un proyecto que no se deja borrar NO puede impedir que se borren los demas.
       // Antes un solo throw salia del bucle entero y dejaba el resto intacto en silencio.
       fallidos.push({ nombre: item, error: err.code || err.message });
-    }
+    } finally { await release?.(); }
   }
   // Se limpia SIEMPRE, tambien con fallos: los que si se borraron ya no existen.
   activeProjectPath = null;
@@ -1207,11 +1215,15 @@ ipcMain.handle('clear-global-stock-cache', async () => {
 
 ipcMain.handle('save-project-state', async (_event, state) => {
   try {
-    const targetPath = activeProjectPath || process.cwd();
+    const targetPath = state.projectPath || activeProjectPath || process.cwd();
+    if (state.projectPath && state.projectPath !== activeProjectPath)
+      throw new Error('No se puede guardar un estado antiguo sobre otro proyecto.');
+    const existing = await readJson<any>(path.join(targetPath, 'project-state.json')).catch(() => null);
+    if (existing?.id && existing.id !== state.id) throw new Error('La identidad del proyecto no coincide.');
     const filePath = path.join(targetPath, 'project-state.json');
     const sanitized = await sanitizeProjectState(state);
     sanitized.date = Date.now();
-    await fs.promises.writeFile(filePath, JSON.stringify(sanitized, null, 2), 'utf8');
+    await atomicJson(filePath, sanitized);
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -1223,16 +1235,14 @@ ipcMain.handle('load-project-state', async () => {
     if (activeProjectPath) {
       const stateFile = path.join(activeProjectPath, 'project-state.json');
       if (await exists(stateFile)) {
-        const raw = await fs.promises.readFile(stateFile, 'utf8');
-        const parsed = await sanitizeProjectState(JSON.parse(raw));
+        const parsed = await sanitizeProjectState(await readJson<any>(stateFile));
         return { success: true, data: parsed };
       }
     }
     // Backward compatibility fallback to process.cwd()
     const filePath = path.join(process.cwd(), 'project-state.json');
     if (await exists(filePath)) {
-      const rawData = await fs.promises.readFile(filePath, 'utf8');
-      const parsed = await sanitizeProjectState(JSON.parse(rawData));
+      const parsed = await sanitizeProjectState(await readJson<any>(filePath));
       return { success: true, data: parsed };
     }
     return { success: false, error: 'No se encontró proyecto activo.' };
@@ -1260,7 +1270,7 @@ ipcMain.handle('save-project-as', async (_event, state) => {
     }
     const sanitized = await sanitizeProjectState(state);
     sanitized.date = Date.now();
-    await fs.promises.writeFile(filePath, JSON.stringify(sanitized, null, 2), 'utf8');
+    await atomicJson(filePath, sanitized);
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -1282,8 +1292,7 @@ ipcMain.handle('open-project', async () => {
     const filePath = filePaths[0];
     const projectPath = path.dirname(filePath);
     
-    const raw = await fs.promises.readFile(filePath, 'utf8');
-    const parsed = await sanitizeProjectState(JSON.parse(raw));
+    const parsed = await sanitizeProjectState(await readJson<any>(filePath));
 
     // Mismo criterio que load-project: NO se limpia el temp del proyecto que se abre,
     // y el anterior se limpia solo cuando el nuevo ya esta cargado.
@@ -1291,7 +1300,7 @@ ipcMain.handle('open-project', async () => {
 
     const anterior = activeProjectPath;
     activeProjectPath = projectPath;
-    if (anterior && anterior !== projectPath) await cleanupProjectTemp(anterior);
+    if (anterior && anterior !== projectPath) { buildRunner.cancel(anterior); await cleanupProjectTemp(anterior); }
 
     return { success: true, data: parsed, projectPath };
   } catch (err: any) {
@@ -1845,108 +1854,34 @@ ipcMain.handle('load-bank-clips', async (_event, { category }) => {
   }
 })
 
-// IPC handle to automatically slice a video into segments of exactly 3 seconds using segment muxer
-ipcMain.handle('cut-video-clips', async (_event, { videoPath, timestamps }) => {
+// Manual bank slicing is separate from the durable build outputs and never empties
+// materiales/originales. Each batch gets unique names, including its thumbnails.
+ipcMain.handle('cut-video-clips', async (_event, { videoPath, timestamps, aspectRatio = '16:9' }) => {
   try {
-    console.log(`[cut-video-clips] Slicing video: ${videoPath}, timestamps length: ${timestamps?.length || 0}`)
-    const bankDir = getBancoClipsPath()
-    const useActiveProj = !!activeProjectPath
-    const outDir = useActiveProj ? dirMat(activeProjectPath!, 'originales') : path.join(bankDir, 'originales')
-    const thumbnailDir = useActiveProj ? dirCache(activeProjectPath!, 'thumbnails') : path.join(bankDir, 'thumbnails')
-    
-    if (!(await exists(outDir))) {
-      await fs.promises.mkdir(outDir, { recursive: true })
+    const project = activeProjectPath;
+    const bankDir = project ? dirMat(project, 'originales') : path.join(getBancoClipsPath(), 'originales');
+    const batch = randomUUID();
+    const source = await probe(videoPath);
+    const starts: number[] = timestamps?.length ? timestamps :
+      Array.from({ length: Math.ceil(source.duration / 3) }, (_, i) => i * 3);
+    const clips: any[] = [];
+    for (let i = 0; i < starts.length; i++) {
+      if (activeProjectPath !== project) throw new Error('El proyecto cambió; los segmentos terminados se conservaron.');
+      const start = starts[i];
+      if (!Number.isFinite(start) || start < 0 || start >= source.duration)
+        throw new Error('El intervalo de corte está fuera del vídeo fuente.');
+      const frames = Math.min(90, Math.floor((source.duration - start) * 30 + 0.000001));
+      if (frames < 1) continue;
+      const file = path.join(bankDir, `bank-${batch}-${i}.mp4`);
+      const result = await cutMedia(videoPath, file, start, frames, aspectRatio);
+      clips.push({ id: `bank-${batch}-${i}`, name: path.basename(file), path: file,
+        url: urlDeRuta(file), durationSeconds: result.duration,
+        duration: formatTimeMinutesSeconds(result.duration), type: 'video', category: 'original',
+        size: `${((await fs.promises.stat(file)).size / (1024 * 1024)).toFixed(2)} MB`, thumbnailUrl: '' });
     }
-    if (!(await exists(thumbnailDir))) {
-      await fs.promises.mkdir(thumbnailDir, { recursive: true })
-    }
-
-    // Clean up any existing clips in outDir first to avoid mixing projects
-    const existingFiles = await fs.promises.readdir(outDir)
-    for (const file of existingFiles) {
-      try {
-        await fs.promises.unlink(path.join(outDir, file))
-      } catch (e) {}
-    }
-
-    const escapedVideo = videoPath.replace(/"/g, '\\"')
-
-    if (timestamps && Array.isArray(timestamps) && timestamps.length > 0) {
-      for (let i = 0; i < timestamps.length; i++) {
-        const ts = timestamps[i];
-        const clipNum = String(i + 1).padStart(3, '0');
-        const clipFileName = `clip_${clipNum}.mp4`;
-        const clipPath = path.join(outDir, clipFileName);
-        const escapedClipPath = clipPath.replace(/"/g, '\\"');
-        
-        await new Promise<void>((resolve, reject) => {
-          // Cut exactly 3 seconds starting from timestamp
-          const ffmpegCmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t 3 -c copy "${escapedClipPath}"`;
-          console.log(`[cut-video-clips] Executing FFmpeg: ${ffmpegCmd}`);
-          exec(ffmpegCmd, (err) => {
-            if (err) reject(err);
-            else resolve();
-          });
-        });
-      }
-    } else {
-      const outputPattern = path.join(outDir, 'clip_%03d.mp4').replace(/\\/g, '/')
-      const escapedOutputPattern = outputPattern.replace(/"/g, '\\"')
-
-      await new Promise<void>((resolve, reject) => {
-        const ffmpegCmd = `ffmpeg -y -i "${escapedVideo}" -c copy -segment_time 3 -segment_start_number 1 -f segment "${escapedOutputPattern}"`
-        console.log(`[cut-video-clips] Executing FFmpeg: ${ffmpegCmd}`)
-        exec(ffmpegCmd, (err, _stdout, _stderr) => {
-          if (err) reject(err)
-          else resolve()
-        })
-      })
-    }
-
-    // Read generated files to build clips info
-    const files = await fs.promises.readdir(outDir)
-    const createdClips: any[] = []
-
-    for (const file of files) {
-      if (file.startsWith('clip_') && file.endsWith('.mp4')) {
-        const clipPath = path.join(outDir, file)
-        const durationSeconds = await getVideoDuration(clipPath)
-        
-        // Extract thumbnail
-        const thumbnailName = `${path.basename(file, path.extname(file))}.jpg`
-        const thumbnailPath = path.join(thumbnailDir, thumbnailName)
-        let thumbnailUrl = ''
-        try {
-          await generateVideoThumbnail(clipPath, thumbnailPath)
-          if (await exists(thumbnailPath)) {
-            thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbnailPath)).toString('base64')}`
-          }
-        } catch (e) {
-          console.error(`[cut-video-clips] Error generating thumbnail for ${file}:`, e)
-        }
-
-        const stat = await fs.promises.stat(clipPath)
-        createdClips.push({
-          id: `bank-originales-${file}`,
-          name: file,
-          path: clipPath,
-          url: urlDeRuta(clipPath),
-          duration: formatTimeMinutesSeconds(durationSeconds),
-          durationSeconds,
-          type: 'video',
-          size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
-          thumbnailUrl
-        })
-      }
-    }
-
-    console.log(`[cut-video-clips] Slicing finished. Created ${createdClips.length} clips.`)
-    return { success: true, clips: createdClips }
-  } catch (err: any) {
-    console.error(`[cut-video-clips] Error: ${err.message}`)
-    return { success: false, error: err.message }
-  }
-})
+    return { success: true, clips };
+  } catch (e: any) { return { success: false, error: e.message }; }
+});
 
 // IPC handle to read a local file and return its buffer/bytes (used to bypass Electron local file security policies)
 ipcMain.handle('read-file-as-blob', async (_event, { filePath }) => {
@@ -2079,8 +2014,10 @@ function construirAjustes(a: AjustesVideo | undefined, W: number, H: number): st
 }
 
 // IPC handle for exporting video (single clip or concatenating multiple clips) with aspect ratio crop
-ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, format, quality, assignedTransitions, transitionDuration, ajustesVideo }) => {
+ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, format, quality, assignedTransitions, transitionDuration, ajustesVideo, projectPath }) => {
   try {
+    if (projectPath) requireBuildProject(projectPath);
+    if (activeProjectPath) await buildRunner.validateExport(activeProjectPath, clips);
     // Mapeo de nombres internos de transiciones a nombres de FFmpeg xfade.
     // Los 38 nombres internos apuntan a 38 destinos DISTINTOS. Antes colapsaban en 21
     // (circleopen salia 5 veces, pixelize 4), asi que un video con las 38 asignadas
@@ -2678,1191 +2615,33 @@ ipcMain.handle('export-video', async (event, { clips, aspectRatio, resolution, f
   }
 })
 
-ipcMain.handle('generate-timeline-assets', async (event, { scriptText, audioDuration, transcriptSegments, videoPath, weights, iaStyle, aspectRatio, graphicsPercent: _graphicsPercent, newAudioSegments }) => {
-  const isOriginalAudio = transcriptSegments && newAudioSegments && 
-    transcriptSegments.length === newAudioSegments.length &&
-    transcriptSegments[0]?.start === newAudioSegments[0]?.start;
-
-  // Fusionar segmentos cortos (<2.0s) para que los clips duren 2-3s
-  // Se hace DESPUÉS de calcular isOriginalAudio y ANTES de usar los segmentos
-  if (isOriginalAudio && newAudioSegments && Array.isArray(newAudioSegments) && newAudioSegments.length > 0) {
-    const merged: any[] = [];
-    let i = 0;
-    while (i < newAudioSegments.length) {
-      const seg = { ...newAudioSegments[i] };
-      while (
-        i + 1 < newAudioSegments.length &&
-        (seg.end - seg.start) < 2.0
-      ) {
-        i++;
-        seg.end = newAudioSegments[i].end;
-        seg.text = (seg.text || '') + ' ' + (newAudioSegments[i].text || '');
-      }
-      merged.push(seg);
-      i++;
-    }
-    if (merged.length < newAudioSegments.length) {
-      console.log(`[MERGE] Segmentos: ${newAudioSegments.length} → ${merged.length}`);
-    }
-    newAudioSegments = merged;
-  }
-
-  const logMessage = async (msg: string) => {
-    console.log(msg);
-    await writeDebugLog(msg);
-  };
-
+// 1B: the renderer supplies the captured project, never an implicit mutable target.
+function requireBuildProject(projectPath: string) {
+  if (!activeProjectPath || path.resolve(projectPath || '') !== path.resolve(activeProjectPath))
+    throw new Error('El proyecto activo cambió. Vuelve a abrir el proyecto solicitado.');
+}
+ipcMain.handle('get-build-state', async (_event, { projectPath }) => {
+  try { requireBuildProject(projectPath); return { success: true, summary: await buildRunner.inspect(projectPath) }; }
+  catch (e: any) { return { success: false, error: e.message }; }
+});
+ipcMain.handle('cancel-build', async (_event, { projectPath }) => {
+  try { requireBuildProject(projectPath); buildRunner.cancel(projectPath); return { success: true }; }
+  catch (e: any) { return { success: false, error: e.message }; }
+});
+ipcMain.handle('generate-timeline-assets', async (event, params) => {
   try {
-    await logMessage(`[generate-timeline-assets] Iniciando... Guión a procesar: "${scriptText ? scriptText.substring(0, 60) + '...' : ''}"`);
-
-    // FASE 1: Calcular clips necesarios
-    let totalClips = 0;
-    if (newAudioSegments && Array.isArray(newAudioSegments) && newAudioSegments.length > 0) {
-      totalClips = newAudioSegments.length;
-      await logMessage(`[FASE 1] Usando newAudioSegments con timestamps reales. Total clips: ${totalClips}`);
-    } else {
-      const errMsg = 'No se encontraron los segmentos de audio transcritos de ElevenLabs (newAudioSegments). Por favor, genera la voz primero.';
-      await logMessage(`[FASE 1] Error: ${errMsg}`);
-      return { success: false, error: errMsg };
-    }
-
-    if (!videoPath || !(await exists(videoPath))) {
-      return { success: false, error: `No se encontró el video original: ${videoPath}` };
-    }
-
-    // FASE 2: DeepSeek → timestamps & tipos de clip
-    await logMessage('[FASE 2] Solicitando timestamps y tipos de clip a DeepSeek...');
+    requireBuildProject(params.projectPath);
+    if (params.audioStartSeconds !== 0) throw new Error('El audio principal debe empezar en cero.');
     loadEnv(true);
-    const apiKey = process.env.DEEPSEEK_API_KEY;
-    if (!apiKey) return { success: false, error: 'No se configuró DEEPSEEK_API_KEY en el archivo .env' };
-
-    // Asegurar que FAL_KEY y PEXELS_API_KEY estén en el entorno
-    const falApiKey = process.env.FAL_KEY;
-    if (falApiKey) {
-      process.env.FAL_KEY = falApiKey;
-    }
-    let clipsDecision: any[] = [];
-
-    event.sender.send('generation-progress', {
-      index: 0, total: totalClips,
-      paragraph: 'Consultando DeepSeek para seleccionar fragmentos e IA...',
-      type: 'DeepSeek'
-    });
-
-    const maxTsVal = transcriptSegments?.length > 0
-      ? (transcriptSegments[transcriptSegments.length - 1]?.end ?? audioDuration)
-      : audioDuration;
-
-    // Calcular cuántos sub-clips totales se requieren
-    let totalVisualClipsCount = 0;
-    if (newAudioSegments && Array.isArray(newAudioSegments)) {
-      newAudioSegments.forEach((seg: any) => {
-        const duration = seg.end - seg.start;
-        totalVisualClipsCount += duration > 4.0 ? Math.ceil(duration / 3.0) : 1;
+    return await buildRunner.run({ projectPath: params.projectPath, scriptText: params.scriptText,
+      audioPath: params.audioPath, audioDuration: params.audioDuration, videoPath: params.videoPath || '',
+      weights: params.weights, aspectRatio: params.aspectRatio,
+      segments: params.newAudioSegments, originalAudio: params.originalAudio },
+      params.mode === 'continue' ? 'continue' : 'new', params.expectedPlanId || null, progress => {
+        if (!event.sender.isDestroyed() && activeProjectPath === params.projectPath)
+          event.sender.send('generation-progress', { ...progress, requestId: params.requestId });
       });
-    }
-
-    const pesoIa = weights ? (weights[2] ?? 0) : 0;
-    const stockWeight = weights ? (weights[1] ?? 0) : 0;
-
-    let targetIaClips = Math.round((pesoIa / 100) * totalVisualClipsCount);
-    let targetStockClips = Math.round((stockWeight / 100) * totalVisualClipsCount);
-
-    if (targetIaClips + targetStockClips > totalVisualClipsCount) {
-      const sum = targetIaClips + targetStockClips;
-      targetIaClips = Math.floor((targetIaClips / sum) * totalVisualClipsCount);
-      targetStockClips = totalVisualClipsCount - targetIaClips;
-    }
-    const targetOriginalClips = totalVisualClipsCount - targetIaClips - targetStockClips;
-
-    await logMessage(`[FASE 2] weights: original=${targetOriginalClips}, stock=${targetStockClips}, ia=${targetIaClips}/${totalVisualClipsCount}`);
-
-    let flattenedClips: any[] = [];
-
-    let sanitizedPhrases: any[] = [];
-
-    try {
-
-
-
-      const BATCH_SIZE = 25;
-      let phrasesDecision: any[] = [];
-      let graphicsDecision: any[] = [];
-
-      for (let batchStart = 0; batchStart < newAudioSegments.length; batchStart += BATCH_SIZE) {
-        const batchEnd = Math.min(batchStart + BATCH_SIZE, newAudioSegments.length);
-        const batchSegs = newAudioSegments.slice(batchStart, batchEnd);
-        
-        const batchFragmentos = batchSegs.map((seg: any, idx: number) => {
-          const phraseNum = batchStart + idx + 1;
-          const duration = seg.end - seg.start;
-          const count = duration > 4.0 ? Math.ceil(duration / 3.0) : 1;
-          return '[Frase ' + phraseNum + '] \"' + seg.text + '\" (' + 
-            Number(seg.start).toFixed(1) + 's - ' + Number(seg.end).toFixed(1) + 
-            's, duración: ' + duration.toFixed(2) + 's). Requiere exactamente ' + 
-            count + ' sub-clip(s) visual(es) de aprox ' + 
-            (duration / count).toFixed(2) + 's cada uno.';
-        }).join('\n');
-
-        const batchVisualCount = batchSegs.reduce((acc: number, seg: any) => {
-          const duration = seg.end - seg.start;
-          return acc + (duration > 4.0 ? Math.ceil(duration / 3.0) : 1);
-        }, 0);
-        
-        // Ya no se piden cuotas de tipo: los tipos se asignan en codigo, por posicion, para
-        // garantizar los conteos y el intercalado. Pedirlas aqui era lo que limitaba el
-        // reparto: DeepSeek solo daba keyword a los que el marcaba como stock (66% de los
-        // clips), y el 34% restante quedaba como original forzado, creando rachas de hasta
-        // 16 clips seguidos que ningun algoritmo podia romper.
-        // La unica excepcion es la IA: generar un clip de IA cuesta dinero y no se puede
-        // inventar desde el codigo, asi que su cuota se sigue pidiendo, pero solo cuando el
-        // usuario la ha pedido de verdad.
-        const batchIa = pesoIa > 0
-          ? Math.round((targetIaClips / totalVisualClipsCount) * batchVisualCount)
-          : 0;
-        const lineaTipos = pesoIa > 0
-          ? 'De ' + batchVisualCount + ' sub-clips marca exactamente ' + batchIa +
-            ' con "type":"ia" y dales ademas un prompt descriptivo en ingles. El resto NO lleva campo type.\n'
-          : 'NO asignes tipos de clip. Eso se decide despues; tu unica tarea es describir cada sub-clip.\n';
-
-        const batchPrompt = 'Eres un editor de video experto.\n' +
-          'Para cada frase decide como ilustrarla visualmente. Si dura mas de 4.0s divide en 2-3 sub-clips (maximo 3.0s cada uno).\n' +
-          'Para CADA sub-clip da SIEMPRE estos dos campos:\n' +
-          '- keyword: en ingles, corta y concreta, algo filmable que ilustre ESE trozo. Nunca abstracta: evita palabras como "consequences", "awareness" o "meaning".\n' +
-          '- timestamp: el segundo del video original (0-' + Number(maxTsVal).toFixed(1) + ') que mejor acompana ese trozo.\n' +
-          lineaTipos +
-          'FRASES:\n' + batchFragmentos + '\n' +
-          'Responde SOLO JSON:\n' +
-          '{"phrases":[{"phraseIndex":' + (batchStart+1) + ',"visualClips":[{"keyword":"protest march","timestamp":12.3,"duration":2.5}]},' +
-          '{"phraseIndex":' + (batchStart+2) + ',"visualClips":[{"keyword":"empty stadium","timestamp":45.0,"duration":2.5}]}]}';
-
-        try {
-          await logMessage('[FASE 2] Lote ' + Math.ceil((batchStart+1)/BATCH_SIZE) + 
-            ' frases ' + (batchStart+1) + '-' + batchEnd);
-          const dsResp = await fetch('https://api.deepseek.com/chat/completions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-            body: JSON.stringify({
-              model: 'deepseek-v4-pro',
-              messages: [
-                { role: 'system', content: 'Responde UNICAMENTE con JSON valido.' },
-                { role: 'user', content: batchPrompt }
-              ],
-              temperature: 0.2,
-              max_tokens: 8000,
-              thinking: { type: 'disabled' }
-            })
-          });
-          if (dsResp.ok) {
-            const dsData = (await dsResp.json()) as any;
-            const finishReason = dsData?.choices?.[0]?.finish_reason;
-            if (finishReason === 'length') {
-              await logMessage(`[FASE 2] AVISO: respuesta truncada (finish_reason=length). El lote se perdera y esas frases caeran a original.`);
-            }
-            let content = (dsData?.choices?.[0]?.message?.content || '').trim();
-            if (content.includes('{')) {
-              content = content.substring(content.indexOf('{'), content.lastIndexOf('}')+1);
-            }
-            const parsed = JSON.parse(content);
-            if (Array.isArray(parsed.phrases)) {
-              phrasesDecision.push(...parsed.phrases);
-            }
-          } else {
-            const errBody = await dsResp.text().catch(() => '');
-            await logMessage(`[FASE 2] DeepSeek HTTP ${dsResp.status}: ${errBody.slice(0, 300)}`);
-          }
-        } catch (err: any) {
-          await logMessage('[FASE 2] Error lote: ' + err.message);
-        }
-      }
-
-      // Gráficos se generan por separado con Regenerar Gráficos
-
-      // Procesar y sanitizar con phrasesDecision y graphicsDecision
-      for (let idx = 0; idx < newAudioSegments.length; idx++) {
-        const seg = newAudioSegments[idx];
-        const nextSegStart = newAudioSegments[idx + 1]?.start;
-        const phraseDuration = (typeof nextSegStart === 'number' && nextSegStart > seg.start)
-          ? (nextSegStart - seg.start)
-          : (seg.end - seg.start);
-        const numClipsExpected = phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
-        
-        const matchClips = phrasesDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
-        const matchGraphics = graphicsDecision.find((p: any) => p && (p.phraseIndex === idx + 1 || p.index === idx + 1));
-
-        let visualClips = matchClips?.visualClips || matchClips?.clips;
-        if (!Array.isArray(visualClips) || visualClips.length === 0) {
-          visualClips = [];
-          for (let c = 0; c < numClipsExpected; c++) {
-            visualClips.push({
-              type: 'original',
-              timestamp: parseFloat((newAudioSegments[idx]?.start ?? ((idx / newAudioSegments.length) * maxTsVal)).toFixed(1)),
-              keyword: 'broll',
-              prompt: 'cinematic video clip',
-              duration: phraseDuration / numClipsExpected
-            });
-          }
-        }
-
-        if (visualClips.length !== numClipsExpected) {
-          if (visualClips.length < numClipsExpected) {
-            while (visualClips.length < numClipsExpected) {
-              visualClips.push({
-                type: 'original',
-                timestamp: parseFloat((newAudioSegments[idx]?.start ?? ((idx / newAudioSegments.length) * maxTsVal)).toFixed(1)),
-                keyword: 'broll',
-                prompt: 'cinematic video clip',
-                duration: phraseDuration / numClipsExpected
-              });
-            }
-          } else {
-            visualClips = visualClips.slice(0, numClipsExpected);
-          }
-        }
-
-        visualClips = visualClips.map((c: any) => {
-          const type = ['original', 'stock', 'ia'].includes(c.type) ? c.type : 'original';
-          const effectiveTimestamp = (isOriginalAudio && type === 'original' && newAudioSegments[idx]?.start !== undefined)
-            ? newAudioSegments[idx].start
-            : (c.timestamp ?? parseFloat(((idx / newAudioSegments.length) * maxTsVal).toFixed(1)));
-          return {
-            type,
-            timestamp: effectiveTimestamp,
-            keyword: c.keyword || 'broll',
-            prompt: c.prompt || 'cinematic video clip',
-            duration: parseFloat((c.duration || (phraseDuration / numClipsExpected)).toFixed(2))
-          };
-        });
-
-        // Ajustar duraciones proporcionalmente para que sumen la duración exacta de la frase
-        const sumProposed = visualClips.reduce((acc: number, c: any) => acc + (c.duration || 0), 0);
-        if (sumProposed <= 0.05 || visualClips.some((c: any) => c.duration <= 0.05)) {
-          let runningSum = 0;
-          for (let i = 0; i < visualClips.length; i++) {
-            if (i === visualClips.length - 1) {
-              visualClips[i].duration = parseFloat((phraseDuration - runningSum).toFixed(2));
-            } else {
-              const val = parseFloat((phraseDuration / visualClips.length).toFixed(2));
-              visualClips[i].duration = val;
-              runningSum += val;
-            }
-          }
-        } else {
-          let runningSum = 0;
-          for (let i = 0; i < visualClips.length; i++) {
-            if (i === visualClips.length - 1) {
-              visualClips[i].duration = parseFloat((phraseDuration - runningSum).toFixed(2));
-            } else {
-              const scaled = (visualClips[i].duration / sumProposed) * phraseDuration;
-              visualClips[i].duration = parseFloat(scaled.toFixed(2));
-              runningSum += visualClips[i].duration;
-            }
-          }
-        }
-
-        let graphic = matchGraphics?.graphic;
-        if (graphic && typeof graphic === 'object') {
-          const type = graphic.type || 'decorativo_emoji';
-          let start = parseFloat(Number(graphic.graphicStart).toFixed(2));
-          let end = parseFloat(Number(graphic.graphicEnd).toFixed(2));
-          
-          if (isNaN(start) || start < 0) start = 0;
-          if (start > phraseDuration) start = phraseDuration;
-          if (isNaN(end) || end < start) end = start + 2.0;
-          if (end > phraseDuration) end = phraseDuration;
-          
-          let dur = end - start;
-          if (dur > 2.0) {
-            end = parseFloat((start + 2.0).toFixed(2));
-            if (end > phraseDuration) {
-              end = phraseDuration;
-              start = parseFloat(Math.max(0, end - 2.0).toFixed(2));
-            }
-          }
-          if (end - start < 0.2) {
-            start = parseFloat(Math.max(0, end - 1.0).toFixed(2));
-            end = parseFloat(Math.min(phraseDuration, start + 1.0).toFixed(2));
-          }
-
-          graphic = {
-            type,
-            value: graphic.value !== undefined ? graphic.value : '📊',
-            label: graphic.label || 'Concepto clave',
-            unit: graphic.unit || '',
-            emoji: graphic.emoji || '💡',
-            graphicStart: start,
-            graphicEnd: end,
-            extra: graphic.extra !== undefined ? graphic.extra : null
-          };
-        } else {
-          graphic = null;
-        }
-
-        sanitizedPhrases.push({
-          phraseIndex: idx + 1,
-          visualClips,
-          graphic
-        });
-      }
-    } catch (e: any) {
-      await logMessage(`[FASE 2] DeepSeek error: ${e.message}. Usando fallback.`);
-    }
-
-    if (sanitizedPhrases.length === 0) {
-      for (let idx = 0; idx < newAudioSegments.length; idx++) {
-        const seg = newAudioSegments[idx];
-        const phraseDuration = seg.end - seg.start;
-        const numClipsExpected = phraseDuration > 4.0 ? Math.ceil(phraseDuration / 3.0) : 1;
-        const visualClips: any[] = [];
-        let runningSum = 0;
-        for (let c = 0; c < numClipsExpected; c++) {
-          let dur = 0;
-          if (c === numClipsExpected - 1) {
-            dur = parseFloat((phraseDuration - runningSum).toFixed(2));
-          } else {
-            dur = parseFloat((phraseDuration / numClipsExpected).toFixed(2));
-            runningSum += dur;
-          }
-          visualClips.push({
-            type: 'original',
-            timestamp: parseFloat((newAudioSegments[idx]?.start ?? ((idx / newAudioSegments.length) * maxTsVal)).toFixed(1)),
-            keyword: 'broll',
-            prompt: 'cinematic video clip',
-            duration: dur
-          });
-        }
-        sanitizedPhrases.push({
-          phraseIndex: idx + 1,
-          visualClips,
-          graphic: null
-        });
-      }
-      await logMessage(`[FASE 2] Fallback: ${newAudioSegments.length} frases procesadas uniformemente.`);
-    }
-
-    // Filtro anti-repetición y relleno uniforme a nivel de frases
-    let consecutiveType = '';
-    let consecutiveCount = 0;
-    for (let i = 0; i < sanitizedPhrases.length; i++) {
-      const g = sanitizedPhrases[i].graphic;
-      if (g && g.type) {
-        if (g.type === consecutiveType) {
-          consecutiveCount++;
-          if (consecutiveCount >= 3) {
-            g.type = 'decorativo_emoji';
-            g.value = g.emoji || '📊';
-            consecutiveType = 'decorativo_emoji';
-            consecutiveCount = 1;
-          }
-        } else {
-          consecutiveType = g.type;
-          consecutiveCount = 1;
-        }
-      } else {
-        consecutiveType = '';
-        consecutiveCount = 0;
-      }
-    }
-
-
-
-    // ═══ CUOTA Y REPARTO: conteos exactos + distribucion uniforme ═══
-    // Dos garantias, en este orden de prioridad:
-    //  1. Contenido valido: solo se pone 'stock' donde hay keyword propio de esa frase.
-    //     Sin keyword la busqueda seria generica ('broll') y el clip no ilustraria nada.
-    //     'original' se puede poner en cualquier sitio: solo necesita timestamp, y la
-    //     pasada de escalonado que corre justo despues lo deja correcto.
-    //  2. Conteos de los sliders y reparto uniforme, dentro de lo que permita el punto 1.
-    // Medido: v4-pro desvia la cuota de forma erratica (+17, +12, +1, +19 en 4 runs) y
-    // amontona (una racha de 28 clips 'original', 70s sin un solo plano de stock, mientras
-    // las rachas de stock no pasaban de 4).
-    // Un intento previo de pedirlo en el prompt colapso el reparto a 76 stock / 0 original:
-    // el prompt es sensible y la correccion tiene que ser determinista, en codigo.
-    const cuotaLista: { phraseIdx: number; clip: any }[] = [];
-    for (let p = 0; p < sanitizedPhrases.length; p++) {
-      for (const c of sanitizedPhrases[p].visualClips) cuotaLista.push({ phraseIdx: p, clip: c });
-    }
-    const totalReal = cuotaLista.length;
-
-    if (totalReal > 0) {
-      // Objetivos directos desde los pesos contra el total REAL de sub-clips. No se
-      // reescalan los target* previos: si totalVisualClipsCount fuese 0 daria NaN.
-      // Misma normalizacion que L1767-1772, que garantiza objOriginal >= 0.
-      let objIa = Math.round((pesoIa / 100) * totalReal);
-      let objStock = Math.round((stockWeight / 100) * totalReal);
-      if (objIa + objStock > totalReal) {
-        const sum = objIa + objStock;
-        objIa = Math.floor((objIa / sum) * totalReal);
-        objStock = totalReal - objIa;
-      }
-      const objOriginal = totalReal - objIa - objStock;
-
-      const antesStock = cuotaLista.filter(x => x.clip.type === 'stock').length;
-      const antesOriginal = cuotaLista.filter(x => x.clip.type === 'original').length;
-
-      // Los 'ia' no se tocan: generarlos cuesta dinero y no se pueden inventar. Pero un 'ia'
-      // entrante solo se respeta si el usuario pidio IA de verdad: ahora que el prompt ya no
-      // fija cuotas de tipo, un 'ia' espontaneo del modelo dispararia llamadas de pago a
-      // fal.ai que nadie solicito.
-      const respetarIa = pesoIa > 0;
-      const reasignables: number[] = [];
-      for (let j = 0; j < totalReal; j++) {
-        const t = cuotaLista[j].clip.type;
-        if (t === 'stock' || t === 'original' || (t === 'ia' && !respetarIa)) reasignables.push(j);
-      }
-      const conKeyword = reasignables.filter(
-        j => cuotaLista[j].clip.keyword && cuotaLista[j].clip.keyword !== 'broll'
-      );
-
-      const objStockReal = Math.min(objStock, reasignables.length);
-      const cuantosStock = Math.min(objStockReal, conKeyword.length);
-      const sinKeyword = objStockReal - cuantosStock;
-
-      // Colocacion optima: en vez de repartir uniformemente sobre la lista de clips con
-      // keyword (que amontona si los keywords estan agrupados), se eligen las posiciones
-      // que MINIMIZAN la racha maxima de stock. Los clips sin keyword son originales
-      // forzados y parten la secuencia en tramos; los cortes van dentro de cada tramo.
-      const cortesDisp = conKeyword.length - cuantosStock;
-      const esCandidato = new Set(conKeyword);
-
-      // Tramos maximales de candidatos consecutivos (indices dentro de reasignables)
-      const tramos: { ini: number; len: number }[] = [];
-      let t = 0;
-      while (t < reasignables.length) {
-        if (!esCandidato.has(reasignables[t])) { t++; continue; }
-        const ini = t;
-        while (t < reasignables.length && esCandidato.has(reasignables[t])) t++;
-        tramos.push({ ini, len: t - ini });
-      }
-
-      // Cortes minimos para que un tramo de longitud L no deje rachas mayores que r:
-      //   L - f <= r*(f+1)   ->   f >= (L - r)/(r + 1)
-      const cortesPara = (L: number, r: number) => Math.max(0, Math.ceil((L - r) / (r + 1)));
-      const cabe = (r: number) => tramos.reduce((s, x) => s + cortesPara(x.len, r), 0) <= cortesDisp;
-
-      // Busqueda binaria de la racha minima alcanzable con los cortes disponibles. O(n log n).
-      const maxTramo = tramos.reduce((m, x) => Math.max(m, x.len), 0);
-      let lo = 1, hi = Math.max(1, maxTramo);
-      while (lo < hi) {
-        const mid = Math.floor((lo + hi) / 2);
-        if (cabe(mid)) hi = mid; else lo = mid + 1;
-      }
-      const rachaAlcanzada = cuantosStock > 0 ? lo : 0;
-      // Minimo teorico si TODOS los clips tuvieran keyword: el ratio puro (67/33 -> 2).
-      const nOriginal = reasignables.length - cuantosStock;
-      const rachaIdeal = (cuantosStock > 0 && nOriginal > 0)
-        ? Math.max(1, Math.ceil(cuantosStock / nOriginal)) : cuantosStock;
-
-      // Reparto por tramo: el minimo para alcanzar r, y los sobrantes al tramo que peor
-      // este en cada momento. Hay que gastarlos todos: los conteos son exactos.
-      const alloc = tramos.map(x => Math.min(x.len, cortesPara(x.len, rachaAlcanzada)));
-      let sobran = cortesDisp - alloc.reduce((s, a) => s + a, 0);
-      while (sobran > 0) {
-        let peor = -1, peorVal = -1;
-        for (let i = 0; i < tramos.length; i++) {
-          if (alloc[i] >= tramos[i].len) continue;
-          const val = Math.ceil((tramos[i].len - alloc[i]) / (alloc[i] + 1));
-          if (val > peorVal) { peorVal = val; peor = i; }
-        }
-        if (peor < 0) break;
-        alloc[peor]++; sobran--;
-      }
-
-      // Todos los candidatos son stock salvo los cortes, repartidos dentro de su tramo.
-      // Los offsets son estrictamente crecientes, asi que no se borra dos veces el mismo
-      // clip y el conteo se mantiene exacto.
-      const elegidos = new Set<number>(cuantosStock > 0 ? conKeyword : []);
-      if (cuantosStock > 0) {
-        for (let i = 0; i < tramos.length; i++) {
-          const { ini, len } = tramos[i];
-          const f = alloc[i];
-          for (let j = 0; j < f; j++) {
-            const off = Math.min(len - 1, Math.floor(((j + 1) * len) / (f + 1)));
-            elegidos.delete(reasignables[ini + off]);
-          }
-        }
-      }
-
-      for (const j of reasignables) {
-        cuotaLista[j].clip.type = elegidos.has(j) ? 'stock' : 'original';
-      }
-
-      const finStock = cuotaLista.filter(x => x.clip.type === 'stock').length;
-      const finOriginal = cuotaLista.filter(x => x.clip.type === 'original').length;
-      await logMessage(`[FASE 2] Cuota: objetivo original=${objOriginal} stock=${objStock} ia=${objIa} | ` +
-        `antes original=${antesOriginal} stock=${antesStock} | ahora original=${finOriginal} stock=${finStock} | ` +
-        `con keyword propio=${conKeyword.length}/${reasignables.length} | ` +
-        `racha stock: alcanzada=${rachaAlcanzada} ideal=${rachaIdeal} ` +
-        `(${rachaAlcanzada > rachaIdeal ? 'limite del material: faltan keywords' : 'optimo'})` +
-        (sinKeyword > 0
-          ? ` | AVISO: ${sinKeyword} slots de stock van como original por falta de keyword propio (evita b-roll generico)`
-          : ''));
-    }
-
-    // ═══ TIMESTAMPS ESCALONADOS PARA LOS CLIPS 'original' ═══
-    // Hasta ahora todos los sub-clips de una frase recibian el mismo timestamp (el inicio
-    // de la frase), asi que una frase partida en 3 mostraba el mismo trozo del video fuente
-    // 3 veces seguidas, y con los labios desincronizados en el 2o y el 3o.
-    // Se recalcula aqui, ya con las duraciones definitivas (se ajustan en el bucle de
-    // sanitizado), avanzando el timestamp por la duracion de los sub-clips anteriores.
-    if (isOriginalAudio) {
-      let escalonados = 0;
-      for (let p = 0; p < sanitizedPhrases.length; p++) {
-        const base = newAudioSegments[p]?.start;
-        if (base === undefined) continue;
-        let offset = 0;
-        for (const c of sanitizedPhrases[p].visualClips) {
-          if (c.type === 'original') {
-            if (offset > 0) escalonados++;
-            c.timestamp = parseFloat(Math.min(base + offset, maxTsVal).toFixed(2));
-          }
-          // El offset avanza con TODOS los sub-clips, no solo los 'original': la posicion
-          // dentro de la frase progresa sea cual sea el tipo del sub-clip anterior.
-          offset += c.duration || 0;
-        }
-      }
-      await logMessage(`[FASE 2] Timestamps escalonados: ${escalonados} sub-clips 'original' movidos dentro de su frase`);
-    }
-
-    // Aplanar la lista de sub-clips para alimentar la cola de trabajadores
-    flattenedClips = [];
-    let globalIdx = 1;
-    for (let phraseIdx = 0; phraseIdx < sanitizedPhrases.length; phraseIdx++) {
-      const phrase = sanitizedPhrases[phraseIdx];
-      for (let clipIdx = 0; clipIdx < phrase.visualClips.length; clipIdx++) {
-        const subClip = phrase.visualClips[clipIdx];
-        flattenedClips.push({
-          index: globalIdx,
-          phraseIndex: phraseIdx,
-          clipIndexInPhrase: clipIdx,
-          type: subClip.type,
-          timestamp: subClip.timestamp,
-          keyword: subClip.keyword,
-          prompt: subClip.prompt,
-          duration: subClip.duration,
-          graphic: null
-        });
-        globalIdx++;
-      }
-    }
-
-    clipsDecision = flattenedClips;
-    totalClips = flattenedClips.length;
-
-    await logMessage(`[FASE 2] Decisiones de clips listas. Sub-clips totales: ${clipsDecision.length}. Clips IA: ${clipsDecision.filter(c => c.type === 'ia').length}, Stock: ${clipsDecision.filter(c => c.type === 'stock').length}, Original: ${clipsDecision.filter(c => c.type === 'original').length}, Gráficos asignados: ${sanitizedPhrases.filter(p => p.graphic !== null).length}`);
-
-    // FASE 3: FFmpeg e IA — generar clips
-    await logMessage(`[FASE 3] Generando ${totalClips} clips con FFmpeg, Pexels y fal.ai (IA)...`);
-
-    const outDir = activeProjectPath
-      ? dirMat(activeProjectPath, 'originales')
-      : path.join(getBancoClipsPath(), 'originales');
-    if (!(await exists(outDir))) await fs.promises.mkdir(outDir, { recursive: true });
-
-    const thumbDir = activeProjectPath
-      ? dirCache(activeProjectPath, 'thumbnails')
-      : path.join(getBancoClipsPath(), 'thumbnails');
-    if (!(await exists(thumbDir))) await fs.promises.mkdir(thumbDir, { recursive: true });
-
-    const results = new Array(totalClips);
-    // Fuentes de stock ya usadas en esta generacion (provider_id, la misma identidad que el
-    // fichero de cache) y cuantas veces. Keywords distintas pueden rankear el mismo video
-    // generico: medido, uno llego a aparecer 4 veces en el mismo montaje.
-    const usosPorFuente = new Map<string, number>();
-    // Inversa radical en base 2 (van der Corput): 0, 1/2, 1/4, 3/4, 1/8, 5/8...
-    // Coloca puntos incrementalmente sin saber cuantos vendran, cada uno en el hueco mas
-    // grande que queda. Se usa para que dos usos de la misma fuente nunca arranquen en el
-    // mismo segundo. Un simple (avance % margen) SI colisiona: con consumo 2.5 y margen 5,
-    // el uso 1 cae en 2.5 y el uso 3 en 7.5%5 = 2.5.
-    const vdc = (n: number) => {
-      let r = 0, denom = 1;
-      while (n > 0) { denom *= 2; r += (n % 2) / denom; n = Math.floor(n / 2); }
-      return r; // en [0, 1)
-    };
-    const escapedVideo = videoPath.replace(/"/g, '\\"');
-
-    // Cola de procesamiento
-    const queue = [...clipsDecision];
-
-    // Procesamiento paralelo con límite de 3 workers simultáneos
-    const workers = Array(3).fill(null).map(async () => {
-      while (queue.length > 0) {
-        const item = queue.shift();
-        if (!item) break;
-
-        const clipNum = String(item.index).padStart(3, '0');
-        const clipPath = path.join(outDir, `clip_${clipNum}.mp4`);
-        const escapedClip = clipPath.replace(/"/g, '\\"');
-        const thumbPath = path.join(thumbDir, `clip_${clipNum}.jpg`);
-
-        event.sender.send('generation-progress', {
-          index: item.index - 1, total: totalClips,
-          paragraph: `Procesando clip ${item.index}/${totalClips} [${item.type}]`,
-          type: item.type === 'ia' ? 'IA' : (item.type === 'stock' ? 'Stock' : 'FFmpeg')
-        });
-
-        let success = false;
-
-        if (item.type === 'ia') {
-          try {
-            let promptFinal = item.prompt || 'cinematic video clip';
-            if (iaStyle === 'cartoon') {
-              promptFinal += ', 3D cartoon style, vibrant colors, Pixar animation movie style';
-            } else if (iaStyle === 'bw') {
-              promptFinal += ', black and white, classic film noir movie style, moody lighting';
-            }
-
-            // Llamada a fal.ai
-            const result = await fal.subscribe("fal-ai/minimax/video-01", {
-              input: { prompt: promptFinal }
-            }) as any;
-
-            const downloadUrl = result?.video?.url || result?.data?.video?.url;
-            if (!downloadUrl) throw new Error('No se recibió la URL de video de fal.ai');
-
-            // Descargar el clip temporalmente
-            const downloadRes = await fetch(downloadUrl);
-            if (!downloadRes.ok) throw new Error(`Download failed: ${downloadRes.statusText}`);
-            
-            const arrayBuffer = await downloadRes.arrayBuffer();
-            const tempVideoPath = path.join(outDir, `temp_ia_${clipNum}.mp4`);
-            await fs.promises.writeFile(tempVideoPath, Buffer.from(arrayBuffer));
-
-            // Recortar el video de IA (6s) a su duración real con re-codificación h264/aac
-            await new Promise<void>((resolve, reject) => {
-              const cmd = `ffmpeg -y -ss 0 -i "${tempVideoPath}" -t ${item.duration} -c:v libx264 -c:a aac "${escapedClip}"`;
-              exec(cmd, (err) => { if (err) reject(err); else resolve(); });
-            });
-
-            try { await fs.promises.unlink(tempVideoPath); } catch (e) {}
-            success = true;
-          } catch (iaErr: any) {
-            await logMessage(`[FASE 3] Error IA en clip ${item.index}: ${iaErr.message || iaErr}. Usando fallback original.`);
-            // Caída de seguridad: convertimos el clip a tipo original y le asignamos un timestamp proporcional
-            item.type = 'original';
-            item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
-          }
-        }
-
-        if (item.type === 'stock') {
-          try {
-            // ═══ BÚSQUEDA PARALELA EN MÚLTIPLES PROVEEDORES ═══
-            const pexelsApiKey = process.env.PEXELS_API_KEY;
-            const pixabayApiKey = process.env.PIXABAY_API_KEY || '';
-            const coverrApiKey = process.env.COVERR_API_KEY || '';
-            const isVertical = aspectRatio === '9:16' || aspectRatio === 'vertical';
-            const targetOrientation = isVertical ? 'portrait' : 'landscape';
-            const stockDir = path.join(getBancoClipsPath(), 'stock');
-            if (!(await exists(stockDir))) {
-              await fs.promises.mkdir(stockDir, { recursive: true });
-            }
-            
-            type StockResult = { provider: string; id: string; downloadUrl: string; width: number; height: number; duration?: number };
-            const stockResults: StockResult[] = [];
-            const keyword = item.keyword || 'broll';
-
-            // Buscar en Pexels
-            if (pexelsApiKey) {
-              try {
-                const pexelsUrl = `https://api.pexels.com/videos/search?query=${encodeURIComponent(keyword)}&per_page=5&orientation=${targetOrientation}`;
-                await logMessage(`[FASE 3] Buscando stock en Pexels para: "${keyword}"`);
-                const pexelsRes = await fetch(pexelsUrl, { headers: { 'Authorization': pexelsApiKey } });
-                if (pexelsRes.ok) {
-                  const pexelsData = await pexelsRes.json() as any;
-                  const videos = pexelsData?.videos || [];
-                  for (const video of videos.slice(0, 3)) {
-                    const videoFiles = video.video_files || [];
-                    let bestFile = videoFiles.find((f: any) => f.quality === 'hd' || f.width >= 720);
-                    if (!bestFile) bestFile = videoFiles[0];
-                    if (bestFile?.link) {
-                      stockResults.push({
-                        provider: 'pexels',
-                        id: String(video.id),
-                        downloadUrl: bestFile.link,
-                        width: bestFile.width || 0,
-                        height: bestFile.height || 0,
-                        duration: video.duration
-                      });
-                    }
-                  }
-                  await logMessage(`[FASE 3] Pexels devolvió ${stockResults.length} resultados para: "${keyword}"`);
-                }
-              } catch (pexErr) {
-                await logMessage(`[FASE 3] Error en Pexels: ${pexErr}`);
-              }
-            }
-
-            // Buscar en Pixabay
-            if (pixabayApiKey) {
-              try {
-                const pixabayUrl = `https://pixabay.com/api/videos/?key=${pixabayApiKey}&q=${encodeURIComponent(keyword)}&per_page=5&safesearch=true`;
-                await logMessage(`[FASE 3] Buscando stock en Pixabay para: "${keyword}"`);
-                const pixRes = await fetch(pixabayUrl);
-                if (pixRes.ok) {
-                  const pixData = await pixRes.json() as any;
-                  const hits = pixData?.hits || [];
-                  const prevCount = stockResults.length;
-                  for (const hit of hits.slice(0, 3)) {
-                    const videoUrl = hit.videos?.large?.url || hit.videos?.medium?.url;
-                    if (videoUrl) {
-                      stockResults.push({
-                        provider: 'pixabay',
-                        id: String(hit.id),
-                        downloadUrl: videoUrl,
-                        width: hit.videos?.large?.width || hit.videos?.medium?.width || 0,
-                        height: hit.videos?.large?.height || hit.videos?.medium?.height || 0,
-                        duration: hit.duration
-                      });
-                    }
-                  }
-                  await logMessage(`[FASE 3] Pixabay devolvió ${stockResults.length - prevCount} resultados para: "${keyword}"`);
-                }
-              } catch (pixErr) {
-                await logMessage(`[FASE 3] Error en Pixabay: ${pixErr}`);
-              }
-            }
-
-            // Buscar en Coverr
-            if (coverrApiKey) {
-              try {
-                const coverrUrl = `https://api.coverr.co/videos?query=${encodeURIComponent(keyword)}&page_size=5`;
-                await logMessage(`[FASE 3] Buscando stock en Coverr para: "${keyword}"`);
-                const coverrRes = await fetch(coverrUrl, { headers: { 'Authorization': `Bearer ${coverrApiKey}` } });
-                if (coverrRes.ok) {
-                  const coverrData = await coverrRes.json() as any;
-                  const hits = coverrData?.hits || [];
-                  const prevCount = stockResults.length;
-                  for (const hit of hits.slice(0, 3)) {
-                    const mp4 = hit?.urls?.mp4_download || hit?.urls?.mp4 || '';
-                    if (mp4) {
-                      stockResults.push({
-                        provider: 'coverr',
-                        id: String(hit.id || hit.slug || Math.random()),
-                        downloadUrl: mp4,
-                        width: hit.width || 1920,
-                        height: hit.height || 1080,
-                        duration: hit.duration || undefined
-                      });
-                    }
-                  }
-                  await logMessage(`[FASE 3] Coverr devolvió ${stockResults.length - prevCount} resultados para: "${keyword}"`);
-                }
-              } catch (coverrErr) {
-                await logMessage(`[FASE 3] Error en Coverr: ${coverrErr}`);
-              }
-            }
-
-            // Buscar en NASA Images (sin API key, público)
-            try {
-              const nasaUrl = `https://images-api.nasa.gov/search?q=${encodeURIComponent(keyword)}&media_type=video&page_size=3`;
-              await logMessage(`[FASE 3] Buscando stock en NASA para: "${keyword}"`);
-              const nasaRes = await fetch(nasaUrl);
-              if (nasaRes.ok) {
-                const nasaData = await nasaRes.json() as any;
-                const nasaItems = nasaData?.collection?.items || [];
-                // Filtrar solo videos cortos (menos de 120 segundos)
-                const shortNasaItems = nasaItems.filter((item: any) => {
-                  const desc = item?.data?.[0]?.description || '';
-                  // Excluir conferencias de prensa, webinars, y videos muy largos
-                  const isLong = desc.toLowerCase().includes('conference') || 
-                                 desc.toLowerCase().includes('briefing') || 
-                                 desc.toLowerCase().includes('webinar') ||
-                                 desc.toLowerCase().includes('full length');
-                  return !isLong;
-                });
-                const prevCount = stockResults.length;
-                for (const item of shortNasaItems.slice(0, 2)) {
-                  const nasaId = item?.data?.[0]?.nasa_id;
-                  if (!nasaId) continue;
-                  try {
-                    const assetRes = await fetch(`https://images-api.nasa.gov/asset/${nasaId}`);
-                    if (assetRes.ok) {
-                      const assetData = await assetRes.json() as any;
-                      const mp4Files = (assetData?.collection?.items || [])
-                        .filter((f: any) => f.href && f.href.endsWith('.mp4'))
-                        .sort((a: any, b: any) => (b.href.includes('large') ? 1 : 0) - (a.href.includes('large') ? 1 : 0));
-                      if (mp4Files.length > 0) {
-                        stockResults.push({
-                          provider: 'nasa',
-                          id: nasaId,
-                          downloadUrl: mp4Files[0].href,
-                          width: 1920,
-                          height: 1080,
-                          duration: undefined
-                        });
-                      }
-                    }
-                  } catch (assetErr) {
-                    await logMessage(`[FASE 3] Error obteniendo asset NASA ${nasaId}: ${assetErr}`);
-                  }
-                }
-                await logMessage(`[FASE 3] NASA devolvió ${stockResults.length - prevCount} resultados para: "${keyword}"`);
-              }
-            } catch (nasaErr) {
-              await logMessage(`[FASE 3] Error en NASA: ${nasaErr}`);
-            }
-
-            // TODO: Agregar más proveedores aquí
-
-            await logMessage(`[FASE 3] Pool total: ${stockResults.length} clips de stock para: "${keyword}"`);
-
-            // Seleccionar el mejor clip del pool
-            let stockClipPath = '';
-            let stockOffset = 0; // segundo de inicio del recorte; varia si la fuente se reutiliza
-            if (stockResults.length > 0) {
-              // Rankear: preferir orientación correcta, resolución HD, duración 3-10s
-              const ranked = stockResults.sort((a, b) => {
-                let scoreA = 0, scoreB = 0;
-                // Orientación correcta
-                const aVertical = a.height > a.width;
-                const bVertical = b.height > b.width;
-                if (aVertical === isVertical) scoreA += 3;
-                if (bVertical === isVertical) scoreB += 3;
-                // Resolución HD
-                if (a.width >= 1280 || a.height >= 1280) scoreA += 2;
-                if (b.width >= 1280 || b.height >= 1280) scoreB += 2;
-                // Duración ideal 3-10s
-                if (a.duration && a.duration >= 3 && a.duration <= 10) scoreA += 1;
-                if (b.duration && b.duration >= 3 && b.duration <= 10) scoreB += 1;
-                // Diversidad: alternar proveedores (aleatorio leve)
-                scoreA += Math.random() * 0.5;
-                scoreB += Math.random() * 0.5;
-                return scoreB - scoreA;
-              });
-
-              // Preferir la mejor candidata que no se haya usado ya en este video.
-              let best = ranked.find((r: any) => !usosPorFuente.has(`${r.provider}_${r.id}`));
-              let repetido = false;
-              if (!best) { best = ranked[0]; repetido = true; } // pool agotado: mejor repetir que no tener clip
-              const claveFuente = `${best.provider}_${best.id}`;
-              const usosPrevios = usosPorFuente.get(claveFuente) ?? 0;
-              // Se marca ANTES de cualquier await: con 3 workers en paralelo, marcarlo
-              // despues de la descarga dejaria que dos frases eligieran la misma fuente.
-              usosPorFuente.set(claveFuente, usosPrevios + 1);
-
-              // Al reutilizar una fuente se corta desde otro segundo, para que no se vea el
-              // mismo fragmento exacto. El filtro aplica setpts=0.8*PTS, asi que cada clip
-              // consume duracion/0.8 de metraje. vdc(0)=0, asi que el primer uso arranca en 0
-              // sin necesidad de caso especial. No garantiza que no se solapen (haria falta
-              // (usos-1)*consumo de margen), pero si que el arranque sea siempre distinto.
-              const consumo = item.duration / 0.8;
-              const margen = Math.max(0, (Number(best.duration) || 0) - consumo);
-              if (margen > 0.2) {
-                stockOffset = Math.round(margen * vdc(usosPrevios) * 100) / 100;
-              }
-
-              const rawStockFilename = `${claveFuente}_raw.mp4`;
-              const rawStockPath = path.join(stockDir, rawStockFilename);
-
-              if (!(await exists(rawStockPath))) {
-                await logMessage(`[FASE 3] Descargando de ${best.provider}: ${best.downloadUrl.substring(0, 80)}...`);
-                try {
-                  const dlRes = await fetch(best.downloadUrl);
-                  if (dlRes.ok) {
-                    const buffer = await dlRes.arrayBuffer();
-                    await fs.promises.writeFile(rawStockPath, Buffer.from(buffer));
-                  }
-                } catch (dlErr) {
-                  await logMessage(`[FASE 3] Error descargando de ${best.provider}: ${dlErr}`);
-                }
-              } else {
-                await logMessage(`[FASE 3] Usando caché de ${best.provider}: ${rawStockFilename}`);
-              }
-
-              if (await exists(rawStockPath)) {
-                stockClipPath = rawStockPath;
-                await logMessage(`[FASE 3] ✓ Stock seleccionado de ${best.provider} (${best.width}x${best.height}) para: "${keyword}"` +
-                  (repetido ? ` [REPETIDO uso #${usosPrevios + 1}, corte desde ${stockOffset}s]` : ''));
-              }
-            }
-
-            // Si no se encontró stock en ningún proveedor, usar clip original como fallback
-            if (!stockClipPath) {
-              await logMessage(`[FASE 3] Sin stock disponible para: "${keyword}". Usando fallback original.`);
-              item.type = 'original';
-              item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
-            } else {
-              let filter = '';
-              try {
-                const dimensions = await getVideoDimensions(stockClipPath);
-                const isVerticalOutput = aspectRatio === '9:16' || aspectRatio === 'vertical';
-                if (isVerticalOutput) {
-                  if (dimensions.width > dimensions.height) {
-                    filter = 'crop=ih*9/16:ih,scale=1080:1920,setpts=0.8*PTS';
-                  } else {
-                    filter = 'crop=iw:iw*16/9,scale=1080:1920,setpts=0.8*PTS';
-                  }
-                } else {
-                  if (dimensions.width > dimensions.height) {
-                    filter = 'crop=iw:iw*9/16,scale=1920:1080,setpts=0.8*PTS';
-                  } else {
-                    filter = 'crop=iw:iw*9/16,scale=1920:1080,setpts=0.8*PTS';
-                  }
-                }
-              } catch (dimErr) {
-                const isVertical = aspectRatio === '9:16' || aspectRatio === 'vertical';
-                filter = isVertical
-                  ? 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2,setpts=0.8*PTS'
-                  : 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setpts=0.8*PTS';
-              }
-
-              const escapedRawStock = stockClipPath.replace(/"/g, '\\"');
-              await new Promise<void>((resolve, reject) => {
-                const cmd = `ffmpeg -y -ss ${stockOffset} -i "${escapedRawStock}" -vf "${filter}" -t ${item.duration} -an "${escapedClip}"`;
-                exec(cmd, (err) => { if (err) reject(err); else resolve(); });
-              });
-
-              if (activeProjectPath) {
-                const localStockDir = dirMat(activeProjectPath, 'stock');
-                if (!(await exists(localStockDir))) {
-                  await fs.promises.mkdir(localStockDir, { recursive: true });
-                }
-                const localStockPath = path.join(localStockDir, path.basename(stockClipPath).replace('_raw', ''));
-                await fs.promises.copyFile(clipPath, localStockPath);
-              }
-
-              success = true;
-            }
-          } catch (stockErr: any) {
-            await logMessage(`[FASE 3] Error Stock en clip ${item.index}: ${stockErr.message || stockErr}. Usando fallback original.`);
-            item.type = 'original';
-            item.timestamp = parseFloat((((item.index - 1) / totalClips) * maxTsVal).toFixed(1));
-          }
-        }
-
-        if (item.type === 'original') {
-          const ts = item.timestamp ?? 0;
-          await logMessage(`[DEBUG_ORIG] clip ${item.index} ts=${ts} duration=${item.duration}`);
-          try {
-            await new Promise<void>((resolve, reject) => {
-              const cmd = `ffmpeg -y -ss ${ts} -i "${escapedVideo}" -t ${item.duration} -c copy "${escapedClip}"`;
-              exec(cmd, (err) => { if (err) reject(err); else resolve(); });
-            });
-            success = true;
-          } catch (ffErr: any) {
-            await logMessage(`[FASE 3] FFmpeg error clip ${item.index}: ${ffErr.message}`);
-          }
-        }
-
-        if (success && await exists(clipPath)) {
-          const durationSeconds = await getVideoDuration(clipPath);
-          let thumbnailUrl = '';
-          try {
-            await generateVideoThumbnail(clipPath, thumbPath);
-            if (await exists(thumbPath)) {
-              thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbPath)).toString('base64')}`;
-            }
-          } catch (e) {}
-          const stat = await fs.promises.stat(clipPath);
-          results[item.index - 1] = {
-            id: `bank-originales-clip_${clipNum}.mp4`,
-            name: `clip_${clipNum}.mp4`,
-            path: clipPath,
-            url: urlDeRuta(clipPath),
-            duration: formatTimeMinutesSeconds(durationSeconds),
-            durationSeconds,
-            type: 'video',
-            category: item.type === 'ia' ? 'ia' : (item.type === 'stock' ? 'stock' : 'original'),
-            size: `${(stat.size / (1024 * 1024)).toFixed(2)} MB`,
-            thumbnailUrl
-          };
-        }
-      }
-    });
-
-    await Promise.all(workers);
-        // ═══ FASE 4: Rellenar slots fallidos SIN compactar ═══
-        // CRÍTICO: results es posicional (results[item.index - 1]).
-        // Filtrar y compactar desplaza todos los clips siguientes y rompe
-        // la correspondencia frase → clip. Se rellena en el lugar.
-        const validCount = results.filter((c: any) => c !== undefined).length;
-        if (validCount === 0) {
-          return { success: false, error: 'No se pudo crear ningun clip. Verifica la configuracion de las APIs y FFmpeg.' };
-        }
-
-        let filled = 0;
-        for (let i = 0; i < results.length; i++) {
-          if (results[i] !== undefined) continue;
-          // Buscar el clip valido anterior mas cercano
-          let donor: any = undefined;
-          for (let b = i - 1; b >= 0; b--) {
-            if (results[b] !== undefined) { donor = results[b]; break; }
-          }
-          // Si no hay anterior, buscar el siguiente valido
-          if (!donor) {
-            for (let f = i + 1; f < results.length; f++) {
-              if (results[f] !== undefined) { donor = results[f]; break; }
-            }
-          }
-          if (donor) {
-            results[i] = { ...donor, id: `${donor.id}-fill-${i}` };
-            filled++;
-          }
-        }
-
-        const createdClips = results;
-        await logMessage(`[FASE 4] Slots rellenados en posicion: ${filled}. Total: ${createdClips.length} (validos originales: ${validCount})`);
-
-    // FASE 5: Ensamblar timeline secuencial
-    await logMessage('[FASE 5] Ensamblando timeline...');
-    let currentStart = 0;
-    const finalClips: any[] = [];
-    const graphicClips: any[] = [];
-
-    let globalClipIdx = 0;
-        await logMessage(`[DIAG] sanitizedPhrases=${sanitizedPhrases.length} newAudioSegments=${newAudioSegments.length}`);
-
-    for (let phraseIdx = 0; phraseIdx < sanitizedPhrases.length; phraseIdx++) {
-      const phrase = sanitizedPhrases[phraseIdx];
-      const phraseStartSeconds = newAudioSegments[phraseIdx]?.start ?? currentStart;
-          await logMessage(`[DIAG] phraseIdx=${phraseIdx} phraseIndex=${phrase.phraseIndex} segStart=${newAudioSegments[phraseIdx]?.start} segEnd=${newAudioSegments[phraseIdx]?.end} clips=${phrase.visualClips.length} tieneGrafico=${!!phrase.graphic}`);
-      await logMessage(`[DEBUG3] phraseIdx=${phraseIdx} phraseStartSeconds=${phraseStartSeconds} currentStart=${currentStart}`);
-
-      for (let clipIdx = 0; clipIdx < phrase.visualClips.length; clipIdx++) {
-        const clip = createdClips[globalClipIdx];
-        globalClipIdx++;
-        if (!clip) continue;
-
-        clip.startSeconds = phraseStartSeconds + (clipIdx > 0 ? 
-          sanitizedPhrases[phraseIdx].visualClips
-            .slice(0, clipIdx)
-            .reduce((sum: number, c: any) => sum + (c.duration ?? 2), 0) 
-          : 0);
-        clip.phraseIdx = phraseIdx;
-        clip.graphic = null; // ya no va anidado en el video clip
-
-        if (clip.startSeconds >= audioDuration) {
-          // Eliminar el archivo físico si empieza después del audio
-          try {
-            if (await exists(clip.path)) {
-              await fs.promises.unlink(clip.path);
-              const thumbPath = rutaMiniatura(clip.path);
-              if (await exists(thumbPath)) await fs.promises.unlink(thumbPath);
-            }
-          } catch (e) {}
-          continue;
-        }
-
-        if (clip.startSeconds + clip.durationSeconds > audioDuration) {
-          const targetDuration = parseFloat((audioDuration - clip.startSeconds).toFixed(2));
-          if (targetDuration > 0) {
-            const tempTrimPath = clip.path.replace('.mp4', '_trimmed.mp4');
-            const escapedClip = clip.path.replace(/"/g, '\\"');
-            const escapedTemp = tempTrimPath.replace(/"/g, '\\"');
-
-            try {
-              await new Promise<void>((resolve, reject) => {
-                const cmd = `ffmpeg -y -i "${escapedClip}" -t ${targetDuration} -c:v libx264 -c:a aac "${escapedTemp}"`;
-                exec(cmd, (err) => { if (err) reject(err); else resolve(); });
-              });
-
-              if (await exists(tempTrimPath)) {
-                try { await fs.promises.unlink(clip.path); } catch (e) {}
-                await fs.promises.rename(tempTrimPath, clip.path);
-
-                clip.durationSeconds = targetDuration;
-                clip.duration = formatTimeMinutesSeconds(targetDuration);
-                const stat = await fs.promises.stat(clip.path);
-                clip.size = `${(stat.size / (1024 * 1024)).toFixed(2)} MB`;
-
-                // Regenerar miniatura
-                const thumbPath = rutaMiniatura(clip.path);
-                try {
-                  await generateVideoThumbnail(clip.path, thumbPath);
-                  if (await exists(thumbPath)) {
-                    clip.thumbnailUrl = `data:image/jpeg;base64,${(await fs.promises.readFile(thumbPath)).toString('base64')}`;
-                  }
-                } catch (e) {}
-              }
-            } catch (trimErr: any) {
-              await logMessage(`[FASE 5] Error al recortar clip final ${clip.name}: ${trimErr.message}`);
-            }
-          }
-        }
-
-        finalClips.push(clip);
-        currentStart += clip.durationSeconds;
-      }
-
-      // Si la frase tiene gráfico asignado, creamos un clip de gráfico independiente
-      if (phrase.graphic) {
-        const seg = newAudioSegments[phraseIdx];
-        let graphicStartOffset = phrase.graphic.graphicStart;
-
-        if (seg && seg.words && seg.words.length > 0) {
-          const segStart = seg.start || 0;
-          const stopWords = ['el','la','los','las','un','una',
-            'de','del','al','en','y','a','que','se','es','por',
-            'con','su','sus','lo','le','les','me','te','nos',
-            'para','como','pero','mas','más','si','no','ya'];
-          
-          const keyWord = seg.words.find((w: any) => {
-            const clean = w.word.trim().toLowerCase()
-              .replace(/[^a-záéíóúñ]/g, '');
-            return clean.length > 2 && !stopWords.includes(clean);
-          });
-          
-          if (keyWord) {
-            const relative = Math.max(0,
-              parseFloat((keyWord.start - segStart).toFixed(2)));
-            const phraseDuration = seg.end - seg.start;
-            graphicStartOffset = Math.min(relative, phraseDuration * 0.7);
-          }
-        }
-
-        const startSec = phraseStartSeconds + graphicStartOffset;
-        const durSec = phrase.graphic.graphicEnd - phrase.graphic.graphicStart;
-        if (startSec < audioDuration && durSec > 0) {
-          graphicClips.push({
-            id: 'timeline-graphic-' + Math.random(),
-            name: 'Gráfico: ' + (phrase.graphic.label || phrase.graphic.type),
-            startSeconds: startSec,
-            graphicStartRelative: phrase.graphic.graphicStart,
-            phraseIdx: phraseIdx,
-            durationSeconds: Math.min(durSec, audioDuration - startSec),
-            type: 'graphic',
-            graphicData: {
-              type: phrase.graphic.type,
-              value: phrase.graphic.value,
-              label: phrase.graphic.label,
-              unit: phrase.graphic.unit,
-              emoji: phrase.graphic.emoji,
-              extra: phrase.graphic.extra
-            }
-          });
-        }
-      }
-    }
-
-    finalClips.push(...graphicClips);
-
-        // ═══ NORMALIZACIÓN: cada clip llena hasta el inicio del siguiente ═══
-        // Evita huecos por diferencia entre duración planificada y duración real de FFmpeg
-        finalClips.sort((a: any, b: any) => a.startSeconds - b.startSeconds);
-        const voiceClipRef = ((globalThis as any).timelineVideoClips as any[])?.find((c: any) => c.type === 'audio') || null;
-        const audioTotal = voiceClipRef?.durationSeconds || audioDuration || currentStart;
-        let normalized = 0;
-        for (let i = 0; i < finalClips.length; i++) {
-          const isLast = i === finalClips.length - 1;
-          const slotEnd = isLast ? audioTotal : finalClips[i + 1].startSeconds;
-          const slotDuration = slotEnd - finalClips[i].startSeconds;
-          if (slotDuration > 0 && Math.abs(slotDuration - finalClips[i].durationSeconds) > 0.01) {
-            finalClips[i].durationSeconds = slotDuration;
-            normalized++;
-          }
-        }
-        await logMessage(`[FASE 5] Normalización: ${normalized} de ${finalClips.length} clips ajustados para cobertura continua (audio: ${audioTotal.toFixed(2)}s)`);
-        currentStart = audioTotal;
-
-    await logMessage(`[generate-timeline-assets] Completado. Clips: ${finalClips.length} (Videos: ${finalClips.filter(c => c.type === 'video').length}, Gráficos: ${finalClips.filter(c => c.type === 'graphic').length})`);
-    return { success: true, clips: finalClips };
-
-  } catch (err: any) {
-    const errMsg = `[generate-timeline-assets] Error: ${err.message || err}`;
-    console.error(errMsg, err);
-    await writeDebugLog(errMsg);
-    return { success: false, error: err.message || 'Error interno' };
-  }
+  } catch (e: any) { return { success: false, error: e.message }; }
 });
 
 ipcMain.handle('regenerate-graphics', async (_event, params: any) => {

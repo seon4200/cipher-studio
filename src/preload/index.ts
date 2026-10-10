@@ -28,7 +28,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generateVoice: (params: any) => ipcRenderer.invoke('generate-voice', params),
   generateMinimaxVideo: (params: { prompt: string }) => ipcRenderer.invoke('generate-minimax-video', params),
   loadBankClips: (params: { category: string }) => ipcRenderer.invoke('load-bank-clips', params),
-  generateTimelineAssets: (params: { scriptText: string; weights: number[]; aspectRatio?: string; audioDuration?: number; transcriptSegments?: any[]; videoPath?: string; iaStyle?: 'cartoon' | 'bw' | 'normal'; graphicsPercent?: number; hasVideoV2?: boolean }) => ipcRenderer.invoke('generate-timeline-assets', params),
+  generateTimelineAssets: (params: any) => ipcRenderer.invoke('generate-timeline-assets', params),
+  getBuildState: (params: { projectPath: string }) => ipcRenderer.invoke('get-build-state', params),
+  cancelBuild: (params: { projectPath: string }) => ipcRenderer.invoke('cancel-build', params),
   generatePerfectSync: (params: any) => ipcRenderer.invoke('generate-perfect-sync', params),
   renderGraphicsBatch: (params: any) => ipcRenderer.invoke('render-graphics-batch', params),
   onGenerationProgress: (callback: (event: any, data: any) => void) => {

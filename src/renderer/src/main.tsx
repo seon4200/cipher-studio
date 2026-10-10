@@ -9,6 +9,9 @@ import {
 import './styles/globals.css'
 import TrendsPanel from './TrendsPanel'
 import { AnimatedGraphic } from './AnimatedGraphic'
+import type { BuildSummary } from '../../shared/build-plan'
+import { validateInput } from '../../shared/build-plan'
+import { BuildStatus } from './components/BuildStatus'
 
 /* ------------------------------------------------------------------
    App component (ya existente)
@@ -43,6 +46,7 @@ interface Clip {
 }
 
 interface TimelineClip {
+  buildPlanId?: string;
   id: string;
   name: string;
   startSeconds: number;
@@ -1403,10 +1407,29 @@ function App() {
   const [isGeneratingAssets, setIsGeneratingAssets] = useState(false)
   const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number; paragraph: string; type: string } | null>(null)
   const [generationError, setGenerationError] = useState<string>('')
+  const [buildSummary, setBuildSummary] = useState<BuildSummary | null>(null);
+  const [buildStateReady, setBuildStateReady] = useState(false);
+  const buildRequestRef = React.useRef(0);
+  const buildBusyRef = React.useRef(false);
+  useEffect(() => {
+    const request = ++buildRequestRef.current;
+    buildBusyRef.current = false;
+    setIsGeneratingAssets(false); setBuildSummary(null); setBuildStateReady(false);
+    setGenerationError(''); setGenerationProgress(null);
+    if (!activeProjectPath) return;
+    window.electronAPI.getBuildState({ projectPath: activeProjectPath }).then(res => {
+      if (request !== buildRequestRef.current) return;
+      if (res.success) { setBuildSummary(res.summary || null); setBuildStateReady(true); }
+      else setGenerationError(res.error || 'No se pudo leer el plan guardado.');
+    }).catch(e => { if (request === buildRequestRef.current) setGenerationError(e.message); });
+  }, [activeProjectPath]);
+
 
   useEffect(() => {
     if (window.electronAPI && window.electronAPI.onGenerationProgress) {
       const unsub = window.electronAPI.onGenerationProgress((_event, data) => {
+        if (data.projectPath && (data.projectPath !== activeProjectPathRef.current || data.requestId !== buildRequestRef.current)) return;
+        if (data.projectPath) setBuildSummary(data);
         setGenerationProgress({
           current: data.index + 1,
           total: data.total,
@@ -1515,7 +1538,7 @@ function App() {
   const [exportProgress, setExportProgress] = useState<{ step: string; current: number; total: number; message: string } | null>(null);
 
   // Timeline IA weights: [Original, Stock, IA]
-  const [timelineWeights, setTimelineWeights] = useState<number[]>([40, 30, 30])
+  const [timelineWeights, setTimelineWeights] = useState<number[]>([30, 70, 0])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
 
   // Hub de IA — estados
@@ -1675,12 +1698,13 @@ function App() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, transitionsPercent, activeCrop, zoom, panOffset, isMirrored]);
 
   // UN solo sitio construye lo que se guarda. Estaba copiado en TRES (guardar al cerrar,
   // guardar, y guardar como), y por eso cada funcion nueva nacia sin persistencia en dos de
   // los tres caminos aunque alguien se acordara del primero.
   const construirEstadoAGuardar = () => ({
+    projectPath: activeProjectPath,
     id: activeProjectId,
     name: activeProjectName,
     clips: clips.map(c => ({
@@ -1693,7 +1717,7 @@ function App() {
     aiScript, originalTranscriptText,
     libraryWidth, toolsWidth, timelineHeight,
     voiceModel, voiceSpeaker, voiceSpeed, voiceStability,
-    generatedVoices, graphicsPercent, timelineWeights,
+    generatedVoices, graphicsPercent, timelineWeights, transitionsPercent,
 
     // ─── Lo que decide COMO sale el video exportado ───
     // aspectRatio es el mas peligroso de los siete: NO aparece en el modal de exportacion,
@@ -1723,7 +1747,7 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, transitionsPercent, activeCrop, zoom, panOffset, isMirrored]);
 
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
@@ -1833,6 +1857,7 @@ function App() {
         if (loadedData.exportQuality) setExportQuality(loadedData.exportQuality);
         if (loadedData.assignedTransitions) setAssignedTransitions(loadedData.assignedTransitions);
         if (loadedData.transitionDuration !== undefined) setTransitionDuration(loadedData.transitionDuration);
+        setTransitionsPercent(loadedData.transitionsPercent ?? 0);
         const aj = loadedData.ajustesVideo;
         if (aj) {
           setActiveCrop(aj.crop ?? null);
@@ -1904,7 +1929,9 @@ function App() {
         setAiScript('');
         setOriginalTranscriptText('');
         setGeneratedVoices([]);
-        setTimelineWeights([40, 30, 30]);
+        setTimelineWeights([30, 70, 0]);
+        setTransitionsPercent(0);
+        setNewAudioSegments([]);
         setGraphicsPercent(50);
 
         setActiveProjectPath(res.projectPath || null);
@@ -2110,6 +2137,7 @@ function App() {
         if (loadedData.exportQuality) setExportQuality(loadedData.exportQuality);
         if (loadedData.assignedTransitions) setAssignedTransitions(loadedData.assignedTransitions);
         if (loadedData.transitionDuration !== undefined) setTransitionDuration(loadedData.transitionDuration);
+        setTransitionsPercent(loadedData.transitionsPercent ?? 0);
         const aj = loadedData.ajustesVideo;
         if (aj) {
           setActiveCrop(aj.crop ?? null);
@@ -2234,6 +2262,7 @@ function App() {
     try {
       console.log('Exportando timeline con aspecto:', aspectRatio, 'res:', exportResolution, 'fmt:', exportFormat, 'calidad:', exportQuality);
       const res = await window.electronAPI.exportVideo({
+        projectPath: activeProjectPath || undefined,
         clips: timelineVideoClips,
         aspectRatio: aspectRatio,
         resolution: exportResolution,
@@ -2259,47 +2288,10 @@ function App() {
   };
 
   const handleWeightChange = (index: number, newValue: number) => {
-    const updatedWeights = [...timelineWeights];
-    const oldValue = updatedWeights[index];
-    const diff = newValue - oldValue;
-    
-    // Set the new value
-    updatedWeights[index] = newValue;
-    
-    // Distribute the difference among other sliders
-    const otherIndices = [0, 1, 2].filter(i => i !== index);
-    const sumOthers = otherIndices.reduce((sum, i) => sum + updatedWeights[i], 0);
-    
-    if (sumOthers > 0) {
-      // Distribute proportionally
-      let remainingDiff = diff;
-      otherIndices.forEach((i, idx) => {
-        const share = Math.round((updatedWeights[i] / sumOthers) * diff);
-        const toSubtract = idx === otherIndices.length - 1 ? remainingDiff : share;
-        updatedWeights[i] = Math.max(0, updatedWeights[i] - toSubtract);
-        remainingDiff -= toSubtract;
-      });
-    } else {
-      // If others are all 0, distribute evenly
-      let remainingDiff = diff;
-      const count = otherIndices.length;
-      otherIndices.forEach((i, idx) => {
-        const share = Math.round(diff / count);
-        const toSubtract = idx === otherIndices.length - 1 ? remainingDiff : share;
-        updatedWeights[i] = Math.max(0, updatedWeights[i] - toSubtract);
-        remainingDiff -= toSubtract;
-      });
-    }
-    
-    // Ensure the sum is exactly 100
-    const finalSum = updatedWeights.reduce((a, b) => a + b, 0);
-    if (finalSum !== 100) {
-      const adjustment = 100 - finalSum;
-      const adjIndex = otherIndices.find(i => updatedWeights[i] + adjustment >= 0) ?? otherIndices[0];
-      updatedWeights[adjIndex] = Math.max(0, updatedWeights[adjIndex] + adjustment);
-    }
-    
-    setTimelineWeights(updatedWeights);
+    if (isGeneratingAssets) return;
+    if (index === 2) { setTimelineWeights([timelineWeights[0], 100 - timelineWeights[0], 0]); return; }
+    const value = Math.max(0, Math.min(100, newValue));
+    setTimelineWeights(index === 0 ? [value, 100 - value, 0] : [100 - value, value, 0]);
   };
 
   const handleSyncWeightChange = (index: number, newValue: number) => {
@@ -2394,14 +2386,37 @@ function App() {
     });
   };
 
-  const handleBuildIATimeline = async () => {
-    if (!aiScript.trim()) return;
-
+  const buildAudio = timelineVideoClips.find(c => c.type === 'audio');
+  const buildSegments = buildAudio?.name === 'Voz - Audio Original' ? transcriptSegments : newAudioSegments;
+  let inputError = '';
+  const buildInput = { projectPath: activeProjectPath || '', scriptText: aiScript,
+    audioPath: buildAudio?.path || '', audioDuration: buildAudio?.durationSeconds || 0,
+    videoPath: clips.find(c => c.type === 'video')?.path || '', weights: timelineWeights,
+    aspectRatio, segments: buildSegments, originalAudio: buildAudio?.name === 'Voz - Audio Original' };
+  try { validateInput(buildInput); } catch (e) { inputError = (e as Error).message; }
+  const buildInputRef = React.useRef('');
+  buildInputRef.current = JSON.stringify(buildInput);
+  const buildDisabledReason = !activeProjectPath ? 'Abre un proyecto.' :
+    !buildStateReady ? 'Leyendo el plan guardado.' : isGeneratingAssets ? 'Hay una ejecución activa.' :
+    !aiScript.trim() ? 'Selecciona el guion.' : !buildAudio?.path ? 'Añade el audio principal.' :
+    buildAudio.startSeconds !== 0 ? 'Coloca el audio principal al inicio del montaje.' :
+    !buildSegments.length ? 'Transcribe el audio principal.' :
+    timelineWeights.length !== 3 || timelineWeights[2] !== 0 ? 'Pon IA en 0 %; esta entrega trabaja con Original y Stock.' :
+    timelineWeights[0] > 0 && !clips.some(c => c.type === 'video') ? 'Importa el vídeo original.' : inputError;
+  const canBuild = !buildDisabledReason;
+  const handleCancelBuild = async () => {
+    if (!activeProjectPath) return;
+    const res = await window.electronAPI.cancelBuild({ projectPath: activeProjectPath });
+    if (!res.success) setGenerationError(res.error || 'No se pudo cancelar.');
+  };
+  const handleBuildIATimeline = async (mode: 'new' | 'continue' = 'new') => {
+    if (!canBuild || buildBusyRef.current) return;
     // Se captura al EMPEZAR y por el REF: esta funcion tarda MINUTOS —cortar clips, DeepSeek,
     // descargar stock, generar IA— y toda esa ventana es tiempo en el que el usuario puede
     // abrir otro proyecto. Leerlo de la clausura daria el valor de cuando arranco y la
     // comparacion nunca se cumpliria.
     const proyectoAlEmpezar = activeProjectPathRef.current;
+    const inputAtStart = buildInputRef.current;
 
     const voiceClip = timelineVideoClips.find(c => c.type === 'audio');
     const isUsingOriginalAudio = voiceClip?.name === 'Voz - Audio Original';
@@ -2442,32 +2457,23 @@ function App() {
       return;
     }
 
+    buildBusyRef.current = true;
+    const requestId = ++buildRequestRef.current;
     setIsGeneratingAssets(true);
     setGenerationError('');
     setGenerationProgress(null);
 
     try {
-      // 1. Slicing original video first if one is imported (Regla 1)
-      const firstVideoInLibrary = clips.find(c => c.type === 'video' || c.type === 'audio') || clips[0];
-      if (firstVideoInLibrary) {
-        console.log('[handleBuildIATimeline] Cortando video original en clips de 3 segundos...');
-        setGenerationProgress({ current: 0, total: 3, paragraph: 'Cortando video original en clips de 3s...', type: 'FFmpeg' });
-        const cutRes = await window.electronAPI.cutVideoClips({
-          videoPath: firstVideoInLibrary.path
-        });
-        if (cutRes && cutRes.success && cutRes.clips) {
-          setBankClips(prev => ({
-            ...prev,
-            originales: cutRes.clips || []
-          }));
-        } else {
-          throw new Error(cutRes?.error || 'Error al segmentar el video original.');
-        }
-      }
-
+      const firstVideoInLibrary = clips.find(c => c.type === 'video');
+      const checkpoint = await window.electronAPI.saveProjectState(construirEstadoAGuardar());
+      if (!checkpoint.success) throw new Error(checkpoint.error || 'No se pudieron guardar los ajustes antes de construir.');
+      if (requestId !== buildRequestRef.current || inputAtStart !== buildInputRef.current) return;
       console.log('[handleBuildIATimeline] Iniciando generación de assets de Timeline IA...');
-      const audioDuration = voiceClip ? voiceClip.durationSeconds : undefined;
+      const audioDuration = voiceClip.durationSeconds;
       const res = await window.electronAPI.generateTimelineAssets({ 
+        projectPath: proyectoAlEmpezar!, requestId, mode, expectedPlanId: buildSummary?.id || null,
+        audioPath: voiceClip.path!, originalAudio: isUsingOriginalAudio,
+        audioStartSeconds: voiceClip.startSeconds,
         scriptText: aiScript, 
         weights: timelineWeights, 
         aspectRatio, 
@@ -2479,12 +2485,19 @@ function App() {
         newAudioSegments: effectiveAudioSegments
       });
       
+      if (requestId !== buildRequestRef.current || activeProjectPathRef.current !== proyectoAlEmpezar) return;
+      if (res.summary) setBuildSummary(res.summary);
+      if (inputAtStart !== buildInputRef.current) {
+        setGenerationError('Los ajustes cambiaron durante la ejecución. Conservamos el plan y los archivos sin aplicar un montaje antiguo.');
+        return;
+      }
       if (res && res.success && res.clips) {
         console.log('[handleBuildIATimeline] Generación completada con éxito. Clips recibidos:', res.clips.length);
         
         // Refresh library bank folders so generated clips appear in their tabs
         await loadClipsForCategory('originales');
         await loadClipsForCategory('ia');
+        if (requestId !== buildRequestRef.current || inputAtStart !== buildInputRef.current) return;
 
         const newVideoClips: any[] = [];
         const newGraphicClips: any[] = [];
@@ -2506,7 +2519,8 @@ function App() {
               });
             } else {
               newVideoClips.push({
-                id: `timeline-${Math.random()}`,
+                id: clipInfo.id,
+                buildPlanId: clipInfo.buildPlanId,
                 name: clipInfo.name,
                 startSeconds: clipInfo.startSeconds || 0,
                 phraseIdx: clipInfo.phraseIdx ?? -1,
@@ -2530,13 +2544,17 @@ function App() {
         // clips de video que no tienen cache que los recupere — pero escribirlos en el
         // proyecto equivocado seria peor. Anotado como deuda.
         if (!graficosSellados) return;
+        if (requestId !== buildRequestRef.current || inputAtStart !== buildInputRef.current) return;
 
         // Keep all existing audio clips completely intact and untouched!
         const existingAudioClips = timelineVideoClips.filter(c => c.type === 'audio');
-        const finalTimelineClips = [...newVideoClips, ...graficosSellados, ...existingAudioClips];
+        const savedVersion = timelineVersions.find(v => v.id === `v-ai-${res.summary!.id}`);
+        const retainedGraphics = mode === 'continue' && buildSummary?.status === 'complete'
+          ? savedVersion?.timelineVideoClips.filter(c => c.type === 'graphic') || [] : [];
+        const finalTimelineClips = [...newVideoClips, ...graficosSellados, ...retainedGraphics, ...existingAudioClips];
 
         const nextVersionNumber = timelineVersions.filter(v => v.id.startsWith('v-ai-')).length + 1;
-        const newVersionId = `v-ai-${Date.now()}`;
+        const newVersionId = `v-ai-${res.summary!.id}`;
         const newVersionName = `Versión IA ${nextVersionNumber}`;
         const newVersion: TimelineVersion = {
           id: newVersionId,
@@ -2545,11 +2563,16 @@ function App() {
           timelineVideoClips: finalTimelineClips
         };
 
-        setTimelineVersions(prev => [...prev, newVersion]);
+        setTimelineVersions(prev => [...prev.filter(v => v.id !== newVersionId), newVersion]);
         setActiveVersionId(newVersionId);
         setTimelineVideoClips(finalTimelineClips);
+        const saved = await window.electronAPI.saveProjectState({ ...construirEstadoAGuardar(),
+          timelineVideoClips: finalTimelineClips, activeVersionId: newVersionId,
+          timelineVersions: [...timelineVersions.filter(v => v.id !== newVersionId), newVersion] });
+        if (!saved.success) throw new Error(saved.error || 'No se pudo guardar el montaje. El plan conserva los archivos.');
+        if (requestId !== buildRequestRef.current || activeProjectPathRef.current !== proyectoAlEmpezar) return;
         // FASE 2: Gráficos
-        if (graphicsPercent > 0) {
+        if (graphicsPercent > 0 && !(mode === 'continue' && buildSummary?.status === 'complete')) {
           setGenerationProgress({ current: 0, total: 1, paragraph: 'Generando gráficos...', type: 'Gráficos' });
           try {
             const textToUse = aiScript.trim() || originalTranscriptText.trim();
@@ -2581,7 +2604,7 @@ function App() {
               // arriba y es valido, asi que solo se deja de añadir los graficos.
               const sellados = await renderizarYSellar(
                 newGClips, aspectRatio, exportResolution, proyectoAlEmpezar);
-              if (sellados) setTimelineVideoClips(prev => [...prev, ...sellados]);
+              if (sellados && requestId === buildRequestRef.current) setTimelineVideoClips(prev => [...prev, ...sellados]);
             }
           } catch (gErr) {
             console.error('Error generando gráficos:', gErr);
@@ -2589,7 +2612,8 @@ function App() {
         }
 
         // FASE 3: Transiciones
-        if (transitionsPercent > 0 && selectedTransitions.length > 0) {
+        if (requestId !== buildRequestRef.current || activeProjectPathRef.current !== proyectoAlEmpezar) return;
+        if (transitionsPercent > 0 && selectedTransitions.length > 0 && !(mode === 'continue' && buildSummary?.status === 'complete')) {
           setGenerationProgress({ current: 0, total: 1, paragraph: 'Asignando transiciones...', type: 'Transiciones' });
           const videoOnly = finalTimelineClips
             .filter(c => c.type !== 'audio' && c.type !== 'graphic')
@@ -2637,12 +2661,14 @@ function App() {
         console.error('Error en Timeline IA:', errorMsg);
       }
     } catch (err: any) {
+      if (requestId !== buildRequestRef.current || activeProjectPathRef.current !== proyectoAlEmpezar) return;
       const errorMsg = err.message || 'Excepción al generar assets.';
       setGenerationError(errorMsg);
       console.error('Excepción en Timeline IA:', errorMsg);
     } finally {
-      setIsGeneratingAssets(false);
-      setGenerationProgress(null);
+      if (requestId === buildRequestRef.current) {
+        buildBusyRef.current = false; setIsGeneratingAssets(false); setGenerationProgress(null);
+      }
     }
   };
 
@@ -3736,7 +3762,7 @@ function App() {
                   type="range" 
                   min="0" 
                   max="100" 
-                  value={timelineWeights[0]}
+                  value={timelineWeights[0]} disabled={isGeneratingAssets}
                   onChange={(e) => handleWeightChange(0, parseInt(e.target.value))}
                   className="flex-1 h-1 bg-[#2c2c2e] rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all outline-none" 
                   style={{
@@ -3754,7 +3780,7 @@ function App() {
                   type="range" 
                   min="0" 
                   max="100" 
-                  value={timelineWeights[1]}
+                  value={timelineWeights[1]} disabled={isGeneratingAssets}
                   onChange={(e) => handleWeightChange(1, parseInt(e.target.value))}
                   className="flex-1 h-1 bg-[#2c2c2e] rounded-lg appearance-none cursor-pointer accent-sky-500 transition-all outline-none" 
                   style={{
@@ -3772,7 +3798,7 @@ function App() {
                   type="range"
                   min="0"
                   max="100"
-                  value={timelineWeights[2]}
+                  value={timelineWeights[2]} disabled={isGeneratingAssets}
                   onChange={(e) => handleWeightChange(2, parseInt(e.target.value))}
                   className="flex-1 h-1 bg-[#2c2c2e] rounded-lg appearance-none cursor-pointer accent-amber-500 transition-all outline-none"
                   style={{
@@ -3804,6 +3830,9 @@ function App() {
               </select>
             </div>
 
+            <BuildStatus summary={buildSummary} busy={isGeneratingAssets} canContinue={canBuild}
+              reason={buildDisabledReason} error={generationError}
+              onContinue={() => handleBuildIATimeline('continue')} onCancel={handleCancelBuild} />
             {/* Botón Construir Timeline IA */}
             {isGeneratingAssets ? (
               <div className="w-full mt-3 p-3 bg-[#1C1C1E]/60 border border-[#3a3a3c] rounded-xl space-y-2 select-none">
@@ -3829,12 +3858,12 @@ function App() {
             ) : (
               <>
                 <button 
-                  onClick={handleBuildIATimeline}
-                  disabled={!aiScript.trim()}
+                  onClick={() => handleBuildIATimeline('new')}
+                  disabled={!canBuild} title={buildDisabledReason}
                   className="w-full mt-3 bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
-                  <span>Construir Timeline IA</span>
+                  <span>{buildSummary ? 'Nuevo plan y montaje' : 'Construir montaje'}</span>
                 </button>
                 {/* ----- Transiciones GL ----- */}
                 <div className='mt-4'>
@@ -6014,6 +6043,9 @@ function App() {
                         </div>
                       </div>
 
+                      <BuildStatus summary={buildSummary} busy={isGeneratingAssets} canContinue={canBuild}
+              reason={buildDisabledReason} error={generationError}
+              onContinue={() => handleBuildIATimeline('continue')} onCancel={handleCancelBuild} />
                       {/* Build Timeline IA Button */}
                       {isGeneratingAssets ? (
                         <div className="flex flex-col items-center justify-center text-center p-6 space-y-4 bg-[#1C1C1E]/90 border border-[#3a3a3c] rounded-xl shadow-xl select-none">
@@ -6043,12 +6075,12 @@ function App() {
                         </div>
                       ) : (
                         <button 
-                          onClick={handleBuildIATimeline}
-                          disabled={!aiScript.trim()}
+                          onClick={() => handleBuildIATimeline('new')}
+                          disabled={!canBuild} title={buildDisabledReason}
                           className="w-full bg-gradient-to-r from-indigo-600 to-violet-650 hover:from-indigo-500 hover:to-violet-550 text-white text-xs py-2.5 px-3 rounded-xl font-bold active:scale-95 transition-all shadow-lg shadow-indigo-600/10 cursor-pointer flex items-center justify-center space-x-2 border border-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Sparkles className="h-3.5 w-3.5 text-indigo-250 animate-pulse" />
-                          <span>Construir Timeline IA</span>
+                          <span>{buildSummary ? 'Nuevo plan y montaje' : 'Construir montaje'}</span>
                         </button>
                       )}
 
