@@ -1,11 +1,12 @@
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
-import type { BuildInput, BuildIssue, BuildPlan, SceneResult } from '../../shared/build-plan';
+import type { BuildInput, BuildIssue, BuildPlan, PlanDirectionAttempt, SceneResult } from '../../shared/build-plan';
 import { createPlan, MIN_CLIP_FRAMES, summarize, validateInput, validatePlan } from '../../shared/build-plan';
 import { atomicJson, loadPlan, savePlan, claimProject, projectBusy } from './storage';
 import { BuildFailure, command, sha256, validateMedia, withTimeout, probe } from './media';
-import { directScenes, prepareScene } from './providers';
+import { prepareScene } from './providers';
+import { directScenes } from './director';
 
 type Run = { id: string; controller: AbortController };
 const activeRuns = new Map<string, Run>();
@@ -16,6 +17,10 @@ type Dependencies = {
   validate: typeof validateMedia;
   fingerprint: (input: BuildInput, signal?: AbortSignal) => Promise<string>;
 };
+type DirectionContext = { providerId: string; requestedModelId: string };
+
+const safeProviderValue = (value: unknown) => typeof value === 'string' && value.length <= 200 &&
+  /^[A-Za-z0-9_.:-]+$/.test(value) ? value : undefined;
 
 export async function fingerprint(input: BuildInput, signal?: AbortSignal) {
   validateInput(input);
@@ -57,6 +62,9 @@ export class BuildRunner {
         if (!plan) return null;
         if (plan.status === 'running') {
           plan.status = 'paused'; delete plan.runId;
+          for (const attempt of plan.directionAttempts || []) if (attempt.result === 'running') {
+            attempt.result = 'interrupted'; attempt.endedAt = new Date().toISOString();
+          }
           for (const s of plan.scenes) if (s.status === 'running') {
             s.status = 'pending';
             s.error = { code: 'INTERRUPTED', message: 'La ejecución anterior se interrumpió. Puedes continuar.', retryable: true };
@@ -70,8 +78,10 @@ export class BuildRunner {
     return summarize(plan);
   }
 
-  async run(input: BuildInput, mode: 'new' | 'continue', expectedPlanId: string | null,
-    onProgress: (value: ReturnType<typeof summarize> & { runId: string; paragraph: string; type: string; index: number }) => void) {
+  async run(input: BuildInput, mode: 'new' | 'continue' | 'plan-only', expectedPlanId: string | null,
+    onProgress: (value: ReturnType<typeof summarize> & { runId: string; paragraph: string; type: string; index: number }) => void,
+    selectedDirect: typeof directScenes = this.deps.direct,
+    directionContext: DirectionContext = { providerId: 'unknown', requestedModelId: 'unknown' }) {
     validateInput(input);
     const project = path.resolve(input.projectPath);
     if (activeRuns.has(project)) throw new BuildFailure('BUSY', 'Este proyecto ya tiene una construcción activa.');
@@ -135,6 +145,8 @@ export class BuildRunner {
         throw new BuildFailure('LEGACY_DURATION_RULE', 'El plan anterior tiene medios pendientes o inválidos. Se conservaron los archivos; crea un plan nuevo de 2–3 s.');
       const needsDirection = current.scenes.filter(s => s.status !== 'complete' &&
         (s.category === 'stock' || !input.originalAudio) && !s.keyword);
+      if (!needsDirection.length && current.directionOriginStatus === 'pending')
+        current.directionOriginStatus = 'not-required';
       for (let offset = 0; offset < needsDirection.length; offset += 20) {
         check();
         const batch = needsDirection.slice(offset, offset + 20).filter(s =>
@@ -142,13 +154,32 @@ export class BuildRunner {
         if (!batch.length) continue;
         for (let attempt = 0; attempt < 2; attempt++) {
           check();
+          const directionAttempt: PlanDirectionAttempt = {
+            id: randomUUID(), planId: current.id, planRevision: current.revision,
+            sceneIds: batch.map(scene => scene.id), providerId: directionContext.providerId,
+            requestedModelId: directionContext.requestedModelId, startedAt: new Date().toISOString(), result: 'running',
+          };
+          current.directionAttempts ||= [];
+          current.directionAttempts.push(directionAttempt);
+          let metadataWrite = Promise.resolve();
           for (const scene of batch) {
             scene.status = 'running';
-            scene.attempts.push({ stage: 'direction', startedAt: new Date().toISOString() });
+            scene.attempts.push({ stage: 'direction', startedAt: new Date().toISOString(),
+              directionAttemptId: directionAttempt.id });
           }
           await persist(); report('Preparando búsquedas y fragmentos', 'Planificación');
           try {
-            const decisions = await this.deps.direct(batch, input, signal); check();
+            const decisions = await selectedDirect(batch, input, signal, metadata => {
+              const actualModelId = safeProviderValue(metadata.actualModelId);
+              const providerRequestId = safeProviderValue(metadata.providerRequestId);
+              const providerResponseId = safeProviderValue(metadata.providerResponseId);
+              if (actualModelId) directionAttempt.actualModelId = actualModelId;
+              if (providerRequestId) directionAttempt.providerRequestId = providerRequestId;
+              if (providerResponseId) directionAttempt.providerResponseId = providerResponseId;
+              if (actualModelId || providerRequestId || providerResponseId)
+                metadataWrite = metadataWrite.then(persist);
+            }); check();
+            await metadataWrite;
             for (const decision of decisions) {
               const scene = batch.find(s => s.id === decision.id);
               if (!scene) throw new BuildFailure('PLAN_RESPONSE', 'El director devolvió un ID ajeno al plan.');
@@ -161,17 +192,41 @@ export class BuildRunner {
               scene.status = 'pending'; delete scene.error;
               scene.attempts[scene.attempts.length - 1].endedAt = new Date().toISOString();
             }
+            directionAttempt.result = 'completed'; directionAttempt.endedAt = new Date().toISOString();
             await persist(); break;
           } catch (error) {
-            check(); const failure = issue(error);
+            await metadataWrite.catch(() => {});
+            const failure = issue(error);
+            directionAttempt.result = signal.aborted ? 'cancelled' : 'failed';
+            directionAttempt.endedAt = new Date().toISOString();
+            directionAttempt.error = failure;
             for (const scene of batch) {
-              scene.status = failure.retryable ? 'failed' : 'blocked'; scene.error = failure;
+              scene.status = signal.aborted ? 'pending' : failure.retryable ? 'failed' : 'blocked'; scene.error = failure;
               Object.assign(scene.attempts[scene.attempts.length - 1], { endedAt: new Date().toISOString(), error: failure });
             }
-            await persist();
+            await persist(); report(signal.aborted ? 'Planificación cancelada; avance guardado' : 'Dirección pendiente', 'Planificación');
+            if (signal.aborted) check();
             if (!failure.retryable || batch.some(s => s.attempts.filter(a => a.stage === 'direction').length >= MAX_ATTEMPTS)) break;
           }
         }
+      }
+
+      const directionScenes = current.scenes.filter(scene => scene.category === 'stock' || !input.originalAudio);
+      const recordedSceneIds = new Set((current.directionAttempts || []).flatMap(attempt => attempt.sceneIds));
+      if (!directionScenes.length) current.directionOriginStatus = 'not-required';
+      else if (directionScenes.every(scene => !!scene.keyword && recordedSceneIds.has(scene.id)))
+        current.directionOriginStatus = 'recorded';
+      else if ((current.directionAttempts || []).length) current.directionOriginStatus = 'partial';
+
+      if (mode === 'plan-only') {
+        if (await this.deps.fingerprint(input, signal) !== current.inputHash)
+          throw new BuildFailure('INPUT_CHANGED', 'Los archivos fuente cambiaron durante la planificación. Conservamos la propuesta; revisa el proyecto antes de continuar.');
+        const directionsReady = directionScenes.every(scene => !!scene.keyword);
+        current.status = directionsReady ? 'ready' : 'incomplete';
+        delete current.runId;
+        await persist();
+        return { success: directionsReady, planOnly: true, summary: summarize(current), clips: [],
+          error: directionsReady ? undefined : 'La planificación quedó incompleta. Revisa el error y continúa para completar las escenas pendientes.' };
       }
 
       // Bounded sequential execution first. Parallel workers are a later measured

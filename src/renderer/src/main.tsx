@@ -12,6 +12,8 @@ import { AnimatedGraphic } from './AnimatedGraphic'
 import type { BuildSummary } from '../../shared/build-plan'
 import { previewAllocation, validateInput } from '../../shared/build-plan'
 import { BuildStatus } from './components/BuildStatus'
+import { DirectorSettingsPanel, type DirectorAvailability } from './components/DirectorSettingsPanel'
+import { DEFAULT_DIRECTOR_MODEL, DEFAULT_DIRECTOR_PROVIDER, normalizeDirectorPreference, type DirectorProviderId } from '../../shared/director-provider'
 
 /* ------------------------------------------------------------------
    App component (ya existente)
@@ -1408,6 +1410,7 @@ function App() {
   const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number; paragraph: string; type: string } | null>(null)
   const [generationError, setGenerationError] = useState<string>('')
   const [buildSummary, setBuildSummary] = useState<BuildSummary | null>(null);
+  const [directorRefreshVersion, setDirectorRefreshVersion] = useState(0);
   const [buildStateReady, setBuildStateReady] = useState(false);
   const buildRequestRef = React.useRef(0);
   const buildBusyRef = React.useRef(false);
@@ -1539,6 +1542,13 @@ function App() {
 
   // Timeline IA weights: [Original, Stock, IA]
   const [timelineWeights, setTimelineWeights] = useState<number[]>([30, 70, 0])
+  const [directorProviderId, setDirectorProviderId] = useState<DirectorProviderId>(DEFAULT_DIRECTOR_PROVIDER)
+  const [directorModelId, setDirectorModelId] = useState(DEFAULT_DIRECTOR_MODEL)
+  const [directorProfileId, setDirectorProfileId] = useState<string | null>(null)
+  const [directorAvailability, setDirectorAvailability] = useState<DirectorAvailability>({ ready: false, reason: 'Comprobando proveedor y modelo.' })
+  const reportDirectorAvailability = useCallback((value: DirectorAvailability) => {
+    setDirectorAvailability(previous => previous.ready === value.ready && previous.reason === value.reason ? previous : value)
+  }, [])
   const [iaStyle, setIaStyle] = useState<'cartoon' | 'bw' | 'normal'>('normal')
 
   // Hub de IA — estados
@@ -1710,7 +1720,7 @@ function App() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, transitionsPercent, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, activeProjectId, activeProjectName, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, timelineWeights, graphicsPercent, directorProviderId, directorModelId, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, transitionsPercent, activeCrop, zoom, panOffset, isMirrored]);
 
   // UN solo sitio construye lo que se guarda. Estaba copiado en TRES (guardar al cerrar,
   // guardar, y guardar como), y por eso cada funcion nueva nacia sin persistencia en dos de
@@ -1729,7 +1739,7 @@ function App() {
     aiScript, originalTranscriptText,
     libraryWidth, toolsWidth, timelineHeight,
     voiceModel, voiceSpeaker, voiceSpeed, voiceStability,
-    generatedVoices, graphicsPercent, timelineWeights, transitionsPercent,
+    generatedVoices, graphicsPercent, timelineWeights, transitionsPercent, directorProviderId, directorModelId,
 
     // ─── Lo que decide COMO sale el video exportado ───
     // aspectRatio es el mas peligroso de los siete: NO aparece en el modal de exportacion,
@@ -1759,7 +1769,7 @@ function App() {
       });
       return () => unsubscribe();
     }
-  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, activeProjectId, activeProjectName, timelineWeights, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, transitionsPercent, activeCrop, zoom, panOffset, isMirrored]);
+  }, [clips, timelineVideoClips, timelineVersions, activeVersionId, transcriptionStatus, transcriptSegments, newAudioSegments, aiScript, originalTranscriptText, libraryWidth, toolsWidth, timelineHeight, voiceModel, voiceSpeaker, voiceSpeed, voiceStability, generatedVoices, graphicsPercent, activeProjectId, activeProjectName, timelineWeights, directorProviderId, directorModelId, aspectRatio, exportResolution, exportFormat, exportQuality, assignedTransitions, transitionDuration, transitionsPercent, activeCrop, zoom, panOffset, isMirrored]);
 
   const handleSaveProjectDirectly = async (): Promise<boolean> => {
     setSaveStatus('saving');
@@ -1848,6 +1858,8 @@ function App() {
         setTranscriptSegments(loadedData.transcriptSegments || []);
         setNewAudioSegments(loadedData.newAudioSegments || []);
         setAiScript(loadedData.aiScript || '');
+        const directorPrefs = normalizeDirectorPreference(loadedData.directorProviderId, loadedData.directorModelId);
+        setDirectorProviderId(directorPrefs.providerId); setDirectorModelId(directorPrefs.modelId);
         const loadedOriginalText = loadedData.originalTranscriptText || (loadedData.transcriptSegments || []).map((s: any) => s.text).join(' ') || '';
         setOriginalTranscriptText(loadedOriginalText);
         if (loadedData.libraryWidth) setLibraryWidth(loadedData.libraryWidth);
@@ -1945,6 +1957,7 @@ function App() {
         setTransitionsPercent(0);
         setNewAudioSegments([]);
         setGraphicsPercent(0);
+        setDirectorProviderId(DEFAULT_DIRECTOR_PROVIDER); setDirectorModelId(DEFAULT_DIRECTOR_MODEL);
 
         setActiveProjectPath(res.projectPath || null);
         setActiveProjectId(loadedData.id || null);
@@ -2128,6 +2141,8 @@ function App() {
         setTranscriptSegments(loadedData.transcriptSegments || []);
         setNewAudioSegments(loadedData.newAudioSegments || []);
         setAiScript(loadedData.aiScript || '');
+        const directorPrefs = normalizeDirectorPreference(loadedData.directorProviderId, loadedData.directorModelId);
+        setDirectorProviderId(directorPrefs.providerId); setDirectorModelId(directorPrefs.modelId);
         const loadedOriginalText = loadedData.originalTranscriptText || (loadedData.transcriptSegments || []).map((s: any) => s.text).join(' ') || '';
         setOriginalTranscriptText(loadedOriginalText);
         if (loadedData.libraryWidth) setLibraryWidth(loadedData.libraryWidth);
@@ -2410,19 +2425,20 @@ function App() {
   const buildInputRef = React.useRef('');
   buildInputRef.current = JSON.stringify(buildInput);
   const buildDisabledReason = !activeProjectPath ? 'Abre un proyecto.' :
-    !buildStateReady ? 'Leyendo el plan guardado.' : isGeneratingAssets ? 'Hay una ejecución activa.' :
+    !buildStateReady ? (generationError ? 'No se pudo leer el plan guardado; resuelve el error antes de continuar.' : 'Leyendo el plan guardado.') : isGeneratingAssets ? 'Hay una ejecución activa.' :
     !aiScript.trim() ? 'Selecciona el guion.' : !buildAudio?.path ? 'Añade el audio principal.' :
     buildAudio.startSeconds !== 0 ? 'Coloca el audio principal al inicio del montaje.' :
     !buildSegments.length ? 'Transcribe el audio principal.' :
     timelineWeights.length !== 3 || timelineWeights[2] !== 0 ? 'Pon IA en 0 %; esta entrega trabaja con Original y Stock.' :
-    timelineWeights[0] > 0 && !clips.some(c => c.type === 'video') ? 'Importa el vídeo original.' : inputError;
+    timelineWeights[0] > 0 && !clips.some(c => c.type === 'video') ? 'Importa el vídeo original.' :
+    !directorAvailability.ready ? directorAvailability.reason : inputError;
   const canBuild = !buildDisabledReason;
   const handleCancelBuild = async () => {
     if (!activeProjectPath) return;
     const res = await window.electronAPI.cancelBuild({ projectPath: activeProjectPath });
     if (!res.success) setGenerationError(res.error || 'No se pudo cancelar.');
   };
-  const handleBuildIATimeline = async (mode: 'new' | 'continue' = 'new') => {
+  const handleBuildIATimeline = async (mode: 'new' | 'continue' | 'plan-only' = 'new') => {
     if (!canBuild || buildBusyRef.current) return;
     // Se captura al EMPEZAR y por el REF: esta funcion tarda MINUTOS —cortar clips, DeepSeek,
     // descargar stock, generar IA— y toda esa ventana es tiempo en el que el usuario puede
@@ -2430,6 +2446,7 @@ function App() {
     // comparacion nunca se cumpliria.
     const proyectoAlEmpezar = activeProjectPathRef.current;
     const inputAtStart = buildInputRef.current;
+    const directorAtStart = { providerId: directorProviderId, modelId: directorModelId, profileId: directorProfileId };
 
     const voiceClip = timelineVideoClips.find(c => c.type === 'audio');
     const isUsingOriginalAudio = voiceClip?.name === 'Voz - Audio Original';
@@ -2443,7 +2460,9 @@ function App() {
     }
     const effectiveAudioSegments = isUsingOriginalAudio ? transcriptSegments : newAudioSegments;
 
-    if (mode === 'new' && buildAllocation.adjustmentMessage &&
+    if (mode === 'plan-only' && buildSummary &&
+        !window.confirm('Se creará un plan nuevo. El plan anterior se conservará en el historial y sus clips y la timeline permanecerán guardados.')) return;
+    if ((mode === 'new' || mode === 'plan-only') && buildAllocation.adjustmentMessage &&
         !window.confirm(buildAllocation.adjustmentMessage)) return;
 
     // Guarda: la transcripcion tiene que cubrir el audio del timeline. Si no, FASE 5
@@ -2498,13 +2517,18 @@ function App() {
         videoPath: firstVideoInLibrary?.path,
         iaStyle,
         graphicsPercent: 0,
-        newAudioSegments: effectiveAudioSegments
+        newAudioSegments: effectiveAudioSegments,
+        director: directorAtStart
       });
       
       if (requestId !== buildRequestRef.current || activeProjectPathRef.current !== proyectoAlEmpezar) return;
       if (res.summary) setBuildSummary(res.summary);
       if (inputAtStart !== buildInputRef.current) {
         setGenerationError('Los ajustes cambiaron durante la ejecución. Conservamos el plan y los archivos sin aplicar un montaje antiguo.');
+        return;
+      }
+      if (res?.planOnly) {
+        setGenerationError(res.error || '');
         return;
       }
       if (res && res.success && res.clips) {
@@ -2684,6 +2708,7 @@ function App() {
     } finally {
       if (requestId === buildRequestRef.current) {
         buildBusyRef.current = false; setIsGeneratingAssets(false); setGenerationProgress(null);
+        setDirectorRefreshVersion(version => version + 1);
       }
     }
   };
@@ -3590,11 +3615,11 @@ function App() {
       </header>
 
       {/* Main Workspace Workspace layout */}
-      <main className="flex flex-1 overflow-hidden">
+      <main className="flex flex-1 min-h-0 overflow-hidden">
         {/* Left Side: Project Media & Library */}
         <section 
           style={{ width: `${libraryWidth}px` }} 
-          className="bg-[#1C1C1E]/50 border-r border-[#3a3a3c]/80 flex flex-col flex-shrink-0"
+          className="bg-[#1C1C1E]/50 border-r border-[#3a3a3c]/80 flex flex-col flex-shrink-0 min-h-0 overflow-hidden"
         >
           <div className="p-2 border-b border-[#3a3a3c]/80">
             <div className="grid grid-cols-4 gap-1">
@@ -3641,7 +3666,7 @@ function App() {
             </div>
           </div>
           {appMode === 'crear' ? (
-            <div className="flex-1 overflow-y-auto p-3 space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-4">
 
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-2">
                 <span>Mix del Montaje</span>
@@ -3761,6 +3786,14 @@ function App() {
             </button>
           </div>
 
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+          <DirectorSettingsPanel providerId={directorProviderId} modelId={directorModelId} refreshToken={directorRefreshVersion}
+
+            onProviderChange={setDirectorProviderId} onModelChange={setDirectorModelId}
+
+            onAccountChange={setDirectorProfileId} onAvailabilityChange={reportDirectorAvailability} />
+
+
           {/* Mix del montaje Section */}
           {!perfectSyncMode && (
           <div className="p-3 border-b border-[#3a3a3c]/80 bg-[#0D0D0F]/20 space-y-3 flex-shrink-0">
@@ -3848,7 +3881,8 @@ function App() {
 
             <BuildStatus summary={buildSummary} busy={isGeneratingAssets} canContinue={canBuild}
               reason={buildDisabledReason} error={generationError}
-              onContinue={() => handleBuildIATimeline('continue')} onCancel={handleCancelBuild} />
+              onContinue={() => handleBuildIATimeline('continue')} onPlanOnly={() => handleBuildIATimeline('plan-only')}
+              onCancel={handleCancelBuild} />
             {/* Botón Construir Timeline IA */}
             {isGeneratingAssets ? (
               <div className="w-full mt-3 p-3 bg-[#1C1C1E]/60 border border-[#3a3a3c] rounded-xl space-y-2 select-none">
@@ -4200,7 +4234,7 @@ function App() {
 
           {/* Media Items List */}
           <div 
-            className="flex-1 overflow-y-auto p-3 space-y-3"
+            className="p-3 space-y-3"
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -4549,6 +4583,7 @@ function App() {
                 </div>
               ));
             })()}
+          </div>
           </div>
           </>
           )}
@@ -6061,7 +6096,8 @@ function App() {
 
                       <BuildStatus summary={buildSummary} busy={isGeneratingAssets} canContinue={canBuild}
               reason={buildDisabledReason} error={generationError}
-              onContinue={() => handleBuildIATimeline('continue')} onCancel={handleCancelBuild} />
+              onContinue={() => handleBuildIATimeline('continue')} onPlanOnly={() => handleBuildIATimeline('plan-only')}
+              onCancel={handleCancelBuild} />
                       {/* Build Timeline IA Button */}
                       {isGeneratingAssets ? (
                         <div className="flex flex-col items-center justify-center text-center p-6 space-y-4 bg-[#1C1C1E]/90 border border-[#3a3a3c] rounded-xl shadow-xl select-none">

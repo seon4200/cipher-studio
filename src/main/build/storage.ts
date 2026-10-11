@@ -75,6 +75,19 @@ export async function atomicJson(file: string, value: unknown): Promise<void> {
 }
 
 export const planFile = (project: string) => path.join(project, 'build', 'plan.json');
+function pathComparisonKey(value: string) {
+  const resolved = path.resolve(value);
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+}
+async function canonicalProjectPath(project: string) {
+  try { return await fs.realpath(project); }
+  catch (error: any) {
+    // Preserve the useful "wrong project" error for stale paths while allowing
+    // Windows 8.3 aliases and junctions to compare by their physical location.
+    if (error.code === 'ENOENT') return path.resolve(project);
+    throw error;
+  }
+}
 export async function loadPlan(project: string, archivedId?: string): Promise<BuildPlan | null> {
   try {
     if (archivedId && !/^[a-zA-Z0-9-]+$/.test(archivedId)) throw new Error('ID de plan inválido.');
@@ -82,11 +95,14 @@ export async function loadPlan(project: string, archivedId?: string): Promise<Bu
     const plan = await readJson<BuildPlan>(file);
     validatePlan(plan);
     if (archivedId && plan.id !== archivedId) throw new Error('El archivo no corresponde al plan solicitado.');
-    if (path.resolve(plan.projectPath) !== path.resolve(project))
+    const [savedProjectPath, requestedProjectPath] = await Promise.all([
+      canonicalProjectPath(plan.projectPath), canonicalProjectPath(project),
+    ]);
+    if (pathComparisonKey(savedProjectPath) !== pathComparisonKey(requestedProjectPath))
       throw new Error('El plan pertenece a otra carpeta de proyecto.');
     for (const scene of plan.scenes) {
-      if (scene.result && path.resolve(scene.result.path) !==
-          path.resolve(project, 'materiales', 'builds', plan.id, `${scene.id}.mp4`))
+      if (scene.result && pathComparisonKey(scene.result.path) !==
+          pathComparisonKey(path.resolve(plan.projectPath, 'materiales', 'builds', plan.id, `${scene.id}.mp4`)))
         throw new Error('Un resultado apunta fuera de su carpeta de ejecución.');
     }
     return plan;

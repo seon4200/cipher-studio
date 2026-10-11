@@ -5,7 +5,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 const { spawnSync, spawn } = require('node:child_process');
-let temp, source, audio, model, storage, media, BuildRunner;
+let temp, source, audio, model, storage, media, BuildRunner, direct;
 const noop = () => {};
 
 before(async () => {
@@ -20,6 +20,10 @@ before(async () => {
   storage = require(path.join(temp, 'compiled/main/build/storage.js'));
   media = require(path.join(temp, 'compiled/main/build/media.js'));
   ({ BuildRunner } = require(path.join(temp, 'compiled/main/build/runner.js')));
+  const { createSceneDirector } = require(path.join(temp, 'compiled/main/build/director.js'));
+  direct = createSceneDirector({ id: 'recovery-test', propose: async input => ({
+    scenes: input.scenes.map(s => ({ id: s.id, keyword: 'ocean waves', sourceStart: s.startFrame / input.fps })),
+  }) });
   source = path.join(temp, 'vídeo fuente #1.mp4');
   audio = path.join(temp, 'audio principal.wav');
   await media.command('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=160x90:rate=30',
@@ -36,11 +40,37 @@ async function input(name, weights = [100, 0, 0]) {
     videoPath: source, weights, aspectRatio: '16:9', originalAudio: true,
     segments: [{ start: 0, end: 3.7, text: 'Primera frase.' }, { start: 4, end: 6, text: 'Segunda frase.' }] };
 }
-const direct = async scenes => scenes.map(s => ({ id: s.id, keyword: 'ocean waves', sourceStart: s.sourceStart }));
 async function prepare(scene, spec, output, signal) {
   const result = await media.cutMedia(source, output, scene.sourceStart, scene.frames, spec.aspectRatio, signal, 160);
   return { ...result, path: output, sourcePath: source, provider: scene.category };
 }
+
+test('reopens a plan through an equivalent Windows folder alias and preserves its media paths', async () => {
+  const spec = await input('path-alias', [100, 0, 0]);
+  const built = await new BuildRunner({
+    fingerprint: async () => 'path-alias-fingerprint',
+    prepare: async (scene, _input, output) => ({ path: output, sha256: `hash-${scene.id}`,
+      frames: scene.frames, duration: scene.frames / 30, sourcePath: source,
+      sourceStart: scene.sourceStart, provider: 'original' }),
+    validate: async (file, frames, _signal, hash) => ({ path: file, sha256: hash || 'unused', frames, duration: frames / 30 }),
+  }).run(spec, 'new', null, noop);
+  assert.equal(built.summary.status, 'complete');
+
+  const alias = path.join(temp, 'path-alias-junction');
+  await fs.symlink(spec.projectPath, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  const reopened = await storage.loadPlan(alias);
+  assert.equal(reopened.id, built.summary.id);
+  assert.equal(reopened.projectPath, spec.projectPath);
+  assert.equal(reopened.scenes.filter(scene => scene.result).length, built.summary.total);
+  assert.ok(reopened.scenes.filter(scene => scene.result).every(scene =>
+    path.resolve(scene.result.path).toLowerCase() ===
+      path.resolve(spec.projectPath, 'materiales', 'builds', reopened.id, `${scene.id}.mp4`).toLowerCase()));
+
+  const foreign = path.join(temp, 'path-alias-foreign');
+  await fs.mkdir(path.join(foreign, 'build'), { recursive: true });
+  await fs.copyFile(storage.planFile(spec.projectPath), storage.planFile(foreign));
+  await assert.rejects(storage.loadPlan(foreign), /pertenece a otra carpeta/);
+});
 
 test('the allocator redistributes complete 2–3 s clips and previews the nearest feasible mix', async () => {
   const spec = await input('quotas');
@@ -74,6 +104,86 @@ test('the allocator redistributes complete 2–3 s clips and previews the neares
 
   const p = model.createPlan(spec, 'test-plan', 'hash', 1);
   assert.equal(p.scenes.at(-1).startFrame+p.scenes.at(-1).frames,186);
+});
+
+test('plan-only saves linked direction provenance, creates no media and continues without re-directing', async () => {
+  const spec = await input('plan-only', [0,100,0]);
+  let directionCalls = 0, mediaCalls = 0;
+  const testDirect = async (scenes, _input, _signal, onMetadata) => {
+    directionCalls++;
+    onMetadata?.({ actualModelId: 'gpt-6-luna', providerRequestId: 'req-test-123', providerResponseId: 'resp-test-456' });
+    return scenes.map(scene => ({ id: scene.id, keyword: 'moon surface', sourceStart: 0 }));
+  };
+  const firstRunner = new BuildRunner({ direct: testDirect,
+    fingerprint: async () => 'plan-only-fingerprint',
+    prepare: async () => { mediaCalls++; throw new Error('plan-only must stop before media'); } });
+  const planned = await firstRunner.run(spec, 'plan-only', null, noop, testDirect,
+    { providerId: 'chatgpt', requestedModelId: 'gpt-6-luna' });
+  assert.equal(planned.success, true);
+  assert.equal(planned.planOnly, true);
+  assert.deepEqual(planned.clips, []);
+  assert.equal(planned.summary.status, 'ready');
+  assert.equal(planned.summary.completed, 0);
+  assert.equal(planned.summary.directionOriginStatus, 'recorded');
+  assert.equal(planned.summary.directionAttempts.length, 1);
+  assert.equal(directionCalls, 1);
+  assert.equal(mediaCalls, 0);
+
+  const saved = await storage.loadPlan(spec.projectPath);
+  assert.equal(saved.id, planned.summary.id);
+  assert.equal(saved.revision, 1);
+  assert.equal(saved.directionAttempts[0].planId, saved.id);
+  assert.equal(saved.directionAttempts[0].planRevision, saved.revision);
+  assert.equal(saved.directionAttempts[0].providerId, 'chatgpt');
+  assert.equal(saved.directionAttempts[0].requestedModelId, 'gpt-6-luna');
+  assert.equal(saved.directionAttempts[0].actualModelId, 'gpt-6-luna');
+  assert.equal(saved.directionAttempts[0].providerRequestId, 'req-test-123');
+  assert.equal(saved.directionAttempts[0].providerResponseId, 'resp-test-456');
+  assert.equal(saved.directionAttempts[0].result, 'completed');
+  assert.ok(saved.directionAttempts[0].startedAt && saved.directionAttempts[0].endedAt);
+  assert.ok(saved.scenes.every(scene => scene.attempts.every(attempt => attempt.stage !== 'media')));
+  assert.ok(saved.scenes.every(scene => scene.attempts.find(attempt => attempt.stage === 'direction')?.directionAttemptId === saved.directionAttempts[0].id));
+
+  const reopenedSummary = await new BuildRunner({ fingerprint: async () => 'plan-only-fingerprint' }).inspect(spec.projectPath);
+  assert.equal(reopenedSummary.id, saved.id);
+  assert.equal(reopenedSummary.directionOriginStatus, 'recorded');
+  assert.deepEqual(reopenedSummary.directionAttempts, saved.directionAttempts);
+
+  const resumed = await new BuildRunner({ direct: async () => { directionCalls++; throw new Error('saved direction should be reused'); },
+    fingerprint: async () => 'plan-only-fingerprint',
+    prepare: async (scene, _input, output) => { mediaCalls++; return { path: output, sha256: `hash-${scene.id}`,
+      frames: scene.frames, duration: scene.frames / 30, sourcePath: 'stock-fixture', sourceStart: 0, provider: 'fixture' }; },
+    validate: async (file, frames, _signal, hash) => ({ path: file, sha256: hash || 'unused', frames, duration: frames / 30 }),
+  }).run(spec, 'continue', saved.id, noop);
+  assert.equal(resumed.success, true);
+  assert.equal(directionCalls, 1, 'continuation must use the saved keywords');
+  assert.equal(mediaCalls, saved.scenes.length);
+  assert.equal(resumed.summary.status, 'complete');
+  assert.deepEqual(resumed.summary.directionAttempts, saved.directionAttempts);
+});
+
+test('failed directions retain their plan link and legacy plans remain unrecorded', async () => {
+  const spec = await input('plan-only-failure', [0,100,0]);
+  const failDirect = async () => {
+    throw new media.BuildFailure('RESPONSE_INVALID', 'Propuesta inválida.', false);
+  };
+  const failed = await new BuildRunner({ direct: failDirect,
+    fingerprint: async () => 'failed-plan-fingerprint' })
+    .run(spec, 'plan-only', null, noop, failDirect,
+      { providerId: 'chatgpt', requestedModelId: 'gpt-6-luna' });
+  assert.equal(failed.planOnly, true);
+  assert.equal(failed.success, false);
+  assert.equal(failed.summary.directionOriginStatus, 'partial');
+  assert.equal(failed.summary.directionAttempts.length, 1);
+  assert.equal(failed.summary.directionAttempts[0].result, 'failed');
+  assert.equal(failed.summary.directionAttempts[0].error.code, 'RESPONSE_INVALID');
+  assert.ok(failed.summary.directionAttempts[0].planId === failed.summary.id);
+  assert.ok(failed.summary.directionAttempts[0].planRevision === 1);
+
+  const old = model.createPlan(spec, 'legacy-origin-plan', 'legacy-origin-hash', 1);
+  delete old.directionOriginStatus; delete old.directionAttempts;
+  assert.equal(model.summarize(old).directionOriginStatus, 'unrecorded');
+  assert.deepEqual(model.summarize(old).directionAttempts, []);
 });
 
 test('real FFmpeg cuts align to frames, clamp source offsets and preserve the audio', async () => {

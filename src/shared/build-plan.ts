@@ -16,8 +16,26 @@ export interface BuildInput {
   originalAudio: boolean;
 }
 export interface BuildIssue { code: string; message: string; retryable: boolean }
+export type DirectionAttemptResult = 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted';
+export type DirectionOriginStatus = 'unrecorded' | 'pending' | 'partial' | 'recorded' | 'not-required';
+export interface PlanDirectionAttempt {
+  id: string;
+  planId: string;
+  planRevision: number;
+  sceneIds: string[];
+  providerId: string;
+  requestedModelId: string;
+  actualModelId?: string;
+  providerRequestId?: string;
+  providerResponseId?: string;
+  startedAt: string;
+  endedAt?: string;
+  result: DirectionAttemptResult;
+  error?: BuildIssue;
+}
 export interface SceneAttempt {
   stage: 'direction' | 'media'; startedAt: string; endedAt?: string;
+  directionAttemptId?: string;
   error?: BuildIssue; candidate?: string;
 }
 export interface SceneResult {
@@ -38,12 +56,17 @@ export interface BuildPlan {
   allocationMessage?: string;
   status: 'ready' | 'running' | 'paused' | 'incomplete' | 'complete';
   scenes: BuildScene[]; runId?: string; error?: BuildIssue;
+  /** Optional to preserve legacy plans whose original provider/model were never recorded. */
+  directionOriginStatus?: DirectionOriginStatus;
+  directionAttempts?: PlanDirectionAttempt[];
 }
 export interface BuildSummary {
   id: string; projectPath: string; status: BuildPlan['status']; total: number;
   completed: number; stockSeconds: number; originalSeconds: number;
   requestedStockPercent: number; obtainedStockSeconds: number;
   allocationMessage?: string;
+  directionOriginStatus: DirectionOriginStatus;
+  directionAttempts: PlanDirectionAttempt[];
   pending: { id: string; category: SourceKind; error?: BuildIssue }[];
 }
 
@@ -192,7 +215,8 @@ export function createPlan(input: BuildInput, id: string, inputHash: string, rev
   const plan: BuildPlan = { schemaVersion: 2, id, revision, projectPath: input.projectPath,
     inputHash, input, fps: BUILD_FPS, totalFrames, stockFrames: allocation.stockFrames,
     allocationMessage: allocation.adjustmentMessage,
-    createdAt: now, updatedAt: now, status: 'ready', scenes };
+    createdAt: now, updatedAt: now, status: 'ready', scenes,
+    directionOriginStatus: 'pending', directionAttempts: [] };
   validatePlan(plan);
   return plan;
 }
@@ -224,6 +248,30 @@ export function validatePlan(plan: BuildPlan) {
         Math.abs(scene.result.duration - scene.frames / plan.fps) > 0.001))
       throw new Error('Un resultado completo no coincide con el plan.');
   }
+  if (plan.directionOriginStatus !== undefined &&
+      !['unrecorded', 'pending', 'partial', 'recorded', 'not-required'].includes(plan.directionOriginStatus))
+    throw new Error('El estado del origen editorial no es válido.');
+  if (plan.directionAttempts !== undefined) {
+    if (!Array.isArray(plan.directionAttempts)) throw new Error('El registro de dirección del plan es inválido.');
+    const attemptIds = new Set<string>();
+    for (const attempt of plan.directionAttempts) {
+      if (!attempt || !/^[a-zA-Z0-9-]+$/.test(attempt.id) || attemptIds.has(attempt.id) ||
+          attempt.planId !== plan.id || attempt.planRevision !== plan.revision ||
+          !Array.isArray(attempt.sceneIds) || !attempt.sceneIds.length ||
+          attempt.sceneIds.some(id => !ids.has(id)) || typeof attempt.providerId !== 'string' || !attempt.providerId ||
+          typeof attempt.requestedModelId !== 'string' || !attempt.requestedModelId ||
+          !Number.isFinite(Date.parse(attempt.startedAt)) ||
+          !['running', 'completed', 'failed', 'cancelled', 'interrupted'].includes(attempt.result) ||
+          (attempt.result !== 'running' && !attempt.endedAt) ||
+          (attempt.endedAt !== undefined && !Number.isFinite(Date.parse(attempt.endedAt))))
+        throw new Error('Un intento de dirección no coincide con el plan o su revisión.');
+      attemptIds.add(attempt.id);
+    }
+    for (const scene of plan.scenes) for (const sceneAttempt of scene.attempts) {
+      if (sceneAttempt.directionAttemptId && !attemptIds.has(sceneAttempt.directionAttemptId))
+        throw new Error('Una escena referencia un intento de dirección ausente.');
+    }
+  }
   if (!plan.scenes.length || end !== plan.totalFrames || stock !== plan.stockFrames)
     throw new Error('El plan no cubre la duración o la mezcla solicitada.');
   if (plan.status === 'complete' && plan.scenes.some(s => s.status !== 'complete'))
@@ -239,6 +287,8 @@ export function summarize(plan: BuildPlan): BuildSummary {
     obtainedStockSeconds: plan.scenes.filter(s => s.category === 'stock' && s.status === 'complete')
       .reduce((sum, s) => sum + s.frames / plan.fps, 0),
     allocationMessage: plan.allocationMessage,
+    directionOriginStatus: plan.directionOriginStatus || 'unrecorded',
+    directionAttempts: plan.directionAttempts || [],
     pending: plan.scenes.filter(s => s.status !== 'complete').map(s =>
       ({ id: s.id, category: s.category, error: s.error })),
   };

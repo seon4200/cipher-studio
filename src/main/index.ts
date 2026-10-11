@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, safeStorage, shell } from 'electron'
 import path from 'path'
 import { spawn, exec } from 'child_process'
 import { once } from 'events'
@@ -8,10 +8,16 @@ import { pathToFileURL } from 'url'
 import { getVideoDuration, generateVideoThumbnail, formatTimeMinutesSeconds } from './services/ffmpeg'
 import { fal } from '@fal-ai/client'
 import { BuildRunner } from './build/runner'
+import { createSceneDirector } from './build/director'
+import { deepseekDirector } from './director/deepseek'
+import { chatGPTDirector } from './director/chatgpt'
+import { SiwcError, SiwcRuntime } from './siwc/runtime'
+import { DEFAULT_DIRECTOR_MODEL } from '../shared/director-provider'
 import { atomicJson, readJson, projectBusy, claimProject } from './build/storage'
 import { cutMedia, probe } from './build/media'
 import { randomUUID } from 'crypto'
 const buildRunner = new BuildRunner()
+const siwc = new SiwcRuntime({ userDataPath: app.getPath('userData'), safeStorage, openExternal: value => shell.openExternal(value) })
 
 // Construir "file:///" concatenando la ruta FALLA con espacios, acentos y '#'. Medido en un
 // Chromium real con webSecurity:false, cargando un video desde
@@ -583,6 +589,8 @@ ipcMain.handle('create-project', async (_event, { name }) => {
       voiceStability: 50,
       generatedVoices: [],
       timelineWeights: [30, 70, 0],
+      directorProviderId: "deepseek",
+      directorModelId: "deepseek-chat",
       transitionsPercent: 0
     };
     
@@ -746,6 +754,8 @@ export function dimensionesDeExport(aspectRatio?: string, resolution?: string):
 const SONDA_ALTO = 8;
 const SONDA_FPS = 30;
 const MAX_INTENTOS_FRAME = 5;  // medido: nunca hicieron falta mas de 2
+const MAX_INTENTOS_CAPTURA = 6;
+const ESPERA_REINTENTO_CAPTURA_MS = 100;
 
 let ventanaGraficos: BrowserWindow | null = null;
 
@@ -853,13 +863,28 @@ export function cerrarVentanaGraficos() {
   ventanaGraficos = null;
 }
 
+
+async function capturarPaginaConReintentos(webContents: BrowserWindow['webContents']) {
+  let ultimoError: unknown;
+  for (let intento = 1; intento <= MAX_INTENTOS_CAPTURA; intento++) {
+    try {
+      return await webContents.capturePage();
+    } catch (error) {
+      ultimoError = error;
+      const mensaje = error instanceof Error ? error.message : String(error);
+      if (!mensaje.includes('UnknownVizError') || intento === MAX_INTENTOS_CAPTURA) throw error;
+      await writeDebugLog(`[GRAFICO] capturePage UnknownVizError; reintento ${intento}/${MAX_INTENTOS_CAPTURA - 1} en ${ESPERA_REINTENTO_CAPTURA_MS} ms`);
+      await new Promise(resolve => setTimeout(resolve, ESPERA_REINTENTO_CAPTURA_MS));
+    }
+  }
+  throw ultimoError;
+}
 /**
  * Renderiza un grafico a un .mov con alpha. Devuelve la ruta, o null si falla: se pierde ese
  * grafico, nunca el export.
  *
  * TODAVIA SIN CACHE POR HASH — cada llamada renderiza. Es el paso siguiente.
- */
-export async function renderGraphicClip(
+ */export async function renderGraphicClip(
   graphicData: any,
   opciones: {
     ancho?: number; alto?: number; fps?: number; duracion?: number;
@@ -915,7 +940,7 @@ export async function renderGraphicClip(
 
     // Que el bitmap mida lo pedido NO se da por hecho: es exactamente el fallo silencioso
     // que se midio. Si no cuadra se aborta antes de escribir un MOV cortado.
-    const sonda0 = await v.webContents.capturePage();
+    const sonda0 = await capturarPaginaConReintentos(v.webContents);
     const tam = sonda0.getSize();
     if (tam.width !== ancho || tam.height !== alto + SONDA_ALTO) {
       throw new Error(`la ventana mide ${tam.width}x${tam.height} y se pidio ` +
@@ -962,18 +987,16 @@ export async function renderGraphicClip(
       // sin esta comprobacion uno de cada tres MOV llevaria el frame equivocado.
       let frame: Buffer | null = null;
       for (let intento = 1; intento <= MAX_INTENTOS_FRAME; intento++) {
-        const img = await v.webContents.capturePage();
-        const raw = img.getBitmap();   // NO copia
+        const img = await capturarPaginaConReintentos(v.webContents);
+        const raw = img.toBitmap();   // Electron 43+: copia del bitmap en sRGB
         intentosTotales++;
         // Los TRES canales, no solo uno: la sonda es gris, asi que B, G y R tienen que
         // valer lo mismo Y coincidir con lo esperado. Cuesta igual y descarta ruido.
         const b = raw[offSonda], g = raw[offSonda + 1], r = raw[offSonda + 2];
         if (b === esperado && g === esperado && r === esperado) {
-          // Buffer.from en el MISMO tick, antes de cualquier await. No se pudo demostrar que
-          // haga falta (0 corrupciones en 12 muestras), pero getBitmap() no copia segun la
-          // documentacion y eso es una carrera: 3 ms sobre 33 compran determinismo.
+          // toBitmap() ya devuelve una copia propia; se conserva una vista de sus bytes estables.
           // El subarray descarta la franja de la sonda, que no viaja a ffmpeg.
-          frame = Buffer.from(raw.subarray(bytesSonda));
+          frame = raw.subarray(bytesSonda);
           if (intento === MAX_INTENTOS_FRAME) framesEnElTope++;
           break;
         }
@@ -1001,7 +1024,7 @@ export async function renderGraphicClip(
 
   } catch (e: any) {
     // Se pierde ESTE grafico, no el export. Y se dice por que.
-    await writeDebugLog(`[GRAFICO] FALLO (${graphicData?.type}): ${e.message}`);
+    await writeDebugLog(`[GRAFICO] FALLO (${graphicData?.type}): ${e?.stack || e?.message || String(e)}`);
     try { ff?.kill(); } catch {}
     try { await fs.promises.unlink(destino); } catch {}
     return null;
@@ -2628,20 +2651,72 @@ ipcMain.handle('cancel-build', async (_event, { projectPath }) => {
   try { requireBuildProject(projectPath); buildRunner.cancel(projectPath); return { success: true }; }
   catch (e: any) { return { success: false, error: e.message }; }
 });
+function requireCipherWindow(event: Electron.IpcMainInvokeEvent) {
+  if (!win || win.isDestroyed() || event.sender !== win.webContents || event.senderFrame !== event.sender.mainFrame)
+    throw new Error('La solicitud no procede de la ventana principal de Cipher.');
+}
+function siwcErrorResult(error: any) {
+  return { success: false, code: error instanceof SiwcError ? error.code : 'AUTH_FAILED',
+    error: error instanceof Error ? error.message : 'No se pudo completar la operación de ChatGPT.' };
+}
+ipcMain.handle('director-state', async event => {
+  try {
+    requireCipherWindow(event); loadEnv();
+    return { success: true, state: await siwc.getState(), deepseekConfigured: !!process.env.DEEPSEEK_API_KEY };
+  } catch (error: any) { return siwcErrorResult(error); }
+});
+ipcMain.handle('director-connect', async (event, profileId?: string) => {
+  try { requireCipherWindow(event); return { success: true, state: await siwc.signIn(profileId) }; }
+  catch (error: any) { return { ...siwcErrorResult(error), state: await siwc.getState().catch(() => null) }; }
+});
+ipcMain.handle('director-cancel-login', async event => {
+  try { requireCipherWindow(event); siwc.cancelSignIn(); return { success: true }; }
+  catch (error: any) { return siwcErrorResult(error); }
+});
+ipcMain.handle('director-select-account', async (event, profileId: string) => {
+  try { requireCipherWindow(event); return { success: true, state: await siwc.selectProfile(profileId) }; }
+  catch (error: any) { return siwcErrorResult(error); }
+});
+ipcMain.handle('director-models', async (event, profileId?: string) => {
+  try { requireCipherWindow(event); return { success: true, models: await siwc.listModels(profileId) }; }
+  catch (error: any) { return siwcErrorResult(error); }
+});
+ipcMain.handle('director-disconnect', async (event, profileId?: string) => {
+  try { requireCipherWindow(event); return { success: true, ...(await siwc.disconnect(profileId)) }; }
+  catch (error: any) { return siwcErrorResult(error); }
+});
 ipcMain.handle('generate-timeline-assets', async (event, params) => {
   try {
+    requireCipherWindow(event);
     requireBuildProject(params.projectPath);
     if (params.audioStartSeconds !== 0) throw new Error('El audio principal debe empezar en cero.');
-    loadEnv(true);
+    const providerId = params.director?.providerId;
+    const modelId = params.director?.modelId;
+    let selectedDirector: ReturnType<typeof createSceneDirector>;
+    if (providerId === 'deepseek') {
+      loadEnv(true);
+      if (modelId !== DEFAULT_DIRECTOR_MODEL) throw new Error('El modelo de DeepSeek seleccionado no está disponible.');
+      selectedDirector = createSceneDirector(deepseekDirector);
+    } else if (providerId === 'chatgpt') {
+      const profileId = params.director?.profileId;
+      if (typeof profileId !== 'string' || !profileId || typeof modelId !== 'string' || !modelId)
+        throw new SiwcError('MODEL_UNAVAILABLE', 'Selecciona una cuenta y un modelo de ChatGPT disponibles.');
+      const catalog = await siwc.listModels(profileId);
+      if (!catalog.some(item => item.slug === modelId))
+        throw new SiwcError('MODEL_UNAVAILABLE', 'El modelo guardado ya no está disponible para esta cuenta. Elige otro.');
+      selectedDirector = createSceneDirector(chatGPTDirector(siwc, profileId, modelId));
+    } else {
+      throw new SiwcError('MODEL_UNAVAILABLE', 'Este proveedor todavía no está conectado.');
+    }
     return await buildRunner.run({ projectPath: params.projectPath, scriptText: params.scriptText,
       audioPath: params.audioPath, audioDuration: params.audioDuration, videoPath: params.videoPath || '',
       weights: params.weights, aspectRatio: params.aspectRatio,
       segments: params.newAudioSegments, originalAudio: params.originalAudio },
-      params.mode === 'continue' ? 'continue' : 'new', params.expectedPlanId || null, progress => {
+      params.mode === 'continue' ? 'continue' : params.mode === 'plan-only' ? 'plan-only' : 'new', params.expectedPlanId || null, progress => {
         if (!event.sender.isDestroyed() && activeProjectPath === params.projectPath)
           event.sender.send('generation-progress', { ...progress, requestId: params.requestId });
-      });
-  } catch (e: any) { return { success: false, error: e.message }; }
+      }, selectedDirector, { providerId, requestedModelId: modelId });
+  } catch (e: any) { return { success: false, code: e?.code || 'BUILD_ERROR', error: e.message }; }
 });
 
 ipcMain.handle('regenerate-graphics', async (_event, params: any) => {

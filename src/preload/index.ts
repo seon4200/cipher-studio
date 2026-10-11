@@ -31,6 +31,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   generateTimelineAssets: (params: any) => ipcRenderer.invoke('generate-timeline-assets', params),
   getBuildState: (params: { projectPath: string }) => ipcRenderer.invoke('get-build-state', params),
   cancelBuild: (params: { projectPath: string }) => ipcRenderer.invoke('cancel-build', params),
+  getDirectorState: () => ipcRenderer.invoke('director-state'),
+  connectDirectorAccount: (profileId?: string) => ipcRenderer.invoke('director-connect', profileId),
+  cancelDirectorLogin: () => ipcRenderer.invoke('director-cancel-login'),
+  selectDirectorAccount: (profileId: string) => ipcRenderer.invoke('director-select-account', profileId),
+  getDirectorModels: (profileId?: string) => ipcRenderer.invoke('director-models', profileId),
+  disconnectDirectorAccount: (profileId?: string) => ipcRenderer.invoke('director-disconnect', profileId),
   generatePerfectSync: (params: any) => ipcRenderer.invoke('generate-perfect-sync', params),
   renderGraphicsBatch: (params: any) => ipcRenderer.invoke('render-graphics-batch', params),
   onGenerationProgress: (callback: (event: any, data: any) => void) => {
