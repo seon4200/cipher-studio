@@ -149,12 +149,14 @@ test('plan-only saves linked direction provenance, creates no media and continue
   assert.equal(reopenedSummary.directionOriginStatus, 'recorded');
   assert.deepEqual(reopenedSummary.directionAttempts, saved.directionAttempts);
 
-  const resumed = await new BuildRunner({ direct: async () => { directionCalls++; throw new Error('saved direction should be reused'); },
+  const changedSelection = async () => { directionCalls++; throw new Error('saved direction should be reused after a provider/model change'); };
+  const resumed = await new BuildRunner({ direct: changedSelection,
     fingerprint: async () => 'plan-only-fingerprint',
     prepare: async (scene, _input, output) => { mediaCalls++; return { path: output, sha256: `hash-${scene.id}`,
       frames: scene.frames, duration: scene.frames / 30, sourcePath: 'stock-fixture', sourceStart: 0, provider: 'fixture' }; },
     validate: async (file, frames, _signal, hash) => ({ path: file, sha256: hash || 'unused', frames, duration: frames / 30 }),
-  }).run(spec, 'continue', saved.id, noop);
+  }).run(spec, 'continue', saved.id, noop, changedSelection,
+    { providerId: 'deepseek', requestedModelId: 'deepseek-chat' });
   assert.equal(resumed.success, true);
   assert.equal(directionCalls, 1, 'continuation must use the saved keywords');
   assert.equal(mediaCalls, saved.scenes.length);

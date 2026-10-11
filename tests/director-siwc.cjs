@@ -41,6 +41,7 @@ function fixture(t, options = {}) {
   const calls = [];
   const state = { scopes: options.scopes || 'openid profile email offline_access resource.invoke chatgpt.tokens.use.direct',
     expires: options.expires ?? 3600, catalogStatus: options.catalogStatus || 200,
+    catalogErrorCode: options.catalogErrorCode || 'test_error', modelNetworkError: !!options.modelNetworkError,
     catalog: options.catalog || { models: [
       { slug: 'test-model-one', display_name: 'Test Model One', visibility: 'list' },
       { slug: 'hidden-model', display_name: 'Hidden', visibility: 'hide' },
@@ -59,6 +60,9 @@ function fixture(t, options = {}) {
     }
     if (href.endsWith('/v1/models')) {
       assert.equal(init.headers.Authorization, state.refreshCount ? 'Bearer rotated-access-token' : 'Bearer initial-access-token');
+      if (state.modelNetworkError) throw new Error('fixture-network-failure');
+      if (state.catalogStatus !== 200)
+        return Response.json({ error: { code: state.catalogErrorCode } }, { status: state.catalogStatus });
       return Response.json(state.catalog, { status: state.catalogStatus });
     }
     if (href.endsWith('/v1/responses')) {
@@ -70,6 +74,10 @@ function fixture(t, options = {}) {
       assert.equal(request.stream, true);
       assert.equal(request.model, 'test-model-one');
       assert.ok(!init.body.includes('C:\\private'));
+      if (state.inference === 'late') {
+        state.requestSignal = init.signal;
+        return new Promise(resolve => { state.resolveLateResponse = resolve; });
+      }
       if (state.inference === 'cancel') {
         const encoder = new TextEncoder();
         return new Response(new ReadableStream({ start(controller) {
@@ -77,7 +85,8 @@ function fixture(t, options = {}) {
           controller.enqueue(encoder.encode('data: {"type":"response.output_text.delta","delta":"{\\"scenes\\":["}\n\n'));
         } }), { headers: { 'Content-Type': 'text/event-stream', 'x-request-id': 'req-fixture-42' } });
       }
-      const proposal = JSON.stringify({ scenes: [{ id: 'scene-one', keyword: 'moon surface', sourceStart: 1 }] });
+      const proposal = state.inference === 'invalid-json' ? '{invalid-json'
+        : JSON.stringify({ scenes: [{ id: 'scene-one', keyword: 'moon surface', sourceStart: 1 }] });
       const events = state.inference === 'partial'
         ? [{ type: 'response.incomplete', response: { id: 'resp-partial-1', model: 'test-model-one' } }]
         : [{ type: 'response.output_text.delta', delta: proposal },
@@ -100,6 +109,7 @@ function fixture(t, options = {}) {
       return { sub: 'account-subject-test', email: 'director@example.test' };
     },
     openExternal: async value => {
+      if (options.openExternal) return options.openExternal(value, state);
       const auth = new URL(value);
       state.authUrl = auth;
       const callback = new URL(auth.searchParams.get('redirect_uri'));
@@ -146,6 +156,33 @@ test('OAuth uses the official dynamic client flow, persisted host, loopback PKCE
   assert.equal(stored.includes(Buffer.from('initial-access-token')), false);
   await assert.rejects(f.runtime.listModels(), error => error.code === 'PERMISSION_REQUIRED');
   assert.equal(f.calls.some(call => call.url.endsWith('/v1/models')), false);
+});
+
+test('closing the login flow cancels OAuth without creating a connected profile', async t => {
+  let browserOpened;
+  const opened = new Promise(resolve => { browserOpened = resolve; });
+  const f = fixture(t, { openExternal: async value => { f.state.authUrl = new URL(value); browserOpened(); } });
+  const pending = f.runtime.signIn();
+  await opened;
+  f.runtime.cancelSignIn();
+  await assert.rejects(pending, error => error instanceof SiwcError && error.code === 'LOGIN_CANCELLED');
+  const state = await f.runtime.getState();
+  assert.equal(state.profiles.length, 0);
+  assert.equal(state.activeProfileId, null);
+});
+
+test('catalog errors distinguish expired session, account/model permission, limits and network failure', async t => {
+  const scenarios = [
+    [{ catalogStatus: 401 }, 'SESSION_EXPIRED'],
+    [{ catalogStatus: 403 }, 'ACCOUNT_MODEL'],
+    [{ catalogStatus: 429, catalogErrorCode: 'subscription_sharing_usage_limit_exceeded' }, 'USAGE_LIMIT'],
+    [{ modelNetworkError: true }, 'NETWORK'],
+  ];
+  for (const [options, expected] of scenarios) {
+    const f = fixture(t, options);
+    await connected(f);
+    await assert.rejects(f.runtime.listModels(), error => error instanceof SiwcError && error.code === expected);
+  }
 });
 
 test('model catalog uses the account slugs and inference accepts only a completed JSON proposal', async t => {
@@ -203,13 +240,52 @@ test('incomplete responses and cancellation never apply a proposal', async t => 
   assert.equal(cancelledRecord.errorCode, 'CANCELLED');
 });
 
+test('malformed JSON and an uncancellable late response are discarded and recorded as failures', async t => {
+  const invalid = fixture(t, { inference: 'invalid-json' });
+  await connected(invalid);
+  await assert.rejects(invalid.runtime.propose('oaiapp_test_registration', 'test-model-one', sampleInput,
+    new AbortController().signal), error => error.code === 'RESPONSE_INVALID');
+  assert.equal((await invalid.runtime.getState()).lastInference.errorCode, 'RESPONSE_INVALID');
+
+  const late = fixture(t, { inference: 'late' });
+  await connected(late);
+  const controller = new AbortController();
+  const pending = late.runtime.propose('oaiapp_test_registration', 'test-model-one', sampleInput, controller.signal);
+  for (let i = 0; i < 100 && !late.state.resolveLateResponse; i++)
+    await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(typeof late.state.resolveLateResponse, 'function', 'the mocked request reached the pending response');
+  controller.abort(new Error('late-response-cancel'));
+  assert.equal(late.state.requestSignal.aborted, true);
+  const proposal = JSON.stringify({ scenes: [{ id: 'scene-one', keyword: 'late response', sourceStart: 0 }] });
+  const events = [
+    { type: 'response.output_text.delta', delta: proposal },
+    { type: 'response.completed', response: { id: 'resp-too-late', model: 'test-model-one',
+      usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 } } },
+  ];
+  late.state.resolveLateResponse(new Response(events.map(event => `data: ${JSON.stringify(event)}\n\n`).join(''),
+    { headers: { 'Content-Type': 'text/event-stream', 'x-request-id': 'req-too-late' } }));
+  await assert.rejects(pending, /late-response-cancel/);
+  const lateRecord = (await late.runtime.getState()).lastInference;
+  assert.equal(lateRecord.status, 'cancelled');
+  assert.equal(lateRecord.errorCode, 'CANCELLED');
+  assert.equal(lateRecord.providerResponseId, undefined);
+  assert.equal(lateRecord.totalTokens, undefined);
+});
+
 test('disconnect revokes refresh token, removes local credentials and retains the registration identity', async t => {
   const f = fixture(t);
   await connected(f);
+  const hostId = f.state.authUrl.searchParams.get('ext_agent_host_id');
   const result = await f.runtime.disconnect('oaiapp_test_registration');
   assert.equal(result.revocationConfirmed, true);
   assert.equal(result.state.activeProfileId, null);
   assert.equal(result.state.profiles[0].connected, false);
   assert.equal(result.state.profiles[0].id, 'oaiapp_test_registration');
   await assert.rejects(f.runtime.listModels('oaiapp_test_registration'), error => error.code === 'DISCONNECTED');
+  const reconnected = await f.runtime.signIn('oaiapp_test_registration');
+  assert.equal(reconnected.activeProfileId, 'oaiapp_test_registration');
+  assert.equal(reconnected.profiles.length, 1);
+  assert.equal(reconnected.profiles[0].connected, true);
+  assert.equal(f.state.authUrl.searchParams.get('client_id'), 'oaiapp_test_registration');
+  assert.equal(f.state.authUrl.searchParams.get('ext_agent_host_id'), hostId);
 });

@@ -14,10 +14,12 @@ import { chatGPTDirector } from './director/chatgpt'
 import { SiwcError, SiwcRuntime } from './siwc/runtime'
 import { DEFAULT_DIRECTOR_MODEL } from '../shared/director-provider'
 import { atomicJson, readJson, projectBusy, claimProject } from './build/storage'
+import { ProjectLocationStore } from './project-location'
 import { cutMedia, probe } from './build/media'
 import { randomUUID } from 'crypto'
 const buildRunner = new BuildRunner()
 const siwc = new SiwcRuntime({ userDataPath: app.getPath('userData'), safeStorage, openExternal: value => shell.openExternal(value) })
+const projectLocations = new ProjectLocationStore(app.getPath('userData'))
 
 // Construir "file:///" concatenando la ruta FALLA con espacios, acentos y '#'. Medido en un
 // Chromium real con webSecurity:false, cargando un video desde
@@ -362,16 +364,7 @@ function slugify(text: string): string {
 }
 
 async function getProjectsDir(): Promise<string> {
-  const cwd = process.cwd();
-  let baseDir = cwd;
-  if (path.basename(cwd) !== 'cipher-studio') {
-    baseDir = path.join(cwd, 'cipher-studio');
-  }
-  const dir = path.join(baseDir, 'proyectos');
-  if (!(await exists(dir))) {
-    await fs.promises.mkdir(dir, { recursive: true });
-  }
-  return dir;
+  return projectLocations.getProjectsDirectory();
 }
 
 // ── Estructura de un proyecto ────────────────────────────────────────────────────
@@ -596,6 +589,7 @@ ipcMain.handle('create-project', async (_event, { name }) => {
     
     const stateFile = path.join(projectPath, 'project-state.json');
     await atomicJson(stateFile, initialState);
+    await projectLocations.rememberProject(projectPath);
 
     // El anterior se limpia cuando el nuevo YA existe. Antes se limpiaba primero, asi que
     // si la creacion fallaba te quedabas sin el viejo y sin el nuevo.
@@ -624,6 +618,7 @@ ipcMain.handle('load-project', async (_event, { projectPath }) => {
     // o sea borrar los clips y recrear las carpetas vacias. Por eso al reabrir un
     // proyecto no se veia nada: lo destruia el propio acto de abrirlo.
     await initProjectDirs(projectPath);
+    await projectLocations.rememberProject(projectPath);
 
     // La limpieza del ANTERIOR va DESPUES de que el nuevo este cargado. Antes iba
     // primero, asi que una carga fallida destruia el viejo sin abrir el nuevo.
@@ -1320,6 +1315,7 @@ ipcMain.handle('open-project', async () => {
     // Mismo criterio que load-project: NO se limpia el temp del proyecto que se abre,
     // y el anterior se limpia solo cuando el nuevo ya esta cargado.
     await initProjectDirs(projectPath);
+    await projectLocations.rememberProject(projectPath);
 
     const anterior = activeProjectPath;
     activeProjectPath = projectPath;
