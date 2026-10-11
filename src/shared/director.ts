@@ -20,6 +20,11 @@ export interface DirectorInput {
 
 export interface DirectorDecision {
   readonly id: string;
+  /** Editorial meaning of the scene, separate from provider search terms. */
+  readonly visualIntent: string;
+  /** One or two short English alternatives that preserve the scene's meaning. */
+  readonly searchQueries: readonly string[];
+  /** First search query, retained for saved-plan and adapter compatibility. */
   readonly keyword: string;
   // A suggestion; the media runner checks it against the actual source duration.
   readonly sourceStart: number;

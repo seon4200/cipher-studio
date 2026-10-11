@@ -31,7 +31,8 @@ const spec = () => ({ scriptText: 'El mar. La orilla.', projectPath: '/private/p
   weights: [40, 60, 0], aspectRatio: '9:16', originalAudio: false,
   segments: [{ start: 0, end: 3, text: 'El mar.' }, { start: 3, end: 5, text: 'La orilla.' }] });
 const signal = () => new AbortController().signal;
-const proposal = () => ({ scenes: scenes().map(s => ({ id: s.id, keyword: 'ocean waves', sourceStart: 1 })) });
+const proposal = () => ({ scenes: scenes().map(s => ({ id: s.id, visualIntent: 'Oleaje en la costa',
+  searchQueries: ['ocean waves', 'coastal surf'], keyword: 'ocean waves', sourceStart: 1 })) });
 const reply = (items, metadata = {}) => new Response(JSON.stringify({ id: metadata.responseId,
   model: metadata.model, choices: [{ message: {
   content: JSON.stringify({ scenes: items }),
@@ -64,14 +65,14 @@ test('the legacy adapter preserves the request and restores Cipher scene order',
       { id: 'plan-s2', text: 'La orilla.', category: 'original', start: 3, duration: 2 },
     ] });
     assert.ok(!init.body.includes('/private/'));
-    return reply([{ id: 'plan-s2', keyword: ' beach ', timestamp: 4 },
-      { id: 'plan-s1', keyword: ' ocean ', timestamp: 0 }],
+    return reply([{ id: 'plan-s2', visualIntent: 'La orilla', searchQueries: [' beach ', 'shoreline'], timestamp: 4 },
+      { id: 'plan-s1', visualIntent: 'El mar', searchQueries: [' ocean ', 'coast'], timestamp: 0 }],
     { responseId: 'chatcmpl-test-1', model: 'deepseek-chat', requestId: 'req-deepseek-test-1' });
   });
   const metadata = {};
   assert.deepEqual(await directScenes(scenes(), spec(), signal(), value => Object.assign(metadata, value)), [
-    { id: 'plan-s1', keyword: 'ocean', sourceStart: 0 },
-    { id: 'plan-s2', keyword: 'beach', sourceStart: 4 },
+    { id: 'plan-s1', visualIntent: 'El mar', searchQueries: ['ocean', 'coast'], keyword: 'ocean', sourceStart: 0 },
+    { id: 'plan-s2', visualIntent: 'La orilla', searchQueries: ['beach', 'shoreline'], keyword: 'beach', sourceStart: 4 },
   ]);
   assert.deepEqual(metadata, { providerRequestId: 'req-deepseek-test-1',
     actualModelId: 'deepseek-chat', providerResponseId: 'chatcmpl-test-1' });
@@ -101,8 +102,9 @@ test('malformed or partial proposals are rejected as a whole with a typed error'
     { scenes: [...valid, valid[0]] }, { scenes: [valid[0], valid[0]] },
     { scenes: [valid[0], { ...valid[1], id: 'another-plan' }] },
     { scenes: [valid[0], null] }];
-  for (const fields of [{ keyword: '' }, { keyword: '   ' }, { keyword: 'a'.repeat(181) },
-    { keyword: 3 }, { sourceStart: -1 }, { sourceStart: NaN }, { sourceStart: Infinity },
+  for (const fields of [{ visualIntent: '' }, { visualIntent: 'a'.repeat(241) }, { searchQueries: [] },
+    { searchQueries: ['a', 'b', 'c'] }, { searchQueries: ['a'.repeat(101)] }, { searchQueries: ['same', ' SAME '] },
+    { keyword: 'different' }, { sourceStart: -1 }, { sourceStart: NaN }, { sourceStart: Infinity },
     { sourceStart: '2' }, { sourceStart: undefined }])
     invalid.push({ scenes: [valid[0], { ...valid[1], ...fields }] });
   for (const result of invalid) {
@@ -115,7 +117,7 @@ test('malformed or partial proposals are rejected as a whole with a typed error'
 
 test('legacy malformed JSON and null scene entries use the same validation failure', async t => {
   const responses = [new Response('not JSON'), new Response(JSON.stringify({ choices: [] })),
-    reply([null, { id: 'plan-s2', keyword: 'beach', timestamp: 0 }])];
+    reply([null, { id: 'plan-s2', visualIntent: 'La orilla', searchQueries: ['beach'], timestamp: 0 }])];
   fakeNetwork(t, async () => responses.shift());
   for (let i = 0; i < 3; i++)
     await assert.rejects(directScenes(scenes(), spec(), signal()), e => e.code === 'PLAN_RESPONSE');
@@ -163,7 +165,8 @@ test('the extracted transport retains its bounded retry on server failure', asyn
   fakeNetwork(t, async () => {
     calls++;
     return calls === 1 ? new Response('', { status: 500 }) :
-      reply(scenes().map(s => ({ id: s.id, keyword: 'ocean waves', timestamp: 1 })));
+      reply(scenes().map(s => ({ id: s.id, visualIntent: 'Oleaje en la costa',
+        searchQueries: ['ocean waves', 'coastal surf'], timestamp: 1 })));
   });
   assert.deepEqual(await directScenes(scenes(), spec(), signal()), proposal().scenes);
   assert.equal(calls, 2);

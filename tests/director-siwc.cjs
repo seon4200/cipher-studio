@@ -86,7 +86,8 @@ function fixture(t, options = {}) {
         } }), { headers: { 'Content-Type': 'text/event-stream', 'x-request-id': 'req-fixture-42' } });
       }
       const proposal = state.inference === 'invalid-json' ? '{invalid-json'
-        : JSON.stringify({ scenes: [{ id: 'scene-one', keyword: 'moon surface', sourceStart: 1 }] });
+        : JSON.stringify({ scenes: [{ id: 'scene-one', visualIntent: 'Superficie lunar',
+          searchQueries: ['moon surface'], sourceStart: 1 }] });
       const events = state.inference === 'partial'
         ? [{ type: 'response.incomplete', response: { id: 'resp-partial-1', model: 'test-model-one' } }]
         : [{ type: 'response.output_text.delta', delta: proposal },
@@ -191,7 +192,8 @@ test('model catalog uses the account slugs and inference accepts only a complete
   const models = await f.runtime.listModels('oaiapp_test_registration');
   assert.deepEqual(models, [{ slug: 'test-model-one', displayName: 'Test Model One' }]);
   const proposal = await f.runtime.propose('oaiapp_test_registration', models[0].slug, sampleInput, new AbortController().signal);
-  assert.deepEqual(proposal, { scenes: [{ id: 'scene-one', keyword: 'moon surface', sourceStart: 1 }] });
+  assert.deepEqual(proposal, { scenes: [{ id: 'scene-one', visualIntent: 'Superficie lunar',
+    searchQueries: ['moon surface'], sourceStart: 1 }] });
   assert.equal(f.state.lastRequest.input[1].content.includes('C:\\private'), false);
   assert.deepEqual(f.state.lastRequest.input[1].content && JSON.parse(f.state.lastRequest.input[1].content).scenes,
     [{ id: 'scene-one', text: 'La luna.', category: 'stock', startFrame: 0, frames: 90 }]);
@@ -256,7 +258,8 @@ test('malformed JSON and an uncancellable late response are discarded and record
   assert.equal(typeof late.state.resolveLateResponse, 'function', 'the mocked request reached the pending response');
   controller.abort(new Error('late-response-cancel'));
   assert.equal(late.state.requestSignal.aborted, true);
-  const proposal = JSON.stringify({ scenes: [{ id: 'scene-one', keyword: 'late response', sourceStart: 0 }] });
+  const proposal = JSON.stringify({ scenes: [{ id: 'scene-one', visualIntent: 'Una idea tardía',
+    searchQueries: ['late response'], sourceStart: 0 }] });
   const events = [
     { type: 'response.output_text.delta', delta: proposal },
     { type: 'response.completed', response: { id: 'resp-too-late', model: 'test-model-one',

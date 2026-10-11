@@ -42,10 +42,24 @@ export interface SceneResult {
   path: string; sha256: string; frames: number; duration: number;
   sourcePath: string; sourceStart: number; provider: string; candidate?: string;
 }
+export type StockCandidateDecision = 'not-evaluated' | 'metadata-supported' | 'pending-review' | 'rejected' | 'duplicate';
+export interface StockCandidateEvidence {
+  providerId: string; id: string; responseRank: number; evaluationOrder?: number;
+  pageUrl?: string; title?: string; tags?: string[]; type?: string; duration?: number;
+  width?: number; height?: number; views?: number; downloads?: number; likes?: number;
+  relevanceScore: number; decision: StockCandidateDecision; reasons: string[];
+}
+export interface StockSearchRecord {
+  providerId: string; query: string; encodedQuery: string; requestedAt: string; completedAt: string;
+  status: 'completed' | 'empty' | 'failed'; cacheHit: boolean; totalHits?: number;
+  parameters?: Record<string, string | number | boolean>;
+  candidatesReceived: number; candidates: StockCandidateEvidence[]; selectedCandidateId?: string; errorCode?: string;
+}
 export interface BuildScene {
   id: string; phraseIndex: number; text: string;
   startFrame: number; frames: number; category: SourceKind;
-  keyword?: string; sourceStart: number;
+  visualIntent?: string; searchQueries?: string[]; stockSearches?: StockSearchRecord[];
+  stockReviewStatus?: 'pending'; keyword?: string; sourceStart: number;
   status: SceneStatus; attempts: SceneAttempt[]; rejectedCandidates: string[];
   error?: BuildIssue; result?: SceneResult;
 }
@@ -67,7 +81,8 @@ export interface BuildSummary {
   allocationMessage?: string;
   directionOriginStatus: DirectionOriginStatus;
   directionAttempts: PlanDirectionAttempt[];
-  pending: { id: string; category: SourceKind; error?: BuildIssue }[];
+  pending: { id: string; category: SourceKind; error?: BuildIssue; stockReviewRequired?: boolean;
+    stockReviewCandidates?: string[] }[];
 }
 
 export interface BuildAllocationPreview {
@@ -289,7 +304,11 @@ export function summarize(plan: BuildPlan): BuildSummary {
     allocationMessage: plan.allocationMessage,
     directionOriginStatus: plan.directionOriginStatus || 'unrecorded',
     directionAttempts: plan.directionAttempts || [],
-    pending: plan.scenes.filter(s => s.status !== 'complete').map(s =>
-      ({ id: s.id, category: s.category, error: s.error })),
+    pending: plan.scenes.filter(s => s.status !== 'complete').map(s => ({
+      id: s.id, category: s.category, error: s.error, stockReviewRequired: s.stockReviewStatus === 'pending',
+      stockReviewCandidates: s.stockReviewStatus === 'pending' ? [...new Set((s.stockSearches || [])
+        .flatMap(search => search.candidates.filter(candidate => candidate.decision === 'pending-review')
+          .map(candidate => `${candidate.providerId}:${candidate.id}`)))] : undefined,
+    })),
   };
 }

@@ -22,7 +22,8 @@ before(async () => {
   ({ BuildRunner } = require(path.join(temp, 'compiled/main/build/runner.js')));
   const { createSceneDirector } = require(path.join(temp, 'compiled/main/build/director.js'));
   direct = createSceneDirector({ id: 'recovery-test', propose: async input => ({
-    scenes: input.scenes.map(s => ({ id: s.id, keyword: 'ocean waves', sourceStart: s.startFrame / input.fps })),
+    scenes: input.scenes.map(s => ({ id: s.id, visualIntent: 'Oleaje en la costa',
+      searchQueries: ['ocean waves', 'coastal surf'], keyword: 'ocean waves', sourceStart: s.startFrame / input.fps })),
   }) });
   source = path.join(temp, 'vídeo fuente #1.mp4');
   audio = path.join(temp, 'audio principal.wav');
@@ -112,7 +113,8 @@ test('plan-only saves linked direction provenance, creates no media and continue
   const testDirect = async (scenes, _input, _signal, onMetadata) => {
     directionCalls++;
     onMetadata?.({ actualModelId: 'gpt-6-luna', providerRequestId: 'req-test-123', providerResponseId: 'resp-test-456' });
-    return scenes.map(scene => ({ id: scene.id, keyword: 'moon surface', sourceStart: 0 }));
+    return scenes.map(scene => ({ id: scene.id, visualIntent: 'Superficie lunar', searchQueries: ['moon surface'],
+      keyword: 'moon surface', sourceStart: 0 }));
   };
   const firstRunner = new BuildRunner({ direct: testDirect,
     fingerprint: async () => 'plan-only-fingerprint',
@@ -345,7 +347,7 @@ test('Stock tries the next candidate after a corrupt download and records the di
   process.env.PEXELS_API_KEY='test-only';delete process.env.PIXABAY_API_KEY;delete process.env.COVERR_API_KEY;
   const bytes=await fs.readFile(source);const downloads=[];
   global.fetch=async url=>{
-    if(String(url).includes('api.pexels.com'))return Response.json({videos:[1,2].map(id=>({id,duration:8,
+    if(String(url).includes('api.pexels.com'))return Response.json({videos:[1,2].map(id=>({id,duration:8,tags:['forest','trees'],
       video_files:[{file_type:'video/mp4',width:160,height:90,link:`https://fixture.invalid/${id}`}]}))});
     downloads.push(String(url));return new Response(String(url).endsWith('/1')?'corrupt':bytes);
   };
@@ -359,6 +361,114 @@ test('Stock tries the next candidate after a corrupt download and records the di
   } finally {
     global.fetch=fetchBefore;for(const name of names){if(env[name]===undefined)delete process.env[name];else process.env[name]=env[name];}
   }
+});
+
+test('Pixabay records sanitized candidates and reuses its 24-hour search cache', async t => {
+  const spec = await input('pixabay-search-cache', [0, 100, 0]);
+  const scene = model.createPlan(spec, 'pixabay-cache-plan', 'hash', 1).scenes[0];
+  scene.visualIntent = 'Una persona habla consigo misma';
+  scene.searchQueries = ['person speaking alone', 'person talking alone'];
+  scene.keyword = scene.searchQueries[0];
+  const providers = require(path.join(temp, 'compiled/main/build/providers.js'));
+  const beforeFetch = global.fetch, previousKey = process.env.PIXABAY_API_KEY;
+  const previousPexels = process.env.PEXELS_API_KEY, previousCoverr = process.env.COVERR_API_KEY;
+  process.env.PIXABAY_API_KEY = 'fixture-secret-never-persist'; delete process.env.PEXELS_API_KEY; delete process.env.COVERR_API_KEY;
+  const queries = [], searchUrls = [], savedEvidence = [];
+  global.fetch = async url => {
+    const parsed = new URL(String(url));
+    assert.equal(parsed.hostname, 'pixabay.com');
+    searchUrls.push(parsed);
+    queries.push(parsed.searchParams.get('q'));
+    assert.equal(parsed.searchParams.get('per_page'), '3');
+    assert.equal(parsed.searchParams.get('page'), '1');
+    assert.equal(parsed.searchParams.get('safesearch'), 'true');
+    assert.equal(parsed.searchParams.get('lang'), 'en');
+    return Response.json({ totalHits: 1, hits: [{ id: 'ambiguous-1', type: 'film',
+      tags: 'person, alone, portrait', pageURL: 'https://pixabay.com/videos/id-ambiguous-1/', duration: 8,
+      videos: { large: { url: '' }, medium: { url: 'https://cdn.pixabay.com/video/fixture.mp4', width: 1920, height: 1080 } } }] });
+  };
+  const record = async records => savedEvidence.push(JSON.parse(JSON.stringify(records)));
+  const run = () => providers.prepareScene(scene, spec, path.join(temp, 'not-downloaded.mp4'),
+    new AbortController().signal, async () => {}, record);
+  try {
+    await assert.rejects(run(), error => error.code === 'STOCK_REVIEW');
+    assert.deepEqual(queries, ['person speaking alone', 'person talking alone']);
+    assert.equal(searchUrls.length, 2);
+    assert.equal(scene.stockReviewStatus, 'pending');
+    assert.equal(savedEvidence.at(-1)[0].candidates[0].decision, 'pending-review');
+    assert.deepEqual(savedEvidence.at(-1)[0].parameters, { q: 'person speaking alone', lang: 'en', video_type: 'all',
+      order: 'popular', page: 1, per_page: 3, safesearch: true });
+    assert.equal(savedEvidence.at(-1)[0].candidates[0].width, 1920, 'empty large URL falls back to medium');
+    const evidenceText = JSON.stringify(savedEvidence.at(-1));
+    assert.ok(!evidenceText.includes('fixture-secret-never-persist'));
+    assert.ok(!evidenceText.includes('cdn.pixabay.com/video/fixture.mp4'));
+
+    const secondRecords = [];
+    await assert.rejects(providers.prepareScene(scene, spec, path.join(temp, 'not-downloaded.mp4'),
+      new AbortController().signal, async () => {}, async records => secondRecords.push(JSON.parse(JSON.stringify(records)))),
+    error => error.code === 'STOCK_REVIEW');
+    assert.equal(searchUrls.length, 2, 'cached second execution makes no provider request');
+    assert.ok(secondRecords.at(-1).every(item => item.cacheHit));
+    const cacheDir = path.join(spec.projectPath, 'build', 'stock-search-cache');
+    const cacheFiles = await fs.readdir(cacheDir);
+    assert.equal(cacheFiles.length, 2);
+    for (const file of cacheFiles) assert.ok(!(await fs.readFile(path.join(cacheDir, file), 'utf8')).includes('fixture-secret-never-persist'));
+    assert.ok(!queries.some(query => query.includes('&')));
+  } finally {
+    global.fetch = beforeFetch;
+    if (previousKey === undefined) delete process.env.PIXABAY_API_KEY; else process.env.PIXABAY_API_KEY = previousKey;
+    if (previousPexels === undefined) delete process.env.PEXELS_API_KEY; else process.env.PEXELS_API_KEY = previousPexels;
+    if (previousCoverr === undefined) delete process.env.COVERR_API_KEY; else process.env.COVERR_API_KEY = previousCoverr;
+  }
+});
+
+test('Stock never reuses a provider candidate already placed in another scene', async () => {
+  const spec = await input('pixabay-duplicate-candidate', [0, 100, 0]);
+  const scene = model.createPlan(spec, 'pixabay-duplicate-plan', 'hash', 1).scenes[0];
+  scene.searchQueries = ['intense training']; scene.keyword = scene.searchQueries[0];
+  const providers = require(path.join(temp, 'compiled/main/build/providers.js'));
+  const beforeFetch = global.fetch, previousKey = process.env.PIXABAY_API_KEY;
+  const previousPexels = process.env.PEXELS_API_KEY, previousCoverr = process.env.COVERR_API_KEY;
+  process.env.PIXABAY_API_KEY = 'fixture-secret-never-persist'; delete process.env.PEXELS_API_KEY; delete process.env.COVERR_API_KEY;
+  let downloads = 0, records;
+  global.fetch = async url => {
+    const parsed = new URL(String(url));
+    if (parsed.hostname !== 'pixabay.com') downloads++;
+    return Response.json({ totalHits: 1, hits: [{ id: 'already-used', type: 'film', tags: 'intense, training, cardio',
+      pageURL: 'https://pixabay.com/videos/id-already-used/', duration: 8,
+      videos: { large: { url: 'https://cdn.pixabay.com/video/used.mp4', width: 3840, height: 2160 } } }] });
+  };
+  try {
+    await assert.rejects(providers.prepareScene(scene, spec, path.join(temp, 'duplicate-not-downloaded.mp4'),
+      new AbortController().signal, async () => {}, async value => { records = JSON.parse(JSON.stringify(value)); },
+      new Set(['pixabay:already-used'])), error => error.code === 'STOCK_REVIEW');
+    assert.equal(downloads, 0);
+    assert.equal(scene.category, 'stock');
+    assert.equal(records[0].candidates[0].decision, 'duplicate');
+  } finally {
+    global.fetch = beforeFetch;
+    if (previousKey === undefined) delete process.env.PIXABAY_API_KEY; else process.env.PIXABAY_API_KEY = previousKey;
+    if (previousPexels === undefined) delete process.env.PEXELS_API_KEY; else process.env.PEXELS_API_KEY = previousPexels;
+    if (previousCoverr === undefined) delete process.env.COVERR_API_KEY; else process.env.COVERR_API_KEY = previousCoverr;
+  }
+});
+
+test('completed plans persist Stock query evidence and report the source of pending review', async () => {
+  const spec = await input('persist-stock-evidence', [0, 100, 0]);
+  const plan = model.createPlan(spec, 'evidence-plan', 'hash', 1);
+  const scene = plan.scenes[0];
+  scene.visualIntent = 'Esfuerzo repetido'; scene.searchQueries = ['repeated effort']; scene.keyword = 'repeated effort';
+  scene.stockReviewStatus = 'pending';
+  scene.stockSearches = [{ providerId: 'pixabay', query: 'repeated effort', encodedQuery: 'repeated%20effort',
+    requestedAt: new Date().toISOString(), completedAt: new Date().toISOString(), status: 'completed', cacheHit: false,
+    parameters: { q: 'repeated effort', page: 1, per_page: 3, safesearch: true },
+    totalHits: 1, candidatesReceived: 1, candidates: [{ providerId: 'pixabay', id: 'ant-1', responseRank: 1,
+      evaluationOrder: 1, tags: ['ants', 'effort'], relevanceScore: 0, decision: 'pending-review', reasons: ['Metadatos débiles.'] }] }];
+  await storage.savePlan(plan);
+  const reopened = await storage.loadPlan(spec.projectPath);
+  assert.equal(reopened.scenes[0].stockSearches[0].candidates[0].id, 'ant-1');
+  assert.equal(reopened.scenes[0].stockReviewStatus, 'pending');
+  assert.ok(model.summarize(reopened).pending.find(item => item.id === scene.id).stockReviewRequired);
 });
 
 test('damaged completed file is rebuilt without regenerating its neighbors', async () => {

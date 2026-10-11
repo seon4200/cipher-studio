@@ -36,10 +36,13 @@ export function BuildStatus({ summary, busy, canContinue, reason, error, onConti
                 </li>)}</ul>
             </>}
       </details>
-      {summary.pending.some(s => s.error) && <details>
+      {summary.pending.some(s => s.error || s.stockReviewRequired) && <details>
         <summary className="cursor-pointer text-amber-300">Escenas que necesitan atención</summary>
-        <ul className="space-y-1 mt-2">{summary.pending.filter(s => s.error).map(s =>
-          <li key={s.id}>{s.id.slice(-6)} · {s.category}: {s.error!.message}</li>)}</ul>
+        <ul className="space-y-1 mt-2">{summary.pending.filter(s => s.error || s.stockReviewRequired).map(s =>
+          <li key={s.id}>{s.id.slice(-6)} · {s.category}: {s.error?.message || 'Requiere atención.'}
+            {s.stockReviewRequired && <span className="block text-slate-400">Pertinencia Stock pendiente de revisión; candidatos: {
+              s.stockReviewCandidates?.length ? s.stockReviewCandidates.join(', ') : 'sin candidatos con metadatos suficientes'}. No se sustituyó por Original.</span>}
+          </li>)}</ul>
       </details>}
       {!busy && <button disabled={!canContinue} onClick={onContinue}
         className="rounded bg-emerald-800 px-3 py-2 disabled:opacity-40">

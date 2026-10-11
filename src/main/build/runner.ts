@@ -231,9 +231,12 @@ export class BuildRunner {
 
       // Bounded sequential execution first. Parallel workers are a later measured
       // optimization; this preserves deterministic checkpoints and avoids nested retries.
+      const usedStockCandidates = new Set(current.scenes.filter(scene => scene.status === 'complete' && scene.category === 'stock')
+        .map(scene => scene.result?.candidate).filter((candidate): candidate is string => !!candidate));
       for (const scene of current.scenes) {
         check();
         if (scene.status === 'complete') continue;
+        if (scene.stockReviewStatus === 'pending') continue;
         if ((scene.category === 'stock' || !input.originalAudio) && !scene.keyword) {
           scene.status = 'blocked'; scene.error ||= { code: 'DIRECTION_LIMIT', message: 'No se pudo completar la dirección. Revisa la conexión o crea otro plan.', retryable: false };
           await persist(); continue;
@@ -254,10 +257,20 @@ export class BuildRunner {
             scene.attempts.push({ stage: 'media', startedAt: new Date().toISOString(), endedAt: new Date().toISOString(),
               candidate: id, error: { code: reason, message: 'Candidato descartado.', retryable: true } });
             await persist();
-          });
+          }, async records => {
+            check();
+            const byRequest = new Map((scene.stockSearches || []).map(record =>
+              [`${record.providerId}\u0000${record.query}\u0000${record.requestedAt}`, record]));
+            for (const record of records)
+              byRequest.set(`${record.providerId}\u0000${record.query}\u0000${record.requestedAt}`, record);
+            scene.stockSearches = [...byRequest.values()];
+            await persist();
+          }, usedStockCandidates);
           check();
           const verified = await this.deps.validate(result.path, scene.frames, signal, result.sha256); check();
           scene.result = { ...result, ...verified }; scene.status = 'complete';
+          if (result.candidate) usedStockCandidates.add(result.candidate);
+          delete scene.stockReviewStatus;
           delete scene.error;
         } catch (error) {
           check(); scene.error = issue(error); scene.status = scene.error.retryable ? 'failed' : 'blocked';
